@@ -996,7 +996,12 @@ calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm",
       unlist()
     
     if (all(is.na(prob_cos))) {
-      stop("Cannot calculate peptide FDR; contact the developer.")
+      newx <- min_len : max_len
+      
+      prob_cos <- rep(target_fdr, length(newx)) %>% 
+        `names<-`(newx)
+      
+      return(prob_cos)
     }
     
     counts <- as.numeric(names(prob_cos))

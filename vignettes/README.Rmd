@@ -1,0 +1,122 @@
+---
+title: "proteoM"
+author:
+- name: John Doe
+date: "`r Sys.Date()`"
+always_allow_html: true
+output:
+  github_document:
+    toc: yes
+  md_document:
+    toc: yes
+    toc_depth: 4
+    variant: gfm
+  word_document:
+    toc: yes
+  html_document:
+    fig_caption: yes
+    highlight: haddock
+    keep_md: yes
+    theme: united
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    number_sections: true
+  html_vignette: 
+  vignette: >
+    %\VignetteIndexEntry{proteoM}
+    %\VignetteEncoding{UTF-8}`
+    %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  out.width='.40\\linewidth',
+  fig.width=3,
+  fig.height=3,
+  fig.show='hold',
+  fig.align='center',
+  comment = "#>"
+)
+```
+
+
+## Installation
+
+To install this package, start R (latest version) and enter:
+
+```{r installation, include = TRUE, eval = FALSE}
+if (!requireNamespace("devtools", quietly = TRUE))
+    install.packages("devtools")
+devtools::install_github("qzhang503/proteoM")
+```
+
+## Database searches
+
+``` r
+## An example of global TMT
+library(proteoQDA)
+
+# Fasta databases 
+copy_refseq_hs("~/proteoQ/dbs/fasta/refseq")
+copy_refseq_mm("~/proteoQ/dbs/fasta/refseq")
+copy_crap("~/proteoQ/dbs/fasta/crap")
+
+# MGF (e.g. by Proteome Discoverer)
+copy_pd_mgf("~/proteoQ/examples/mgfs")
+
+# Ion searches
+library(proteoM)
+
+matchMS(
+  out_path = "~/proteoQ/examples", 
+  mgf_path = "~/proteoQ/examples/mgfs",
+  fasta = c("~/proteoQ/dbs/fasta/refseq/refseq_hs_2013_07.fasta", 
+            "~/proteoQ/dbs/fasta/refseq/refseq_mm_2013_07.fasta", 
+            "~/proteoQ/dbs/fasta/crap/crap.fasta"), 
+  acc_type = c("refseq_acc", "refseq_acc", "other"), 
+  fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)"),
+  varmods = c("TMT6plex (N-term)", "Acetyl (Protein N-term)", "Oxidation (M)",
+             "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
+  max_miss = 4, 
+  quant = "tmt10", 
+  fdr_type = "protein", 
+)
+
+
+## An example: phospho TMT
+library(proteoQDA)
+
+# Try a different fasta database
+copy_uniprot_hsmm("~/proteoQ/dbs/fasta/uniprot")
+
+# Try MGFs, e.g., by MSConvert
+copy_msconv_mgf("~/proteoQ/examples_p/mgfs")
+
+# Ion searches
+library(proteoM)
+
+matchMS(
+  out_path = "~/proteoQ/examples_p", 
+  mgf_path = "~/proteoQ/examples_p/mgfs",
+  fasta = c("~/proteoQ/dbs/fasta/uniprot/uniprot_hsmm_2020_03.fasta", 
+            "~/proteoQ/dbs/fasta/crap/crap.fasta"), 
+  acc_type = c("uniprot_acc", "other"), 
+  fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)"), 
+  varmods = c("TMT6plex (N-term)", "Acetyl (N-term)", "Oxidation (M)", 
+              "Deamidated (N)", "Phospho (S)", "Phospho (T)", 
+              "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"), 
+  max_miss = 4, 
+  quant = "tmt10", 
+  fdr_type = "protein", 
+)
+```
+
+## Possible Next steps
+
+-   Search against real MGFs.
+-   Data QC and informatics with `library(proteoQ)`.
+
