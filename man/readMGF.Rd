@@ -5,7 +5,7 @@
 \title{Reads MGF files in chunks.}
 \usage{
 readMGF(
-  filepath = "~/proteoQ/mgfs",
+  filepath = "~/proteoM/mgfs",
   min_mass = 500L,
   min_ms2mass = 110L,
   topn_ms2ions = 100L,

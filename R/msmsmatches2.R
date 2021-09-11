@@ -423,9 +423,11 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
     rev_peps <- readRDS(bin_file) %>% 
       lapply(reverse_peps_in_frame) %T>% 
       saveRDS(bin_file2)
+    
+    rm(list = c("rev_peps"))
   }
   
-  rm(list = c("rev_peps", "bin_file", "bin_file2"))
+  rm(list = c("bin_file", "bin_file2"))
   
   # (2) makes MS2 ions 
   aa_masses <- aa_masses_all[[i_max]]
@@ -522,6 +524,7 @@ reverse_peps_in_frame <- function (pep_frame) {
 #' 
 #' @param seqs Lists of peptide sequences.
 reverse_seqs <- function (seqs) {
+  
   fis <- stringi::stri_sub(seqs, 1, 1)
   las <- stringi::stri_sub(seqs, -1, -1)
   lens <- stringi::stri_length(seqs)

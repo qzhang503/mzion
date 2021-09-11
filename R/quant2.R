@@ -15,7 +15,7 @@ grp_prots <- function (out, out_path = NULL) {
   df <- out[rows, ]
   
   if (nrow(df) > 1L) {
-    df <- df %>% proteoQ::groupProts2(out_path)
+    df <- df %>% proteoM::groupProts2(out_path)
   } else {
     df <- df %>%
       dplyr::mutate(prot_isess = TRUE,
@@ -65,15 +65,15 @@ groupProts2 <- function (df, out_path = NULL) {
   # 11 MNT_HUMAN    EEQERLR
   
   # --- (1) protein ~ peptide map ---
-  mat <- proteoQ::map_pepprot2(df[, c("prot_acc", "pep_seq")], out_path)
+  mat <- proteoM::map_pepprot2(df[, c("prot_acc", "pep_seq")], out_path)
   gc()
   
   # --- (2) protein ~ protein groups by distance map ---
-  grps <- proteoQ::cut_protgrps2(mat, out_path)
+  grps <- proteoM::cut_protgrps2(mat, out_path)
   gc()
   
   # --- (3) set covers by groups ---
-  sets <- proteoQ::greedysetcover3(mat)
+  sets <- proteoM::greedysetcover3(mat)
   gc()
   
   if (!is.null(out_path)) {
@@ -116,7 +116,7 @@ groupProts2 <- function (df, out_path = NULL) {
 }
 
 
-#' Helper of \link{groupProts}.
+#' Helper of \link{groupProts2}.
 #'
 #' Builds the logical map between peptide (in rows) and proteins (in columns).
 #'
@@ -313,7 +313,7 @@ cut_protgrps2 <- function (mat = NULL, out_path = NULL) {
   # NP_000007        TRUE      TRUE     FALSE
   
   # --- finds protein groups
-  mat2 <- proteoQ::as_lgldist(mat2, diag = FALSE, upper = FALSE)
+  mat2 <- proteoM::as_lgldist(mat2, diag = FALSE, upper = FALSE)
   gc()
   
   hc <- hclust(mat2, method = "single")

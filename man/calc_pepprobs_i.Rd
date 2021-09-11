@@ -10,7 +10,7 @@ calc_pepprobs_i(
   type_ms2ions = "by",
   penalize_sions = FALSE,
   ppm_ms2 = 25L,
-  out_path = "~/proteoQ/outs",
+  out_path = "~/proteoM/outs",
   digits = 5L
 )
 }

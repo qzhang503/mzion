@@ -20,8 +20,9 @@ theoretical peptides.}
 \item{aa_masses}{Amino-acid lookup at a given combination of fixed and
 variable.}
 
-\item{mgf_path}{The file path to a list of MGF files. There is no default and
-the experimenters need to supply the files.}
+\item{mgf_path}{The file path to a list of MGF files. The experimenters need
+to supply the files. Note that the supported MGFs are from MSConvert or
+Proteome Discoverer.}
 
 \item{fmods_nl}{The attribute of \code{fmods_nl} from an \code{aa_masses}.}
 }

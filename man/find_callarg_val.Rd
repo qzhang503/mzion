@@ -6,7 +6,7 @@
 \usage{
 find_callarg_val(
   time = ".2021-05-21_211227",
-  path = "~/proteoQ/.MSearch/Cache/Calls",
+  path = "~/proteoM/.MSearch/Cache/Calls",
   fun = "calc_pepmasses",
   arg = "fasta"
 )

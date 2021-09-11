@@ -50,7 +50,7 @@ load_mgfs <- function (mgf_path, min_mass = 500L, min_ms2mass = 110L,
 #' mgf_queries <- readMGF()
 #' }
 #' @export
-readMGF <- function (filepath = "~/proteoQ/mgfs",
+readMGF <- function (filepath = "~/proteoM/mgfs",
                      min_mass = 500L, min_ms2mass = 110L, topn_ms2ions = 100L,
                      ret_range = c(0, Inf), ppm_ms1 = 20L, ppm_ms2 = 25L,
                      index_ms2 = FALSE,
@@ -166,7 +166,7 @@ readMGF <- function (filepath = "~/proteoQ/mgfs",
 #' @param n_to_charge The number of lines from BEGIN to CHARGE.
 #' @inheritParams readMGF
 #' @inheritParams matchMS
-read_mgf_chunks <- function (filepath = "~/proteoQ/mgfs",
+read_mgf_chunks <- function (filepath = "~/proteoM/mgfs",
                              topn_ms2ions = 100L, ret_range = c(0L, Inf),
                              ppm_ms2 = 25L, min_ms2mass = 110L, index_ms2 = FALSE,
                              pat_file, pat_scan, n_spacer, n_hdr, n_to_pepmass,
@@ -183,9 +183,9 @@ read_mgf_chunks <- function (filepath = "~/proteoQ/mgfs",
 
   parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
   parallel::clusterExport(cl, list("proc_mgf_chunks"),
-                          envir = environment(proteoQ:::proc_mgf_chunks))
+                          envir = environment(proteoM:::proc_mgf_chunks))
   parallel::clusterExport(cl, list("proc_mgfs"),
-                          envir = environment(proteoQ:::proc_mgfs))
+                          envir = environment(proteoM:::proc_mgfs))
 
   out <- parallel::clusterApply(cl, file.path(filepath, filelist),
                                 proc_mgf_chunks_i,
@@ -314,7 +314,7 @@ proc_mgf_chunks_i <- function (file, topn_ms2ions = 100L, ret_range = c(0L, Inf)
 #' @inheritParams read_mgf_chunks
 proc_mgf_chunks <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
                              ppm_ms2 = 25L, min_ms2mass = 110L, index_ms2 = FALSE,
-                             filepath = file.path("~/proteoQ/mgfs/temp"),
+                             filepath = file.path("~/proteoM/mgfs/temp"),
                              pat_file, pat_scan, n_spacer, n_hdr, n_to_pepmass,
                              n_to_title, n_to_scan, n_to_rt, n_to_charge) {
 

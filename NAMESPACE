@@ -42,7 +42,6 @@ export(search_mgf)
 export(search_mgf_frames)
 export(search_mgf_frames_d)
 export(subpeps_by_vmods)
-export(write_fasta)
 import(data.table, except = c(last, first, between, transpose,
   melt, dcast))
 import(dplyr)

@@ -132,8 +132,9 @@ variable.}
 \item{mod_indexes}{Integer; the indexes of fixed and/or variable
 modifications.}
 
-\item{mgf_path}{The file path to a list of MGF files. There is no default and
-the experimenters need to supply the files.}
+\item{mgf_path}{The file path to a list of MGF files. The experimenters need
+to supply the files. Note that the supported MGFs are from MSConvert or
+Proteome Discoverer.}
 
 \item{out_path}{An output path.}
 

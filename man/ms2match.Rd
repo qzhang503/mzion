@@ -36,8 +36,9 @@ ms2match(
 )
 }
 \arguments{
-\item{mgf_path}{The file path to a list of MGF files. There is no default and
-the experimenters need to supply the files.}
+\item{mgf_path}{The file path to a list of MGF files. The experimenters need
+to supply the files. Note that the supported MGFs are from MSConvert or
+Proteome Discoverer.}
 
 \item{aa_masses_all}{A list of amino acid lookups for all the combination of
 fixed and variable modifications.}
@@ -48,8 +49,7 @@ fixed and variable modifications.}
 modifications.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
-prepended directory path. There is no default and the experimenters need to
-supply the files.}
+prepended directory path. The experimenters need to supply the files.}
 
 \item{acc_pattern}{Regular expression(s) describing the patterns to separate
 the header lines of fasta entries. At the \code{NULL} default, the pattern

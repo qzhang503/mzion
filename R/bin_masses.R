@@ -6,7 +6,7 @@
 #' @inheritParams matchMS
 bin_ms1masses <- function (res = NULL, min_mass = 500L,
                            max_mass = 10000L, ppm_ms1 = 20L) {
-
+  
   .path_fasta <- get(".path_fasta", envir = .GlobalEnv)
   .time_stamp <- get(".time_stamp", envir = .GlobalEnv)
 
@@ -229,7 +229,7 @@ binTheoPeps_bysets <- function (idxes = NULL, min_mass = 500L, max_mass = 10000L
 #' @param out_path The output path.
 #' @examples
 #' \donttest{
-#' res <- readRDS("~/proteoQ/dbs/fasta/uniprot/pepmass/uniprot_hs_2020_05_2miss.rds")
+#' res <- readRDS("~/proteoM/dbs/fasta/uniprot/pepmass/uniprot_hs_2020_05_2miss.rds")
 #' theopeps <- binTheoPeps(res)
 #' }
 #' @return Lists of theoretical peptides binned by MS1 masses. The lists

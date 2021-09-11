@@ -5,10 +5,10 @@
 \title{Searches MS ions.}
 \usage{
 matchMS(
-  out_path = "~/proteoQ/outs",
+  out_path = "~/proteoM/outs",
   mgf_path = file.path(out_path, "mgf"),
-  fasta = c("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-    "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+  fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+    "~/proteoM/dbs/fasta/crap/crap.fasta"),
   acc_type = c("uniprot_acc", "other"),
   acc_pattern = NULL,
   fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)"),
@@ -40,12 +40,12 @@ matchMS(
 \arguments{
 \item{out_path}{The output path.}
 
-\item{mgf_path}{The file path to a list of MGF files. There is no default and
-the experimenters need to supply the files.}
+\item{mgf_path}{The file path to a list of MGF files. The experimenters need
+to supply the files. Note that the supported MGFs are from MSConvert or
+Proteome Discoverer.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
-prepended directory path. There is no default and the experimenters need to
-supply the files.}
+prepended directory path. The experimenters need to supply the files.}
 
 \item{acc_type}{Character string(s); the types of protein accessions in one
 of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
@@ -146,22 +146,22 @@ Database searches of MSMS data.
 \examples{
 \donttest{
 matchMS(
-  fasta = c("~/proteoQ/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-            "~/proteoQ/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-            "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+  fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+            "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+            "~/proteoM/dbs/fasta/crap/crap.fasta"),
   acc_type = c("refseq_acc", "refseq_acc", "other"),
   max_miss = 2,
   quant = "tmt10",
   fdr_type = "protein",
-  out_path = "~/proteoQ/examples",
+  out_path = "~/proteoM/examples",
 )
 
 \dontrun{
 # Supposed phosphopeptides and TMTpro
 matchMS(
-  fasta = c("~/proteoQ/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-            "~/proteoQ/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-            "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+  fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+            "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+            "~/proteoM/dbs/fasta/crap/crap.fasta"),
   acc_type = c("refseq_acc", "refseq_acc", "other"),
   fixedmods = c("TMTpro (K)", "Carbamidomethyl (C)"),
   varmods = c("TMTpro (N-term)", "Acetyl (N-term)", "Oxidation (M)",
@@ -170,7 +170,7 @@ matchMS(
   max_miss = 2,
   quant = "tmt16",
   fdr_type = "protein",
-  out_path = "~/proteoQ/examples",
+  out_path = "~/proteoM/examples",
 )
 }
 

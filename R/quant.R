@@ -196,7 +196,7 @@ find_reporters_ppm <- function (theos, expts, ppm_reporters = 10, len, nms) {
 #'
 #' @param out_path An output path.
 #' @param df The results after scoring.
-add_prot_acc <- function (df, out_path = "~/proteoQ/outs") {
+add_prot_acc <- function (df, out_path = "~/proteoM/outs") {
   
   # Targets, theoretical
   bins <- list.files(path = file.path(.path_fasta, "pepmasses", .time_stamp),
@@ -450,9 +450,9 @@ groupProts <- function (df, out_path = NULL) {
     
     clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
     clusterExport(cl, list("find_ess_prots"), 
-                  envir = environment(proteoQ:::find_ess_prots))
+                  envir = environment(proteoM:::find_ess_prots))
     clusterExport(cl, list("greedysetcover"), 
-                  envir = environment(proteoQ:::greedysetcover))
+                  envir = environment(proteoM:::greedysetcover))
 
     sets <- parLapply(cl, mats, find_ess_prots)
 

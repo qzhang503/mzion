@@ -102,7 +102,9 @@ find_mass_error_range <- function (x = 500L, ppm = 20L) {
 
 
 #' Splits data by groups then into chunks.
-#'
+#' 
+#' Not currently used: groupProts <- map_pepprot <- chunk_groupsplit
+#' 
 #' @inheritParams chunksplit
 #' @param f A factor; see also base \code{split}.
 chunk_groupsplit <- function (data, f, n_chunks) {
@@ -122,7 +124,8 @@ chunk_groupsplit <- function (data, f, n_chunks) {
 
   data <- split(data, grps)
 
-  map(data, ~ do.call(rbind, .x))
+  # second circle of inferno
+  purrr::map(data, ~ do.call(rbind, .x))
 }
 
 
@@ -181,7 +184,6 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
   if (len == 0L) return(data)
 
   # The finer groups by 'nx'
-
   grps_nx <- local({
     labsx <- levels(cut(1:len, nx))
 
@@ -194,7 +196,6 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
   })
 
   # The equated size for a chunk
-
   size_chunk <- local({
     size_nx <- data %>%
       split(., grps_nx) %>%
@@ -211,7 +212,6 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
       cumsum()
 
     # the position indexes
-
     ps <- purrr::map_dbl(1:(n_chunks-1), ~ {
       which(size_data < size_chunk * .x) %>% `[`(length(.))
     })
@@ -235,11 +235,11 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #' @inheritParams calc_pepfdr
 #' @inheritParams calc_tmtint
 #' @inheritParams load_fasta2
-#' @param mgf_path The file path to a list of MGF files. There is no default and
-#'   the experimenters need to supply the files.
+#' @param mgf_path The file path to a list of MGF files. The experimenters need
+#'   to supply the files. Note that the supported MGFs are from MSConvert or
+#'   Proteome Discoverer.
 #' @param fasta Character string(s) to the name(s) of fasta file(s) with
-#'   prepended directory path. There is no default and the experimenters need to
-#'   supply the files.
+#'   prepended directory path. The experimenters need to supply the files.
 #' @param acc_pattern Regular expression(s) describing the patterns to separate
 #'   the header lines of fasta entries. At the \code{NULL} default, the pattern
 #'   will be automated when \code{acc_type} are among c("uniprot_acc",
@@ -263,22 +263,22 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #' @examples
 #' \donttest{
 #' matchMS(
-#'   fasta = c("~/proteoQ/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-#'             "~/proteoQ/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-#'             "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+#'   fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+#'             "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+#'             "~/proteoM/dbs/fasta/crap/crap.fasta"),
 #'   acc_type = c("refseq_acc", "refseq_acc", "other"),
 #'   max_miss = 2,
 #'   quant = "tmt10",
 #'   fdr_type = "protein",
-#'   out_path = "~/proteoQ/examples",
+#'   out_path = "~/proteoM/examples",
 #' )
 #'
 #' \dontrun{
 #' # Supposed phosphopeptides and TMTpro
 #' matchMS(
-#'   fasta = c("~/proteoQ/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-#'             "~/proteoQ/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-#'             "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+#'   fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+#'             "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+#'             "~/proteoM/dbs/fasta/crap/crap.fasta"),
 #'   acc_type = c("refseq_acc", "refseq_acc", "other"),
 #'   fixedmods = c("TMTpro (K)", "Carbamidomethyl (C)"),
 #'   varmods = c("TMTpro (N-term)", "Acetyl (N-term)", "Oxidation (M)",
@@ -287,16 +287,16 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #'   max_miss = 2,
 #'   quant = "tmt16",
 #'   fdr_type = "protein",
-#'   out_path = "~/proteoQ/examples",
+#'   out_path = "~/proteoM/examples",
 #' )
 #' }
 #'
 #' }
 #' @export
-matchMS <- function (out_path = "~/proteoQ/outs",
+matchMS <- function (out_path = "~/proteoM/outs",
                      mgf_path = file.path(out_path, "mgf"),
-                     fasta = c("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-                               "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+                     fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+                               "~/proteoM/dbs/fasta/crap/crap.fasta"),
                      acc_type = c("uniprot_acc", "other"),
                      acc_pattern = NULL,
                      fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)"),
@@ -334,6 +334,30 @@ matchMS <- function (out_path = "~/proteoQ/outs",
   )
 
   ## Preparation
+  # accession pattern
+  if ((!is.null(acc_pattern)) && acc_pattern == "") {
+    acc_pattern <- NULL
+  }
+  
+  # numeric types 
+  # (for parameter matching when calling cache)
+  maxn_fasta_seqs <- as.integer(maxn_fasta_seqs)
+  maxn_vmods_setscombi <- as.integer(maxn_vmods_setscombi)
+  maxn_vmods_per_pep <- as.integer(maxn_vmods_per_pep)
+  maxn_sites_per_vmod <- as.integer(maxn_sites_per_vmod)
+  maxn_vmods_sitescombi_per_pep <- as.integer(maxn_vmods_sitescombi_per_pep)
+  min_len <- as.integer(min_len)
+  max_len <- as.integer(max_len)
+  max_miss <- as.integer(max_miss)
+  topn_ms2ions <- as.integer(topn_ms2ions)
+  minn_ms2 <- as.integer(minn_ms2)
+  ppm_ms1 <- as.integer(ppm_ms1)
+  ppm_ms2 <- as.integer(ppm_ms2)
+  ppm_reporters <- as.integer(ppm_reporters)
+  digits <- as.integer(digits)
+  
+  target_fdr <- as.double(target_fdr)
+  
   # fdr_type
   fdr_type <- rlang::enexpr(fdr_type)
   oks <- eval(formals()[["fdr_type"]])
@@ -408,6 +432,7 @@ matchMS <- function (out_path = "~/proteoQ/outs",
   ## Mass range
   min_mass <- 500L
   max_mass <- 10000L
+  min_ms2mass <- 110L
 
   ## Bin theoretical peptides
   bin_ms1masses(res, min_mass, max_mass, ppm_ms1)
@@ -418,7 +443,7 @@ matchMS <- function (out_path = "~/proteoQ/outs",
   ## MGFs
   load_mgfs(mgf_path = mgf_path,
             min_mass = min_mass,
-            min_ms2mass = 110L,
+            min_ms2mass = min_ms2mass,
             topn_ms2ions = topn_ms2ions,
             ppm_ms1 = ppm_ms1,
             ppm_ms2 = ppm_ms2,
@@ -437,10 +462,10 @@ matchMS <- function (out_path = "~/proteoQ/outs",
            minn_ms2 = minn_ms2,
            ppm_ms1 = ppm_ms1,
            ppm_ms2 = ppm_ms2,
-           min_ms2mass = 110L,
+           min_ms2mass = min_ms2mass,
            quant = quant,
            ppm_reporters = ppm_reporters,
-
+           
            # dummy for argument matching
            fasta = fasta,
            acc_type = acc_type,
@@ -455,10 +480,8 @@ matchMS <- function (out_path = "~/proteoQ/outs",
            min_len = min_len,
            max_len = max_len,
            max_miss = max_miss,
-
+           
            digits = digits)
-
-  gc()
 
   ## Peptide scores
   if (file.exists(file.path(out_path, "scores.rds"))) {
@@ -530,6 +553,153 @@ matchMS <- function (out_path = "~/proteoQ/outs",
 }
 
 
+#' Helper of \link{ms2match}.
+#' 
+#' @param min_ms2mass Minimum MS2 m/z.
+#' @inheritParams ms2match
+#' @inheritParams matchMS
+#' @examples
+#' try_ms2match(mgf_path = mgf_path,
+#'   aa_masses_all = aa_masses_all,
+#'   out_path = out_path,
+#'   mod_indexes = mod_indexes,
+#'   type_ms2ions = type_ms2ions,
+#'   maxn_vmods_per_pep = maxn_vmods_per_pep,
+#'   maxn_sites_per_vmod = maxn_sites_per_vmod,
+#'   maxn_vmods_sitescombi_per_pep =
+#'     maxn_vmods_sitescombi_per_pep,
+#'   minn_ms2 = minn_ms2,
+#'   ppm_ms1 = ppm_ms1,
+#'   ppm_ms2 = ppm_ms2,
+#'   min_ms2mass = min_ms2mass,
+#'   quant = quant,
+#'   ppm_reporters = ppm_reporters,
+#'   
+#'   # dummy for argument matching
+#'   fasta = fasta,
+#'   acc_type = acc_type,
+#'   acc_pattern = acc_pattern,
+#'   topn_ms2ions = topn_ms2ions,
+#'   fixedmods = fixedmods,
+#'   varmods = varmods,
+#'   include_insource_nl = include_insource_nl,
+#'   enzyme = enzyme,
+#'   maxn_fasta_seqs = maxn_fasta_seqs,
+#'   maxn_vmods_setscombi = maxn_vmods_setscombi,
+#'   min_len = min_len,
+#'   max_len = max_len,
+#'   max_miss = max_miss,
+#'   
+#'   target_fdr = target_fdr, 
+#'   fdr_type = fdr_type, 
+#'   combine_tier_three = combine_tier_three, 
+#'   
+#'   digits = digits)
+try_ms2match <- function (mgf_path, aa_masses_all, out_path, mod_indexes, 
+                          type_ms2ions, maxn_vmods_per_pep, maxn_sites_per_vmod,
+                          maxn_vmods_sitescombi_per_pep, minn_ms2, ppm_ms1, 
+                          ppm_ms2, min_ms2mass, quant, ppm_reporters,
+                          fasta, acc_type, acc_pattern, topn_ms2ions,
+                          fixedmods, varmods, include_insource_nl, enzyme, 
+                          maxn_fasta_seqs, maxn_vmods_setscombi, 
+                          min_len, max_len, max_miss, 
+                          target_fdr, fdr_type, combine_tier_three, 
+                          digits) {
+  
+  ans <- tryCatch(
+    ms2match(mgf_path = mgf_path,
+             aa_masses_all = aa_masses_all,
+             out_path = out_path,
+             mod_indexes = mod_indexes,
+             type_ms2ions = type_ms2ions,
+             maxn_vmods_per_pep = maxn_vmods_per_pep,
+             maxn_sites_per_vmod = maxn_sites_per_vmod,
+             maxn_vmods_sitescombi_per_pep =
+               maxn_vmods_sitescombi_per_pep,
+             minn_ms2 = minn_ms2,
+             ppm_ms1 = ppm_ms1,
+             ppm_ms2 = ppm_ms2,
+             min_ms2mass = min_ms2mass,
+             quant = quant,
+             ppm_reporters = ppm_reporters,
+             
+             # dummy for argument matching
+             fasta = fasta,
+             acc_type = acc_type,
+             acc_pattern = acc_pattern,
+             topn_ms2ions = topn_ms2ions,
+             fixedmods = fixedmods,
+             varmods = varmods,
+             include_insource_nl = include_insource_nl,
+             enzyme = enzyme,
+             maxn_fasta_seqs = maxn_fasta_seqs,
+             maxn_vmods_setscombi = maxn_vmods_setscombi,
+             min_len = min_len,
+             max_len = max_len,
+             max_miss = max_miss,
+             
+             digits = digits),
+    error = function(e) NA
+  )
+  
+  if (!is.null(ans)) {
+    message(
+      "Retry `matchMS()` with a new R session...\n", 
+      "\"Error in save_call2\" at the end will not affect the research results."
+    )
+    
+    fileConn <- file(file.path("~/matchMS.R"))
+    
+    lines <- c(
+      "library(proteoM)\n",
+      "proteoM::matchMS(",
+      paste0("  out_path = \"", out_path, "\","),
+      paste0("  mgf_path = \"", mgf_path, "\","),
+      paste0("  fasta = c(\"", paste(fasta, collapse = "\", \""), "\"),"),
+      paste0("  acc_type = c(\"", paste(acc_type, collapse = "\", \""), "\"),"),
+      paste0("  acc_pattern = \"", acc_pattern, "\","),
+      paste0("  fixedmods = c(\"", paste(fixedmods, collapse = "\", \""), "\"),"),
+      paste0("  varmods = c(\"", paste(varmods, collapse = "\", \""), "\"),"),
+      paste0("  include_insource_nl = ", include_insource_nl, ","),
+      paste0("  enzyme = c(\"", paste(enzyme, collapse = "\", \""), "\"),"),
+      paste0("  maxn_fasta_seqs = ", maxn_fasta_seqs, "L,"),
+      paste0("  maxn_vmods_setscombi = ", maxn_vmods_setscombi, "L,"),
+      paste0("  maxn_vmods_per_pep = ", maxn_vmods_per_pep, "L,"),
+      paste0("  maxn_sites_per_vmod = ", maxn_sites_per_vmod, "L,"),
+      paste0("  maxn_vmods_sitescombi_per_pep = ", maxn_vmods_sitescombi_per_pep, "L,"),
+      paste0("  min_len = ", min_len, "L,"),
+      paste0("  max_len = ", max_len, "L,"),
+      paste0("  max_miss = ", max_miss, "L,"),
+      paste0("  type_ms2ions = \"", type_ms2ions, "\","),
+      paste0("  topn_ms2ions = ", topn_ms2ions, "L,"),
+      paste0("  minn_ms2 = ", minn_ms2, "L,"),
+      paste0("  ppm_ms1 = ", ppm_ms1, "L,"),
+      paste0("  ppm_ms2 = ", ppm_ms2, "L,"),
+      paste0("  ppm_reporters = ", ppm_reporters, "L,"),
+      paste0("  quant = \"", quant, "\","),
+      
+      paste0("  target_fdr = ", target_fdr, ","),
+      paste0("  fdr_type = \"", fdr_type, "\","),
+      paste0("  combine_tier_three = ", combine_tier_three, ","),
+      
+      paste0("  digits = ", digits, "L"),
+      ")\n",
+      "unlink(\"~/matchMS.R\")"
+    )
+    
+    writeLines(lines, fileConn)
+    close(fileConn)
+    
+    rstudioapi::restartSession(command='source("~/matchMS.R")')
+  } else {
+    rm(list = "ans")
+    gc()
+  }
+  
+  invisible(NULL)
+}
+
+
 #' Helper of \link{psmC2Q}.
 #'
 #' @inheritParams psmC2Q
@@ -548,7 +718,7 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
     out <- NA
   } else {
     out <- tryCatch(
-      proteoQ::psmC2Q(out,
+      proteoM::psmC2Q(out,
                       out_path = out_path,
                       fdr_type = fdr_type,
                       combine_tier_three = combine_tier_three),
@@ -558,7 +728,7 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
 
   if (length(out) == 1L && is.na(out)) {
     message("Retry with a new R session: \n\n",
-            "proteoQ::reproc_psmC(\n",
+            "proteoM::reproc_psmC(\n",
             "  out_path = \"", out_path, "\",\n",
             "  fdr_type = \"", fdr_type, "\",\n",
             "  combine_tier_three  = ", combine_tier_three, "\n",
@@ -567,8 +737,8 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
     fileConn <- file(file.path("~/post_psmC.R"))
 
     lines <- c(
-      "library(proteoQ)\n",
-      "proteoQ::reproc_psmC(",
+      "library(proteoM)\n",
+      "proteoM::reproc_psmC(",
       paste0("  out_path = \"", out_path, "\","),
       paste0("  fdr_type = \"", fdr_type, "\","),
       paste0("  combine_tier_three = ", combine_tier_three),
@@ -606,15 +776,15 @@ try_calc_peploc <- function (out = NULL) {
 
   if (is.na(out)) {
     message("Retry with a new R session: \n\n",
-            "proteoQ::calc_peploc(\n",
+            "proteoM::calc_peploc(\n",
             "  out = \"", file.path(out_path, "scores.rds"), "\" \n",
             ")")
 
     fileConn <- file(file.path("~/calc_peploc.R"))
 
     lines <- c(
-      "library(proteoQ)\n",
-      "proteoQ::calc_peploc(",
+      "library(proteoM)\n",
+      "proteoM::calc_peploc(",
       paste0("  out = readRDS(", "\"", file.path(out_path, "scores.rds"), "\"", ")"),
       ")\n",
       "unlink(\"~/calc_peploc.R\")"
@@ -840,15 +1010,15 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
     }
   }
 
-  out <- out %>% proteoQ::grp_prots(file.path(out_path, "temp1"))
+  out <- out %>% proteoM::grp_prots(file.path(out_path, "temp1"))
 
   if (nrow(out2) > 0L) {
-    out2 <- out2 %>% proteoQ::grp_prots(file.path(out_path, "temp2"))
+    out2 <- out2 %>% proteoM::grp_prots(file.path(out_path, "temp2"))
   } else {
     out2 <- out[0, ]
   }
 
-  out3 <- out3 %>% proteoQ::grp_prots(file.path(out_path, "temp3"))
+  out3 <- out3 %>% proteoM::grp_prots(file.path(out_path, "temp3"))
 
   # Cleanup
   out <- dplyr::bind_cols(
@@ -857,9 +1027,9 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
     out %>% .[grepl("^psm_", names(.))],
     out %>% .[!grepl("^prot_|^pep_|^psm_", names(.))],
   ) %>%
-    proteoQ:::reloc_col_after("prot_es", "prot_family_member") %>%
-    proteoQ:::reloc_col_after("prot_es_co", "prot_es") %>%
-    proteoQ:::reloc_col_after("prot_tier", "prot_isess")
+    reloc_col_after("prot_es", "prot_family_member") %>%
+    reloc_col_after("prot_es_co", "prot_es") %>%
+    reloc_col_after("prot_tier", "prot_isess")
 
   # Three-tier combines
   max <- max(out$prot_hit_num, na.rm = TRUE)
@@ -1154,15 +1324,15 @@ pmatch_bymgfs_i <- function (i, aa_masses, mgf_path, n_cores, out_path,
   clusterExport(cl, list("%>%"),
                 envir = environment(magrittr::`%>%`))
   clusterExport(cl, list("search_mgf_frames_d"),
-                envir = environment(proteoQ:::search_mgf_frames_d))
+                envir = environment(proteoM:::search_mgf_frames_d))
   clusterExport(cl, list("search_mgf_frames"),
-                envir = environment(proteoQ:::search_mgf_frames))
+                envir = environment(proteoM:::search_mgf_frames))
   clusterExport(cl, list("search_mgf"),
-                envir = environment(proteoQ:::search_mgf))
+                envir = environment(proteoM:::search_mgf))
   clusterExport(cl, list("find_ppm_outer_bypep"),
-                envir = environment(proteoQ:::find_ppm_outer_bypep))
+                envir = environment(proteoM:::find_ppm_outer_bypep))
   clusterExport(cl, list("find_ppm_outer_bycombi"),
-                envir = environment(proteoQ:::find_ppm_outer_bycombi))
+                envir = environment(proteoM:::find_ppm_outer_bycombi))
 
   out <- clusterMap(cl, search_mgf_frames_d,
                     mgf_frames, theopeps,

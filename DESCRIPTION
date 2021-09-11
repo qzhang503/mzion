@@ -1,7 +1,7 @@
 Package: proteoM
 Type: Package
 Title: Database Searches of Mass Spectrometrirc Data
-Version: 0.1.0
+Version: 0.1.0.1
 Authors@R: 
     person(given = "Qiang",
            family = "Zhang",
@@ -34,6 +34,7 @@ Imports:
     magrittr,
     parallel,
 	proteoCpp, 
+	proteoQDA,
 	proxyC,
     rlang,
     MASS,
@@ -41,7 +42,8 @@ Imports:
     Rcpp
 RoxygenNote: 7.1.1
 Remotes:
-	qzhang503/proteoCpp
+	qzhang503/proteoCpp, 
+	qzhang503/proteoQDA
 LinkingTo: 
     Rcpp
 

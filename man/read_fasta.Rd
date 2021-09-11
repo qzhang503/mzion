@@ -24,21 +24,21 @@ Reads a file in fasta format by line.
 \examples{
 \donttest{
 # assume the file and location of "uniprot_hs_2020_05.fasta"
-fasta <- read_fasta("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
+fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 head(names(fasta))
 
 # use the first fifty characters
-fasta <- read_fasta("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
                     ">(.{50}).*")
 head(names(fasta))
 
 # uniprot_acc
-fasta <- read_fasta("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
                     ">..\\\\|([^\\\\|]+)\\\\|.*")
 head(names(fasta))
 
 # use every in the header
-fasta <- read_fasta("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
                     ">(.*)")
 head(names(fasta))
 }

@@ -326,7 +326,7 @@ save_call2 <- function(path, fun, time = NULL) {
 #' @import dplyr purrr
 #' @importFrom magrittr %>% %T>% %$%
 find_callarg_val <- function (time = ".2021-05-21_211227",
-                              path = "~/proteoQ/.MSearch/Cache/Calls",
+                              path = "~/proteoM/.MSearch/Cache/Calls",
                               fun = "calc_pepmasses", arg = "fasta") {
 
   stopifnot(length(arg) == 1L)
@@ -381,7 +381,7 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
 #' @inheritParams find_callarg_vals
 #' @importFrom rlang caller_env
 #' @return An empty object if no matches.
-match_calltime <- function (path = "~/proteoQ/.MSearch/Cache/Calls",
+match_calltime <- function (path = "~/proteoM/.MSearch/Cache/Calls",
                             fun = "calc_pepmasses",
                             nms = c("parallel", "out_path"),
                             type = c(TRUE, FALSE)) {

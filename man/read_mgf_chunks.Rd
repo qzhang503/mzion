@@ -5,7 +5,7 @@
 \title{Reads mgfs in chunks.}
 \usage{
 read_mgf_chunks(
-  filepath = "~/proteoQ/mgfs",
+  filepath = "~/proteoM/mgfs",
   topn_ms2ions = 100L,
   ret_range = c(0L, Inf),
   ppm_ms2 = 25L,

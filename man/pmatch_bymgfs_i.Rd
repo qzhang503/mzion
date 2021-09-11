@@ -25,8 +25,9 @@ pmatch_bymgfs_i(
 \item{i}{Integer; the index for a set of corresponding aa_masses and
 theoretical peptides.}
 
-\item{mgf_path}{The file path to a list of MGF files. There is no default and
-the experimenters need to supply the files.}
+\item{mgf_path}{The file path to a list of MGF files. The experimenters need
+to supply the files. Note that the supported MGFs are from MSConvert or
+Proteome Discoverer.}
 
 \item{n_cores}{Integer; the number of computer cores.}
 

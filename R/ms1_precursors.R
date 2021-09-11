@@ -49,7 +49,7 @@
 #'
 #' @export
 calc_pepmasses2 <- function (
-  fasta = "~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+  fasta = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
   acc_type = "uniprot_acc",
   acc_pattern = NULL,
   fixedmods = c("TMT6plex (K)",
@@ -92,7 +92,7 @@ calc_pepmasses2 <- function (
   stopifnot(min_len >= 0L, max_len >= min_len, max_miss <= 100L)
 
   # ---
-  .path_cache <- create_dir("~/proteoQ/.MSearch/Cache/Calls")
+  .path_cache <- create_dir("~/proteoM/.MSearch/Cache/Calls")
 
   .time_stamp <- match_calltime(path = .path_cache,
                                 fun = "calc_pepmasses",
@@ -286,11 +286,11 @@ calc_pepmasses2 <- function (
           fnl_combi_i <- expand.grid(fmods_nl_i)
 
           parallel::clusterExport(cl, list("ms1_a0_fnl1_byprot"),
-                                  envir = environment(proteoQ:::ms1_a0_fnl1_byprot))
+                                  envir = environment(proteoM:::ms1_a0_fnl1_byprot))
           parallel::clusterExport(cl, list("ms1_a0_fnl1_bypep"),
-                                  envir = environment(proteoQ:::ms1_a0_fnl1_bypep))
+                                  envir = environment(proteoM:::ms1_a0_fnl1_bypep))
           parallel::clusterExport(cl, list("delta_ms1_a0_fnl1"),
-                                  envir = environment(proteoQ:::delta_ms1_a0_fnl1))
+                                  envir = environment(proteoM:::delta_ms1_a0_fnl1))
 
           fwd_peps[[i]] <- parallel::parLapply(cl, fwd_peps_i,
                                                ms1_a0_fnl1_byprot,
@@ -320,9 +320,9 @@ calc_pepmasses2 <- function (
 
     if (length(inds) > 0L) {
       parallel::clusterExport(cl, list("ms1_a1_vnl0_fnl0_byprot"),
-                              envir = environment(proteoQ:::ms1_a1_vnl0_fnl0_byprot))
+                              envir = environment(proteoM:::ms1_a1_vnl0_fnl0_byprot))
       parallel::clusterExport(cl, list("ms1_a1_vnl0_fnl0_bypep"),
-                              envir = environment(proteoQ:::ms1_a1_vnl0_fnl0_bypep))
+                              envir = environment(proteoM:::ms1_a1_vnl0_fnl0_bypep))
 
       for (i in inds) {
         amods_i <- amods[[i]]
@@ -1249,7 +1249,7 @@ split_fastaseqs <- function (fasta, acc_type, acc_pattern, maxn_fasta_seqs,
   cl <- makeCluster(getOption("cl.cores", n_cores))
 
   clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
-  clusterExport(cl, list("keep_n_misses"), envir = environment(proteoQ:::keep_n_misses))
+  clusterExport(cl, list("keep_n_misses"), envir = environment(proteoM:::keep_n_misses))
 
   fasta_db <- chunksplit(fasta_db, n_cores)
 
@@ -1385,7 +1385,7 @@ ms1masses_bare <- function (seqs, aa_masses, ftmass = NULL,
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
   parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
-  parallel::clusterExport(cl, list("roll_sum"), envir = environment(proteoQ:::roll_sum))
+  parallel::clusterExport(cl, list("roll_sum"), envir = environment(proteoM:::roll_sum))
 
   ms_1 <- parallel::parLapply(cl, data_1, roll_sum, max_miss, include_cts = FALSE)
 
@@ -1449,11 +1449,11 @@ ms1masses_noterm <- function (aa_seqs, aa_masses,
   parallel::clusterExport(cl, list("str_split"),
                           envir = environment(stringr::str_split))
   parallel::clusterExport(cl, list("calcms1mass_noterm"),
-                          envir = environment(proteoQ:::calcms1mass_noterm))
+                          envir = environment(proteoM:::calcms1mass_noterm))
   parallel::clusterExport(cl, list("calcms1mass_noterm_byprot"),
-                          envir = environment(proteoQ:::calcms1mass_noterm_byprot))
+                          envir = environment(proteoM:::calcms1mass_noterm_byprot))
   parallel::clusterExport(cl, list("calcms1mass_noterm_bypep"),
-                          envir = environment(proteoQ:::calcms1mass_noterm_bypep))
+                          envir = environment(proteoM:::calcms1mass_noterm_bypep))
 
   out <- parallel::clusterApply(cl, aa_seqs, calcms1mass_noterm,
                                 aa_masses = aa_masses,

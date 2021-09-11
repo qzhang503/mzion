@@ -4,7 +4,7 @@
 \alias{add_prot_acc}
 \title{Adds prot_acc to a peptide table}
 \usage{
-add_prot_acc(df, out_path = "~/proteoQ/outs")
+add_prot_acc(df, out_path = "~/proteoM/outs")
 }
 \arguments{
 \item{df}{The results after scoring.}

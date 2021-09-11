@@ -12,10 +12,10 @@ prepended directory path. There is no default and the experimenters need to
 supply the files.}
 }
 \description{
-Loads fasta
+Not used in proteoM.
 }
 \examples{
 \donttest{
-fasta_db <- load_fasta("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
+fasta_db <- load_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 }
 }

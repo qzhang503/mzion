@@ -5,7 +5,7 @@
 \title{Finds the time stamp of a matched call from cached results.}
 \usage{
 match_calltime(
-  path = "~/proteoQ/.MSearch/Cache/Calls",
+  path = "~/proteoM/.MSearch/Cache/Calls",
   fun = "calc_pepmasses",
   nms = c("parallel", "out_path"),
   type = c(TRUE, FALSE)

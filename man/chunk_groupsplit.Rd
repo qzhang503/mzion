@@ -14,5 +14,5 @@ chunk_groupsplit(data, f, n_chunks)
 \item{n_chunks}{The number of chunks.}
 }
 \description{
-Splits data by groups then into chunks.
+Not currently used: groupProts <- map_pepprot <- chunk_groupsplit
 }

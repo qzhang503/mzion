@@ -8,8 +8,7 @@ load_fasta2(fasta = NULL, acc_type = NULL, acc_pattern = NULL)
 }
 \arguments{
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
-prepended directory path. There is no default and the experimenters need to
-supply the files.}
+prepended directory path. The experimenters need to supply the files.}
 
 \item{acc_type}{Character string(s); the types of protein accessions in one
 of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
@@ -28,29 +27,29 @@ otherwise, the first value will be used for all \code{fasta} files.
 \examples{
 \donttest{
 fasta_db <- load_fasta2(
-              c("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-                "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+              c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+                "~/proteoM/dbs/fasta/crap/crap.fasta"),
               c("uniprot_acc", "other")
 )
 
 # Need `acc_pattern` as "crap" is not one of the default acc_type
 load_fasta2(
-   c("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-     "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+   c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+     "~/proteoM/dbs/fasta/crap/crap.fasta"),
    c("uniprot_acc", "crap")
 )
 
 # ok
 fasta_db2 <- load_fasta2(
-               c("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-                        "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+               c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+                 "~/proteoM/dbs/fasta/crap/crap.fasta"),
                c("uniprot_acc", "crap"),
                c("^>..\\\\|([^\\\\|]+)\\\\|[^\\\\|]+", "(.*)")
 )
 
 fasta_db3 <- load_fasta2(
-               c("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-                        "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+               c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+                 "~/proteoM/dbs/fasta/crap/crap.fasta"),
                c("my_acc", "crap"),
                c("^>..\\\\|([^\\\\|]+)\\\\|[^\\\\|]+", "(.*)")
 )

@@ -11,7 +11,7 @@ proc_mgf_chunks(
   ppm_ms2 = 25L,
   min_ms2mass = 110L,
   index_ms2 = FALSE,
-  filepath = file.path("~/proteoQ/mgfs/temp"),
+  filepath = file.path("~/proteoM/mgfs/temp"),
   pat_file,
   pat_scan,
   n_spacer,

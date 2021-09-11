@@ -2,7 +2,7 @@
 % Please edit documentation in R/quant2.R
 \name{map_pepprot2}
 \alias{map_pepprot2}
-\title{Helper of \link{groupProts}.}
+\title{Helper of \link{groupProts2}.}
 \usage{
 map_pepprot2(df, out_path = NULL)
 }

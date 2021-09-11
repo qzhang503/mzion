@@ -12,12 +12,12 @@ write_fasta(fasta_db, file)
 \item{file}{A character string to the name of a protein fasta file.}
 }
 \description{
-Writes a fasta file.
+Writes a fasta file (Not yet used).
 }
 \examples{
 \donttest{
-fasta_db <- read_fasta(file = "~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
-write_fasta(fasta_db, "~/proteoQ/examples/my.fasta")
+fasta_db <- read_fasta(file = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
+write_fasta(fasta_db, "~/proteoM/examples/my.fasta")
 }
 
 }

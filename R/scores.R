@@ -546,7 +546,7 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @inheritParams calc_pepscores
 calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by", 
                              penalize_sions = FALSE, ppm_ms2 = 25L, 
-                             out_path = "~/proteoQ/outs", digits = 5L) {
+                             out_path = "~/proteoM/outs", digits = 5L) {
 
   if (nrow(res) == 0L) {
     probs <- data.frame(
@@ -587,7 +587,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             target_fdr = 0.01, fdr_type = "psm", 
                             min_len = 7L, max_len = 100L, 
                             penalize_sions = FALSE, ppm_ms2 = 25L, 
-                            out_path = "~/proteoQ/outs", digits = 5L) {
+                            out_path = "~/proteoM/outs", digits = 5L) {
 
   dir.create(file.path(out_path, "temp"), recursive = TRUE, showWarnings = FALSE)
   message("Calculating peptide scores.")
@@ -750,7 +750,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   if (length(df) >= n_cores2) {
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
-    clusterExport(cl, list("scalc_pepprobs"), envir = environment(proteoQ:::scalc_pepprobs))
+    clusterExport(cl, list("scalc_pepprobs"), envir = environment(proteoM:::scalc_pepprobs))
     
     probs <- parallel::clusterApplyLB(cl, df, 
                                       calc_pepprobs_i, 

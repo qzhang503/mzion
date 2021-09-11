@@ -6,7 +6,7 @@
 database.}
 \usage{
 calc_pepmasses(
-  fasta = "~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+  fasta = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
   acc_type = "uniprot_acc",
   acc_pattern = NULL,
   fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)"),
@@ -22,7 +22,7 @@ calc_pepmasses(
   min_len = 7,
   max_len = 100,
   max_miss = 2,
-  out_path = "~/proteoQ/outs",
+  out_path = "~/proteoM/outs",
   digits = 5,
   parallel = TRUE
 )

@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2021-09-09" />
+<meta name="date" content="2021-09-10" />
 
 <title>proteoM</title>
 
@@ -320,7 +320,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">proteoM</h1>
 <h4 class="author">John Doe</h4>
-<h4 class="date">2021-09-09</h4>
+<h4 class="date">2021-09-10</h4>
 
 </div>
 
@@ -338,22 +338,22 @@ div.tocify {
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(proteoQDA)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Fasta databases </span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_refseq_hs</span>(<span class="st">&quot;~/proteoQ/dbs/fasta/refseq&quot;</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_refseq_mm</span>(<span class="st">&quot;~/proteoQ/dbs/fasta/refseq&quot;</span>)</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_crap</span>(<span class="st">&quot;~/proteoQ/dbs/fasta/crap&quot;</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_refseq_hs</span>(<span class="st">&quot;~/proteoM/dbs/fasta/refseq&quot;</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_refseq_mm</span>(<span class="st">&quot;~/proteoM/dbs/fasta/refseq&quot;</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_crap</span>(<span class="st">&quot;~/proteoM/dbs/fasta/crap&quot;</span>)</span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># MGF (e.g. by Proteome Discoverer)</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_pd_mgf</span>(<span class="st">&quot;~/proteoQ/examples/mgfs&quot;</span>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_pd_mgf</span>(<span class="st">&quot;~/proteoM/examples/mgfs&quot;</span>)</span>
 <span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Ion searches</span></span>
 <span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(proteoM)</span>
 <span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="fu">matchMS</span>(</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">out_path =</span> <span class="st">&quot;~/proteoQ/examples&quot;</span>, </span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">mgf_path =</span> <span class="st">&quot;~/proteoQ/examples/mgfs&quot;</span>,</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">fasta =</span> <span class="fu">c</span>(<span class="st">&quot;~/proteoQ/dbs/fasta/refseq/refseq_hs_2013_07.fasta&quot;</span>, </span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;~/proteoQ/dbs/fasta/refseq/refseq_mm_2013_07.fasta&quot;</span>, </span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;~/proteoQ/dbs/fasta/crap/crap.fasta&quot;</span>), </span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">out_path =</span> <span class="st">&quot;~/proteoM/examples&quot;</span>, </span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">mgf_path =</span> <span class="st">&quot;~/proteoM/examples/mgfs&quot;</span>,</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">fasta =</span> <span class="fu">c</span>(<span class="st">&quot;~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta&quot;</span>, </span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta&quot;</span>, </span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;~/proteoM/dbs/fasta/crap/crap.fasta&quot;</span>), </span>
 <span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">acc_type =</span> <span class="fu">c</span>(<span class="st">&quot;refseq_acc&quot;</span>, <span class="st">&quot;refseq_acc&quot;</span>, <span class="st">&quot;other&quot;</span>), </span>
 <span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">fixedmods =</span> <span class="fu">c</span>(<span class="st">&quot;TMT6plex (K)&quot;</span>, <span class="st">&quot;Carbamidomethyl (C)&quot;</span>),</span>
 <span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">varmods =</span> <span class="fu">c</span>(<span class="st">&quot;TMT6plex (N-term)&quot;</span>, <span class="st">&quot;Acetyl (Protein N-term)&quot;</span>, <span class="st">&quot;Oxidation (M)&quot;</span>,</span>
@@ -364,23 +364,23 @@ div.tocify {
 <span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="do">## An example: phospho TMT</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="do">## An example of phospho TMT</span></span>
 <span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(proteoQDA)</span>
 <span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Try a different fasta database</span></span>
-<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_uniprot_hsmm</span>(<span class="st">&quot;~/proteoQ/dbs/fasta/uniprot&quot;</span>)</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_uniprot_hsmm</span>(<span class="st">&quot;~/proteoM/dbs/fasta/uniprot&quot;</span>)</span>
 <span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Try MGFs, e.g., by MSConvert</span></span>
-<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_msconv_mgf</span>(<span class="st">&quot;~/proteoQ/examples_p/mgfs&quot;</span>)</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_msconv_mgf</span>(<span class="st">&quot;~/proteoM/examples_p/mgfs&quot;</span>)</span>
 <span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a><span class="co"># Ion searches</span></span>
 <span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(proteoM)</span>
 <span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a><span class="fu">matchMS</span>(</span>
-<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>  <span class="at">out_path =</span> <span class="st">&quot;~/proteoQ/examples_p&quot;</span>, </span>
-<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>  <span class="at">mgf_path =</span> <span class="st">&quot;~/proteoQ/examples_p/mgfs&quot;</span>,</span>
-<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>  <span class="at">fasta =</span> <span class="fu">c</span>(<span class="st">&quot;~/proteoQ/dbs/fasta/uniprot/uniprot_hsmm_2020_03.fasta&quot;</span>, </span>
-<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;~/proteoQ/dbs/fasta/crap/crap.fasta&quot;</span>), </span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>  <span class="at">out_path =</span> <span class="st">&quot;~/proteoM/examples_p&quot;</span>, </span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>  <span class="at">mgf_path =</span> <span class="st">&quot;~/proteoM/examples_p/mgfs&quot;</span>,</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>  <span class="at">fasta =</span> <span class="fu">c</span>(<span class="st">&quot;~/proteoM/dbs/fasta/uniprot/uniprot_hsmm_2020_03.fasta&quot;</span>, </span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;~/proteoM/dbs/fasta/crap/crap.fasta&quot;</span>), </span>
 <span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>  <span class="at">acc_type =</span> <span class="fu">c</span>(<span class="st">&quot;uniprot_acc&quot;</span>, <span class="st">&quot;other&quot;</span>), </span>
 <span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>  <span class="at">fixedmods =</span> <span class="fu">c</span>(<span class="st">&quot;TMT6plex (K)&quot;</span>, <span class="st">&quot;Carbamidomethyl (C)&quot;</span>), </span>
 <span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>  <span class="at">varmods =</span> <span class="fu">c</span>(<span class="st">&quot;TMT6plex (N-term)&quot;</span>, <span class="st">&quot;Acetyl (N-term)&quot;</span>, <span class="st">&quot;Oxidation (M)&quot;</span>, </span>

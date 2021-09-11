@@ -1,3 +1,7 @@
+### =========================================================
+# Also in proteoQ
+### =========================================================
+
 #' Reads a file in fasta format
 #'
 #' Reads a file in fasta format by line.
@@ -13,21 +17,21 @@
 #' @examples
 #' \donttest{
 #' # assume the file and location of "uniprot_hs_2020_05.fasta"
-#' fasta <- read_fasta("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
+#' fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 #' head(names(fasta))
 #'
 #' # use the first fifty characters
-#' fasta <- read_fasta("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#' fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
 #'                     ">(.{50}).*")
 #' head(names(fasta))
 #'
 #' # uniprot_acc
-#' fasta <- read_fasta("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#' fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
 #'                     ">..\\|([^\\|]+)\\|.*")
 #' head(names(fasta))
 #'
 #' # use every in the header
-#' fasta <- read_fasta("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#' fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
 #'                     ">(.*)")
 #' head(names(fasta))
 #' }
@@ -64,19 +68,18 @@ read_fasta <- function (file, acc_pattern = ">([^ ]+?) .*", comment_char = "") {
 
 #' Writes fasta
 #'
-#' Writes a fasta file.
+#' Writes a fasta file (Not yet used).
 #'
 #' @param fasta_db A list of protein entries from \code{\link{read_fasta}}.
 #' @inheritParams read_fasta
 #' @examples
 #' \donttest{
-#' fasta_db <- read_fasta(file = "~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
-#' write_fasta(fasta_db, "~/proteoQ/examples/my.fasta")
+#' fasta_db <- read_fasta(file = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
+#' write_fasta(fasta_db, "~/proteoM/examples/my.fasta")
 #' }
 #'
 #' @import dplyr purrr
 #' @importFrom magrittr %>% %T>% %$% %<>%
-#' @export
 write_fasta <- function (fasta_db, file) {
   filepath <- gsub("(^.*/).*$", "\\1", file)
   dir.create(filepath, showWarnings = FALSE, recursive = TRUE)
@@ -88,13 +91,15 @@ write_fasta <- function (fasta_db, file) {
 
 
 #' Loads fasta
+#' 
+#' Not used in proteoM.
 #'
 #' @param fasta Character string(s) to the name(s) of fasta file(s) with
 #'   prepended directory path. There is no default and the experimenters need to
 #'   supply the files.
 #' @examples
 #' \donttest{
-#' fasta_db <- load_fasta("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
+#' fasta_db <- load_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 #' }
 load_fasta <- function (fasta = NULL) {
   if (is.null(fasta)) {
@@ -113,12 +118,15 @@ load_fasta <- function (fasta = NULL) {
     .[!duplicated(names(.))]
 }
 
+### =========================================================
 
+
+### =========================================================
 #' Loads fasta (with parsing rule).
 #'
 #' The length of \code{acc_type} needs to match the length of \code{fasta};
 #' otherwise, the first value will be used for all \code{fasta} files.
-#'
+#' 
 #' @param acc_type Character string(s); the types of protein accessions in one
 #'   of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
 #'   the corresponding regular expressions need to be supplied via argument
@@ -127,34 +135,33 @@ load_fasta <- function (fasta = NULL) {
 #'   the header lines of fasta entries. At the \code{NULL} default, the pattern
 #'   will be automated when \code{acc_type} are among c("uniprot_acc",
 #'   "uniprot_id", "refseq_acc", "other").
-#' @inheritParams read_fasta
-#' @inheritParams load_fasta
+#' @inheritParams matchMS
 #' @examples
 #' \donttest{
 #' fasta_db <- load_fasta2(
-#'               c("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-#'                 "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+#'               c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#'                 "~/proteoM/dbs/fasta/crap/crap.fasta"),
 #'               c("uniprot_acc", "other")
 #' )
 #'
 #' # Need `acc_pattern` as "crap" is not one of the default acc_type
 #' load_fasta2(
-#'    c("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-#'      "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+#'    c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#'      "~/proteoM/dbs/fasta/crap/crap.fasta"),
 #'    c("uniprot_acc", "crap")
 #' )
 #'
 #' # ok
 #' fasta_db2 <- load_fasta2(
-#'                c("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-#'                         "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+#'                c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#'                  "~/proteoM/dbs/fasta/crap/crap.fasta"),
 #'                c("uniprot_acc", "crap"),
 #'                c("^>..\\|([^\\|]+)\\|[^\\|]+", "(.*)")
 #' )
 #'
 #' fasta_db3 <- load_fasta2(
-#'                c("~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-#'                         "~/proteoQ/dbs/fasta/crap/crap.fasta"),
+#'                c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#'                  "~/proteoM/dbs/fasta/crap/crap.fasta"),
 #'                c("my_acc", "crap"),
 #'                c("^>..\\|([^\\|]+)\\|[^\\|]+", "(.*)")
 #' )
@@ -356,11 +363,11 @@ mcalc_monopep <- function (aa_seqs, aa_masses,
     parallel::clusterExport(cl, list("%>%"),
                             envir = environment(magrittr::`%>%`))
     parallel::clusterExport(cl, list("calc_monopep"),
-                            envir = environment(proteoQ:::calc_monopep))
+                            envir = environment(proteoM:::calc_monopep))
     parallel::clusterExport(cl, list("calc_prot_pepmasses"),
-                            envir = environment(proteoQ:::calc_prot_pepmasses))
+                            envir = environment(proteoM:::calc_prot_pepmasses))
     parallel::clusterExport(cl, list("calc_prots_pepmasses"),
-                            envir = environment(proteoQ:::calc_prots_pepmasses))
+                            envir = environment(proteoM:::calc_prots_pepmasses))
 
     out <- parallel::clusterApply(cl, aa_seqs, calc_prots_pepmasses,
                                   aa_masses = aa_masses,
@@ -1663,7 +1670,7 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)") {
   site <- res$site
   rm(res)
 
-  parent <- system.file("extdata", "master.xml", package = "proteoQ") %>%
+  parent <- system.file("extdata", "master.xml", package = "proteoM") %>%
     xml2::read_xml()
 
   # <umod:elements>
@@ -1926,7 +1933,7 @@ make_fastapeps <- function (fasta_db, max_miss = 2L, min_len = 1L,
 #'
 #' @export
 calc_pepmasses <- function (
-  fasta = "~/proteoQ/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+  fasta = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
   acc_type = "uniprot_acc",
   acc_pattern = NULL,
   fixedmods = c("TMT6plex (K)",
@@ -1944,7 +1951,7 @@ calc_pepmasses <- function (
   maxn_vmods_per_pep = 5,
   maxn_sites_per_vmod = 3,
   min_len = 7, max_len = 100, max_miss = 2,
-  out_path = "~/proteoQ/outs",
+  out_path = "~/proteoM/outs",
   digits = 5,
   parallel = TRUE) {
 
@@ -1970,7 +1977,7 @@ calc_pepmasses <- function (
   stopifnot(min_len >= 0, max_len >= min_len, max_miss <= 100)
 
   # ---
-  .path_cache <- create_dir("~/proteoQ/.MSearch/Cache/Calls")
+  .path_cache <- create_dir("~/proteoM/.MSearch/Cache/Calls")
   .time_stamp <- match_calltime(path = .path_cache,
                                 fun = "calc_pepmasses",
                                 nms = c("fasta", "acc_type", "acc_pattern",
@@ -2099,7 +2106,7 @@ pre_pepmasses <- function (fasta, acc_type, acc_pattern, maxn_fasta_seqs, aa_mas
   cl <- makeCluster(getOption("cl.cores", n_cores))
 
   clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
-  clusterExport(cl, list("concat_peps"), envir = environment(proteoQ:::concat_peps))
+  clusterExport(cl, list("concat_peps"), envir = environment(proteoM:::concat_peps))
 
   fasta_db <- chunksplit(fasta_db, n_cores)
 

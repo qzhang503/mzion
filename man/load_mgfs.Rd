@@ -15,8 +15,9 @@ load_mgfs(
 )
 }
 \arguments{
-\item{mgf_path}{The file path to a list of MGF files. There is no default and
-the experimenters need to supply the files.}
+\item{mgf_path}{The file path to a list of MGF files. The experimenters need
+to supply the files. Note that the supported MGFs are from MSConvert or
+Proteome Discoverer.}
 
 \item{min_mass}{A minimum mass of precursors.}
 

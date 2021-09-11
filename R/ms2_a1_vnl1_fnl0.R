@@ -46,43 +46,42 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ntmod = NULL, ctmod = NULL,
   #       post_frame_adv (ms2base.R)
   #     post_ms2match (utils_engine.R)
   
-  # env <- as.environment("package:proteoQ")
   parallel::clusterExport(cl, list("frames_adv_a1_vnl1_fnl0"), 
-                          envir = environment(proteoQ:::frames_adv_a1_vnl1_fnl0))
+                          envir = environment(proteoM:::frames_adv_a1_vnl1_fnl0))
   parallel::clusterExport(cl, list("gen_ms2ions_a1_vnl1_fnl0"), 
-                          envir = environment(proteoQ:::gen_ms2ions_a1_vnl1_fnl0))
+                          envir = environment(proteoM:::gen_ms2ions_a1_vnl1_fnl0))
   parallel::clusterExport(cl, list("combi_mvmods2"), 
-                          envir = environment(proteoQ:::combi_mvmods2))
+                          envir = environment(proteoM:::combi_mvmods2))
   parallel::clusterExport(cl, list("combi_vmods2"), 
-                          envir = environment(proteoQ:::combi_vmods2))
+                          envir = environment(proteoM:::combi_vmods2))
   parallel::clusterExport(cl, list("find_intercombi_p2"), 
-                          envir = environment(proteoQ:::find_intercombi_p2))
+                          envir = environment(proteoM:::find_intercombi_p2))
   parallel::clusterExport(cl, list("check_ms1_mass_vmods2"), 
-                          envir = environment(proteoQ:::check_ms1_mass_vmods2))
+                          envir = environment(proteoM:::check_ms1_mass_vmods2))
   parallel::clusterExport(cl, list("calc_ms2ions_a1_vnl1_fnl0"), 
-                          envir = environment(proteoQ:::calc_ms2ions_a1_vnl1_fnl0))
+                          envir = environment(proteoM:::calc_ms2ions_a1_vnl1_fnl0))
   parallel::clusterExport(cl, list("ms2ions_by_type"), 
-                          envir = environment(proteoQ:::ms2ions_by_type))
+                          envir = environment(proteoM:::ms2ions_by_type))
   parallel::clusterExport(cl, list("byions"), 
-                          envir = environment(proteoQ:::byions))
+                          envir = environment(proteoM:::byions))
   parallel::clusterExport(cl, list("czions"), 
-                          envir = environment(proteoQ:::czions))
+                          envir = environment(proteoM:::czions))
   parallel::clusterExport(cl, list("axions"), 
-                          envir = environment(proteoQ:::axions))
+                          envir = environment(proteoM:::axions))
   parallel::clusterExport(cl, list("add_hexcodes_vnl2"), 
-                          envir = environment(proteoQ:::add_hexcodes_vnl2))
+                          envir = environment(proteoM:::add_hexcodes_vnl2))
   parallel::clusterExport(cl, list("search_mgf2"), 
-                          envir = environment(proteoQ:::search_mgf2))
+                          envir = environment(proteoM:::search_mgf2))
   parallel::clusterExport(cl, list("find_mass_error_range"), 
-                          envir = environment(proteoQ:::find_mass_error_range))
+                          envir = environment(proteoM:::find_mass_error_range))
   parallel::clusterExport(cl, list("find_ms2_bypep"), 
-                          envir = environment(proteoQ:::find_ms2_bypep))
+                          envir = environment(proteoM:::find_ms2_bypep))
   parallel::clusterExport(cl, list("find_ms1_interval"), 
-                          envir = environment(proteoQ:::find_ms1_interval))
+                          envir = environment(proteoM:::find_ms1_interval))
   parallel::clusterExport(cl, list("fuzzy_match_one"), 
-                          envir = environment(proteoQ:::fuzzy_match_one))
+                          envir = environment(proteoM:::fuzzy_match_one))
   parallel::clusterExport(cl, list("post_frame_adv"), 
-                          envir = environment(proteoQ:::post_frame_adv))
+                          envir = environment(proteoM:::post_frame_adv))
   
   tempdata <- purge_search_space(i, aa_masses, mgf_path, n_cores, ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
