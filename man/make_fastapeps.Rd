@@ -18,5 +18,5 @@ be excluded.}
 be excluded.}
 }
 \description{
-Make peptide sequences from fastas.
+Depreciated: for before the rolling sum approach.
 }

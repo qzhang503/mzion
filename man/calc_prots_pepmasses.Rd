@@ -36,5 +36,5 @@ variable modifications per site in a per peptide sequence.}
 \item{prot_peps}{Lists of peptides under a proteins.}
 }
 \description{
-For each split of multiple proteins.
+Depreciated: for each split of multiple proteins.
 }

@@ -13,6 +13,8 @@ calcms1mass_noterm(
 )
 }
 \arguments{
+\item{aa_seqs}{Lists of peptides under a proteins.}
+
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
 
@@ -23,8 +25,6 @@ peptide.}
 variable modifications per site in a per peptide sequence.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
-
-\item{prot_peps}{Lists of peptides under a proteins.}
 }
 \description{
 For each split of multiple proteins; no terminal masses.

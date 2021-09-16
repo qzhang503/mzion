@@ -4,7 +4,7 @@
 \alias{read_fasta}
 \title{Reads a file in fasta format}
 \usage{
-read_fasta(file, acc_pattern = ">([^ ]+?) .*", comment_char = "")
+read_fasta(file = NULL, acc_pattern = ">([^ ]+?) .*", comment_char = "")
 }
 \arguments{
 \item{file}{A character string to the name of a protein fasta file.}
@@ -37,7 +37,7 @@ fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
                     ">..\\\\|([^\\\\|]+)\\\\|.*")
 head(names(fasta))
 
-# use every in the header
+# use all characters in the header
 fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
                     ">(.*)")
 head(names(fasta))

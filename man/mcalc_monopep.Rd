@@ -43,6 +43,12 @@ is TRUE.}
 \description{
 The calculations iterate through protein accessions and peptide sequences.
 }
+\details{
+Depreciated: calc_pepmasses -> pre_pepmasses -> make_fastapeps, mcalc_monopep ->
+calc_prots_pepmasses -> calc_prot_pepmasses;
+
+calc_monopep still used for calc_monopeptide at a user's interface.
+}
 \examples{
 \dontrun{
 aa_masses_all <- calc_aamasses()

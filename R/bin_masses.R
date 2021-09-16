@@ -100,10 +100,32 @@ bin_ms1masses_td <- function (bins = NULL, type = c("target", "decoy"),
 
   if (n_cores > 1L) {
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    
+    parallel::clusterExport(cl, list("binTheoPeps_i"),
+                            envir = environment(proteoM:::binTheoPeps_i))
     parallel::clusterExport(cl, list("binTheoPeps2"),
                             envir = environment(proteoM:::binTheoPeps2))
-    parallel::parLapplyLB(cl, idxes, binTheoPeps_i,
-                          min_mass, max_mass, ppm_ms1, out_path)
+    parallel::clusterExport(cl, list("bin_theopeps"),
+                            envir = environment(proteoM:::bin_theopeps))
+    parallel::clusterExport(cl, list("find_ms1_cutpoints"),
+                            envir = environment(proteoM:::find_ms1_cutpoints))
+    parallel::clusterExport(cl, list("cbind_theopepes"),
+                            envir = environment(proteoM:::cbind_theopepes))
+
+    # parallel::parLapplyLB(cl, idxes, binTheoPeps_i, min_mass, max_mass, ppm_ms1, out_path)
+    
+    # No need of purrr::flatten() as saveRDS by INDIVIDUAL idx (and return NULL)
+    parallel::clusterApplyLB(
+      cl = cl, 
+      x = chunksplit(idxes, n_cores, "list"), 
+      fun = lapply, 
+      FUN = "binTheoPeps_i", 
+      min_mass = min_mass, 
+      max_mass = max_mass, 
+      ppm_ms1 = ppm_ms1, 
+      out_path = out_path
+    )
+
     parallel::stopCluster(cl)
   } else {
     lapply(idxes, binTheoPeps_i, min_mass, max_mass, ppm_ms1, out_path)
@@ -204,7 +226,12 @@ binTheoPeps_bysets <- function (idxes = NULL, min_mass = 500L, max_mass = 10000L
 
   n_cores <- min(detect_cores(), length(idxes))
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+  
+  parallel::clusterExport(cl, list("s_readRDS"),
+                          envir = environment(proteoM:::s_readRDS))
+  
   res <- parallel::clusterApply(cl, in_nms, s_readRDS, out_path)
+  
   parallel::stopCluster(cl)
   gc()
 
@@ -258,21 +285,28 @@ binTheoPeps <- function (idxes = NULL, res = NULL, min_mass = 500L,
     paste0(".rds")
 
   res <- res %>%
-    purrr::map(attributes) %>%
-    purrr::map(`[[`, "data")
+    lapply(attributes) %>%
+    lapply(`[[`, "data")
 
   gc()
 
   n_cores <- detect_cores()
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+  
+  parallel::clusterExport(cl, list("bin_theopeps"),
+                          envir = environment(proteoM:::bin_theopeps))
+  parallel::clusterExport(cl, list("find_ms1_cutpoints"),
+                          envir = environment(proteoM:::find_ms1_cutpoints))
+  parallel::clusterExport(cl, list("cbind_theopepes"),
+                          envir = environment(proteoM:::cbind_theopepes))
 
-  out <- purrr::map(res, ~ {
-    x <- chunksplit(.x, n_cores)
-
+  out <- lapply(res, function (x) {
+    x <- chunksplit(x, n_cores)
+    
     parallel::clusterApply(cl, x, bin_theopeps, min_mass, max_mass, ppm_ms1) %>%
       purrr::flatten()
   })
-
+  
   parallel::stopCluster(cl)
   rm(list = c("res"))
   gc()
@@ -307,17 +341,15 @@ bin_theopeps <- function (peps = NULL, min_mass = 500L, max_mass = 10000L,
                           ppm_ms1 = 20L) {
 
   ps <- find_ms1_cutpoints(min_mass, max_mass, ppm_ms1)
-
-  out <- purrr::imap(peps, ~ {
-    prot_peps <- .x
-
+  
+  mapply(function (prot_peps, prot_accs, ps) {
     frames <- findInterval(prot_peps, ps)
-
+    
     list(pep_seq = names(prot_peps),
          mass = prot_peps,
          frames = frames,
-         prot_acc = .y)
-  })
+         prot_acc = prot_accs)
+  }, peps, names(peps), MoreArgs = list(ps = ps), SIMPLIFY = FALSE)
 }
 
 
@@ -351,21 +383,23 @@ find_ms1_cutpoints <- function (from = 500L, to = 10000L, ppm = 20L) {
 #'
 #' @param out A list of binned theoretical peptides.
 #' @param out_nm The output file path and name.
+#' @importFrom dplyr arrange
 cbind_theopepes <- function (out, out_nm) {
-
-  prot_acc <- purrr::imap(out, ~ rep(.y, length(.x$pep_seq))) %>%
+  
+  prot_acc <- mapply(function (x, y) rep(y, length(x$pep_seq)), out, names(out), 
+                     SIMPLIFY = FALSE) %>%
+    do.call(`c`, .) %>%
+    unname()
+  
+  pep_seq <- lapply(out, `[[`, "pep_seq") %>%
     do.call(`c`, .) %>%
     unname()
 
-  pep_seq <- purrr::map(out, `[[`, "pep_seq") %>%
+  mass <- lapply(out, `[[`, "mass") %>%
     do.call(`c`, .) %>%
     unname()
 
-  mass <- purrr::map(out, `[[`, "mass") %>%
-    do.call(`c`, .) %>%
-    unname()
-
-  frame <- purrr::map(out, `[[`, "frames") %>%
+  frame <- lapply(out, `[[`, "frames") %>%
     do.call(`c`, .) %>%
     unname()
 

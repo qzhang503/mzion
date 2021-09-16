@@ -10,9 +10,9 @@ unique_mvmods(
   ctmod,
   aa_masses,
   aas,
-  maxn_vmods_per_pep = 5,
-  maxn_sites_per_vmod = 3,
-  digits = 5
+  maxn_vmods_per_pep = 5L,
+  maxn_sites_per_vmod = 3L,
+  digits = 5L
 )
 }
 \arguments{

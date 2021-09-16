@@ -45,5 +45,5 @@ be excluded.}
 be excluded.}
 }
 \description{
-Prior to the calculation of peptide masses.
+Depreciated: prior to the calculation of peptide masses.
 }

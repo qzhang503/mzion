@@ -36,5 +36,5 @@ variable modifications per site in a per peptide sequence.}
 \item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
-For single protein.
+Depreciated: for single protein.
 }

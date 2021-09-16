@@ -90,8 +90,7 @@ be excluded.}
 is TRUE.}
 }
 \description{
-Generates and Calculates the masses of tryptic peptides from a fasta
-database.
+Depreciated.
 }
 \examples{
 \donttest{

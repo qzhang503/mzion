@@ -15,10 +15,16 @@
 # ======================================
 # bin_masses.R
 #   - bin_ms1masses
-#    - binTheoPeps
-#     - bin_theopeps
-#       - find_ms1_cutpoints
-#    - cbind_theopepes
+#     - bin_ms1masses_td
+#       - (i) binTheoPeps (small dataset)
+#         - bin_theopeps (-> export)
+#           - find_ms1_cutpoints (-> export)
+#         - cbind_theopepes (-> export)
+#       - (ii) binTheoPeps_i (larger dataset; -> export)
+#         - binTheoPeps2 (-> export)
+#           - bin_theopeps (-> export)
+#             - find_ms1_cutpoints (-> export)
+#           - cbind_theopepes (-> export)
 # 
 # mgf.R
 #   - readMGF
@@ -36,17 +42,22 @@
 
 # ms1_precursors.R: 
 #   - calc_pepmasses2
-#     - calc_aamasses
-#       - add_fixvar_masses
-#       - parse_aamasses
+#    - find_aa_masses
+#       - calc_aamasses
+#         - add_fixvar_masses
+#         - parse_aamasses
 #     - split_fastaseqs
+#       - load_fasta2 (dbs.R)
+#       - chunksplit (msmsmatches.R)
+#         - make_fastapeps0 (-> export)
+#           - keep_n_misses (-> export; dbs.R)
 #     - distri_fpeps
-#       - make_fastapeps0
 #     - ms1masses_bare
 #       - ms1masses_noterm
-#         - calcms1mass_noterm
-#           - calcms1mass_noterm_byprot
-#             - calcms1mass_noterm_bypep
+#         - calcms1mass_noterm (-> export)
+#           - calcms1mass_noterm_byprot (-> export)
+#             - calcms1mass_noterm_bypep (-> export)
+#       - roll_sum (-> export; dbs.R)
 #     - distri_peps
 #       - subpeps_by_vmods (ions.R)
 #     - add_term_mass
@@ -54,17 +65,23 @@
 # 
 # helpers at sets of realized modifications: 
 #   (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
-#   - ms1_a0_fnl1_byprot
-#       ms1_a0_fnl1_bypep
-#         delta_ms1_a0_fnl1
+#   - ms1_a0_fnl1_byprot (-> export)
+#       ms1_a0_fnl1_bypep (-> export)
+#         delta_ms1_a0_fnl1 (-> export)
 #   
 #  (7-8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
 #    (9-10) "amods+ tmod- vnl+ fnl-", "amods+ tmod+ vnl+ fnl-"
 #    (11-12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
 #    (13-14) "amods+ tmod- vnl+ fnl+", "amods+ tmod+ vnl+ fnl+"
-#   - ms1_a1_vnl0_fnl0_byprot
-#       ms1_a1_vnl0_fnl0_bypep
+#   - ms1_a1_vnl0_fnl0_byprot (-> export)
+#       - ms1_a1_vnl0_fnl0_bypep (-> export)
 #         [by nested combinatorial conditions; no explicit functions]
+#         - unique_mvmods (-> export; dbs.R)
+#           - vmods_elements (-> export; dbs.R)
+#             - find_unique_sets (-> export; dbs.R)
+#             - recur_flatten (-> export; utils_engine.R)
+#         - find_intercombi (-> export; dbs.R)
+#         - delta_ms1_a0_fnl1 (-> export; ms1_precursors.R)
 # 
 # 
 ## ms2match (msmsmatches2.R)
@@ -193,7 +210,14 @@
 #     greedysetcover3
 #     
 
-
+## Depreciated (dbs.R)
+# (note: calc_monopep still used as an UI utility)
+# calc_pepmasses
+#   pre_pepmasses
+#     make_fastapeps
+#   mcalc_monopep
+#     calc_prots_pepmasses
+#     calc_prot_pepmasses
 
 
 ## (Tentative) same-site rules: no additive varmods

@@ -14,5 +14,5 @@ find_max_mass(out_path = NULL, .path_fasta = NULL, .time_stamp = NULL)
 \item{.path_cache}{The file path to cache.}
 }
 \description{
-Finds the existence of \code{max_mass.rds}.
+Not used.
 }

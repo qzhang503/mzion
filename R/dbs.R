@@ -30,7 +30,7 @@
 #'                     ">..\\|([^\\|]+)\\|.*")
 #' head(names(fasta))
 #'
-#' # use every in the header
+#' # use all characters in the header
 #' fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
 #'                     ">(.*)")
 #' head(names(fasta))
@@ -40,29 +40,44 @@
 #' @importFrom magrittr %>% %T>% %$% %<>%
 #' @seealso \code{\link{write_fasta}}
 #' @export
-read_fasta <- function (file, acc_pattern = ">([^ ]+?) .*", comment_char = "") {
+read_fasta <- function (file = NULL, acc_pattern = ">([^ ]+?) .*", 
+                        comment_char = "") {
+  
   lines <- readLines(file)
-
-  if (nchar(comment_char) > 0) {
-    lines <- lines %>% .[!grepl(paste0("^", comment_char), .)]
+  
+  # removes empty lines
+  empties <- grep("^\\s*$", lines)
+  
+  if (length(empties) > 0L) {
+    lines <- lines[-empties]
+  }
+  
+  rm(list = c("empties"))
+  
+  # removes comment lines
+  if (nchar(comment_char) > 0L) {
+    lines <- lines[!grepl(paste0("^", comment_char), lines)]
   }
 
+  # begins and ends
   headers <- grep(">", lines)
-  begins <- headers + 1
-  ends <- (headers[-1] - 1) %>% `c`(length(lines))
+  begins <- headers + 1L
+  ends <- c(headers[-1L] - 1L, length(lines))
 
-  seqs <- purrr::map2(begins, ends, ~ lines[.x : .y] %>%
-                        purrr::reduce(paste0), lines)
+  seqs <- mapply(function (x, y) {
+    Reduce(paste0, lines[x : y])
+  }, begins, ends, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
   hdrs <- lines[headers]
 
-  db <- purrr::map2(seqs, hdrs, ~ {
-    attr(.x, "header") <- .y
-    return(.x)
-  })
-
-  names(db) <- hdrs %>% gsub(acc_pattern, "\\1", .)
-
-  return(db)
+  db <- mapply(function (x, y) {
+    attr(x, "header") <- y
+    return(x)
+  }, seqs, hdrs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
+  names(db) <- gsub(acc_pattern, "\\1", hdrs)
+  
+  invisible(db)
 }
 
 
@@ -81,10 +96,11 @@ read_fasta <- function (file, acc_pattern = ">([^ ]+?) .*", comment_char = "") {
 #' @import dplyr purrr
 #' @importFrom magrittr %>% %T>% %$% %<>%
 write_fasta <- function (fasta_db, file) {
+  
   filepath <- gsub("(^.*/).*$", "\\1", file)
   dir.create(filepath, showWarnings = FALSE, recursive = TRUE)
-
-  purrr::map(fasta_db, ~ paste(attr(.x, "header"), .x, sep = "\n")) %>%
+  
+  lapply(fasta_db, function (x) paste(attr(x, "header"), x, sep = "\n")) %>%
     unlist() %>%
     writeLines(file)
 }
@@ -102,6 +118,7 @@ write_fasta <- function (fasta_db, file) {
 #' fasta_db <- load_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 #' }
 load_fasta <- function (fasta = NULL) {
+  
   if (is.null(fasta)) {
     stop("FASTA file(s) are required.", call. = FALSE)
   }
@@ -112,7 +129,7 @@ load_fasta <- function (fasta = NULL) {
          call. = FALSE)
   }
 
-  purrr::map(fasta, ~ read_fasta(.x)) %>%
+  lapply(fasta, function (x) read_fasta(x)) %>%
     do.call(`c`, .) %>%
     `names<-`(gsub(">", "", names(.))) %>%
     .[!duplicated(names(.))]
@@ -171,6 +188,7 @@ load_fasta <- function (fasta = NULL) {
 #' }
 #' @export
 load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL) {
+  
   if (is.null(fasta)) {
     stop("FASTA file(s) are required.", call. = FALSE)
   }
@@ -222,8 +240,17 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL) {
   }
 
   stopifnot(length(acc_pattern) == len_f)
-
-  purrr::map2(fasta, acc_pattern, ~ read_fasta(.x, .y)) %>%
+  
+  # purrr::map2(fasta, acc_pattern, ~ read_fasta(.x, .y)) %>% 
+  #   do.call(`c`, .) %>%
+  #   `names<-`(gsub(">", "", names(.))) %>%
+  #   .[!duplicated(names(.))]
+  
+  # Not to USE.NAMES; otherwise fasta names prefix to accession names
+  # this is different to map2 where names are NULL for each fasta_db
+  
+  mapply(function (x, y) read_fasta(x, y), fasta, acc_pattern, 
+         SIMPLIFY = FALSE, USE.NAMES = FALSE) %>%
     do.call(`c`, .) %>%
     `names<-`(gsub(">", "", names(.))) %>%
     .[!duplicated(names(.))]
@@ -236,6 +263,7 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL) {
 #'
 #' @inheritParams load_fasta2
 find_acc_pattern <- function (acc_type) {
+  
   stopifnot(length(acc_type) == 1L)
   stopifnot(acc_type %in% c("uniprot_acc", "uniprot_id", "refseq_acc", "other"))
 
@@ -263,6 +291,7 @@ find_acc_pattern <- function (acc_type) {
 #'
 #' @inheritParams load_fasta2
 find_acc_type <- function (acc_pattern) {
+  
   stopifnot(length(acc_pattern) == 1L)
 
   pat_upacc <- "^>..\\|([^\\|]+)\\|[^ ]+?"
@@ -302,7 +331,8 @@ find_acc_type <- function (acc_pattern) {
 #' @import dplyr purrr
 #' @importFrom magrittr %>% %T>% %$% %<>%
 calc_avgpep <- function (aa_seq, digits = 4L) {
-  options(digits = 9)
+  
+  options(digits = 9L)
 
   aa_masses <- c(
     A = 71.0779, R = 156.1857, N = 114.1026, D = 115.0874,
@@ -325,6 +355,11 @@ calc_avgpep <- function (aa_seq, digits = 4L) {
 #' Calculates multiply the molecular weight of a polypeptides ([MH]+).
 #'
 #' The calculations iterate through protein accessions and peptide sequences.
+#'
+#' Depreciated: calc_pepmasses -> pre_pepmasses -> make_fastapeps, mcalc_monopep ->
+#' calc_prots_pepmasses -> calc_prot_pepmasses;
+#' 
+#' calc_monopep still used for calc_monopeptide at a user's interface.
 #'
 #' @param aa_seqs Character string; a vector of peptide sequences with
 #'   one-letter representation of amino acids.
@@ -351,7 +386,8 @@ mcalc_monopep <- function (aa_seqs, aa_masses,
                            maxn_sites_per_vmod = 3L,
                            parallel = TRUE,
                            digits = 5L) {
-  options(digits = 9)
+  
+  options(digits = 9L)
 
   if (parallel) {
     n_cores <- detect_cores()
@@ -408,12 +444,13 @@ mcalc_monopep <- function (aa_seqs, aa_masses,
 
 #' Helper function for parallel calculations peptide masses by proteins.
 #'
-#' For each split of multiple proteins.
+#' Depreciated: for each split of multiple proteins.
 #'
 #' @param prot_peps Lists of peptides under a proteins.
 #' @inheritParams calc_monopep
 calc_prots_pepmasses <- function (aa_seqs, aa_masses, include_insource_nl = FALSE,
                                   maxn_vmods_per_pep, maxn_sites_per_vmod, digits) {
+  
   purrr::map(aa_seqs, ~ {
     prot_peps <- .x
 
@@ -428,7 +465,7 @@ calc_prots_pepmasses <- function (aa_seqs, aa_masses, include_insource_nl = FALS
 
 #' Helper function for parallel calculations peptide masses by proteins.
 #'
-#' For single protein.
+#' Depreciated: for single protein.
 #'
 #' @param prot_peps Lists of peptides under a proteins.
 #' @inheritParams calc_monopep
@@ -1239,17 +1276,18 @@ update_aas_anywhere <- function (vmods_combi, aas, amods) {
 #' @import purrr
 #' @return Lists by residues in \code{amods}.
 unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
-                           maxn_vmods_per_pep = 5,
-                           maxn_sites_per_vmod = 3,
-                           digits = 5) {
+                           maxn_vmods_per_pep = 5L,
+                           maxn_sites_per_vmod = 3L,
+                           digits = 5L) {
+  
   # (6) "amods- tmod- vnl- fnl+"
-  if (is_empty(amods)) return(NULL)
+  if (length(amods) == 0L) return(NULL)
 
   residue_mods <- unlist(amods, use.names = FALSE) %>%
     `names<-`(names(amods)) %>%
     split(., .)
 
-  map(residue_mods,
+  purrr::map(residue_mods,
       ~ vmods_elements(aas, .x, ntmod, ctmod,
                        aa_masses,
                        maxn_vmods_per_pep,
@@ -1273,9 +1311,9 @@ vmods_elements <- function (aas,
                             ntmod,
                             ctmod,
                             aa_masses,
-                            maxn_vmods_per_pep = 5,
-                            maxn_sites_per_vmod = 3,
-                            digits = 5) {
+                            maxn_vmods_per_pep = 5L,
+                            maxn_sites_per_vmod = 3L,
+                            digits = 5L) {
 
   residue <- residue_mods[[1]]
 
@@ -1291,7 +1329,7 @@ vmods_elements <- function (aas,
   # i.e., btw Anywhere "M" and "Acetyl N-term" where "M" on the "N-term"
   # MFGMFNVSMR cannot have three `Oxidation (M)` and `Acetyl (N-term)`
 
-  if (!(is_empty(ntmod) || is_empty(ctmod))) {
+  if (!(length(ntmod) == 0L || length(ctmod) == 0L)) {
     len_aas <- length(aas)
 
     if (aas[1] == residue && aas[len_aas] == residue) {
@@ -1299,11 +1337,11 @@ vmods_elements <- function (aas,
     } else if ((aas[1] == residue) || (aas[len_aas] == residue)) {
       len_p <- len_p - 1
     }
-  } else if (!is_empty(ntmod)) {
+  } else if (length(ntmod) > 0L) {
     if (aas[1] == residue) {
       len_p <- len_p - 1
     }
-  } else if (!is_empty(ctmod)) {
+  } else if (length(ctmod) > 0L) {
     if (aas[length(aas)] == residue) {
       len_p <- len_p - 1
     }
@@ -1315,20 +1353,19 @@ vmods_elements <- function (aas,
     x <-
       # will confuse gtools::combinations...
       # map((len_n + 1):len_p, ~ find_unique_sets(ps[seq_len(.x)], ns)) %>%
-
-      map((len_n + 1):len_p, ~ find_unique_sets(seq_len(.x), ns)) %>%
+      purrr::map((len_n + 1):len_p, ~ find_unique_sets(seq_len(.x), ns)) %>%
       recur_flatten() %>%
       `c`(list(ns), .)
   } else {
     x <- list(ns)
   }
 
-  rows <- map_lgl(x, ~ length(.x) > maxn_vmods_per_pep)
+  rows <- purrr::map_lgl(x, ~ length(.x) > maxn_vmods_per_pep)
   x <- x[!rows]
 
   maxn_vmod <- x %>%
-    map(table) %>%
-    map(max)
+    purrr::map(table) %>%
+    purrr::map(max)
   rows <- maxn_vmod > maxn_sites_per_vmod
   x <- x[!rows]
 
@@ -1344,13 +1381,14 @@ vmods_elements <- function (aas,
 #' @param ns The names to be filled into \code{p}.
 #' @importFrom gtools combinations
 find_unique_sets <- function (ps = c(1:5), ns = c("A", "B", "C")) {
+  
   lp <- length(ps)
   ln <- length(ns)
   r <- lp - ln
 
   if (r == 0) return(list(ns))
 
-  x <- combinations(ln, r, ns, repeats = TRUE)
+  x <- gtools::combinations(ln, r, ns, repeats = TRUE)
 
   n_row <- nrow(x)
   out <- vector("list", n_row)
@@ -1370,9 +1408,9 @@ find_unique_sets <- function (ps = c(1:5), ns = c("A", "B", "C")) {
 #' @param intra_combis The results from \link{unique_mvmods}.
 find_intercombi <- function (intra_combis) {
 
-  if (is_empty(intra_combis)) { # scalar
+  if (length(intra_combis) == 0L) { # scalar
     v_out <- list()
-  } else if (any(map_lgl(intra_combis, is_empty))) { # list
+  } else if (any(purrr::map_lgl(intra_combis, is_empty))) { # list
     v_out <- list()
   } else if (length(intra_combis) > 1L) {
     inter_combi <- expand.grid(intra_combis, KEEP.OUT.ATTRS = FALSE)
@@ -1384,7 +1422,7 @@ find_intercombi <- function (intra_combis) {
       v_out[[i]] <- unlist(inter_combi[i, ], use.names = FALSE)
     }
   } else {
-    v_out <- flatten(intra_combis)
+    v_out <- purrr::flatten(intra_combis)
   }
 
   invisible(v_out)
@@ -1419,7 +1457,8 @@ find_intercombi <- function (intra_combis) {
 #' # a short protein
 #' concat_peps(c(TRDD1_HUMAN = "EI"))
 #' }
-concat_peps <- function (peps, n = 2L, include_cts = TRUE) {
+concat_peps <- function (peps = NULL, n = 2L, include_cts = TRUE) {
+  
   len <- length(peps)
 
   if (len == 0L) return(NULL)
@@ -1427,23 +1466,17 @@ concat_peps <- function (peps, n = 2L, include_cts = TRUE) {
   if (n >= len) n <- len - 1L
 
   len2 <- len - n
-
-  res <- purrr::map(seq_len(len2), ~ {
-    peps[.x:(.x + n)] %>%
-      purrr::accumulate(paste0) # %>%
-      # `names<-`(0:n)
+  
+  res <- lapply(seq_len(len2), function (x) {
+    peps[x:(x + n)] %>% purrr::accumulate(paste0) # %>% names<-`(0:n)
   }) %>% unlist()
-
+  
   if (include_cts && n >= 1L) {
-    res_cts <- local({
-      cts <- peps[(len - n + 1L):len]
-
-      purrr::map(n:1L, ~ {
-        tail(cts, .x) %>%
-          purrr::accumulate(paste0) # %>%
-          # `names<-`(0:(.x-1L))
-      }) %>% unlist()
-    })
+    cts <- peps[(len - n + 1L):len]
+    
+    res_cts <- lapply(n:1L, function (x) {
+      tail(cts, x) %>% purrr::accumulate(paste0) # %>% `names<-`(0:(.x-1L))
+    }) %>% unlist()
   } else {
     res_cts <- NULL
   }
@@ -1460,15 +1493,16 @@ concat_peps <- function (peps, n = 2L, include_cts = TRUE) {
 #' peps <- c(a = 1, b = 2, c = 3)
 #' res <- roll_sum(peps, 2)
 #' }
-roll_sum <- function (peps, n = 2L, include_cts = TRUE) {
+roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE) {
+  
   len <- length(peps)
 
   if (len == 0L) return(NULL)
 
   if (n >= len) n <- len - 1L
 
-  res <- purrr::map(seq_len((len - n)), ~ {
-    ranges <- .x:(.x + n)
+  res <- lapply(seq_len((len - n)), function (x) {
+    ranges <- x:(x + n)
 
     nms <- names(peps)[ranges] %>%
       purrr::accumulate(paste0)
@@ -1482,13 +1516,13 @@ roll_sum <- function (peps, n = 2L, include_cts = TRUE) {
     res_cts <- local({
       cts <- peps[(len - n + 1L):len]
 
-      purrr::map(n:1L, ~ {
-        x <- tail(cts, .x)
+      lapply(n:1L, function (x) {
+        y <- tail(cts, x)
 
-        nms <- names(x) %>%
+        nms <- names(y) %>%
           purrr::accumulate(paste0)
 
-        vals <- cumsum(x) %>%
+        vals <- cumsum(y) %>%
           `names<-`(nms)
       }) %>% unlist()
     })
@@ -1551,6 +1585,7 @@ roll_sum <- function (peps, n = 2L, include_cts = TRUE) {
 #' }
 #' @export
 parse_unimod <- function (unimod) {
+  
   # unimod = "Carbamidomethyl (Protein N-term = C)" # --> pos_site = "Protein N-term = C"
   # unimod = "Carbamidomethyl (Any N-term = C)" # --> pos_site = "Any N-term = C"
   # unimod = "Carbamidomethyl (N-term = C)" # --> pos_site = "N-term = C"
@@ -1662,7 +1697,8 @@ parse_unimod <- function (unimod) {
 #' }
 #' @export
 find_unimod <- function (unimod = "Carbamidomethyl (C)") {
-  options(digits = 9)
+  
+  options(digits = 9L)
 
   res <- parse_unimod(unimod)
   title <- res$title
@@ -1722,17 +1758,17 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)") {
     purrr::map(~ invisible(setNames(.x[1], .x[2])))
 
   sites <- xml2::xml_attrs(modch) %>%
-    map(`[`, c("site")) %>%
+    purrr::map(`[`, c("site")) %>%
     unlist()
 
   positions <- xml2::xml_attrs(modch) %>%
-    map(`[`, c("position")) %>%
+    purrr::map(`[`, c("position")) %>%
     unlist()
 
   # --- neutral loss ---
   idx_nl <- grep("NeutralLoss", modch)
 
-  if (!purrr::is_empty(idx_nl)) {
+  if (length(idx_nl) > 0L) {
     nls <- purrr::map(idx_nl, ~ {
       modnl <- xml2::xml_children(modch[.x])
 
@@ -1777,9 +1813,16 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)") {
 #' @param x A vector of data.
 #' @param n Integer. The number of mis-cleavages.
 keep_n_misses <- function (x, n) {
+  
   len <- length(x)
-
-  stopifnot(n >= 0L, len >= 1L)
+  
+  if (n < 0L) {
+    stop("`n` cannot be nagative integers: ", n)
+  }
+  
+  if (len == 0L) {
+    stop("Length of `x` cannot be zero.")
+  }
 
   x[1:min(n + 1, len)]
 }
@@ -1790,10 +1833,17 @@ keep_n_misses <- function (x, n) {
 #' @inheritParams keep_n_misses
 #' @seealso keep_n_misses
 exclude_n_misses <- function (x, n) {
+  
   len <- length(x)
 
-  stopifnot(n >= 0L, len >= 1L)
-
+  if (n < 0L) {
+    stop("`n` cannot be nagative integers: ", n)
+  }
+  
+  if (len == 0L) {
+    stop("Length of `x` cannot be zero.")
+  }
+  
   x[-(1:min(n + 1, len))]
 }
 
@@ -1814,6 +1864,7 @@ str_exclude_count <- function (x, char = "-") {
 #' @param char A starting character to be removed.
 #' @param n The number of beginning entries to be considered.
 rm_char_in_nfirst <- function (x, char = "^-", n = (max_miss + 1) * 2) {
+  
   n <- min(length(x), n)
   x[seq_len(n)] <- gsub(char, "", x[seq_len(n)])
 
@@ -1826,16 +1877,19 @@ rm_char_in_nfirst <- function (x, char = "^-", n = (max_miss + 1) * 2) {
 #' @param char A trailing character to be removed.
 #' @inheritParams rm_char_in_nfirst
 rm_char_in_nlast <- function (x, char = "-$", n = (max_miss + 1) * 2) {
+  
   len <- length(x)
   n <- min(len, n)
-  x[(len-n+1):len] <- gsub(char, "", x[(len-n+1):len])
+  x[(len - n + 1):len] <- gsub(char, "", x[(len - n + 1):len])
 
   x
 }
 
 
 #' Make peptide sequences from fastas.
-#'
+#' 
+#' Depreciated: for before the rolling sum approach.
+#' 
 #' @param fasta_db Fasta database.
 #' @inheritParams calc_pepmasses
 make_fastapeps <- function (fasta_db, max_miss = 2L, min_len = 1L,
@@ -1884,6 +1938,8 @@ make_fastapeps <- function (fasta_db, max_miss = 2L, min_len = 1L,
 
 #' Generates and Calculates the masses of tryptic peptides from a fasta
 #' database.
+#' 
+#' Depreciated.
 #'
 #' @param index_mods Logical; if TRUE, converts the names of modifications to
 #'   indexes. Not currently used.
@@ -2085,12 +2141,13 @@ calc_pepmasses <- function (
 
 #' Helper of \link{calc_pepmasses}.
 #'
-#' Prior to the calculation of peptide masses.
+#' Depreciated: prior to the calculation of peptide masses.
 #'
 #' @inheritParams calc_pepmasses
 #' @inheritParams mcalc_monopep
 pre_pepmasses <- function (fasta, acc_type, acc_pattern, maxn_fasta_seqs, aa_masses,
                            max_miss, min_len, max_len) {
+  
   # ---
   message("Loading fasta.")
 
