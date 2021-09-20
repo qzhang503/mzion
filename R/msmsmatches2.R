@@ -93,7 +93,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   inds <- which(types %in% c("amods- tmod- vnl- fnl-", 
                              "amods- tmod+ vnl- fnl-"))
   
-  if (length(inds) > 0L) {
+  if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
       
@@ -105,17 +105,17 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       #   or fixed N-term `TMT + hydrogen`
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod) == 0L) {
-        ntmass <- aa_masses["N-term"] - 0.000549 # - electron
-      } else {
+      if (length(ntmod)) {
         ntmass <- aa_masses[names(ntmod)] + 1.00727647 # + proton
+      } else {
+        ntmass <- aa_masses["N-term"] - 0.000549 # - electron
       }
       
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod) == 0L) {
-        ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
-      } else {
+      if (length(ctmod)) {
         ctmass <- aa_masses[names(ctmod)] + 2.01510147
+      } else {
+        ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
       }
       
       # (`map` against groups of frames)
@@ -161,22 +161,22 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   inds <- which(types %in% c("amods- tmod- vnl- fnl+", 
                              "amods- tmod+ vnl- fnl+"))
   
-  if (length(inds) > 0L) {
+  if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod) == 0L) {
-        ntmass <- aa_masses["N-term"] - 0.000549
-      } else {
+      if (length(ntmod)) {
         ntmass <- aa_masses[names(ntmod)] + 1.00727647
+      } else {
+        ntmass <- aa_masses["N-term"] - 0.000549
       }
       
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod) == 0L) {
-        ctmass <- aa_masses["C-term"] + 2.01510147
-      } else {
+      if (length(ctmod)) {
         ctmass <- aa_masses[names(ctmod)] + 2.01510147
+      } else {
+        ctmass <- aa_masses["C-term"] + 2.01510147
       }
       
       fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
@@ -222,22 +222,22 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   inds <- which(types %in% c("amods+ tmod- vnl- fnl-", 
                              "amods+ tmod+ vnl- fnl-"))
   
-  if (length(inds) > 0L) {
+  if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod) == 0L) {
-        ntmass <- aa_masses["N-term"] - 0.000549
-      } else {
+      if (length(ntmod)) {
         ntmass <- aa_masses[names(ntmod)] + 1.00727647
+      } else {
+        ntmass <- aa_masses["N-term"] - 0.000549
       }
       
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod) == 0L) {
-        ctmass <- aa_masses["C-term"] + 2.01510147
-      } else {
+      if (length(ctmod)) {
         ctmass <- aa_masses[names(ctmod)] + 2.01510147
+      } else {
+        ctmass <- aa_masses["C-term"] + 2.01510147
       }
       
       amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
@@ -285,22 +285,22 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   inds <- which(types %in% c("amods+ tmod- vnl+ fnl-", 
                              "amods+ tmod+ vnl+ fnl-"))
   
-  if (length(inds) > 0L) {
+  if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod) == 0L) {
-        ntmass <- aa_masses["N-term"] - 0.000549
-      } else {
+      if (length(ntmod)) {
         ntmass <- aa_masses[names(ntmod)] + 1.00727647
+      } else {
+        ntmass <- aa_masses["N-term"] - 0.000549
       }
       
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod) == 0L) {
-        ctmass <- aa_masses["C-term"] + 2.01510147
-      } else {
+      if (length(ctmod)) {
         ctmass <- aa_masses[names(ctmod)] + 2.01510147
+      } else {
+        ctmass <- aa_masses["C-term"] + 2.01510147
       }
       
       amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
@@ -351,22 +351,22 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   inds <- which(types %in% c("amods+ tmod- vnl- fnl+", 
                              "amods+ tmod+ vnl- fnl+"))
   
-  if (length(inds) > 0L) {
+  if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod) == 0L) {
-        ntmass <- aa_masses["N-term"] - 0.000549
-      } else {
+      if (length(ntmod)) {
         ntmass <- aa_masses[names(ntmod)] + 1.00727647
-      }
-      
-      ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod) == 0L) {
-        ctmass <- aa_masses["C-term"] + 2.01510147
       } else {
+        ntmass <- aa_masses["N-term"] - 0.000549
+      }
+
+      ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+      if (length(ctmod)) {
         ctmass <- aa_masses[names(ctmod)] + 2.01510147
+      } else {
+        ctmass <- aa_masses["C-term"] + 2.01510147
       }
       
       amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
@@ -433,27 +433,30 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   aa_masses <- aa_masses_all[[i_max]]
   
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-  if (length(ntmod) == 0L) {
-    ntmass <- aa_masses["N-term"] - 0.000549
-  } else {
+  if (length(ntmod)) {
     ntmass <- aa_masses[names(ntmod)] + 1.00727647
+  } else {
+    ntmass <- aa_masses["N-term"] - 0.000549
   }
   
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-  if (length(ctmod) == 0L) {
-    ctmass <- aa_masses["C-term"] + 2.01510147
-  } else {
+  if (length(ctmod)) {
     ctmass <- aa_masses[names(ctmod)] + 2.01510147
+  } else {
+    ctmass <- aa_masses["C-term"] + 2.01510147
   }
   
   amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
   
-  if (length(amods) == 0L) { # (1, 2)
-    rev <- ms2match_base(
+  if (length(amods)) { # (7, 8)
+    rev <- ms2match_a1_vnl0_fnl0(
       i = i_max2, 
       aa_masses = aa_masses, 
+      ntmod = ntmod, 
+      ctmod = ctmod, 
       ntmass = ntmass, 
       ctmass = ctmass, 
+      amods = amods, 
       mod_indexes = mod_indexes, 
       mgf_path = mgf_path, 
       out_path = out_path, 
@@ -466,15 +469,12 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ppm_ms2 = ppm_ms2, 
       min_ms2mass = min_ms2mass, 
       digits = digits)
-  } else { # (7, 8)
-    rev <- ms2match_a1_vnl0_fnl0(
+  } else { # (1, 2)
+    rev <- ms2match_base(
       i = i_max2, 
       aa_masses = aa_masses, 
-      ntmod = ntmod, 
-      ctmod = ctmod, 
       ntmass = ntmass, 
       ctmass = ctmass, 
-      amods = amods, 
       mod_indexes = mod_indexes, 
       mgf_path = mgf_path, 
       out_path = out_path, 

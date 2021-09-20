@@ -27,7 +27,9 @@ modifications and neutral losses.}
 modifications.}
 
 \item{add_varmasses}{Logical; if TRUE, add mass delta to the corresponding
-base mass for variable modifications.}
+base mass for variable modifications. The argument at TRUE is for
+compatibility for MS1 precursor mass calculations before the approach of
+"rolling sum + fallthrough".}
 
 \item{add_nlmasses}{Logical; if TRUE, add an original mass to the
 corresponding (negative) neutral-loss mass.}
@@ -48,21 +50,32 @@ x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)",
                      "Carbamidomethyl (C)"), c("Acetyl (N-term)",
                      "Gln->pyro-Glu (N-term = Q)", "Oxidation (M)"))
 
+stopifnot(length(x) == 6L)
+
 x <- calc_aamasses(fixedmods = NULL)
+stopifnot(length(x) == 16L)
+
 x <- calc_aamasses(fixedmods = NULL, varmods = NULL)
+stopifnot(length(x) == 1L)
 
 # Fixed mod, no NL
 x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)",
                                  "Carbamidomethyl (. = C)"), varmods = NULL)
 
+stopifnot(length(x) == 1L)
+
 # Fixed mod + NL
 x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)",
                                  "Carbamidomethyl (. = M)"), varmods = NULL)
+
+stopifnot(length(x) == 1L)
 
 # Fixed mod, no NL; var mod, no NL
 x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)",
                                  "Carbamidomethyl (. = C)"),
                    varmods = c("Acetyl (N-term)", "Gln->pyro-Glu (N-term = Q)"))
+
+stopifnot(length(x) == 3L)
 
 # Fixed mod + NL; var mod + NL
 x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)",
@@ -71,10 +84,50 @@ x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)",
                    c("Acetyl (N-term)", "Gln->pyro-Glu (N-term = Q)",
                      "Hex(5)HexNAc(2) (N)"))
 
+stopifnot(length(x) == 6L)
+
 x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)",
-       "Carbamidomethyl (. = M)", "Deamidated (. = R)"),
-       c("Acetyl (N-term)", "Carbamyl (. = M)",
-       "Gln->pyro-Glu (N-term = Q)", "Hex(5)HexNAc(2) (N)"))
+                     "Carbamidomethyl (. = M)", "Deamidated (. = R)"),
+                   c("Acetyl (N-term)", "Carbamyl (. = M)",
+                     "Gln->pyro-Glu (N-term = Q)", "Hex(5)HexNAc(2) (N)"))
+
+stopifnot(length(x) == 18L)
+
+## Coercion       
+# No fixed terminal or fixed anywhere coercion
+x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)", 
+                     "Carbamidomethyl (C)"),
+                   c("Carbamidomethyl (M)"))
+
+stopifnot(length(x) == 2L)
+
+x <- calc_aamasses(c("TMT6plex (K)", "Carbamidomethyl (C)"), 
+                   c("Acetyl (Protein N-term)", "TMT6plex (N-term)", 
+                     "Oxidation (M)", "Carbamidomethyl (M)"))
+
+stopifnot(length(x) == 12L)
+
+# Fixed terminal coercion
+x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)", 
+                     "Carbamidomethyl (C)"),
+                   c("Acetyl (Protein N-term)", "Oxidation (M)"))
+                   
+stopifnot(length(x) == 4L)
+
+# Fixed anywhere coercion
+x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)", 
+                     "Carbamidomethyl (C)", "Carbamidomethyl (M)"),
+                   c("Oxidation (M)"))
+                   
+stopifnot(length(x) == 3L)
+                   
+# Both fixed terminal and fixed anywhere coercion
+x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)", 
+                     "Carbamidomethyl (C)", "Carbamidomethyl (M)"),
+                   c("Acetyl (Protein N-term)", "Oxidation (M)"))
+
+stopifnot(length(x) == 6L)
+
 }
 \dontrun{
 # conflicts

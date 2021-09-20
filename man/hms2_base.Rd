@@ -148,5 +148,12 @@ and y-ions.}
 
 (9) "amods+ tmod- vnl+ fnl-", (10) "amods+ tmod+ vnl+ fnl-"
 
-(1) "amods- tmod- vnl- fnl-", (2) "amods- tmod+ vnl- fnl-"
+(1) "amods- tmod- vnl- fnl-", (2) "amods- tmod+ vnl- fnl-".
+}
+\details{
+`res[[i]]` contains results for multiple mgfs within a frame (the number of
+entries equals to the number of mgf frames).
+
+`res[[i]]` contains results for multiple mgfs within a frame (the number of
+entries equals to the number of mgf frames).
 }

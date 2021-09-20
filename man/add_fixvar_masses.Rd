@@ -17,7 +17,9 @@ modifications.}
 acid residues.}
 
 \item{add_varmasses}{Logical; if TRUE, add mass delta to the corresponding
-base mass for variable modifications.}
+base mass for variable modifications. The argument at TRUE is for
+compatibility for MS1 precursor mass calculations before the approach of
+"rolling sum + fallthrough".}
 }
 \value{
 Lists of of amino-acid residues with modified mono-isotopic masses

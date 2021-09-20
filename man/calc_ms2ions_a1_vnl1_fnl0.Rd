@@ -2,7 +2,7 @@
 % Please edit documentation in R/ms2_a1_vnl1_fnl0.R
 \name{calc_ms2ions_a1_vnl1_fnl0}
 \alias{calc_ms2ions_a1_vnl1_fnl0}
-\title{Calculates}
+\title{Calculates MS2 ions.}
 \usage{
 calc_ms2ions_a1_vnl1_fnl0(
   vmods_combi,
@@ -19,5 +19,5 @@ calc_ms2ions_a1_vnl1_fnl0(
 \item{ms1_mass}{The mass of a theoretical MS1 (for subsetting).}
 }
 \description{
-Calculates
+Calculates MS2 ions.
 }
