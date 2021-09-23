@@ -60,6 +60,12 @@
 #       - roll_sum (-> export; dbs.R)
 #     - distri_peps
 #       - subpeps_by_vmods (ions.R)
+#         - find_nmodtree
+#           ...
+#         - find_cmodtree
+#           ...
+#       - rm_char_in_nfirst2 (dbs.R)
+#       - rm_char_in_nlast2 (dbs.R)
 #     - add_term_mass
 #     - helpers below
 # 
@@ -89,6 +95,7 @@
 # ms2base.R: (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-"
 #   ms2match_base 
 #     purge_search_space (utils_engine.R)
+#       subset_theoframes (msmsmatches.R)
 #     hms2_base (helper)
 #       frames_adv_base (frame-advancing)
 #         gen_ms2ions_base (for specific pep_seq)
@@ -138,7 +145,7 @@
 #           calc_ms2ions_a1_vnl0_fnl0
 #             ms2ions_by_type (ion_ladder.R)
 #               byions, czions, axions (ion_ladder.R)
-#           add_hexcodes (sitecombi.R)
+#           add_hexcodes
 #         search_mgf2 (ms2base.R)
 #           find_mass_error_range (ms2base.R)
 #           find_ms2_bypep (ms2base.R)
@@ -196,13 +203,18 @@
 # 
 
 ## calc_pepscores (scores.R)
-#   scalc_pepprobs
-#     calc_probi
-#       calc_probi_bypep
-#         calc_probi_byvmods
-#           add_seions
-#           find_ppm_outer_bycombi (msmsmatches.R)
+#   calcpepsc
+#   calc_pepfdr
+#     calc_pepprobs_i
+#       scalc_pepprobs
+#         calc_probi
+#           calc_probi_bypep
+#             calc_probi_byvmods
+#               add_seions
+#               find_ppm_outer_bycombi
 # 
+
+
 ## calc_protfdr (scores.R)
 #   calc_protfdr_i
 #   fit_protfdr

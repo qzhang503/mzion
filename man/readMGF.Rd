@@ -42,6 +42,6 @@ Reads MGF files in chunks.
 }
 \examples{
 \donttest{
-mgf_queries <- readMGF()
+mgf_queries <- proteoM:::readMGF()
 }
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/ms2_a1_vnl0_fnl0.R
 \name{combi_mvmods2}
 \alias{combi_mvmods2}
-\title{Finds the combinations of variable modifications (multiple sites)}
+\title{Finds the combinations of variable modifications (multiple sites).}
 \usage{
 combi_mvmods2(
   amods,
@@ -15,7 +15,7 @@ combi_mvmods2(
 )
 }
 \arguments{
-\item{amods}{\code{Anywhere} variable modifications.}
+\item{amods}{Anywhere modifications.}
 
 \item{aas}{\code{aa_seq} split in a sequence of LETTERS.}
 
@@ -32,14 +32,6 @@ variable modifications per site in a per peptide sequence.}
 combinatorial variable modifications per peptide sequence.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
-
-\item{famods}{\code{Anywhere} fixed modifications.}
-
-\item{fntmod}{The parsed \emph{fixed} \code{N-term} modifications from
-\code{aa_masses}.}
-
-\item{fctmod}{The parsed \emph{fixed} \code{C-term} modifications from
-\code{aa_masses}.}
 }
 \value{
 Lists by residues in \code{amods}.

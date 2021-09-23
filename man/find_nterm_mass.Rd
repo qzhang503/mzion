@@ -7,8 +7,8 @@
 find_nterm_mass(aa_masses)
 }
 \arguments{
-\item{aa_masses}{Amino-acid lookup at a given combination of fixed and
-variable.}
+\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
+acid residues.}
 }
 \description{
 Not yet used.

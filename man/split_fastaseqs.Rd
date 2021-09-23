@@ -2,14 +2,13 @@
 % Please edit documentation in R/ms1_precursors.R
 \name{split_fastaseqs}
 \alias{split_fastaseqs}
-\title{Helper of \link{calc_pepmasses}.}
+\title{Helper of \link{calc_pepmasses2}.}
 \usage{
 split_fastaseqs(fasta, acc_type, acc_pattern, maxn_fasta_seqs, max_miss = 2L)
 }
 \arguments{
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
-prepended directory path. There is no default and the experimenters need to
-supply the files.}
+prepended directory path. The experimenters need to supply the files.}
 
 \item{acc_type}{Character string(s); the types of protein accessions in one
 of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
@@ -19,7 +18,8 @@ the corresponding regular expressions need to be supplied via argument
 \item{acc_pattern}{Regular expression(s) describing the patterns to separate
 the header lines of fasta entries. At the \code{NULL} default, the pattern
 will be automated when \code{acc_type} are among c("uniprot_acc",
-"uniprot_id", "refseq_acc", "other").}
+"uniprot_id", "refseq_acc", "other"). See also \link{load_fasta2} for
+custom examples.}
 
 \item{maxn_fasta_seqs}{Integer; the maximum number of protein sequences in
 fasta files.}

@@ -146,9 +146,10 @@ hms2_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
                                  ppm_ms1 = ppm_ms1, 
                                  ppm_ms2 = ppm_ms2, 
                                  min_ms2mass = min_ms2mass, 
-                                 digits = digits) %>% 
-    post_frame_adv(mgf_frames)
+                                 digits = digits)
   
+  res <- post_frame_adv(res, mgf_frames)
+
   rm(list = "mgf_frames", "theopeps")
   
   invisible(res)
@@ -208,8 +209,8 @@ frames_adv_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
     ), 
     SIMPLIFY = FALSE, 
     USE.NAMES = FALSE
-  ) %>% 
-    `names<-`(theopeps_bf_ms1)
+  )
+  names(theos_bf_ms2) <- theopeps_bf_ms1
 
   theos_cr_ms2 <- mapply(
     gen_ms2ions_a1_vnl0_fnl1, 
@@ -233,9 +234,9 @@ frames_adv_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
     ), 
     SIMPLIFY = FALSE, 
     USE.NAMES = FALSE
-  ) %>% 
-    `names<-`(theopeps_cr_ms1)
-  
+  )
+  names(theos_cr_ms2) <- theopeps_cr_ms1
+
   ## --- iteration ---
   for (i in seq_len(len)) {
     exptmasses_ms1 <- mgfs_cr[["ms1_mass"]]
@@ -267,9 +268,9 @@ frames_adv_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
       ), 
       SIMPLIFY = FALSE, 
       USE.NAMES = FALSE
-    ) %>% 
-      `names<-`(theopeps_af_ms1)
-    
+    )
+    names(theos_af_ms2) <- theopeps_af_ms1
+
     # each `out` for the results of multiple mgfs in one frame
     
     # Browse[4]> exptmasses_ms1
@@ -355,8 +356,8 @@ frames_adv_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE, 
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_cr_ms1)
+      )
+      names(theos_cr_ms2) <- theopeps_cr_ms1
     } else {
       theos_bf_ms1 <- theopeps[[as.character(new_frame-1)]]
       theopeps_bf_ms1 <- theos_bf_ms1$pep_seq
@@ -388,9 +389,9 @@ frames_adv_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_bf_ms1)
-      
+      )
+      names(theos_bf_ms2) <- theopeps_bf_ms1
+
       theos_cr_ms2 <- mapply(
         gen_ms2ions_a1_vnl0_fnl1, 
         theopeps_cr_ms1, 
@@ -413,8 +414,8 @@ frames_adv_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE, 
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_cr_ms1)
+      )
+      names(theos_cr_ms2) <- theopeps_cr_ms1
     }
     
     frame <- new_frame
@@ -552,9 +553,7 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
 
   # NLs of fixedmods
   fnl_idxes <- which(aas %in% names(fmods_nl))
-  
-  # if (length(fnl_idxes) == 0L) return (NULL)
-  
+
   fmods_combi <- aas[fnl_idxes]
   names(fmods_combi) <- fnl_idxes
   fnl_combi <- expand.grid(fmods_nl[fmods_combi])
@@ -571,17 +570,18 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
     MoreArgs = list(len = length(aas), mod_indexes  = mod_indexes), 
     SIMPLIFY = FALSE, 
     USE.NAMES = FALSE
-  ) %>% 
-    purrr::flatten()
-
-  invisible(out)
+  )
+  
+  purrr::flatten(out)
 }
 
 
-#' Calculates 
-#' 
-#' @param ms1_mass The mass of a theoretical MS1 (for subsetting).
-#' 
+#' Calculates
+#'
+#' @param fnl_idxes The position indexes of amino acids containing fixed neutral
+#'   losses.
+#' @inheritParams calc_ms2ions_a1_vnl0_fnl0
+#' @inheritParams ms1_a0_fnl1_byprot
 calc_ms2ions_a1_vnl0_fnl1 <- function (vmods_combi, fnl_combi, fnl_idxes, 
                                        aas2, aa_masses, 
                                        ntmass, ctmass, type_ms2ions, digits) {
@@ -612,13 +612,14 @@ calc_ms2ions_a1_vnl0_fnl1 <- function (vmods_combi, fnl_combi, fnl_idxes,
 #' To indicate the variable modifications of an amino acid sequence.
 #' 
 #' @inheritParams add_hexcodes
+#' @inheritParams calc_ms2ions_a1_vnl0_fnl1
 add_hexcodes_fnl2 <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
 
   hex_mods = rep("0", len)
   hex_mods[as.numeric(names(vmods_combi))] <- mod_indexes[unlist(vmods_combi)]
   hex_mods <- paste0(hex_mods, collapse = "")
   
-  # `(` for `vnl` and `[` for fnl
+  # Syntax: `(` for `vnl` and `[` for fnl
   names(ms2ions) <- paste0(hex_mods, " [", seq_along(ms2ions), "]")
   
   invisible(ms2ions)

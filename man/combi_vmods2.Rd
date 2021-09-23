@@ -2,7 +2,7 @@
 % Please edit documentation in R/ms2_a1_vnl0_fnl0.R
 \name{combi_vmods2}
 \alias{combi_vmods2}
-\title{The combinations of variable modifications (single site)}
+\title{The combinations of variable modifications (single site).}
 \usage{
 combi_vmods2(
   aas,
@@ -34,5 +34,5 @@ combinatorial variable modifications per peptide sequence.}
 \item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
-The combinations of variable modifications (single site)
+The combinations of variable modifications (single site).
 }

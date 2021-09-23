@@ -14,7 +14,7 @@ psmC2Q(
 \arguments{
 \item{out}{A result of \code{psmC.txt}.}
 
-\item{out_path}{The output path.}
+\item{out_path}{A file path of outputs.}
 
 \item{fdr_type}{Character string; the type of FDR control. The value is in
 one of c("psm", "peptide", "protein"). Note that \code{fdr_type = protein}

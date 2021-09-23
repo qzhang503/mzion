@@ -9,9 +9,9 @@ calc_pepmasses2(
   fasta = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
   acc_type = "uniprot_acc",
   acc_pattern = NULL,
-  fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)"),
-  varmods = c("TMT6plex (N-term)", "Acetyl (Protein N-term)", "Oxidation (M)",
-    "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
+  fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
+  varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+    "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
   index_mods = FALSE,
   enzyme = c("trypsin"),
@@ -29,8 +29,7 @@ calc_pepmasses2(
 }
 \arguments{
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
-prepended directory path. There is no default and the experimenters need to
-supply the files.}
+prepended directory path. The experimenters need to supply the files.}
 
 \item{acc_type}{Character string(s); the types of protein accessions in one
 of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
@@ -40,7 +39,8 @@ the corresponding regular expressions need to be supplied via argument
 \item{acc_pattern}{Regular expression(s) describing the patterns to separate
 the header lines of fasta entries. At the \code{NULL} default, the pattern
 will be automated when \code{acc_type} are among c("uniprot_acc",
-"uniprot_id", "refseq_acc", "other").}
+"uniprot_id", "refseq_acc", "other"). See also \link{load_fasta2} for
+custom examples.}
 
 \item{fixedmods}{A character vector of fixed modifications. See also
 \link{parse_unimod} for grammars.}
@@ -82,7 +82,7 @@ be excluded.}
 
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
 
-\item{out_path}{The output path.}
+\item{out_path}{A file path of outputs.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 
@@ -95,7 +95,7 @@ database.
 }
 \examples{
 \donttest{
-res <- calc_pepmasses()
+res <- calc_pepmasses2()
 
 library(purrr)
 library(magrittr)

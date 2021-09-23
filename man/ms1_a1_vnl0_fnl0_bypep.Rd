@@ -20,13 +20,17 @@ ms1_a1_vnl0_fnl0_bypep(
 \arguments{
 \item{mass}{The mass of a peptide.}
 
-\item{aa_seq}{Character string; a peptide sequences with one-letter
+\item{aa_seq}{Character string; a peptide sequence with one-letter
 representation of amino acids.}
 
 \item{amods}{\code{Anywhere} variable modifications.}
 
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
+
+\item{vmods_nl}{The attribute of \code{vmods_nl} from an \code{aa_masses}.}
+
+\item{fmods_nl}{The attribute of \code{fmods_nl} from an \code{aa_masses}.}
 
 \item{include_insource_nl}{Logical Logical; if TRUE, includes MS1 precursor
 masses with the losses of neutral species prior to MS2 fragmentation. The

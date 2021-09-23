@@ -25,5 +25,5 @@ binTheoPeps_bysets(
 \item{out_path}{The output path.}
 }
 \description{
-Bin peptide masses by sets of data.
+Not used. Bin peptide masses by sets of data.
 }

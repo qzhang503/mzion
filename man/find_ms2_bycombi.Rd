@@ -14,6 +14,8 @@ find_ms2_bycombi(theos, expts, ex, ppm_ms2, min_ms2mass)
 \item{ex}{Indexed \code{expts}.}
 
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
+
+\item{min_ms2mass}{A minimum m/z of MS2 ions.}
 }
 \description{
 Not currently used.

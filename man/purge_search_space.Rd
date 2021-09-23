@@ -17,12 +17,14 @@ purge_search_space(
 \item{i}{Integer; the index for a set of corresponding aa_masses and
 theoretical peptides.}
 
-\item{aa_masses}{Amino-acid lookup at a given combination of fixed and
-variable.}
+\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
+acid residues.}
 
 \item{mgf_path}{The file path to a list of MGF files. The experimenters need
 to supply the files. Note that the supported MGFs are from MSConvert or
 Proteome Discoverer.}
+
+\item{ppm_ms1}{The mass tolerance of MS1 species.}
 
 \item{fmods_nl}{The attribute of \code{fmods_nl} from an \code{aa_masses}.}
 }

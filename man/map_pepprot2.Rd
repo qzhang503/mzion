@@ -23,6 +23,6 @@ df$prot_acc <- sample(LETTERS[1:20], 2000, replace = TRUE)
 df$pep_seq <- sample(letters[1:26], 20, replace = TRUE)
 df <- df[!duplicated(df), ] 
 
-out <- map_pepprot2(df)
+out <- proteoM:::map_pepprot2(df)
 }
 }

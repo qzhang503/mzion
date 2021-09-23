@@ -5,8 +5,8 @@
 \title{Calculates mono-isotopic masses of peptide sequences.}
 \usage{
 ms1masses_bare(
-  seqs,
-  aa_masses,
+  seqs = NULL,
+  aa_masses = NULL,
   ftmass = NULL,
   max_miss = 2L,
   min_len = 7L,

@@ -25,9 +25,12 @@ MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
 
+\item{penalize_sions}{Logical; if TRUE, penalizes secondary ions of b0, y0
+etc. with lower weights in peptide scoring.}
+
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
 
-\item{out_path}{The output path.}
+\item{out_path}{A file path of outputs.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }

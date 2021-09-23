@@ -4,7 +4,7 @@
 \alias{find_intercombi_p2}
 \title{Finds the combinations of positions and sites across residues.}
 \usage{
-find_intercombi_p2(intra_combis, maxn_vmods_sitescombi_per_pep)
+find_intercombi_p2(intra_combis, maxn_vmods_sitescombi_per_pep = 32L)
 }
 \arguments{
 \item{intra_combis}{The results from \link{unique_mvmods}.}

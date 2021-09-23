@@ -12,6 +12,8 @@ find_ms2_bypep(theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
 \item{expts}{Numeric vector; one series of experimental MS2s.}
 
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
+
+\item{min_ms2mass}{A minimum m/z of MS2 ions.}
 }
 \description{
 Run time about 45 us.

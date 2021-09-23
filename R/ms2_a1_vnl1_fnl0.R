@@ -73,7 +73,9 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ntmod = NULL, ctmod = NULL,
   theopeps <- tempdata$theopeps
   rm(list = c("tempdata"))
   
-  if (!length(mgf_frames) || !length(theopeps)) return(NULL)
+  if (!length(mgf_frames) || !length(theopeps)) {
+    return(NULL)
+  }
 
   out <- parallel::clusterMap(
     cl, hms2_a1_vnl1_fnl0, 
@@ -146,8 +148,9 @@ hms2_a1_vnl1_fnl0 <- function (mgf_frames, theopeps, aa_masses,
                                  ppm_ms1 = ppm_ms1, 
                                  ppm_ms2 = ppm_ms2, 
                                  min_ms2mass = min_ms2mass, 
-                                 digits = digits) %>% 
-    post_frame_adv(mgf_frames)
+                                 digits = digits)
+  
+  res <- post_frame_adv(res, mgf_frames)
   
   rm(list = "mgf_frames", "theopeps")
   
@@ -208,9 +211,9 @@ frames_adv_a1_vnl1_fnl0 <- function (mgf_frames, theopeps, aa_masses,
     ), 
     SIMPLIFY = FALSE, 
     USE.NAMES = FALSE
-  ) %>% 
-    `names<-`(theopeps_bf_ms1)
-  
+  )
+  names(theos_bf_ms2) <- theopeps_bf_ms1
+
   theos_cr_ms2 <- mapply(
     gen_ms2ions_a1_vnl1_fnl0, 
     theopeps_cr_ms1, 
@@ -233,8 +236,8 @@ frames_adv_a1_vnl1_fnl0 <- function (mgf_frames, theopeps, aa_masses,
     ), 
     SIMPLIFY = FALSE, 
     USE.NAMES = FALSE
-  ) %>% 
-    `names<-`(theopeps_cr_ms1)
+  )
+  names(theos_cr_ms2) <- theopeps_cr_ms1
 
   ## --- iteration ---
   for (i in seq_len(len)) {
@@ -267,9 +270,9 @@ frames_adv_a1_vnl1_fnl0 <- function (mgf_frames, theopeps, aa_masses,
       ), 
       SIMPLIFY = FALSE, 
       USE.NAMES = FALSE
-    ) %>% 
-      `names<-`(theopeps_af_ms1)
-    
+    )
+    names(theos_af_ms2) <- theopeps_af_ms1
+
     # each `out` for the results of multiple mgfs in one frame
     
     # Browse[4]> exptmasses_ms1
@@ -355,8 +358,8 @@ frames_adv_a1_vnl1_fnl0 <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE, 
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_cr_ms1)
+      )
+      names(theos_cr_ms2) <- theopeps_cr_ms1
     } else {
       theos_bf_ms1 <- theopeps[[as.character(new_frame-1)]]
       theopeps_bf_ms1 <- theos_bf_ms1$pep_seq
@@ -388,9 +391,9 @@ frames_adv_a1_vnl1_fnl0 <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_bf_ms1)
-      
+      )
+      names(theos_bf_ms2) <- theopeps_bf_ms1
+
       theos_cr_ms2 <- mapply(
         gen_ms2ions_a1_vnl1_fnl0, 
         theopeps_cr_ms1, 
@@ -413,8 +416,8 @@ frames_adv_a1_vnl1_fnl0 <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE, 
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_cr_ms1)
+      )
+      names(theos_cr_ms2) <- theopeps_cr_ms1
     }
     
     frame <- new_frame
@@ -557,8 +560,15 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses,
     MoreArgs = list(len = length(aas), mod_indexes  = mod_indexes), 
     SIMPLIFY = FALSE, 
     USE.NAMES = FALSE
-  ) %>% 
-    purrr::flatten()
+  )
+  
+  out <- unlist(out, recursive = FALSE)
+  
+  len_out <- length(out)
+  
+  if (len_out > maxn_vmods_sitescombi_per_pep) {
+    out <- out[1:maxn_vmods_sitescombi_per_pep]
+  }
   
   invisible(out)
 }
@@ -566,7 +576,14 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses,
 
 #' Calculates MS2 ions.
 #' 
-#' @param ms1_mass The mass of a theoretical MS1 (for subsetting).
+#' @param vmods_combi Lists of variable modifications.
+#' @param vnl_combi Lists of combinations of neutral losses for corresponding
+#'   \code{vmods_combi}. Each list contains a table where each column
+#'   corresponds to a set of neutral loss. The first column corresponds to the
+#'   combination without NLs.
+#' @inheritParams ms2ions_by_type
+#' @inheritParams add_fixvar_masses
+#' @inheritParams ms2match_base
 calc_ms2ions_a1_vnl1_fnl0 <- function (vmods_combi, vnl_combi, aas2, aa_masses, 
                                        ntmass, ctmass, type_ms2ions, digits) {
 
@@ -595,6 +612,7 @@ calc_ms2ions_a1_vnl1_fnl0 <- function (vmods_combi, vnl_combi, aas2, aa_masses,
 #' 
 #' To indicate the variable modifications of an amino acid sequence.
 #' 
+#' @param vmods_combi Lists of variable modifications.
 #' @inheritParams add_hexcodes
 add_hexcodes_vnl2 <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
 
@@ -602,7 +620,7 @@ add_hexcodes_vnl2 <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
   hex_mods[as.numeric(names(vmods_combi))] <- mod_indexes[unlist(vmods_combi)]
   hex_mods <- paste0(hex_mods, collapse = "")
   
-  # `(` for `vnl` and `[` for fnl
+  # Syntax: `(` for `vnl` and `[` for fnl
   names(ms2ions) <- paste0(hex_mods, " (", seq_along(ms2ions), ")")
   
   invisible(ms2ions)

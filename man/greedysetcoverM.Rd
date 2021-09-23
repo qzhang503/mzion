@@ -7,7 +7,7 @@
 greedysetcoverM(df)
 }
 \arguments{
-\item{mat}{A matrix of protein (cols)-peptide (rows) map.}
+\item{df}{A matrix of protein (cols)-peptide (rows) map.}
 }
 \value{
 A two-column data frame of prot_acc and pep_seq.

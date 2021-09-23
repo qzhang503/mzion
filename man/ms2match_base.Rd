@@ -120,8 +120,8 @@ ms2match_base(
 \item{i}{Integer; the index for a set of corresponding aa_masses and
 theoretical peptides.}
 
-\item{aa_masses}{Amino-acid lookup at a given combination of fixed and
-variable.}
+\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
+acid residues.}
 
 \item{ntmass}{The mass of N-terminal.}
 
@@ -136,12 +136,32 @@ modifications.}
 to supply the files. Note that the supported MGFs are from MSConvert or
 Proteome Discoverer.}
 
-\item{out_path}{An output path.}
+\item{out_path}{A file path of outputs.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
+
+\item{maxn_vmods_per_pep}{The maximum number of variable modifications per
+peptide.}
+
+\item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
+variable modifications per site in a per peptide sequence.}
+
+\item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
+combinatorial variable modifications per peptide sequence.}
+
+\item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
+a hit.}
+
+\item{ppm_ms1}{The mass tolerance of MS1 species.}
+
+\item{ppm_ms2}{The mass tolerance of MS2 species.}
+
+\item{min_ms2mass}{A minimum m/z of MS2 ions.}
+
+\item{digits}{Integer; the number of decimal places to be used.}
 
 \item{amods}{The attribute of \code{amods} from an \code{aa_masses}.}
 

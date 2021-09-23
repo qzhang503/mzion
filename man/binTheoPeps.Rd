@@ -38,6 +38,6 @@ Separates theoretical peptides into mass groups.
 \examples{
 \donttest{
 res <- readRDS("~/proteoM/dbs/fasta/uniprot/pepmass/uniprot_hs_2020_05_2miss.rds")
-theopeps <- binTheoPeps(res)
+theopeps <- proteoM:::binTheoPeps(res)
 }
 }

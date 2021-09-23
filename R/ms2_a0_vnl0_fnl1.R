@@ -113,8 +113,7 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ntmass, ctmass, fmods_nl,
 #' @rdname hms2_base
 hms2_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ntmass, ctmass, 
                                fmods_nl, mod_indexes, type_ms2ions = "by", 
-                               maxn_vmods_per_pep = 5L, 
-                               maxn_sites_per_vmod = 3L, 
+                               maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                                maxn_vmods_sitescombi_per_pep = 32L, 
                                minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
                                min_ms2mass = 110L, digits = 4L) {
@@ -135,9 +134,10 @@ hms2_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ntmass, ctmass,
                                  ppm_ms1 = ppm_ms1, 
                                  ppm_ms2 = ppm_ms2, 
                                  min_ms2mass = min_ms2mass, 
-                                 digits = digits) %>% 
-    post_frame_adv(mgf_frames)
+                                 digits = digits)
   
+  res <- post_frame_adv(res, mgf_frames)
+
   rm(list = "mgf_frames", "theopeps")
   
   invisible(res)
@@ -192,8 +192,8 @@ frames_adv_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
     ), 
     SIMPLIFY = FALSE,
     USE.NAMES = FALSE
-  ) %>% 
-    `names<-`(theopeps_bf_ms1)
+  )
+  names(theos_bf_ms2) <- theopeps_bf_ms1
 
   theos_cr_ms2 <- mapply(
     gen_ms2ions_a0_vnl0_fnl1, 
@@ -214,9 +214,9 @@ frames_adv_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
     ), 
     SIMPLIFY = FALSE,
     USE.NAMES = FALSE
-  ) %>% 
-    `names<-`(theopeps_cr_ms1)
-  
+  )
+  names(theos_cr_ms2) <- theopeps_cr_ms1
+
   ## --- iteration ---
   for (i in seq_len(len)) {
     exptmasses_ms1 <- mgfs_cr[["ms1_mass"]]
@@ -245,8 +245,8 @@ frames_adv_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
       ), 
       SIMPLIFY = FALSE,
       USE.NAMES = FALSE
-    ) %>% 
-      `names<-`(theopeps_af_ms1)
+    )
+    names(theos_af_ms2) <- theopeps_af_ms1
 
     # each `out` for the results of multiple mgfs in one frame
     
@@ -331,8 +331,8 @@ frames_adv_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_cr_ms1)
+      )
+      names(theos_cr_ms2) <- theopeps_cr_ms1
     } else {
       theos_bf_ms1 <- theopeps[[as.character(new_frame-1)]]
       theopeps_bf_ms1 <- theos_bf_ms1$pep_seq
@@ -361,8 +361,8 @@ frames_adv_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_bf_ms1)
+      )
+      names(theos_bf_ms2) <- theopeps_bf_ms1
 
       theos_cr_ms2 <- mapply(
         gen_ms2ions_a0_vnl0_fnl1, 
@@ -383,8 +383,8 @@ frames_adv_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_cr_ms1)
+      )
+      names(theos_cr_ms2) <- theopeps_cr_ms1
     }
     
     frame <- new_frame
@@ -495,7 +495,8 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
     idxes <- idxes[1:len_i]
   }
   
-  # fast way to check maxn_sites_per_vmod (R table slow)?
+  # a faster way to check maxn_sites_per_vmod (but avoid slow R table)?
+  # ...
 
   # ---
   fmods_combi <- aas[idxes]

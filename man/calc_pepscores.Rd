@@ -46,12 +46,9 @@ etc. with lower weights in peptide scoring.}
 
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
 
-\item{out_path}{The output path.}
+\item{out_path}{A file path of outputs.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
-
-\item{res}{The result from \link{pmatch_bymgfs}. At the \code{NULL} default,
-the file \code{ion_matches.rds} will be used.}
 }
 \description{
 Calculates the scores of peptides.

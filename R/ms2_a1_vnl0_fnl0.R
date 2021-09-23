@@ -121,8 +121,7 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ntmod = NULL, ctmod = NULL,
 #' @inheritParams ms2match_a1_vnl0_fnl0
 #' @rdname hms2_base
 hms2_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses, 
-                               ntmod = NULL, ctmod = NULL, 
-                               ntmass, ctmass, 
+                               ntmod = NULL, ctmod = NULL, ntmass, ctmass, 
                                amods, mod_indexes, type_ms2ions = "by", 
                                maxn_vmods_per_pep = 5L, 
                                maxn_sites_per_vmod = 3L, 
@@ -151,9 +150,10 @@ hms2_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses,
                                  ppm_ms1 = ppm_ms1, 
                                  ppm_ms2 = ppm_ms2, 
                                  min_ms2mass = min_ms2mass, 
-                                 digits = digits) %>% 
-    post_frame_adv(mgf_frames)
+                                 digits = digits)
   
+  res <- post_frame_adv(res, mgf_frames)
+
   rm(list = "mgf_frames", "theopeps")
   
   invisible(res)
@@ -212,9 +212,9 @@ frames_adv_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses,
     ), 
     SIMPLIFY = FALSE,
     USE.NAMES = FALSE
-  ) %>% 
-    `names<-`(theopeps_bf_ms1)
-  
+  )
+  names(theos_bf_ms2) <- theopeps_bf_ms1
+
   theos_cr_ms2 <- mapply(
     gen_ms2ions_a1_vnl0_fnl0, 
     aa_seq = theopeps_cr_ms1, 
@@ -236,8 +236,8 @@ frames_adv_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses,
     ), 
     SIMPLIFY = FALSE,
     USE.NAMES = FALSE
-  ) %>% 
-    `names<-`(theopeps_cr_ms1)
+  )
+  names(theos_cr_ms2) <- theopeps_cr_ms1
 
   ## --- iteration ---
   for (i in seq_len(len)) {
@@ -269,9 +269,9 @@ frames_adv_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses,
       ), 
       SIMPLIFY = FALSE,
       USE.NAMES = FALSE
-    ) %>% 
-      `names<-`(theopeps_af_ms1)
-    
+    )
+    names(theos_af_ms2) <- theopeps_af_ms1
+
     # each `out` for the results of multiple mgfs in one frame
     
     # Browse[4]> exptmasses_ms1
@@ -361,8 +361,8 @@ frames_adv_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_cr_ms1)
+      )
+      names(theos_cr_ms2) <- theopeps_cr_ms1
     } else {
       theos_bf_ms1 <- theopeps[[as.character(new_frame-1)]]
       theopeps_bf_ms1 <- theos_bf_ms1$pep_seq
@@ -393,9 +393,9 @@ frames_adv_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_bf_ms1)
-      
+      )
+      names(theos_bf_ms2) <- theopeps_bf_ms1
+
       theos_cr_ms2 <- mapply(
         gen_ms2ions_a1_vnl0_fnl0, 
         aa_seq = theopeps_cr_ms1, 
@@ -417,8 +417,8 @@ frames_adv_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_cr_ms1)
+      )
+      names(theos_cr_ms2) <- theopeps_cr_ms1
     }
     
     frame <- new_frame
@@ -535,7 +535,7 @@ frames_adv_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses,
 #'                                 mod_indexes)
 #' 
 #' }
-gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses, 
+gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL, 
                                       ntmod = NULL, ctmod = NULL, 
                                       ntmass = NULL, ctmass = NULL, amods = NULL, 
                                       mod_indexes = NULL, type_ms2ions = "by", 
@@ -580,14 +580,18 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses,
 }
 
 
-#' Helper 
+#' Helper for the calculation of MS2 ion series.
 #' 
-#' @param ms1_mass The mass of a theoretical MS1 (for subsetting).
+#' @param vmods_combi Lists of variable modifications.
+#' @inheritParams ms2ions_by_type
+#' @inheritParams add_fixvar_masses
+#' @inheritParams ms2match_base
 calc_ms2ions_a1_vnl0_fnl0 <- function (vmods_combi, aas2, aa_masses, 
                                        ntmass, ctmass, type_ms2ions, digits) {
 
-  # find delta
+  # mass delta
   delta <- aa_masses[vmods_combi]
+  
   idxes <- as.numeric(names(vmods_combi))
   aas2[idxes] <- aas2[idxes] + delta
   
@@ -595,26 +599,25 @@ calc_ms2ions_a1_vnl0_fnl0 <- function (vmods_combi, aas2, aa_masses,
 }
 
 
-#' Check the MS1 mass for proceeding with MS2 matches.
+#' Checks the MS1 mass for proceeding with MS2 matches.
 #'
-#' Maybe missed if the "matched" occurred after `maxn_vmods_sitescombi_per_pep`.
+#' Maybe missed if a "match" is beyond `maxn_vmods_sitescombi_per_pep`.
+#' 
+#' 'bare + 18.010565 + terminals + anywhere'.
 #'
 #' @param ms1_mass The mass of a theoretical MS1 (for subsetting).
 #' @param tol The tolerance in mass.
-#' @inheritParams calcpep_a1_t1_nl1
-#' @inheritParams calc_ms2ions
+#' @inheritParams calc_ms2ions_a1_vnl0_fnl0
+#' @inheritParams unique_mvmods
 #' @importFrom purrr is_empty
 check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod, 
                                    ms1_mass, tol = 1e-3) {
 
-  # bare + 18.010565 + terminals + anywhere
-  
   bare <- aas2 %>% 
     sum() %>% 
     `+`(18.010565) 
   
   # No need of is_empty(ntmod) && is_empty(ctmod)
-  
   if (!length(ntmod) && !length(ctmod)) {
     delta <- 0
   } else if (length(ntmod) && length(ctmod)) {
@@ -633,20 +636,13 @@ check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod,
 }
 
 
-#' Finds the combinations of variable modifications (multiple sites)
+#' Finds the combinations of variable modifications (multiple sites).
 #'
 #' For all the \code{Anywhere} modifications specified in \code{amods}.
-#'
-#' @param amods \code{Anywhere} variable modifications.
-#' @param famods \code{Anywhere} fixed modifications.
-#' @param fntmod The parsed \emph{fixed} \code{N-term} modifications from
-#'   \code{aa_masses}.
-#' @param fctmod The parsed \emph{fixed} \code{C-term} modifications from
-#'   \code{aa_masses}.
-#' @inheritParams calc_monopep
-#' @inheritParams mcalc_monopep
-#' @inheritParams calcpep_a1_t1_nl1
-#' @inheritParams calc_ms2ions
+#' 
+#' @inheritParams unique_mvmods
+#' @inheritParams matchMS
+#' @inheritParams add_fixvar_masses
 #' @import purrr
 #' @return Lists by residues in \code{amods}.
 combi_mvmods2 <- function (amods, 
@@ -665,9 +661,9 @@ combi_mvmods2 <- function (amods,
   # dHex (S) 
   # "S" 
   
-  residue_mods <- unlist(amods, use.names = FALSE) %>% 
-    `names<-`(names(amods)) %>% 
-    split(., .)
+  residue_mods <- unlist(amods, use.names = FALSE)
+  names(residue_mods) <- names(amods)
+  residue_mods <- split(residue_mods, residue_mods)
 
   lapply(residue_mods, function (x) combi_vmods2(
     aas, x, 
@@ -680,10 +676,10 @@ combi_mvmods2 <- function (amods,
 }
 
 
-#' The combinations of variable modifications (single site)
-#'
+#' The combinations of variable modifications (single site).
+#' 
 #' @param residue_mods A residue with \code{Anywhere} modification(s).
-#' @inheritParams combi_mvmods
+#' @inheritParams combi_mvmods2
 #' @import purrr
 #' @importFrom stringr str_locate_all
 combi_vmods2 <- function (aas, 
@@ -736,11 +732,16 @@ combi_vmods2 <- function (aas,
   }
   
   # --- combinations ---
+  len_p2 <- min(len_p, maxn_vmods_per_pep)
+  
+  if (len_p2 < len_p) {
+    p <- p[1:len_p2]
+  }
+  
   if (len_n == 1L) { # "Oxidation (M)"
-    len_p <- min(len_p, maxn_sites_per_vmod)
-    out <- vector("list", len_p)
+    out <- vector("list", len_p2)
     
-    for (m in 1:len_p) {
+    for (m in 1:len_p2) {
       ns <- rep(n, m)
       ps <- combn(p, m)
       
@@ -754,9 +755,6 @@ combi_vmods2 <- function (aas,
       out[[m]] <- ns
     }
   } else { # "Oxidation (M)" and "Carbamidomethyl (M)"
-    len_p2 <- min(len_p, maxn_vmods_per_pep)
-    if (len_p2 < len_p) p <- p[1:len_p2]
-
     ns <- lapply(1:len_p2, function (x) {
       expand.grid(rep(list(n), length(p[1:x])), KEEP.OUT.ATTRS = FALSE, 
                   stringsAsFactors = FALSE)
@@ -770,22 +768,23 @@ combi_vmods2 <- function (aas,
   }
   
   # ---
-  out <- purrr::flatten(out) 
+  out <- unlist(out, recursive = FALSE)
 
-  rows <- purrr::map_lgl(out, ~ length(.x) > maxn_vmods_per_pep)
+  rows <- purrr::map_lgl(out, function (x) length(x) > maxn_vmods_per_pep)
   out <- out[!rows]
   
-  maxn_vmod <- out %>% 
-    lapply(table) %>% 
-    lapply(max)
-  rows <- maxn_vmod > maxn_sites_per_vmod
+  maxn_vmod <- lapply(out, table)
+  maxn_vmod <- lapply(maxn_vmod, max)
+  
+  rows <- (maxn_vmod > maxn_sites_per_vmod)
   out <- out[!rows]
   
-  if (length(out)) {
-    out <- out %>% 
-      `[`(1:min(length(.), maxn_vmods_sitescombi_per_pep))
+  len_out <- length(out)
+  
+  if (len_out > maxn_vmods_sitescombi_per_pep) {
+    out <- out[1:maxn_vmods_sitescombi_per_pep]
   }
-  
+
   invisible(out)
 }
 
@@ -801,6 +800,7 @@ combi_np <- function (n, p) {
   np <- vector("list", ln * lp)
   
   k <- 1
+  
   for (i in seq_len(ln)) {
     for (j in seq_len(lp)) {
       x <- n[i, ] 
@@ -823,10 +823,10 @@ combi_np <- function (n, p) {
 #' For multiple residues (each residue one to multiple modifications).
 #' 
 #' @param intra_combis The results from \link{unique_mvmods}.
-#' @inheritParams calc_ms2ions
+#' @inheritParams matchMS
 #' @importFrom purrr is_empty map map_lgl flatten 
 #' @seealso \link{find_intercombi}
-find_intercombi_p2 <- function (intra_combis, maxn_vmods_sitescombi_per_pep) {
+find_intercombi_p2 <- function (intra_combis, maxn_vmods_sitescombi_per_pep = 32L) {
   
   if ((!length(intra_combis)) || 
       any(purrr::map_lgl(intra_combis, purrr::is_empty))) { # scalar or list
@@ -849,10 +849,6 @@ find_intercombi_p2 <- function (intra_combis, maxn_vmods_sitescombi_per_pep) {
     v_combis <- lapply(intra_combis, function (x) {
       lapply(x, reduce, `c`)
     })
-    
-    # max_combi <- map(p_combis, ~ min(length(.x), maxn_vmods_sitescombi_per_pep))
-    # p_combis <- map2(p_combis, max_combi, ~ .x[seq_len(.y)])
-    # v_combis <- map2(v_combis, max_combi, ~ .x[seq_len(.y)])
     
     p_combis <- expand.grid(p_combis, KEEP.OUT.ATTRS = FALSE, 
                             stringsAsFactors = FALSE)
@@ -880,4 +876,32 @@ find_intercombi_p2 <- function (intra_combis, maxn_vmods_sitescombi_per_pep) {
   
   invisible(v_out)
 }
+
+
+#' Adds hex codes (without NLs).
+#' 
+#' To indicate the variable modifications of an amino acid sequence.
+#' 
+#' @param ms2ions A series of MS2 ions with masses.
+#' @param len The number of amino acid residues for the sequence indicated in
+#'   \code{ms2ions}.
+#' @inheritParams calc_aamasses
+add_hexcodes <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
+  
+  hex_mods = rep("0", len)
+  rows <- purrr::map_lgl(ms2ions, function (x) !is.null(x))
+  
+  vmods_combi <- vmods_combi[rows]
+  ms2ions <- ms2ions[rows]
+  
+  hex_mods2 <- lapply(vmods_combi, function (x) {
+    hex_mods[as.numeric(names(x))] <- mod_indexes[unlist(x)]
+    hex_mods <- paste0(hex_mods, collapse = "")
+  })
+  
+  names(ms2ions) <- hex_mods2
+  
+  invisible(ms2ions)
+}
+
 

@@ -22,6 +22,14 @@ calc_pepfdr(
 \item{target_fdr}{Numeric; the levels of false-discovery rate (FDR).}
 
 \item{fdr_type}{Character string; the type of FDR for controlling.}
+
+\item{min_len}{Integer; the minimum length of peptides. Shorter peptides will
+be excluded.}
+
+\item{max_len}{Integer; the maximum length of peptides. Longer peptides will
+be excluded.}
+
+\item{out_path}{A file path of outputs.}
 }
 \description{
 Needs \code{min_len} and \code{max_len} since the target-decoy pair may not

@@ -17,7 +17,32 @@ calc_ms2ions_a1_vnl0_fnl1(
 )
 }
 \arguments{
-\item{ms1_mass}{The mass of a theoretical MS1 (for subsetting).}
+\item{vmods_combi}{Lists of variable modifications.}
+
+\item{fnl_combi}{A data.frame of combinations of neutral losses for fixed
+modifications. Each row corresponds to a set of neutral loss. The first row
+corresponds to the combination without NLs (all zeros).}
+
+\item{fnl_idxes}{The position indexes of amino acids containing fixed neutral
+losses.}
+
+\item{aas2}{A sequence of amino-acid residues with \emph{masses}. Residues
+are in names and masses in values (note that argument \code{aas}
+corresponds to residues without masses).}
+
+\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
+acid residues.}
+
+\item{ntmass}{The mass of a fixed or variable N-term modification.}
+
+\item{ctmass}{The mass of a fixed or variable C-term modification.}
+
+\item{type_ms2ions}{Character; the type of
+\href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
+ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
+and y-ions.}
+
+\item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
 Calculates

@@ -8,7 +8,6 @@
 #' @return A function for finding the residue at the position specified by the
 #'   argument \code{pos}. For each function, it takes a list of variable
 #'   modifications specified by argument \code{vmods} as inputs.
-#' @export
 find_pos_site <- function (pos) {
   
   force(pos)
@@ -44,9 +43,8 @@ find_pos_site <- function (pos) {
 #'               `Deamidated (N)` = "N")
 #' positions <- c("Protein N-term", "Anywhere", "Anywhere")
 #' vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-#' contain_protntsite(vmods)
-#' find_protntsite(vmods)
-#' @export
+#' proteoM:::contain_protntsite(vmods)
+#' proteoM:::find_protntsite(vmods)
 find_protntsite <- find_pos_site("Protein N-term")
 
 
@@ -64,9 +62,8 @@ find_protntsite <- find_pos_site("Protein N-term")
 #'               `Deamidated (N)` = "N")
 #' positions <- c("Any N-term", "Any N-term", "Anywhere", "Anywhere")
 #' vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-#' contain_anyntsite(vmods)
-#' find_anyntsite(vmods)
-#' @export
+#' proteoM:::contain_anyntsite(vmods)
+#' proteoM:::find_anyntsite(vmods)
 find_anyntsite <- find_pos_site("Any N-term")
 
 
@@ -83,9 +80,8 @@ find_anyntsite <- find_pos_site("Any N-term")
 #'               `Deamidated (N)` = "N")
 #' positions <- c("Any N-term", "Anywhere", "Anywhere")
 #' vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-#' contain_anysite(vmods)
-#' find_anysite(vmods)
-#' @export
+#' proteoM:::contain_anysite(vmods)
+#' proteoM:::find_anysite(vmods)
 find_anysite <- find_pos_site("Anywhere")
 
 
@@ -103,9 +99,8 @@ find_anysite <- find_pos_site("Anywhere")
 #'               `Deamidated (N)` = "N")
 #' positions <- c("Protein C-term", "Any N-term", "Anywhere", "Anywhere")
 #' vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-#' contain_protctsite(vmods)
-#' find_protctsite(vmods)
-#' @export
+#' proteoM:::contain_protctsite(vmods)
+#' proteoM:::find_protctsite(vmods)
 find_protctsite <- find_pos_site("Protein C-term")
 
 
@@ -123,9 +118,8 @@ find_protctsite <- find_pos_site("Protein C-term")
 #'               `Deamidated (N)` = "N")
 #' positions <- c("Any C-term", "Any N-term", "Anywhere", "Anywhere")
 #' vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-#' contain_anyctsite(vmods)
-#' find_anyctsite(vmods)
-#' @export
+#' proteoM:::contain_anyctsite(vmods)
+#' proteoM:::find_anyctsite(vmods)
 find_anyctsite <- find_pos_site("Any C-term")
 
 
@@ -194,7 +188,6 @@ contain_protctsite <- contain_pos_site("Protein C-term")
 contain_anyctsite <- contain_pos_site("Any C-term")
 
 
-
 #' Function factories for checking the existence of an amino-acid residue at a
 #' \code{terminal} position.
 #'
@@ -217,8 +210,8 @@ contain_termpos_any <- function (pos) {
   pos <- paste0("^", pos)
 
   function (vmods) {
-    if (length(vmods) == 0) return(FALSE)
-    if (length(vmods) == 1 && vmods == "") return(FALSE)
+    if (length(vmods) == 0L) return(FALSE)
+    if (length(vmods) == 1L && vmods == "") return(FALSE)
     
     vmods %>% 
       purrr::map_lgl(~ {
@@ -237,11 +230,12 @@ contain_termpos_any <- function (pos) {
 #'
 #' @examples
 #' # `Acetyl (Protein N-term)`
-#' sites <- list(`Acetyl (Protein N-term)` = "N-term", `Oxidation (M)` = "M", `Deamidated (N)` = "N")
+#' sites <- list(`Acetyl (Protein N-term)` = "N-term", 
+#'               `Oxidation (M)` = "M", 
+#'               `Deamidated (N)` = "N")
 #' positions <- c("Protein N-term", "Anywhere", "Anywhere")
 #' vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-#' contain_protntany(vmods)
-#' @export
+#' proteoM:::contain_protntany(vmods)
 contain_protntany <- contain_termpos_any("Protein N-term")
 
 
@@ -257,8 +251,7 @@ contain_protntany <- contain_termpos_any("Protein N-term")
 #'               `Deamidated (N)` = "N")
 #' positions <- c("Any N-term", "Anywhere", "Anywhere")
 #' vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-#' contain_anyntany(vmods)
-#' @export
+#' proteoM:::contain_anyntany(vmods)
 contain_anyntany <- contain_termpos_any("Any N-term")
 
 
@@ -274,8 +267,7 @@ contain_anyntany <- contain_termpos_any("Any N-term")
 #'               `Deamidated (N)` = "N")
 #' positions <- c("Protein C-term", "Anywhere", "Anywhere")
 #' vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-#' contain_protctany(vmods)
-#' @export
+#' proteoM:::contain_protctany(vmods)
 contain_protctany <- contain_termpos_any("Protein C-term")
 
 
@@ -291,10 +283,8 @@ contain_protctany <- contain_termpos_any("Protein C-term")
 #'               `Deamidated (N)` = "N")
 #' positions <- c("Any C-term", "Anywhere", "Anywhere")
 #' vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-#' contain_anyctany(vmods)
-#' @export
+#' proteoM:::contain_anyctany(vmods)
 contain_anyctany <- contain_termpos_any("Any C-term")
-
 
 
 #' Subsets proteins by variable modifications.
@@ -328,8 +318,7 @@ subset_protntsite <- function (peps, sites = "M") {
 #' 
 #' @rdname subset_protntsite
 subset_protntany <- function (peps) {
-  peps %>% 
-    purrr::map(~ .x %>% .[grepl("^-", .)])
+  purrr::map(peps, ~ .x %>% .[grepl("^-", .)])
 }
 
 
@@ -367,6 +356,7 @@ subset_anyntany <- function (peps) {
 #' Flowchart (5): `Oxidation (M)`
 #' @rdname subset_protntsite
 subset_anysite <- function (peps, sites = "N") {
+  
   peps %>% 
     purrr::map(~ {
       peps_i <- .x
@@ -385,6 +375,7 @@ subset_anysite <- function (peps, sites = "N") {
 #' Flowchart (1-ct): `Dehydrated (Protein C-term = N)`
 #' @rdname subset_protntsite
 subset_protctsite <- function (peps, sites = "V") {
+  
   peps %>% 
     purrr::map(~ {
       peps_i <- .x
@@ -400,8 +391,7 @@ subset_protctsite <- function (peps, sites = "V") {
 
 # f(2-ct): 
 subset_protctany <- function (peps) {
-  peps %>% 
-    purrr::map(~ .x %>% .[grepl("-$", .)])
+  purrr::map(peps, ~ .x %>% .[grepl("-$", .)])
 }
 
 #' Subsets proteins by variable modifications.
@@ -409,6 +399,7 @@ subset_protctany <- function (peps) {
 #' Flowchart (3-ct): `Oxidation (C-term = G)`
 #' @rdname subset_protntsite
 subset_anyctsite <- function (peps, sites = "Q") {
+  
   peps %>% 
     purrr::map(~ {
       peps_i <- .x
@@ -440,7 +431,7 @@ subset_anyctany <- function (peps) {
 #'
 #' @param vmods A named list of variable modifications. See also
 #'   \link{find_protntsite} for examples of \code{vmods}.
-#' @inheritParams concat_peps
+#' @inheritParams roll_sum
 find_nmodtree <- function (peps, vmods) {
   
   if (contain_protntsite(vmods)) { # level_1: Protein N-term + Site
@@ -550,9 +541,8 @@ find_cmodtree <- function (peps, vmods) {
 #' 
 #' From N-term to C-term. 
 #' 
-#' @inheritParams concat_peps
 #' @inheritParams add_fixvar_masses
-#' @export
+#' @inheritParams roll_sum
 subpeps_by_vmods <- function(aa_masses, peps) {
   
   vmods <- attr(aa_masses, "vmods_ps") 

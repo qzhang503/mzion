@@ -43,10 +43,9 @@ try_ms2match(
 to supply the files. Note that the supported MGFs are from MSConvert or
 Proteome Discoverer.}
 
-\item{aa_masses_all}{A list of amino acid lookups for all the combination of
-fixed and variable modifications.}
+\item{aa_masses_all}{All the amino acid lookup tables.}
 
-\item{out_path}{An output path.}
+\item{out_path}{A file path of outputs.}
 
 \item{mod_indexes}{Integer; the indexes of fixed and/or variable
 modifications.}
@@ -72,7 +71,7 @@ a hit.}
 
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
 
-\item{min_ms2mass}{Minimum MS2 m/z.}
+\item{min_ms2mass}{A minimum m/z of MS2 ions.}
 
 \item{quant}{A quantitation method. The default is "none". Additional choices
 include \code{tmt6} etc. For other multiplicities of \code{tmt}, use the
@@ -164,7 +163,7 @@ try_ms2match(mgf_path = mgf_path,
   min_ms2mass = min_ms2mass,
   quant = quant,
   ppm_reporters = ppm_reporters,
-  
+
   # dummy for argument matching
   fasta = fasta,
   acc_type = acc_type,
@@ -179,10 +178,10 @@ try_ms2match(mgf_path = mgf_path,
   min_len = min_len,
   max_len = max_len,
   max_miss = max_miss,
-  
-  target_fdr = target_fdr, 
-  fdr_type = fdr_type, 
-  combine_tier_three = combine_tier_three, 
-  
+
+  target_fdr = target_fdr,
+  fdr_type = fdr_type,
+  combine_tier_three = combine_tier_three,
+
   digits = digits)
 }

@@ -13,7 +13,8 @@ calcms1mass_noterm(
 )
 }
 \arguments{
-\item{aa_seqs}{Lists of peptides under a proteins.}
+\item{aa_seqs}{Character string; a vector of peptide sequences with
+one-letter representation of amino acids.}
 
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}

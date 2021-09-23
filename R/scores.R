@@ -1,99 +1,7 @@
-#' Extracts the lists of theoretical or experimental m-over-z's.
-#'
-#' @param data Nested list of table from ion matches. Each table contains
-#'   columns \code{theo} and \code{expt}.
-#' @param col The name of a column where data will be extracted.
-#' @import purrr
-extract_matches_col <- function (data, col = "theo") {
-  
-  purrr::map(data, ~ {
-    x <- .x %>% # by sequence
-      purrr::map(`[[`, col) # by varmod positions
-    
-    x <- map(x, ~ {
-      names(.x) <- NULL
-      .x
-    })
-  }) 
-}
-
-
-#' The helper of \link[stats]{dhyper}.
-#' 
-#' @inheritParams stats::dhyper
-#' @importFrom purrr map map2
-mdhyper <- function (x, m, n, k) {
-  k <- map2(m, n, ~ min(.x + .y, k)) 
-  mapply(dhyper, x, m, n, k)
-}
-
-
-#' Flattens the outputs of ion matches.
-#' 
-#' @param outcol The output column name.
-#' @inheritParams extract_matches_col
-#' @examples
-#' \donttest{
-#' x <- flatten_pepouts(res$matches, "matches")
-#' scores <- flatten_pepouts(scores, "pep_score")
-#' }
-flatten_pepouts <- function (data, outcol = "matches") {
-  
-  purrr::map(data, ~ {
-    tib <- .x
-    
-    tib <- purrr::map(tib, ~ {
-      tibble(pep_ivmod = names(.x), !!outcol := .x)
-    }) 
-    
-    nm <- names(tib)
-    
-    tib <- purrr::map2(tib, nm, ~ {
-      .x$pep_seq <- .y
-      .x
-    }) %>% 
-      dplyr::bind_rows()
-  }) 
-}
-
-
-#' Combines peptide scores to table.
-#' 
-#' @inheritParams flatten_pepouts
-combine_pepvecs <- function (data, outcol = "pep_score") {
-  
-  purrr::imap(data, ~ {
-    tibble(pep_seq = .y, pep_ivmod = names(.x), !!outcol := .x)
-  }) %>% 
-    dplyr::bind_rows()
-}
-
-
-#' Matches against secondary ions
-#' 
-#' @param theos A list of theoretical values.
-#' @param expts A list of experimental values
-#' @inheritParams calc_ms2ions
-#' @inheritParams matchMS
-match_secions <- function (theos, expts, type_ms2ions = "by", ppm_ms2 = 25, 
-                           digits = 5) {
-  
-  purrr::map(theos, ~ {
-    theos_i <- .x # by peptide
-    
-    purrr::map(theos_i, ~ { # by varmods
-      .x %>% 
-        add_seions(type_ms2ions, digits) %>% 
-        find_ppm_outer_bycombi(expts, ppm_ms2)
-    }) 
-  }) 
-}
-
-
 #' Adds secondary ions of b0, y0 etc.
 #' 
-#' @param ms2s A vector of theoretical MS2 m-over-z values. 
-#' @inheritParams match_secions
+#' @param ms2s A vector of theoretical MS2 m-over-z values.
+#' @inheritParams matchMS
 add_seions <- function (ms2s, type_ms2ions = "by", digits = 5L) {
   
   len <- length(ms2s)
@@ -153,7 +61,7 @@ add_seions <- function (ms2s, type_ms2ions = "by", digits = 5L) {
 
 #' Matches two lists.
 #' 
-#' Without making a data frame.
+#' Not currently used. Without making a data frame.
 #' 
 #' @param a The left vector.
 #' @param b The right vector.
@@ -263,10 +171,8 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   # if (N < m) N <- m
   
   ## matches additionally against secondary ions
-  
-  df2 <- add_seions(df[["theo"]], type_ms2ions = type_ms2ions, digits = digits) %>% 
-    find_ppm_outer_bycombi(expt_moverzs, ppm_ms2) # 132 us
-  
+  df2 <- add_seions(df[["theo"]], type_ms2ions = type_ms2ions, digits = digits)
+  df2 <- find_ppm_outer_bycombi(df2, expt_moverzs, ppm_ms2) # 132 us
   df2[["theo"]] <- round(df2[["theo"]], digits = digits) # 4.4 us
   
   # subtracts `m` and the counts of secondary b0, y0 matches etc. from noise
@@ -306,10 +212,9 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   df2$int[i_s] <- expt_ints[i_e] # the corresponding intensities from expts; 1.4 us
   
   # (1.2) collapse b0, b*, b2 etc.
-  int2 <- df2$int %>% 
-    split(rep(seq_len(len/m), each = m)) %>% 
-    Reduce(`%+%`, .)
-  
+  int2 <- split(df2$int, rep(seq_len(len/m), each = m))
+  int2 <- Reduce(`%+%`, int2)
+
   y2 <- list(idx = 1:m, int2 = int2)
   
   ## step 2 (join expts and "theo", "idx" from the primary df): 
@@ -415,15 +320,21 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
   #    the same `pep_seq`, `theo_ms1` for different mod positions
   #    different `pep_ivmod`, `pep_prob`, `pri_matches`, `sec_matches`
   
-  res <- map2(mts, names(mts), calc_probi_byvmods, 
-              expt_moverzs = expt_moverzs, 
-              expt_ints = expt_ints, 
-              N = N, 
-              type_ms2ions = type_ms2ions, 
-              topn_ms2ions = topn_ms2ions, 
-              penalize_sions = penalize_sions, 
-              ppm_ms2 = ppm_ms2, 
-              digits = digits)
+  # NAMES are hexcodes: 0000000
+  res <- mapply(calc_probi_byvmods, 
+                mts, names(mts), 
+                MoreArgs = list(
+                  expt_moverzs = expt_moverzs, 
+                  expt_ints = expt_ints, 
+                  N = N, 
+                  type_ms2ions = type_ms2ions, 
+                  topn_ms2ions = topn_ms2ions, 
+                  penalize_sions = penalize_sions, 
+                  ppm_ms2 = ppm_ms2, 
+                  digits = digits
+                ), 
+                SIMPLIFY = FALSE,
+                USE.NAMES = TRUE)
   
   theo_ms1 <- attr(mts, "theo_ms1")
   
@@ -461,15 +372,21 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
                         N, type_ms2ions = "by", topn_ms2ions = 100L, 
                         penalize_sions = TRUE, ppm_ms2 = 25L, digits = 5L) {
   
-  out <- map2(mts, names(mts), calc_probi_bypep, 
-              expt_moverzs = expt_moverzs, 
-              expt_ints = expt_ints, 
-              N = N, 
-              type_ms2ions = type_ms2ions, 
-              topn_ms2ions = topn_ms2ions, 
-              penalize_sions = penalize_sions, 
-              ppm_ms2 = ppm_ms2, 
-              digits = digits)
+  out <- mapply(
+    calc_probi_bypep, 
+    mts, names(mts), 
+    MoreArgs = list(
+      expt_moverzs = expt_moverzs, 
+      expt_ints = expt_ints, 
+      N = N, 
+      type_ms2ions = type_ms2ions, 
+      topn_ms2ions = topn_ms2ions, 
+      penalize_sions = penalize_sions, 
+      ppm_ms2 = ppm_ms2, 
+      digits = digits
+    ), 
+    SIMPLIFY = FALSE,
+    USE.NAMES = FALSE)
   
   out <- unlist(out, recursive = FALSE, use.names = FALSE)
 }
@@ -481,6 +398,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
 #' 
 #' @param entry A row of data from \link{pmatch_bymgfs}.
 #' @inheritParams matchMS
+#' @inheritParams calc_pepscores
 #' @import purrr
 scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by", 
                             penalize_sions = FALSE, ppm_ms2 = 25L, digits = 4L) {
@@ -535,7 +453,11 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
                     digits = digits)
 
   uniq_id <- unlist(entry$uniq_id) # 2.3 us
-  out <- map(out, ~ {.x$uniq_id <- uniq_id; .x}) # 23.5 us
+  
+  out <- lapply(out, function (x) {
+    x$uniq_id <- uniq_id
+    x
+  })
 
   invisible(out)
 }
@@ -543,12 +465,26 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
 
 #' Calculates the scores of peptides at an \code{aa_masses}.
 #' 
+#' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by", 
                              penalize_sions = FALSE, ppm_ms2 = 25L, 
                              out_path = "~/proteoM/outs", digits = 5L) {
 
-  if (nrow(res) == 0L) {
+  if (nrow(res)) { # 3 ms
+    probs <- split(res, seq_len(nrow(res))) 
+    
+    probs <- lapply(probs, scalc_pepprobs, 
+                    topn_ms2ions = topn_ms2ions, 
+                    type_ms2ions = type_ms2ions, 
+                    penalize_sions = penalize_sions, 
+                    ppm_ms2 = ppm_ms2, 
+                    digits = digits)
+    
+    probs <- unlist(probs, recursive = FALSE, use.names = FALSE)
+    
+    probs <- dplyr::bind_rows(probs) # 276 us
+  } else {
     probs <- data.frame(
       pep_seq = as.character(), 
       pep_ivmod = as.character(), 
@@ -556,18 +492,6 @@ calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by",
       pri_matches = list(), 
       sec_matches = list(), 
       scan_num = as.integer())
-  } else {
-    probs <- res %>% 
-      split(., seq_len(nrow(.))) %>% 
-      lapply(scalc_pepprobs, 
-             topn_ms2ions = topn_ms2ions, 
-             type_ms2ions = type_ms2ions, 
-             penalize_sions = penalize_sions, 
-             ppm_ms2 = ppm_ms2, 
-             digits = digits) # 2.79 ms
-
-    probs <- unlist(probs, recursive = FALSE, use.names = FALSE)
-    probs <- dplyr::bind_rows(probs) # 276 us
   }
   
   invisible(probs)
@@ -576,13 +500,10 @@ calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by",
 
 #' Calculates the scores of peptides.
 #'
-#' @param res The result from \link{pmatch_bymgfs}. At the \code{NULL} default,
-#'   the file \code{ion_matches.rds} will be used.
 #' @param penalize_sions Logical; if TRUE, penalizes secondary ions of b0, y0
 #'   etc. with lower weights in peptide scoring.
 #' @inheritParams matchMS
 #' @import parallel
-#' @export
 calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by", 
                             target_fdr = 0.01, fdr_type = "psm", 
                             min_len = 7L, max_len = 100L, 
@@ -596,7 +517,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   list_t <- list.files(path = file.path(out_path, "temp"), 
                        pattern = "^ion_matches_\\d+\\.rds$")
   
-  if (length(list_t) == 0L) stop("Target matches not found.", call. = FALSE)
+  if (!length(list_t)) stop("Target matches not found.", call. = FALSE)
   
   nms_t <- gsub("^ion_matches_(\\d+)\\.rds$", "\\1", list_t)
   
@@ -620,7 +541,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   list_d <- list.files(path = file.path(out_path, "temp"), 
                        pattern = "^ion_matches_rev_[0-9]+\\.rds$")
   
-  if (length(list_d) == 0L) stop("Decoy matches not found.", call. = FALSE)
+  if (!length(list_d)) stop("Decoy matches not found.", call. = FALSE)
   
   if (length(list_d) > 1L) {
     warning("More than one decoy matches found: '", decoy, "'.\n", 
@@ -646,7 +567,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     files <- list.files(path = file.path(out_path, "temp"), 
                         pattern = "^pepscores_\\d+\\.rds$")
     
-    if (length(files) == 0L) stop("Target scores not found.", call. = FALSE)
+    if (!length(files)) stop("Target scores not found.", call. = FALSE)
     
     nms <- gsub("^pepscores_(\\d+)\\.rds$", "\\1", files)
     
@@ -654,8 +575,8 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     nms <- nms[ord]
     files <- files[ord]
     
-    out <- purrr::map(files, ~ readRDS(file.path(out_path, "temp", .x))) %>% 
-      `names<-`(nms)
+    out <- lapply(files, function (x) readRDS(file.path(out_path, "temp", x)))
+    names(out) <- nms
     
     out <- c(out, rev)
   })
@@ -672,11 +593,10 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                           max_len = max_len, 
                           out_path = out_path)
   
-  # homolog co
   prob_cos <- local({
     idxes <- prob_cos %>% .[. <= target_fdr]
     
-    if (length(idxes) > 0L) {
+    if (length(idxes)) {
       fct_homol <- target_fdr/max(idxes, na.rm = TRUE)
     } else {
       fct_homol <- 1L
@@ -691,10 +611,8 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
 
   fct_score <- 10
   
-  oks <- purrr::map_lgl(out, ~ nrow(.x) > 0L)
-
-  out <- out[oks] %>% 
-    dplyr::bind_rows()
+  oks <- purrr::map_lgl(out, function (x) nrow(x) > 0L)
+  out <- dplyr::bind_rows(out[oks])
   
   # Adjusted p-values
   out <- out %>% 
@@ -702,8 +620,8 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     dplyr::mutate(pep_issig = ifelse(pep_prob <= pep_prob_co, TRUE, FALSE), 
                   pep_adjp = p.adjust(pep_prob, "BH"))
   
-  prob_cos <- purrr::map_dbl(prob_cos$pep_prob_co, ~ {
-    row <- abs(log10(out$pep_prob/.x)) %>% which.min() 
+  prob_cos <- purrr::map_dbl(prob_cos$pep_prob_co, function (x) {
+    row <- abs(log10(out$pep_prob/x)) %>% which.min() 
     out[row, ]$pep_adjp
   }) %>% 
     dplyr::bind_cols(prob_cos, pep_adjp_co = .) %T>% 
@@ -724,6 +642,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
 #' 
 #' @param file A file name of \code{ion_matches_}.
 #' @inheritParams matchMS
+#' @inheritParams calc_pepscores
 calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by", 
                        penalize_sions = FALSE, ppm_ms2 = 25L, out_path = NULL, 
                        digits = 4L) {
@@ -732,6 +651,29 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   n_cores2 <- n_cores^2L
   
   df <- readRDS(file.path(out_path, "temp", file))
+  
+  if (!nrow(df)) {
+    idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
+    
+    # list tables
+    cols_lt <- c("raw_file", "pep_mod_group", "scan_num", 
+                 "ms2_moverz", "ms2_int", "pri_matches", "sec_matches")
+    dfa <- data.frame(matrix(ncol = length(cols_lt), nrow = 0L))
+    colnames(dfa) <- cols_lt
+    saveRDS(dfa, file.path(out_path, "temp", paste0("list_table_", idx, ".rds")))
+
+    # scores
+    cols_scores <- c("ms2_n", "scan_title", "ms1_moverz", "ms1_mass", 
+                     "ms1_int", "ms1_charge", "ret_time", "scan_num", "raw_file", 
+                     "pep_mod_group", "frame", "pep_fmod", "pep_vmod", "pep_isdecoy", 
+                     "pep_seq", "theo_ms1", "pep_ivmod", "pep_prob", "pep_len")
+    dfb <- data.frame(matrix(ncol = length(cols_scores), nrow = 0L))
+    colnames(dfb) <- cols_scores
+    saveRDS(dfb, file.path(out_path, "temp", paste0("pepscores_", idx, ".rds")))
+    
+    return (NULL)
+  }
+  
   df[["uniq_id"]] <- paste(df[["scan_num"]], df[["raw_file"]], sep = "@")
   
   esscols <- c("ms2_moverz", "ms2_int", "matches", "ms2_n", "uniq_id")
@@ -749,8 +691,11 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   
   if (length(df) >= n_cores2) {
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-    parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
-    clusterExport(cl, list("scalc_pepprobs"), envir = environment(proteoM:::scalc_pepprobs))
+    
+    parallel::clusterExport(cl, list("%>%"), 
+                            envir = environment(magrittr::`%>%`))
+    parallel::clusterExport(cl, list("scalc_pepprobs"), 
+                            envir = environment(proteoM:::scalc_pepprobs))
     
     probs <- parallel::clusterApplyLB(cl, df, 
                                       calc_pepprobs_i, 
@@ -764,20 +709,19 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     parallel::stopCluster(cl)
     gc()
     
-    probs <- probs %>% dplyr::bind_rows()
+    probs <- dplyr::bind_rows(probs)
   } else {
     if (is.data.frame(df)) df <- list(df)
     
-    probs <- purrr::map(df, calc_pepprobs_i, 
-                        topn_ms2ions = topn_ms2ions, 
-                        type_ms2ions = type_ms2ions, 
-                        penalize_sions = penalize_sions, 
-                        ppm_ms2 = ppm_ms2,
-                        out_path = out_path, 
-                        digits = digits) %>% 
+    probs <- lapply(df, calc_pepprobs_i, 
+                    topn_ms2ions = topn_ms2ions, 
+                    type_ms2ions = type_ms2ions, 
+                    penalize_sions = penalize_sions, 
+                    ppm_ms2 = ppm_ms2,
+                    out_path = out_path, 
+                    digits = digits) %>% 
       dplyr::bind_rows()
   }
-  
   
   gc()
   
@@ -803,9 +747,9 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   saveRDS(df[, c(cols_a, cols_b), drop = FALSE], 
           file.path(out_path, "temp", paste0("list_table_", idx, ".rds")))
   
-  df <- df[, -which(names(df) %in% cols_b), drop = FALSE] %T>% 
-    saveRDS(file.path(out_path, "temp", paste0("pepscores_", idx, ".rds")))
-  
+  df <- df[, -which(names(df) %in% cols_b), drop = FALSE]
+  saveRDS(df, file.path(out_path, "temp", paste0("pepscores_", idx, ".rds")))
+
   invisible(df)
 }
 
@@ -936,7 +880,7 @@ calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm",
   find_optlens <- function (all_lens, counts, min_count = 2000L) {
     idxes <- which(counts >= min_count)
     
-    if (length(idxes) > 0L) {
+    if (length(idxes)) {
       return(all_lens[idxes])
     } else {
       find_optlens(all_lens, min_count/2L)
@@ -1057,8 +1001,8 @@ calc_protfdr <- function (out, target_fdr = .01) {
   
   nms_t <- gsub("^rev_", "", nms_d)
   
-  # out2 <- out %>% dplyr::filter(pep_mod_group %in% c(nms_t, nms_d), pep_issig, pep_rank == 1L)
-  out2 <- out %>% dplyr::filter(pep_mod_group %in% c(nms_t, nms_d), pep_issig)
+  out2 <- out %>% 
+    dplyr::filter(pep_mod_group %in% c(nms_t, nms_d), pep_issig)
 
   # score cut-offs as a function of prot_n_pep
   max_n_pep <- max(out$prot_n_pep, na.rm = TRUE)
@@ -1142,7 +1086,6 @@ calc_protfdr_i <- function (td, target_fdr = .01) {
   
   td <- td %>% 
     dplyr::left_join(prot_scores, by = "prot_acc") %>% 
-    # dplyr::filter(!(pep_isdecoy & prot_es == 250L)) %>% 
     dplyr::arrange(-prot_es) %>% 
     dplyr::mutate(total = row_number()) %>% 
     dplyr::mutate(decoy = cumsum(pep_isdecoy)) %>% 
@@ -1150,9 +1093,8 @@ calc_protfdr_i <- function (td, target_fdr = .01) {
 
   rm(list = "prot_scores")
   
-  # row <- which(td$fdr <= target_fdr) %>% max(na.rm = TRUE)
   rows <- which(td$fdr <= target_fdr)
-  if (length(rows) > 0L) {
+  if (length(rows)) {
     row <- max(rows, na.rm = TRUE)
   } else {
     row <- -Inf
@@ -1235,7 +1177,7 @@ fit_protfdr <- function (vec, max_n_pep = 1000L) {
   # should not occur
   if (all(is.na(fit))) {
     fits <- suppressWarnings(
-      map(seq_len(elbow-1), ~ {
+      purrr::map(seq_len(elbow-1), ~ {
         tryCatch(
           nls(y ~ f(x, m, s, a), data = df, 
               start = list(a = amp, m = .x, s = sca), 
@@ -1258,137 +1200,68 @@ fit_protfdr <- function (vec, max_n_pep = 1000L) {
   
   out <- data.frame(
     prot_n_pep = newx, 
-    prot_score_co = predict(fit, data.frame(x = newx))) # %>% 
-    # dplyr::mutate(prot_score_co = ifelse(prot_n_pep >= 10L, 0L, prot_score_co))
+    prot_score_co = predict(fit, data.frame(x = newx)))
 
   invisible(out)
 }
 
 
-#' Helper of \link{calc_protfdr}.
-#' 
-#' @param df A data subset at a given \code{prot_n_pep}.
-calc_protscore_i <- function (df) {
-  
-  df %>% 
-    dplyr::group_by(prot_acc, pep_seq) %>% 
-    dplyr::arrange(-pep_score) %>% 
-    dplyr::filter(row_number() == 1L) %>% 
-    dplyr::ungroup() %>% 
-    dplyr::group_by(prot_acc) %>% 
-    dplyr::summarise(prot_score = max(pep_score)) %>% 
-    dplyr::right_join(df, by = "prot_acc") %>% 
-    dplyr::mutate(prot_issig = ifelse(prot_score >= prot_score_co, TRUE, FALSE))
-}
-
-
-#' Calculates peptide scores by single MGF entries (scan numbers).
+#' Finds the the outer products for a vector of MS2 ions at a given ion series.
 #'
-#' Not currently used. Each entry corresponds to a row in
-#' \code{ion_matches.rds}.
+#' A theoretical peptide at a given position permutation.
 #'
-#' @param entry A row of data from \link{pmatch_bymgfs}.
+#' @param expts Numeric vector; one series experimental MS2s.
+#' @param theos Numeric vector; one series of theoretical MS2s.
 #' @inheritParams matchMS
-#' @import purrr
-scalc_pepscores_static <- function (entry, topn_ms2ions = 100, type_ms2ions = "by", 
-                                    ppm_ms2 = 25, digits) {
+#' @examples
+#' \donttest{
+#' expts <- c(101.0714, 102.0554, 110.0717, 115.0505, 126.1279, 127.0504,
+#'            127.1249, 127.1312, 128.1283, 128.1346, 129.0660, 129.1316,
+#'            129.1379, 130.1350, 130.1412, 131.1383, 133.0431, 133.0609,
+#'            134.0448, 136.0757, 145.0608, 158.0924, 173.1496, 175.1190,
+#'            176.1594, 191.0663, 193.0971, 198.0873, 201.0869, 201.1233,
+#'            202.0821, 230.1702, 248.0876, 248.1806, 257.1527, 298.6711,
+#'            312.6687, 335.1190, 361.1768, 361.6685, 367.2292, 369.6903,
+#'            370.1821, 370.6830, 376.2756, 377.2790, 384.6952, 412.7264,
+#'            420.2143, 423.2597, 475.2341, 475.3442, 476.3469, 484.2382,
+#'            484.7389, 487.7817, 488.2842, 496.2717, 523.3182, 537.3159,
+#'            537.8178, 572.8343, 573.3373, 623.3586, 624.3298, 636.8528,
+#'            637.3558, 637.8575, 638.4089, 645.3453, 645.8500, 646.3501,
+#'            687.8795, 688.3799, 692.8696, 695.4283, 701.3759, 701.8768,
+#'            702.3782, 702.8797, 737.3956, 737.8962, 738.3671, 739.3572,
+#'            740.3575, 745.9085, 746.4121, 752.4502, 801.4272, 809.4722,
+#'            810.4739, 852.4418, 967.4690, 968.4714, 969.5046, 1084.5293,
+#'            1132.5676, 1133.5686, 1134.5735, 1135.5786)
+#'
+#' theos <- c(116.0342, 203.0662, 290.0983, 418.1569, 475.1783, 572.2311,
+#'            732.2617, 861.3043, 958.3571, 1071.4412, 1168.4939, 1225.5154,
+#'            1322.5681, 1435.6522, 1536.6999, 1664.7585, 1761.8112, 1917.9123,
+#'            175.1190, 272.1717, 400.2303, 501.2780, 614.3620, 711.4148,
+#'            768.4363, 865.4890, 978.5731, 1075.6259, 1204.6684, 1364.6991,
+#'            1461.7519, 1518.7733, 1646.8319, 1733.8639, 1820.8960, 1935.9229)
+#'
+#' names(theos) <- c("D", "S", "S", "Q", "G", "P", "C", "E", "P",
+#'                   "L", "P", "G", "P", "L", "T", "Q", "P", "R",
+#'                   "R", "P", "Q", "T", "L", "P", "G", "P", "L",
+#'                   "P", "E", "C", "P", "G", "Q", "S", "S", "D")
+#'
+#' find_ppm_outer_bycombi(theos, expts)
+#' }
+find_ppm_outer_bycombi <- function (theos, expts, ppm_ms2 = 25L) {
   
-  ## only one experimental set of values and thus `[[1]]`
+  d <- outer(theos, expts, "find_ppm_error")
+  row_cols <- which(abs(d) <= ppm_ms2, arr.ind = TRUE)
   
-  expts <- entry$ms2_moverz[[1]]
-
-  ## matches between theoreticals and experimentals
+  e1 <- expts[row_cols[, 2]]
+  names(e1) <- row_cols[, 1]
   
-  # [[1]] --- `entry$matches` (always at level-one and can be unlisted)
-  # [[1]]$AMMASIGR --- `entry$matches[[1]]` (1:i peptides)
-  # [[1]]$AMMASIGR$`00500000` --- `entry$matches[[1]][[1]]` (1:j positions)
-  # A tibble: 18 x 2
-  # theo  expt
-  # <dbl> <dbl>
-  #   1  175.   175.
-  #   2  230.   230.
-  #   3  301.   301.
-  # 
-  # [[1]]$TNLAMMR
-  # [[1]]$TNLAMMR$`0000500`
-  # A tibble: 16 x 2
-  # theo  expt
-  # <dbl> <dbl>
-  #   1  175.   175.
-  #   2  230.   230.
-  #   3  331.   331.
-  # 
-  # [[1]]$TNLAMMR$`0000050`
-  # A tibble: 16 x 2
-  # theo  expt
-  # <dbl> <dbl>
-  #   1  175.   175.
-  #   2  230.   230.
-  #   3  331.   331.
+  len <- length(theos)
   
-  # flattens by one level
-  mts <- entry$matches[[1]]
+  es <- rep(NA, len)
+  names(es) <- seq_len(len)
+  es[names(e1)] <- e1
   
-  # lists of theoretical values (primary only)
-  theos <- extract_matches_col(mts, "theo")
-  
-  # matches additionally against secondary ions
-  mts2 <- match_secions(theos, expts, type_ms2ions, ppm_ms2, digits)
-  
-  # the number of secondary matches
-  xs2 <- map(mts2, ~ {
-    mts2_i <- .x
-    map(mts2_i, ~ sum(!is.na(.x$expt))) 
-  })
-  
-  # the number of primary matches
-  xs <- map(mts, ~ {
-    mts_i <- .x
-    map(mts_i, ~ sum(!is.na(.x$expt))) 
-  })
-  
-  # N - the total number of features (white and black balls)
-  # k - the number of sampled features
-  # m(s) - the numbers of theoretical features (white balls)
-  # n(s) - the number of noise (black balls)
-  
-  N <- entry$ms2_n[[1]]
-  k <- min(topn_ms2ions, N)
-  
-  ms <- map(mts, ~ {
-    mts_i <- .x
-    map(mts_i, ~ {
-      x <- nrow(.x) 
-      x[x > N] <- N
-      x
-    })
-  })
-  
-  # subtracts the counts of secondary b0, y0 matches etc. from noise
-  ns <- map2(ms, xs2, ~ {
-    ms_i <- .x
-    xs2_i <- .y
-    map2(ms_i, xs2_i, ~ N - .x - .y)
-  })
-  
-  scores <- mapply(mdhyper, x = xs, m = ms, n = ns, k  = k, 
-                   SIMPLIFY = FALSE) %>% 
-    purrr::map(~ -log10(.x) * 10)
-  
-  scores <- scores %>% 
-    purrr::map(~ {
-      .x[.x > 250] <- 250
-      .x
-    })
-  
-  scores <- scores %>%
-    combine_pepvecs("pep_score") %>% 
-    dplyr::mutate(scan_num = unlist(entry$scan_num))
-  
-  dplyr::bind_cols(
-    scores, 
-    tibble(pri_matches = purrr::flatten(mts)), 
-    tibble(sec_matches = purrr::flatten(mts2)))
+  # the first half are b-ions and the second half are y-ions
+  list(theo = theos, expt = es)
 }
-
 

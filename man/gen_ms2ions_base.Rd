@@ -27,7 +27,7 @@ gen_ms2ions_a0_vnl0_fnl1(
 gen_ms2ions_a1_vnl0_fnl0(
   aa_seq,
   ms1_mass = NULL,
-  aa_masses,
+  aa_masses = NULL,
   ntmod = NULL,
   ctmod = NULL,
   ntmass = NULL,
@@ -80,7 +80,7 @@ gen_ms2ions_a1_vnl1_fnl0(
 gen_ms2ions_base(
   aa_seq,
   ms1_mass = NULL,
-  aa_masses,
+  aa_masses = NULL,
   ntmass = NULL,
   ctmass = NULL,
   mod_indexes = NULL,
@@ -97,8 +97,8 @@ representation of amino acids.}
 
 \item{ms1_mass}{The mass of a theoretical MS1 (for subsetting).}
 
-\item{aa_masses}{Amino-acid lookup at a given combination of fixed and
-variable.}
+\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
+acid residues.}
 
 \item{ntmass}{The mass of N-terminal.}
 

@@ -9,7 +9,7 @@ ms1_a0_fnl1_bypep(mass, aa_seq, fnl_combi, aa_masses, digits = 4L)
 \arguments{
 \item{mass}{The mass of a peptide.}
 
-\item{aa_seq}{Character string; a peptide sequences with one-letter
+\item{aa_seq}{Character string; a peptide sequence with one-letter
 representation of amino acids.}
 
 \item{fnl_combi}{A data.frame of combinations of neutral losses for fixed

@@ -2,15 +2,15 @@
 #'
 #' All files under `out_path` are removed if incur \code{calc_pepmasses} in the
 #' upstream.
-#'
+#' 
 #' @param aa_masses_all A list of amino acid lookups for all the combination of
 #'   fixed and variable modifications.
-#' @param n_cores Integer; the number of computer cores.
 #' @param mod_indexes Integer; the indexes of fixed and/or variable
 #'   modifications.
 #' @inheritParams matchMS
-#' @inheritParams readMGF
+#' @inheritParams load_mgfs
 #' @inheritParams hms2_base
+#' @inheritParams add_fixvar_masses
 #' @import parallel
 ms2match <- function (mgf_path, aa_masses_all, out_path, 
                       mod_indexes, type_ms2ions, maxn_vmods_per_pep, 

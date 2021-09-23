@@ -12,7 +12,7 @@ list_leftmatch(a, b)
 \item{b}{The right vector.}
 }
 \description{
-Without making a data frame.
+Not currently used. Without making a data frame.
 }
 \examples{
 \donttest{

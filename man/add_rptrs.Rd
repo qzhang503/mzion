@@ -14,7 +14,7 @@ include \code{tmt6} etc. For other multiplicities of \code{tmt}, use the
 compatible higher plexes, for example, \code{tmt16} for \code{tmt12} etc.
 and \code{tmt10} for \code{tmt8} etc.}
 
-\item{out_path}{The output path.}
+\item{out_path}{A file path of outputs.}
 }
 \description{
 Adds back reporter-ion intensities

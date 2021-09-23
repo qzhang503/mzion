@@ -2,7 +2,7 @@
 % Please edit documentation in R/ms2_a1_vnl0_fnl0.R
 \name{calc_ms2ions_a1_vnl0_fnl0}
 \alias{calc_ms2ions_a1_vnl0_fnl0}
-\title{Helper}
+\title{Helper for the calculation of MS2 ion series.}
 \usage{
 calc_ms2ions_a1_vnl0_fnl0(
   vmods_combi,
@@ -15,8 +15,26 @@ calc_ms2ions_a1_vnl0_fnl0(
 )
 }
 \arguments{
-\item{ms1_mass}{The mass of a theoretical MS1 (for subsetting).}
+\item{vmods_combi}{Lists of variable modifications.}
+
+\item{aas2}{A sequence of amino-acid residues with \emph{masses}. Residues
+are in names and masses in values (note that argument \code{aas}
+corresponds to residues without masses).}
+
+\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
+acid residues.}
+
+\item{ntmass}{The mass of a fixed or variable N-term modification.}
+
+\item{ctmass}{The mass of a fixed or variable C-term modification.}
+
+\item{type_ms2ions}{Character; the type of
+\href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
+ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
+and y-ions.}
+
+\item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
-Helper
+Helper for the calculation of MS2 ion series.
 }

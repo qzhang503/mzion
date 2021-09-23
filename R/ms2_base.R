@@ -4,8 +4,6 @@
 #' 
 #' @param i Integer; the index for a set of corresponding aa_masses and
 #'   theoretical peptides.
-#' @param aa_masses Amino-acid lookup at a given combination of fixed and
-#'   variable.
 #' @param ntmass The mass of N-terminal.
 #' @param ctmass The mass of C-terminal.
 #' @param type_ms2ions Character; the type of
@@ -14,12 +12,12 @@
 #'   and y-ions.
 #' @inheritParams matchMS
 #' @inheritParams ms2match
+#' @inheritParams add_fixvar_masses
 #' @import purrr
 #' @import parallel
 ms2match_base <- function (i, aa_masses, ntmass, ctmass, mod_indexes, 
-                           mgf_path, out_path, 
-                           type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
-                           maxn_sites_per_vmod = 3L, 
+                           mgf_path, out_path, type_ms2ions = "by", 
+                           maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                            maxn_vmods_sitescombi_per_pep = 32L, 
                            minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
                            min_ms2mass = 110L, digits = 4L) {
@@ -122,8 +120,7 @@ ms2match_base <- function (i, aa_masses, ntmass, ctmass, mod_indexes,
 #' @inheritParams ms2match_base
 hms2_base <- function (mgf_frames, theopeps, aa_masses, ntmass, ctmass, 
                        mod_indexes, type_ms2ions = "by", 
-                       maxn_vmods_per_pep = 5L, 
-                       maxn_sites_per_vmod = 3L, 
+                       maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                        maxn_vmods_sitescombi_per_pep = 32L, 
                        minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
                        min_ms2mass = 110L, digits = 4L) {
@@ -142,8 +139,9 @@ hms2_base <- function (mgf_frames, theopeps, aa_masses, ntmass, ctmass,
                          minn_ms2 = minn_ms2, 
                          ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
                          min_ms2mass = min_ms2mass, 
-                         digits = digits) %>% 
-    post_frame_adv(mgf_frames)
+                         digits = digits)
+  
+  res <- post_frame_adv(res, mgf_frames)
 
   rm(list = "mgf_frames", "theopeps")
   
@@ -209,9 +207,9 @@ frames_adv_base <- function (mgf_frames, theopeps, aa_masses,
     ), 
     SIMPLIFY = FALSE,
     USE.NAMES = FALSE
-  ) %>% 
-    `names<-`(theopeps_bf_ms1)
-  
+  )
+  names(theos_bf_ms2) <- theopeps_bf_ms1
+
   theos_cr_ms2 <- mapply(
     gen_ms2ions_base, 
     aa_seq = theopeps_cr_ms1, 
@@ -230,8 +228,8 @@ frames_adv_base <- function (mgf_frames, theopeps, aa_masses,
     ), 
     SIMPLIFY = FALSE,
     USE.NAMES = FALSE
-  ) %>% 
-    `names<-`(theopeps_cr_ms1)
+  )
+  names(theos_cr_ms2) <- theopeps_cr_ms1
 
   ## --- iteration ---
   for (i in seq_len(len)) {
@@ -260,9 +258,9 @@ frames_adv_base <- function (mgf_frames, theopeps, aa_masses,
       ), 
       SIMPLIFY = FALSE,
       USE.NAMES = FALSE
-    ) %>% 
-      `names<-`(theopeps_af_ms1)
-    
+    )
+    names(theos_af_ms2) <- theopeps_af_ms1
+
     # each `out` for the results of multiple mgfs in one frame
     
     # Browse[4]> exptmasses_ms1
@@ -345,8 +343,8 @@ frames_adv_base <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_cr_ms1)
+      )
+      names(theos_cr_ms2) <- theopeps_cr_ms1
     } else {
       theos_bf_ms1 <- theopeps[[as.character(new_frame-1)]]
       theopeps_bf_ms1 <- theos_bf_ms1$pep_seq
@@ -374,8 +372,8 @@ frames_adv_base <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_bf_ms1)
+      )
+      names(theos_bf_ms2) <- theopeps_bf_ms1
 
       theos_cr_ms2 <- mapply(
         gen_ms2ions_base, 
@@ -395,8 +393,8 @@ frames_adv_base <- function (mgf_frames, theopeps, aa_masses,
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
-      ) %>% 
-        `names<-`(theopeps_cr_ms1)
+      )
+      names(theos_cr_ms2) <- theopeps_cr_ms1
     }
     
     frame <- new_frame
@@ -498,7 +496,7 @@ frames_adv_base <- function (mgf_frames, theopeps, aa_masses,
 #'                         ntmass, ctmass, mod_indexes)
 #' 
 #' }
-gen_ms2ions_base <- function (aa_seq, ms1_mass = NULL, aa_masses, 
+gen_ms2ions_base <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL, 
                               ntmass = NULL, ctmass = NULL, mod_indexes = NULL, 
                               type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                               maxn_sites_per_vmod = 3L, 
@@ -520,10 +518,26 @@ gen_ms2ions_base <- function (aa_seq, ms1_mass = NULL, aa_masses,
 
 
 #' Matches by indexes
-#' 
-#' @examples 
+#'
+#' @param expt_mass_ms1 Numeric; the experimental MS1 mass.
+#' @param expt_moverz_ms2 A numeric list; the experimental MS2 m/z's.
+#' @param theomasses_bf_ms1 Numeric vector; the theoretical MS1 masses at the
+#'   preceding \code{-1} frame.
+#' @param theomasses_cr_ms1 Numeric vector; the theoretical MS1 masses at the
+#'   current frame.
+#' @param theomasses_af_ms1 Numeric vector; the theoretical MS1 masses at the
+#'   following \code{+1} frame.
+#' @param theos_bf_ms2 Numeric vector; the theoretical MS2 m/z's at the
+#'   preceding \code{-1} frame.
+#' @param theos_cr_ms2 Numeric vector; the theoretical MS2 m/z's at the current
+#'   frame.
+#' @param theos_af_ms2 Numeric vector; the theoretical MS2 m/z's at the
+#'   following \code{+1} frame.
+#' @inheritParams matchMS
+#' @inheritParams load_mgfs
+#' @examples
 #' \donttest{
-#' expt_ms2 <- 
+#' expt_ms2 <-
 #'   c(1628,3179,7677,9129,13950,14640,18571,19201,19205,19830,19833,20454,
 #'     20457,21030,21073,21077,21687,24644,25232,37146,42042,43910,43920,44811,
 #'     44824,45298,47494,55080,55901,56677,59014,66693,72396,72402,72720,73043,
@@ -533,8 +547,8 @@ gen_ms2ions_base <- function (aa_seq, ms1_mass = NULL, aa_masses,
 #'     140397,141566,141634,141702,142183,142580,144189,147799,147926,148678,148860,149911,
 #'     149973,153047,155607,158520,158631,162612,162717,163346,169537,170401,171249,171344,
 #'     178012,178620,181980,188455)
-#' 
-#' theo_ms2 <- 
+#'
+#' theo_ms2 <-
 #'   c(-26231,62754,105787,129278,151731,161552,174924,184489,196534,204867,212917,219771,
 #'     236270,106013,129447,148679,163242,178619,187776,197630,203310,212976,219825,227451,
 #'     234026,237018)
@@ -542,7 +556,7 @@ gen_ms2ions_base <- function (aa_seq, ms1_mass = NULL, aa_masses,
 #' pr <- which((expt_ms2-1) %fin% theo_ms2)
 #' af <- which((expt_ms2+1) %fin% theo_ms2)
 #' c(cr, pr, af)
-#' 
+#'
 #' }
 search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2, 
                          theomasses_bf_ms1, theomasses_cr_ms1, theomasses_af_ms1, 
@@ -555,7 +569,6 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
   bf_allowed <- which(theomasses_bf_ms1 >= ms1_range[1]) # 2 us
   af_allowed <- which(theomasses_af_ms1 <= ms1_range[2]) # 1.9 us
   
-  # not used but kept for tidiness
   theomasses_bf_ms1 <- theomasses_bf_ms1[bf_allowed]
   theomasses_af_ms1 <- theomasses_af_ms1[af_allowed]
   
@@ -587,7 +600,7 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
   x <- c(x_bf, x_cr, x_af)
   
   # cleans up
-  # !!! USE.NAME = TRUE (whereas map2 automatically reverses names)
+  # !!! USE.NAMES = TRUE (whereas map2 reserves names when available)
   rows <- lapply(x, function (this) {
     ans <- lapply(this, function (x) sum(!is.na(x[["expt"]])) >= minn_ms2)
     simplify2array(ans)
@@ -667,7 +680,8 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
 #'
 #' @param expts Numeric vector; one series of experimental MS2s.
 #' @param theos Numeric vector; one to multiple series of theoretical MS2s.
-#' @inheritParams search_mgf_frames
+#' @inheritParams frames_adv_base
+#' @inheritParams load_mgfs
 #' @importFrom purrr map
 #' @importFrom fastmatch fmatch %fin% 
 #' @examples 
@@ -796,7 +810,7 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L) {
       es <- theos_i # .1 us
       es[!ps] <- NA # .9 us
 
-      # separated b and y matches (to handled double-dipping btw b and y)
+      # separated b and y matches (to handled double-dipping between b and y)
       lth <- length(ps)
       mid <- lth/2L
 
@@ -877,7 +891,7 @@ find_ms2_bycombi <- function (theos, expts, ex, ppm_ms2, min_ms2mass) {
   th <- find_ms1_interval(theos, from = min_ms2mass, ppm = ppm_ms2)
   ps <- fuzzy_match_one(th, ex)
   
-  if (sum(ps) == 0L) {
+  if (sum(ps) == 0) {
     es <- rep(NA, length(theos))
     out <- list(theo = theos, expt = es)
   } else {

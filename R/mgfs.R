@@ -47,9 +47,8 @@ load_mgfs <- function (mgf_path, min_mass = 500L, min_ms2mass = 110L,
 #' @import fs
 #' @examples
 #' \donttest{
-#' mgf_queries <- readMGF()
+#' mgf_queries <- proteoM:::readMGF()
 #' }
-#' @export
 readMGF <- function (filepath = "~/proteoM/mgfs",
                      min_mass = 500L, min_ms2mass = 110L, topn_ms2ions = 100L,
                      ret_range = c(0, Inf), ppm_ms1 = 20L, ppm_ms2 = 25L,
@@ -64,7 +63,7 @@ readMGF <- function (filepath = "~/proteoM/mgfs",
   # parsing rules
   filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
 
-  if (length(filelist) == 0L) {
+  if (!length(filelist)) {
     stop("No '.mgf' files under ", filepath, call. = FALSE)
   }
 
@@ -174,7 +173,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgfs",
 
   filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
 
-  if (length(filelist) == 0L) {
+  if (!length(filelist)) {
     stop("No mgf files under ", filepath, call. = FALSE)
   }
 
@@ -247,7 +246,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgfs",
   local({
     nms <- list.files(path = file.path(filepath), pattern = "^.*\\_[ab]f.mgf$")
 
-    if (!purrr::is_empty(nms)) {
+    if (length(nms)) {
       suppressMessages(file.remove(file.path(filepath, nms)))
     }
   })
@@ -288,22 +287,22 @@ proc_mgf_chunks_i <- function (file, topn_ms2ions = 100L, ret_range = c(0L, Inf)
 
   message("Parsing '", file, "'.")
 
-  x <- stringi::stri_read_lines(file) %>%
-    proc_mgf_chunks(topn_ms2ions = topn_ms2ions,
-                    ret_range = ret_range,
-                    ppm_ms2 = ppm_ms2,
-                    min_ms2mass = min_ms2mass,
-                    index_ms2 = index_ms2,
-                    filepath = file,
-                    pat_file = pat_file,
-                    pat_scan = pat_scan,
-                    n_spacer = n_spacer,
-                    n_hdr = n_hdr,
-                    n_to_pepmass = n_to_pepmass,
-                    n_to_title = n_to_title,
-                    n_to_scan = n_to_scan,
-                    n_to_rt = n_to_rt,
-                    n_to_charge = n_to_charge)
+  x <- proc_mgf_chunks(lines = stringi::stri_read_lines(file), 
+                       topn_ms2ions = topn_ms2ions,
+                       ret_range = ret_range,
+                       ppm_ms2 = ppm_ms2,
+                       min_ms2mass = min_ms2mass,
+                       index_ms2 = index_ms2,
+                       filepath = file,
+                       pat_file = pat_file,
+                       pat_scan = pat_scan,
+                       n_spacer = n_spacer,
+                       n_hdr = n_hdr,
+                       n_to_pepmass = n_to_pepmass,
+                       n_to_title = n_to_title,
+                       n_to_scan = n_to_scan,
+                       n_to_rt = n_to_rt,
+                       n_to_charge = n_to_charge)
 }
 
 
@@ -396,88 +395,89 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
   ends <- which(stringi::stri_endswith_fixed(lines, "END IONS"))
 
   # (-1L: one line above "END IONS")
-  ms2s <- purrr::map2(begins, ends, ~ lines[(.x + n_hdr) : (.y - 1L)]) %>%
-    purrr::map(stringi::stri_split_fixed, " ", n = 2, simplify = TRUE)
+  ms2s <- mapply(function (x, y) lines[(x + n_hdr) : (y - 1L)], 
+                 begins, ends, 
+                 SIMPLIFY = FALSE, 
+                 USE.NAMES = FALSE)
+  ms2s <- lapply(ms2s, stringi::stri_split_fixed, " ", n = 2, simplify = TRUE)
 
-  ms2_moverzs <- ms2s %>%
-    purrr::map(~ .x[, 1] %>% as.numeric())
+  ms2_moverzs <- lapply(ms2s, function (x) as.numeric(x[, 1]))
 
   # not to round the `ms2_ints` values here (to avoid ties and thus
   # shorter length after `which_topx` of a vector of integers;
-  # more likely to have ties with integers than demicals)
+  # more likely to have ties with integers than doubles)
   #
   # the latest `which_topx` handles ties and the length of the output
   #  equals `topn_ms2ions` even with ties;
   # except when the length of a vector is shorter than `topn_ms2ions`)
 
-  ms2_ints <- ms2s %>%
-    purrr::map(~ .x[, 2] %>% as.numeric())
+  ms2_ints <- lapply(ms2s, function (x) as.numeric(x[, 2]))
 
-  lens <- purrr::map_dbl(ms2_moverzs, length)
+  lens <- lapply(ms2_moverzs, length)
+  lens <- unlist(lens, use.names = FALSE)
 
   if (topn_ms2ions < Inf) {
-    # rows <- purrr::map(ms2_ints, which_topx, topn_ms2ions)
-    rows <- purrr::map(ms2_ints, which_topx2, topn_ms2ions)
+    rows <- lapply(ms2_ints, which_topx2, topn_ms2ions)
 
     # OK to round `ms2_ints` now
-    ms2_ints <- purrr::map2(ms2_ints, rows, ~ round(.x[.y], digits = 0L))
-    ms2_moverzs <- purrr::map2(ms2_moverzs, rows, ~ round(.x[.y], digits = 5L))
+    ms2_ints <- mapply(function (x, y) round(x[y], digits = 0L), 
+                       ms2_ints, rows, 
+                       SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    
+    ms2_moverzs <- mapply(function (x, y) round(x[y], digits = 5L), 
+                          ms2_moverzs, rows, 
+                          SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    
     rm(list = c("rows", "ms2s"))
   }
 
   # MS1 ions
-  ms1s <- lines[begins + n_to_pepmass] %>%
-    stringi::stri_replace_first_fixed("PEPMASS=", "") %>%
-    purrr::map(stringi::stri_split_fixed, " ", n = 2, simplify = TRUE)
+  ms1s <- stringi::stri_replace_first_fixed(lines[begins + n_to_pepmass], 
+                                            "PEPMASS=", "")
+  ms1s <- lapply(ms1s, stringi::stri_split_fixed, " ", n = 2, simplify = TRUE)
 
-  ms1_moverzs <- ms1s %>%
-    purrr::map_dbl(~ .x[, 1] %>% as.numeric() %>% round(digits = 5L))
+  ms1_moverzs <- lapply(ms1s, function (x) round(as.numeric(x[, 1]), digits = 5L))
+  ms1_moverzs <- unlist(ms1_moverzs, use.names = FALSE)
 
-  ms1_ints <- ms1s %>%
-    purrr::map_dbl(~ .x[, 2] %>% as.numeric() %>% round(digits = 0L))
+  ms1_ints <- lapply(ms1s, function (x) round(as.numeric(x[, 2]), digits = 0L))
+  ms1_ints <- unlist(ms1_ints, use.names = FALSE)
 
   rm(list = c("ms1s"))
   gc()
 
   # Others
-  scan_titles <- lines[begins + n_to_title] %>%
-    stringi::stri_replace_first_fixed("TITLE=", "")
+  scan_titles <- stringi::stri_replace_first_fixed(lines[begins + n_to_title], 
+                                                   "TITLE=", "")
 
   if (pat_file == "^.* File:\"([^\"]+)\".*") {
-    raw_files <- scan_titles %>%
-      gsub(pat_file, "\\1", .) %>%
-      gsub("\\\\", "/", .) # %>% as.list()
+    raw_files <- gsub(pat_file, "\\1", scan_titles)
+    raw_files <- gsub("\\\\", "/", raw_files)
   } else if (pat_file == "^.*File: \"([^\"]+)\".*") {
-    raw_files <- scan_titles %>%
-      gsub(pat_file, "\\1", .) %>%
-      gsub("\\\\", "/", .) %>%
-      gsub("^.*/(.*)", "\\1", .) # %>% as.list()
+    raw_files <- gsub(pat_file, "\\1", scan_titles)
+    raw_files <- gsub("\\\\", "/", raw_files)
+    raw_files <- gsub("^.*/(.*)", "\\1", raw_files)
   } else {
-    stop("Unknown MGF format.")
+    stop("Unknown MGF format.", call. = FALSE)
   }
 
-  scan_nums <- scan_titles %>%
-    gsub(pat_scan, "\\1", .) %>%
-    as.integer()
+  scan_nums <- as.integer(gsub(pat_scan, "\\1", scan_titles))
 
-  ret_times  <- lines[begins + n_to_rt] %>%
-    stringi::stri_replace_first_fixed("RTINSECONDS=", "") %>%
-    as.numeric()
-
-  ms1_charges <- lines[begins + n_to_charge] %>%
-    stringi::stri_replace_first_fixed("CHARGE=", "")
+  ret_times <- stringi::stri_replace_first_fixed(lines[begins + n_to_rt], "RTINSECONDS=", "")
+  ret_times <- as.numeric(ret_times)
+  
+  ms1_charges <- stringi::stri_replace_first_fixed(lines[begins + n_to_charge], "CHARGE=", "")
 
   # MS1 neutral masses
   proton <- 1.00727647
 
-  charges <- ms1_charges %>%
-    purrr::map(stringi::stri_reverse) %>%
-    purrr::map_dbl(as.numeric)
+  charges <- lapply(ms1_charges, stringi::stri_reverse)
+  charges <- unlist(charges, use.names = FALSE)
+  charges <- as.integer(charges)
 
-  ms1_masses <- purrr::map2(ms1_moverzs, charges, ~ {
-    .x * .y - .y * proton
-  }) %>%
-    purrr::map_dbl(round, digits = 5L)
+  ms1_masses <- mapply(function (x, y) x * y - y * proton, 
+                       ms1_moverzs, charges, 
+                       SIMPLIFY = TRUE, USE.NAMES = FALSE)
+  ms1_masses <- round(ms1_masses, digits = 5L)
 
   # Subsetting
   rows <- (ret_times >= ret_range[1] & ret_times <= ret_range[2])
@@ -494,10 +494,10 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
   ms2_ints <- ms2_ints[rows]
 
   if (index_ms2) {
-    ms2_moverzs <- purrr::map(ms2_moverzs,
-                              find_ms1_interval,
-                              from = min_ms2mass,
-                              ppm = ppm_ms2)
+    ms2_moverzs <- lapply(ms2_moverzs,
+                          find_ms1_interval,
+                          from = min_ms2mass,
+                          ppm = ppm_ms2)
   }
 
   out <- tibble::tibble(scan_title = scan_titles,
@@ -526,7 +526,7 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
 #' }
 #' @return Frame numbers.
 #' @seealso find_ms1_cutpoints
-find_ms1_interval <- function (mass = 1714.81876, from = 350L, ppm = 20L) {
+find_ms1_interval <- function (mass = 1800.0, from = 350L, ppm = 20L) {
   d <- ppm/1e6
   ceiling(log(unlist(mass, recursive = FALSE, use.names = FALSE)/from)/log(1+d))
 }
@@ -542,7 +542,7 @@ proc_mgf_timstof <- function (path, n = 1000L) {
   filelist <- list.files(path = file.path(path),
                          pattern = "^.*\\.mgf$")
 
-  if (length(filelist) == 0L) {
+  if (!length(filelist)) {
     stop("No mgf files under ", path,
          call. = FALSE)
   }

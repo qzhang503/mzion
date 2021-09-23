@@ -49,7 +49,7 @@ bin_ms1masses_td <- function (bins = NULL, type = c("target", "decoy"),
 
   len_m <- length(masses)
 
-  if (len_m == 0L) {
+  if (!len_m) {
     stop("File not found: ",
          file.path(out_path, paste0("pepmasses_", type2, "[...].rds")))
   }
@@ -112,8 +112,6 @@ bin_ms1masses_td <- function (bins = NULL, type = c("target", "decoy"),
     parallel::clusterExport(cl, list("cbind_theopepes"),
                             envir = environment(proteoM:::cbind_theopepes))
 
-    # parallel::parLapplyLB(cl, idxes, binTheoPeps_i, min_mass, max_mass, ppm_ms1, out_path)
-    
     # No need of purrr::flatten() as saveRDS by INDIVIDUAL idx (and return NULL)
     parallel::clusterApplyLB(
       cl = cl, 
@@ -191,7 +189,7 @@ binTheoPeps2 <- function (idx = 1L, res = NULL, min_mass = 500L,
 }
 
 
-#' Helper of \link{binTheoPeps_bysets}.
+#' Helper.
 #'
 #' Reads single rds.
 #'
@@ -214,7 +212,7 @@ s_readRDS <- function (file, out_path) {
 
 #' Helper of \link{bin_ms1masses_td}.
 #'
-#' Bin peptide masses by sets of data.
+#' Not used. Bin peptide masses by sets of data.
 #'
 #' @inheritParams binTheoPeps
 binTheoPeps_bysets <- function (idxes = NULL, min_mass = 500L, max_mass = 10000L,
@@ -257,12 +255,11 @@ binTheoPeps_bysets <- function (idxes = NULL, min_mass = 500L, max_mass = 10000L
 #' @examples
 #' \donttest{
 #' res <- readRDS("~/proteoM/dbs/fasta/uniprot/pepmass/uniprot_hs_2020_05_2miss.rds")
-#' theopeps <- binTheoPeps(res)
+#' theopeps <- proteoM:::binTheoPeps(res)
 #' }
 #' @return Lists of theoretical peptides binned by MS1 masses. The lists
 #'   correspond to the lists of \code{res}.
 #' @import parallel
-#' @export
 binTheoPeps <- function (idxes = NULL, res = NULL, min_mass = 500L,
                          max_mass = 10000L, ppm_ms1 = 20L, out_path = NULL) {
 

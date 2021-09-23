@@ -85,6 +85,10 @@ xions(aas2, tmass, digits = 4L)
 x2ions(aas2, tmass, digits = 4L)
 }
 \arguments{
+\item{ntmass}{The mass of a fixed or variable N-term modification.}
+
+\item{ctmass}{The mass of a fixed or variable C-term modification.}
+
 \item{aas2}{A sequence of amino-acid residues with \emph{masses}. Residues
   are in names and masses in values.
 

@@ -11,6 +11,10 @@ ms2ions_by_type(aas2, ntmass, ctmass, type_ms2ions, digits)
 are in names and masses in values (note that argument \code{aas}
 corresponds to residues without masses).}
 
+\item{ntmass}{The mass of a fixed or variable N-term modification.}
+
+\item{ctmass}{The mass of a fixed or variable C-term modification.}
+
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-

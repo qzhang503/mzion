@@ -13,7 +13,7 @@ calcms1mass_noterm_bypep(
 )
 }
 \arguments{
-\item{aa_seq}{Character string; a peptide sequences with one-letter
+\item{aa_seq}{Character string; a peptide sequence with one-letter
 representation of amino acids.}
 
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino

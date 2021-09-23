@@ -2,7 +2,7 @@
 % Please edit documentation in R/msmsmatches.R
 \name{matchMS}
 \alias{matchMS}
-\title{Searches MS ions.}
+\title{Searches for MS ions.}
 \usage{
 matchMS(
   out_path = "~/proteoM/outs",
@@ -38,7 +38,7 @@ matchMS(
 )
 }
 \arguments{
-\item{out_path}{The output path.}
+\item{out_path}{A file path of outputs.}
 
 \item{mgf_path}{The file path to a list of MGF files. The experimenters need
 to supply the files. Note that the supported MGFs are from MSConvert or

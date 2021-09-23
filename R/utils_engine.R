@@ -21,6 +21,7 @@
 #'
 #' @param TMT_plex Numeric; the multiplexity of TMT, i.e., 10, 11 etc.
 find_int_cols <- function (TMT_plex) {
+  
   if (TMT_plex == 16) {
     col_int <- c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
                  "I130N", "I130C", "I131N", "I131C",
@@ -50,8 +51,8 @@ find_int_cols <- function (TMT_plex) {
 #' @import dplyr
 #' @importFrom stringr str_split
 #' @importFrom magrittr %>% %T>% %$% %<>%
-#' @export
 ins_cols_after <- function(df = NULL, idx_bf = ncol(df), idx_ins = NULL) {
+  
   if (is.null(df)) stop("`df` cannot be `NULL`.", call. = FALSE)
   if (is.null(idx_ins)) return(df)
   if (idx_bf >= ncol(df)) return(df)
@@ -74,16 +75,16 @@ ins_cols_after <- function(df = NULL, idx_bf = ncol(df), idx_ins = NULL) {
 #'   (after).
 add_cols_at <- function(df, df2, idx) {
 
-  stopifnot(idx >= 0)
+  stopifnot(idx >= 0L)
 
-  if (idx == 0) {
+  if (idx == 0L) {
     bf <- NULL
   } else {
     bf <- df[, seq_len(idx), drop = FALSE]
   }
 
-  if ((idx + 1) <= ncol(df)) {
-    af <- df[, (idx + 1) : ncol(df), drop = FALSE]
+  if ((idx + 1L) <= ncol(df)) {
+    af <- df[, (idx + 1L) : ncol(df), drop = FALSE]
   } else {
     af <- NULL
   }
@@ -107,19 +108,19 @@ add_cols_at <- function(df, df2, idx) {
 replace_cols_at <- function(df, df2, idxs) {
 
   ncol <- ncol(df)
-  stopifnot(all(idxs >= 1), all(idxs <= ncol))
+  stopifnot(all(idxs >= 1L), all(idxs <= ncol))
 
   idxs <- sort(idxs)
-  stopifnot(all.equal(idxs - idxs[1] + 1, seq_along(idxs)))
+  stopifnot(all.equal(idxs - idxs[1] + 1L, seq_along(idxs)))
 
-  if (idxs[1] >= 2) {
-    bf <- df[, 1:(idxs[1]-1), drop = FALSE]
+  if (idxs[1] >= 2L) {
+    bf <- df[, 1:(idxs[1]-1L), drop = FALSE]
   } else {
     bf <- NULL
   }
 
   if (idxs[length(idxs)] < ncol(df)) {
-    af <- df[, (idxs[length(idxs)]+1):ncol(df), drop = FALSE]
+    af <- df[, (idxs[length(idxs)]+1L):ncol(df), drop = FALSE]
   } else {
     af <- NULL
   }
@@ -240,17 +241,21 @@ find_preceding_colnm <- function(df, to_move) {
 #'
 #' @param x Lists
 recur_flatten <- function (x) {
+  
   if (!inherits(x, "list")) {
     list(x)
   } else {
-    unlist(c(purrr::map(x, recur_flatten)), recursive = FALSE)
+    unlist(c(lapply(x, recur_flatten)), recursive = FALSE)
   }
 }
 
 
+### End of also in proteoQ
+
+
+
+
 ###
-
-
 
 #' Finds a file directory.
 #'
@@ -327,7 +332,7 @@ save_call2 <- function(path, fun, time = NULL) {
 #' @importFrom magrittr %>% %T>% %$%
 find_callarg_val <- function (time = ".2021-05-21_211227",
                               path = "~/proteoM/.MSearch/Cache/Calls",
-                              fun = "calc_pepmasses", arg = "fasta") {
+                              fun = "calc_pepmasses2", arg = "fasta") {
 
   stopifnot(length(arg) == 1L)
 
@@ -382,7 +387,7 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
 #' @importFrom rlang caller_env
 #' @return An empty object if no matches.
 match_calltime <- function (path = "~/proteoM/.MSearch/Cache/Calls",
-                            fun = "calc_pepmasses",
+                            fun = "calc_pepmasses2",
                             nms = c("parallel", "out_path"),
                             type = c(TRUE, FALSE)) {
 
@@ -394,7 +399,7 @@ match_calltime <- function (path = "~/proteoM/.MSearch/Cache/Calls",
   args <- mget(names(formals(fun)), envir = caller_env(), inherits = FALSE) %>%
     { if (type) .[names(.) %in% nms] else .[! names(.) %in% nms] }
 
-  if (length(args) == 0L) stop("Arguments for matching is empty.", call. = FALSE)
+  if (!length(args)) stop("Arguments for matching is empty.", call. = FALSE)
 
   args <- args %>% map(sort)
 
@@ -529,8 +534,6 @@ delete_files <- function (path, ignores = NULL, ...) {
 
 #' Post processing after ms2match.
 #'
-#' @param aa_masses A named list containing the (mono-isotopic) masses of amino
-#'   acid residues.
 #' @param out An output from various ms2match(es).
 #' @inheritParams ms2match_base
 post_ms2match <- function (out, i, aa_masses, out_path) {
@@ -562,12 +565,12 @@ post_ms2match <- function (out, i, aa_masses, out_path) {
 
 #' Post frame advancing.
 #'
+#' Flattens mgfs within each frame (the number of entries equals to the number
+#' of mgfs).
+#' 
 #' @param res Results from frame-advanced searches.
 #' @param mgf_frames Data of MGF frames.
 post_frame_adv <- function (res, mgf_frames) {
-
-  # flatten mgfs within each frame
-  # (the number of entries equals to the number of mgfs)
 
   res <- res %>% unlist(recursive = FALSE)
 
@@ -581,7 +584,8 @@ post_frame_adv <- function (res, mgf_frames) {
 
 
 #' Subsets the search space.
-#'
+#' 
+#' @inheritParams ms2match
 #' @inheritParams ms2match_base
 #' @inheritParams post_ms2match
 purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
@@ -623,11 +627,10 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
                                 paste0("binned_theopeps_", i, ".rds")))
 
   if (ppm_ms1 < 1000L) {
-    theopeps <- theopeps %>%
-      purrr::map(~ {
-        rows <- !duplicated(.x$pep_seq)
-        .x[rows, c("pep_seq", "mass")]
-      })
+    theopeps <- lapply(theopeps, function (x) {
+      rows <- (!duplicated(x$pep_seq))
+      x[rows, c("pep_seq", "mass")]
+    })
   }
 
   # purged by neuloss residues
@@ -642,12 +645,10 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 
   # (1) for a given aa_masses_all[[i]], some mgf_frames[[i]]
   #     may not be found in theopeps[[i]]
-  mgf_frames <- purrr::map(mgf_frames, ~ {
-    x <- .x
-
+  mgf_frames <- lapply(mgf_frames, function (x) {
     oks <- names(x) %in% names(theopeps)
     x <- x[oks]
-
+    
     empties <- purrr::map_lgl(x, purrr::is_empty)
     x[!empties]
   })
@@ -655,33 +656,36 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
   # (2) splits `theopeps` in accordance to `mgf_frames` with
   #     preceding and following frames: (o)|range of mgf_frames[[1]]|(o)
   theopeps <- local({
-    frames <- purrr::map(mgf_frames, ~ as.integer(names(.x)))
+    frames <- lapply(mgf_frames, function (x) as.integer(names(x)))
 
     mins <- purrr::map_dbl(frames, ~ {
-      if (length(.x) == 0) x <- 0 else x <- min(.x, na.rm = TRUE)
+      if (!length(.x)) x <- 0 else x <- min(.x, na.rm = TRUE)
     })
-
+    
     maxs <- purrr::map_dbl(frames, ~ {
-      if (length(.x) == 0) x <- 0 else x <- max(.x, na.rm = TRUE)
+      if (!length(.x)) x <- 0 else x <- max(.x, na.rm = TRUE)
     })
-
+    
     nms <- as.integer(names(theopeps))
 
-    theopeps <- purrr::map2(mins, maxs, ~ {
-      theopeps[which(nms >= (.x - 1) & nms <= (.y + 1))]
-    })
-
+    # (NAMEs are trivial node indexes from parallel processes)
+    theopeps <- mapply(function (x, y) {
+      theopeps[which(nms >= (x - 1L) & nms <= (y + 1L))]
+    }, mins, maxs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    
     # --- may cause uneven length between `mgf_frames` and `theopeps`
     # empties <- map_lgl(theopeps, is_empty)
     # theopeps[!empties]
   })
 
   # (3) removes unused frames of `theopeps`
-  theopeps <- purrr::map2(mgf_frames, theopeps, subset_theoframes)
+  # (NAMEs are trivial cluster node indexes...)
+  theopeps <- mapply(subset_theoframes, mgf_frames, theopeps, 
+                     SIMPLIFY = FALSE, USE.NAMES = FALSE)
 
   # (4) removes empties (zero overlap between mgf_frames and theopeps)
-  oks <- purrr::map_lgl(mgf_frames, ~ !purrr::is_empty(.x)) |
-    purrr::map_lgl(theopeps, ~ !purrr::is_empty(.x))
+  oks <- purrr::map_lgl(mgf_frames, function (x) !purrr::is_empty(x)) |
+    purrr::map_lgl(theopeps, function (x) !purrr::is_empty(x))
 
   mgf_frames <- mgf_frames[oks]
   theopeps <- theopeps[oks]
@@ -699,7 +703,7 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 #'   assumed.
 sub_neuloss_peps <- function (pattern, theopeps) {
 
-  rows <- purrr::map(theopeps, ~ grepl(pattern, .x$pep_seq))
+  rows <- lapply(theopeps, function (x) grepl(pattern, x$pep_seq))
   purrr::map2(theopeps, rows, ~ .x[.y, ])
 }
 
@@ -713,10 +717,10 @@ find_nterm_mass <- function (aa_masses) {
 
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 
-  if (length(ntmod) == 0L) {
-    ntmass <- aa_masses["N-term"] - 0.000549 # - electron
-  } else {
+  if (length(ntmod)) {
     ntmass <- aa_masses[names(ntmod)] - 0.000549
+  } else {
+    ntmass <- aa_masses["N-term"] - 0.000549 # - electron
   }
 
   ntmass
@@ -732,12 +736,12 @@ find_cterm_mass <- function (aa_masses) {
 
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
 
-  if (length(ctmod) == 0L) {
-    ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
-  } else {
+  if (length(ctmod)) {
     ctmass <- aa_masses[names(ctmod)] + 2.01510147
+  } else {
+    ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
   }
-
+  
   ctmass
 }
 
@@ -749,7 +753,6 @@ find_cterm_mass <- function (aa_masses) {
 #' @param x The left data frame (to be proliferated by rows).
 #' @param y The right data frame (the dominated one).
 #' @param by The key.
-#' @export
 #' @examples
 #' \donttest{
 #' df1 <- data.frame(A = c("a", "b", "c"), B = c(1, 1, 1))
@@ -796,7 +799,6 @@ quick_rightjoin <- function (x, y, by = NULL) {
 #' @param x The left data frame.
 #' @param y The right data frame.
 #' @param by The key.
-#' @export
 #' @examples
 #' \donttest{
 #' df1 <- data.frame(A = c("a", "b", "c"), B = c(1, 1, 1))

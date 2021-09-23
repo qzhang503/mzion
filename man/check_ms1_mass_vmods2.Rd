@@ -2,7 +2,7 @@
 % Please edit documentation in R/ms2_a1_vnl0_fnl0.R
 \name{check_ms1_mass_vmods2}
 \alias{check_ms1_mass_vmods2}
-\title{Check the MS1 mass for proceeding with MS2 matches.}
+\title{Checks the MS1 mass for proceeding with MS2 matches.}
 \usage{
 check_ms1_mass_vmods2(
   vmods_combi,
@@ -17,19 +17,26 @@ check_ms1_mass_vmods2(
 \arguments{
 \item{vmods_combi}{Lists of variable modifications.}
 
+\item{aas2}{A sequence of amino-acid residues with \emph{masses}. Residues
+are in names and masses in values (note that argument \code{aas}
+corresponds to residues without masses).}
+
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
 
-\item{ntmod}{The parsed \emph{variable} \code{N-term} modifications from
-\code{aa_masses}.}
+\item{ntmod}{The attribute \code{ntmod} from a \code{aa_masses} (for MS1
+calculations).}
 
-\item{ctmod}{The parsed \emph{variable} \code{C-term} modifications from
-\code{aa_masses}.}
+\item{ctmod}{The attribute \code{ctmod} from a \code{aa_masses} (for MS1
+calculations).}
 
 \item{ms1_mass}{The mass of a theoretical MS1 (for subsetting).}
 
 \item{tol}{The tolerance in mass.}
 }
 \description{
-Maybe missed if the "matched" occurred after `maxn_vmods_sitescombi_per_pep`.
+Maybe missed if a "match" is beyond `maxn_vmods_sitescombi_per_pep`.
+}
+\details{
+'bare + 18.010565 + terminals + anywhere'.
 }

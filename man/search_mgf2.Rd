@@ -19,12 +19,44 @@ search_mgf2(
   min_ms2mass = 110L
 )
 }
+\arguments{
+\item{expt_mass_ms1}{Numeric; the experimental MS1 mass.}
+
+\item{expt_moverz_ms2}{A numeric list; the experimental MS2 m/z's.}
+
+\item{theomasses_bf_ms1}{Numeric vector; the theoretical MS1 masses at the
+preceding \code{-1} frame.}
+
+\item{theomasses_cr_ms1}{Numeric vector; the theoretical MS1 masses at the
+current frame.}
+
+\item{theomasses_af_ms1}{Numeric vector; the theoretical MS1 masses at the
+following \code{+1} frame.}
+
+\item{theos_bf_ms2}{Numeric vector; the theoretical MS2 m/z's at the
+preceding \code{-1} frame.}
+
+\item{theos_cr_ms2}{Numeric vector; the theoretical MS2 m/z's at the current
+frame.}
+
+\item{theos_af_ms2}{Numeric vector; the theoretical MS2 m/z's at the
+following \code{+1} frame.}
+
+\item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
+a hit.}
+
+\item{ppm_ms1}{The mass tolerance of MS1 species.}
+
+\item{ppm_ms2}{The mass tolerance of MS2 species.}
+
+\item{min_ms2mass}{A minimum m/z of MS2 ions.}
+}
 \description{
 Matches by indexes
 }
 \examples{
 \donttest{
-expt_ms2 <- 
+expt_ms2 <-
   c(1628,3179,7677,9129,13950,14640,18571,19201,19205,19830,19833,20454,
     20457,21030,21073,21077,21687,24644,25232,37146,42042,43910,43920,44811,
     44824,45298,47494,55080,55901,56677,59014,66693,72396,72402,72720,73043,
@@ -35,7 +67,7 @@ expt_ms2 <-
     149973,153047,155607,158520,158631,162612,162717,163346,169537,170401,171249,171344,
     178012,178620,181980,188455)
 
-theo_ms2 <- 
+theo_ms2 <-
   c(-26231,62754,105787,129278,151731,161552,174924,184489,196534,204867,212917,219771,
     236270,106013,129447,148679,163242,178619,187776,197630,203310,212976,219825,227451,
     234026,237018)

@@ -7,7 +7,7 @@
 reproc_psmC(out_path = NULL, fdr_type = "protein", combine_tier_three = FALSE)
 }
 \arguments{
-\item{out_path}{The output path.}
+\item{out_path}{A file path of outputs.}
 
 \item{fdr_type}{Character string; the type of FDR control. The value is in
 one of c("psm", "peptide", "protein"). Note that \code{fdr_type = protein}

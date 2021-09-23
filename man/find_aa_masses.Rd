@@ -13,7 +13,7 @@ find_aa_masses(
 )
 }
 \arguments{
-\item{out_path}{The output path.}
+\item{out_path}{A file path of outputs.}
 
 \item{fixedmods}{A character vector of fixed modifications. See also
 \link{parse_unimod} for grammars.}

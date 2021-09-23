@@ -49,17 +49,17 @@ calc_tmtint <- function (data = NULL,
                  tmt16 = c(126.1, 134.2),
                  stop("Unknown TMt type.", call. = FALSE))
 
-    stopifnot(all(c("ms2_moverz", "ms2_int") %in% names(data)))
+    # stopifnot(all(c("ms2_moverz", "ms2_int") %in% names(data)))
 
-    out <- map2(data$ms2_moverz, data$ms2_int,
-                find_reporter_ints,
-                theos = theos,
-                ul = ul,
-                ppm_reporters = ppm_reporters,
-                len = length(theos),
-                nms = names(theos)) %>%
-      bind_rows() %>%
-      bind_cols(data, .)
+    out <- purrr::map2(data$ms2_moverz, data$ms2_int,
+                       find_reporter_ints,
+                       theos = theos,
+                       ul = ul,
+                       ppm_reporters = ppm_reporters,
+                       len = length(theos),
+                       nms = names(theos)) %>%
+      dplyr::bind_rows() %>%
+      dplyr::bind_cols(data, .)
   }
 
   names(out)[grep("^([0-9]{3}[NC]{0,1})", names(out))] <-
@@ -133,7 +133,7 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
 
   idxes <- find_reporters_ppm(theos, ms, ppm_reporters, len, nms)
 
-  if (is_empty(idxes)) {
+  if (!length(idxes)) {
     return(rep(NA, len) %>% `names<-`(nms))
   }
 
@@ -203,8 +203,8 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs") {
                      pattern = "binned_theopeps_\\d+\\.rds$",
                      full.names = TRUE)
 
-  theopeps <- purrr::map(bins, ~ {
-    x <- readRDS(.x) %>%
+  theopeps <- lapply(bins, function (x) {
+    readRDS(x) %>%
       dplyr::bind_rows() %>%
       dplyr::select(c("prot_acc", "pep_seq"))
   }) %>%
@@ -220,8 +220,8 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs") {
                          pattern = "binned_theopeps_rev_\\d+\\.rds$",
                          full.names = TRUE)
 
-  theopeps_rev <- purrr::map(bins_rev, ~ {
-    x <- readRDS(.x) %>%
+  theopeps_rev <- lapply(bins_rev, function (x) {
+    readRDS(x) %>%
       dplyr::bind_rows() %>%
       dplyr::select(c("prot_acc", "pep_seq"))
   }) %>%
@@ -233,15 +233,14 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs") {
     dplyr::filter(pep_seq %in% unique(df$pep_seq))
 
   # adds `prot_acc` (with decoys being kept)
-  out <- bind_rows(theopeps, theopeps_rev) %>%
+  out <- dplyr::bind_rows(theopeps, theopeps_rev) %>%
     dplyr::right_join(df, by = "pep_seq")
   
   rm(list = c("theopeps", "theopeps_rev"))
   gc()
 
   # adds prot_n_psm, prot_n_pep for protein FDR
-  x <- out %>% 
-    dplyr::filter(pep_issig)
+  x <- dplyr::filter(out, pep_issig)
   
   prot_n_psm <- x %>%
     dplyr::select(prot_acc) %>%
@@ -322,7 +321,7 @@ map_pepprot <- function (df, out_path = NULL) {
       rownames(mat) <- peps
       gc()
       
-      mat <- mat == 1L
+      mat <- (mat == 1L)
       rm(list = "x")
       gc()
       
@@ -354,7 +353,7 @@ map_pepprot <- function (df, out_path = NULL) {
     mat <- model.matrix(~ 0 + prot_acc, df)
     colnames(mat) <- gsub("prot_acc", "", colnames(mat))
     rownames(mat) <- df$pep_seq
-    mat <- mat == 1L
+    mat <- (mat == 1L)
 
     mat <- mat %>%
       data.frame(check.names = FALSE) %>%
@@ -461,8 +460,7 @@ groupProts <- function (df, out_path = NULL) {
     gc()
   }
 
-  sets <- sets %>%
-    bind_rows() 
+  sets <- dplyr::bind_rows(sets) 
   
   if (!is.null(out_path)) {
     saveRDS(sets, file.path(out_path, "prot_sets.rds")) 
@@ -529,11 +527,7 @@ cut_protgrps <- function (mat, out_path = NULL) {
   out <- do.call(rbind, out)
   rownames(out) <- colnames(out)
 
-  stopifnot(identical(out, t(out)))
-
-  if (!is.null(out_path)) {
-    # saveRDS(out, file.path(out_path, "prot_dist.rds"))
-  }
+  # stopifnot(identical(out, t(out)))
 
   # --- finds protein groups
   out[out == 0L] <- 1000000
@@ -548,11 +542,7 @@ cut_protgrps <- function (mat, out_path = NULL) {
     dplyr::mutate(prot_family_member = row_number()) %>%
     dplyr::ungroup() 
   
-  if (!is.null(out_path)) {
-    # saveRDS(grps, file.path(out_path, "prot_grps.rds"))
-  }
-
-  stopifnot(identical(grps$prot_acc, cns))
+  # stopifnot(identical(grps$prot_acc, cns))
 
   invisible(grps)
 }
@@ -639,13 +629,12 @@ par_dist2 <- function (cols, mat) {
 
   nms <- names(mat)[cols[1]:length(mat)]
 
-  out <- out %>%
-    map(~ {
-      names(.x) <- nms
-      nms <<- nms[-1]
-
-      .x
-    })
+  out <- lapply(out, function (x) {
+    names(x) <- nms
+    nms <<- nms[-1]
+    
+    x
+  })
 }
 
 
@@ -664,17 +653,18 @@ parDist <- function (mat) {
   n_cores <- floor(min(mem/size, detect_cores()))
   
   if (n_cores <= 1L) {
-    stop("Not enough memory for parallel distance calculation.", call. = FALSE)
+    stop("Not enough memory for parallel distance calculation.", 
+         call. = FALSE)
   }
 
   idxes <- chunksplit(seq_along(mat), 2 * n_cores, "list")
   len <- length(mat)
   nms <- names(mat)
 
-  cl <- makeCluster(getOption("cl.cores", n_cores))
-  clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
+  cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+  parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
 
-  out <- clusterApplyLB(cl, idxes, proteoCpp::par_distC, mat) %>%
+  out <- parallel::clusterApplyLB(cl, idxes, proteoCpp::par_distC, mat) %>%
     purrr::flatten()
 
   stopCluster(cl)
@@ -683,12 +673,12 @@ parDist <- function (mat) {
   
   if (len > 1L) {
     for (i in 2:len) {
-      out[[i]] <- c(out[1:(i-1)] %>% map_dbl(`[[`, i), out[[i]])
+      out[[i]] <- c(out[1:(i-1)] %>% purrr::map_dbl(`[[`, i), out[[i]])
     }
   }
 
   out <- out %>%
-    map(~ {
+    purrr::map(~ {
       names(.x) <- nms
       .x
     })
@@ -722,10 +712,10 @@ greedysetcover <- function (df) {
 
   # ---
   cts <- df %>%
-    group_by(s) %>%
-    summarise(n = n()) 
+    dplyr::group_by(s) %>%
+    dplyr::summarise(n = n()) 
 
-  df <- left_join(cts, df, by = "s") %>%
+  df <- dplyr::left_join(cts, df, by = "s") %>%
     dplyr::arrange(-n)
 
   sets <- NULL
@@ -738,9 +728,9 @@ greedysetcover <- function (df) {
 
     # may consider partial sorting
     df <- df %>%
-      filter(! a %in% sa[["a"]]) %>%
-      group_by(s) %>%
-      mutate(n = n()) %>%
+      dplyr::filter(! a %in% sa[["a"]]) %>%
+      dplyr::group_by(s) %>%
+      dplyr::mutate(n = n()) %>%
       dplyr::arrange(-n)
   }
 
@@ -781,7 +771,7 @@ greedysetcover2 <- function (mat) {
 #' Expands a two-column input to a matrix input. The output table contains both
 #' essential sets and elements.
 #'
-#' @param mat A matrix of protein (cols)-peptide (rows) map.
+#' @param df A matrix of protein (cols)-peptide (rows) map.
 #' @return A two-column data frame of prot_acc and pep_seq.
 greedysetcoverM <- function (df) {
   
@@ -854,9 +844,9 @@ find_ess_prots <- function (mat) {
   mat %>%
     data.frame(check.names = FALSE) %>%
     tibble::rownames_to_column("pep_seq") %>%
-    gather("prot_acc", "presence", -pep_seq) %>%
-    filter(presence) %>%
-    select(c("prot_acc", "pep_seq")) %>%
+    tidyr::gather("prot_acc", "presence", -pep_seq) %>%
+    dplyr::filter(presence) %>%
+    dplyr::select(c("prot_acc", "pep_seq")) %>%
     greedysetcover()
 }
 

@@ -3,8 +3,9 @@
 #' @param aas2 A sequence of amino-acid residues with \emph{masses}. Residues
 #'   are in names and masses in values (note that argument \code{aas}
 #'   corresponds to residues without masses).
-#' @inheritParams calcpep_a1_t1_nl1
-#' @inheritParams calc_ms2ions
+#' @param ntmass The mass of a fixed or variable N-term modification.
+#' @param ctmass The mass of a fixed or variable C-term modification.
+#' @inheritParams matchMS
 ms2ions_by_type <- function (aas2, ntmass, ctmass, type_ms2ions, digits) {
   
   switch(type_ms2ions, 
@@ -17,7 +18,8 @@ ms2ions_by_type <- function (aas2, ntmass, ctmass, type_ms2ions, digits) {
 
 
 #' Masses of singly-charged b- and y-ions.
-#'
+#' 
+#' @inheritParams ms2ions_by_type
 #' @rdname bions_base
 #' @seealso \link{add_complement_ions}
 byions <- function (ntmass, ctmass, aas2, digits = 4L) {

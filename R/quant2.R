@@ -2,12 +2,11 @@
 #'
 #' @param out The data frame from upstream steps.
 #' @param out_path The output path.
-#' @export
 grp_prots <- function (out, out_path = NULL) {
   
   dir.create(file.path(out_path), recursive = TRUE, showWarnings = FALSE)
   
-  out <- out %>% dplyr::arrange(pep_seq)
+  out <- dplyr::arrange(out, pep_seq)
   
   # essential entries
   rows <- (out$pep_issig & (!out$pep_isdecoy) & (out$pep_rank <= 3L))
@@ -15,7 +14,7 @@ grp_prots <- function (out, out_path = NULL) {
   df <- out[rows, ]
   
   if (nrow(df) > 1L) {
-    df <- df %>% proteoM::groupProts2(out_path)
+    df <- groupProts2(df, out_path)
   } else {
     df <- df %>%
       dplyr::mutate(prot_isess = TRUE,
@@ -53,7 +52,6 @@ grp_prots <- function (out, out_path = NULL) {
 #'
 #' @param df Interim results from \link{matchMS}.
 #' @param out_path The output path.
-#' @export
 groupProts2 <- function (df, out_path = NULL) {
   
   # `pep_seq` in `df` are all from target and significant;
@@ -65,15 +63,15 @@ groupProts2 <- function (df, out_path = NULL) {
   # 11 MNT_HUMAN    EEQERLR
   
   # --- (1) protein ~ peptide map ---
-  mat <- proteoM::map_pepprot2(df[, c("prot_acc", "pep_seq")], out_path)
+  mat <- map_pepprot2(df[, c("prot_acc", "pep_seq")], out_path)
   gc()
   
   # --- (2) protein ~ protein groups by distance map ---
-  grps <- proteoM::cut_protgrps2(mat, out_path)
+  grps <- cut_protgrps2(mat, out_path)
   gc()
   
   # --- (3) set covers by groups ---
-  sets <- proteoM::greedysetcover3(mat)
+  sets <- greedysetcover3(mat)
   gc()
   
   if (!is.null(out_path)) {
@@ -86,9 +84,9 @@ groupProts2 <- function (df, out_path = NULL) {
   gc()
   
   # --- set aside df0 ---
-  df <- df %>% dplyr::mutate(prot_isess = prot_acc %in% sets)
-  df0 <- df %>% dplyr::filter(!prot_isess)
-  df <- df %>% dplyr::filter(prot_isess)
+  df <- dplyr::mutate(df, prot_isess = prot_acc %in% sets)
+  df0 <- dplyr::filter(df, !prot_isess)
+  df <- dplyr::filter(df, prot_isess)
 
   mat_ess <- mat[, colnames(mat) %in% unique(df$prot_acc)]
   
@@ -131,9 +129,8 @@ groupProts2 <- function (df, out_path = NULL) {
 #' df$pep_seq <- sample(letters[1:26], 20, replace = TRUE)
 #' df <- df[!duplicated(df), ] 
 #' 
-#' out <- map_pepprot2(df)
+#' out <- proteoM:::map_pepprot2(df)
 #' }
-#' @export
 map_pepprot2 <- function (df, out_path = NULL) {
 
   df <- df[, c("prot_acc", "pep_seq")] 
@@ -252,7 +249,6 @@ map_pepprot2 <- function (df, out_path = NULL) {
 #'
 #' @param mat A logical matrix; peptides in rows and proteins in columns.
 #' @param out_path A file pth to outputs.
-#' @export
 cut_protgrps2 <- function (mat = NULL, out_path = NULL) {
 
   dista = proxyC::simil(mat, margin = 2) # sparse distance matrix
@@ -313,7 +309,7 @@ cut_protgrps2 <- function (mat = NULL, out_path = NULL) {
   # NP_000007        TRUE      TRUE     FALSE
   
   # --- finds protein groups
-  mat2 <- proteoM::as_lgldist(mat2, diag = FALSE, upper = FALSE)
+  mat2 <- as_lgldist(mat2, diag = FALSE, upper = FALSE)
   gc()
   
   hc <- hclust(mat2, method = "single")
@@ -375,7 +371,6 @@ as_dist <- function (m, diag = FALSE, upper = FALSE) {
 #' Assumed the input is already a symmetric matrix.
 #' 
 #' @inheritParams stats::as.dist
-#' @export
 as_lgldist <- function(m, diag = FALSE, upper = FALSE) {
   
   d = proteoCpp::to_lgldistC(m)
@@ -403,7 +398,6 @@ as_lgldist <- function(m, diag = FALSE, upper = FALSE) {
 #' @param mat A bool matrix of protein (cols)-peptide (rows) map. 
 #' 
 #' @return A two-column data frame of prot_acc and pep_seq. 
-#' @export
 greedysetcover3 <- function (mat) {
   
   if (is.matrix(mat)) {

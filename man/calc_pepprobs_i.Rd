@@ -15,9 +15,6 @@ calc_pepprobs_i(
 )
 }
 \arguments{
-\item{res}{The result from \link{pmatch_bymgfs}. At the \code{NULL} default,
-the file \code{ion_matches.rds} will be used.}
-
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
 MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 
@@ -31,7 +28,7 @@ etc. with lower weights in peptide scoring.}
 
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
 
-\item{out_path}{The output path.}
+\item{out_path}{A file path of outputs.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }

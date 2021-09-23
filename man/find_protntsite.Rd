@@ -55,8 +55,8 @@ sites <- list(`Dimethyl (Protein N-term = P)` = "P",
               `Deamidated (N)` = "N")
 positions <- c("Protein N-term", "Anywhere", "Anywhere")
 vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-contain_protntsite(vmods)
-find_protntsite(vmods)
+proteoM:::contain_protntsite(vmods)
+proteoM:::find_protntsite(vmods)
 # Gln->pyro Glu (N-term = Q)
 sites <- list(`Gln->pyro Glu (N-term = Q)` = "Q", 
               `Acetyl (N-term)` = "N-term", 
@@ -64,16 +64,16 @@ sites <- list(`Gln->pyro Glu (N-term = Q)` = "Q",
               `Deamidated (N)` = "N")
 positions <- c("Any N-term", "Any N-term", "Anywhere", "Anywhere")
 vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-contain_anyntsite(vmods)
-find_anyntsite(vmods)
+proteoM:::contain_anyntsite(vmods)
+proteoM:::find_anyntsite(vmods)
 # `Oxidation (M)` and `Deamidated (N)`
 sites <- list(`Acetyl (N-term)` = "N-term", 
               `Oxidation (M)` = "M", 
               `Deamidated (N)` = "N")
 positions <- c("Any N-term", "Anywhere", "Anywhere")
 vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-contain_anysite(vmods)
-find_anysite(vmods)
+proteoM:::contain_anysite(vmods)
+proteoM:::find_anysite(vmods)
 # `Dehydrated (Protein C-term = N)`
 sites <- list(`Dehydrated (Protein C-term = N)` = "N", 
               `Acetyl (N-term)` = "N-term", 
@@ -81,8 +81,8 @@ sites <- list(`Dehydrated (Protein C-term = N)` = "N",
               `Deamidated (N)` = "N")
 positions <- c("Protein C-term", "Any N-term", "Anywhere", "Anywhere")
 vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-contain_protctsite(vmods)
-find_protctsite(vmods)
+proteoM:::contain_protctsite(vmods)
+proteoM:::find_protctsite(vmods)
 # `Oxidation (C-term = G)`
 sites <- list(`Oxidation (C-term = G)` = "G", 
               `Acetyl (N-term)` = "N-term", 
@@ -90,8 +90,8 @@ sites <- list(`Oxidation (C-term = G)` = "G",
               `Deamidated (N)` = "N")
 positions <- c("Any C-term", "Any N-term", "Anywhere", "Anywhere")
 vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
-contain_anyctsite(vmods)
-find_anyctsite(vmods)
+proteoM:::contain_anyctsite(vmods)
+proteoM:::find_anyctsite(vmods)
 }
 \seealso{
 contain_protntany

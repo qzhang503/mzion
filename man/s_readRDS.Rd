@@ -2,7 +2,7 @@
 % Please edit documentation in R/bin_masses.R
 \name{s_readRDS}
 \alias{s_readRDS}
-\title{Helper of \link{binTheoPeps_bysets}.}
+\title{Helper.}
 \usage{
 s_readRDS(file, out_path)
 }

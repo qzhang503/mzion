@@ -20,7 +20,7 @@ psm}, followed by a data filtration at \code{prot_tier == 1}.}
 \item{target_fdr}{Numeric; a targeted false-discovery rate (FDR) at the
 levels of PSM, peptide or protein. See also argument \code{fdr_type}.}
 
-\item{out_path}{The output path.}
+\item{out_path}{A file path of outputs.}
 }
 \description{
 Calculates the probability cut-off for target-decoy pairs at a given peptide
