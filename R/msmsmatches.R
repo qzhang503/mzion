@@ -433,15 +433,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   rm(list = c("filelist"))
 
-  # Indexes of modifications
-  mod_indexes <- seq_along(c(fixedmods, varmods)) %>%
-    as.hexmode() %>%
-    `names<-`(c(fixedmods, varmods))
-
-  data.frame(Abbr = as.character(mod_indexes),
-             Desc = names(mod_indexes)) %>%
-    readr::write_tsv(file.path(out_path, "mod_indexes.txt"))
-
   ## Theoretical MS1 masses
   res <- calc_pepmasses2(
     fasta = fasta,
@@ -491,7 +482,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   ms2match(mgf_path = mgf_path,
            aa_masses_all = aa_masses_all,
            out_path = out_path,
-           mod_indexes = mod_indexes,
+           mod_indexes = find_mod_indexes(out_path),
            type_ms2ions = type_ms2ions,
            maxn_vmods_per_pep = maxn_vmods_per_pep,
            maxn_sites_per_vmod = maxn_sites_per_vmod,
@@ -523,6 +514,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   ## Peptide scores
   if (file.exists(file.path(out_path, "scores.rds"))) {
+    message("Found cached peptide scores.")
     out <- readRDS(file.path(out_path, "scores.rds"))
   } else {
     out <- calc_pepscores(topn_ms2ions = topn_ms2ions,
@@ -547,10 +539,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   ## Protein accessions; Protein score cut-offs and
   #  optional reporter ions
-  out <- out %>%
-    add_prot_acc() %>%
-    calc_protfdr(target_fdr) %>%
-    add_rptrs(quant, out_path)
+  out <- add_prot_acc(out, out_path)
+  out <- calc_protfdr(out, target_fdr)
+  out <- add_rptrs(out, quant, out_path)
 
   gc()
 

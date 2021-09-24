@@ -852,3 +852,98 @@ detect_cores <- function (max_n_cores = NULL) {
 
   invisible(max_n_cores)
 }
+
+
+#' Finds the amount of free system memory.
+#' 
+#' In the unit of MB.
+find_free_mem <- function () {
+  
+  nm_os <- Sys.info()['sysname']
+  
+  if (nm_os == "Windows") {
+    free_mem <- 
+      system('wmic OS get FreePhysicalMemory /Value', intern=TRUE)[3] %>% 
+      gsub("^FreePhysicalMemory=(\\d+)\\r", "\\1", .) %>% 
+      as.numeric() %>% 
+      `/`(1024) %>% 
+      `-`(memory.size(max = TRUE))
+  } else {
+    # not yet tested for "Linux", "Darwin"
+    free_mem <- memory.limit() - memory.size(max = TRUE)
+  }
+  
+  free_mem
+}
+
+
+#' Find the indexes of modifications.
+#' 
+#' @param out_path A output path.
+#' @param file The file name where modifications are recorded.
+find_mod_indexes <- function (out_path, file = "mod_indexes.txt") {
+  
+  filepath <- file.path(out_path, file)
+  
+  if (!file.exists(filepath)) {
+    stop("File not found: ", filepath)
+  }
+  
+  mod_indexes <- readr::read_tsv(filepath, show_col_types = FALSE)
+  
+  inds <- mod_indexes$Abbr
+  names(inds) <- mod_indexes$Desc
+  inds
+}
+
+
+#' Finds if two sets are equal.
+#' 
+#' @param x A set.
+#' @param y Another set.
+equal_sets <- function(x, y) all(x %in% y) && all(y %in% x)
+
+
+#' Finds the \code{aa_masses} corresponding to the base modification.
+#' 
+#' @param out_path An output path.
+find_base_aamasses_index <- function (out_path) {
+  
+  aa_masses_all <- readRDS(file.path(out_path, "temp", "aa_masses_all.rds"))
+  
+  base_mods <- readr::read_tsv(file.path(out_path, "mod_indexes.txt"), 
+                               show_col_types = FALSE)
+  base_mods <- base_mods[base_mods$Coerced, "Desc"]
+  
+  vmods_ps <- lapply(aa_masses_all, attr, "vmods_ps")
+  vmods <- lapply(vmods_ps, names)
+  
+  idx <- lapply(vmods, equal_sets, base_mods)
+  idx <- simplify2array(idx)
+}
+
+
+#' A lookup table between prot_acc and pep_seqs.
+#' 
+#' Not currently used.
+#' 
+#' @param seqs Results from \link{ms1masses_bare}.
+#' @examples
+#' \donttest{
+#' prot_pep_tbl(fwd_peps)
+#' }
+prot_pep_tbl <- function (seqs) {
+  
+  seqs <- lapply(seqs, rm_char_in_nfirst2, char = "^-", n = n1)
+  seqs <- lapply(seqs, rm_char_in_nlast2, char = "-$", n = n2)
+  seqs <- lapply(seqs, names)
+  
+  ans <- purrr::imap(tempdata, ~ data.frame(pep_seq = .x, prot_acc = .y))
+  ans <- dplyr::bind_rows(ans)
+  
+  saveRDS(ans, file.path(.path_fasta, "pepmasses", .time_stamp, "prot_peps.rds"))
+  
+  invisible(NULL)
+}
+
+

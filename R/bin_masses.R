@@ -85,10 +85,15 @@ bin_ms1masses_td <- function (bins = NULL, type = c("target", "decoy"),
   })
 
   n_cores <- local({
-    fct <- 26
+    max_n_cores <- 8L
+    
+    fct <- 26 
+    free_mem <- find_free_mem()
     max_sz <- max(file.size(file.path(out_path, masses)))/1024^2
-    max_mem <- memory.limit() - memory.size(max = TRUE)
-    n_cores <- min(floor(max_mem/max_sz/fct), detect_cores())
+
+    n_cores <- min(max_n_cores, 
+                   floor(free_mem/max_sz/fct), 
+                   detect_cores())
 
     if (n_cores < 1L) {
       warning("May be out of memory with large peptide tables.")
@@ -101,17 +106,15 @@ bin_ms1masses_td <- function (bins = NULL, type = c("target", "decoy"),
   if (n_cores > 1L) {
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     
-    parallel::clusterExport(cl, list("binTheoPeps_i"),
-                            envir = environment(proteoM:::binTheoPeps_i))
-    parallel::clusterExport(cl, list("binTheoPeps2"),
-                            envir = environment(proteoM:::binTheoPeps2))
-    parallel::clusterExport(cl, list("bin_theopeps"),
-                            envir = environment(proteoM:::bin_theopeps))
-    parallel::clusterExport(cl, list("find_ms1_cutpoints"),
-                            envir = environment(proteoM:::find_ms1_cutpoints))
-    parallel::clusterExport(cl, list("cbind_theopepes"),
-                            envir = environment(proteoM:::cbind_theopepes))
-
+    parallel::clusterExport(
+      cl,
+      c("binTheoPeps_i", 
+        "binTheoPeps2", 
+        "bin_theopeps", 
+        "find_ms1_cutpoints", 
+        "cbind_theopepes"), 
+      envir = environment(proteoM:::binTheoPeps_i))
+    
     # No need of purrr::flatten() as saveRDS by INDIVIDUAL idx (and return NULL)
     parallel::clusterApplyLB(
       cl = cl, 
@@ -290,13 +293,13 @@ binTheoPeps <- function (idxes = NULL, res = NULL, min_mass = 500L,
   n_cores <- detect_cores()
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
   
-  parallel::clusterExport(cl, list("bin_theopeps"),
-                          envir = environment(proteoM:::bin_theopeps))
-  parallel::clusterExport(cl, list("find_ms1_cutpoints"),
-                          envir = environment(proteoM:::find_ms1_cutpoints))
-  parallel::clusterExport(cl, list("cbind_theopepes"),
-                          envir = environment(proteoM:::cbind_theopepes))
-
+  parallel::clusterExport(
+    cl,
+    c("bin_theopeps", 
+      "find_ms1_cutpoints", 
+      "cbind_theopepes"), 
+    envir = environment(proteoM:::bin_theopeps))
+  
   out <- lapply(res, function (x) {
     x <- chunksplit(x, n_cores)
     

@@ -212,7 +212,7 @@ calc_pepmasses2 <- function (
 
     message("\tCompleted bare peptide masses.")
 
-        
+    
     # --- Distribution ---
     message("Distributing peptides by variable modifications.")
 
@@ -457,7 +457,8 @@ find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
                                maxn_vmods_setscombi = maxn_vmods_setscombi,
                                mod_indexes = mod_indexes,
                                add_varmasses = FALSE,
-                               add_nlmasses = FALSE) %T>%
+                               add_nlmasses = FALSE, 
+                               out_path = out_path) %T>%
       saveRDS(file.path(out_path, "temp", "aa_masses_all.rds"))
   } else {
     aa_masses <- readRDS(file.path(out_path, "temp", "aa_masses_all.rds"))
@@ -492,6 +493,7 @@ find_aa_site <- function (pos_site) {
 #'   modifications and neutral losses.
 #' @param mod_indexes Integer; the indexes of fixed and/or variable
 #'   modifications.
+#' @param out_path An output path.
 #' @inheritParams parse_aamasses
 #' @inheritParams add_fixvar_masses
 #' @examples
@@ -604,7 +606,8 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
                            maxn_vmods_setscombi = 64,
                            mod_indexes = NULL,
                            add_varmasses = TRUE,
-                           add_nlmasses = TRUE) {
+                           add_nlmasses = TRUE, 
+                           out_path = NULL) {
 
   # title (position = site);
   # . stands for (a) anywhere in position or (b) any residue in site or both
@@ -679,7 +682,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
         idxes %>% purrr::map_chr(~ fixedmods[.x])
       })
 
-      varmods <- c(varmods, f_to_v)
+      varmods <- c(f_to_v, varmods)
 
       fixedmods <- local({
         idxes <- fixedmods %>% purrr::map_lgl(~ .x %in% f_to_v)
@@ -695,6 +698,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
       fixedct_coerced <- any(grepl("C-term", f_to_v))
       anywhere_coreced_sites <- dup_mods %>% .[!grepl("[NC]-term", .)]
     } else {
+      f_to_v <- NULL
       fixednt_coerced <- FALSE
       fixedct_coerced <- FALSE
       anywhere_coreced_sites <- NULL
@@ -711,6 +715,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
 
     invisible(list(fixedmods = fixedmods, 
                    varmods = varmods, 
+                   f_to_v = f_to_v, 
                    fixednt_coerced = fixednt_coerced, 
                    fixedct_coerced = fixedct_coerced, 
                    anywhere_coreced_sites = anywhere_coreced_sites, 
@@ -719,6 +724,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
 
   fixedmods <- new_mods$fixedmods
   varmods <- new_mods$varmods
+  f_to_v <- new_mods$f_to_v
   fixednt_coerced <- new_mods$fixednt_coerced
   fixedct_coerced <- new_mods$fixedct_coerced
   anywhere_coreced_sites <- new_mods$anywhere_coreced_sites
@@ -938,7 +944,41 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
     rm(list = c("vmods_ps"))
   }
 
-  aa_masses_all <- purrr::map(aa_masses_all, parse_aamasses, add_nlmasses)
+  # Indexes of modifications
+  if (!is.null(out_path)) {
+    mod_indexes <- seq_along(c(fixedmods, varmods)) %>%
+      as.hexmode() %>%
+      `names<-`(c(fixedmods, varmods))
+    
+    is_coerced <- if (length(f_to_v)) {
+      names(mod_indexes) == f_to_v
+    } else {
+      rep(FALSE, length(mod_indexes))
+    }
+
+    Desc <- if (length(mod_indexes)) {
+      names(mod_indexes)
+    } else {
+      character()
+    }
+
+    ## At NULL fixedmods and varmods: 
+    # [1] Abbr    Desc    Type    Coerced
+    # <0 rows> (or 0-length row.names)
+    
+    data.frame(Abbr = as.character(mod_indexes),
+               Desc = Desc, 
+               Type = c(rep("fixed", length(fixedmods)), 
+                        rep("variable", length(varmods))), 
+               Coerced = is_coerced) %>%
+      readr::write_tsv(file.path(out_path, "mod_indexes.txt"))
+    
+    rm(list = c("mod_indexes", "is_coerced", "Desc"))
+  }
+
+  aa_masses_all <- lapply(aa_masses_all, parse_aamasses, add_nlmasses)
+  
+  invisible(aa_masses_all)
 }
 
 
@@ -1572,10 +1612,6 @@ ms1masses_noterm <- function (aa_seqs, aa_masses,
 
   parallel::clusterExport(cl, list("%>%"),
                           envir = environment(magrittr::`%>%`))
-  parallel::clusterExport(cl, list("map"),
-                          envir = environment(purrr::map))
-  parallel::clusterExport(cl, list("str_split"),
-                          envir = environment(stringr::str_split))
 
   parallel::clusterExport(
     cl,

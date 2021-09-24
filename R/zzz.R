@@ -9,7 +9,7 @@
                         
                         # "Notes:\n",
                         "[x] Minimum system requirement: 32GB RAM and 8 (dual)-cores.\n",
-                        "[x] Not yet tested under Linux or MacOS.\n",
+                        # "[x] Not yet tested under Linux or MacOS.\n",
                         # "remotes::install_version(\"RSQLite\", version = \"2.2.5\")\n",
                         "===============================================================================\n")
 }

@@ -198,40 +198,45 @@ find_reporters_ppm <- function (theos, expts, ppm_reporters = 10, len, nms) {
 #' @param df The results after scoring.
 add_prot_acc <- function (df, out_path = "~/proteoM/outs") {
   
-  # Targets, theoretical
-  bins <- list.files(path = file.path(.path_fasta, "pepmasses", .time_stamp),
-                     pattern = "binned_theopeps_\\d+\\.rds$",
-                     full.names = TRUE)
-
-  theopeps <- lapply(bins, function (x) {
-    readRDS(x) %>%
-      dplyr::bind_rows() %>%
-      dplyr::select(c("prot_acc", "pep_seq"))
-  }) %>%
+  message("Adding protein accessions.")
+  
+  ## Targets, theoretical
+  idx <- find_base_aamasses_index(out_path) %>% 
+    which()
+  
+  # stopifnot(length(idx) == 1L)
+  
+  bin <- file.path(.path_fasta, "pepmasses", .time_stamp, 
+                   paste0("binned_theopeps_", idx, ".rds"))
+  
+  theopeps <- readRDS(bin) %>%
     dplyr::bind_rows() %>%
-    tidyr::unite(pep_prot., pep_seq, prot_acc, sep = "@", remove = FALSE) %>%
-    dplyr::filter(!duplicated(pep_prot.)) %>%
-    dplyr::select(-pep_prot.) %>%
-    dplyr::select(c("prot_acc", "pep_seq")) %>%
-    dplyr::filter(pep_seq %in% unique(df$pep_seq))
-
-  # Decoys, theoretical
+    dplyr::select(c("prot_acc", "pep_seq"))
+  
+  theopeps <- theopeps[!duplicated(theopeps), ]
+  theopeps <- theopeps[theopeps$pep_seq %in% unique(df$pep_seq), ]
+  
+  ## Decoys, theoretical
   bins_rev <- list.files(path = file.path(.path_fasta, "pepmasses", .time_stamp),
                          pattern = "binned_theopeps_rev_\\d+\\.rds$",
                          full.names = TRUE)
+  
+  # (1) only one file; 
+  # 
+  # (2) the index may not correspond to `idx`: rev_2 versus 1
+  # (OK as is only for peptide-protein annotation and don't need permuated pep_seq; 
+  # though the input file may be larger than a base with position permutations)
+  
+  bins_rev <- bins_rev[1]
+  
+  theopeps_rev <- readRDS(bins_rev)
+  theopeps_rev <- dplyr::bind_rows(theopeps_rev)
+  theopeps_rev <- theopeps_rev[, c("prot_acc", "pep_seq")]
+  
+  theopeps_rev <- theopeps_rev[!duplicated(theopeps_rev), ]
+  theopeps_rev <- theopeps_rev[theopeps_rev$pep_seq %in% unique(df$pep_seq), ]
 
-  theopeps_rev <- lapply(bins_rev, function (x) {
-    readRDS(x) %>%
-      dplyr::bind_rows() %>%
-      dplyr::select(c("prot_acc", "pep_seq"))
-  }) %>%
-    dplyr::bind_rows() %>%
-    tidyr::unite(pep_prot., pep_seq, prot_acc, sep = "@", remove = FALSE) %>%
-    dplyr::filter(!duplicated(pep_prot.)) %>%
-    dplyr::select(-pep_prot.) %>%
-    dplyr::select(c("prot_acc", "pep_seq")) %>%
-    dplyr::filter(pep_seq %in% unique(df$pep_seq))
-
+  
   # adds `prot_acc` (with decoys being kept)
   out <- dplyr::bind_rows(theopeps, theopeps_rev) %>%
     dplyr::right_join(df, by = "pep_seq")

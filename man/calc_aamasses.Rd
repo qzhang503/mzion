@@ -11,7 +11,8 @@ calc_aamasses(
   maxn_vmods_setscombi = 64,
   mod_indexes = NULL,
   add_varmasses = TRUE,
-  add_nlmasses = TRUE
+  add_nlmasses = TRUE,
+  out_path = NULL
 )
 }
 \arguments{
