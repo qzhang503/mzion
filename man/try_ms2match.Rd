@@ -47,9 +47,6 @@ Proteome Discoverer.}
 
 \item{out_path}{A file path of outputs.}
 
-\item{mod_indexes}{Integer; the indexes of fixed and/or variable
-modifications.}
-
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
@@ -151,7 +148,7 @@ Helper of \link{ms2match}.
 try_ms2match(mgf_path = mgf_path,
   aa_masses_all = aa_masses_all,
   out_path = out_path,
-  mod_indexes = mod_indexes,
+  mod_indexes = find_mod_indexes(out_path),
   type_ms2ions = type_ms2ions,
   maxn_vmods_per_pep = maxn_vmods_per_pep,
   maxn_sites_per_vmod = maxn_sites_per_vmod,

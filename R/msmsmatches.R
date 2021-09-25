@@ -441,7 +441,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
     fixedmods = fixedmods,
     varmods = varmods,
     include_insource_nl = include_insource_nl,
-    index_mods = FALSE,
     enzyme = enzyme,
     maxn_fasta_seqs = maxn_fasta_seqs,
     maxn_vmods_setscombi = maxn_vmods_setscombi,
@@ -454,9 +453,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
     digits = digits,
     parallel = TRUE
   )
-
-  ## AA masses
-  aa_masses_all <- readRDS(file.path(out_path, "temp", "aa_masses_all.rds"))
 
   ## Mass range
   min_mass <- 500L
@@ -480,7 +476,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   ## MSMS matches
   ms2match(mgf_path = mgf_path,
-           aa_masses_all = aa_masses_all,
+           aa_masses_all = readRDS(file.path(out_path, "temp", "aa_masses_all.rds")),
            out_path = out_path,
            mod_indexes = find_mod_indexes(out_path),
            type_ms2ions = type_ms2ions,
@@ -593,7 +589,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 #' try_ms2match(mgf_path = mgf_path,
 #'   aa_masses_all = aa_masses_all,
 #'   out_path = out_path,
-#'   mod_indexes = mod_indexes,
+#'   mod_indexes = find_mod_indexes(out_path),
 #'   type_ms2ions = type_ms2ions,
 #'   maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'   maxn_sites_per_vmod = maxn_sites_per_vmod,
@@ -641,7 +637,7 @@ try_ms2match <- function (mgf_path, aa_masses_all, out_path, mod_indexes,
     ms2match(mgf_path = mgf_path,
              aa_masses_all = aa_masses_all,
              out_path = out_path,
-             mod_indexes = mod_indexes,
+             mod_indexes = find_mod_indexes(out_path),
              type_ms2ions = type_ms2ions,
              maxn_vmods_per_pep = maxn_vmods_per_pep,
              maxn_sites_per_vmod = maxn_sites_per_vmod,

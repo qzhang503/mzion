@@ -13,7 +13,6 @@ calc_pepmasses2(
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
-  index_mods = FALSE,
   enzyme = c("trypsin"),
   maxn_fasta_seqs = 50000L,
   maxn_vmods_setscombi = 64L,
@@ -55,9 +54,6 @@ adding back precursor masses) have not yet taken into account in MS2 ion
 searches. A more systemically approach such as \code{open} MS1 masses might
 be developed in the future.}
 
-\item{index_mods}{Logical; if TRUE, converts the names of modifications to
-indexes. Not currently used.}
-
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from proteins. The enzyme
 is currently \code{trypsin}.}
@@ -82,7 +78,7 @@ be excluded.}
 
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
 
-\item{out_path}{A file path of outputs.}
+\item{out_path}{An output path.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 

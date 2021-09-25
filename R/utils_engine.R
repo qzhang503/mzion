@@ -499,7 +499,7 @@ delete_files <- function (path, ignores = NULL, ...) {
       dirs <- list.dirs(path, full.names = FALSE, recursive = recursive) %>%
         .[! . == ""]
 
-      idxes_kept <- dirs %>% map_lgl(~ any(grepl(.x, ignores)))
+      idxes_kept <- dirs %>% purrr::map_lgl(~ any(grepl(.x, ignores)))
 
       nms_kept <- list.files(path = file.path(path, dirs[idxes_kept]),
                              recursive = TRUE, full.names = TRUE)

@@ -8,8 +8,6 @@
 #'   adding back precursor masses) have not yet taken into account in MS2 ion
 #'   searches. A more systemically approach such as \code{open} MS1 masses might
 #'   be developed in the future.
-#' @param index_mods Logical; if TRUE, converts the names of modifications to
-#'   indexes. Not currently used.
 #' @param enzyme A character string; the proteolytic specificity of the assumed
 #'   enzyme will be used to generate peptide sequences from proteins. The enzyme
 #'   is currently \code{trypsin}.
@@ -68,7 +66,6 @@ calc_pepmasses2 <- function (
               "Deamidated (N)",
               "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
-  index_mods = FALSE,
   enzyme = c("trypsin"),
   maxn_fasta_seqs = 50000L,
   maxn_vmods_setscombi = 64L,
@@ -124,8 +121,7 @@ calc_pepmasses2 <- function (
     aa_masses <- find_aa_masses(out_path = out_path,
                                 fixedmods = fixedmods,
                                 varmods = varmods,
-                                maxn_vmods_setscombi = maxn_vmods_setscombi,
-                                index_mods = index_mods)
+                                maxn_vmods_setscombi = maxn_vmods_setscombi)
 
     files <- list.files(path = file.path(.path_fasta, "pepmasses", .time_stamp),
                         pattern = "pepmasses_\\d+\\.rds$")
@@ -154,8 +150,7 @@ calc_pepmasses2 <- function (
     aa_masses <- find_aa_masses(out_path = out_path,
                                 fixedmods = fixedmods,
                                 varmods = varmods,
-                                maxn_vmods_setscombi = maxn_vmods_setscombi,
-                                index_mods = index_mods)
+                                maxn_vmods_setscombi = maxn_vmods_setscombi)
 
     aa_masses_1 <- aa_masses[[1]]
 
@@ -437,25 +432,16 @@ calc_pepmasses2 <- function (
 #'
 #' @inheritParams calc_pepmasses2
 find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
-                            maxn_vmods_setscombi = 64L, index_mods = FALSE) {
+                            maxn_vmods_setscombi = 64L) {
 
   if (!file.exists(file.path(out_path, "temp", "aa_masses_all.rds"))) {
     message("Computing the combinations of fixed and variable modifications.")
 
     dir.create(file.path(out_path, "temp"), recursive = TRUE, showWarnings = FALSE)
 
-    if (index_mods) {
-      mod_indexes <- seq_along(c(fixedmods, varmods)) %>%
-        as.hexmode() %>%
-        `names<-`(c(fixedmods, varmods))
-    } else {
-      mod_indexes <- NULL
-    }
-
     aa_masses <- calc_aamasses(fixedmods = fixedmods,
                                varmods = varmods,
                                maxn_vmods_setscombi = maxn_vmods_setscombi,
-                               mod_indexes = mod_indexes,
                                add_varmasses = FALSE,
                                add_nlmasses = FALSE, 
                                out_path = out_path) %T>%
@@ -491,8 +477,6 @@ find_aa_site <- function (pos_site) {
 #' @param varmods A character vector of variable modifications.
 #' @param maxn_vmods_setscombi Integer; the maximum number of combinatorial variable
 #'   modifications and neutral losses.
-#' @param mod_indexes Integer; the indexes of fixed and/or variable
-#'   modifications.
 #' @param out_path An output path.
 #' @inheritParams parse_aamasses
 #' @inheritParams add_fixvar_masses
@@ -604,7 +588,6 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
                                        "Deamidated (N)",
                                        "Gln->pyro-Glu (N-term = Q)"),
                            maxn_vmods_setscombi = 64,
-                           mod_indexes = NULL,
                            add_varmasses = TRUE,
                            add_nlmasses = TRUE, 
                            out_path = NULL) {
@@ -884,40 +867,6 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
             maxn_vmods_setscombi, "`.",
             call. = FALSE)
     aa_masses_var2 <- aa_masses_var2[1:maxn_vmods_setscombi]
-  }
-
-  if (!is.null(mod_indexes)) {
-    aa_masses_var2 <- aa_masses_var2 %>%
-      purrr::map(~ {
-        nms <- mod_indexes %>%
-          .[names(.) %in% names(.x)]
-
-        idxes <- which(names(.x) %in% names(nms))
-        names(.x)[idxes] <- nms
-
-        .x
-      }, mod_indexes)
-
-    aa_masses_fi2 <- aa_masses_fi2 %>%
-      purrr::map(~ {
-        names(attr(.x, "fmods_ps")) <- mod_indexes[fixedmods]
-        names(attr(.x, "fmods_mass")) <- mod_indexes[fixedmods]
-
-        .x
-      })
-
-    aa_masses_var2 <- aa_masses_var2 %>%
-      purrr::map(~ {
-        v_nms <- names(attr(.x, "vmods_ps"))
-        names(attr(.x, "vmods_ps")) <- mod_indexes[v_nms]
-        names(attr(.x, "vmods_mass")) <- mod_indexes[v_nms]
-
-        f_nms <- names(attr(.x, "fmods_ps"))
-        names(attr(.x, "fmods_ps")) <- mod_indexes[f_nms]
-        names(attr(.x, "fmods_mass")) <- mod_indexes[f_nms]
-
-        .x
-      })
   }
 
   ## Coerced sites, including "[NC]-term", need to be present in a combination

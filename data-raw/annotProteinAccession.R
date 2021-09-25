@@ -5,7 +5,7 @@ foo_combine_codes <- function (filepath = file.path("E:/R/proteoM/R")) {
 
   dir.create(file.path(filepath, "temp"))
 
-  purrr::map(file.path(filepath, filenames), readLines) %>%
-    purrr::reduce(`c`, init = NULL) %>%
-    writeLines(file.path(filepath, "temp/all - proteoM.R"))
+  ans <- lapply(file.path(filepath, filenames), readLines)
+  ans <- purrr::reduce(ans, `c`, init = NULL)
+  writeLines(ans, file.path(filepath, "temp/all - proteoM.R"))
 }

@@ -11,9 +11,6 @@ add_hexcodes(ms2ions, vmods_combi, len, mod_indexes = NULL)
 
 \item{len}{The number of amino acid residues for the sequence indicated in
 \code{ms2ions}.}
-
-\item{mod_indexes}{Integer; the indexes of fixed and/or variable
-modifications.}
 }
 \description{
 To indicate the variable modifications of an amino acid sequence.

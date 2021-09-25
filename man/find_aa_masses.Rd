@@ -8,12 +8,11 @@ find_aa_masses(
   out_path = NULL,
   fixedmods = NULL,
   varmods = NULL,
-  maxn_vmods_setscombi = 64L,
-  index_mods = FALSE
+  maxn_vmods_setscombi = 64L
 )
 }
 \arguments{
-\item{out_path}{A file path of outputs.}
+\item{out_path}{An output path.}
 
 \item{fixedmods}{A character vector of fixed modifications. See also
 \link{parse_unimod} for grammars.}
@@ -22,9 +21,6 @@ find_aa_masses(
 
 \item{maxn_vmods_setscombi}{Integer; the maximum number of combinatorial variable
 modifications and neutral losses.}
-
-\item{index_mods}{Logical; if TRUE, converts the names of modifications to
-indexes. Not currently used.}
 }
 \description{
 Finds the existence of \code{aa_masses_all.rds}.

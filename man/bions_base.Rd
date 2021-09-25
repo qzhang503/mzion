@@ -110,10 +110,6 @@ For (1) "amods- tmod- vnl- fnl-", (2) "amods- tmod+ vnl- fnl-".
 fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
 varmods = c("Oxidation (M)", "Deamidated (N)")
 
-mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
-  as.hexmode() \%>\%
-  `names<-`(c(fixedmods, varmods))
-
 aa_masses_all <- calc_aamasses(fixedmods, varmods, add_varmasses = FALSE,
                                add_nlmasses = FALSE)
 
@@ -147,10 +143,6 @@ y <- yions_base(aas2, ctmass)
 fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)")
 varmods = c("TMT6plex (N-term)", "Acetyl (Protein N-term)", "Oxidation (M)",
             "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)")
-
-mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
-  as.hexmode() \%>\%
-  `names<-`(c(fixedmods, varmods))
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods, add_varmasses = FALSE,
                                add_nlmasses = FALSE)
@@ -186,10 +178,6 @@ y <- yions_base(aas2, ctmass)
 fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)")
 varmods = c("TMT6plex (N-term)", "Amidated (Protein C-term)", "Oxidation (M)",
             "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)")
-
-mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
-  as.hexmode() \%>\%
-  `names<-`(c(fixedmods, varmods))
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods, add_varmasses = FALSE,
                                add_nlmasses = FALSE)

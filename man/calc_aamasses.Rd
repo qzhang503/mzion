@@ -9,7 +9,6 @@ calc_aamasses(
   varmods = c("TMT6plex (N-term)", "Acetyl (Protein N-term)", "Oxidation (M)",
     "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
   maxn_vmods_setscombi = 64,
-  mod_indexes = NULL,
   add_varmasses = TRUE,
   add_nlmasses = TRUE,
   out_path = NULL
@@ -24,9 +23,6 @@ calc_aamasses(
 \item{maxn_vmods_setscombi}{Integer; the maximum number of combinatorial variable
 modifications and neutral losses.}
 
-\item{mod_indexes}{Integer; the indexes of fixed and/or variable
-modifications.}
-
 \item{add_varmasses}{Logical; if TRUE, add mass delta to the corresponding
 base mass for variable modifications. The argument at TRUE is for
 compatibility for MS1 precursor mass calculations before the approach of
@@ -34,6 +30,8 @@ compatibility for MS1 precursor mass calculations before the approach of
 
 \item{add_nlmasses}{Logical; if TRUE, add an original mass to the
 corresponding (negative) neutral-loss mass.}
+
+\item{out_path}{An output path.}
 }
 \description{
 Calculates molecular weight of a polypeptide ([MH]+).

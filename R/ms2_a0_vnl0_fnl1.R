@@ -420,7 +420,7 @@ frames_adv_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods, add_varmasses = FALSE, 
 #'                                add_nlmasses = FALSE)
 #' 
-#' aa_masses <- aa_masses_all[[3]]
+#' aa_masses <- aa_masses_all[[2]]
 #' 
 #' ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 #' ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
