@@ -581,7 +581,7 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
 #' @param fnl_idxes The position indexes of amino acids containing fixed neutral
 #'   losses.
 #' @inheritParams calc_ms2ions_a1_vnl0_fnl0
-#' @inheritParams ms1_a0_fnl1_byprot
+#' @inheritParams hms1_a0_vnl0_fnl1
 calc_ms2ions_a1_vnl0_fnl1 <- function (vmods_combi, fnl_combi, fnl_idxes, 
                                        aas2, aa_masses, 
                                        ntmass, ctmass, type_ms2ions, digits) {

@@ -22,16 +22,6 @@ ms2match_base <- function (i, aa_masses, ntmass, ctmass, mod_indexes,
                            minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
                            min_ms2mass = 110L, digits = 4L) {
   
-  n_cores <- detect_cores()
-  cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-  
-  parallel::clusterExport(cl, list("%>%"), 
-                          envir = environment(magrittr::`%>%`))
-  parallel::clusterExport(cl, list("%fin%"), 
-                          envir = environment(fastmatch::`%fin%`))
-  parallel::clusterExport(cl, list("fmatch"), 
-                          envir = environment(fastmatch::fmatch))
-  
   # ms2base.R: (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-"
   #   ms2match_base 
   #     purge_search_space (utils_engine.R)
@@ -47,7 +37,27 @@ ms2match_base <- function (i, aa_masses, ntmass, ctmass, mod_indexes,
   #             fuzzy_match_one
   #       post_frame_adv
   #     post_ms2match (utils_engine.R)
+
   
+  n_cores <- detect_cores()
+  
+  tempdata <- purge_search_space(i, aa_masses, mgf_path, n_cores, ppm_ms1)
+  mgf_frames <- tempdata$mgf_frames
+  theopeps <- tempdata$theopeps
+  rm(list = c("tempdata"))
+  gc()
+  
+  if (!length(mgf_frames) || !length(theopeps)) return(NULL)
+  
+  cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+  
+  parallel::clusterExport(cl, list("%>%"), 
+                          envir = environment(magrittr::`%>%`))
+  parallel::clusterExport(cl, list("%fin%"), 
+                          envir = environment(fastmatch::`%fin%`))
+  parallel::clusterExport(cl, list("fmatch"), 
+                          envir = environment(fastmatch::fmatch))
+
   parallel::clusterExport(
     cl,
     c("frames_adv_base", 
@@ -63,14 +73,6 @@ ms2match_base <- function (i, aa_masses, ntmass, ctmass, mod_indexes,
       "post_frame_adv"), 
     envir = environment(proteoM:::frames_adv_base)
   )
-  
-  tempdata <- purge_search_space(i, aa_masses, mgf_path, n_cores, ppm_ms1)
-  mgf_frames <- tempdata$mgf_frames
-  theopeps <- tempdata$theopeps
-  rm(list = c("tempdata"))
-  gc()
-  
-  if (!length(mgf_frames) || !length(theopeps)) return(NULL)
 
   out <- parallel::clusterMap(
     cl, hms2_base, 
@@ -92,11 +94,12 @@ ms2match_base <- function (i, aa_masses, ntmass, ctmass, mod_indexes,
                     min_ms2mass = min_ms2mass, 
                     digits = digits), 
     .scheduling = "dynamic") %>% 
-    dplyr::bind_rows() %>% # across nodes
-    post_ms2match(i, aa_masses, out_path)
+    dplyr::bind_rows() # across nodes
   
   parallel::stopCluster(cl)
   
+  out <- post_ms2match(out, i, aa_masses, out_path)
+
   rm(list = c("mgf_frames", "theopeps"))
   gc()
   

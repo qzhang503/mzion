@@ -16,15 +16,13 @@
 # bin_masses.R
 #   - bin_ms1masses
 #     - bin_ms1masses_td
-#       - (i) binTheoPeps (small dataset)
-#         - bin_theopeps (-> export)
+#       - (i) binTheoSeqs (small dataset)
+#         - bin_theoseqs (-> export)
 #           - find_ms1_cutpoints (-> export)
-#         - cbind_theopepes (-> export)
-#       - (ii) binTheoPeps_i (larger dataset; -> export)
-#         - binTheoPeps2 (-> export)
-#           - bin_theopeps (-> export)
+#       - (ii) binTheoSeqs_i (larger dataset; -> export)
+#         - binTheoSeqs2 (-> export)
+#           - bin_theoseqs (-> export)
 #             - find_ms1_cutpoints (-> export)
-#           - cbind_theopepes (-> export)
 # 
 # mgf.R
 #   - readMGF
@@ -51,14 +49,14 @@
 #       - chunksplit (msmsmatches.R)
 #         - make_fastapeps0 (-> export)
 #           - keep_n_misses (-> export; dbs.R)
-#     - distri_fpeps
+#     - distri_fpeps (fixedmods)
 #     - ms1masses_bare
 #       - ms1masses_noterm
 #         - calcms1mass_noterm (-> export)
 #           - calcms1mass_noterm_byprot (-> export)
 #             - calcms1mass_noterm_bypep (-> export)
 #       - roll_sum (-> export; dbs.R)
-#     - distri_peps
+#     - distri_peps (varmods)
 #       - subpeps_by_vmods (ions.R)
 #         - find_nmodtree
 #           ...
@@ -66,7 +64,9 @@
 #           ...
 #       - rm_char_in_nfirst2 (dbs.R)
 #       - rm_char_in_nlast2 (dbs.R)
-#     - add_term_mass
+#     - tbl_prots_peps
+#     - flat_pepseqs
+#     - add_term_mass2
 #     - helpers below
 # 
 # helpers at sets of realized modifications: 

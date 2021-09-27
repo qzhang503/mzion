@@ -200,53 +200,28 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs") {
   
   message("Adding protein accessions.")
   
-  ## Targets, theoretical
-  idx <- find_base_aamasses_index(out_path) %>% 
-    which()
+  uniq_peps <- unique(df$pep_seq)
   
-  # stopifnot(length(idx) == 1L)
+  # Targets, theoretical
+  fwd_prps <- readRDS(file.path(.path_fasta, "pepmasses", .time_stamp, 
+                                "prot_pep_annots.rds"))
+  fwd_prps <- fwd_prps[fwd_prps$pep_seq %in% uniq_peps, ]
   
-  bin <- file.path(.path_fasta, "pepmasses", .time_stamp, 
-                   paste0("binned_theopeps_", idx, ".rds"))
-  
-  theopeps <- readRDS(bin) %>%
-    dplyr::bind_rows() %>%
-    dplyr::select(c("prot_acc", "pep_seq"))
-  
-  theopeps <- theopeps[!duplicated(theopeps), ]
-  theopeps <- theopeps[theopeps$pep_seq %in% unique(df$pep_seq), ]
-  
-  ## Decoys, theoretical
-  bins_rev <- list.files(path = file.path(.path_fasta, "pepmasses", .time_stamp),
-                         pattern = "binned_theopeps_rev_\\d+\\.rds$",
-                         full.names = TRUE)
-  
-  # (1) only one file; 
-  # 
-  # (2) the index may not correspond to `idx`: rev_2 versus 1
-  # (OK as is only for peptide-protein annotation and don't need permuated pep_seq; 
-  # though the input file may be larger than a base with position permutations)
-  
-  bins_rev <- bins_rev[1]
-  
-  theopeps_rev <- readRDS(bins_rev)
-  theopeps_rev <- dplyr::bind_rows(theopeps_rev)
-  theopeps_rev <- theopeps_rev[, c("prot_acc", "pep_seq")]
-  
-  theopeps_rev <- theopeps_rev[!duplicated(theopeps_rev), ]
-  theopeps_rev <- theopeps_rev[theopeps_rev$pep_seq %in% unique(df$pep_seq), ]
+  # Decoys, theoretical
+  rev_prps <- readRDS(file.path(.path_fasta, "pepmasses", .time_stamp, 
+                                "prot_pep_annots_rev.rds"))
+  rev_prps <- rev_prps[rev_prps$pep_seq %in% uniq_peps, ]
 
-  
-  # adds `prot_acc` (with decoys being kept)
-  out <- dplyr::bind_rows(theopeps, theopeps_rev) %>%
+  # Adds `prot_acc` (with decoys being kept)
+  out <- dplyr::bind_rows(fwd_prps, rev_prps) %>%
     dplyr::right_join(df, by = "pep_seq")
   
-  rm(list = c("theopeps", "theopeps_rev"))
+  rm(list = c("fwd_prps", "rev_prps", "uniq_peps"))
   gc()
-
-  # adds prot_n_psm, prot_n_pep for protein FDR
-  x <- dplyr::filter(out, pep_issig)
   
+  # Adds prot_n_psm, prot_n_pep for protein FDR
+  x <- out[out$pep_issig, ]
+
   prot_n_psm <- x %>%
     dplyr::select(prot_acc) %>%
     dplyr::group_by(prot_acc) %>%
@@ -258,7 +233,7 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs") {
     dplyr::filter(!duplicated(pep_prot)) %>%
     dplyr::group_by(prot_acc) %>%
     dplyr::summarise(prot_n_pep = n())
-
+  
   out <- list(out, prot_n_psm, prot_n_pep) %>%
     purrr::reduce(dplyr::left_join, by = "prot_acc") %>%
     dplyr::arrange(-prot_n_pep, -prot_n_psm)

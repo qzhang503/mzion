@@ -152,10 +152,11 @@ calc_pepmasses2 <- function (
                                 varmods = varmods,
                                 maxn_vmods_setscombi = maxn_vmods_setscombi)
 
+    # just the first one; nothing special
+    # used for base masses; not involve terminal and anywhere masses
     aa_masses_1 <- aa_masses[[1]]
 
     gc()
-
 
     # --- Forward and reversed sequences  ---
     # (not yet concatenation by the number of missed cleavages)
@@ -164,31 +165,32 @@ calc_pepmasses2 <- function (
                               acc_pattern = acc_pattern,
                               maxn_fasta_seqs = maxn_fasta_seqs,
                               max_miss = max_miss)
-
-
+    
+    
     # --- Special case of FIXED Protein [NC]-term modification(s) ---
     #
     # Dispatches `pep_seq`s by `fixedmod`s
     # (only incur at the rare case of Protein terminals being `fixedmods`)
     # (note that `fixed Protein [NC]-term` -> no `variable Protein [NC]-term`)
-
+    
     is_fixed_protnt <- any(grepl("Protein N-term", fixedmods))
     is_fixed_protct <- any(grepl("Protein C-term", fixedmods))
     seqs_0 <- distri_fpeps(seqs_0, max_miss, is_fixed_protnt, is_fixed_protct)
-
+    
     # Calculates terminal mass (after `distri_fpeps`)
     # (otherwise, fixed Protein N/C-terminal masses in aa_masses["N|C-term"]
     #   will be applied to both N|C-term and Protein N|C term)
     #
     # if ftmass is other than 18.010565 -> no variable Protein N-term etc.
     # (mostly ftmass will be 18.010565 unless fixed [NC] terminal modifications)
-
+    
     ftmass <- unname(aa_masses_1["N-term"] + aa_masses_1["C-term"])
-
-
+    # --- End of the special case
+    
+    
     # --- Masses of sequences: fixed mods + terminals ---
-    message("Calculating bare peptide masses ...")
-
+    message("Calculating bare peptide masses...")
+    
     # most often ftmass == 18.010565, unless fixed [NC] terminal modifications 
     # and is typically equivalent to fixedmods = NULL, varmods = NULL
     
@@ -204,25 +206,32 @@ calc_pepmasses2 <- function (
                                is_fixed_protct = is_fixed_protct,
                                parallel = parallel,
                                digits = digits)
-
+    
     message("\tCompleted bare peptide masses.")
-
+    
     
     # --- Distribution ---
     message("Distributing peptides by variable modifications.")
-
+    
     # Note one-to-multiple expansion: 
-    #   `length(fw_peps) == length(aa_masses)` after this
+    #   `length(fw_peps) == length(aa_masses)` after this.
     fwd_peps <-  distri_peps(aa_masses = aa_masses,
                              peps = fwd_peps,
                              max_miss = max_miss)
-
+    
     message("\tCompleted bare peptides distributions.")
-
+    
     rm(list = c("seqs_0"))
     gc()
-
     
+    
+    # Protein-peptide associations
+    tbl_prots_peps(fwd_peps[[1]], file.path(.path_fasta, "pepmasses", .time_stamp))
+    
+    # Flattened peptide lists (ripping off prot_acc)
+    fwd_peps <- lapply(fwd_peps, flat_pepseqs)
+
+
     # --- Delta masses of `variable` terminals  ---
     len <- length(aa_masses)
     types <- purrr::map_chr(aa_masses, attr, "type", exact = TRUE)
@@ -237,7 +246,7 @@ calc_pepmasses2 <- function (
                                     "amods- tmod+ vnl- fnl+"))
 
       for (i in inds) {
-        fwd_peps[[i]] <- add_term_mass(aa_masses[[i]], fwd_peps[[i]])
+        fwd_peps[[i]] <- add_term_mass2(aa_masses[[i]], fwd_peps[[i]])
 
         if (i %in% nt_inds) {
           message("\tCompleted peptide terminal masses: ",
@@ -293,19 +302,21 @@ calc_pepmasses2 <- function (
           
           parallel::clusterExport(
             cl,
-            c("ms1_a0_fnl1_byprot", 
-              "ms1_a0_fnl1_bypep", 
+            c("ms1_a0_vnl0_fnl1", 
+              "hms1_a0_vnl0_fnl1", 
               "delta_ms1_a0_fnl1"), 
-            envir = environment(proteoM:::ms1_a0_fnl1_byprot))
-
+            envir = environment(proteoM:::ms1_a0_vnl0_fnl1))
+          
           fwd_peps[[i]] <- parallel::clusterApply(
-            cl = cl, 
-            x = chunksplit(fwd_peps_i, n_cores, "list"), 
-            fun = lapply, 
-            FUN = "ms1_a0_fnl1_byprot", 
+            cl, 
+            chunksplit(fwd_peps_i, n_cores, "list"), 
+            hms1_a0_vnl0_fnl1, 
             fnl_combi = fnl_combi_i, 
             aa_masses = aa_masses_i,
-            digits = digits)
+            digits = digits
+          ) %>% 
+            purrr::flatten() %>% 
+            unlist(recursive = FALSE, use.names = TRUE)
 
           parallel::stopCluster(cl)
           gc()
@@ -346,22 +357,20 @@ calc_pepmasses2 <- function (
         
         parallel::clusterExport(
           cl,
-          c("ms1_a1_vnl0_fnl0_byprot", 
-            "ms1_a1_vnl0_fnl0_bypep", 
+          c("ms1_a1_vnl0_fnl0", 
+            "hms1_a1_vnl0_fnl0", 
             "unique_mvmods", 
             "vmods_elements", 
             "find_intercombi", 
             "delta_ms1_a0_fnl1", 
             "find_unique_sets", 
             "recur_flatten"), 
-          envir = environment(proteoM:::ms1_a1_vnl0_fnl0_byprot))
-
-        # avoids parLapply: may cause `rho` errors
+          envir = environment(proteoM:::ms1_a1_vnl0_fnl0))
+        
         fwd_peps[[i]] <- parallel::clusterApply(
-          cl = cl, 
-          x = chunksplit(fwd_peps_i, n_cores, "list"), 
-          fun = lapply, 
-          FUN = "ms1_a1_vnl0_fnl0_byprot", 
+          cl, 
+          chunksplit(fwd_peps_i, n_cores, "list"), 
+          hms1_a1_vnl0_fnl0, 
           amods = amods_i, 
           aa_masses = aa_masses_i,
           vmods_nl = vmods_nl_i, 
@@ -369,9 +378,11 @@ calc_pepmasses2 <- function (
           include_insource_nl = include_insource_nl,
           maxn_vmods_per_pep = maxn_vmods_per_pep,
           maxn_sites_per_vmod = maxn_sites_per_vmod,
-          digits = digits) %>% 
-          purrr::flatten()
-        
+          digits = digits
+        ) %>% 
+          purrr::flatten() %>% 
+          unlist(recursive = FALSE, use.names = TRUE)
+
         parallel::stopCluster(cl)
         gc()
 
@@ -403,19 +414,6 @@ calc_pepmasses2 <- function (
     })
     gc()
 
-    # With large datasets and combinations of aa_masses
-    mem_used <- memory.size(max = TRUE)/memory.limit()
-    is_large <- (length(aa_masses) > 48L && mem_used > .9)
-
-    if (is_large) {
-      rm(list = "fwd_peps")
-      gc()
-
-      fwd_peps <- NULL
-    } else {
-      gc()
-    }
-
     # ---
     .savecall <- TRUE
   }
@@ -437,7 +435,9 @@ find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
   if (!file.exists(file.path(out_path, "temp", "aa_masses_all.rds"))) {
     message("Computing the combinations of fixed and variable modifications.")
 
-    dir.create(file.path(out_path, "temp"), recursive = TRUE, showWarnings = FALSE)
+    dir.create(file.path(out_path, "temp"), 
+               recursive = TRUE, 
+               showWarnings = FALSE)
 
     aa_masses <- calc_aamasses(fixedmods = fixedmods,
                                varmods = varmods,
@@ -451,6 +451,55 @@ find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
   }
 
   invisible(aa_masses)
+}
+
+
+#' A lookup table between prot_acc and pep_seqs.
+#' 
+#' For both target and decoy peptides.
+#' 
+#' @param seqs Results from \link{distri_peps}.
+#' @param path A file path.
+#' @examples
+#' \donttest{
+#' tbl_prots_peps(out[[1]])
+#' }
+tbl_prots_peps <- function (seqs, path) {
+  
+  create_dir(path)
+  
+  seqs <- lapply(seqs, names)
+  seqs <- lapply(seqs, function (x) x[!duplicated(x)])
+  
+  # prot_accs
+  lens <- lapply(seqs, length)
+  
+  nms <- mapply(function (x, y) rep(x, y), 
+                names(seqs), lens,
+                SIMPLIFY = FALSE, USE.NAMES = FALSE
+  ) %>% 
+    unlist(recursive = FALSE, use.names = FALSE)
+  
+  # pep_seqs
+  seqs <- unlist(seqs, recursive = FALSE, use.names = FALSE)
+  ans <- data.frame(pep_seq = seqs, prot_acc = nms)
+  
+  saveRDS(ans, file.path(path, "prot_pep_annots.rds"))
+  saveRDS(reverse_peps_in_frame(ans), file.path(path, "prot_pep_annots_rev.rds"))
+  
+  invisible(NULL)
+}
+
+
+#' Flattens pep_seqs with the removals of prot_accs.
+#' 
+#' @param x Lists of pep_seqs by prot_accs.
+flat_pepseqs <- function (x) {
+  
+  x <- purrr::flatten(x)
+  x <- unlist(x, recursive = FALSE, use.names = TRUE)
+  
+  x <- x[!duplicated(names(x))]
 }
 
 
@@ -1341,19 +1390,17 @@ split_fastaseqs <- function (fasta, acc_type, acc_pattern, maxn_fasta_seqs,
   n_cores <- detect_cores()
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
-  parallel::clusterExport(cl, list("%>%"), 
-                envir = environment(magrittr::`%>%`))
-  parallel::clusterExport(cl, list("make_fastapeps0"), 
-                envir = environment(proteoM:::make_fastapeps0))
-  parallel::clusterExport(cl, list("keep_n_misses"), 
-                envir = environment(proteoM:::keep_n_misses))
-
-  fasta_db <- chunksplit(fasta_db, n_cores)
+  parallel::clusterExport(
+    cl,
+    c("make_fastapeps0", 
+      "keep_n_misses"), 
+    envir = environment(proteoM:::make_fastapeps0))
 
   # ---
   message("Splitting fasta sequences.")
 
-  peps <- parallel::clusterApply(cl, fasta_db, make_fastapeps0, max_miss) %>%
+  peps <- parallel::clusterApply(cl, chunksplit(fasta_db, n_cores), 
+                                 make_fastapeps0, max_miss) %>%
     purrr::flatten()
 
   stopCluster(cl)
@@ -1412,11 +1459,11 @@ make_fastapeps0 <- function (fasta_db, max_miss = 2L) {
 #' (2) "amods- tmod+ vnl- fnl-".
 #'
 #' @inheritParams distri_peps
-add_term_mass <- function (aa_masses, peps) {
-
+add_term_mass2 <- function (aa_masses, peps) {
+  
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-
+  
   # No needs of is_empty(ntmod) && is_empty(ctmod)
   if (length(ntmod) && length(ctmod)) {
     delta <- aa_masses[names(ntmod)] + aa_masses[names(ctmod)]
@@ -1425,8 +1472,8 @@ add_term_mass <- function (aa_masses, peps) {
   } else if (length(ctmod)) {
     delta <- aa_masses[names(ctmod)]
   }
-
-  out <- lapply(peps, `+`, delta)
+  
+  peps + delta
 }
 
 
@@ -1471,10 +1518,8 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
   n_cores <- detect_cores()
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
-  parallel::clusterExport(cl, list("%>%"), 
-                          envir = environment(magrittr::`%>%`))
-  parallel::clusterExport(cl, list("roll_sum"),
-                          envir = environment(proteoM:::roll_sum))
+  parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
+  parallel::clusterExport(cl, list("roll_sum"), envir = environment(proteoM:::roll_sum))
 
   ms_1 <- parallel::clusterApply(
     cl = cl, 
@@ -1651,7 +1696,6 @@ calcms1mass_noterm_bypep <- function (aa_seq, aa_masses,
 }
 
 
-
 #' Distributes peptides by variable modifications.
 #'
 #' @param peps Lists of peptides, either "fwds" or "revs", from
@@ -1767,53 +1811,6 @@ distri_fpeps <- function (data, max_miss, is_fixed_protnt, is_fixed_protct) {
 }
 
 
-#' Helper of \link{calcms1mass_noterm}.
-#'
-#' By individual proteins.
-#' 
-#' @param prot_peps Lists of named peptide masses under a protein.
-#' @param fnl_combi A data.frame of combinations of neutral losses for fixed
-#'   modifications. Each row corresponds to a set of neutral loss. The first row
-#'   corresponds to the combination without NLs (all zeros).
-#' @inheritParams matchMS
-#' @inheritParams add_fixvar_masses
-ms1_a0_fnl1_byprot <- function (prot_peps, fnl_combi, aa_masses, digits = 4L) {
-
-  out <- mapply(ms1_a0_fnl1_bypep, prot_peps, names(prot_peps), 
-                MoreArgs = list(
-                  fnl_combi = fnl_combi,
-                  aa_masses = aa_masses,
-                  digits = digits, 
-                ), SIMPLIFY = FALSE, USE.NAMES = TRUE)
-  
-  nms <- mapply(function (x, y) rep(y, length(x)), out, names(out), 
-                SIMPLIFY = FALSE, USE.NAMES = FALSE) 
-  nms <- unlist(nms, recursive = FALSE, use.names = FALSE)
-
-  out <- unlist(out, recursive = FALSE, use.names = FALSE)
-  names(out) <- nms
-  
-  invisible(out)
-}
-
-
-#' Helper of \link{calcms1mass_noterm_byprot}.
-#'
-#' By individual peptides.
-#'
-#' @param mass The mass of a peptide.
-#' @param aa_seq Character string; a peptide sequence with one-letter
-#'   representation of amino acids.
-#' @inheritParams ms1_a0_fnl1_byprot
-#' @importFrom stringr str_split
-ms1_a0_fnl1_bypep <- function (mass, aa_seq, fnl_combi, aa_masses, digits = 4L) {
-
-  aas <- str_split::str_split(aa_seq, "", simplify = TRUE)
-  delta <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
-  round(mass - delta, digits = digits)
-}
-
-
 #' Helper of peptide-mass calculation..
 #'
 #' (5) "amods- tmod+ vnl- fnl+"; (6) "amods- tmod- vnl- fnl+".
@@ -1821,7 +1818,7 @@ ms1_a0_fnl1_bypep <- function (mass, aa_seq, fnl_combi, aa_masses, digits = 4L) 
 #' The calculation goes through the rows in \code{fnl_combi}.
 #' 
 #' @param aas \code{aa_seq} split in a sequence of LETTERS.
-#' @inheritParams ms1_a0_fnl1_byprot
+#' @inheritParams hms1_a0_vnl0_fnl1
 #' @return A numeric vector
 delta_ms1_a0_fnl1 <- function (fnl_combi, aas, aa_masses) {
 
@@ -1847,16 +1844,88 @@ delta_ms1_a0_fnl1 <- function (fnl_combi, aas, aa_masses) {
 }
 
 
-#' Helper by individual proteins.
+#' Helper of \link{ms1_a0_vnl0_fnl1}.
+#' 
+#' @param masses A named list of peptide masses.
+#' @param fnl_combi A data.frame of combinations of neutral losses for fixed
+#'   modifications. Each row corresponds to a set of neutral loss. The first row
+#'   corresponds to the combination without NLs (all zeros).
+#' @inheritParams matchMS
+#' @inheritParams add_fixvar_masses
+hms1_a0_vnl0_fnl1 <- function (masses, fnl_combi, aa_masses, digits = 4L) {
+  
+  mapply(ms1_a0_vnl0_fnl1, 
+         masses, names(masses), 
+         MoreArgs = list (
+           fnl_combi = fnl_combi, 
+           aa_masses = aa_masses,
+           digits = digits
+         ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+}
+
+
+#' Helper by individual peptides. 
 #'
-#' (7) "amods+ tmod- vnl- fnl-"; (8) "amods+ tmod-+ vnl- fnl-".
+#' (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
 #'
+#' @param mass The mass of a peptide.
+#' @param aa_seq Character string; a peptide sequence with one-letter
+#'   representation of amino acids.
+#' @inheritParams hms1_a0_vnl0_fnl1
+#' @importFrom stringr str_split
+ms1_a0_vnl0_fnl1 <- function (mass, aa_seq, fnl_combi, aa_masses, digits = 4L) {
+  
+  aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
+  delta <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
+  out <- round(mass - delta, digits = digits)
+  
+  names(out) <- rep(aa_seq, length(out))
+  
+  invisible(out)
+}
+
+
+
+#' Helper of \link{ms1_a1_vnl0_fnl0}.
+#' 
+#' @param masses A named list of peptide masses.
 #' @param amods \code{Anywhere} variable modifications.
 #' @param fmods_nl The attribute of \code{fmods_nl} from an \code{aa_masses}.
 #' @param vmods_nl The attribute of \code{vmods_nl} from an \code{aa_masses}.
 #' @inheritParams matchMS
-#' @inheritParams ms1_a0_fnl1_byprot
+#' @inheritParams add_fixvar_masses
+hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
+                               vmods_nl = NULL, fmods_nl = NULL,
+                               include_insource_nl = FALSE,
+                               maxn_vmods_per_pep = 5L,
+                               maxn_sites_per_vmod = 3L,
+                               digits = 4L) {
+  
+  mapply(ms1_a1_vnl0_fnl0, 
+         masses, names(masses), 
+         MoreArgs = list (
+           amods = amods, 
+           aa_masses = aa_masses,
+           vmods_nl = vmods_nl, 
+           fmods_nl = fmods_nl,
+           include_insource_nl = include_insource_nl,
+           maxn_vmods_per_pep = maxn_vmods_per_pep,
+           maxn_sites_per_vmod = maxn_sites_per_vmod,
+           digits = digits
+         ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+}
+
+
+#' Helper by individual peptides.
 #'
+#' (7) "amods+ tmod- vnl- fnl-"; (8) "amods+ tmod-+ vnl- fnl-".
+#'
+#' @param mass The mass of a peptide.
+#' @param aa_seq Character string; a peptide sequence with one-letter
+#'   representation of amino acids.
+#' @inheritParams hms1_a1_vnl0_fnl0
+#' @importFrom stringr str_split
+#' 
 #' @examples
 #' \donttest{
 #' m0 <- calc_monopeptide("HQGVMCNVGMGQKMNSC", NULL, NULL)
@@ -1876,7 +1945,7 @@ delta_ms1_a0_fnl1 <- function (fnl_combi, aas, aa_masses) {
 #' amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
 #'               `Carbamidomethyl (C)` = c("Anywhere" = "C"))
 #'
-#' x <- ms1_a1_vnl0_fnl0_byprot(pep, amods, aa_masses_all[[4]])
+#' x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[4]])
 #'
 #' stopifnot(x[[1]] - 2109.9089 < 1e-4,
 #'           x[[2]] - 2166.9304 < 1e-4,
@@ -1896,7 +1965,7 @@ delta_ms1_a0_fnl1 <- function (fnl_combi, aas, aa_masses) {
 #' amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
 #'               `Carbamidomethyl (S)` = c("Anywhere" = "S"))
 #'
-#' x <- ms1_a1_vnl0_fnl0_byprot(pep, amods, aa_masses_all[[8]])
+#' x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]])
 #'
 #' stopifnot(x[[1]] - 1990.9226 < 1e-4,
 #'           x[[2]] - 1991.9066 < 1e-4,
@@ -1904,80 +1973,45 @@ delta_ms1_a0_fnl1 <- function (fnl_combi, aas, aa_masses) {
 #'           x[[4]] - 2048.9281 < 1e-4)
 #'
 #' }
-ms1_a1_vnl0_fnl0_byprot <- function (prot_peps, amods, aa_masses,
-                                     vmods_nl = NULL, fmods_nl = NULL,
-                                     include_insource_nl = FALSE,
-                                     maxn_vmods_per_pep = 5L,
-                                     maxn_sites_per_vmod = 3L,
-                                     digits = 4L) {
+ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
+                              vmods_nl = NULL, fmods_nl = NULL,
+                              include_insource_nl = FALSE,
+                              maxn_vmods_per_pep = 5L,
+                              maxn_sites_per_vmod = 3L,
+                              digits = 4L) {
   
-  # !!! USE.NAMES of prot_acc
-  out <- mapply(ms1_a1_vnl0_fnl0_bypep, prot_peps, names(prot_peps), 
-                MoreArgs = list (
-                  amods = amods, 
-                  aa_masses = aa_masses,
-                  vmods_nl = vmods_nl, 
-                  fmods_nl = fmods_nl,
-                  include_insource_nl = include_insource_nl,
-                  maxn_vmods_per_pep = maxn_vmods_per_pep,
-                  maxn_sites_per_vmod = maxn_sites_per_vmod,
-                  digits = digits
-                ), SIMPLIFY = FALSE, USE.NAMES = TRUE)
-  
-  nms <- mapply(function (x, y) rep(y, length(x)), out, names(out), 
-                SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  nms <- unlist(nms, recursive = FALSE, use.names = FALSE)
-
-  out <- unlist(out, recursive = FALSE, use.names = FALSE)
-  names(out) <- nms
-  
-  invisible(out)
-}
-
-
-#' Helper by individual peptides.
-#'
-#' (7) "amods+ tmod- vnl- fnl-"; (8) "amods+ tmod-+ vnl- fnl-".
-#'
-#' @param mass The mass of a peptide.
-#' @param aa_seq Character string; a peptide sequence with one-letter
-#'   representation of amino acids.
-#' @inheritParams ms1_a1_vnl0_fnl0_byprot
-#' @importFrom stringr str_split
-ms1_a1_vnl0_fnl0_bypep <- function (mass, aa_seq, amods, aa_masses,
-                                    vmods_nl = NULL, fmods_nl = NULL,
-                                    include_insource_nl = FALSE,
-                                    maxn_vmods_per_pep = 5L,
-                                    maxn_sites_per_vmod = 3L,
-                                    digits = 4L) {
-
   aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
-
+  
   vmods_combi <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
                                aa_masses = aa_masses, aas = aas,
                                maxn_vmods_per_pep = maxn_vmods_per_pep,
                                maxn_sites_per_vmod = maxn_sites_per_vmod,
                                digits = digits)
   vmods_combi <- find_intercombi(vmods_combi)
-
+  
   deltas <- lapply(vmods_combi, function (x) sum(aa_masses[x]))
-
+  
   out <- simplify2array(lapply(deltas, function (x) round(mass + x, digits = digits)))
-
+  
   if (include_insource_nl) {
     if (length(vmods_nl)) {
       vnl_combi <- lapply(vmods_combi, function (x) expand.grid(vmods_nl[x]))
       deltas_vnls <- lapply(vnl_combi, function (x) unique(rowSums(x)))
       out <- mapply(`-`, out, deltas_vnls, SIMPLIFY = FALSE)
     }
-
+    
     if (length(fmods_nl)) {
       fnl_combi <- expand.grid(fmods_nl)
       deltas_fnls <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
       out <- mapply(`-`, out, deltas_fnls, SIMPLIFY = FALSE)
     }
   }
-
+  
+  names(out) <- rep(aa_seq, length(out))
+  
   invisible(out)
 }
+
+
+
 

@@ -626,12 +626,9 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
   theopeps <- readRDS(file.path(.path_fasta, "pepmasses", .time_stamp,
                                 paste0("binned_theopeps_", i, ".rds")))
 
-  if (ppm_ms1 < 1000L) {
-    theopeps <- lapply(theopeps, function (x) {
-      rows <- (!duplicated(x$pep_seq))
-      x[rows, c("pep_seq", "mass")]
-    })
-  }
+  theopeps <- lapply(theopeps, function (x) {
+    x[, c("pep_seq", "mass")]
+  })
 
   # purged by neuloss residues
   # (not used)
@@ -684,8 +681,8 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
                      SIMPLIFY = FALSE, USE.NAMES = FALSE)
 
   # (4) removes empties (zero overlap between mgf_frames and theopeps)
-  oks <- purrr::map_lgl(mgf_frames, function (x) !purrr::is_empty(x)) |
-    purrr::map_lgl(theopeps, function (x) !purrr::is_empty(x))
+  oks <- purrr::map_lgl(mgf_frames, function (x) length(x) > 0L) |
+    purrr::map_lgl(theopeps, function (x) length(x) > 0L)
 
   mgf_frames <- mgf_frames[oks]
   theopeps <- theopeps[oks]
@@ -866,10 +863,12 @@ find_free_mem <- function () {
       system('wmic OS get FreePhysicalMemory /Value', intern=TRUE)[3] %>% 
       gsub("^FreePhysicalMemory=(\\d+)\\r", "\\1", .) %>% 
       as.numeric() %>% 
-      `/`(1024) %>% 
-      `-`(memory.size(max = TRUE))
+      `/`(1024)
+    # tot_ram <- free_mem + memory.size(max = TRUE)
   } else {
     # not yet tested for "Linux", "Darwin"
+    # inaccurate e.g. if physical RAM is 32000 but in .RProfile 
+    # `invisible(utils::memory.limit(64000))`
     free_mem <- memory.limit() - memory.size(max = TRUE)
   }
   
@@ -922,28 +921,5 @@ find_base_aamasses_index <- function (out_path) {
   idx <- simplify2array(idx)
 }
 
-
-#' A lookup table between prot_acc and pep_seqs.
-#' 
-#' Not currently used.
-#' 
-#' @param seqs Results from \link{ms1masses_bare}.
-#' @examples
-#' \donttest{
-#' prot_pep_tbl(fwd_peps)
-#' }
-prot_pep_tbl <- function (seqs) {
-  
-  seqs <- lapply(seqs, rm_char_in_nfirst2, char = "^-", n = n1)
-  seqs <- lapply(seqs, rm_char_in_nlast2, char = "-$", n = n2)
-  seqs <- lapply(seqs, names)
-  
-  ans <- purrr::imap(tempdata, ~ data.frame(pep_seq = .x, prot_acc = .y))
-  ans <- dplyr::bind_rows(ans)
-  
-  saveRDS(ans, file.path(.path_fasta, "pepmasses", .time_stamp, "prot_peps.rds"))
-  
-  invisible(NULL)
-}
 
 

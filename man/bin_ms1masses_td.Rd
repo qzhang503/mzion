@@ -33,6 +33,5 @@ bin_ms1masses_td(
 \item{out_path}{The output path.}
 }
 \description{
-Helper of \link{bin_ms1masses} by the separate sets of \code{target}s and
-\code{decoy}s.
+For either target or decoy peptides.
 }

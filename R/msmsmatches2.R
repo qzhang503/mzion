@@ -498,6 +498,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   .savecall <- TRUE
   
+  message("\n=== Completed MS2 ion searches. ===\n")
+  
   invisible(NULL)
 }
 
@@ -511,12 +513,21 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
 #' @examples 
 #' ## pep_frame
 #' #                                  pep_seq      mass  frame    prot_acc
-#' # 2148391     CSCNNGEMCDRFQGCLCSPGWQGLQCER 3694.4923 100001  TIE2_HUMAN
-#' # 2148392 EGSARASEQPENAESPDNEDGDCEETTEEAGR 3694.5248 100001 TXLNB_HUMAN
+#' # 2148391     CSCNNGEMCDRFQGCLCSPGWQGLQCER 3694.4923 100001   TIE2_HUMAN
+#' # 2148392 EGSARASEQPENAESPDNEDGDCEETTEEAGR 3694.5248 100001  TXLNB_HUMAN
 reverse_peps_in_frame <- function (pep_frame) {
   
-  pep_frame[["pep_seq"]] <- reverse_seqs(pep_frame[["pep_seq"]])
-  pep_frame[["prot_acc"]] <- paste0("-", pep_frame[["prot_acc"]])
+  nms <- names(pep_frame)
+  
+  if ("pep_seq" %in% nms) {
+    pep_frame[["pep_seq"]] <- reverse_seqs(pep_frame[["pep_seq"]])
+  }
+  
+  if ("prot_acc" %in% nms) {
+    pep_frame[["prot_acc"]] <- paste0("-", pep_frame[["prot_acc"]])
+  }
+  
+  
   
   pep_frame
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/bin_masses.R
 \name{bin_ms1masses}
 \alias{bin_ms1masses}
-\title{Helper in binning precursor masses}
+\title{Helper in binning precursor masses.}
 \usage{
 bin_ms1masses(res = NULL, min_mass = 500L, max_mass = 10000L, ppm_ms1 = 20L)
 }
@@ -16,5 +16,5 @@ bin_ms1masses(res = NULL, min_mass = 500L, max_mass = 10000L, ppm_ms1 = 20L)
 \item{ppm_ms1}{The mass tolerance of MS1 species.}
 }
 \description{
-Helper in binning precursor masses
+For target peptides.
 }
