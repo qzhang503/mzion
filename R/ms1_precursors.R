@@ -71,7 +71,7 @@ calc_pepmasses2 <- function (
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  min_len = 7L, max_len = 100L, max_miss = 2L,
+  min_len = 7L, max_len = 50L, max_miss = 2L,
   out_path = NULL,
   digits = 4L,
   parallel = TRUE) {
@@ -416,6 +416,8 @@ calc_pepmasses2 <- function (
 
     # ---
     .savecall <- TRUE
+    
+    message("\n=== Completed MS1 precursor masses. ===\n")
   }
 
   assign(".path_cache", .path_cache, envir = .GlobalEnv)
@@ -1488,7 +1490,7 @@ add_term_mass2 <- function (aa_masses, peps) {
 #' @inheritParams distri_peps
 #' @inheritParams distri_fpeps
 ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
-                            max_miss = 2L, min_len = 7L, max_len = 100L,
+                            max_miss = 2L, min_len = 7L, max_len = 50L,
                             maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
                             is_fixed_protnt = FALSE, is_fixed_protct = FALSE,
                             parallel = TRUE, digits = 4L) {

@@ -22,7 +22,7 @@ matchMS(
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
   min_len = 7L,
-  max_len = 100L,
+  max_len = 50L,
   max_miss = 2L,
   type_ms2ions = "by",
   topn_ms2ions = 100L,

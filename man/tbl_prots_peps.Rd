@@ -12,7 +12,7 @@ tbl_prots_peps(seqs, path)
 \item{path}{A file path.}
 }
 \description{
-Not currently used.
+For both target and decoy peptides.
 }
 \examples{
 \donttest{

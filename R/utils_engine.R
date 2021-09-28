@@ -858,6 +858,8 @@ find_free_mem <- function () {
   
   nm_os <- Sys.info()['sysname']
   
+  gc()
+  
   if (nm_os == "Windows") {
     free_mem <- 
       system('wmic OS get FreePhysicalMemory /Value', intern=TRUE)[3] %>% 

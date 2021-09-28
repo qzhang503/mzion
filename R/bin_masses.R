@@ -264,8 +264,19 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 500L,
   
   gc()
   
-  n_cores <- min(detect_cores() - 4L, length(res))
-  n_cores <- max(1L, n_cores)
+  n_cores <- local({
+    len <- length(res)
+    n_cores <- detect_cores()
+    
+    if (len > n_cores) {
+      n_cores <- min(floor(n_cores/2L), len)
+    } else {
+      n_cores <- min(n_cores, len)
+    }
+    
+    n_cores <- max(1L, n_cores)
+  })
+
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
   
   parallel::clusterExport(
@@ -279,7 +290,8 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 500L,
                               MoreArgs = list(min_mass = min_mass, 
                                               max_mass = max_mass, 
                                               ppm_ms1 = ppm_ms1), 
-                              SIMPLIFY = FALSE, USE.NAMES = FALSE)
+                              SIMPLIFY = FALSE, USE.NAMES = FALSE, 
+                              .scheduling = "dynamic")
   
   parallel::stopCluster(cl)
   rm(list = c("res"))

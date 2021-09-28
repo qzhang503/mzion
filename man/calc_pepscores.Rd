@@ -10,7 +10,7 @@ calc_pepscores(
   target_fdr = 0.01,
   fdr_type = "psm",
   min_len = 7L,
-  max_len = 100L,
+  max_len = 50L,
   penalize_sions = FALSE,
   ppm_ms2 = 25L,
   out_path = "~/proteoM/outs",

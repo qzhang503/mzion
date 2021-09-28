@@ -506,7 +506,7 @@ calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @import parallel
 calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by", 
                             target_fdr = 0.01, fdr_type = "psm", 
-                            min_len = 7L, max_len = 100L, 
+                            min_len = 7L, max_len = 50L, 
                             penalize_sions = FALSE, ppm_ms2 = 25L, 
                             out_path = "~/proteoM/outs", digits = 5L) {
 
@@ -875,7 +875,7 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path) {
 #' @param fdr_type Character string; the type of FDR for controlling.
 #' @inheritParams matchMS
 calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm", 
-                         min_len = 7L, max_len = 100L, out_path) {
+                         min_len = 7L, max_len = 50L, out_path) {
 
   find_optlens <- function (all_lens, counts, min_count = 2000L) {
     idxes <- which(counts >= min_count)

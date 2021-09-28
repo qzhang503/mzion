@@ -629,7 +629,7 @@ parDist <- function (mat) {
   gc()
 
   size <- object.size(mat)/1024^3
-  mem <- memory.limit() *.45/1024
+  mem <- find_free_mem() *.45/1024
   n_cores <- floor(min(mem/size, detect_cores()))
   
   if (n_cores <= 1L) {

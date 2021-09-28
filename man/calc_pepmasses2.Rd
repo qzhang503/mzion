@@ -19,7 +19,7 @@ calc_pepmasses2(
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   min_len = 7L,
-  max_len = 100L,
+  max_len = 50L,
   max_miss = 2L,
   out_path = NULL,
   digits = 4L,

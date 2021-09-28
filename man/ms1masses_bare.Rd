@@ -10,7 +10,7 @@ ms1masses_bare(
   ftmass = NULL,
   max_miss = 2L,
   min_len = 7L,
-  max_len = 100L,
+  max_len = 50L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   is_fixed_protnt = FALSE,
