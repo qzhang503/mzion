@@ -86,6 +86,12 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                                      "^mgf$", "^mgfs$"))
   
   saveRDS(aa_masses_all, file.path(out_path, "temp", "aa_masses_all.rds"))
+  
+  # For three-frame searches
+  # (matches of secondary ions using `outer` and no adjustments)
+  is_ms2_three_frame <- is_ms1_three_frame <- TRUE
+  if (is_ms1_three_frame) ppm_ms1 <- ppm_ms1 * .5
+  if (is_ms2_three_frame) ppm_ms2 <- ppm_ms2 * .5
 
   ## Targets 
   obj_sizes <- numeric(length(aa_masses_all))
@@ -417,7 +423,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   i_max <- which.max(obj_sizes)
   i_max2 <- paste0("rev_", i_max)
   
-  bin_path <- file.path(.path_fasta, "pepmasses", .time_stamp)
+  bin_path <- file.path(.path_fasta, "bin_ms1masses", .time_bin)
   bin_file <- file.path(bin_path, paste0("binned_theopeps_", i_max, ".rds"))
   bin_file2 <- file.path(bin_path, paste0("binned_theopeps_", i_max2, ".rds"))
   

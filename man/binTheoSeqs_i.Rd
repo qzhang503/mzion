@@ -7,8 +7,9 @@
 binTheoSeqs_i(
   idx = 1L,
   min_mass = 500L,
-  max_mass = 10000L,
+  max_mass = 6000L,
   ppm_ms1 = 20L,
+  in_path = NULL,
   out_path = NULL
 )
 }
@@ -21,6 +22,8 @@ binTheoSeqs_i(
 \item{max_mass}{Numeric; the maximum MS1 mass.}
 
 \item{ppm_ms1}{Numeric; the error tolerance of MS1 mass in ppm.}
+
+\item{in_path}{An input path of \code{pepmasses_}.}
 
 \item{out_path}{The output path.}
 }

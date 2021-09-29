@@ -7,6 +7,7 @@
 readMGF(
   filepath = "~/proteoM/mgfs",
   min_mass = 500L,
+  max_mass = 6000L,
   min_ms2mass = 110L,
   topn_ms2ions = 100L,
   ret_range = c(0, Inf),
@@ -22,7 +23,9 @@ readMGF(
 \item{min_mass}{Numeric; the minimum mass of MS1 species. The value needs to
 match the one in  \link{binTheoPeps}.}
 
-\item{min_ms2mass}{A minimum m/z of MS2 ions.}
+\item{max_mass}{A maximum mass of precursors for considerations.}
+
+\item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
 
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
 MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}

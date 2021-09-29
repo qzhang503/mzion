@@ -1,13 +1,22 @@
 #' Helper in loading MGFs.
 #'
-#' @param min_mass A minimum mass of precursors.
-#' @param min_ms2mass A minimum m/z of MS2 ions.
+#' @param min_mass A minimum mass of precursors for considerations.
+#' @param max_mass A maximum mass of precursors for considerations.
+#' @param min_ms2mass A minimum m/z of MS2 ions for considerations.
 #' @param index_ms2 Logical; if TRUE, converts MS2 m/z values to indices.
+#' @param is_ms1_three_frame Logical; is the searches by the three frames of
+#'   preceeding, current and following.
+#' @param is_ms2_three_frame Logical; is the searches by the three frames of
+#'   preceeding, current and following.
 #' @inheritParams matchMS
-load_mgfs <- function (mgf_path, min_mass = 500L, min_ms2mass = 110L,
-                       topn_ms2ions = 100L, ppm_ms1 = 20L, ppm_ms2 = 25L,
-                       index_ms2 = FALSE) {
+load_mgfs <- function (mgf_path, min_mass = 500L, max_mass = 6000L, 
+                       min_ms2mass = 110L, topn_ms2ions = 100L, 
+                       ppm_ms1 = 20L, ppm_ms2 = 25L, index_ms2 = FALSE, 
+                       is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE) {
 
+  if (is_ms1_three_frame) ppm_ms1 <- ppm_ms1 * .5
+  if (is_ms2_three_frame) ppm_ms2 <- ppm_ms2 * .5
+  
   rds <- file.path(mgf_path, "mgf_queries.rds")
 
   if (file.exists(rds)) {
@@ -17,6 +26,7 @@ load_mgfs <- function (mgf_path, min_mass = 500L, min_ms2mass = 110L,
 
     readMGF(filepath = mgf_path,
             min_mass = min_mass,
+            max_mass = max_mass, 
             min_ms2mass = min_ms2mass,
             topn_ms2ions = topn_ms2ions,
             ret_range = c(0, Inf),
@@ -50,9 +60,9 @@ load_mgfs <- function (mgf_path, min_mass = 500L, min_ms2mass = 110L,
 #' mgf_queries <- proteoM:::readMGF()
 #' }
 readMGF <- function (filepath = "~/proteoM/mgfs",
-                     min_mass = 500L, min_ms2mass = 110L, topn_ms2ions = 100L,
-                     ret_range = c(0, Inf), ppm_ms1 = 20L, ppm_ms2 = 25L,
-                     index_ms2 = FALSE,
+                     min_mass = 500L, max_mass = 6000L, min_ms2mass = 110L, 
+                     topn_ms2ions = 100L, ret_range = c(0, Inf), 
+                     ppm_ms1 = 20L, ppm_ms2 = 25L, index_ms2 = FALSE,
                      out_path = file.path(filepath, "mgf_queries.rds")) {
 
   f <- function(x, pos) {
@@ -135,6 +145,7 @@ readMGF <- function (filepath = "~/proteoM/mgfs",
   out <- out %>%
     dplyr::bind_rows() %>%
     dplyr::arrange(ms1_mass) %>%
+    dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass) %>% 
     dplyr::mutate(frame = find_ms1_interval(ms1_mass,
                                             from = min_mass,
                                             ppm = ppm_ms1)) %T>%

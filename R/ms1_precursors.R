@@ -81,7 +81,7 @@ calc_pepmasses2 <- function (
   on.exit(options(old_opts), add = TRUE)
 
   on.exit(
-    if (exists(".savecall", envir = current_env())) {
+    if (exists(".savecall", envir = rlang::current_env())) {
       if (.savecall) {
         save_call2(path = file.path(.path_cache), fun = "calc_pepmasses2",
                    time = .time_stamp)
@@ -91,10 +91,6 @@ calc_pepmasses2 <- function (
     },
     add = TRUE
   )
-
-  # ---
-  stopifnot(vapply(c(min_len, max_len, max_miss), is.numeric, logical(1L)))
-  stopifnot(min_len >= 0L, max_len >= min_len, max_miss <= 100L)
 
   # ---
   .path_cache <- create_dir("~/proteoM/.MSearch/Cache/Calls")

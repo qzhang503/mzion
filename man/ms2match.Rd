@@ -69,7 +69,7 @@ a hit.}
 
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
 
-\item{min_ms2mass}{A minimum m/z of MS2 ions.}
+\item{min_ms2mass}{The minimum MS2 mass for interrogation.}
 
 \item{quant}{A quantitation method. The default is "none". Additional choices
 include \code{tmt6} etc. For other multiplicities of \code{tmt}, use the

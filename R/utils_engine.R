@@ -621,9 +621,9 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 
   # reads theoretical peptide data
   .path_fasta <- get(".path_fasta", envir = .GlobalEnv)
-  .time_stamp <- get(".time_stamp", envir = .GlobalEnv)
+  .time_bin <- get(".time_bin", envir = .GlobalEnv)
 
-  theopeps <- readRDS(file.path(.path_fasta, "pepmasses", .time_stamp,
+  theopeps <- readRDS(file.path(.path_fasta, "bin_ms1masses", .time_bin,
                                 paste0("binned_theopeps_", i, ".rds")))
 
   theopeps <- lapply(theopeps, function (x) {

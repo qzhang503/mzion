@@ -33,7 +33,7 @@ MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
 
-\item{min_ms2mass}{A minimum m/z of MS2 ions.}
+\item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
 
 \item{index_ms2}{Logical; if TRUE, converts MS2 m/z values to indices.}
 

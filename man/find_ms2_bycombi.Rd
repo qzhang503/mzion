@@ -15,7 +15,7 @@ find_ms2_bycombi(theos, expts, ex, ppm_ms2, min_ms2mass)
 
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
 
-\item{min_ms2mass}{A minimum m/z of MS2 ions.}
+\item{min_ms2mass}{The minimum MS2 mass for interrogation.}
 }
 \description{
 Not currently used.

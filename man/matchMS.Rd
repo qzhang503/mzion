@@ -24,6 +24,9 @@ matchMS(
   min_len = 7L,
   max_len = 50L,
   max_miss = 2L,
+  min_mass = 500L,
+  max_mass = 6000L,
+  min_ms2mass = 110L,
   type_ms2ions = "by",
   topn_ms2ions = 100L,
   minn_ms2 = 6L,
@@ -97,6 +100,12 @@ be excluded.}
 be excluded.}
 
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
+
+\item{min_mass}{The minimum precursor mass for interrogation.}
+
+\item{max_mass}{The maximum precursor mass for interrogation.}
+
+\item{min_ms2mass}{The minimum MS2 mass for interrogation.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2

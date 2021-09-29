@@ -8,7 +8,7 @@ binTheoSeqs(
   idxes = NULL,
   res = NULL,
   min_mass = 500L,
-  max_mass = 10000L,
+  max_mass = 6000L,
   ppm_ms1 = 20L,
   out_path = NULL
 )

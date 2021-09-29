@@ -8,14 +8,14 @@ bin_theoseqs(
   peps = NULL,
   out_nm = NULL,
   min_mass = 500L,
-  max_mass = 10000L,
+  max_mass = 6000L,
   ppm_ms1 = 20L
 )
 }
 \arguments{
 \item{peps}{A list of theoretical peptides with masses.}
 
-\item{out_nm}{A output name.}
+\item{out_nm}{A output name with prepending file path.}
 
 \item{min_mass}{Numeric; the minimum MS1 mass.}
 

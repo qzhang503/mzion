@@ -266,6 +266,9 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #' @param max_len Integer; the maximum length of peptides. Longer peptides will
 #'   be excluded.
 #' @param max_miss The maximum number of mis-cleavages per peptide sequence.
+#' @param min_mass The minimum precursor mass for interrogation.
+#' @param max_mass The maximum precursor mass for interrogation.
+#' @param min_ms2mass The minimum MS2 mass for interrogation.
 #' @param type_ms2ions Character; the type of
 #'   \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 #'   ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
@@ -349,6 +352,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      maxn_sites_per_vmod = 3L,
                      maxn_vmods_sitescombi_per_pep = 64L,
                      min_len = 7L, max_len = 50L, max_miss = 2L,
+                     min_mass = 500L, max_mass = 6000L, min_ms2mass = 110L, 
                      type_ms2ions = "by",
                      topn_ms2ions = 100L,
                      minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L,
@@ -378,7 +382,15 @@ matchMS <- function (out_path = "~/proteoM/outs",
   }
   
   # numeric types 
-  # (for parameter matching when calling cache)
+  stopifnot(vapply(c(maxn_fasta_seqs, maxn_vmods_setscombi, maxn_vmods_per_pep, 
+                     maxn_sites_per_vmod, maxn_vmods_sitescombi_per_pep, 
+                     min_len, max_len, max_miss, topn_ms2ions, minn_ms2, 
+                     min_mass, max_mass, min_ms2mass, 
+                     ppm_ms1, ppm_ms2, ppm_reporters, digits, 
+                     target_fdr), 
+                   is.numeric, logical(1L)))
+
+  # (a) integers casting for parameter matching when calling cached)
   maxn_fasta_seqs <- as.integer(maxn_fasta_seqs)
   maxn_vmods_setscombi <- as.integer(maxn_vmods_setscombi)
   maxn_vmods_per_pep <- as.integer(maxn_vmods_per_pep)
@@ -389,12 +401,21 @@ matchMS <- function (out_path = "~/proteoM/outs",
   max_miss <- as.integer(max_miss)
   topn_ms2ions <- as.integer(topn_ms2ions)
   minn_ms2 <- as.integer(minn_ms2)
+  min_mass <- as.integer(min_mass)
+  max_mass <- as.integer(max_mass)
+  min_ms2mass <- as.integer(min_ms2mass)
   ppm_ms1 <- as.integer(ppm_ms1)
   ppm_ms2 <- as.integer(ppm_ms2)
   ppm_reporters <- as.integer(ppm_reporters)
   digits <- as.integer(digits)
   
+  stopifnot(min_len >= 0L, max_len >= min_len, max_miss <= 10L, 
+            min_mass >= 0L, max_mass >= min_mass, min_ms2mass >= 0L)
+
+  # (b) doubles
   target_fdr <- as.double(target_fdr)
+  
+  stopifnot(target_fdr < .5)
   
   # fdr_type
   fdr_type <- rlang::enexpr(fdr_type)
@@ -427,7 +448,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   filelist <- list.files(path = file.path(mgf_path), pattern = "\\.mgf$")
 
-  if (length(filelist) == 0L) {
+  if (!length(filelist)) {
     stop("No `.mgf` files under ", mgf_path, call. = FALSE)
   }
 
@@ -454,20 +475,15 @@ matchMS <- function (out_path = "~/proteoM/outs",
     parallel = TRUE
   )
 
-  ## Mass range
-  min_mass <- 500L
-  max_mass <- 10000L
-  min_ms2mass <- 110L
-
   ## Bin theoretical peptides
   bin_ms1masses(res, min_mass, max_mass, ppm_ms1)
-
   rm(list = c("res"))
   gc()
 
   ## MGFs
   load_mgfs(mgf_path = mgf_path,
             min_mass = min_mass,
+            max_mass = max_mass, 
             min_ms2mass = min_ms2mass,
             topn_ms2ions = topn_ms2ions,
             ppm_ms1 = ppm_ms1,
@@ -781,7 +797,7 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
     rm(list = c(".path_cache", ".path_fasta", ".time_stamp"),
        envir = .GlobalEnv)
 
-    message("Search completed.")
+    message("Done.")
   }
 
   invisible(out)
@@ -941,7 +957,7 @@ reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
            fdr_type = fdr_type,
            combine_tier_three = combine_tier_three)
 
-  message("Search completed.")
+  message("Done.")
 }
 
 

@@ -4,7 +4,13 @@
 \alias{bin_ms1masses}
 \title{Helper in binning precursor masses.}
 \usage{
-bin_ms1masses(res = NULL, min_mass = 500L, max_mass = 10000L, ppm_ms1 = 20L)
+bin_ms1masses(
+  res = NULL,
+  min_mass = 500L,
+  max_mass = 6000L,
+  ppm_ms1 = 20L,
+  is_ms1_three_frame = TRUE
+)
 }
 \arguments{
 \item{res}{The results from \link{calc_pepmasses2}.}
@@ -14,6 +20,9 @@ bin_ms1masses(res = NULL, min_mass = 500L, max_mass = 10000L, ppm_ms1 = 20L)
 \item{max_mass}{A maximum mass of precursors.}
 
 \item{ppm_ms1}{The mass tolerance of MS1 species.}
+
+\item{is_ms1_three_frame}{Logical; is the searches by the three frames of
+preceeding, current and following.}
 }
 \description{
 For target peptides.

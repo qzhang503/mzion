@@ -7,11 +7,14 @@
 load_mgfs(
   mgf_path,
   min_mass = 500L,
+  max_mass = 6000L,
   min_ms2mass = 110L,
   topn_ms2ions = 100L,
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
-  index_ms2 = FALSE
+  index_ms2 = FALSE,
+  is_ms1_three_frame = TRUE,
+  is_ms2_three_frame = TRUE
 )
 }
 \arguments{
@@ -19,9 +22,11 @@ load_mgfs(
 to supply the files. Note that the supported MGFs are from MSConvert or
 Proteome Discoverer.}
 
-\item{min_mass}{A minimum mass of precursors.}
+\item{min_mass}{A minimum mass of precursors for considerations.}
 
-\item{min_ms2mass}{A minimum m/z of MS2 ions.}
+\item{max_mass}{A maximum mass of precursors for considerations.}
+
+\item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
 
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
 MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
@@ -31,6 +36,12 @@ MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
 
 \item{index_ms2}{Logical; if TRUE, converts MS2 m/z values to indices.}
+
+\item{is_ms1_three_frame}{Logical; is the searches by the three frames of
+preceeding, current and following.}
+
+\item{is_ms2_three_frame}{Logical; is the searches by the three frames of
+preceeding, current and following.}
 }
 \description{
 Helper in loading MGFs.
