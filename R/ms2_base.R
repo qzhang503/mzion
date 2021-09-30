@@ -606,7 +606,8 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
   # !!! USE.NAMES = TRUE (whereas map2 reserves names when available)
   rows <- lapply(x, function (this) {
     ans <- lapply(this, function (x) sum(!is.na(x[["expt"]])) >= minn_ms2)
-    simplify2array(ans)
+    # simplify2array(ans)
+    unlist(ans, recursive = FALSE, use.names = FALSE)
   })
   x <- mapply(function (x, y) x[y], x, rows, SIMPLIFY = FALSE, USE.NAMES = TRUE)
 

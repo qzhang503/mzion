@@ -562,7 +562,7 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
   if (length(vmods_combi) && !is.null(ms1_mass)) {
     idxes <- lapply(vmods_combi, check_ms1_mass_vmods2, aas2, aa_masses, 
                     ntmod, ctmod, ms1_mass)
-    idxes <- simplify2array(idxes)
+    idxes <- unlist(idxes, recursive = FALSE, use.names = FALSE)
 
     vmods_combi <- vmods_combi[idxes]
     rm(list = c("idxes"))

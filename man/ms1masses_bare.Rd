@@ -15,7 +15,6 @@ ms1masses_bare(
   maxn_sites_per_vmod = 3L,
   is_fixed_protnt = FALSE,
   is_fixed_protct = FALSE,
-  parallel = TRUE,
   digits = 4L
 )
 }
@@ -47,9 +46,6 @@ variable modifications per site in a per peptide sequence.}
 \item{is_fixed_protnt}{Logical; is protein N-terminal modification fixed.}
 
 \item{is_fixed_protct}{Logical; is protein C-terminal modification fixed.}
-
-\item{parallel}{Logical; if TRUE, performs parallel computation. The default
-is TRUE.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }

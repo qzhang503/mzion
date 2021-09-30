@@ -276,7 +276,7 @@ out <- gen_ms2ions_a1_vnl1_fnl0(aa_seq, NULL, aa_masses,
 
 }
 \donttest{
-# (11) "amods+ tmod+ vnl+ fnl-"
+# (12) "amods+ tmod+ vnl- fnl+"
 fixedmods <- c("TMT6plex (K)", "Oxidation (M)", "dHex (S)")
 varmods <- c("Deamidated (N)", "Acetyl (Protein N-term)")
 

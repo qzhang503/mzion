@@ -9,7 +9,6 @@ ms1masses_noterm(
   aa_masses,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  parallel = TRUE,
   digits = 4L
 )
 }
@@ -25,9 +24,6 @@ peptide.}
 
 \item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
 variable modifications per site in a per peptide sequence.}
-
-\item{parallel}{Logical; if TRUE, performs parallel computation. The default
-is TRUE.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }

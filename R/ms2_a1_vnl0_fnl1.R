@@ -448,7 +448,7 @@ frames_adv_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
 #'
 #' @examples
 #' \donttest{
-#' # (11) "amods+ tmod+ vnl+ fnl-"
+#' # (12) "amods+ tmod+ vnl- fnl+"
 #' fixedmods <- c("TMT6plex (K)", "Oxidation (M)", "dHex (S)")
 #' varmods <- c("Deamidated (N)", "Acetyl (Protein N-term)")
 #'
@@ -545,7 +545,7 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
   if (length(vmods_combi) && !is.null(ms1_mass)) {
     idxes <- lapply(vmods_combi, check_ms1_mass_vmods2, aas2, aa_masses, 
                     ntmod, ctmod, ms1_mass)
-    idxes <- simplify2array(idxes)
+    idxes <- unlist(idxes, recursive = FALSE, use.names = FALSE)
     
     vmods_combi <- vmods_combi[idxes]
     rm(list = c("idxes"))
@@ -556,7 +556,8 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
 
   fmods_combi <- aas[fnl_idxes]
   names(fmods_combi) <- fnl_idxes
-  fnl_combi <- expand.grid(fmods_nl[fmods_combi])
+  fnl_combi <- expand.grid(fmods_nl[fmods_combi], KEEP.OUT.ATTRS = FALSE, 
+                           stringsAsFactors = FALSE)
   
   # go through each vmods_combi
   out <- lapply(vmods_combi, 

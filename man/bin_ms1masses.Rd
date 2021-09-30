@@ -9,6 +9,8 @@ bin_ms1masses(
   min_mass = 500L,
   max_mass = 6000L,
   ppm_ms1 = 20L,
+  .path_cache = NULL,
+  .path_fasta = NULL,
   is_ms1_three_frame = TRUE
 )
 }
@@ -20,6 +22,10 @@ bin_ms1masses(
 \item{max_mass}{A maximum mass of precursors.}
 
 \item{ppm_ms1}{The mass tolerance of MS1 species.}
+
+\item{.path_cache}{The file path of cached search parameters.}
+
+\item{.path_fasta}{The file path to the theoretical masses of MS1 precursors.}
 
 \item{is_ms1_three_frame}{Logical; is the searches by the three frames of
 preceeding, current and following.}

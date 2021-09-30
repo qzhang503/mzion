@@ -411,7 +411,7 @@ vmods_elements <- function (aas,
   }
 
   rows <- lapply(x, function (x) length(x) > maxn_vmods_per_pep)
-  rows <- simplify2array(rows)
+  rows <- unlist(rows, recursive = FALSE, use.names = FALSE)
   x <- x[!rows]
 
   maxn_vmod <- x %>%
@@ -464,7 +464,8 @@ find_intercombi <- function (intra_combis) {
   } else if (any(purrr::map_lgl(intra_combis, purrr::is_empty))) { # list
     v_out <- list()
   } else if (length(intra_combis) > 1L) {
-    inter_combi <- expand.grid(intra_combis, KEEP.OUT.ATTRS = FALSE)
+    inter_combi <- expand.grid(intra_combis, KEEP.OUT.ATTRS = FALSE, 
+                               stringsAsFactors = FALSE)
 
     nrow <- nrow(inter_combi)
     v_out <- vector("list", nrow)

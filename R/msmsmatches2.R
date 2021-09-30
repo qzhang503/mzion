@@ -45,13 +45,13 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   cache_pars <- find_callarg_vals(time = NULL, 
                                   path = file.path(out_path, "Calls"), 
                                   fun = paste0(fun, ".rda"), 
-                                  args = names(formals(fun))) %>% 
-    .[! . %in% args_except] %>% 
+                                  args = names(formals(fun)) %>% 
+                                    .[! . %in% args_except]) %>% 
     .[sort(names(.))]
   
-  call_pars <- mget(names(formals()), envir = rlang::current_env(), 
+  call_pars <- mget(names(formals()) %>% .[! . %in% args_except], 
+                    envir = rlang::current_env(), 
                     inherits = FALSE) %>% 
-    .[! . %in% args_except] %>% 
     .[sort(names(.))]
   
   if (identical(cache_pars, call_pars)) {
@@ -423,9 +423,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   i_max <- which.max(obj_sizes)
   i_max2 <- paste0("rev_", i_max)
   
-  bin_path <- file.path(.path_fasta, "bin_ms1masses", .time_bin)
-  bin_file <- file.path(bin_path, paste0("binned_theopeps_", i_max, ".rds"))
-  bin_file2 <- file.path(bin_path, paste0("binned_theopeps_", i_max2, ".rds"))
+  .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
+
+  bin_file <- file.path(.path_bin, paste0("binned_theopeps_", i_max, ".rds"))
+  bin_file2 <- file.path(.path_bin, paste0("binned_theopeps_", i_max2, ".rds"))
   
   if (!file.exists(bin_file2)) {
     rev_peps <- readRDS(bin_file) %>% 

@@ -23,7 +23,8 @@ calc_pepmasses2(
   max_miss = 2L,
   out_path = NULL,
   digits = 4L,
-  parallel = TRUE
+  .path_cache = NULL,
+  .path_fasta = NULL
 )
 }
 \arguments{
@@ -82,8 +83,9 @@ be excluded.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 
-\item{parallel}{Logical; if TRUE, performs parallel computation. The default
-is TRUE.}
+\item{.path_cache}{The file path of cached search parameters.}
+
+\item{.path_fasta}{The file path to the theoretical masses of MS1 precursors.}
 }
 \description{
 Generates and Calculates the masses of tryptic peptides from a fasta

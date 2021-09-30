@@ -8,7 +8,8 @@
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
 bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L, 
-                           ppm_ms1 = 20L, is_ms1_three_frame = TRUE) {
+                           ppm_ms1 = 20L, .path_cache = NULL, .path_fasta = NULL, 
+                           is_ms1_three_frame = TRUE) {
 
   old_opts <- options()
   options(warn = 1L)
@@ -17,26 +18,26 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   on.exit(
     if (exists(".savecall", envir = rlang::current_env())) {
       if (.savecall) {
-        save_call2(path = file.path(.path_cache), fun = fun,
-                   time = .time_bin)
+        res <- NULL
+        save_call2(path = file.path(.path_cache, "calc_pepmasses2", .time_stamp), 
+                   fun = fun, time = .time_bin)
       }
-    } else {
-      # warning("terminated abnormally.", call. = TRUE)
     },
     add = TRUE
   )
   
-  # ---
+  ## Initial setups
   fun <- as.character(match.call()[[1]])
   
   if (is_ms1_three_frame) ppm_ms1 <- ppm_ms1 * .5
   
-  # checks the existence of precursor masses (before binning)
-  .path_fasta <- get(".path_fasta", envir = .GlobalEnv)
-  .time_stamp <- get(".time_stamp", envir = .GlobalEnv)
-  .path_mass <- file.path(.path_fasta, "pepmasses", .time_stamp)
+  # checks pre-existed precursor masses
+  .time_stamp <- get(".time_stamp", envir = .GlobalEnv, inherits = FALSE)
+  .path_mass <- file.path(.path_fasta, .time_stamp)
   
-  masses <- list.files(path = .path_mass, pattern = paste0("^pepmasses_", "\\d+\\.rds$"))
+  masses <- list.files(path = .path_mass, 
+                       pattern = paste0("^pepmasses_", "\\d+\\.rds$"))
+  
   len_m <- length(masses)
   
   if (!len_m) {
@@ -44,14 +45,23 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
          file.path(.path_mass, paste0("pepmasses_", "[...].rds")))
   }
   
-  # checks the existence of binned precursor masses
-  .time_bin <- match_calltime(path = .path_cache, fun = fun,
-                              nms = c("min_mass", "max_mass", "ppm_ms1"))
-
+  # checks pre-existed, binned precursor masses
+  .time_bin <- match_calltime(path = file.path(.path_cache, "calc_pepmasses2", .time_stamp), 
+                              fun = fun,
+                              nms = c("min_mass", "max_mass", "ppm_ms1")) 
+  
   # already binned
-  if (length(.time_bin)) {
-    
-    .path_bin <- file.path(.path_fasta, fun, .time_bin)[1]
+  len_bts <- length(.time_bin)
+  
+  if (len_bts > 1L) {
+    stop("More than one cached results found: \n\n", 
+         paste(file.path(.path_fasta, .time_stamp, fun), collapse = "\n"), 
+         "\n\nDelete the caches and start over.", 
+         call. = FALSE)
+  }
+  
+  if (len_bts) {
+    .path_bin <- file.path(.path_fasta, .time_stamp, fun, .time_bin)
     
     bins <- list.files(path = .path_bin, pattern = "binned_theopeps_\\d+\\.rds$")
     len_b <- length(bins)
@@ -61,6 +71,8 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
       
       .savecall <- FALSE
       
+      # no need of global `.time_bin`
+      assign(".path_bin", .path_bin, envir = .GlobalEnv)
       assign(".time_bin", .time_bin, envir = .GlobalEnv)
       
       return(NULL)
@@ -72,7 +84,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   message("Binning MS1 masses...")
   
   .time_bin <- format(Sys.time(), ".%Y-%m-%d_%H%M%S")
-  .path_bin <- create_dir(file.path(.path_fasta, fun, .time_bin))
+  .path_bin <- create_dir(file.path(.path_fasta, .time_stamp, fun, .time_bin))
 
   if (!is.null(res)) {
     # (a) process directly
@@ -194,10 +206,6 @@ binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 500L,
   
   out_dir <- create_dir(gsub("(^.*/).*$", "\\1", out_path))
   out_nm <- paste0(paste0("binned_theopeps_", idx), ".rds")
-  
-  # out_nm <- gsub("^.*/(.*)\\.[^\\.].*$", "\\1", out_path) %>%
-  #   paste(idx, sep = "_") %>%
-  #   paste0(".rds")
   
   res <- attr(res, "data")
   gc()

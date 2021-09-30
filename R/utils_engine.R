@@ -331,7 +331,7 @@ save_call2 <- function(path, fun, time = NULL) {
 #' @import dplyr purrr
 #' @importFrom magrittr %>% %T>% %$%
 find_callarg_val <- function (time = ".2021-05-21_211227",
-                              path = "~/proteoM/.MSearch/Cache/Calls",
+                              path = "~/proteoM/.MSearches/Cache/Calls",
                               fun = "calc_pepmasses2", arg = "fasta") {
 
   stopifnot(length(arg) == 1L)
@@ -361,7 +361,6 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
   }
 
   if (!file.exists(file)) {
-    # waring(file, " not found.", call. = FALSE)
     return(NULL)
   }
 
@@ -369,7 +368,7 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
 
   nots <- which(! args %in% names(call_pars))
 
-  if (length(nots) > 0L) {
+  if (length(nots)) {
     stop("Arguments '", paste(args[nots], collapse = ", "),
          "' not found in the latest call to ", fun, call. = FALSE)
   }
@@ -386,7 +385,7 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
 #' @inheritParams find_callarg_vals
 #' @importFrom rlang caller_env
 #' @return An empty object if no matches.
-match_calltime <- function (path = "~/proteoM/.MSearch/Cache/Calls",
+match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
                             fun = "calc_pepmasses2",
                             nms = c("parallel", "out_path"),
                             type = c(TRUE, FALSE)) {
@@ -396,25 +395,31 @@ match_calltime <- function (path = "~/proteoM/.MSearch/Cache/Calls",
   if (length(type) > 1L) type <- TRUE
 
   # current
-  args <- mget(names(formals(fun)), envir = caller_env(), inherits = FALSE) %>%
-    { if (type) .[names(.) %in% nms] else .[! names(.) %in% nms] }
-
+  if (type) {
+    args <- mget(names(formals(fun)) %>% .[. %in% nms], 
+                 envir = rlang::caller_env(), inherits = FALSE)
+  } else {
+    args <- mget(names(formals(fun)) %>% .[! . %in% nms], 
+                 envir = rlang::caller_env(), inherits = FALSE)
+  }
+  
   if (!length(args)) stop("Arguments for matching is empty.", call. = FALSE)
 
-  args <- args %>% map(sort)
+  args <- lapply(args, sort)
 
   times <- list.files(path = file.path(path, fun),
                       pattern = "\\.rda$",
                       all.files = TRUE)
 
   # cached
-  cached <- map(times, find_callarg_vals, path = path, fun = fun,
-                args = names(args))
+  cached <- lapply(times, find_callarg_vals, path = path, fun = fun,
+                   args = names(args))
 
-  cached <- cached %>% map(~ map(.x, sort))
+  cached <- lapply(cached, function (x) lapply(x, sort))
 
   # matched
-  oks <- map_lgl(cached, identical, args)
+  oks <- lapply(cached, identical, args)
+  oks <- unlist(oks, recursive = FALSE, use.names = FALSE)
 
   times[oks] %>% gsub("\\.rda$", "", .)
 }
@@ -572,7 +577,7 @@ post_ms2match <- function (out, i, aa_masses, out_path) {
 #' @param mgf_frames Data of MGF frames.
 post_frame_adv <- function (res, mgf_frames) {
 
-  res <- res %>% unlist(recursive = FALSE)
+  res <- unlist(res, recursive = FALSE)
 
   empties <- purrr::map_lgl(res, purrr::is_empty)
 
@@ -620,15 +625,10 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
                  msg_end))
 
   # reads theoretical peptide data
-  .path_fasta <- get(".path_fasta", envir = .GlobalEnv)
-  .time_bin <- get(".time_bin", envir = .GlobalEnv)
+  .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
 
-  theopeps <- readRDS(file.path(.path_fasta, "bin_ms1masses", .time_bin,
-                                paste0("binned_theopeps_", i, ".rds")))
-
-  theopeps <- lapply(theopeps, function (x) {
-    x[, c("pep_seq", "mass")]
-  })
+  theopeps <- readRDS(file.path(.path_bin, paste0("binned_theopeps_", i, ".rds")))
+  theopeps <- lapply(theopeps, function (x) x[, c("pep_seq", "mass")])
 
   # purged by neuloss residues
   # (not used)
@@ -907,6 +907,8 @@ equal_sets <- function(x, y) all(x %in% y) && all(y %in% x)
 
 #' Finds the \code{aa_masses} corresponding to the base modification.
 #' 
+#' Not currently used.
+#' 
 #' @param out_path An output path.
 find_base_aamasses_index <- function (out_path) {
   
@@ -919,9 +921,8 @@ find_base_aamasses_index <- function (out_path) {
   vmods_ps <- lapply(aa_masses_all, attr, "vmods_ps")
   vmods <- lapply(vmods_ps, names)
   
-  idx <- lapply(vmods, equal_sets, base_mods)
-  idx <- simplify2array(idx)
+  idxes <- lapply(vmods, equal_sets, base_mods)
+  idxes <- unlist(idxes, recursive = FALSE, use.names = FALSE)
 }
-
 
 

@@ -4,10 +4,10 @@
 #   load_mgfs (mgf.R)
 #   ms2match (msmsmatches2.R)
 #   calc_pepscores (scores.R)
-#   calc_peploc
+#   calc_peploc (scores)
 #   add_prot_acc (quant.R)
 #   calc_protfdr (scores.R)
-#   add_rptrs
+#   add_rptrs (quant.R)
 #   try_psmC2Q
 #     psmC2Q
 #       grp_prots (quant2.R)
@@ -15,14 +15,13 @@
 # ======================================
 # bin_masses.R
 #   - bin_ms1masses
-#     - bin_ms1masses_td
-#       - (i) binTheoSeqs (small dataset)
+#     - (i) binTheoSeqs (small dataset)
+#       - bin_theoseqs (-> export)
+#         - find_ms1_cutpoints (-> export)
+#     - (ii) binTheoSeqs_i (larger dataset; -> export)
+#       - binTheoSeqs2 (-> export)
 #         - bin_theoseqs (-> export)
 #           - find_ms1_cutpoints (-> export)
-#       - (ii) binTheoSeqs_i (larger dataset; -> export)
-#         - binTheoSeqs2 (-> export)
-#           - bin_theoseqs (-> export)
-#             - find_ms1_cutpoints (-> export)
 # 
 # mgf.R
 #   - readMGF
@@ -37,7 +36,7 @@
 #   find_reporter_ints
 # 
 # 
-
+# 
 # ms1_precursors.R: 
 #   - calc_pepmasses2
 #    - find_aa_masses

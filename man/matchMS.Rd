@@ -37,6 +37,8 @@ matchMS(
   target_fdr = 0.01,
   fdr_type = c("psm", "peptide", "protein"),
   combine_tier_three = FALSE,
+  .path_cache = "~/proteoM/.MSearches/Cache/Calls/",
+  .path_fasta = gsub("(.*)\\\\.[^\\\\.]*$", paste0("\\\\1", "/ms1masses"), fasta[1]),
   digits = 4L
 )
 }
@@ -142,6 +144,10 @@ psm}, followed by a data filtration at \code{prot_tier == 1}.}
 the output of \code{psmQ.txt}. Outputs under the option TRUE are often
 comparable to Mascot outputs with FDR controls at the levels of PSMs or
 peptides.}
+
+\item{.path_cache}{The file path of cached search parameters.}
+
+\item{.path_fasta}{The file path to the theoretical masses of MS1 precursors.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }

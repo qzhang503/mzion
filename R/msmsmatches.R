@@ -295,6 +295,8 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #'   the output of \code{psmQ.txt}. Outputs under the option TRUE are often
 #'   comparable to Mascot outputs with FDR controls at the levels of PSMs or
 #'   peptides.
+#' @param .path_cache The file path of cached search parameters.
+#' @param .path_fasta The file path to the theoretical masses of MS1 precursors.
 #' @param digits Integer; the number of decimal places to be used.
 #' @seealso \link{load_fasta2} for setting the values of \code{acc_type} and
 #'   \code{acc_pattern}. \link{parse_unimod} for the grammar of Unimod.
@@ -361,6 +363,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      target_fdr = 0.01,
                      fdr_type = c("psm", "peptide", "protein"),
                      combine_tier_three = FALSE,
+                     .path_cache = "~/proteoM/.MSearches/Cache/Calls/", 
+                     .path_fasta = gsub("(.*)\\.[^\\.]*$", paste0("\\1", "/ms1masses"), 
+                                        fasta[1]), 
                      digits = 4L) {
 
   options(digits = 9L)
@@ -453,6 +458,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
   }
 
   rm(list = c("filelist"))
+  
+  # file path
+  .path_cache <- create_dir(.path_cache)
+  .path_fasta <- create_dir(.path_fasta)
 
   ## Theoretical MS1 masses
   res <- calc_pepmasses2(
@@ -472,11 +481,12 @@ matchMS <- function (out_path = "~/proteoM/outs",
     max_miss = max_miss,
     out_path = out_path,
     digits = digits,
-    parallel = TRUE
+    .path_cache = .path_cache, 
+    .path_fasta = .path_fasta
   )
 
   ## Bin theoretical peptides
-  bin_ms1masses(res, min_mass, max_mass, ppm_ms1)
+  bin_ms1masses(res, min_mass, max_mass, ppm_ms1, .path_cache, .path_fasta)
   rm(list = c("res"))
   gc()
 
@@ -804,135 +814,6 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
 }
 
 
-#' Helper of \link{calc_peploc}.
-#'
-#' Not yet currently used.
-#'
-#' @inheritParams psmC2Q
-#' @importFrom magrittr %>% %T>%
-try_calc_peploc <- function (out = NULL) {
-
-  out <- tryCatch(
-    calc_peploc(out),
-    error = function(e) NA
-  )
-
-  if (is.na(out)) {
-    message("Retry with a new R session: \n\n",
-            "proteoM:::calc_peploc(\n",
-            "  out = \"", file.path(out_path, "scores.rds"), "\" \n",
-            ")")
-
-    fileConn <- file(file.path("~/calc_peploc.R"))
-
-    lines <- c(
-      "library(proteoM)\n",
-      "proteoM:::calc_peploc(",
-      paste0("  out = readRDS(", "\"", file.path(out_path, "scores.rds"), "\"", ")"),
-      ")\n",
-      "unlink(\"~/calc_peploc.R\")"
-    )
-
-    writeLines(lines, fileConn)
-    close(fileConn)
-
-    rstudioapi::restartSession(command='source("~/calc_peploc.R")')
-  }
-
-  invisible(out)
-}
-
-
-#' Calculates the delta scores of `pep_seq`.
-#'
-#' A score delta between the best and the second best.
-#'
-#' There should not be any duplicated rows by the combination of
-#' c("pep_isdecoy", "scan_num", "raw_file", "pep_seq", "pep_ivmod")
-#'
-#' @param x The result from \link{calc_pepscores}.
-#' @rawNamespace import(data.table, except = c(last, first, between, transpose,
-#'   melt, dcast))
-calc_peploc <- function (x) {
-
-  ## memory inefficient
-  # x <- x %>%
-  #   dplyr::mutate(pep_score = round(pep_score, 2)) %>%
-  #   dplyr::filter(!duplicated(.[, c("pep_isdecoy", "scan_num", "raw_file",
-  #                                   "pep_seq", "pep_score")])) %>%
-  #   dplyr::group_by(pep_isdecoy, scan_num, raw_file) %>%
-  #   # does addl' row ordering by pep_isdecoy, scan_num, raw_file
-  #   dplyr::arrange(-pep_score, .by_group = TRUE) %>%
-  #   dplyr::mutate(pep_rank = row_number()) %>%
-  #   dplyr::ungroup() %>%
-  #   dplyr::filter(pep_rank <= 3L)
-  #
-  # gc()
-
-  ## memory more efficient
-  x <- data.table::data.table(x)
-  gc()
-
-  ## keeps the best for ties in each pep_seq (0000500, 0005000) -> top.3
-  ## (`pep_score` as a surrogate for tied `pep_ivmod`)
-
-  # x[ , "pep_score" := round(pep_score, 2)]
-  # x <- x[!duplicated(x[, c("pep_isdecoy", "scan_num", "raw_file", "pep_seq", "pep_score")]), ]
-  # x[order(-pep_score), pep_rank := seq_len(.N), by = list(pep_isdecoy, scan_num, raw_file)]
-  # x <- x[x[, pep_rank <= 3L], ]
-  #
-  # gc()
-
-  # `pep_locprob`
-  x[, "sscore" := sum(pep_score, na.rm = TRUE),
-     by = list(pep_isdecoy, scan_num, raw_file, pep_seq)]
-  gc()
-
-  x[, "pep_locprob" := (pep_score/sscore)]
-  x <- x[, -c("sscore")]
-  gc()
-
-  # `pep_locdiff`
-  # (`pep_rank` within the same `pep_seq` for position isomers)
-  x[, uniq_id := paste(pep_isdecoy, scan_num, raw_file, pep_seq, sep = ".")]
-  x[order(-pep_score), pep_rank := seq_len(.N), by = list(uniq_id)]
-  gc()
-
-  x2 <- x1 <- x
-  x1 <- x1[pep_rank == 1L, ]
-  x2 <- x2[pep_rank == 2L, ]
-  gc()
-
-  delta <- dplyr::left_join(x1[, c("uniq_id", "pep_locprob")],
-                            x2[, c("uniq_id", "pep_locprob")],
-                            by = "uniq_id")
-
-  delta[["pep_locdiff"]] <- delta[["pep_locprob.x"]] - delta[["pep_locprob.y"]]
-  delta <- delta[, c("uniq_id", "pep_locdiff")]
-
-  rm(list = c("x1", "x2"))
-  gc()
-
-  # joining
-  x <- dplyr::left_join(x, delta, by = "uniq_id")
-  x <- x[, -c("uniq_id")]
-
-  rm(list = c("delta"))
-  gc()
-
-  # (new `pep_rank`s across different `pep_seq`s)
-  x[, uniq_id := paste(pep_isdecoy, scan_num, raw_file, sep = ".")]
-  x[order(-pep_score), pep_rank := seq_len(.N), by = list(uniq_id)]
-  x <- x[pep_rank <= 3L, ]
-
-  x[ , "pep_locprob" := round(pep_locprob, 2)]
-  x[ , "pep_locdiff" := round(pep_locdiff, 2)]
-
-  gc()
-
-  invisible(x)
-}
-
 
 #' Reprocessing of \code{psmC.txt}.
 #'
@@ -958,40 +839,6 @@ reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
            combine_tier_three = combine_tier_three)
 
   message("Done.")
-}
-
-
-#' Adds back reporter-ion intensities
-#'
-#' @param df Results from \link{calc_protfdr}.
-#' @inheritParams matchMS
-add_rptrs <- function (df = NULL, quant = "none", out_path = NULL) {
-
-  if (grepl("^tmt[0-9]+$", quant)) {
-    files <- list.files(path = file.path(out_path, "temp"),
-                        pattern = "^reporters_\\d+\\.rds$")
-
-    idxes <- gsub("^reporters_([0-9]+)\\.rds$", "\\1", files) %>%
-      as.integer() %>%
-      order()
-
-    files <- files[idxes]
-
-    reporters <- lapply(files, function (x) {
-      readRDS(file.path(out_path, "temp", x))
-    }) %>%
-      dplyr::bind_rows()
-
-    rm(list = c("idxes", "files"))
-
-    df <- df %>%
-      tidyr::unite(uniq_id, raw_file, pep_mod_group, scan_num, sep = ".",
-                   remove = FALSE) %>%
-      dplyr::left_join(reporters, by = "uniq_id") %>%
-      dplyr::select(-uniq_id)
-  }
-
-  invisible(df)
 }
 
 

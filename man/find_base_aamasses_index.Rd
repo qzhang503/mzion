@@ -10,5 +10,5 @@ find_base_aamasses_index(out_path)
 \item{out_path}{An output path.}
 }
 \description{
-Finds the \code{aa_masses} corresponding to the base modification.
+Not currently used.
 }

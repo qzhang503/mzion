@@ -501,7 +501,8 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
   # ---
   fmods_combi <- aas[idxes]
   names(fmods_combi) <- idxes
-  fnl_combi <- expand.grid(fmods_nl[fmods_combi])
+  fnl_combi <- expand.grid(fmods_nl[fmods_combi], KEEP.OUT.ATTRS = FALSE, 
+                           stringsAsFactors = FALSE)
   
   len <- nrow(fnl_combi)
   

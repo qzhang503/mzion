@@ -758,6 +758,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
 #' 
 #' @param df A results after pep_scores.
 post_pepscores <- function (df) {
+  
   df[["scan_num"]] <- as.numeric(df[["scan_num"]]) # 70 us
   df[["pep_len"]] <- stringr::str_length(df[["pep_seq"]]) # 6 us
   df[["scan_title"]] <- as.character(df[["scan_title"]]) # 69 us
@@ -1264,4 +1265,135 @@ find_ppm_outer_bycombi <- function (theos, expts, ppm_ms2 = 25L) {
   # the first half are b-ions and the second half are y-ions
   list(theo = theos, expt = es)
 }
+
+
+#' Helper of \link{calc_peploc}.
+#'
+#' Not yet currently used.
+#'
+#' @inheritParams psmC2Q
+#' @importFrom magrittr %>% %T>%
+try_calc_peploc <- function (out = NULL) {
+  
+  out <- tryCatch(
+    calc_peploc(out),
+    error = function(e) NA
+  )
+  
+  if (is.na(out)) {
+    message("Retry with a new R session: \n\n",
+            "proteoM:::calc_peploc(\n",
+            "  out = \"", file.path(out_path, "scores.rds"), "\" \n",
+            ")")
+    
+    fileConn <- file(file.path("~/calc_peploc.R"))
+    
+    lines <- c(
+      "library(proteoM)\n",
+      "proteoM:::calc_peploc(",
+      paste0("  out = readRDS(", "\"", file.path(out_path, "scores.rds"), "\"", ")"),
+      ")\n",
+      "unlink(\"~/calc_peploc.R\")"
+    )
+    
+    writeLines(lines, fileConn)
+    close(fileConn)
+    
+    rstudioapi::restartSession(command='source("~/calc_peploc.R")')
+  }
+  
+  invisible(out)
+}
+
+
+#' Calculates the delta scores of `pep_seq`.
+#'
+#' A score delta between the best and the second best.
+#'
+#' There should not be any duplicated rows by the combination of
+#' c("pep_isdecoy", "scan_num", "raw_file", "pep_seq", "pep_ivmod")
+#'
+#' @param x The result from \link{calc_pepscores}.
+#' @rawNamespace import(data.table, except = c(last, first, between, transpose,
+#'   melt, dcast))
+calc_peploc <- function (x) {
+  
+  ## memory inefficient
+  # x <- x %>%
+  #   dplyr::mutate(pep_score = round(pep_score, 2)) %>%
+  #   dplyr::filter(!duplicated(.[, c("pep_isdecoy", "scan_num", "raw_file",
+  #                                   "pep_seq", "pep_score")])) %>%
+  #   dplyr::group_by(pep_isdecoy, scan_num, raw_file) %>%
+  #   # does addl' row ordering by pep_isdecoy, scan_num, raw_file
+  #   dplyr::arrange(-pep_score, .by_group = TRUE) %>%
+  #   dplyr::mutate(pep_rank = row_number()) %>%
+  #   dplyr::ungroup() %>%
+  #   dplyr::filter(pep_rank <= 3L)
+  #
+  # gc()
+  
+  ## memory more efficient
+  x <- data.table::data.table(x)
+  gc()
+  
+  ## keeps the best for ties in each pep_seq (0000500, 0005000) -> top.3
+  ## (`pep_score` as a surrogate for tied `pep_ivmod`)
+  
+  # x[ , "pep_score" := round(pep_score, 2)]
+  # x <- x[!duplicated(x[, c("pep_isdecoy", "scan_num", "raw_file", "pep_seq", "pep_score")]), ]
+  # x[order(-pep_score), pep_rank := seq_len(.N), by = list(pep_isdecoy, scan_num, raw_file)]
+  # x <- x[x[, pep_rank <= 3L], ]
+  #
+  # gc()
+  
+  # `pep_locprob`
+  x[, "sscore" := sum(pep_score, na.rm = TRUE),
+    by = list(pep_isdecoy, scan_num, raw_file, pep_seq)]
+  gc()
+  
+  x[, "pep_locprob" := (pep_score/sscore)]
+  x <- x[, -c("sscore")]
+  gc()
+  
+  # `pep_locdiff`
+  # (`pep_rank` within the same `pep_seq` for position isomers)
+  x[, uniq_id := paste(pep_isdecoy, scan_num, raw_file, pep_seq, sep = ".")]
+  x[order(-pep_score), pep_rank := seq_len(.N), by = list(uniq_id)]
+  gc()
+  
+  x2 <- x1 <- x
+  x1 <- x1[pep_rank == 1L, ]
+  x2 <- x2[pep_rank == 2L, ]
+  gc()
+  
+  delta <- dplyr::left_join(x1[, c("uniq_id", "pep_locprob")],
+                            x2[, c("uniq_id", "pep_locprob")],
+                            by = "uniq_id")
+  
+  delta[["pep_locdiff"]] <- delta[["pep_locprob.x"]] - delta[["pep_locprob.y"]]
+  delta <- delta[, c("uniq_id", "pep_locdiff")]
+  
+  rm(list = c("x1", "x2"))
+  gc()
+  
+  # joining
+  x <- dplyr::left_join(x, delta, by = "uniq_id")
+  x <- x[, -c("uniq_id")]
+  
+  rm(list = c("delta"))
+  gc()
+  
+  # (new `pep_rank`s across different `pep_seq`s)
+  x[, uniq_id := paste(pep_isdecoy, scan_num, raw_file, sep = ".")]
+  x[order(-pep_score), pep_rank := seq_len(.N), by = list(uniq_id)]
+  x <- x[pep_rank <= 3L, ]
+  
+  x[ , "pep_locprob" := round(pep_locprob, 2)]
+  x[ , "pep_locdiff" := round(pep_locdiff, 2)]
+  
+  gc()
+  
+  invisible(x)
+}
+
 

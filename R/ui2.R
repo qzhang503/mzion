@@ -162,7 +162,7 @@ calc_monopep <- function (aa_seq, aa_masses,
   
   # adds terminal mass
   if (grepl("tmod+", type, fixed = TRUE)) {
-    mass <- add_term_mass(aa_masses, mass)
+    mass <- add_term_mass2(aa_masses, mass)
   }
   
   # --- Mass of variable mods and/or NLs ---
@@ -176,7 +176,8 @@ calc_monopep <- function (aa_seq, aa_masses,
   # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
   if (include_insource_nl) {
     if (type %in% c("amods- tmod- vnl- fnl+", "amods- tmod+ vnl- fnl+")) {
-      fnl_combi <- expand.grid(fmods_nl)
+      fnl_combi <- expand.grid(fmods_nl, KEEP.OUT.ATTRS = FALSE, 
+                               stringsAsFactors = FALSE)
       deltas <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
       masses <- round(mass - deltas, digits = digits)
     }

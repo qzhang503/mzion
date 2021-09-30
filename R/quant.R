@@ -69,6 +69,40 @@ calc_tmtint <- function (data = NULL,
 }
 
 
+#' Adds back reporter-ion intensities
+#'
+#' @param df Results from \link{calc_protfdr}.
+#' @inheritParams matchMS
+add_rptrs <- function (df = NULL, quant = "none", out_path = NULL) {
+  
+  if (grepl("^tmt[0-9]+$", quant)) {
+    files <- list.files(path = file.path(out_path, "temp"),
+                        pattern = "^reporters_\\d+\\.rds$")
+    
+    idxes <- gsub("^reporters_([0-9]+)\\.rds$", "\\1", files) %>%
+      as.integer() %>%
+      order()
+    
+    files <- files[idxes]
+    
+    reporters <- lapply(files, function (x) {
+      readRDS(file.path(out_path, "temp", x))
+    }) %>%
+      dplyr::bind_rows()
+    
+    rm(list = c("idxes", "files"))
+    
+    df <- df %>%
+      tidyr::unite(uniq_id, raw_file, pep_mod_group, scan_num, sep = ".",
+                   remove = FALSE) %>%
+      dplyr::left_join(reporters, by = "uniq_id") %>%
+      dplyr::select(-uniq_id)
+  }
+  
+  invisible(df)
+}
+
+
 #' Finds the intensities of reporter-ions.
 #'
 #' @param ms2_moverzs Numeric vector; a series of experimental MS2 m-over-z's
@@ -203,13 +237,13 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs") {
   uniq_peps <- unique(df$pep_seq)
   
   # Targets, theoretical
-  fwd_prps <- readRDS(file.path(.path_fasta, "pepmasses", .time_stamp, 
-                                "prot_pep_annots.rds"))
+  .path_fasta <- get(".path_fasta", envir = .GlobalEnv, inherits = FALSE)
+  
+  fwd_prps <- readRDS(file.path(.path_fasta, .time_stamp, "prot_pep_annots.rds"))
   fwd_prps <- fwd_prps[fwd_prps$pep_seq %in% uniq_peps, ]
   
   # Decoys, theoretical
-  rev_prps <- readRDS(file.path(.path_fasta, "pepmasses", .time_stamp, 
-                                "prot_pep_annots_rev.rds"))
+  rev_prps <- readRDS(file.path(.path_fasta, .time_stamp, "prot_pep_annots_rev.rds"))
   rev_prps <- rev_prps[rev_prps$pep_seq %in% uniq_peps, ]
 
   # Adds `prot_acc` (with decoys being kept)
