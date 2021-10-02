@@ -874,34 +874,6 @@ str_exclude_count <- function (x, char = "-") {
 #' @param x A list of character strings.
 #' @param char A starting character to be removed.
 #' @param n The number of beginning entries to be considered.
-rm_char_in_nfirst <- function (x, char = "^-", n = (max_miss + 1) * 2) {
-  
-  n <- min(length(x), n)
-  x[seq_len(n)] <- gsub(char, "", x[seq_len(n)])
-
-  x
-}
-
-
-#' Remove a trailing character from the last \code{n} entries.
-#'
-#' @param char A trailing character to be removed.
-#' @inheritParams rm_char_in_nfirst
-rm_char_in_nlast <- function (x, char = "-$", n = (max_miss + 1) * 2) {
-  
-  len <- length(x)
-  n <- min(len, n)
-  x[(len - n + 1):len] <- gsub(char, "", x[(len - n + 1):len])
-
-  x
-}
-
-
-#' Remove a starting character from the first \code{n} entries.
-#'
-#' @param x A list of character strings.
-#' @param char A starting character to be removed.
-#' @param n The number of beginning entries to be considered.
 rm_char_in_nfirst2 <- function (x, char = "^-", n = (max_miss + 1L) * 2L) {
   
   nms <- names(x)
@@ -921,7 +893,7 @@ rm_char_in_nfirst2 <- function (x, char = "^-", n = (max_miss + 1L) * 2L) {
 #' Remove a trailing character from the last \code{n} entries.
 #'
 #' @param char A trailing character to be removed.
-#' @inheritParams rm_char_in_nfirst
+#' @inheritParams rm_char_in_nfirst2
 rm_char_in_nlast2 <- function (x, char = "-$", n = (max_miss + 1L) * 2L) {
   
   nms <- names(x)

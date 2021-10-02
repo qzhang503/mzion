@@ -90,8 +90,18 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   # For three-frame searches
   # (matches of secondary ions using `outer` and no adjustments)
   is_ms2_three_frame <- is_ms1_three_frame <- TRUE
-  if (is_ms1_three_frame) ppm_ms1 <- ppm_ms1 * .5
-  if (is_ms2_three_frame) ppm_ms2 <- ppm_ms2 * .5
+
+  if (is_ms1_three_frame) {
+    ppm_ms1_new <- as.integer(ceiling(ppm_ms1 * .5))
+  } else {
+    ppm_ms1_new <- ppm_ms1
+  }
+  
+  if (is_ms2_three_frame) {
+    ppm_ms2_new <- as.integer(ceiling(ppm_ms2 * .5))
+  } else {
+    ppm_ms2_new <- ppm_ms2
+  }
 
   ## Targets 
   obj_sizes <- numeric(length(aa_masses_all))
@@ -140,8 +150,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         maxn_sites_per_vmod = maxn_sites_per_vmod, 
         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
         minn_ms2 = minn_ms2, 
-        ppm_ms1 = ppm_ms1, 
-        ppm_ms2 = ppm_ms2, 
+        ppm_ms1 = ppm_ms1_new, 
+        ppm_ms2 = ppm_ms2_new, 
         min_ms2mass = min_ms2mass, 
         digits = digits)
       
@@ -203,8 +213,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         maxn_sites_per_vmod = maxn_sites_per_vmod, 
         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
         minn_ms2 = minn_ms2, 
-        ppm_ms1 = ppm_ms1, 
-        ppm_ms2 = ppm_ms2, 
+        ppm_ms1 = ppm_ms1_new, 
+        ppm_ms2 = ppm_ms2_new, 
         min_ms2mass = min_ms2mass, 
         digits = digits)
       
@@ -266,8 +276,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         maxn_sites_per_vmod = maxn_sites_per_vmod, 
         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
         minn_ms2 = minn_ms2, 
-        ppm_ms1 = ppm_ms1, 
-        ppm_ms2 = ppm_ms2, 
+        ppm_ms1 = ppm_ms1_new, 
+        ppm_ms2 = ppm_ms2_new, 
         min_ms2mass = min_ms2mass, 
         digits = digits)
       
@@ -331,8 +341,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         maxn_sites_per_vmod = maxn_sites_per_vmod, 
         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
         minn_ms2 = minn_ms2, 
-        ppm_ms1 = ppm_ms1, 
-        ppm_ms2 = ppm_ms2, 
+        ppm_ms1 = ppm_ms1_new, 
+        ppm_ms2 = ppm_ms2_new, 
         min_ms2mass = min_ms2mass, 
         digits = digits)
       
@@ -397,8 +407,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         maxn_sites_per_vmod = maxn_sites_per_vmod, 
         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
         minn_ms2 = minn_ms2, 
-        ppm_ms1 = ppm_ms1, 
-        ppm_ms2 = ppm_ms2, 
+        ppm_ms1 = ppm_ms1_new, 
+        ppm_ms2 = ppm_ms2_new, 
         min_ms2mass = min_ms2mass, 
         digits = digits)
       
@@ -474,8 +484,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       maxn_sites_per_vmod = maxn_sites_per_vmod, 
       maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
       minn_ms2 = minn_ms2, 
-      ppm_ms1 = ppm_ms1, 
-      ppm_ms2 = ppm_ms2, 
+      ppm_ms1 = ppm_ms1_new, 
+      ppm_ms2 = ppm_ms2_new, 
       min_ms2mass = min_ms2mass, 
       digits = digits)
   } else { # (1, 2)
@@ -492,8 +502,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       maxn_sites_per_vmod = maxn_sites_per_vmod, 
       maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
       minn_ms2 = minn_ms2, 
-      ppm_ms1 = ppm_ms1, 
-      ppm_ms2 = ppm_ms2, 
+      ppm_ms1 = ppm_ms1_new, 
+      ppm_ms2 = ppm_ms2_new, 
       min_ms2mass = min_ms2mass, 
       digits = digits)
   }

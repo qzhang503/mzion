@@ -687,6 +687,12 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
   mgf_frames <- mgf_frames[oks]
   theopeps <- theopeps[oks]
 
+  # (5) reverses the order (longer/heavier peptides towards the end)
+  # do the hard ones first when paralleling with LB
+  seqs <- rev(seq_along(theopeps))
+  mgf_frames <- mgf_frames[seqs]
+  theopeps <- theopeps[seqs]
+  
   return(list(mgf_frames = mgf_frames, theopeps = theopeps))
 }
 

@@ -177,13 +177,15 @@ frames_adv_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
   
   ## --- initiation ---
   mgfs_cr <- mgf_frames[[1]]
-  frame <- mgfs_cr[["frame"]][[1]]
-  
-  theos_bf_ms1 <- theopeps[[as.character(frame-1)]]
+  frame <- mgfs_cr$frame[1]
+
+  bf_chr <- as.character(frame-1)
+  theos_bf_ms1 <- theopeps[[bf_chr]]
   theopeps_bf_ms1 <- theos_bf_ms1$pep_seq
   theomasses_bf_ms1 <- theos_bf_ms1$mass
   
-  theos_cr_ms1 <- theopeps[[as.character(frame)]]
+  cr_chr <- as.character(frame)
+  theos_cr_ms1 <- theopeps[[cr_chr]]
   theopeps_cr_ms1 <- theos_cr_ms1$pep_seq
   theomasses_cr_ms1 <- theos_cr_ms1$mass
   
@@ -239,10 +241,11 @@ frames_adv_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
 
   ## --- iteration ---
   for (i in seq_len(len)) {
-    exptmasses_ms1 <- mgfs_cr[["ms1_mass"]]
-    exptmoverzs_ms2 <- mgfs_cr[["ms2_moverz"]]
-    
-    theos_af_ms1 <- theopeps[[as.character(frame+1)]]
+    exptmasses_ms1 <- mgfs_cr$ms1_mass
+    exptmoverzs_ms2 <- mgfs_cr$ms2_moverz
+
+    af_chr <- as.character(frame+1)
+    theos_af_ms1 <- theopeps[[af_chr]]
     theopeps_af_ms1 <- theos_af_ms1$pep_seq
     theomasses_af_ms1 <- theos_af_ms1$mass
     
@@ -312,8 +315,8 @@ frames_adv_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
     }
     
     mgfs_cr <- mgf_frames[[i+1]]
-    new_frame <- mgfs_cr[["frame"]][[1]]
-    
+    new_frame <- mgfs_cr$frame[1]
+
     if (isTRUE(new_frame == (frame+1))) {
       theos_bf_ms1 <- theos_cr_ms1
       # theopeps_bf_ms1 <- theopeps_cr_ms1 
@@ -330,7 +333,8 @@ frames_adv_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
       theomasses_bf_ms1 <- theomasses_af_ms1
       theos_bf_ms2 <- theos_af_ms2
       
-      theos_cr_ms1 <- theopeps[[as.character(new_frame)]]
+      cr_chr <- as.character(new_frame)
+      theos_cr_ms1 <- theopeps[[cr_chr]]
       theopeps_cr_ms1 <- theos_cr_ms1$pep_seq
       theomasses_cr_ms1 <- theos_cr_ms1$mass
       
@@ -359,11 +363,13 @@ frames_adv_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
       )
       names(theos_cr_ms2) <- theopeps_cr_ms1
     } else {
-      theos_bf_ms1 <- theopeps[[as.character(new_frame-1)]]
+      bf_chr <- as.character(new_frame-1)
+      theos_bf_ms1 <- theopeps[[bf_chr]]
       theopeps_bf_ms1 <- theos_bf_ms1$pep_seq
       theomasses_bf_ms1 <- theos_bf_ms1$mass
       
-      theos_cr_ms1 <- theopeps[[as.character(new_frame)]]
+      cr_chr <- as.character(new_frame)
+      theos_cr_ms1 <- theopeps[[cr_chr]]
       theopeps_cr_ms1 <- theos_cr_ms1$pep_seq
       theomasses_cr_ms1 <- theos_cr_ms1$mass
       

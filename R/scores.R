@@ -165,15 +165,16 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   # m - the numbers of theoretical features (white balls)
   # n - the number of noise (black balls)
   
-  m <- length(df[["theo"]])
+  df_theo <- df$theo
+  m <- length(df$theo)
   
   # OK: (N < m) -> (n < 0L)
   # if (N < m) N <- m
   
   ## matches additionally against secondary ions
-  df2 <- add_seions(df[["theo"]], type_ms2ions = type_ms2ions, digits = digits)
+  df2 <- add_seions(df_theo, type_ms2ions = type_ms2ions, digits = digits)
   df2 <- find_ppm_outer_bycombi(df2, expt_moverzs, ppm_ms2) # 132 us
-  df2[["theo"]] <- round(df2[["theo"]], digits = digits) # 4.4 us
+  df2$theo <- round(df2$theo, digits = digits) # 4.4 us
   
   # subtracts `m` and the counts of secondary b0, y0 matches etc. from noise
   # (OK n < 0L)
@@ -254,34 +255,34 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   ## step 4: collapses `int2` to `int`
   #  (mutate(y, int = ifelse(is.na(int2), int, int + int2)))
 
-  y[["int"]] <- y[["int"]] %+% y[["int2"]]
-  y[["int2"]] <- NULL
-  y[["idx"]] <- NULL
+  y$int <- y$int %+% y$int2
+  y$int2 <- NULL
+  y$idx <- NULL
   
   ## step 5: arrange(-int)
   
-  idx <- order(y[["int"]], decreasing = TRUE, method = "radix", na.last = TRUE) # 16.4 us
-  y[["expt"]] <- y[["expt"]][idx]
-  y[["int"]] <- y[["int"]][idx]
-  y[["theo"]] <- y[["theo"]][idx]
+  idx <- order(y$int, decreasing = TRUE, method = "radix", na.last = TRUE) # 16.4 us
+  y$expt <- y$expt[idx]
+  y$int <- y$int[idx]
+  y$theo <- y$theo[idx]
   
   ## step 6: mutate(k = row_number(), x = k - cumsum(is.na(theo)))
   
   k <- 1:topn_ms2ions
-  x <- k - cumsum(is.na(y[["theo"]]))
+  x <- k - cumsum(is.na(y$theo))
   
   y$k <- k
   y$x <- x
   
   ## step 7: filter(!is.na(theo))
   
-  idx <- !is.na(y[["theo"]])
+  idx <- !is.na(y$theo)
   
-  y[["expt"]] <- y[["expt"]][idx]
-  y[["int"]] <- y[["int"]][idx]
-  y[["theo"]] <- y[["theo"]][idx]
-  y[["k"]] <- y[["k"]][idx]
-  y[["x"]] <- y[["x"]][idx]
+  y$expt <- y$expt[idx]
+  y$int <- y$int[idx]
+  y$theo <- y$theo[idx]
+  y$k <- y$k[idx]
+  y$x <- y$x[idx]
   
   ## Probability
   # note: x <= k <= x + n

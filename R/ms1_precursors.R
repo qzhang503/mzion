@@ -112,7 +112,8 @@ calc_pepmasses2 <- function (
 
     if (length(files) != length(aa_masses)) {
       stop("Not all precursor masses were found: ", paste0("\n", files), ".\n",
-           "Remove cache file: ", file.path(.path_cache, .time_stamp),
+           "Remove cache file: \n", file.path(.path_cache, "calc_pepmasses2", 
+                                              paste0(.time_stamp, ".rda")),
            " and try again.",
            call. = FALSE)
     }

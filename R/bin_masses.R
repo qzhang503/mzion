@@ -29,7 +29,11 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   ## Initial setups
   fun <- as.character(match.call()[[1]])
   
-  if (is_ms1_three_frame) ppm_ms1 <- ppm_ms1 * .5
+  if (is_ms1_three_frame) {
+    ppm_ms1_new <- as.integer(ceiling(ppm_ms1 * .5))
+  } else {
+    ppm_ms1_new <- ppm_ms1
+  }
   
   # checks pre-existed precursor masses
   .time_stamp <- get(".time_stamp", envir = .GlobalEnv, inherits = FALSE)
@@ -73,8 +77,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
       
       # no need of global `.time_bin`
       assign(".path_bin", .path_bin, envir = .GlobalEnv)
-      assign(".time_bin", .time_bin, envir = .GlobalEnv)
-      
+
       return(NULL)
     }
   }
@@ -92,7 +95,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
                 res = res,
                 min_mass = min_mass,
                 max_mass = max_mass,
-                ppm_ms1 = ppm_ms1,
+                ppm_ms1 = ppm_ms1_new,
                 out_path = file.path(.path_bin, "binned_theopeps.rds"))
   } else {
     # (b) reload
@@ -140,23 +143,23 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
         FUN = "binTheoSeqs_i", 
         min_mass = min_mass, 
         max_mass = max_mass, 
-        ppm_ms1 = ppm_ms1, 
+        ppm_ms1 = ppm_ms1_new, 
         in_path = .path_mass,
         out_path = .path_bin
       )
       
       parallel::stopCluster(cl)
     } else {
-      lapply(idxes, binTheoSeqs_i, min_mass, max_mass, ppm_ms1, 
+      lapply(idxes, binTheoSeqs_i, min_mass, max_mass, ppm_ms1_new, 
              .path_mass, .path_bin)
     }
   }
   
   .savecall <- TRUE
 
+  # no need of global `.time_bin`
   assign(".path_bin", .path_bin, envir = .GlobalEnv)
-  assign(".time_bin", .time_bin, envir = .GlobalEnv)
-  
+
   invisible(NULL)
 }
 
@@ -182,7 +185,6 @@ binTheoSeqs_i <- function (idx = 1L, min_mass = 500L,max_mass = 6000L,
                min_mass = min_mass,
                max_mass = max_mass,
                ppm_ms1 = ppm_ms1,
-               # out_path = file.path(out_path, "binned_theopeps.rds")
                out_path = out_path)
 }
 

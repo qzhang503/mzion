@@ -14,8 +14,17 @@ load_mgfs <- function (mgf_path, min_mass = 500L, max_mass = 6000L,
                        ppm_ms1 = 20L, ppm_ms2 = 25L, index_ms2 = FALSE, 
                        is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE) {
 
-  if (is_ms1_three_frame) ppm_ms1 <- ppm_ms1 * .5
-  if (is_ms2_three_frame) ppm_ms2 <- ppm_ms2 * .5
+  if (is_ms1_three_frame) {
+    ppm_ms1_new <- as.integer(ceiling(ppm_ms1 * .5))
+  } else {
+    ppm_ms1_new <- ppm_ms1
+  }
+  
+  if (is_ms2_three_frame) {
+    ppm_ms2_new <- as.integer(ceiling(ppm_ms2 * .5))
+  } else {
+    ppm_ms2_new <- ppm_ms2
+  }
   
   rds <- file.path(mgf_path, "mgf_queries.rds")
 
@@ -30,8 +39,8 @@ load_mgfs <- function (mgf_path, min_mass = 500L, max_mass = 6000L,
             min_ms2mass = min_ms2mass,
             topn_ms2ions = topn_ms2ions,
             ret_range = c(0, Inf),
-            ppm_ms1 = ppm_ms1,
-            ppm_ms2 = ppm_ms2,
+            ppm_ms1 = ppm_ms1_new,
+            ppm_ms2 = ppm_ms2_new,
             index_ms2 = index_ms2,
             out_path = rds)
   }
