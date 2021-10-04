@@ -622,7 +622,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                   pep_adjp = p.adjust(pep_prob, "BH"))
   
   prob_cos <- purrr::map_dbl(prob_cos$pep_prob_co, function (x) {
-    row <- abs(log10(out$pep_prob/x)) %>% which.min() 
+    row <- which.min(abs(log10(out$pep_prob/x)))
     out[row, ]$pep_adjp
   }) %>% 
     dplyr::bind_cols(prob_cos, pep_adjp_co = .) %T>% 
@@ -678,7 +678,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   df[["uniq_id"]] <- paste(df[["scan_num"]], df[["raw_file"]], sep = "@")
   
   esscols <- c("ms2_moverz", "ms2_int", "matches", "ms2_n", "uniq_id")
-  df2 <- df[, -which(names(df) %in% esscols)]
+  df2 <- df[, -which(names(df) %in% esscols), drop = FALSE]
   df <- df[, esscols, drop = FALSE]
   
   # otherwise, chunksplit return NULL
@@ -807,19 +807,18 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path) {
   # ---
   count <- nrow(td)
   
-  if (count <= 200L) return(NA)
+  if (count < (1 / target_fdr)) return(NA)
   
   # ---
   rows <- which(td$fdr <= target_fdr) 
   
-  if (length(rows) > 0L) {
+  if (length(rows)) {
     row <- max(rows, na.rm = TRUE)
-    score_co <- td[row, "pep_score"] %>% unlist(use.names = FALSE)
+    score_co <- td$pep_score[row]
     
-    # fittings
-    # (the data range can affect the fitting)
-    df <- data.frame(x = td[["pep_score"]], y = td[["fdr"]]) %>% 
-      { if (target_fdr <= .05) dplyr::filter(., y <= .05) else . }
+    # fittings (the data range may affect the fitting)
+    df <- data.frame(x = td[["pep_score"]], y = td[["fdr"]]) # %>% 
+    #   { if (target_fdr <= .05) dplyr::filter(., y <= .05) else . }
 
     fit <- suppressWarnings(
       tryCatch(
@@ -830,16 +829,18 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path) {
     )
     
     # p <- suppressWarnings(
-    #  ggplot(df, aes(x = x, y = y)) + 
+    #   ggplot(df, aes(x = x, y = y)) + 
     #     geom_point() + 
     #     stat_smooth(method = "nls", formula = y ~ SSlogis(x, Asym, xmid, scal), 
     #                 se = FALSE) + 
-    #     labs(title = paste("pep_len = ", len))
+    #     geom_hline(yintercept = target_fdr, size = .5) + 
+    #     scale_x_continuous(minor_breaks = seq(1, 100, 10)) + 
+    #     labs(title = paste("pep_len = ", len), x = "Score", y = "Prob")
     # )
-
+    # 
     # try(suppressMessages(
-    #     ggsave(filename = file.path(out_path, "temp", paste0("peplen_sco_", len, ".png")))
-    #   ))
+    #   ggsave(filename = file.path(out_path, "temp", paste0("peplen_sco_", len, ".png")))
+    # ))
     
     if (!all(is.na(fit))) {
       newx <- min(df$x, na.rm = TRUE):max(df$x, na.rm = TRUE)
@@ -847,14 +848,16 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path) {
       
       # NA if not existed
       score_co2 <- which(newy <= target_fdr)[1] %>% names() %>% as.numeric()
-      score_co <- min(score_co, score_co2, na.rm = TRUE)
+      best_co <- min(score_co, score_co2, na.rm = TRUE)
       
-      rm(list = c("newx", "newy", "score_co2"))
+      rm(list = c("newx", "newy", "score_co", "score_co2"))
+    } else {
+      best_co <- score_co
     }
     
     rm(list = c("df", "fit"))
     
-    prob_co <- 10^(-score_co/10)
+    prob_co <- 10^(-best_co/10)
     
   } else {
     prob_co <- NA
@@ -863,6 +866,47 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path) {
   names(prob_co) <- count
 
   invisible(prob_co)
+}
+
+
+#' Find the suitable pep_len values for the fitting of probability cut-offs.
+#'
+#' Recursively decrease the value of \code{min_count} by half until some indexes
+#' are found.
+#'
+#' @param all_lens A vector of all possible pep_len values found from data.
+#' @param counts A vector of the counts of sequences at given pep_len values.
+#' @param min_count The minimum counts for consideration in fitting.
+find_optlens <- function (all_lens, counts, min_count = 128L) {
+  
+  idxes <- which(counts >= min_count)
+  
+  if (length(idxes)) {
+    return(all_lens[idxes])
+  } else {
+    find_optlens(all_lens, min_count/2L)
+  }
+}
+
+
+#' Find the pep_len that yields the lowest probability.
+#' 
+#' Closest to 13L; favors smaller "left" if with a "right" tie.
+#' 
+#' @param prob_cos A vector of probability cut-offs.
+#' @param guess An integer of guessed valley.
+find_probco_valley <- function (prob_cos, guess = 13L) {
+  
+  len <- length(prob_cos)
+  
+  if (len == 1L) {
+    ans <- 1L
+  } else {
+    idxes <- as.integer(names(prob_cos))
+    ans <- which.min(abs(idxes - guess))
+  }
+
+  as.integer(names(prob_cos)[ans])
 }
 
 
@@ -876,26 +920,66 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path) {
 #' @param target_fdr Numeric; the levels of false-discovery rate (FDR).
 #' @param fdr_type Character string; the type of FDR for controlling.
 #' @inheritParams matchMS
+#' @examples 
+#' \donttest{
+#' out_path <- "~/proteoM/bi_1"
+#' 
+#' # Reload decoy
+#' rev <- local({
+#'   files <- list.files(path = file.path(out_path, "temp"), 
+#'                       pattern = "^pepscores_rev_\\d+\\.rds$")
+#'   
+#'   if (!length(files)) stop("Decoy scores not found.", call. = FALSE)
+#'   
+#'   nms <- gsub("^pepscores_rev_(\\d+)\\.rds$", "\\1", files)
+#'   
+#'   ord <- order(as.integer(nms))
+#'   nms <- nms[ord]
+#'   files <- files[ord]
+#'   
+#'   out <- lapply(files, function (x) readRDS(file.path(out_path, "temp", x)))
+#'   names(out) <- paste0("rev_", nms)
+#'   
+#'   out
+#' })
+#' 
+#' 
+#' # Reload targets and concatenate decoy
+#' out <- local({
+#'   files <- list.files(path = file.path(out_path, "temp"), 
+#'                       pattern = "^pepscores_\\d+\\.rds$")
+#'   
+#'   if (!length(files)) stop("Target scores not found.", call. = FALSE)
+#'   
+#'   nms <- gsub("^pepscores_(\\d+)\\.rds$", "\\1", files)
+#'   
+#'   ord <- order(as.integer(nms))
+#'   nms <- nms[ord]
+#'   files <- files[ord]
+#'   
+#'   out <- lapply(files, function (x) readRDS(file.path(out_path, "temp", x)))
+#'   names(out) <- nms
+#'   
+#'   out <- c(out, rev)
+#' })
+#' 
+#' prob_cos <- calc_pepfdr(out, 
+#'                         nms = "rev_1", 
+#'                         target_fdr = .01, 
+#'                         fdr_type = "protein", 
+#'                         min_len = 7L, 
+#'                         max_len = 50L, 
+#'                         out_path = "~/proteoM/bi_1")
+#' 
+#' }
 calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm", 
                          min_len = 7L, max_len = 50L, out_path) {
 
-  find_optlens <- function (all_lens, counts, min_count = 2000L) {
-    idxes <- which(counts >= min_count)
-    
-    if (length(idxes)) {
-      return(all_lens[idxes])
-    } else {
-      find_optlens(all_lens, min_count/2L)
-    }
-  }
-  
-  # ---
   if (!is.null(nms)) {
     nms_t <- gsub("^rev_", "", nms)
     
     # keeps the best hit for each `scan_num`
     # (separated bests for targets and decoys)
-    
     out[[nms_t]] <- out[[nms_t]] %>% 
       dplyr::group_by(scan_num, raw_file) %>% 
       dplyr::arrange(pep_prob) %>% 
@@ -911,23 +995,14 @@ calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm",
     td <- out[c(nms_t, nms)]
     
     # decoy sequences may be present in targets
+    td[[nms]] <- purge_decoys(target = td[[nms_t]], decoy = td[[nms]])
     
-    dpeps <- unique(td[[nms]][["pep_seq"]])
-    tpeps <- unique(td[[nms_t]][["pep_seq"]])
-    
-    dpeps <- dpeps %>% 
-      .[! . %in% tpeps]
-    
-    td[[nms]] <- td[[nms]] %>% 
-      dplyr::filter(pep_seq %in% dpeps)
-    
-    rm(list = c("dpeps", "tpeps", "out"))
+    rm(list = c("out"))
     gc()
     
     # ---
     #  keeps the best hit for each `scan_num`
     # (combined best for targets and decoys)
-    
     td <- td %>% 
       dplyr::bind_rows() %>% 
       dplyr::group_by(scan_num, raw_file) %>% 
@@ -941,6 +1016,8 @@ calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm",
       lapply(probco_bypeplen, td, fdr_type, target_fdr, out_path) %>% 
       unlist()
     
+    if (length(prob_cos) == 1L && !is.na(prob_cos)) return(prob_cos)
+    
     if (all(is.na(prob_cos))) {
       newx <- min_len : max_len
       
@@ -953,29 +1030,60 @@ calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm",
     counts <- as.numeric(names(prob_cos))
     names(counts) <- all_lens
     names(prob_cos) <- all_lens
+    prob_cos <- prob_cos[!is.na(prob_cos)]
     
-    lens <- find_optlens(all_lens, counts, 2000L)
+    lens <- find_optlens(all_lens, counts, 128L)
+    
+    # no fittings
+    if (length(lens) <= 3L) return(prob_cos)
+    
+    # quality ones for fittings
     prob_cos <- prob_cos %>% .[names(.) %in% lens]
     counts <- counts %>% .[names(.) %in% lens]
     
-    # ---
-    best_score_co <- prob_cos %>% 
-      .[which_topx(., n = 1L)] %>% 
-      log10() %>% `-`
+    valley <- find_probco_valley(prob_cos)
+    best_score_co <- -log10(prob_cos[as.character(valley)])
     
-    valley <- as.numeric(names(best_score_co))
-    
-    # ---
+    ## fittings
     df <- data.frame(x = as.numeric(names(prob_cos)), y = -log10(prob_cos))
-    fit <- lm(y ~ splines::ns(x, 4), df)
     
-    # ggplot(df, aes(x = x, y = y)) + geom_point() +
+    # valley left
+    df1 <- df[df$x <= valley, ]
+    rank1 <- 4L
+    
+    if (nrow(df1) <= rank1) {
+      fit1 <- lm(y ~ x, df1)
+    } else {
+      fit1 <- lm(y ~ splines::ns(x, rank1), df1)
+    }
+
+    newx1 <- min(df1$x, na.rm = TRUE):max(df1$x, na.rm = TRUE)
+    newy1 <- predict(fit1, data.frame(x = newx1)) %>% `names<-`(newx1)
+    
+    # valley right
+    df2 <- df[df$x > valley, ]
+    rank2 <- 2L
+    
+    if (nrow(df2) > rank2) {
+      fit2 <- lm(y ~ splines::ns(x, rank2), df2)
+      newx2 <- min(df2$x, na.rm = TRUE):max(df2$x, na.rm = TRUE)
+      newy2 <- predict(fit2, data.frame(x = newx2)) %>% `names<-`(newx2)
+    } else {
+      slope <- .28
+      newx2 <- valley:max(df2$x, na.rm = TRUE)
+      newy2 <- best_score_co + slope * (newx2 - valley) %>% `names<-`(newx2)
+      
+      # excludes the valley itself (already in left fitting)
+      newx2 <- newx2[-1]
+      newy2 <- newy2[-1]
+    }
+    
+    # left + right
+    newx <- c(newx1, newx2)
+    newy <- c(newy1, newy2)
+
+    # ggplot2::ggplot(df, aes(x = x, y = y)) + geom_point() +
     #   stat_smooth(method = "lm", formula = y ~ splines::ns(x, 4), se = FALSE)
-    
-    newx <- min_len : max_len
-    newy <- predict(fit, data.frame(x = newx)) %>% 
-      `names<-`(newx)
-    newy[which(names(newy) == valley):length(newy)] <- best_score_co
     
     prob_cos <- 10^-newy
     
@@ -1003,17 +1111,19 @@ calc_protfdr <- function (out, target_fdr = .01) {
   
   nms_t <- gsub("^rev_", "", nms_d)
   
-  out2 <- out %>% 
-    dplyr::filter(pep_mod_group %in% c(nms_t, nms_d), pep_issig)
+  out2 <- dplyr::filter(out, pep_mod_group %in% c(nms_t, nms_d), pep_issig)
 
   # score cut-offs as a function of prot_n_pep
   max_n_pep <- max(out$prot_n_pep, na.rm = TRUE)
   all_n_peps <- unique(out$prot_n_pep)
 
-  # protein enrichment score cut-offs
+  # protein enrichment score cut-offs at each `prot_n_pep`
   score_co <- out2 %>% 
     split(.$prot_n_pep) %>% 
-    purrr::map_dbl(calc_protfdr_i, target_fdr) %>% 
+    purrr::map_dbl(calc_protfdr_i, target_fdr) 
+
+  # fitted score cut-offs
+  score_co <- score_co %>% 
     fit_protfdr(max_n_pep) %>% 
     dplyr::filter(prot_n_pep %in% all_n_peps) %>% 
     dplyr::rename(prot_es_co = prot_score_co)
@@ -1029,6 +1139,7 @@ calc_protfdr <- function (out, target_fdr = .01) {
     dplyr::group_by(prot_acc) %>% 
     dplyr::summarise(prot_es = max(pep_es, na.rm = TRUE))
   
+  # puts together
   out <- out %>% 
     dplyr::left_join(prot_es, by = "prot_acc")
 
@@ -1049,64 +1160,93 @@ calc_protfdr <- function (out, target_fdr = .01) {
 
 #' Helper of \link{calc_protfdr}.
 #' 
-#' The \code{prot_score} are only for a pair of target-decoy and thus not
-#' exported. The offset of \code{base_score} not applied either.
+#' For prot_n_pep at value i.
 #' 
-#' @param td A data frame with paired target-decoys.
+#' @param td A data frame with paired target-decoys at prot_n_pep = i.
 #' @inheritParams calc_pepfdr
+#' @return A score cut-off at a given prot_n_pep.
 calc_protfdr_i <- function (td, target_fdr = .01) {
-
+  
+  options(digits = 9L)
+  
   td <- td %>% 
     dplyr::group_by(prot_acc, pep_seq) %>% 
     dplyr::arrange(-pep_score) %>% 
     dplyr::filter(row_number() == 1L) %>% 
     dplyr::ungroup()
 
-  # no decoys
-  if (sum(td$pep_isdecoy) == 0L) {
-    return(0L)
-  }
+  ## no decoys
+  if (sum(td$pep_isdecoy) == 0L) return(0L)
   
-  # all decoys
+  ## all decoys
   if (sum(!td$pep_isdecoy) == 0L) {
-    if (nrow(td) <= 5L) {
-      return(0L)
-    } else {
-      return(20L)
-    }
+    if (nrow(td) <= 5L) return(0L) else return(20L)
   }
+
+  ## both targets and decoys
+  if (nrow(td) <= 20L) return(1L)
   
-  # both targets and decoys
-  if (nrow(td) <= 20L) {
-    return(1L)
-  }
-  
+  # (NOT to use `local` for hard `return (0L)`)
   prot_scores <- td %>% 
     dplyr::mutate(prot_es = pep_score - pep_score_co) %>% 
     dplyr::group_by(prot_acc) %>% 
-    dplyr::summarise(prot_es = max(prot_es, na.rm = TRUE)) 
+    dplyr::summarise(prot_es = max(prot_es, na.rm = TRUE))
   
+  # no decoys
+  if (!any(grepl("^-", prot_scores$prot_acc))) return (0L)
+  
+  # Multiple dipping of -NP_003310, -NP_597676 with the same set of 
+  #  identifying pep_seqs and identical `prot_es`
+  # 
+  # prot_acc     prot_es
+  # <chr>          <dbl>
+  # 1 -NP_003310      43.1
+  # 2 -NP_597676      43.1
+  # 3 -NP_597681      43.1
+  # 4 NP_001004067    96.3
+  #
+  # Not yet to parse out same-set, sub-set proteins. For simplicity and performance, 
+  # keep one unique `prot_es` (by roughly assuming `prot_es` is an indicator for 
+  # the redundancy). 
+
+  prot_scores <- prot_scores %>% 
+    dplyr::mutate(prot_es = round(prot_es, digits = 5L)) %>% 
+    dplyr::filter(!duplicated(prot_es))
+  
+  # Removes the last three in case only one or two decoy spikes near the end 
+  # the list 
+  # 
+  # prot_acc      prot_es
+  # <chr>           <dbl>
+  # NP_001028448     53.4
+  # -NP_001157012    54.4
+  # NP_077772        62.7
+
+  prot_scores <- prot_scores %>% 
+    dplyr::arrange(prot_es) %>% 
+    dplyr::filter(row_number() > 3L)
+
+  # no decoys
+  if (!any(grepl("^-", prot_scores$prot_acc))) return (0L)
+
+  # both targets and decoys
   td <- td %>% 
-    dplyr::left_join(prot_scores, by = "prot_acc") %>% 
+    dplyr::right_join(prot_scores, by = "prot_acc") %>% 
     dplyr::arrange(-prot_es) %>% 
     dplyr::mutate(total = row_number()) %>% 
     dplyr::mutate(decoy = cumsum(pep_isdecoy)) %>% 
     dplyr::mutate(fdr = decoy/total)
-
+  
   rm(list = "prot_scores")
   
   rows <- which(td$fdr <= target_fdr)
-  if (length(rows)) {
-    row <- max(rows, na.rm = TRUE)
-  } else {
-    row <- -Inf
-  }
+  row <- if (length(rows)) max(rows, na.rm = TRUE) else -Inf
 
   if (row == -Inf) {
     score_co <- 0L
     score_co2 <- score_co
   } else {
-    score_co <- td[row, ]$prot_es
+    score_co <- td$prot_es[row]
 
     score_co2 <- local({
       df <- data.frame(x = td[["prot_es"]], y = td[["fdr"]])
@@ -1128,14 +1268,17 @@ calc_protfdr_i <- function (td, target_fdr = .01) {
       } else {
         min_score <- min(df$x, na.rm = TRUE)
         max_score <- max(df$x, na.rm = TRUE)
-        newx <- min_score : max_score
-        newy <- predict(fit, data.frame(x = newx)) %>% `names<-`(newx)
+        newx <- min_score:max_score
+        newy <- predict(fit, data.frame(x = newx)) %>% 
+          `names<-`(newx)
         
         # NA if not existed
-        score_co2 <- which(newy <= target_fdr)[1] %>% names() %>% as.numeric()
+        score_co2 <- which(newy <= target_fdr)[1] %>% 
+          names() %>% 
+          as.numeric()
       }
 
-      invisible(score_co2)
+      score_co2
     })
   }
   
@@ -1143,13 +1286,13 @@ calc_protfdr_i <- function (td, target_fdr = .01) {
 }
 
 
-#' Fits the cut-offs of protein scores.
+#' Fits the raw cut-offs of protein scores.
 #'
 #' Assumed a sigmoidal function.
 #'
-#' @param vec Named numeric vector. The values are the score cut-offs from
-#'   \link{calc_protfdr}. The names correspond to the number of peptides being
-#'   identified.
+#' @param vec Named numeric vector. The values are the score cut-offs as a
+#'   function of \code{prot_n_pep}. The names correspond to the number of
+#'   peptides being identified.
 #' @param max_n_pep Integer; the maximum value of \code{prot_n_pep} for
 #'   prediction.
 fit_protfdr <- function (vec, max_n_pep = 1000L) {
@@ -1197,12 +1340,21 @@ fit_protfdr <- function (vec, max_n_pep = 1000L) {
     }
   }
   
-  # ---
+  # ggplot(df, aes(x = x, y = y)) + 
+  #   geom_point() + 
+  #   stat_smooth(method='nls',formula = y ~ f(x, m, s, a), se = FALSE, 
+  #               method.args = list(algorithm = "port", 
+  #                                  start = c(m = elbow, s = .5,a = amp))) + 
+  #   labs(title = "Protein score cut-offs", x = "prot_n_pep", y = "Score")
+  
+  
+  # --- Outputs
   newx <- seq(1, max_n_pep, by = 1)
   
   out <- data.frame(
     prot_n_pep = newx, 
-    prot_score_co = predict(fit, data.frame(x = newx)))
+    prot_score_co = predict(fit, data.frame(x = newx))) %>% 
+    dplyr::mutate(prot_score_co = ifelse(prot_n_pep >= elbow, 0, prot_score_co))
 
   invisible(out)
 }

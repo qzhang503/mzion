@@ -459,7 +459,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   rm(list = c("filelist"))
   
-  # file path
+  # file paths
   .path_cache <- create_dir(.path_cache)
   .path_fasta <- create_dir(.path_fasta)
 
@@ -486,7 +486,13 @@ matchMS <- function (out_path = "~/proteoM/outs",
   )
 
   ## Bin theoretical peptides
-  bin_ms1masses(res, min_mass, max_mass, ppm_ms1, .path_cache, .path_fasta)
+  bin_ms1masses(res = res, 
+                min_mass = min_mass, 
+                max_mass = max_mass, 
+                ppm_ms1 = ppm_ms1, 
+                .path_cache = .path_cache, 
+                .path_fasta = .path_fasta)
+  
   rm(list = c("res"))
   gc()
 
@@ -559,8 +565,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   gc()
 
-  ## Protein accessions; Protein score cut-offs and
-  #  optional reporter ions
+  ## Protein accessions, score cut-offs and optional reporter ions
   out <- add_prot_acc(out, out_path)
   out <- calc_protfdr(out, target_fdr)
   out <- add_rptrs(out, quant, out_path)
@@ -953,32 +958,6 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
   }
 
   invisible(out)
-}
-
-
-#' Subsets the frames of theoretical peptides.
-#' 
-#' @param mgf_frames MGFs in frames. Each frame contains one to multiple MGFs
-#'   whose MS1 masses are in the same interval.
-#' @param theopeps Binned theoretical peptides at a given combination of fixed
-#'   and variable.
-subset_theoframes <- function (mgf_frames = NULL, theopeps = NULL) {
-
-  if (!(length(mgf_frames) && length(theopeps))) {
-    return(NULL)
-  }
-
-  frames <- as.integer(names(mgf_frames))
-  breaks <- which(diff(frames) != 1L) + 1L
-  grps <- findInterval(frames, frames[breaks])
-  frames <- split(frames, grps)
-
-  frames <- frames %>%
-    lapply(function (x) c(x[1] - 1, x, x[length(x)] + 1)) %>%
-    unlist(use.names = FALSE) %>%
-    .[!duplicated(.)]
-
-  theopeps[as.character(frames)]
 }
 
 

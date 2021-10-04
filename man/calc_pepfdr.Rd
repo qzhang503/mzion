@@ -35,3 +35,56 @@ be excluded.}
 Needs \code{min_len} and \code{max_len} since the target-decoy pair may not
 cover all \code{pep_len} values.
 }
+\examples{
+\donttest{
+out_path <- "~/proteoM/bi_1"
+
+# Reload decoy
+rev <- local({
+  files <- list.files(path = file.path(out_path, "temp"), 
+                      pattern = "^pepscores_rev_\\\\d+\\\\.rds$")
+  
+  if (!length(files)) stop("Decoy scores not found.", call. = FALSE)
+  
+  nms <- gsub("^pepscores_rev_(\\\\d+)\\\\.rds$", "\\\\1", files)
+  
+  ord <- order(as.integer(nms))
+  nms <- nms[ord]
+  files <- files[ord]
+  
+  out <- lapply(files, function (x) readRDS(file.path(out_path, "temp", x)))
+  names(out) <- paste0("rev_", nms)
+  
+  out
+})
+
+
+# Reload targets and concatenate decoy
+out <- local({
+  files <- list.files(path = file.path(out_path, "temp"), 
+                      pattern = "^pepscores_\\\\d+\\\\.rds$")
+  
+  if (!length(files)) stop("Target scores not found.", call. = FALSE)
+  
+  nms <- gsub("^pepscores_(\\\\d+)\\\\.rds$", "\\\\1", files)
+  
+  ord <- order(as.integer(nms))
+  nms <- nms[ord]
+  files <- files[ord]
+  
+  out <- lapply(files, function (x) readRDS(file.path(out_path, "temp", x)))
+  names(out) <- nms
+  
+  out <- c(out, rev)
+})
+
+prob_cos <- calc_pepfdr(out, 
+                        nms = "rev_1", 
+                        target_fdr = .01, 
+                        fdr_type = "protein", 
+                        min_len = 7L, 
+                        max_len = 50L, 
+                        out_path = "~/proteoM/bi_1")
+
+}
+}

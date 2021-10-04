@@ -245,7 +245,8 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs") {
   # Decoys, theoretical
   rev_prps <- readRDS(file.path(.path_fasta, .time_stamp, "prot_pep_annots_rev.rds"))
   rev_prps <- rev_prps[rev_prps$pep_seq %in% uniq_peps, ]
-
+  rev_prps <- purge_decoys(target = fwd_prps, decoy = rev_prps)
+  
   # Adds `prot_acc` (with decoys being kept)
   out <- dplyr::bind_rows(fwd_prps, rev_prps) %>%
     dplyr::right_join(df, by = "pep_seq")

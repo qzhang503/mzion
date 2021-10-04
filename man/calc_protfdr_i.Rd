@@ -7,11 +7,13 @@
 calc_protfdr_i(td, target_fdr = 0.01)
 }
 \arguments{
-\item{td}{A data frame with paired target-decoys.}
+\item{td}{A data frame with paired target-decoys at prot_n_pep = i.}
 
 \item{target_fdr}{Numeric; the levels of false-discovery rate (FDR).}
 }
+\value{
+A score cut-off at a given prot_n_pep.
+}
 \description{
-The \code{prot_score} are only for a pair of target-decoy and thus not
-exported. The offset of \code{base_score} not applied either.
+For prot_n_pep at value i.
 }

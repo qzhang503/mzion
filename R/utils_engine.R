@@ -697,6 +697,31 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 }
 
 
+#' Subsets the frames of theoretical peptides.
+#' 
+#' @param mgf_frames MGFs in frames. Each frame contains one to multiple MGFs
+#'   whose MS1 masses are in the same interval.
+#' @param theopeps Binned theoretical peptides at a given combination of fixed
+#'   and variable.
+subset_theoframes <- function (mgf_frames = NULL, theopeps = NULL) {
+  
+  if (!(length(mgf_frames) && length(theopeps))) {
+    return(NULL)
+  }
+  
+  frames <- as.integer(names(mgf_frames))
+  breaks <- which(diff(frames) != 1L) + 1L
+  grps <- findInterval(frames, frames[breaks])
+  frames <- split(frames, grps)
+  
+  frames <- lapply(frames, function (x) c(x[1] - 1, x, x[length(x)] + 1))
+  frames <- unlist(frames, recursive = FALSE, use.names = FALSE)
+  frames <- frames[!duplicated(frames)]
+  
+  theopeps[as.character(frames)]
+}
+
+
 #' Subsets theoretical peptides.
 #'
 #' Only entries containing the site of neuloss will be kept.
@@ -707,7 +732,8 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 sub_neuloss_peps <- function (pattern, theopeps) {
 
   rows <- lapply(theopeps, function (x) grepl(pattern, x$pep_seq))
-  purrr::map2(theopeps, rows, ~ .x[.y, ])
+  # purrr::map2(theopeps, rows, function (x, y) x[y, ])
+  mapply(function (x, y) x[y, ], theopeps, rows, SIMPLIFY = FALSE, USE.NAMES = FALSE)
 }
 
 
@@ -931,4 +957,32 @@ find_base_aamasses_index <- function (out_path) {
   idxes <- unlist(idxes, recursive = FALSE, use.names = FALSE)
 }
 
+
+#' Purges decoy pep_seq(s) that are also found in target fasta.
+#' 
+#' Decoy sequences may be present in targets and thus removed.
+#' 
+#' @param A target data frame with column \code{pep_seq}.
+#' @param A decoy data frame with column \code{pep_seq}.
+purge_decoys <- function (target, decoy) {
+  
+  ## found in both forward and reverse fastas
+  # pep_seq  prot_acc
+  # RQEEELR NP_064522
+  # RQEEELR NP_997555
+  # RQEEELR NP_997553
+  # 
+  # pep_seq      prot_acc
+  # RQEEELR -NP_001073379
+  # RQEEELR -NP_001157031
+  # RQEEELR    -NP_796085
+  # RQEEELR    -NP_083410
+  
+  tpeps <- unique(target$pep_seq)
+  dpeps <- unique(decoy$pep_seq)
+  
+  oks <- dpeps[! dpeps %in% tpeps]
+  
+  dplyr::filter(decoy, pep_seq %in% oks)
+}
 

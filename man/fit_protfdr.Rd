@@ -2,14 +2,14 @@
 % Please edit documentation in R/scores.R
 \name{fit_protfdr}
 \alias{fit_protfdr}
-\title{Fits the cut-offs of protein scores.}
+\title{Fits the raw cut-offs of protein scores.}
 \usage{
 fit_protfdr(vec, max_n_pep = 1000L)
 }
 \arguments{
-\item{vec}{Named numeric vector. The values are the score cut-offs from
-\link{calc_protfdr}. The names correspond to the number of peptides being
-identified.}
+\item{vec}{Named numeric vector. The values are the score cut-offs as a
+function of \code{prot_n_pep}. The names correspond to the number of
+peptides being identified.}
 
 \item{max_n_pep}{Integer; the maximum value of \code{prot_n_pep} for
 prediction.}
