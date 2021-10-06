@@ -541,25 +541,17 @@ matchMS <- function (out_path = "~/proteoM/outs",
            digits = digits)
 
   ## Peptide scores
-  if (file.exists(file.path(out_path, "scores.rds"))) {
-    message("Found cached peptide scores.")
-    out <- readRDS(file.path(out_path, "scores.rds"))
-  } else {
-    out <- calc_pepscores(topn_ms2ions = topn_ms2ions,
-                          type_ms2ions = type_ms2ions,
-                          target_fdr = target_fdr,
-                          fdr_type = fdr_type,
-                          min_len = min_len,
-                          max_len = max_len,
-                          penalize_sions = TRUE,
-                          ppm_ms2 = ppm_ms2,
-                          out_path = out_path,
-                          digits = digits) %T>%
-      saveRDS(file.path(out_path, "scores.rds"))
-
-    gc()
-  }
-
+  out <- calc_pepscores(topn_ms2ions = topn_ms2ions,
+                        type_ms2ions = type_ms2ions,
+                        target_fdr = target_fdr,
+                        fdr_type = fdr_type,
+                        min_len = min_len,
+                        max_len = max_len,
+                        penalize_sions = TRUE,
+                        ppm_ms2 = ppm_ms2,
+                        out_path = out_path,
+                        digits = digits)
+  
   ## Peptide ranks and score deltas between `pep_ivmod`
   out <- calc_peploc(out)
 

@@ -12,5 +12,5 @@ find_probco_valley(prob_cos, guess = 13L)
 \item{guess}{An integer of guessed valley.}
 }
 \description{
-Find the pep_len that yields the lowest probability.
+Closest to 13L; favors smaller "left" if with a "right" tie.
 }
