@@ -15,6 +15,7 @@ matchMS(
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
+  exclude_phospho_nl = TRUE,
   enzyme = c("trypsin"),
   maxn_fasta_seqs = 200000L,
   maxn_vmods_setscombi = 64L,
@@ -76,6 +77,9 @@ adding back precursor masses) have not yet taken into account in MS2 ion
 searches. A more systemically approach such as \code{open} MS1 masses might
 be developed in the future.}
 
+\item{exclude_phospho_nl}{If TRUE, excludes neutral losses in the MS2 ion
+searches against variable modifications of phospho sites.}
+
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from proteins. The enzyme
 is currently \code{trypsin}.}
@@ -83,8 +87,8 @@ is currently \code{trypsin}.}
 \item{maxn_fasta_seqs}{Integer; the maximum number of protein sequences in
 fasta files.}
 
-\item{maxn_vmods_setscombi}{Integer; the maximum number of combinatorial variable
-modifications and neutral losses.}
+\item{maxn_vmods_setscombi}{Integer; the maximum number of combinatorial
+variable modifications and neutral losses.}
 
 \item{maxn_vmods_per_pep}{The maximum number of variable modifications per
 peptide.}
@@ -114,8 +118,8 @@ be excluded.}
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
 
-\item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
-MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
+\item{topn_ms2ions}{A non-negative integer; the top-n species for uses in MS2
+ion searches. The default is to use the top-100 ions in an MS2 event.}
 
 \item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
 a hit.}

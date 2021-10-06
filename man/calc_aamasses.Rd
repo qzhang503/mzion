@@ -11,6 +11,7 @@ calc_aamasses(
   maxn_vmods_setscombi = 64,
   add_varmasses = TRUE,
   add_nlmasses = TRUE,
+  exclude_phospho_nl = TRUE,
   out_path = NULL
 )
 }

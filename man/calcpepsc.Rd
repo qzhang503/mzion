@@ -17,8 +17,8 @@ calcpepsc(
 \arguments{
 \item{file}{A file name of \code{ion_matches_}.}
 
-\item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
-MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
+\item{topn_ms2ions}{A non-negative integer; the top-n species for uses in MS2
+ion searches. The default is to use the top-100 ions in an MS2 event.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2

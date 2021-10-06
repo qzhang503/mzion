@@ -91,8 +91,8 @@ will be automated when \code{acc_type} are among c("uniprot_acc",
 "uniprot_id", "refseq_acc", "other"). See also \link{load_fasta2} for
 custom examples.}
 
-\item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
-MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
+\item{topn_ms2ions}{A non-negative integer; the top-n species for uses in MS2
+ion searches. The default is to use the top-100 ions in an MS2 event.}
 
 \item{fixedmods}{A character vector of fixed modifications. See also
 \link{parse_unimod} for grammars.}
@@ -114,8 +114,8 @@ is currently \code{trypsin}.}
 \item{maxn_fasta_seqs}{Integer; the maximum number of protein sequences in
 fasta files.}
 
-\item{maxn_vmods_setscombi}{Integer; the maximum number of combinatorial variable
-modifications and neutral losses.}
+\item{maxn_vmods_setscombi}{Integer; the maximum number of combinatorial
+variable modifications and neutral losses.}
 
 \item{min_len}{Integer; the minimum length of peptides. Shorter peptides will
 be excluded.}

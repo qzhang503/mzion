@@ -64,6 +64,7 @@ calc_pepmasses2 <- function (
               "Deamidated (N)",
               "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
+  exclude_phospho_nl = TRUE,
   enzyme = c("trypsin"),
   maxn_fasta_seqs = 50000L,
   maxn_vmods_setscombi = 64L,
@@ -135,7 +136,8 @@ calc_pepmasses2 <- function (
     aa_masses <- find_aa_masses(out_path = out_path,
                                 fixedmods = fixedmods,
                                 varmods = varmods,
-                                maxn_vmods_setscombi = maxn_vmods_setscombi)
+                                maxn_vmods_setscombi = maxn_vmods_setscombi, 
+                                exclude_phospho_nl = exclude_phospho_nl)
 
     # just the first one; nothing special
     # used for base masses; not involve terminal and anywhere masses
@@ -416,7 +418,8 @@ calc_pepmasses2 <- function (
 #'
 #' @inheritParams calc_pepmasses2
 find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
-                            maxn_vmods_setscombi = 64L) {
+                            maxn_vmods_setscombi = 64L, 
+                            exclude_phospho_nl = TRUE) {
 
   if (!file.exists(file.path(out_path, "temp", "aa_masses_all.rds"))) {
     message("Computing the combinations of fixed and variable modifications.")
@@ -430,6 +433,7 @@ find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
                                maxn_vmods_setscombi = maxn_vmods_setscombi,
                                add_varmasses = FALSE,
                                add_nlmasses = FALSE, 
+                               exclude_phospho_nl = exclude_phospho_nl, 
                                out_path = out_path) %T>%
       saveRDS(file.path(out_path, "temp", "aa_masses_all.rds"))
   } else {
@@ -625,6 +629,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
                            maxn_vmods_setscombi = 64,
                            add_varmasses = TRUE,
                            add_nlmasses = TRUE, 
+                           exclude_phospho_nl = TRUE, 
                            out_path = NULL) {
 
   # title (position = site);
@@ -763,7 +768,8 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
   aa_masses_fi2 <- add_fixvar_masses(mods = fixedmods,
                                      mod_type = "fmods",
                                      aa_masses = aa_masses,
-                                     add_varmasses = add_varmasses)
+                                     add_varmasses = add_varmasses, 
+                                     exclude_phospho_nl = FALSE)
 
   aa_masses_fi2 <- aa_masses_fi2 %>%
     purrr::map(~ {
@@ -851,7 +857,8 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
       purrr::map(~ add_fixvar_masses(mods = varmods_i,
                                      mod_type = "vmods",
                                      aa_masses = .x,
-                                     add_varmasses = add_varmasses)) %>%
+                                     add_varmasses = add_varmasses, 
+                                     exclude_phospho_nl = exclude_phospho_nl)) %>%
       purrr::flatten()
   }, aa_masses_fi2) %>%
     purrr::flatten()
@@ -1005,7 +1012,8 @@ check_anywhere_fmods_coercion <- function (site, aa_masses_all, vmods_ps) {
 #'   "rolling sum + fallthrough".
 #' @return Lists of of amino-acid residues with modified mono-isotopic masses
 #'   being incorporated.
-add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE) {
+add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE, 
+                               exclude_phospho_nl = TRUE) {
 
   stopifnot(mod_type %in% c("fmods", "vmods"),
             length(mod_type) == 1L)
@@ -1025,6 +1033,19 @@ add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE) 
   neulosses <- lapply(res, `[[`, 3)
   rm(res)
 
+  neulosses <- local({
+    if (exclude_phospho_nl) {
+      phos <- grepl("^Phospho ", names(neulosses))
+      
+      # the first is `0` since values were sorted during `find_unimod`
+      if (any(phos)) {
+        neulosses[phos] <- lapply(neulosses[phos], `[[`, 1)
+      }
+    }
+    
+    neulosses
+  })
+  
   # the same `site` with different fixedmods
   local({
     if (mod_type == "fmods" && length(positions_sites) > 1L) {

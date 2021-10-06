@@ -241,6 +241,8 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #' @param fixedmods A character vector of fixed modifications. See also
 #'   \link{parse_unimod} for grammars.
 #' @param varmods A character vector of variable modifications.
+#' @param exclude_phospho_nl If TRUE, excludes neutral losses in the MS2 ion
+#'   searches against variable modifications of phospho sites.
 #' @param include_insource_nl Logical Logical; if TRUE, includes MS1 precursor
 #'   masses with the losses of neutral species prior to MS2 fragmentation. The
 #'   default is FALSE. The setting at TRUE remains experimenting by allowing
@@ -253,8 +255,8 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #'   is currently \code{trypsin}.
 #' @param maxn_fasta_seqs Integer; the maximum number of protein sequences in
 #'   fasta files.
-#' @param maxn_vmods_setscombi Integer; the maximum number of combinatorial variable
-#'   modifications and neutral losses.
+#' @param maxn_vmods_setscombi Integer; the maximum number of combinatorial
+#'   variable modifications and neutral losses.
 #' @param maxn_vmods_per_pep The maximum number of variable modifications per
 #'   peptide.
 #' @param maxn_sites_per_vmod Integer; the maximum number of combinatorial
@@ -273,8 +275,8 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #'   \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 #'   ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 #'   and y-ions.
-#' @param topn_ms2ions A non-negative integer; the top-n species for uses in
-#'   MS2 ion searches. The default is to use the top-100 ions in an MS2 event.
+#' @param topn_ms2ions A non-negative integer; the top-n species for uses in MS2
+#'   ion searches. The default is to use the top-100 ions in an MS2 event.
 #' @param minn_ms2 Integer; the minimum number of MS2 ions for consideration as
 #'   a hit.
 #' @param ppm_ms1 The mass tolerance of MS1 species.
@@ -347,6 +349,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                                  "Oxidation (M)", "Deamidated (N)",
                                  "Gln->pyro-Glu (N-term = Q)"),
                      include_insource_nl = FALSE,
+                     exclude_phospho_nl = TRUE, 
                      enzyme = c("trypsin"),
                      maxn_fasta_seqs = 200000L,
                      maxn_vmods_setscombi = 64L,
@@ -471,6 +474,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
     fixedmods = fixedmods,
     varmods = varmods,
     include_insource_nl = include_insource_nl,
+    exclude_phospho_nl = exclude_phospho_nl, 
     enzyme = enzyme,
     maxn_fasta_seqs = maxn_fasta_seqs,
     maxn_vmods_setscombi = maxn_vmods_setscombi,

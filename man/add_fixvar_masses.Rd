@@ -4,7 +4,13 @@
 \alias{add_fixvar_masses}
 \title{Helper to add modification masses to amino-acid residues.}
 \usage{
-add_fixvar_masses(mods, mod_type, aa_masses, add_varmasses = TRUE)
+add_fixvar_masses(
+  mods,
+  mod_type,
+  aa_masses,
+  add_varmasses = TRUE,
+  exclude_phospho_nl = TRUE
+)
 }
 \arguments{
 \item{mods}{A list of modifications.}

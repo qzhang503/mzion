@@ -787,6 +787,7 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)") {
         purrr::map(`[`, "mono_mass") %>%
         `[`(!is.na(.)) %>%
         as.numeric() %>%
+        sort() %>% # ensures the first is 0
         setNames(paste("nl", 1:length(.), sep = "."))
     }) %>%
       setNames(rep("nl", length(.)))

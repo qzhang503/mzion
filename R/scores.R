@@ -1506,18 +1506,21 @@ calc_peploc <- function (x) {
   #
   # gc()
   
-  # uniq_id --- across different locations under the same pep_seq
-  # uniq_id2 --- the same uniq_id but different NLs
-  # rank2 --- within NLs by uniq_id + pep_ivmod2
-  # rank --- across uniq_id 
+  # uniq_id --- across different mod locations under the same *pep_seq*
+  # uniq_id2 --- the same *uniq_id (~ pep_seq_mod)* but different NLs
+  # uniq_id3 --- the same *query* across pep_seqs
+  # 
+  # pep_rank2 --- within NLs by uniq_id + pep_ivmod2
+  # pep_rank --- across uniq_ids
+  # pep_rank at output --- the query across pep_seqs
   
-  # keeps the best score across different NLs under the same `uniq_id2`
+  # separates the best score across different NLs under the same `uniq_id2`
+  # (`x0` corresponds to the best NL under each `uniq_id2`)
   x[, uniq_id := paste(pep_isdecoy, scan_num, raw_file, pep_seq, sep = ".")]
   x[, "pep_ivmod2" := gsub(" [\\(\\[]\\d+[\\)\\[]$", "", pep_ivmod)]
   x[, uniq_id2 := paste(uniq_id, pep_ivmod2, sep = ".")]
   x[order(-pep_score), pep_rank2 := seq_len(.N), by = list(uniq_id2)]
   
-  # `x0` corresponds to the best NL under each `uniq_id2`
   x0 <- x[x$pep_rank2 == 1L, ] 
   y0 <- x[x$pep_rank2 > 1L, ]
   
@@ -1527,10 +1530,12 @@ calc_peploc <- function (x) {
   rm(list = c("x"))
   gc()
   
-  # keep the top-3 LOCATIONS under each `uniq_id`
-  # (the pep_rank here if after the "collapse" of NLs)
+  # keep the top-3 mod LOCATIONS under each `uniq_id`
+  # (the pep_rank here if after the "collapse" of NLs;
+  # net effect: best NLs -> top-3 mod)
+  topn_mods <- 3L
   x0[order(-pep_score), pep_rank := seq_len(.N), by = list(uniq_id)]
-  x0 <- x0[pep_rank <= 3L, ]
+  x0 <- x0[pep_rank <= topn_mods, ]
   
   # `pep_locprob`
   x0[, "sscore" := sum(pep_score, na.rm = TRUE), by = list(uniq_id)]
@@ -1555,28 +1560,35 @@ calc_peploc <- function (x) {
   rm(list = c("x1", "x2"))
   gc()
   
-  # joining
+  # joins `delta`
   x0 <- dplyr::left_join(x0, delta, by = "uniq_id")
   
   rm(list = c("delta"))
   gc()
   
-  # 1. some NA pep_ranks in y0 (inferior ones at ranks > 3 without matches in x0)
-  # 2. NLs at lower pep_score under the same uniq_id2 share the same best pep_rank
-  # 3. the NL entries will be used for proteoQ quantitation at exprs(pep_rank == 1)
-  
+  # adds back `y0`
+  # 
+  # 1. some NA pep_ranks in y0 (inferior ones at ranks > 3 and no matches in x0);
+  # 2. NLs at <= pep_score under the same uniq_id2 (y0) share the same best pep_rank
+  #   (share the best pep_score across different NLs for the same pep_seq_mod);
+  # 3. the NL entries will be used for proteoQ quantitation at `exprs(pep_rank == 1)`, 
+  #   and can be excluded by `exprs(pep_rank_nl == 1)`.
+
   y0 <- dplyr::left_join(y0, x0[, c("uniq_id2", "pep_rank", "pep_locprob", 
                                     "pep_locdiff")], by = "uniq_id2")
   y0 <- y0[!is.na(y0$pep_rank), ]
   
-  x0 <- dplyr::bind_rows(x0, y0)
+  x0 <- data.table::rbindlist(list(x0, y0), use.names = FALSE)
+  x0[, pep_rank_nl := seq_len(.N), by = "uniq_id2"]
+
   rm(list = c("y0"))
   
-  # assume NLs contain no additional information under 
-  #   the same c("uniq_id2", "pep_score")
+  # assumes NLS under the same c("uniq_id2", "pep_score") contain 
+  #   no additional information and excluded
   x0[ , "pep_score" := round(pep_score, 2)]
   x0 <- unique(x0, by = c("uniq_id2", "pep_score"))
   
+  # cleanups
   x0 <- x0[, -c("uniq_id", "uniq_id2", "pep_ivmod2")]
   x0[ , "pep_locprob" := round(pep_locprob, 2)]
   x0[ , "pep_locdiff" := round(pep_locdiff, 2)]
@@ -1587,7 +1599,8 @@ calc_peploc <- function (x) {
   # (this is different to the earlier uniq_id at different LOCATIONS)
   x0[, uniq_id3 := paste(pep_isdecoy, scan_num, raw_file, sep = ".")]
   x0[order(-pep_score), pep_rank := seq_len(.N), by = list(uniq_id3)]
-  x0 <- x0[pep_rank <= 3L, ]
+  topn_seqs <- 3L
+  x0 <- x0[pep_rank <= topn_seqs, ]
   x0 <- x0[, -c("uniq_id3")]
 
   invisible(x0)
