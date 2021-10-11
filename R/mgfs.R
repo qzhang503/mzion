@@ -53,14 +53,14 @@ load_mgfs <- function (mgf_path, min_mass = 500L, max_mass = 6000L,
 #'
 #' @param filepath The file path to a list of mgf files.
 #' @param min_mass Numeric; the minimum mass of MS1 species. The value needs to
-#'   match the one in  \link{binTheoPeps}.
+#'   match the one in  \link{binTheoSeqs}.
 #' @param topn_ms2ions A non-negative integer; the top-n species for uses in
 #'   MS2 ion searches. The default is to use the top-100 ions in an MS2 event.
 #' @param ret_range The range of retention time in seconds.
 #' @param out_path An output path.
 #' @inheritParams load_mgfs
 #' @inheritParams matchMS
-#' @inheritParams frames_adv_base
+#' @inheritParams frames_adv
 #' @import stringi
 #' @import readr
 #' @import fs

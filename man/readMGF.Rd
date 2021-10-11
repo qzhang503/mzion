@@ -21,7 +21,7 @@ readMGF(
 \item{filepath}{The file path to a list of mgf files.}
 
 \item{min_mass}{Numeric; the minimum mass of MS1 species. The value needs to
-match the one in  \link{binTheoPeps}.}
+match the one in  \link{binTheoSeqs}.}
 
 \item{max_mass}{A maximum mass of precursors for considerations.}
 

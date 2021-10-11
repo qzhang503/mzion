@@ -297,8 +297,15 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #'   the output of \code{psmQ.txt}. Outputs under the option TRUE are often
 #'   comparable to Mascot outputs with FDR controls at the levels of PSMs or
 #'   peptides.
-#' @param .path_cache The file path of cached search parameters.
-#' @param .path_fasta The file path to the theoretical masses of MS1 precursors.
+#' @param .path_cache The file path of cached search parameters. At the NULL
+#'   default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
+#'   parameter is for users' awareness of the structure of file folders and the
+#'   default is suggested.
+#' @param .path_fasta The parent file path to the theoretical masses of MS1
+#'   precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
+#'   "\\1", get("fasta", envir = environment())[1])}. The parameter is for
+#'   users' awareness of the structure of file folders and the default is
+#'   suggested.
 #' @param digits Integer; the number of decimal places to be used.
 #' @seealso \link{load_fasta2} for setting the values of \code{acc_type} and
 #'   \code{acc_pattern}. \link{parse_unimod} for the grammar of Unimod.
@@ -366,9 +373,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      target_fdr = 0.01,
                      fdr_type = c("psm", "peptide", "protein"),
                      combine_tier_three = FALSE,
-                     .path_cache = "~/proteoM/.MSearches/Cache/Calls/", 
-                     .path_fasta = gsub("(.*)\\.[^\\.]*$", paste0("\\1", "/ms1masses"), 
-                                        fasta[1]), 
+                     .path_cache = NULL, 
+                     .path_fasta = NULL,
                      digits = 4L) {
 
   options(digits = 9L)
@@ -463,8 +469,16 @@ matchMS <- function (out_path = "~/proteoM/outs",
   rm(list = c("filelist"))
   
   # file paths
+  if (is.null(.path_cache)) {
+    .path_cache <- "~/proteoM/.MSearches/Cache/Calls/"
+  }
+  
+  if (is.null(.path_fasta)) {
+    .path_fasta <- file.path(gsub("(.*)\\.[^\\.]*$", "\\1", fasta[1]))
+  }
+  
   .path_cache <- create_dir(.path_cache)
-  .path_fasta <- create_dir(.path_fasta)
+  .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
 
   ## Theoretical MS1 masses
   res <- calc_pepmasses2(
@@ -486,7 +500,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
     out_path = out_path,
     digits = digits,
     .path_cache = .path_cache, 
-    .path_fasta = .path_fasta
+    .path_ms1masses = .path_ms1masses
   )
 
   ## Bin theoretical peptides
@@ -495,7 +509,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                 max_mass = max_mass, 
                 ppm_ms1 = ppm_ms1, 
                 .path_cache = .path_cache, 
-                .path_fasta = .path_fasta)
+                .path_ms1masses = .path_ms1masses)
   
   rm(list = c("res"))
   gc()
@@ -805,8 +819,8 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
 
     rstudioapi::restartSession(command='source("~/post_psmC.R")')
   } else {
-    rm(list = c(".path_cache", ".path_fasta", ".time_stamp"),
-       envir = .GlobalEnv)
+    try(rm(list = c(".path_cache", ".path_ms1masses", ".time_stamp"),
+           envir = .GlobalEnv))
 
     message("Done.")
   }

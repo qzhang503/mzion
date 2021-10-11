@@ -397,7 +397,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
 #' 
 #' Each entry corresponds to a row in \code{ion_matches.rds}.
 #' 
-#' @param entry A row of data from \link{pmatch_bymgfs}.
+#' @param entry A row of data.
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 #' @import purrr

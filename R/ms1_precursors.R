@@ -22,6 +22,8 @@
 #'   variable modifications per site in a per peptide sequence.
 #' @param maxn_vmods_per_pep The maximum number of variable modifications per
 #'   peptide.
+#' @param .path_ms1masses The file path to the theoretical masses of MS1
+#'   precursors.
 #' @param digits Integer; the number of decimal places to be used.
 #' @inheritParams calc_aamasses
 #' @inheritParams matchMS
@@ -74,7 +76,7 @@ calc_pepmasses2 <- function (
   out_path = NULL,
   digits = 4L,
   .path_cache = NULL, 
-  .path_fasta = NULL) {
+  .path_ms1masses = NULL) {
 
   old_opts <- options()
   options(warn = 1L)
@@ -108,7 +110,7 @@ calc_pepmasses2 <- function (
                                 varmods = varmods,
                                 maxn_vmods_setscombi = maxn_vmods_setscombi)
 
-    files <- list.files(path = file.path(.path_fasta, .time_stamp),
+    files <- list.files(path = file.path(.path_ms1masses, .time_stamp),
                         pattern = "pepmasses_\\d+\\.rds$")
 
     if (length(files) != length(aa_masses)) {
@@ -211,7 +213,7 @@ calc_pepmasses2 <- function (
     
     
     # Protein-peptide associations
-    tbl_prots_peps(fwd_peps[[1]], file.path(.path_fasta, .time_stamp))
+    tbl_prots_peps(fwd_peps[[1]], file.path(.path_ms1masses, .time_stamp))
     
     # Flattened peptide lists (ripping off prot_acc)
     fwd_peps <- lapply(fwd_peps, flat_pepseqs)
@@ -385,7 +387,7 @@ calc_pepmasses2 <- function (
 
 
     # === Outputs ===
-    path_masses <- create_dir(file.path(.path_fasta, .time_stamp))
+    path_masses <- create_dir(file.path(.path_ms1masses, .time_stamp))
 
     fwd_peps <- purrr::map2(aa_masses, fwd_peps, ~ {
       attr(.x, "data") <- .y
@@ -407,7 +409,7 @@ calc_pepmasses2 <- function (
   }
 
   assign(".path_cache", .path_cache, envir = .GlobalEnv)
-  assign(".path_fasta", .path_fasta, envir = .GlobalEnv)
+  assign(".path_ms1masses", .path_ms1masses, envir = .GlobalEnv)
   assign(".time_stamp", .time_stamp, envir = .GlobalEnv)
 
   invisible(fwd_peps)

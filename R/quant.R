@@ -237,13 +237,13 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs") {
   uniq_peps <- unique(df$pep_seq)
   
   # Targets, theoretical
-  .path_fasta <- get(".path_fasta", envir = .GlobalEnv, inherits = FALSE)
+  .path_ms1masses <- get(".path_ms1masses", envir = .GlobalEnv, inherits = FALSE)
   
-  fwd_prps <- readRDS(file.path(.path_fasta, .time_stamp, "prot_pep_annots.rds"))
+  fwd_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots.rds"))
   fwd_prps <- fwd_prps[fwd_prps$pep_seq %in% uniq_peps, ]
   
   # Decoys, theoretical
-  rev_prps <- readRDS(file.path(.path_fasta, .time_stamp, "prot_pep_annots_rev.rds"))
+  rev_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots_rev.rds"))
   rev_prps <- rev_prps[rev_prps$pep_seq %in% uniq_peps, ]
   rev_prps <- purge_decoys(target = fwd_prps, decoy = rev_prps)
   

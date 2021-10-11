@@ -10,7 +10,7 @@ bin_ms1masses(
   max_mass = 6000L,
   ppm_ms1 = 20L,
   .path_cache = NULL,
-  .path_fasta = NULL,
+  .path_ms1masses = NULL,
   is_ms1_three_frame = TRUE
 )
 }
@@ -23,9 +23,13 @@ bin_ms1masses(
 
 \item{ppm_ms1}{The mass tolerance of MS1 species.}
 
-\item{.path_cache}{The file path of cached search parameters.}
+\item{.path_cache}{The file path of cached search parameters. At the NULL
+default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
+parameter is for users' awareness of the structure of file folders and the
+default is suggested.}
 
-\item{.path_fasta}{The file path to the theoretical masses of MS1 precursors.}
+\item{.path_ms1masses}{The file path to the theoretical masses of MS1
+precursors.}
 
 \item{is_ms1_three_frame}{Logical; is the searches by the three frames of
 preceeding, current and following.}

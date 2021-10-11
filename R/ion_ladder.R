@@ -21,7 +21,6 @@ ms2ions_by_type <- function (aas2, ntmass, ctmass, type_ms2ions, digits) {
 #' 
 #' @inheritParams ms2ions_by_type
 #' @rdname bions_base
-#' @seealso \link{add_complement_ions}
 byions <- function (ntmass, ctmass, aas2, digits = 4L) {
   bs <- bions_base(aas2, ntmass, digits)
   ys <- yions_base(aas2, ctmass, digits)

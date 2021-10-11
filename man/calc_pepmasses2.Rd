@@ -25,7 +25,7 @@ calc_pepmasses2(
   out_path = NULL,
   digits = 4L,
   .path_cache = NULL,
-  .path_fasta = NULL
+  .path_ms1masses = NULL
 )
 }
 \arguments{
@@ -87,9 +87,13 @@ be excluded.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 
-\item{.path_cache}{The file path of cached search parameters.}
+\item{.path_cache}{The file path of cached search parameters. At the NULL
+default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
+parameter is for users' awareness of the structure of file folders and the
+default is suggested.}
 
-\item{.path_fasta}{The file path to the theoretical masses of MS1 precursors.}
+\item{.path_ms1masses}{The file path to the theoretical masses of MS1
+precursors.}
 }
 \description{
 Generates and Calculates the masses of tryptic peptides from a fasta

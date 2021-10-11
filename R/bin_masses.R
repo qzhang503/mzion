@@ -7,8 +7,9 @@
 #' @param max_mass A maximum mass of precursors.
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
+#' @inheritParams calc_pepmasses2
 bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L, 
-                           ppm_ms1 = 20L, .path_cache = NULL, .path_fasta = NULL, 
+                           ppm_ms1 = 20L, .path_cache = NULL, .path_ms1masses = NULL, 
                            is_ms1_three_frame = TRUE) {
 
   old_opts <- options()
@@ -37,7 +38,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   
   # checks pre-existed precursor masses
   .time_stamp <- get(".time_stamp", envir = .GlobalEnv, inherits = FALSE)
-  .path_mass <- file.path(.path_fasta, .time_stamp)
+  .path_mass <- file.path(.path_ms1masses, .time_stamp)
   
   masses <- list.files(path = .path_mass, 
                        pattern = paste0("^pepmasses_", "\\d+\\.rds$"))
@@ -59,13 +60,13 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   
   if (len_bts > 1L) {
     stop("More than one cached results found: \n\n", 
-         paste(file.path(.path_fasta, .time_stamp, fun), collapse = "\n"), 
+         paste(file.path(.path_ms1masses, .time_stamp, fun), collapse = "\n"), 
          "\n\nDelete the caches and start over.", 
          call. = FALSE)
   }
   
   if (len_bts) {
-    .path_bin <- file.path(.path_fasta, .time_stamp, fun, .time_bin)
+    .path_bin <- file.path(.path_ms1masses, .time_stamp, fun, .time_bin)
     
     bins <- list.files(path = .path_bin, pattern = "binned_theopeps_\\d+\\.rds$")
     len_b <- length(bins)
@@ -87,7 +88,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   message("Binning MS1 masses...")
   
   .time_bin <- format(Sys.time(), ".%Y-%m-%d_%H%M%S")
-  .path_bin <- create_dir(file.path(.path_fasta, .time_stamp, fun, .time_bin))
+  .path_bin <- create_dir(file.path(.path_ms1masses, .time_stamp, fun, .time_bin))
 
   if (!is.null(res)) {
     # (a) process directly

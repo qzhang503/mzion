@@ -205,6 +205,3 @@ y <- yions_base(aas2, ctmass)
 
 }
 }
-\seealso{
-\link{add_complement_ions}
-}

@@ -14,7 +14,7 @@ scalc_pepprobs(
 )
 }
 \arguments{
-\item{entry}{A row of data from \link{pmatch_bymgfs}.}
+\item{entry}{A row of data.}
 
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in MS2
 ion searches. The default is to use the top-100 ions in an MS2 event.}

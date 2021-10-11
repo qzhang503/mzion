@@ -101,9 +101,7 @@
 #           ms2ions_by_type (ion_ladder.R)
 #             byions, czions, axions (ion_ladder.R)
 #         search_mgf2
-#           find_mass_error_range
 #           find_ms2_bypep
-#             find_ms1_interval (mgfs.R)
 #             fuzzy_match_one
 #             fuzzy_match_one2
 #       post_frame_adv
@@ -123,9 +121,7 @@
 #           ms2ions_by_type (ion_ladder.R)
 #             byions, czions, axions (ion_ladder.R)
 #         search_mgf2 (ms2base.R)
-#           find_mass_error_range (ms2base.R)
 #           find_ms2_bypep (ms2base.R)
-#             find_ms1_interval (mgfs.R)
 #             fuzzy_match_one (ms2base.R)
 #             fuzzy_match_one2 (ms2base.R)
 #       post_frame_adv (ms2base.R)
@@ -146,9 +142,7 @@
 #               byions, czions, axions (ion_ladder.R)
 #           add_hexcodes
 #         search_mgf2 (ms2base.R)
-#           find_mass_error_range (ms2base.R)
 #           find_ms2_bypep (ms2base.R)
-#             find_ms1_interval (mgfs.R)
 #             fuzzy_match_one (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
 #       post_frame_adv (ms2base.R)
@@ -169,9 +163,7 @@
 #               byions, czions, axions (ion_ladder.R)
 #           add_hexcodes_vnl2
 #         search_mgf2 (ms2base.R)
-#           find_mass_error_range (ms2base.R)
 #           find_ms2_bypep (ms2base.R)
-#             find_ms1_interval (mgfs.R)
 #             fuzzy_match_one (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
 #       post_frame_adv (ms2base.R)
@@ -192,9 +184,7 @@
 #               byions, czions, axions
 #           add_hexcodes_fnl2
 #         search_mgf2 (ms2base.R)
-#           find_mass_error_range (ms2base.R)
 #           find_ms2_bypep (ms2base.R)
-#             find_ms1_interval (mgfs.R)
 #             fuzzy_match_one (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
 #       post_frame_adv (ms2base.R)

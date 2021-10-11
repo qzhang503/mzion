@@ -13,8 +13,12 @@ gen_ms2ions_a0_vnl0_fnl1(
   aa_seq,
   ms1_mass = NULL,
   aa_masses,
+  ntmod = NULL,
+  ctmod = NULL,
   ntmass = NULL,
   ctmass = NULL,
+  amods = NULL,
+  vmods_nl = NULL,
   fmods_nl = NULL,
   mod_indexes = NULL,
   type_ms2ions = "by",
@@ -33,6 +37,8 @@ gen_ms2ions_a1_vnl0_fnl0(
   ntmass = NULL,
   ctmass = NULL,
   amods = NULL,
+  vmods_nl = NULL,
+  fmods_nl = NULL,
   mod_indexes = NULL,
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
@@ -42,15 +48,16 @@ gen_ms2ions_a1_vnl0_fnl0(
 )
 
 gen_ms2ions_a1_vnl0_fnl1(
-  aa_seq,
+  aa_seq = NULL,
   ms1_mass = NULL,
-  aa_masses,
+  aa_masses = NULL,
   ntmod = NULL,
   ctmod = NULL,
   ntmass = NULL,
   ctmass = NULL,
   amods = NULL,
-  fmods_nl,
+  vmods_nl = NULL,
+  fmods_nl = NULL,
   mod_indexes = NULL,
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
@@ -60,15 +67,16 @@ gen_ms2ions_a1_vnl0_fnl1(
 )
 
 gen_ms2ions_a1_vnl1_fnl0(
-  aa_seq,
+  aa_seq = NULL,
   ms1_mass = NULL,
-  aa_masses,
+  aa_masses = NULL,
   ntmod = NULL,
   ctmod = NULL,
   ntmass = NULL,
   ctmass = NULL,
   amods = NULL,
-  vmods_nl,
+  vmods_nl = NULL,
+  fmods_nl = NULL,
   mod_indexes = NULL,
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
@@ -78,11 +86,16 @@ gen_ms2ions_a1_vnl1_fnl0(
 )
 
 gen_ms2ions_base(
-  aa_seq,
+  aa_seq = NULL,
   ms1_mass = NULL,
   aa_masses = NULL,
+  ntmod = NULL,
+  ctmod = NULL,
   ntmass = NULL,
   ctmass = NULL,
+  amods = NULL,
+  vmods_nl = NULL,
+  fmods_nl = NULL,
   mod_indexes = NULL,
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
@@ -100,9 +113,20 @@ representation of amino acids.}
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
 
+\item{ntmod}{The attribute \code{ntmod} from a \code{aa_masses} (for MS1
+calculations).}
+
+\item{ctmod}{The attribute \code{ctmod} from a \code{aa_masses} (for MS1
+ calculations).
+@rdname gen_ms2ions_base}
+
 \item{ntmass}{The mass of N-terminal.}
 
 \item{ctmass}{The mass of C-terminal.}
+
+\item{amods}{The attribute \code{amods} from a \code{aa_masses}.}
+
+\item{vmods_nl}{The attribute of \code{vmods_nl} from an \code{aa_masses}.}
 
 \item{fmods_nl}{The attribute of \code{fmods_nl} from an \code{aa_masses}.}
 
@@ -124,17 +148,6 @@ variable modifications per site in a per peptide sequence.}
 combinatorial variable modifications per peptide sequence.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
-
-\item{ntmod}{The attribute \code{ntmod} from a \code{aa_masses} (for MS1
-calculations).}
-
-\item{ctmod}{The attribute \code{ctmod} from a \code{aa_masses} (for MS1
- calculations).
-@rdname gen_ms2ions_base}
-
-\item{amods}{The attribute \code{amods} from a \code{aa_masses}.}
-
-\item{vmods_nl}{The attribute of \code{vmods_nl} from an \code{aa_masses}.}
 }
 \description{
 (5) "amods- tmod- vnl- fnl+", (6) "amods- tmod+ vnl- fnl+"
