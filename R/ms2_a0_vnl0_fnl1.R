@@ -184,8 +184,11 @@ hms2_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ntmass, ctmass,
 #' # variable `TMT6plex (N-term)` + `fixed Oxidation (M)`
 #' # (additive varmod on top of fixedmod allowed)
 #' 
-#' out <- gen_ms2ions_a0_vnl0_fnl1(aa_seq, NULL, aa_masses, ntmass, ctmass, 
-#'                                 fmods_nl, mod_indexes)
+#' out <- gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = NULL, 
+#'                                 aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
+#'                                 ntmass = ntmass, ctmass = ctmass, 
+#'                                 amods = NULL, vmods_nl = NULL, fmods_nl = fmods_nl, 
+#'                                 mod_indexes = mod_indexes)
 #' 
 #' }
 #' 
@@ -221,7 +224,8 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
   }
 
   # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+" 
-  aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
+  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   
   idxes <- which(aas %in% names(fmods_nl))
   
@@ -260,14 +264,17 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
 
   for (i in 1:len) {
     aas2_i <- aas2
-    delta <- unlist(fnl_combi[i, ], use.names = FALSE)
+    delta <- .Internal(unlist(fnl_combi[i, ], recursive = FALSE, use.names = FALSE))
     aas2_i[idxes] <- aas2_i[idxes] - delta
     out[[i]] <- ms2ions_by_type(aas2_i, ntmass, ctmass, type_ms2ions, digits)
   }
   
-  nm <- rep(0, length(aas)) %>% paste0(collapse = "")
-  names(out) <- paste0(nm, " [", seq_len(nrow(fnl_combi)), "]")
+  len_a <- length(aas)
+  nm <- .Internal(paste0(list(rep(0, len_a)), collapse = "", recycle0 = FALSE))
   
+  names(out) <- .Internal(paste0(list(nm, " [", seq_len(nrow(fnl_combi)), "]"), 
+                                 collapse = NULL, recycle0 = FALSE))
+
   invisible(out)
 }
 

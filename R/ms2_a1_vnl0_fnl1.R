@@ -209,10 +209,11 @@ hms2_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
 #' 
 #' ms1_mass <- ms1_masses$mass[[2]][2] # 2041.8958
 #'
-#' out <- gen_ms2ions_a1_vnl0_fnl1(aa_seq, ms1_mass, aa_masses,
-#'                                 ntmod, ctmod,
-#'                                 ntmass, ctmass, amods, fmods_nl, 
-#'                                 mod_indexes)
+#' out <- gen_ms2ions_a1_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+#'                                 aa_masses = aa_masses, ntmod = ntmod, ctmod = ctmod,
+#'                                 ntmass = ntmass, ctmass = ctmass, amods = amods, 
+#'                                 vmods_nl = NULL, fmods_nl = fmods_nl, 
+#'                                 mod_indexes = mod_indexes)
 #' 
 #' # No "M", no "S"
 #' aa_seq <- "HQGVNVGGQKN"
@@ -253,7 +254,8 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses 
   }
   
   # (11, 12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
-  aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
+  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
 
   vmods_combi <- combi_mvmods2(amods = amods, 
@@ -271,7 +273,7 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses 
   if (length(vmods_combi) && !is.null(ms1_mass)) {
     idxes <- lapply(vmods_combi, check_ms1_mass_vmods2, aas2, aa_masses, 
                     ntmod, ctmod, ms1_mass)
-    idxes <- unlist(idxes, recursive = FALSE, use.names = FALSE)
+    idxes <- .Internal(unlist(idxes, recursive = FALSE, use.names = FALSE))
     
     vmods_combi <- vmods_combi[idxes]
     rm(list = c("idxes"))
@@ -325,7 +327,7 @@ calc_ms2ions_a1_vnl0_fnl1 <- function (vmods_combi, fnl_combi, fnl_idxes,
 
   for (i in 1:len) {
     aas2_i <- aas2
-    delta_nl <- unlist(fnl_combi[i, ], use.names = FALSE)
+    delta_nl <- .Internal(unlist(fnl_combi[i, ], recursive = FALSE, use.names = FALSE))
     aas2_i[fnl_idxes] <- aas2_i[fnl_idxes] - delta_nl
     out[[i]] <- ms2ions_by_type(aas2_i, ntmass, ctmass, type_ms2ions, digits)
   }
@@ -342,12 +344,16 @@ calc_ms2ions_a1_vnl0_fnl1 <- function (vmods_combi, fnl_combi, fnl_idxes,
 #' @inheritParams calc_ms2ions_a1_vnl0_fnl1
 add_hexcodes_fnl2 <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
 
+  idxes <- .Internal(unlist(vmods_combi, recursive = FALSE, use.names = FALSE))
+  nms <- names(vmods_combi)
+  
   hex_mods = rep("0", len)
-  hex_mods[as.numeric(names(vmods_combi))] <- mod_indexes[unlist(vmods_combi)]
-  hex_mods <- paste0(hex_mods, collapse = "")
+  hex_mods[as.numeric(nms)] <- mod_indexes[idxes]
+  hex_mods <- .Internal(paste0(list(hex_mods), collapse = "", recycle0 = FALSE))
   
   # Syntax: `(` for `vnl` and `[` for fnl
-  names(ms2ions) <- paste0(hex_mods, " [", seq_along(ms2ions), "]")
+  names(ms2ions) <- .Internal(paste0(list(hex_mods, " [", seq_along(ms2ions), "]"), 
+                                     collapse = NULL, recycle0 = FALSE))
   
   invisible(ms2ions)
 }

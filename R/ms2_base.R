@@ -477,8 +477,11 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL, aa_masses = NULL,
 #'
 #' aa_seq <- "MHQGVMNVGMGQKMNS"
 #'
-#' out <- gen_ms2ions_base(aa_seq, ms1_mass, aa_masses,
-#'                         ntmass, ctmass, mod_indexes)
+#' out <- gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+#'                         aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
+#'                         ntmass = ntmass, ctmass = ctmass, 
+#'                         amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
+#'                         mod_indexes = mod_indexes)
 #'                         
 #' # (1) "amods- tmod- vnl- fnl-"
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
@@ -511,9 +514,11 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL, aa_masses = NULL,
 #'
 #' aa_seq <- "MHQGVMNVGMGQKMNS"
 #'
-#' out <- gen_ms2ions_base(aa_seq, ms1_mass, aa_masses,
-#'                         ntmass, ctmass, mod_indexes)
-#' 
+#' out <- gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+#'                         aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
+#'                         ntmass = ntmass, ctmass = ctmass, 
+#'                         amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
+#'                         mod_indexes = mod_indexes)
 #' }
 gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses = NULL, 
                               ntmod = NULL, ctmod = NULL, 
@@ -525,13 +530,15 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses = NULL,
                               maxn_vmods_sitescombi_per_pep = 32L, 
                               digits = 4L) {
   
-  aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
+  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
   
   out <- ms2ions_by_type(aas2, ntmass, ctmass, type_ms2ions, digits)
   
-  nm <- paste0(rep(0, length(aas)), collapse = "")
-  
+  len_a <- length(aas)
+  nm <- .Internal(paste0(list(rep(0, len_a)), collapse = "", recycle0 = FALSE))
+
   out <- list(out)
   names(out) <- nm
   
@@ -619,20 +626,22 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
     x_af <- theos_af_ms2
   }
   
+  # to allocate memory upfront?
   x <- c(x_bf, x_cr, x_af)
   
   # cleans up
   # USE.NAMES = TRUE (whereas map2 reserves names when available)
   rows <- lapply(x, function (this) {
     ans <- lapply(this, function (x) sum(!is.na(x[["expt"]])) >= minn_ms2)
-    unlist(ans, recursive = FALSE, use.names = FALSE)
+    .Internal(unlist(ans, recursive = FALSE, use.names = FALSE))
+    
   })
   
   x <- mapply(function (x, y) x[y], x, rows, SIMPLIFY = FALSE, USE.NAMES = TRUE)
 
   empties <- lapply(x, function(x) length(x) == 0L)
-  empties <- unlist(empties, recursive = FALSE, use.names = FALSE)
-  # empties <- purrr::map_lgl(x, purrr::is_empty)
+  empties <- .Internal(unlist(empties, recursive = FALSE, use.names = FALSE))
+  
   x <- x[!empties]
   
   # ---
@@ -819,9 +828,8 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L) {
   
   d <- ppm_ms2/1e6
   
-  ex <- ceiling(
-    log(unlist(expts, recursive = FALSE, use.names = FALSE)/min_ms2mass)/log(1+d)
-  )
+  fex <- .Internal(unlist(expts, recursive = FALSE, use.names = FALSE))
+  ex <- ceiling(log(fex/min_ms2mass)/log(1+d))
 
   # ---
   out <- vector("list", len)
@@ -829,10 +837,9 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L) {
   for (i in 1:len) {
     theos_i <- theos[[i]]
     
-    th_i <- ceiling(
-      log(unlist(theos_i, recursive = FALSE, use.names = FALSE)/min_ms2mass)/log(1+d)
-    )
-    
+    fth <- .Internal(unlist(theos_i, recursive = FALSE, use.names = FALSE))
+    th_i <- ceiling(log(fth/min_ms2mass)/log(1+d))
+
     ps <- fuzzy_match_one(th_i, ex)
     
     if(sum(ps) > 0) {

@@ -210,53 +210,11 @@ hms2_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses,
 #'                                fixedmods, varmods)
 #' ms1_mass <- ms1_masses$mass[[8]][2] # 2077.9256
 #'
-#' out <- gen_ms2ions_a1_vnl0_fnl0(aa_seq, ms1_mass, aa_masses,
-#'                                 ntmod, ctmod,
-#'                                 ntmass, ctmass, amods,
-#'                                 mod_indexes)
-#'
-#' 
-#' # (10) "amods+ tmod+ vnl+ fnl-"
-#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
-#'                "Carbamidomethyl (C)")
-#' varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", 
-#'              "Carbamidomethyl (M)")
-#' 
-#' mod_indexes <- seq_along(c(fixedmods, varmods)) %>%
-#'   as.hexmode() %>%
-#'   `names<-`(c(fixedmods, varmods))
-#' 
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods, 
-#'                                add_varmasses = FALSE, 
-#'                                add_nlmasses = FALSE)
-#' 
-#' aa_masses <- aa_masses_all[[8]]
-#' 
-#' ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-#' ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-#' 
-#' if (!length(ntmod)) {
-#'   ntmass <- aa_masses["N-term"] - 0.000549 # - electron
-#' } else {
-#'   ntmass <- aa_masses[names(ntmod)] - 0.000549
-#' }
-#' 
-#' if (!length(ctmod)) {
-#'   ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
-#' } else {
-#'   ctmass <- aa_masses[names(ctmod)] + 2.01510147
-#' }
-#' 
-#' amods <- attr(aa_masses, "amods", exact = TRUE)
-#' vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
-#' 
-#' aa_seq <- "MHQGVMNVGMGQKMNS"
-#' 
-#' out <- gen_ms2ions_a1_vnl1_fnl0(aa_seq, NULL, aa_masses, 
-#'                                 ntmod, ctmod, ntmass, 
-#'                                 ctmass, amods, vmods_nl, 
-#'                                 mod_indexes)
-#' 
+#' out <- gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+#'                                 aa_masses = aa_masses, ntmod = ntmod, ctmod = ctmod,
+#'                                 ntmass = ntmass, ctmass = ctmass, amods = amods, 
+#'                                 vmods_nl = NULL, fmods_nl = NULL, 
+#'                                 mod_indexes = mod_indexes)
 #' }
 gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL, 
                                       ntmod = NULL, ctmod = NULL, 
@@ -269,7 +227,8 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
                                       maxn_vmods_sitescombi_per_pep = 32L, 
                                       digits = 4L) {
   
-  aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
+  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
 
   vmods_combi <- combi_mvmods2(amods = amods, 
@@ -287,7 +246,7 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
   if (length(vmods_combi) && !is.null(ms1_mass)) {
     idxes <- lapply(vmods_combi, check_ms1_mass_vmods2, aas2, aa_masses, 
                     ntmod, ctmod, ms1_mass)
-    idxes <- unlist(idxes, recursive = FALSE, use.names = FALSE)
+    idxes <- .Internal(unlist(idxes, recursive = FALSE, use.names = FALSE))
 
     vmods_combi <- vmods_combi[idxes]
     rm(list = c("idxes"))
@@ -385,7 +344,7 @@ combi_mvmods2 <- function (amods,
   # dHex (S) 
   # "S" 
   
-  residue_mods <- unlist(amods, use.names = FALSE)
+  residue_mods <- .Internal(unlist(amods, recursive = TRUE, use.names = FALSE))
   names(residue_mods) <- names(amods)
   residue_mods <- split(residue_mods, residue_mods)
 
@@ -492,9 +451,10 @@ combi_vmods2 <- function (aas,
   }
   
   # ---
-  out <- unlist(out, recursive = FALSE)
+  out <- .Internal(unlist(out, recursive = FALSE, use.names = FALSE))
 
-  rows <- purrr::map_lgl(out, function (x) length(x) > maxn_vmods_per_pep)
+  rows <- lapply(out, function (x) length(x) > maxn_vmods_per_pep)
+  rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
   out <- out[!rows]
   
   maxn_vmod <- lapply(out, table)
@@ -584,9 +544,10 @@ find_intercombi_p2 <- function (intra_combis, maxn_vmods_sitescombi_per_pep = 32
     p_out <- v_out <- vector("list", nrow)
     
     for (i in seq_len(nrow)) {
-      p_out[[i]] <- unlist(p_combis[i, ], use.names = FALSE)
-      v_out[[i]] <- unlist(v_combis[i, ], use.names = FALSE)
-      
+      # needs `recursive = TRUE`
+      p_out[[i]] <- .Internal(unlist(p_combis[i, ], recursive = TRUE, use.names = FALSE))
+      v_out[[i]] <- .Internal(unlist(v_combis[i, ], recursive = TRUE, use.names = FALSE))
+
       names(v_out[[i]]) <- p_out[[i]]
       v_out[[i]] <- v_out[[i]][order(as.numeric(names(v_out[[i]])))]
     }
@@ -613,14 +574,18 @@ find_intercombi_p2 <- function (intra_combis, maxn_vmods_sitescombi_per_pep = 32
 add_hexcodes <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
   
   hex_mods = rep("0", len)
-  rows <- purrr::map_lgl(ms2ions, function (x) !is.null(x))
+  rows <- lapply(ms2ions, function (x) !is.null(x))
+  rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
   
   vmods_combi <- vmods_combi[rows]
   ms2ions <- ms2ions[rows]
   
   hex_mods2 <- lapply(vmods_combi, function (x) {
-    hex_mods[as.numeric(names(x))] <- mod_indexes[unlist(x)]
-    hex_mods <- paste0(hex_mods, collapse = "")
+    idxes <- .Internal(unlist(x, recursive = FALSE, use.names = FALSE))
+    nms <- names(x)
+    
+    hex_mods[as.numeric(nms)] <- mod_indexes[idxes]
+    hex_mods <- .Internal(paste0(list(hex_mods), collapse = "", recycle0 = FALSE))
   })
   
   names(ms2ions) <- hex_mods2

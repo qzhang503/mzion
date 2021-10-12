@@ -197,8 +197,11 @@ aa_seq <- "MHQGVMNVGMGQKMNS"
 # variable `TMT6plex (N-term)` + `fixed Oxidation (M)`
 # (additive varmod on top of fixedmod allowed)
 
-out <- gen_ms2ions_a0_vnl0_fnl1(aa_seq, NULL, aa_masses, ntmass, ctmass, 
-                                fmods_nl, mod_indexes)
+out <- gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = NULL, 
+                                aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
+                                ntmass = ntmass, ctmass = ctmass, 
+                                amods = NULL, vmods_nl = NULL, fmods_nl = fmods_nl, 
+                                mod_indexes = mod_indexes)
 
 }
 
@@ -240,53 +243,11 @@ ms1_masses <- calc_monopeptide("MHQGVMNVGMGQKMNS",
                                fixedmods, varmods)
 ms1_mass <- ms1_masses$mass[[8]][2] # 2077.9256
 
-out <- gen_ms2ions_a1_vnl0_fnl0(aa_seq, ms1_mass, aa_masses,
-                                ntmod, ctmod,
-                                ntmass, ctmass, amods,
-                                mod_indexes)
-
-
-# (10) "amods+ tmod+ vnl+ fnl-"
-fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
-               "Carbamidomethyl (C)")
-varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", 
-             "Carbamidomethyl (M)")
-
-mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
-  as.hexmode() \%>\%
-  `names<-`(c(fixedmods, varmods))
-
-aa_masses_all <- calc_aamasses(fixedmods, varmods, 
-                               add_varmasses = FALSE, 
-                               add_nlmasses = FALSE)
-
-aa_masses <- aa_masses_all[[8]]
-
-ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-
-if (!length(ntmod)) {
-  ntmass <- aa_masses["N-term"] - 0.000549 # - electron
-} else {
-  ntmass <- aa_masses[names(ntmod)] - 0.000549
-}
-
-if (!length(ctmod)) {
-  ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
-} else {
-  ctmass <- aa_masses[names(ctmod)] + 2.01510147
-}
-
-amods <- attr(aa_masses, "amods", exact = TRUE)
-vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
-
-aa_seq <- "MHQGVMNVGMGQKMNS"
-
-out <- gen_ms2ions_a1_vnl1_fnl0(aa_seq, NULL, aa_masses, 
-                                ntmod, ctmod, ntmass, 
-                                ctmass, amods, vmods_nl, 
-                                mod_indexes)
-
+out <- gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+                                aa_masses = aa_masses, ntmod = ntmod, ctmod = ctmod,
+                                ntmass = ntmass, ctmass = ctmass, amods = amods, 
+                                vmods_nl = NULL, fmods_nl = NULL, 
+                                mod_indexes = mod_indexes)
 }
 \donttest{
 # (12) "amods+ tmod+ vnl- fnl+"
@@ -326,10 +287,11 @@ ms1_masses <- calc_monopeptide(aa_seq, fixedmods, varmods)
 
 ms1_mass <- ms1_masses$mass[[2]][2] # 2041.8958
 
-out <- gen_ms2ions_a1_vnl0_fnl1(aa_seq, ms1_mass, aa_masses,
-                                ntmod, ctmod,
-                                ntmass, ctmass, amods, fmods_nl, 
-                                mod_indexes)
+out <- gen_ms2ions_a1_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+                                aa_masses = aa_masses, ntmod = ntmod, ctmod = ctmod,
+                                ntmass = ntmass, ctmass = ctmass, amods = amods, 
+                                vmods_nl = NULL, fmods_nl = fmods_nl, 
+                                mod_indexes = mod_indexes)
 
 # No "M", no "S"
 aa_seq <- "HQGVNVGGQKN"
@@ -376,21 +338,64 @@ ms1_masses <- calc_monopeptide("HQGVMNVGMGQKMNS",
                                fixedmods, varmods)
 ms1_mass <- ms1_masses$mass[[16]][2] # 2197.9679
 
-out <- gen_ms2ions_a1_vnl1_fnl0(aa_seq, ms1_mass, aa_masses,
-                                ntmod, ctmod,
-                                ntmass, ctmass, amods, vmods_nl, 
-                                mod_indexes)
+out <- gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+                                aa_masses = aa_masses, ntmod = ntmod, ctmod = ctmod, 
+                                ntmass = ntmass, ctmass = ctmass, 
+                                amods = amods, vmods_nl = vmods_nl, fmods_nl = NULL, 
+                                mod_indexes = mod_indexes)
 
 # Not in the category; 
-# should be at least one amod with vnl+ 
+# should be at least one `amod` with vnl+ 
 # (aa_seq <- "HQGVVGGQK")
 # (aa_seq <- "HQNGVVGGQK")
 
-# Mismatches between vmods_nl and aa_seq
+# Mismatches between `vmods_nl` and `aa_seq`
 #  All of M, N, S should be present after pep_seq dispatching 
 #    -> "correct" vmods_nl with all and only M, N, S (+/- tmods)
 # (aa_seq <- "HQNGVVGGQKM") # no "S"
 
+
+# (10) "amods+ tmod+ vnl+ fnl-"
+fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
+               "Carbamidomethyl (C)")
+varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", 
+             "Carbamidomethyl (M)")
+
+mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
+  as.hexmode() \%>\%
+  `names<-`(c(fixedmods, varmods))
+
+aa_masses_all <- calc_aamasses(fixedmods, varmods, 
+                               add_varmasses = FALSE, 
+                               add_nlmasses = FALSE)
+
+aa_masses <- aa_masses_all[[8]]
+
+ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
+ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+
+if (!length(ntmod)) {
+  ntmass <- aa_masses["N-term"] - 0.000549 # - electron
+} else {
+  ntmass <- aa_masses[names(ntmod)] - 0.000549
+}
+
+if (!length(ctmod)) {
+  ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
+} else {
+  ctmass <- aa_masses[names(ctmod)] + 2.01510147
+}
+
+amods <- attr(aa_masses, "amods", exact = TRUE)
+vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
+
+aa_seq <- "MHQGVMNVGMGQKMNS"
+
+out <- gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = NULL, 
+                                aa_masses = aa_masses, ntmod = ntmod, ctmod = ctmod, 
+                                ntmass = ntmass, ctmass = ctmass, 
+                                amods = amods, vmods_nl = vmods_nl, fmods_nl = NULL,
+                                mod_indexes = mod_indexes)
 }
 \donttest{
 # (2) "amods- tmod+ vnl- fnl-"
@@ -425,8 +430,11 @@ if (is_empty(ctmod)) {
 
 aa_seq <- "MHQGVMNVGMGQKMNS"
 
-out <- gen_ms2ions_base(aa_seq, ms1_mass, aa_masses,
-                        ntmass, ctmass, mod_indexes)
+out <- gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+                        aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
+                        ntmass = ntmass, ctmass = ctmass, 
+                        amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
+                        mod_indexes = mod_indexes)
                         
 # (1) "amods- tmod- vnl- fnl-"
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
@@ -459,9 +467,11 @@ if (is_empty(ctmod)) {
 
 aa_seq <- "MHQGVMNVGMGQKMNS"
 
-out <- gen_ms2ions_base(aa_seq, ms1_mass, aa_masses,
-                        ntmass, ctmass, mod_indexes)
-
+out <- gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+                        aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
+                        ntmass = ntmass, ctmass = ctmass, 
+                        amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
+                        mod_indexes = mod_indexes)
 }
 }
 \seealso{
