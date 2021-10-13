@@ -191,7 +191,6 @@ hms2_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ntmass, ctmass,
 #'                                 mod_indexes = mod_indexes)
 #' 
 #' }
-#' 
 gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses, 
                                       ntmod = NULL, ctmod = NULL, # not used
                                       ntmass = NULL, ctmass = NULL, 
@@ -207,12 +206,14 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
   # (no pep_seq dispatching by Anywhere fmod residues -> possible no matched sites)
   
   sites <- names(fmods_nl)
-  pattern <- paste(sites, collapse = "|")
+  pattern <- .Internal(paste0(list(sites), collapse = "|", recycle0 = FALSE))
   
   if (!grepl(pattern, aa_seq)) {
     out <- gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                             aa_masses = aa_masses, 
+                            ntmod = NULL, ctmod = NULL, 
                             ntmass = ntmass, ctmass = ctmass, 
+                            amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
                             mod_indexes = mod_indexes, 
                             type_ms2ions = type_ms2ions, 
                             maxn_vmods_per_pep = maxn_vmods_per_pep, 
@@ -242,9 +243,6 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
     idxes <- idxes[1:len_i]
   }
   
-  # a faster way to check maxn_sites_per_vmod (but avoid slow R table)?
-  # ...
-
   # ---
   fmods_combi <- aas[idxes]
   names(fmods_combi) <- idxes
@@ -270,9 +268,12 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
   }
   
   len_a <- length(aas)
-  nm <- .Internal(paste0(list(rep(0, len_a)), collapse = "", recycle0 = FALSE))
+  nm <- .Internal(paste0(list(rep("0", len_a)), collapse = "", recycle0 = FALSE))
   
-  names(out) <- .Internal(paste0(list(nm, " [", seq_len(nrow(fnl_combi)), "]"), 
+  names(out) <- .Internal(paste0(list(nm, 
+                                      " [", 
+                                      as.character(seq_len(nrow(fnl_combi))), 
+                                      "]"), 
                                  collapse = NULL, recycle0 = FALSE))
 
   invisible(out)

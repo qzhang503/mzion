@@ -537,7 +537,7 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses = NULL,
   out <- ms2ions_by_type(aas2, ntmass, ctmass, type_ms2ions, digits)
   
   len_a <- length(aas)
-  nm <- .Internal(paste0(list(rep(0, len_a)), collapse = "", recycle0 = FALSE))
+  nm <- .Internal(paste0(list(rep("0", len_a)), collapse = "", recycle0 = FALSE))
 
   out <- list(out)
   names(out) <- nm
@@ -626,17 +626,16 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
     x_af <- theos_af_ms2
   }
   
-  # to allocate memory upfront?
   x <- c(x_bf, x_cr, x_af)
   
-  # cleans up
-  # USE.NAMES = TRUE (whereas map2 reserves names when available)
+  ## cleans up
   rows <- lapply(x, function (this) {
     ans <- lapply(this, function (x) sum(!is.na(x[["expt"]])) >= minn_ms2)
     .Internal(unlist(ans, recursive = FALSE, use.names = FALSE))
-    
   })
   
+  # USE.NAMES = TRUE 
+  # (lapply loses names by `[[` whereas map2 reserves names when available)
   x <- mapply(function (x, y) x[y], x, rows, SIMPLIFY = FALSE, USE.NAMES = TRUE)
 
   empties <- lapply(x, function(x) length(x) == 0L)

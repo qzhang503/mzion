@@ -284,6 +284,7 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses 
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
 
+  # module (10) 913 us
   vmods_combi <- combi_mvmods2(amods = amods, 
                                aas = aas, 
                                aa_masses = aa_masses, 
@@ -293,10 +294,12 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses 
                                  maxn_vmods_sitescombi_per_pep, 
                                digits = digits)
   
+  # 6.8 us
   vmods_combi <- find_intercombi_p2(vmods_combi, maxn_vmods_sitescombi_per_pep)
 
   # filtered by MS1 masses
   if (length(vmods_combi) && !is.null(ms1_mass)) {
+    # 200 us
     idxes <- lapply(vmods_combi, check_ms1_mass_vmods2, aas2, aa_masses, 
                     ntmod, ctmod, ms1_mass)
     idxes <- .Internal(unlist(idxes, recursive = FALSE, use.names = FALSE))
@@ -305,15 +308,22 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses 
     rm(list = c("idxes"))
   }
 
+  # 401 us
   vnl_combi <- lapply(vmods_combi, 
                       function (x) expand.grid(vmods_nl[x], 
                                                KEEP.OUT.ATTRS = FALSE, 
                                                stringsAsFactors = FALSE))
 
-  # ---
-  # vnl_combi can largely expand the ways of combination
-  # use for loop and keep track of the length of out?
-  # unlist for each i -> sum?
+  ## --- (tentative) to restricts the total number of vnl_combi's
+  # nrows <- lapply(vnl_combi, function (x) length(attributes(x)$row.names)) # faster than nrow
+  # nrows <- .Internal(unlist(nrows, recursive = FALSE, use.names = FALSE))
+  # counts <- cumsum(nrows)
+  
+  # oks <- which(counts <= maxn_vmods_sitescombi_per_pep)
+  # vnl_combi <- vnl_combi[oks]
+  # vmods_combi <- vmods_combi[oks]
+  ## ---
+  
   out <- mapply(
     calc_ms2ions_a1_vnl1_fnl0, 
     vmods_combi = vmods_combi, 
@@ -330,6 +340,7 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses 
     USE.NAMES = FALSE
   )
   
+  # 360 us
   out <- mapply(
     add_hexcodes_vnl2, 
     ms2ions = out, 
@@ -405,7 +416,10 @@ add_hexcodes_vnl2 <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
   hex_mods <- .Internal(paste0(list(hex_mods), collapse = "", recycle0 = FALSE))
 
   # Syntax: `(` for `vnl` and `[` for fnl
-  names(ms2ions) <- .Internal(paste0(list(hex_mods, " (", seq_along(ms2ions), ")"), 
+  names(ms2ions) <- .Internal(paste0(list(hex_mods, 
+                                          " (", 
+                                          as.character(seq_along(ms2ions)), 
+                                          ")"), 
                                      collapse = NULL, recycle0 = FALSE))
 
   invisible(ms2ions)

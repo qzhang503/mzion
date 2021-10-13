@@ -204,7 +204,6 @@ out <- gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = NULL,
                                 mod_indexes = mod_indexes)
 
 }
-
 \donttest{
 # (8) "amods+ tmod+ vnl- fnl-"
 fixedmods <- c("TMT6plex (K)")

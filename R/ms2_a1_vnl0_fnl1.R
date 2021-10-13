@@ -352,7 +352,10 @@ add_hexcodes_fnl2 <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
   hex_mods <- .Internal(paste0(list(hex_mods), collapse = "", recycle0 = FALSE))
   
   # Syntax: `(` for `vnl` and `[` for fnl
-  names(ms2ions) <- .Internal(paste0(list(hex_mods, " [", seq_along(ms2ions), "]"), 
+  names(ms2ions) <- .Internal(paste0(list(hex_mods, 
+                                          " [", 
+                                          as.character(seq_along(ms2ions)), 
+                                          "]"), 
                                      collapse = NULL, recycle0 = FALSE))
   
   invisible(ms2ions)

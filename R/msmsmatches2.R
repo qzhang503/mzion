@@ -103,6 +103,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
     ppm_ms2_new <- ppm_ms2
   }
 
+  message("\n===  MS2 ion searches started at ", Sys.time(), ". ===\n")
+  
   ## Targets 
   obj_sizes <- numeric(length(aa_masses_all))
   types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
@@ -515,8 +517,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   .savecall <- TRUE
   
-  message("\n=== Completed MS2 ion searches. ===\n")
-  
+  message("\n===  MS2 ion searches completed at ", Sys.time(), ". ===\n")
+
   invisible(NULL)
 }
 

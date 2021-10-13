@@ -227,10 +227,12 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
                                       maxn_vmods_sitescombi_per_pep = 32L, 
                                       digits = 4L) {
   
+  # 2.2 us
   aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
 
+  # 87 us
   vmods_combi <- combi_mvmods2(amods = amods, 
                                aas = aas, 
                                aa_masses = aa_masses, 
@@ -240,12 +242,13 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
                                  maxn_vmods_sitescombi_per_pep, 
                                digits = digits) 
   
+  # 291 us
   vmods_combi <- find_intercombi_p2(vmods_combi, maxn_vmods_sitescombi_per_pep)
 
   # filtered by MS1 masses
   if (length(vmods_combi) && !is.null(ms1_mass)) {
     idxes <- lapply(vmods_combi, check_ms1_mass_vmods2, aas2, aa_masses, 
-                    ntmod, ctmod, ms1_mass)
+                    ntmod, ctmod, ms1_mass) # 26.4 us
     idxes <- .Internal(unlist(idxes, recursive = FALSE, use.names = FALSE))
 
     vmods_combi <- vmods_combi[idxes]
@@ -255,9 +258,9 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
   out <- lapply(vmods_combi, 
                 calc_ms2ions_a1_vnl0_fnl0, 
                 aas2, aa_masses, ntmass, ctmass, 
-                type_ms2ions, digits = digits)
-  
-  out <- add_hexcodes(out, vmods_combi, length(aas), mod_indexes)
+                type_ms2ions, digits = digits) # 25 us
+
+  out <- add_hexcodes(out, vmods_combi, length(aas), mod_indexes) # 14.1 us
 
   invisible(out)
 }
@@ -296,9 +299,7 @@ calc_ms2ions_a1_vnl0_fnl0 <- function (vmods_combi, aas2, aa_masses,
 check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod, 
                                    ms1_mass, tol = 1e-3) {
 
-  bare <- aas2 %>% 
-    sum() %>% 
-    `+`(18.010565) 
+  bare <- sum(aas2) + 18.010565
   
   # No need of is_empty(ntmod) && is_empty(ctmod)
   if (!length(ntmod) && !length(ctmod)) {
@@ -415,7 +416,7 @@ combi_vmods2 <- function (aas,
   }
   
   # --- combinations ---
-  len_p2 <- min(len_p, maxn_vmods_per_pep)
+  len_p2 <- min(len_p, maxn_sites_per_vmod)
   
   if (len_p2 < len_p) {
     p <- p[1:len_p2]
@@ -438,30 +439,33 @@ combi_vmods2 <- function (aas,
       out[[m]] <- ns
     }
   } else { # "Oxidation (M)" and "Carbamidomethyl (M)"
+    # module 10: 47.3 us
     ns <- lapply(1:len_p2, function (x) {
       expand.grid(rep(list(n), length(p[1:x])), KEEP.OUT.ATTRS = FALSE, 
                   stringsAsFactors = FALSE)
-    }) 
+    })
     
+    # 39.2 us
     ps <- lapply(1:len_p2, function (x) {
       combn(as.character(p), x)
     })
     
+    # 693 us
     out <- mapply(combi_np, ns, ps, SIMPLIFY = FALSE, USE.NAMES = FALSE)
   }
   
   # ---
   out <- .Internal(unlist(out, recursive = FALSE, use.names = FALSE))
 
-  rows <- lapply(out, function (x) length(x) > maxn_vmods_per_pep)
-  rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
-  out <- out[!rows]
+  # rows <- lapply(out, function (x) length(x) > maxn_vmods_per_pep)
+  # rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
+  # out <- out[!rows]
   
-  maxn_vmod <- lapply(out, table)
-  maxn_vmod <- lapply(maxn_vmod, max)
-  
-  rows <- (maxn_vmod > maxn_sites_per_vmod)
-  out <- out[!rows]
+  ## `table()` slow
+  # maxn_vmod <- lapply(out, table)
+  # maxn_vmod <- lapply(maxn_vmod, max)
+  # rows <- (maxn_vmod > maxn_sites_per_vmod)
+  # out <- out[!rows]
   
   len_out <- length(out)
   
@@ -498,7 +502,29 @@ combi_np <- function (n, p) {
   # otherwise is data.frame
   # use names (positions) -> TRUE
   
-  lapply(np, unlist, use.names = TRUE)
+  # (a) np: are lists of single-element vector
+  # [[6]]
+  # 10 
+  # "Carbamidomethyl (M)" 
+  # 
+  # (b) are lists of data.frames (one row and multiple columns)
+  # [[12]]
+  #           6                  10
+  # 4 Carbamidomethyl (M) Carbamidomethyl (M)
+  
+  
+  # flattens to vectors
+  len_np <- length(nrow(np[[1]]))
+  
+  # case 'b' of data.frame
+  if (len_np) {
+    np <- lapply(np, unlist, use.names = TRUE)
+  }
+  
+  ## or simply unlist for both 'a' and 'b'
+  # lapply(np, unlist, use.names = TRUE)
+  
+  invisible(np)
 }
 
 
@@ -513,7 +539,9 @@ combi_np <- function (n, p) {
 find_intercombi_p2 <- function (intra_combis, maxn_vmods_sitescombi_per_pep = 32L) {
   
   if ((!length(intra_combis)) || 
-      any(purrr::map_lgl(intra_combis, purrr::is_empty))) { # scalar or list
+      any(.Internal(unlist(lapply(intra_combis, purrr::is_empty), 
+                           recursive = FALSE, use.names = FALSE)))
+      ) { # scalar or list
     v_out <- list() 
   } else if (length(intra_combis) == 1L) { # M, one to multiple positions; Oxidation and/or Carbamidomethyl
     if (length(intra_combis[[1]]) == 1L) { # 2: "Oxidation (M)"
@@ -530,10 +558,16 @@ find_intercombi_p2 <- function (intra_combis, maxn_vmods_sitescombi_per_pep = 32
       }
     })
     
-    v_combis <- lapply(intra_combis, function (x) {
-      lapply(x, reduce, `c`)
-    })
+    v_combis <- intra_combis
     
+    # v_combis <- lapply(intra_combis, function (x) {
+    #   if (length(x) > 1L) {
+    #     lapply(x, unname)
+    #   } else {
+    #     unname(x)
+    #   }
+    # })
+
     p_combis <- expand.grid(p_combis, KEEP.OUT.ATTRS = FALSE, 
                             stringsAsFactors = FALSE)
     v_combis <- expand.grid(v_combis, KEEP.OUT.ATTRS = FALSE, 
@@ -551,14 +585,8 @@ find_intercombi_p2 <- function (intra_combis, maxn_vmods_sitescombi_per_pep = 32
       names(v_out[[i]]) <- p_out[[i]]
       v_out[[i]] <- v_out[[i]][order(as.numeric(names(v_out[[i]])))]
     }
-    
-    # use names (positions) -> TRUE
-    # v_out <- map(v_out, unlist, use.names = TRUE)
   }
-  
-  ## use names (positions)
-  # v_out <- map(v_out, unlist, use.names = TRUE)
-  
+
   invisible(v_out)
 }
 
@@ -591,6 +619,128 @@ add_hexcodes <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
   names(ms2ions) <- hex_mods2
   
   invisible(ms2ions)
+}
+
+
+
+#' The combinations of variable modifications (single site).
+#' 
+#' Not currently used; slow.
+#' 
+#' @param residue_mods A residue with \code{Anywhere} modification(s).
+#' @inheritParams combi_mvmods2
+#' @import purrr
+#' @importFrom stringr str_locate_all
+combi_vmods1 <- function (aas, 
+                          residue_mods, 
+                          aa_masses, 
+                          maxn_vmods_per_pep = 5L, 
+                          maxn_sites_per_vmod = 3L, 
+                          maxn_vmods_sitescombi_per_pep = 32L, 
+                          digits = 4L) {
+  
+  ##################################################################
+  # values: n (modifications)
+  # names: p (positions)
+  # 
+  # n = LETTERS[1:2]; p = c(1, 3, 16)
+  # n = c("Carbamidomethyl (M)",  "Oxidation (M)"); p = c(1, 3, 16)
+  # 2*3, 4*3, 8*1
+  # l = length(p)
+  # n^1 * combn(p, 1) + n^2 * combn(p, 2) + ... + n^l * combn(p, l)
+  # 
+  ##################################################################
+  
+  ##################################################################
+  # !!! Danger !!!
+  # combn(3, 1) is combn(1:3, 1) not combn("3", 1)
+  ##################################################################
+  
+  residue <- residue_mods[[1]]
+  
+  n <- names(residue_mods)
+  p <- which(aas == residue)
+  
+  # (1) btw Anywhere "M" and "Acetyl N-term" where "M" on the "N-term"
+  # MFGMFNVSMR cannot have three `Oxidation (M)` and `Acetyl (N-term)`
+  # (2) the same for fixed terminal mod: `TMT6plex (N-term)` 
+  
+  # p <- check_tmod_p(aas, residue, p, ntmod, ctmod)
+  # p <- check_tmod_p(aas, residue, p, fntmod, fctmod)
+  
+  len_n <- length(n)
+  len_p <- length(p)
+  
+  if (len_n > len_p) {
+    return(NULL)
+  }
+  
+  if (len_p == 1L) {
+    names(n) <- p
+    return(n)
+  }
+  
+  # --- combinations ---
+  len_p2 <- min(len_p, maxn_vmods_per_pep)
+  
+  if (len_p2 < len_p) {
+    p <- p[1:len_p2]
+  }
+  
+  if (len_n == 1L) { # "Oxidation (M)"
+    out <- vector("list", len_p2)
+    
+    for (m in 1:len_p2) {
+      ns <- rep(n, m)
+      ps <- combn(p, m)
+      
+      ncol <- ncol(ps)
+      ns <- rep(list(ns), ncol)
+      
+      for (i in 1:ncol) {
+        names(ns[[i]]) <- ps[, i]
+      }
+      
+      out[[m]] <- ns
+    }
+  } else { # "Oxidation (M)" and "Carbamidomethyl (M)"
+    # 62.8 us
+    ns <- lapply(1:len_p2, function (x) {
+      expand.grid(rep(list(n), length(p[1:x])), KEEP.OUT.ATTRS = FALSE, 
+                  stringsAsFactors = FALSE)
+    }) 
+    
+    # 55 us
+    ps <- lapply(1:len_p2, function (x) {
+      combn(as.character(p), x)
+    })
+    
+    # 2.32ms
+    out <- mapply(combi_np, ns, ps, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  }
+  
+  # ---
+  out <- .Internal(unlist(out, recursive = FALSE, use.names = FALSE))
+  
+  rows <- lapply(out, function (x) length(x) > maxn_vmods_per_pep)
+  rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
+  out <- out[!rows]
+  
+  # 4ms
+  maxn_vmod <- lapply(out, table)
+  
+  maxn_vmod <- lapply(maxn_vmod, max)
+  
+  rows <- (maxn_vmod > maxn_sites_per_vmod)
+  out <- out[!rows]
+  
+  len_out <- length(out)
+  
+  if (len_out > maxn_vmods_sitescombi_per_pep) {
+    out <- out[1:maxn_vmods_sitescombi_per_pep]
+  }
+  
+  invisible(out)
 }
 
 
