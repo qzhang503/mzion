@@ -334,7 +334,7 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
   # (6) "amods- tmod- vnl- fnl+"
   if (!length(amods)) return(NULL)
   
-  residue_mods <- unlist(amods, use.names = FALSE)
+  residue_mods <- .Internal(unlist(amods, recursive = FALSE, use.names = FALSE))
   names(residue_mods) <- names(amods)
   residue_mods <- split(residue_mods, residue_mods)
   
@@ -411,7 +411,7 @@ vmods_elements <- function (aas,
   }
 
   rows <- lapply(x, function (x) length(x) > maxn_vmods_per_pep)
-  rows <- unlist(rows, recursive = FALSE, use.names = FALSE)
+  rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
   x <- x[!rows]
 
   maxn_vmod <- x %>%
@@ -461,7 +461,8 @@ find_intercombi <- function (intra_combis) {
 
   if (!length(intra_combis)) { # scalar
     v_out <- list()
-  } else if (any(purrr::map_lgl(intra_combis, purrr::is_empty))) { # list
+  } else if (any(.Internal(unlist(lapply(intra_combis, purrr::is_empty), 
+                                  recursive = FALSE, use.names = FALSE)))) { # list
     v_out <- list()
   } else if (length(intra_combis) > 1L) {
     inter_combi <- expand.grid(intra_combis, KEEP.OUT.ATTRS = FALSE, 
@@ -471,7 +472,8 @@ find_intercombi <- function (intra_combis) {
     v_out <- vector("list", nrow)
 
     for (i in 1:nrow) {
-      v_out[[i]] <- unlist(inter_combi[i, ], use.names = FALSE)
+      row <- inter_combi[i, ]
+      v_out[[i]] <- .Internal(unlist(row, recursive = TRUE, use.names = FALSE))
     }
   } else {
     v_out <- purrr::flatten(intra_combis)

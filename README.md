@@ -1,7 +1,7 @@
 proteoM
 ================
 true
-2021-09-15
+2021-10-14
 
 -   [Installation](#installation)
 -   [Database searches](#database-searches)
@@ -69,7 +69,7 @@ matchMS(
             "~/proteoM/dbs/fasta/crap/crap.fasta"), 
   acc_type = c("uniprot_acc", "other"), 
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"), 
-  varmods = c("Acetyl (N-term)", "Oxidation (M)", 
+  varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
               "Deamidated (N)", "Phospho (S)", "Phospho (T)", 
               "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"), 
   max_miss = 4, 

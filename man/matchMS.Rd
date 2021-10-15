@@ -190,7 +190,7 @@ matchMS(
             "~/proteoM/dbs/fasta/crap/crap.fasta"),
   acc_type = c("refseq_acc", "refseq_acc", "other"),
   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
-  varmods = c("Acetyl (N-term)", "Oxidation (M)",
+  varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
               "Deamidated (N)", "Phospho (S)", "Phospho (T)",
              "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
   max_miss = 2,

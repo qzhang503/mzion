@@ -245,7 +245,7 @@ recur_flatten <- function (x) {
   if (!inherits(x, "list")) {
     list(x)
   } else {
-    unlist(c(lapply(x, recur_flatten)), recursive = FALSE)
+    .Internal(unlist(c(lapply(x, recur_flatten)), recursive = FALSE, use.names = FALSE))
   }
 }
 

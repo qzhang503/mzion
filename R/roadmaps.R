@@ -5,9 +5,9 @@
 #   ms2match (msmsmatches2.R)
 #   calc_pepscores (scores.R)
 #   calc_peploc (scores)
-#   add_prot_acc (quant.R)
+#   add_prot_acc (quant2.R)
 #   calc_protfdr (scores.R)
-#   add_rptrs (quant.R)
+#   add_rptrs (quant2.R)
 #   try_psmC2Q
 #     psmC2Q
 #       grp_prots (quant2.R)
@@ -32,7 +32,7 @@
 #     - proc_mgfs
 #    - find_ms1_interval
 # 
-# calc_tmtint (quant.R)
+# calc_tmtint (quant2.R)
 #   find_reporter_ints
 # 
 # 
@@ -213,17 +213,9 @@
 #     map_pepprot2
 #     cut_protgrps2
 #       as_lgldist
+#         proteoCpp::to_lgldistC
 #     greedysetcover3
 #     
-
-## Depreciated (dbs.R)
-# (note: calc_monopep still used as an UI utility)
-# calc_pepmasses
-#   pre_pepmasses
-#     make_fastapeps
-#   mcalc_monopep
-#     calc_prots_pepmasses
-#     calc_prot_pepmasses
 
 
 ## (Tentative) same-site rules: no additive varmods

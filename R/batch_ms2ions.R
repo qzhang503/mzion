@@ -37,18 +37,17 @@ batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_202
                                    add_nlmasses = FALSE, 
                                    exclude_phospho_nl = exclude_phospho_nl, 
                                    out_path = .path_fasta) %T>%
-      saveRDS(file.path(.path_fasta, "aa_masses_all.rds"))
+      saveRDS(file_aa)
   } else {
     aa_masses_all <- readRDS(file_aa)
   }
   
   types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
   mod_indexes <- find_mod_indexes(.path_fasta)
-  
   time_stamps <- dir(path_ms1masses, all.files = TRUE, no.. = TRUE)
   
   # ---
-  time_stamps = time_stamps[2]
+  # time_stamps = time_stamps[2]
   # ---
   
   lapply(time_stamps, hbatch_ms2ions, 

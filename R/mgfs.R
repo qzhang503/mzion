@@ -197,7 +197,8 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgfs",
     stop("No mgf files under ", filepath, call. = FALSE)
   }
 
-  n_cores <- detect_cores()
+  # n_cores <- detect_cores(16L)
+  n_cores <- detect_cores(32L)
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
   parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
@@ -255,9 +256,9 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgfs",
 
   stopifnot(length(afs) == length(bfs))
 
-  gaps <- purrr::map2(afs, bfs, ~ {
-    af <- stri_read_lines(file.path(filepath, .x))
-    bf <- stri_read_lines(file.path(filepath, .y))
+  gaps <- purrr::map2(afs, bfs, function (x, y) {
+    af <- stri_read_lines(file.path(filepath, x))
+    bf <- stri_read_lines(file.path(filepath, y))
     append(af, bf)
   }) %>%
     unlist(use.names = FALSE) %T>%
@@ -434,7 +435,7 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
   ms2_ints <- lapply(ms2s, function (x) as.numeric(x[, 2]))
 
   lens <- lapply(ms2_moverzs, length)
-  lens <- unlist(lens, use.names = FALSE)
+  lens <- .Internal(unlist(lens, recursive = FALSE, use.names = FALSE))
 
   if (topn_ms2ions < Inf) {
     rows <- lapply(ms2_ints, which_topx2, topn_ms2ions)
@@ -457,10 +458,10 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
   ms1s <- lapply(ms1s, stringi::stri_split_fixed, " ", n = 2, simplify = TRUE)
 
   ms1_moverzs <- lapply(ms1s, function (x) round(as.numeric(x[, 1]), digits = 5L))
-  ms1_moverzs <- unlist(ms1_moverzs, use.names = FALSE)
+  ms1_moverzs <- .Internal(unlist(ms1_moverzs, recursive = FALSE, use.names = FALSE))
 
   ms1_ints <- lapply(ms1s, function (x) round(as.numeric(x[, 2]), digits = 0L))
-  ms1_ints <- unlist(ms1_ints, use.names = FALSE)
+  ms1_ints <- .Internal(unlist(ms1_ints, recursive = FALSE, use.names = FALSE))
 
   rm(list = c("ms1s"))
   gc()
@@ -491,7 +492,7 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
   proton <- 1.00727647
 
   charges <- lapply(ms1_charges, stringi::stri_reverse)
-  charges <- unlist(charges, use.names = FALSE)
+  charges <- .Internal(unlist(charges, recursive = FALSE, use.names = FALSE))
   charges <- as.integer(charges)
 
   ms1_masses <- mapply(function (x, y) x * y - y * proton, 

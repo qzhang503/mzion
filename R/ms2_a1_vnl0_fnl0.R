@@ -16,14 +16,14 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ntmod = NULL, ctmod = NULL,
                                    minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
                                    min_ms2mass = 110L, digits = 4L) {
   
-  n_cores <- detect_cores()
-  
-  tempdata <- purge_search_space(i, aa_masses, mgf_path, n_cores, ppm_ms1)
+  tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
   theopeps <- tempdata$theopeps
   rm(list = c("tempdata"))
   
   if (!length(mgf_frames) || !length(theopeps)) return(NULL)
+  
+  n_cores <- detect_cores(32L)
   
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
   
@@ -619,128 +619,6 @@ add_hexcodes <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
   names(ms2ions) <- hex_mods2
   
   invisible(ms2ions)
-}
-
-
-
-#' The combinations of variable modifications (single site).
-#' 
-#' Not currently used; slow.
-#' 
-#' @param residue_mods A residue with \code{Anywhere} modification(s).
-#' @inheritParams combi_mvmods2
-#' @import purrr
-#' @importFrom stringr str_locate_all
-combi_vmods1 <- function (aas, 
-                          residue_mods, 
-                          aa_masses, 
-                          maxn_vmods_per_pep = 5L, 
-                          maxn_sites_per_vmod = 3L, 
-                          maxn_vmods_sitescombi_per_pep = 32L, 
-                          digits = 4L) {
-  
-  ##################################################################
-  # values: n (modifications)
-  # names: p (positions)
-  # 
-  # n = LETTERS[1:2]; p = c(1, 3, 16)
-  # n = c("Carbamidomethyl (M)",  "Oxidation (M)"); p = c(1, 3, 16)
-  # 2*3, 4*3, 8*1
-  # l = length(p)
-  # n^1 * combn(p, 1) + n^2 * combn(p, 2) + ... + n^l * combn(p, l)
-  # 
-  ##################################################################
-  
-  ##################################################################
-  # !!! Danger !!!
-  # combn(3, 1) is combn(1:3, 1) not combn("3", 1)
-  ##################################################################
-  
-  residue <- residue_mods[[1]]
-  
-  n <- names(residue_mods)
-  p <- which(aas == residue)
-  
-  # (1) btw Anywhere "M" and "Acetyl N-term" where "M" on the "N-term"
-  # MFGMFNVSMR cannot have three `Oxidation (M)` and `Acetyl (N-term)`
-  # (2) the same for fixed terminal mod: `TMT6plex (N-term)` 
-  
-  # p <- check_tmod_p(aas, residue, p, ntmod, ctmod)
-  # p <- check_tmod_p(aas, residue, p, fntmod, fctmod)
-  
-  len_n <- length(n)
-  len_p <- length(p)
-  
-  if (len_n > len_p) {
-    return(NULL)
-  }
-  
-  if (len_p == 1L) {
-    names(n) <- p
-    return(n)
-  }
-  
-  # --- combinations ---
-  len_p2 <- min(len_p, maxn_vmods_per_pep)
-  
-  if (len_p2 < len_p) {
-    p <- p[1:len_p2]
-  }
-  
-  if (len_n == 1L) { # "Oxidation (M)"
-    out <- vector("list", len_p2)
-    
-    for (m in 1:len_p2) {
-      ns <- rep(n, m)
-      ps <- combn(p, m)
-      
-      ncol <- ncol(ps)
-      ns <- rep(list(ns), ncol)
-      
-      for (i in 1:ncol) {
-        names(ns[[i]]) <- ps[, i]
-      }
-      
-      out[[m]] <- ns
-    }
-  } else { # "Oxidation (M)" and "Carbamidomethyl (M)"
-    # 62.8 us
-    ns <- lapply(1:len_p2, function (x) {
-      expand.grid(rep(list(n), length(p[1:x])), KEEP.OUT.ATTRS = FALSE, 
-                  stringsAsFactors = FALSE)
-    }) 
-    
-    # 55 us
-    ps <- lapply(1:len_p2, function (x) {
-      combn(as.character(p), x)
-    })
-    
-    # 2.32ms
-    out <- mapply(combi_np, ns, ps, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  }
-  
-  # ---
-  out <- .Internal(unlist(out, recursive = FALSE, use.names = FALSE))
-  
-  rows <- lapply(out, function (x) length(x) > maxn_vmods_per_pep)
-  rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
-  out <- out[!rows]
-  
-  # 4ms
-  maxn_vmod <- lapply(out, table)
-  
-  maxn_vmod <- lapply(maxn_vmod, max)
-  
-  rows <- (maxn_vmod > maxn_sites_per_vmod)
-  out <- out[!rows]
-  
-  len_out <- length(out)
-  
-  if (len_out > maxn_vmods_sitescombi_per_pep) {
-    out <- out[1:maxn_vmods_sitescombi_per_pep]
-  }
-  
-  invisible(out)
 }
 
 

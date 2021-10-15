@@ -214,8 +214,8 @@ contain_termpos_any <- function (pos) {
     if (length(vmods) == 1L && vmods == "") return(FALSE)
     
     vmods %>% 
-      purrr::map_lgl(~ {
-        grepl(pos, names(.x)) 
+      purrr::map_lgl(function (x) {
+        grepl(pos, names(x)) 
       }) %>% 
       any()
   }

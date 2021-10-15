@@ -389,7 +389,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
     SIMPLIFY = FALSE,
     USE.NAMES = FALSE)
   
-  out <- unlist(out, recursive = FALSE, use.names = FALSE)
+  out <- .Internal(unlist(out, recursive = FALSE, use.names = FALSE))
 }
 
 
@@ -453,7 +453,7 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
                     ppm_ms2 = ppm_ms2, 
                     digits = digits)
 
-  uniq_id <- unlist(entry$uniq_id) # 2.3 us
+  uniq_id <- .Internal(unlist(entry$uniq_id, recursive = FALSE, use.names = FALSE))
   
   out <- lapply(out, function (x) {
     x$uniq_id <- uniq_id
@@ -482,7 +482,7 @@ calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by",
                     ppm_ms2 = ppm_ms2, 
                     digits = digits)
     
-    probs <- unlist(probs, recursive = FALSE, use.names = FALSE)
+    probs <- .Internal(unlist(probs, recursive = FALSE, use.names = FALSE))
     
     probs <- dplyr::bind_rows(probs) # 276 us
   } else {
@@ -655,9 +655,6 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                        penalize_sions = FALSE, ppm_ms2 = 25L, out_path = NULL, 
                        digits = 4L) {
   
-  n_cores <- detect_cores()
-  n_cores2 <- n_cores^2L
-  
   df <- readRDS(file.path(out_path, "temp", file))
   
   if (!nrow(df)) {
@@ -682,7 +679,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     return (NULL)
   }
   
-  df[["uniq_id"]] <- paste(df[["scan_num"]], df[["raw_file"]], sep = "@")
+  df$uniq_id <- paste(df$scan_num, df$raw_file, sep = "@")
   
   esscols <- c("ms2_moverz", "ms2_int", "matches", "ms2_n", "uniq_id")
   df2 <- df[, -which(names(df) %in% esscols), drop = FALSE]
@@ -691,13 +688,22 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   # otherwise, chunksplit return NULL
   #   -> res[[i]] <- NULL 
   #   -> length(res) shortened by 1
-  
+
+  n_chunks <- detect_cores(16L)^2
+
   if (!is.null(df)) {
-    df <- suppressWarnings(chunksplit(df, n_cores2, "row"))
+    df <- suppressWarnings(chunksplit(df, n_chunks, "row"))
     gc()
   }
   
-  if (length(df) >= n_cores2) {
+  #  8L: 1.00 mins
+  # 16L: 57.04 secs
+  # 32L: 1.04 mins
+  
+  if (length(df) >= n_chunks) {
+    
+    n_cores <- detect_cores(16L)
+    
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     
     parallel::clusterExport(cl, list("%>%"), 

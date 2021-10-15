@@ -4,14 +4,14 @@
 \alias{distri_peps}
 \title{Distributes peptides by variable modifications.}
 \usage{
-distri_peps(aa_masses, peps, max_miss)
+distri_peps(peps, aa_masses, max_miss)
 }
 \arguments{
-\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
-acid residues.}
-
 \item{peps}{Lists of peptides, either "fwds" or "revs", from
 \link{split_fastaseqs}.}
+
+\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
+acid residues.}
 
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
 }

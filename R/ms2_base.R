@@ -36,9 +36,8 @@ ms2match_base <- function (i, aa_masses, ntmass, ctmass, mod_indexes,
   #       post_frame_adv
   #     post_ms2match (utils_engine.R)
 
-  n_cores <- detect_cores()
-  
-  tempdata <- purge_search_space(i, aa_masses, mgf_path, n_cores, ppm_ms1)
+  # note: split into 16^2 lists
+  tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
   theopeps <- tempdata$theopeps
   rm(list = c("tempdata"))
@@ -46,6 +45,13 @@ ms2match_base <- function (i, aa_masses, ntmass, ctmass, mod_indexes,
   
   if (!length(mgf_frames) || !length(theopeps)) return(NULL)
   
+  # 16L: 2.24817038 mins
+  # 32L: 1.72830058 mins
+  # 48L: 1.76265123 mins
+  # 64L: 1.97044995 mins
+  
+  n_cores <- detect_cores(32L)
+
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
   
   parallel::clusterExport(cl, list("%>%"), 
@@ -606,42 +612,43 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
   
   # --- find MS2 matches ---
   if (length(theos_bf_ms2)) {
-    x_bf <- lapply(theos_bf_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, 
-                   min_ms2mass)
+    ans_bf <- lapply(theos_bf_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, 
+                     min_ms2mass)
   } else {
-    x_bf <- theos_bf_ms2
+    ans_bf <- theos_bf_ms2
   }
   
   if (length(theos_cr_ms2)) {
-    x_cr <- lapply(theos_cr_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, 
-                   min_ms2mass)
+    ans_cr <- lapply(theos_cr_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, 
+                     min_ms2mass)
   } else {
-    x_cr <- theos_cr_ms2
+    ans_cr <- theos_cr_ms2
   }
   
   if (length(theos_af_ms2)) {
-    x_af <- lapply(theos_af_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, 
-                   min_ms2mass)
+    ans_af <- lapply(theos_af_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, 
+                     min_ms2mass)
   } else {
-    x_af <- theos_af_ms2
+    ans_af <- theos_af_ms2
   }
   
-  x <- c(x_bf, x_cr, x_af)
+  ans <- c(ans_bf, ans_cr, ans_af)
   
   ## cleans up
-  rows <- lapply(x, function (this) {
-    ans <- lapply(this, function (x) sum(!is.na(x[["expt"]])) >= minn_ms2)
-    .Internal(unlist(ans, recursive = FALSE, use.names = FALSE))
+  rows <- lapply(ans, function (this) {
+    res <- lapply(this, function (x) sum(!is.na(x[["expt"]])) >= minn_ms2)
+    .Internal(unlist(res, recursive = FALSE, use.names = FALSE))
   })
   
   # USE.NAMES = TRUE 
   # (lapply loses names by `[[` whereas map2 reserves names when available)
-  x <- mapply(function (x, y) x[y], x, rows, SIMPLIFY = FALSE, USE.NAMES = TRUE)
+  ans <- mapply(function (x, y) x[y], ans, rows, 
+                SIMPLIFY = FALSE, USE.NAMES = TRUE)
 
-  empties <- lapply(x, function(x) length(x) == 0L)
+  empties <- lapply(ans, function(x) length(x) == 0L)
   empties <- .Internal(unlist(empties, recursive = FALSE, use.names = FALSE))
   
-  x <- x[!empties]
+  ans <- ans[!empties]
   
   # ---
   theomasses_ms1 <- c(theomasses_bf_ms1, 
@@ -649,18 +656,18 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
                       theomasses_af_ms1)
   theomasses_ms1 <- theomasses_ms1[!empties]
   
-  x <- mapply(
+  ans <- mapply(
     function (x, y) {
       attr(x, "theo_ms1") <- y
       x
     }, 
-    x, theomasses_ms1, 
+    ans, theomasses_ms1, 
     SIMPLIFY = FALSE,
     USE.NAMES = TRUE
   )
   
   # ---
-  # `length(x) == N(theos_peps)` within the ppm window
+  # `length(ans) == N(theos_peps)` within the ppm window
   # 
   # ATIPIFFDMMLCEYQR
   # (1) ATIPIFFDMMLCEYQR$`0000000050000000`
@@ -703,7 +710,7 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
   #   5  868.  868.
   #   6 1297. 1297.
   
-  invisible(x)
+  invisible(ans)
 }
 
 

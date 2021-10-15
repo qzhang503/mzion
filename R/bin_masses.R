@@ -107,16 +107,12 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
     })
     
     n_cores <- local({
-      max_n_cores <- 8L
-      
       fct <- 20 
       free_mem <- find_free_mem()
       max_sz <- max(file.size(file.path(.path_mass, masses)))/1024^2
       
-      n_cores <- min(max_n_cores, 
-                     floor(free_mem/max_sz/fct), 
-                     detect_cores())
-      
+      n_cores <- min(floor(free_mem/max_sz/fct), detect_cores(8L))
+
       if (n_cores < 1L) {
         warning("May be out of memory with large peptide tables.")
         n_cores <- 1L
@@ -158,7 +154,6 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   
   .savecall <- TRUE
 
-  # no need of global `.time_bin`
   assign(".path_bin", .path_bin, envir = .GlobalEnv)
 
   invisible(NULL)
@@ -294,7 +289,8 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 500L,
   
   n_cores <- local({
     len <- length(res)
-    n_cores <- detect_cores()
+    # n_cores <- detect_cores(32L)
+    n_cores <- detect_cores(16L)
     
     if (len > n_cores) {
       n_cores <- min(floor(n_cores/2L), len)

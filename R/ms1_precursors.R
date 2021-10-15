@@ -140,6 +140,9 @@ calc_pepmasses2 <- function (
                                 varmods = varmods,
                                 maxn_vmods_setscombi = maxn_vmods_setscombi, 
                                 exclude_phospho_nl = exclude_phospho_nl)
+    
+    len <- length(aa_masses)
+    types <- purrr::map_chr(aa_masses, attr, "type", exact = TRUE)
 
     # just the first one; nothing special
     # used for base masses; not involve terminal and anywhere masses
@@ -200,11 +203,36 @@ calc_pepmasses2 <- function (
     # --- Distribution ---
     message("Distributing peptides by variable modifications.")
     
-    # Note one-to-multiple expansion: 
-    #   `length(fw_peps) == length(aa_masses)` after this.
-    fwd_peps <-  distri_peps(aa_masses = aa_masses,
-                             peps = fwd_peps,
-                             max_miss = max_miss)
+    # Note 1-to-n expansion: `length(fw_peps) == length(aa_masses)` after this.
+    n_cores <- detect_cores(16L)
+    
+    fwd_peps <- chunksplit(fwd_peps, n_cores, "list")
+    
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    
+    parallel::clusterExport(
+      cl,
+      c("distri_peps", 
+        "ct_counts", 
+        "rm_char_in_nfirst2", 
+        "rm_char_in_nlast2"), 
+      envir = environment(proteoM:::distri_peps)
+    )
+    
+    fwd_peps <- parallel::clusterApply(
+      cl, 
+      fwd_peps, 
+      distri_peps, 
+      aa_masses = aa_masses, 
+      max_miss = max_miss
+    )
+    
+    fwd_peps <- lapply(seq_len(len), function (i) {
+      fwd_peps_i <- lapply(fwd_peps, `[[`, i)
+      purrr::flatten(fwd_peps_i)
+    })
+    
+    parallel::stopCluster(cl)
     
     message("\tCompleted bare peptides distributions.")
     
@@ -220,9 +248,6 @@ calc_pepmasses2 <- function (
 
 
     # --- Delta masses of `variable` terminals  ---
-    len <- length(aa_masses)
-    types <- purrr::map_chr(aa_masses, attr, "type", exact = TRUE)
-    
     # (e.g., on top of the `fixed` 18.010565)
     message("Adding terminal masses (variable modifications) ...")
 
@@ -264,7 +289,7 @@ calc_pepmasses2 <- function (
     # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
 
     if (include_insource_nl) {
-      n_cores <- detect_cores()
+      n_cores <- detect_cores(32L)
 
       inds <- which(types %in% c("amods- tmod- vnl- fnl+",
                                  "amods- tmod+ vnl- fnl+"))
@@ -320,7 +345,19 @@ calc_pepmasses2 <- function (
     #   (11-12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
     #   (13-14) "amods+ tmod- vnl+ fnl+", "amods+ tmod+ vnl+ fnl+"
     
-    n_cores <- detect_cores()
+    # i = 4
+    # 16L: 1.45542643 mins
+    # 32L: 1.0508078 mins
+    # 64L: 1.06206823 mins
+    # 96L: 1.25min
+    # 128L: 1.44mins
+    
+    # i = 7L
+    # 16L: 16.572324 secs
+    # 32L: 22.6
+    # 64L: 39 
+
+    n_cores <- detect_cores(32L)
 
     inds <- which(types %in% c("amods+ tmod- vnl- fnl-",
                                "amods+ tmod+ vnl- fnl-",
@@ -469,9 +506,10 @@ tbl_prots_peps <- function (seqs, path) {
   nms <- mapply(function (x, y) rep(x, y), 
                 names(seqs), lens,
                 SIMPLIFY = FALSE, USE.NAMES = FALSE
-  ) %>% 
-    unlist(recursive = FALSE, use.names = FALSE)
+  ) 
   
+  nms <- unlist(nms, recursive = FALSE, use.names = FALSE)
+
   # pep_seqs
   seqs <- unlist(seqs, recursive = FALSE, use.names = FALSE)
   ans <- data.frame(pep_seq = seqs, prot_acc = nms)
@@ -489,7 +527,7 @@ tbl_prots_peps <- function (seqs, path) {
 flat_pepseqs <- function (x) {
   
   x <- purrr::flatten(x)
-  x <- unlist(x, recursive = FALSE, use.names = TRUE)
+  x <- .Internal(unlist(x, recursive = FALSE, use.names = TRUE))
   
   x <- x[!duplicated(names(x))]
 }
@@ -502,9 +540,10 @@ flat_pepseqs <- function (x) {
 #' @param pos_site A named value. Position in name and site in value.
 find_aa_site <- function (pos_site) {
 
-  if (grepl("[NC]{1}-term", names(pos_site))) {
-    site <- names(pos_site) %>%
-      gsub("(Protein|Any) ([NC]{1}-term)", "\\2", .)
+  nms <- names(pos_site)
+  
+  if (grepl("[NC]{1}-term", nms)) {
+    site <- gsub("(Protein|Any) ([NC]{1}-term)", "\\2", nms)
   } else {
     site <- pos_site
   }
@@ -1396,7 +1435,8 @@ split_fastaseqs <- function (fasta, acc_type, acc_pattern, maxn_fasta_seqs,
          call. = FALSE)
   }
 
-  n_cores <- detect_cores()
+  n_cores <- detect_cores(16L)
+
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
   parallel::clusterExport(
@@ -1412,7 +1452,7 @@ split_fastaseqs <- function (fasta, acc_type, acc_pattern, maxn_fasta_seqs,
                                  make_fastapeps0, max_miss) %>%
     purrr::flatten()
 
-  stopCluster(cl)
+  parallel::stopCluster(cl)
   
   rm(list = c("fasta_db"))
   gc()
@@ -1442,12 +1482,15 @@ make_fastapeps0 <- function (fasta_db, max_miss = 2L) {
   
   # --- with protein N-term (initiator) methionine ---
   peps <- lapply(fasta_db, function (x) {
-    stringr::str_split(x, "@", simplify = TRUE)
+    s <- .Internal(strsplit(x, "@", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+    s <- .Internal(unlist(s, recursive = FALSE, use.names = FALSE))
   })
   
   # --- without protein N-term (initiator) methionine ---
   peps_m <- lapply(fasta_dbm, function (x) {
-    s <- stringr::str_split(x, "@", simplify = TRUE)
+    s <- .Internal(strsplit(x, "@", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+    s <- .Internal(unlist(s, recursive = FALSE, use.names = FALSE))
+    
     keep_n_misses(s, max_miss)
   })
   
@@ -1522,10 +1565,10 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
     attr("data")
 
   # (2) rolling sum (not yet terminal H2O)
-  n_cores <- detect_cores()
+  n_cores <- detect_cores(16L)
+  
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
-  parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
   parallel::clusterExport(cl, list("roll_sum"), envir = environment(proteoM:::roll_sum))
 
   ms_1 <- parallel::clusterApply(
@@ -1560,7 +1603,7 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
       purrr::flatten()
   }
 
-  stopCluster(cl)
+  parallel::stopCluster(cl)
 
   # (3) putting together (+ terminal H2O)
   # (USE.NAMES of prot_acc)
@@ -1600,14 +1643,11 @@ ms1masses_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L,
 
   options(digits = 9L)
 
-  n_cores <- detect_cores()
+  n_cores <- detect_cores(16L)
 
   aa_seqs <- suppressWarnings(split(aa_seqs, seq_len(n_cores)))
 
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-
-  parallel::clusterExport(cl, list("%>%"),
-                          envir = environment(magrittr::`%>%`))
 
   parallel::clusterExport(
     cl,
@@ -1661,7 +1701,6 @@ calcms1mass_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L,
 calcms1mass_noterm_byprot <- function (prot_peps, aa_masses, maxn_vmods_per_pep = 5L,
                                        maxn_sites_per_vmod = 3L, digits = 4L) {
                                        
-
   # by peptides
   ans <- lapply(prot_peps, calcms1mass_noterm_bypep,
                 aa_masses = aa_masses,
@@ -1669,7 +1708,7 @@ calcms1mass_noterm_byprot <- function (prot_peps, aa_masses, maxn_vmods_per_pep 
                 maxn_sites_per_vmod = maxn_sites_per_vmod,
                 digits = digits)
   
-  unlist(ans, use.names = TRUE)
+  .Internal(unlist(ans, recursive = FALSE, use.names = TRUE))
 }
 
 
@@ -1683,15 +1722,17 @@ calcms1mass_noterm_byprot <- function (prot_peps, aa_masses, maxn_vmods_per_pep 
 #' @importFrom stringr str_split
 calcms1mass_noterm_bypep <- function (aa_seq, aa_masses, maxn_vmods_per_pep = 5L,
                                       maxn_sites_per_vmod = 3L, digits = 4L) {
-                                      
 
   if (is.na(aa_seq)) return(NULL)
   
-  res <- stringr::str_split(aa_seq, "", simplify = TRUE)
-  res <- aa_masses[res]
-  res <- sum(res)
-  names(res) <- aa_seq
-  res <- round(res, digits = digits)
+  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
+
+  aas <- aa_masses[aas]
+  aas <- sum(aas)
+  names(aas) <- aa_seq
+  
+  round(aas, digits = digits)
 }
 
 
@@ -1701,7 +1742,7 @@ calcms1mass_noterm_bypep <- function (aa_seq, aa_masses, maxn_vmods_per_pep = 5L
 #'   \link{split_fastaseqs}.
 #' @inheritParams calc_pepmasses2
 #' @inheritParams add_fixvar_masses
-distri_peps <- function (aa_masses, peps, max_miss) {
+distri_peps <- function (peps, aa_masses, max_miss) {
 
   nms <- lapply(peps, names)
 
@@ -1719,7 +1760,8 @@ distri_peps <- function (aa_masses, peps, max_miss) {
   # ZN207_HUMAN: MGRKKKK (no N-term pep_seq at 2 misses and min_len >= 7L)
   
   out <- lapply(out, function(xs) {
-    len <- unlist(lapply(xs, length), recursive = FALSE, use.names = FALSE)
+    len <- .Internal(unlist(lapply(xs, length), recursive = FALSE, 
+                            use.names = FALSE))
     
     xs <- xs[len > 0L]
     
@@ -1835,7 +1877,8 @@ delta_ms1_a0_fnl1 <- function (fnl_combi, aas, aa_masses) {
   out[[1]] <- 0L
 
   for (i in 2:len) {
-    aa_masses[nms] <- unlist(fnl_combi[i, ])
+    row <- fnl_combi[i, ]
+    aa_masses[nms] <- .Internal(unlist(row, recursive = FALSE, use.names = FALSE))
     oks <- aas[aas %in% nms]
     out[[i]] <- sum(aa_masses[oks])
   }
@@ -1875,7 +1918,9 @@ hms1_a0_vnl0_fnl1 <- function (masses, fnl_combi, aa_masses, digits = 4L) {
 #' @importFrom stringr str_split
 ms1_a0_vnl0_fnl1 <- function (mass, aa_seq, fnl_combi, aa_masses, digits = 4L) {
   
-  aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
+  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
+
   delta <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
   out <- round(mass - delta, digits = digits)
   
@@ -1883,7 +1928,6 @@ ms1_a0_vnl0_fnl1 <- function (mass, aa_seq, fnl_combi, aa_masses, digits = 4L) {
   
   invisible(out)
 }
-
 
 
 #' Helper of \link{ms1_a1_vnl0_fnl0}.
@@ -1980,20 +2024,22 @@ ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
                               maxn_sites_per_vmod = 3L,
                               digits = 4L) {
   
-  aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
+  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   
   vmods_combi <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
                                aa_masses = aa_masses, aas = aas,
                                maxn_vmods_per_pep = maxn_vmods_per_pep,
                                maxn_sites_per_vmod = maxn_sites_per_vmod,
                                digits = digits)
+  
   vmods_combi <- find_intercombi(vmods_combi)
   
   deltas <- lapply(vmods_combi, function (x) sum(aa_masses[x]))
   
-  out <- unlist(lapply(deltas, function (x) round(mass + x, digits = digits)), 
-                recursive = FALSE, use.names = FALSE)
-  
+  masses <- lapply(deltas, function (x) round(mass + x, digits = digits))
+  out <- .Internal(unlist(masses, recursive = FALSE, use.names = FALSE))
+
   if (include_insource_nl) {
     if (length(vmods_nl)) {
       vnl_combi <- lapply(vmods_combi, 
@@ -2016,7 +2062,4 @@ ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
   
   invisible(out)
 }
-
-
-
 

@@ -18,14 +18,14 @@ ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ntmod = NULL, ctmod = NULL,
                                    minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
                                    min_ms2mass = 110L, digits = 4L) {
   
-  n_cores <- detect_cores()
-  
-  tempdata <- purge_search_space(i, aa_masses, mgf_path, n_cores, ppm_ms1)
+  tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
   theopeps <- tempdata$theopeps
   rm(list = c("tempdata"))
   
   if (!length(mgf_frames) || !length(theopeps)) return(NULL)
+  
+  n_cores <- detect_cores(32L)
   
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
   parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
