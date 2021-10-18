@@ -97,7 +97,9 @@ peptide.}
 variable modifications per site in a per peptide sequence.}
 
 \item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
-combinatorial variable modifications per peptide sequence.}
+combinatorial variable modifications per peptide sequence. The default is
+64. May consider a smaller value, i.e. 32, when searching against
+phosphopeptide data.}
 
 \item{min_len}{Integer; the minimum length of peptides. Shorter peptides will
 be excluded.}
@@ -194,6 +196,7 @@ matchMS(
               "Deamidated (N)", "Phospho (S)", "Phospho (T)",
              "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
   max_miss = 2,
+  maxn_vmods_sitescombi_per_pep = 32,
   quant = "tmt16",
   fdr_type = "protein",
   out_path = "~/proteoM/examples",
@@ -204,5 +207,8 @@ matchMS(
 }
 \seealso{
 \link{load_fasta2} for setting the values of \code{acc_type} and
-  \code{acc_pattern}. \link{parse_unimod} for the grammar of Unimod.
+  \code{acc_pattern}. \cr \link{parse_unimod} for the grammar of Unimod.
+  \href{https://proteoq.netlify.app/post/mixing-data-at-different-tmt-plexes/}{For
+   example}, the name tag of "TMT6plex" is common among TMT-6, -10 and -11
+  while "TMTpro" is specific to TMT-16.
 }

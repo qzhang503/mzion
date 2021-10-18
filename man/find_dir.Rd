@@ -12,5 +12,5 @@ find_dir(path, create = FALSE)
 \item{create}{Logical; if TRUE create the path if not yet existed.}
 }
 \description{
-With the option of creating a direcotry.
+With the option of creating a directory
 }

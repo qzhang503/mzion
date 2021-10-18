@@ -566,7 +566,13 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                    penalize_sions = penalize_sions, 
                    ppm_ms2 = ppm_ms2, 
                    out_path = out_path, 
-                   digits = digits) %>% 
+                   digits = digits)
+  
+  if (is.null(rev)) {
+    rev <- readRDS(file.path(out_path, "temp", paste0("pepscores_", nms_d, ".rds")))
+  }
+  
+  rev <- rev %>% 
     list() %>% 
     `names<-`(nms_d)
 
@@ -622,6 +628,11 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   
   oks <- purrr::map_lgl(out, function (x) nrow(x) > 0L)
   out <- dplyr::bind_rows(out[oks])
+  
+  if (!nrow(out)) {
+    stop("No PSM matches for scoring. Consider different search parameters.", 
+         call. = FALSE)
+  }
   
   # Adjusted p-values
   out <- out %>% 
@@ -993,11 +1004,23 @@ calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm",
     
     # keeps the best hit for each `scan_num`
     # (separated bests for targets and decoys)
-    out[[nms_t]] <- out[[nms_t]] %>% 
+    out_t <- out[[nms_t]]
+    
+    if (!nrow(out_t)) {
+      lens <- min_len:max_len
+      prob_cos <- rep(.5, length(lens))
+      names(prob_cos) <- lens
+      
+      return(prob_cos)
+    }
+    
+    out[[nms_t]] <- out_t %>% 
       dplyr::group_by(scan_num, raw_file) %>% 
       dplyr::arrange(pep_prob) %>% 
       dplyr::filter(row_number() == 1L) %>% 
       dplyr::ungroup()
+    
+    rm(list = "out_t")
     
     out[[nms]] <- out[[nms]] %>% 
       dplyr::group_by(scan_num, raw_file) %>% 

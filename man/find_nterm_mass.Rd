@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils_engine.R
 \name{find_nterm_mass}
 \alias{find_nterm_mass}
-\title{Finds N-terminal mass.}
+\title{Finds MS2 N-terminal mass.}
 \usage{
 find_nterm_mass(aa_masses)
 }
@@ -11,5 +11,5 @@ find_nterm_mass(aa_masses)
 acid residues.}
 }
 \description{
-Not yet used.
+Finds MS2 N-terminal mass.
 }

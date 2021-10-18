@@ -1,5 +1,8 @@
 #' Helper in loading MGFs.
 #'
+#' Currently, \code{index_ms2} is always FALSE. Argument \code{ppm_ms2} is only
+#' effective at \code{index_ms2 = TRUE}.
+#' 
 #' @param min_mass A minimum mass of precursors for considerations.
 #' @param max_mass A maximum mass of precursors for considerations.
 #' @param min_ms2mass A minimum m/z of MS2 ions for considerations.
@@ -9,29 +12,70 @@
 #' @param is_ms2_three_frame Logical; is the searches by the three frames of
 #'   preceeding, current and following.
 #' @inheritParams matchMS
-load_mgfs <- function (mgf_path, min_mass = 500L, max_mass = 6000L, 
+load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L, 
                        min_ms2mass = 110L, topn_ms2ions = 100L, 
                        ppm_ms1 = 20L, ppm_ms2 = 25L, index_ms2 = FALSE, 
                        is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE) {
+  
+  old_opts <- options()
+  options(warn = 1L)
+  on.exit(options(old_opts), add = TRUE)
+  
+  on.exit(
+    if (exists(".savecall", envir = rlang::current_env())) {
+      if (.savecall) {
+        save_call2(path = file.path(out_path, "Calls"), fun = fun)
+      }
+    },
+    add = TRUE
+  )
 
-  if (is_ms1_three_frame) {
-    ppm_ms1_new <- as.integer(ceiling(ppm_ms1 * .5))
-  } else {
-    ppm_ms1_new <- ppm_ms1
-  }
+  # ---
+  fun <- as.character(match.call()[[1]])
   
-  if (is_ms2_three_frame) {
-    ppm_ms2_new <- as.integer(ceiling(ppm_ms2 * .5))
-  } else {
-    ppm_ms2_new <- ppm_ms2
-  }
+  args_except <- NULL
   
+  cache_pars <- find_callarg_vals(time = NULL, 
+                                  path = file.path(out_path, "Calls"), 
+                                  fun = paste0(fun, ".rda"), 
+                                  args = names(formals(fun)) %>% 
+                                    .[! . %in% args_except]) %>% 
+    .[sort(names(.))]
+  
+  call_pars <- mget(names(formals()) %>% .[! . %in% args_except], 
+                    envir = rlang::current_env(), 
+                    inherits = FALSE) %>% 
+    .[sort(names(.))]
+  
+  ok_pars <- identical(call_pars, cache_pars)
+
   rds <- file.path(mgf_path, "mgf_queries.rds")
-
-  if (file.exists(rds)) {
+  
+  if (ok_pars && file.exists(rds)) {
     message("Found cached MGFs: `", rds, "`.")
+    .savecall <- FALSE
   } else {
     message("Processing raw MGFs.")
+    
+    if (is_ms1_three_frame) {
+      ppm_ms1_new <- as.integer(ceiling(ppm_ms1 * .5))
+    } else {
+      ppm_ms1_new <- ppm_ms1
+    }
+    
+    if (is_ms2_three_frame) {
+      ppm_ms2_new <- as.integer(ceiling(ppm_ms2 * .5))
+    } else {
+      ppm_ms2_new <- ppm_ms2
+    }
+    
+    # dirs <- list.dirs(mgf_path, full.names = FALSE, recursive = TRUE) %>%
+    #   .[! . == ""]
+    # unlink(file.path(mgf_path, dirs), recursive = TRUE)
+
+    delete_files(out_path, ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
+                                       "\\.xls$", "\\.csv$", "\\.txt$", 
+                                       "^mgf$", "^mgfs$", "Calls"))
 
     readMGF(filepath = mgf_path,
             min_mass = min_mass,
@@ -43,6 +87,8 @@ load_mgfs <- function (mgf_path, min_mass = 500L, max_mass = 6000L,
             ppm_ms2 = ppm_ms2_new,
             index_ms2 = index_ms2,
             out_path = rds)
+    
+    .savecall <- TRUE
   }
 
   invisible(NULL)

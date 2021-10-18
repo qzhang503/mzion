@@ -464,8 +464,12 @@ groupProts2 <- function (df, out_path = NULL) {
   df0 <- dplyr::filter(df, !prot_isess)
   df <- dplyr::filter(df, prot_isess)
 
-  mat_ess <- mat[, colnames(mat) %in% unique(df$prot_acc)]
-  
+  if (nrow(mat) == 1L) {
+    mat_ess <- mat
+  } else {
+    mat_ess <- mat[, colnames(mat) %in% unique(df$prot_acc)]
+  }
+
   peps_uniq <- local({
     rsums <- Matrix::rowSums(mat)
     rsums2 <- Matrix::rowSums(mat_ess)
@@ -513,9 +517,17 @@ map_pepprot2 <- function (df, out_path = NULL) {
   df <- unique(df)
   
   gc()
-  
+
   peps <- df$pep_seq
   
+  if (length(peps) == 1L) {
+    out <- matrix(1)
+    colnames(out) <- df$prot_acc
+    rownames(out) <- peps
+    
+    return(out)
+  }
+
   mat <- Matrix::sparse.model.matrix(~ -1 + prot_acc, df)
   colnames(mat) <- gsub("prot_acc", "", colnames(mat))
   mat <- mat == 1L
@@ -539,22 +551,27 @@ map_pepprot2 <- function (df, out_path = NULL) {
   start <- 1
   end <- ncol
 
-  for (i in seq_len(len)) {
-    pep <- rownames(mat)[[1]]
-    rows <- rownames(mat) == pep
+  if (len) {
+    for (i in seq_len(len)) {
+      pep <- rownames(mat)[[1]]
+      rows <- rownames(mat) == pep
+      
+      mati <- mat[rows, ]
+      out[start:end] <- Matrix::colSums(mati)
+      
+      mat <- mat[!rows, ]
+      
+      start <- start + ncol
+      end <- end + ncol
+      
+      if (i %% 100 == 0) gc()
+    }
     
-    mati <- mat[rows, ]
-    out[start:end] <- Matrix::colSums(mati)
-
-    mat <- mat[!rows, ]
-    
-    start <- start + ncol
-    end <- end + ncol
-    
-    if (i %% 100 == 0) gc()
+    rm(list = c("mat", "mati"))
+  } else {
+    rm(list = c("mat"))
   }
   
-  rm(list = c("mat", "mati"))
   gc()
   
   # ---
@@ -626,9 +643,17 @@ map_pepprot2 <- function (df, out_path = NULL) {
 #' @param mat A logical matrix; peptides in rows and proteins in columns.
 #' @param out_path A file pth to outputs.
 cut_protgrps2 <- function (mat = NULL, out_path = NULL) {
-
-  dista = proxyC::simil(mat, margin = 2) # sparse distance matrix
+  
   cns <- colnames(mat)
+  
+  if (nrow(mat) == 1L) {
+    dista <- matrix(1.0)
+    colnames(dista) <- cns
+    rownames(dista) <- cns
+  } else {
+    dista <- proxyC::simil(mat, margin = 2) # sparse distance matrix
+  }
+
   rm(list = c("mat"))
   gc()
   
@@ -688,20 +713,29 @@ cut_protgrps2 <- function (mat = NULL, out_path = NULL) {
   mat2 <- as_lgldist(mat2, diag = FALSE, upper = FALSE)
   gc()
   
-  hc <- hclust(mat2, method = "single")
-  gc()
+  if (length(mat2)) {
+    hc <- hclust(mat2, method = "single")
+    gc()
+    
+    grps <- data.frame(prot_hit_num = cutree(hc, h = .9))
+  } else {
+    hc <- NULL
+    grps <- data.frame(prot_hit_num = 1L)
+    rownames(grps) <- cns
+  }
   
-  grps <- data.frame(prot_hit_num = cutree(hc, h = .9)) %>% 
+  grps <- grps %>% 
     tibble::rownames_to_column("prot_acc") %>%
     dplyr::group_by(prot_hit_num) %>%
     dplyr::mutate(prot_family_member = dplyr::row_number()) %>%
     dplyr::ungroup()
   
+  
   if (!is.null(out_path)) {
     saveRDS(grps, file.path(out_path, "prot_grps.rds"))
   }
   
-  stopifnot(identical(grps$prot_acc, cns))
+  # stopifnot(identical(grps$prot_acc, cns))
   
   invisible(grps)
 }
@@ -779,6 +813,10 @@ greedysetcover3 <- function (mat) {
   if (is.matrix(mat)) {
     mat <- Matrix::Matrix(as.matrix(mat), sparse = TRUE)
     gc()
+  }
+  
+  if (nrow(mat) == 1L) {
+    return(data.frame(prot_acc = colnames(mat), pep_seq = rownames(mat)))
   }
   
   prot_acc <- NULL

@@ -16,17 +16,35 @@ batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_202
                            maxn_vmods_per_pep = 5L, 
                            maxn_sites_per_vmod = 3L, 
                            maxn_vmods_sitescombi_per_pep = 32L, 
+                           .path_cache = NULL,
                            .path_fasta = NULL,
                            digits = 5L) {
   
   options(digits = 9L)
   
+  # ---
+  if (is.null(.path_cache)) {
+    .path_cache <- "~/proteoM/.MSearches/Cache/Calls/"
+  }
+  
+  .path_cache <- find_dir(.path_cache, create = FALSE)
+  
+  if (is.null(.path_cache)) {
+    stop("Cache path not existed: ", .path_cache, call. = FALSE)
+  }
+  
+  # ---
   if (is.null(.path_fasta)) {
     .path_fasta <- file.path(gsub("(.*)\\.[^\\.]*$", "\\1", fasta[1]))
   }
-
-  path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
-
+  
+  .path_fasta <- find_dir(.path_fasta, create = FALSE)
+  
+  if (is.null(.path_fasta)) {
+    stop("Fasta path not existed: ", .path_fasta, call. = FALSE)
+  }
+  
+  # ---
   file_aa <- file.path(.path_fasta, "aa_masses_all.rds")
   
   if (!file.exists(file_aa)) {
@@ -44,19 +62,23 @@ batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_202
   
   types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
   mod_indexes <- find_mod_indexes(.path_fasta)
-  time_stamps <- dir(path_ms1masses, all.files = TRUE, no.. = TRUE)
   
   # ---
-  # time_stamps = time_stamps[2]
-  # ---
+  path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
+  ms1_times <- dir(path_ms1masses, all.files = TRUE, no.. = TRUE)
   
-  lapply(time_stamps, hbatch_ms2ions, 
+  if (!length(ms1_times)) {
+    stop("Time stamps of MS1 masses not found.", call. = FALSE)
+  }
+  
+  lapply(ms1_times, hbatch_ms2ions, 
          types = types, 
          mod_indexes = mod_indexes, 
          type_ms2ions = type_ms2ions, 
          maxn_vmods_per_pep = maxn_vmods_per_pep, 
          maxn_sites_per_vmod = maxn_sites_per_vmod, 
          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+         .path_cache = .path_cache, 
          .path_fasta = .path_fasta, 
          digits = digits)
   
@@ -64,98 +86,111 @@ batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_202
 }
 
 
-#' Helper of \link{batch_ms2ions} by time directory.
-#' 
-#' @param time A cached time (directory).
+#' Helper of \link{batch_ms2ions}
+#'
+#' For a given time stamp.
+#'
+#' length(pepmasses_i.rds) == length(ms2masses_i.rds). Note tht ms2masses_i can
+#' be nested due to the permutation and NLs of AA residues under the same
+#' pep_seq and ms1mass.
+#'
+#' @param ms1_time A cached MS1 time (directory).
 #' @param types The types of modification, e.g., "amods- tmod+ vnl- fnl-" etc.
 #' @inheritParams batch_ms2ions
 #' @inheritParams ms2match
-hbatch_ms2ions <- function (time = NULL, types = NULL, mod_indexes = NULL, 
+hbatch_ms2ions <- function (ms1_time = NULL, types = NULL, mod_indexes = NULL, 
                             type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                             maxn_sites_per_vmod = 3L, 
                             maxn_vmods_sitescombi_per_pep = 32L, 
-                            .path_fasta = NULL, digits = 5L) {
+                            .path_cache = NULL, .path_fasta = NULL, 
+                            digits = 5L) {
   
+  path_ms2time <- create_dir(file.path(.path_fasta, "ms2masses", ms1_time))
+  path_bin2 <- create_dir(file.path(path_ms2time, "bin_ms2masses"))
+  
+  new_bins <- check_ms2frames(.path_fasta, ms1_time, .path_cache, path_bin2)
+  
+  if (!length(new_bins)) {
+    return(NULL)
+  }
+  
+  # --- MS2 Not yet binned
   path_ms1masses <- file.path(.path_fasta, "ms1masses")
-  path_ms1time <- file.path(path_ms1masses, time)
-  file_ms1time <- list.files(path = path_ms1time, 
-                             pattern = paste0("^pepmasses_", "\\d+\\.rds$"))
+  path_ms1time <- file.path(path_ms1masses, ms1_time)
   
-  idxes <- gsub("^pepmasses_(\\d+)\\.rds$", "\\1", file_ms1time)
-  idxes <- as.integer(idxes)
-  ords <- order(idxes)
-  file_ms1time <- file_ms1time[ords]
-  
-  rm(list = c("ords", "idxes"))
-  
-  path_ms2time <- create_dir(file.path(.path_fasta, "ms2masses", time))
-  
-  ## Targets 
+  file_ms1time <- local({
+    files <- list.files(path = path_ms1time, 
+                        pattern = paste0("^pepmasses_", "\\d+\\.rds$"))
+    
+    idxes <- gsub("^pepmasses_(\\d+)\\.rds$", "\\1", files)
+    idxes <- as.integer(idxes)
+    ords <- order(idxes)
+    files[ords]
+  })
+
+  ## Targets
   # (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-" 
   inds <- which(types %in% c("amods- tmod- vnl- fnl-", 
                              "amods- tmod+ vnl- fnl-"))
   
-  # inds <- NULL
-  
   if (length(inds)) {
     for (i in inds) {
-      aa_masses <- readRDS(file.path(.path_fasta, "ms1masses", time, 
-                                     paste0("pepmasses_", i, ".rds")))
-      data_ms1 <- attr(aa_masses, "data")
+      aa_masses <- readRDS(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
+      ms1s <- attr(aa_masses, "data")
       attr(aa_masses, "data") <- NULL
       
-      ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod)) {
-        ntmass <- aa_masses[names(ntmod)] + 1.00727647 # + proton
+      ms2i <- file.path(path_ms2time, paste0("ms2masses_", i, ".rds"))
+      
+      if (file.exists(ms2i)) {
+        ms2s <- readRDS(ms2i)
       } else {
-        ntmass <- aa_masses["N-term"] - 0.000549 # - electron
+        ntmass <- find_nterm_mass(aa_masses)
+        ctmass <- find_cterm_mass(aa_masses)
+        ntmod = NULL
+        ctmod = NULL
+        amods = NULL
+        vmods_nl = NULL
+        fmods_nl = NULL
+        
+        n_cores <- detect_cores(16L)
+        cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+        
+        parallel::clusterExport(
+          cl,
+          c("gen_ms2ions_base", 
+            "ms2ions_by_type", 
+            "byions", "czions", "axions"), 
+          envir = environment(proteoM:::gen_ms2ions_base)
+        )
+        
+        ms2s <- parallel::clusterApply(
+          cl, chunksplit(ms1s, n_cores, "list"), 
+          mgen_ms2ions, 
+          aa_masses = aa_masses, 
+          ntmod = ntmod, 
+          ctmod = ctmod, 
+          ntmass = ntmass, 
+          ctmass = ctmass, 
+          amods = amods, 
+          vmods_nl = vmods_nl, 
+          fmods_nl = fmods_nl, 
+          mod_indexes = mod_indexes, 
+          type_ms2ions = type_ms2ions, 
+          maxn_vmods_per_pep = maxn_vmods_per_pep, 
+          maxn_sites_per_vmod = maxn_sites_per_vmod, 
+          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+          digits = digits, 
+          FUN = gen_ms2ions_base
+        )
+        
+        parallel::stopCluster(cl)
+        
+        ms2s <- purrr::flatten(ms2s)
+        saveRDS(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
       }
-      
-      ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod)) {
-        ctmass <- aa_masses[names(ctmod)] + 2.01510147
-      } else {
-        ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
-      }
-      
-      n_cores <- detect_cores()
-      
-      # data_ms1 <- data_ms1[1:128]
-      data_ms1 <- chunksplit(data_ms1, n_cores, "list")
-      
-      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-      
-      # parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
-      
-      parallel::clusterExport(
-        cl,
-        c("mgen_ms2ions_base", 
-          "gen_ms2ions_base", 
-          "ms2ions_by_type", 
-          "byions", "czions", "axions"), 
-        envir = environment(proteoM:::gen_ms2ions_base)
-      )
 
-      ans <- parallel::clusterApply(
-        cl, data_ms1, 
-        mgen_ms2ions_base, 
-        aa_masses = aa_masses, 
-        ntmass = ntmass, 
-        ctmass = ctmass, 
-        mod_indexes = mod_indexes, 
-        type_ms2ions = type_ms2ions, 
-        maxn_vmods_per_pep = maxn_vmods_per_pep, 
-        maxn_sites_per_vmod = maxn_sites_per_vmod, 
-        maxn_vmods_sitescombi_per_pep = 
-          maxn_vmods_sitescombi_per_pep, 
-        digits = digits
-      )
-      
-      parallel::stopCluster(cl)
-      
-      ans <- purrr::flatten(ans)
-      saveRDS(ans, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
-      rm(list = "ans")
+      ms2s <- make_ms2frames(ms1_time, ms1s, ms2s, .path_cache, path_bin2, i)
+      rm(list = c("aa_masses", "ms1s", "ms2s"))
       gc()
     }
   }
@@ -164,69 +199,65 @@ hbatch_ms2ions <- function (time = NULL, types = NULL, mod_indexes = NULL,
   inds <- which(types %in% c("amods- tmod- vnl- fnl+", 
                              "amods- tmod+ vnl- fnl+"))
   
-  # inds <- NULL
-  
   if (length(inds)) {
     for (i in inds) {
-      aa_masses <- readRDS(file.path(.path_fasta, "ms1masses", time, 
-                                     paste0("pepmasses_", i, ".rds")))
-      data_ms1 <- attr(aa_masses, "data")
+      aa_masses <- readRDS(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
+      ms1s <- attr(aa_masses, "data")
       attr(aa_masses, "data") <- NULL
       
-      ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod)) {
-        ntmass <- aa_masses[names(ntmod)] + 1.00727647
+      ms2i <- file.path(path_ms2time, paste0("ms2masses_", i, ".rds"))
+      
+      if (file.exists(ms2i)) {
+        ms2s <- readRDS(ms2i)
       } else {
-        ntmass <- aa_masses["N-term"] - 0.000549
+        ntmass <- find_nterm_mass(aa_masses)
+        ctmass <- find_cterm_mass(aa_masses)
+        ntmod = NULL
+        ctmod = NULL
+        amods = NULL
+        vmods_nl = NULL
+        fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
+        
+        n_cores <- detect_cores(16L)
+        cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+        
+        parallel::clusterExport(
+          cl,
+          c("gen_ms2ions_a0_vnl0_fnl1", 
+            "gen_ms2ions_base", 
+            "ms2ions_by_type", 
+            "byions", "czions", "axions"), 
+          envir = environment(proteoM:::gen_ms2ions_a0_vnl0_fnl1)
+        )
+        
+        ms2s <- parallel::clusterApply(
+          cl, chunksplit(ms1s, n_cores, "list"), 
+          mgen_ms2ions, 
+          aa_masses = aa_masses, 
+          ntmod = ntmod, 
+          ctmod = ctmod, 
+          ntmass = ntmass, 
+          ctmass = ctmass, 
+          amods = amods, 
+          vmods_nl = vmods_nl, 
+          fmods_nl = fmods_nl, 
+          mod_indexes = mod_indexes, 
+          type_ms2ions = type_ms2ions, 
+          maxn_vmods_per_pep = maxn_vmods_per_pep, 
+          maxn_sites_per_vmod = maxn_sites_per_vmod, 
+          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+          digits = digits, 
+          FUN = gen_ms2ions_a0_vnl0_fnl1
+        )
+        
+        parallel::stopCluster(cl)
+        
+        ms2s <- purrr::flatten(ms2s)
+        saveRDS(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
       }
-      
-      ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod)) {
-        ctmass <- aa_masses[names(ctmod)] + 2.01510147
-      } else {
-        ctmass <- aa_masses["C-term"] + 2.01510147
-      }
-      
-      fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
-      
-      n_cores <- detect_cores()
-      
-      # data_ms1 <- data_ms1[1:128]
-      data_ms1 <- chunksplit(data_ms1, n_cores, "list")
-      
-      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-      
-      parallel::clusterExport(
-        cl,
-        c("mgen_ms2ions_a0_vnl0_fnl1", 
-          "gen_ms2ions_a0_vnl0_fnl1", 
-          "gen_ms2ions_base", 
-          "ms2ions_by_type", 
-          "byions", "czions", "axions"), 
-        envir = environment(proteoM:::gen_ms2ions_a0_vnl0_fnl1)
-      )
 
-      ans <- parallel::clusterApply(
-        cl, data_ms1, 
-        mgen_ms2ions_a0_vnl0_fnl1, 
-        aa_masses = aa_masses, 
-        ntmass = ntmass, 
-        ctmass = ctmass, 
-        fmods_nl = fmods_nl, 
-        mod_indexes = mod_indexes, 
-        type_ms2ions = type_ms2ions, 
-        maxn_vmods_per_pep = maxn_vmods_per_pep, 
-        maxn_sites_per_vmod = maxn_sites_per_vmod, 
-        maxn_vmods_sitescombi_per_pep = 
-          maxn_vmods_sitescombi_per_pep, 
-        digits = digits
-      )
-      
-      parallel::stopCluster(cl)
-      
-      ans <- purrr::flatten(ans)
-      saveRDS(ans, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
-      rm(list = "ans")
+      ms2s <- make_ms2frames(ms1_time, ms1s, ms2s, .path_cache, path_bin2, i)
+      rm(list = c("aa_masses", "ms1s", "ms2s"))
       gc()
     }
   }
@@ -237,76 +268,70 @@ hbatch_ms2ions <- function (time = NULL, types = NULL, mod_indexes = NULL,
   inds <- which(types %in% c("amods+ tmod- vnl- fnl-", 
                              "amods+ tmod+ vnl- fnl-"))
   
-  # inds <- NULL
-  
   if (length(inds)) {
     for (i in inds) {
-      aa_masses <- readRDS(file.path(.path_fasta, "ms1masses", time, 
-                                     paste0("pepmasses_", i, ".rds")))
-      data_ms1 <- attr(aa_masses, "data")
+      aa_masses <- readRDS(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
+      ms1s <- attr(aa_masses, "data")
       attr(aa_masses, "data") <- NULL
       
-      ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod)) {
-        ntmass <- aa_masses[names(ntmod)] + 1.00727647
+      ms2i <- file.path(path_ms2time, paste0("ms2masses_", i, ".rds"))
+      
+      if (file.exists(ms2i)) {
+        ms2s <- readRDS(ms2i)
       } else {
-        ntmass <- aa_masses["N-term"] - 0.000549
+        ntmass <- find_nterm_mass(aa_masses)
+        ctmass <- find_cterm_mass(aa_masses)
+        ntmod <- attr(aa_masses, "ntmod", exact = TRUE) # for checking MS1 masses
+        ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+        amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
+        vmods_nl = NULL
+        fmods_nl <- NULL
+        
+        n_cores <- detect_cores(16L)
+        cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+        
+        parallel::clusterExport(
+          cl,
+          c("gen_ms2ions_a1_vnl0_fnl0", 
+            "combi_mvmods2", 
+            "combi_vmods2", 
+            "find_intercombi_p2", 
+            "check_ms1_mass_vmods2", 
+            "calc_ms2ions_a1_vnl0_fnl0", 
+            "ms2ions_by_type", 
+            "byions", "czions", "axions", 
+            "add_hexcodes"), 
+          envir = environment(proteoM:::gen_ms2ions_a1_vnl0_fnl0)
+        )
+        
+        ms2s <- parallel::clusterApply(
+          cl, chunksplit(ms1s, n_cores, "list"), 
+          mgen_ms2ions, 
+          aa_masses = aa_masses, 
+          ntmod = ntmod, 
+          ctmod = ctmod, 
+          ntmass = ntmass, 
+          ctmass = ctmass, 
+          amods = amods, 
+          vmods_nl = vmods_nl, 
+          fmods_nl = fmods_nl, 
+          mod_indexes = mod_indexes, 
+          type_ms2ions = type_ms2ions, 
+          maxn_vmods_per_pep = maxn_vmods_per_pep, 
+          maxn_sites_per_vmod = maxn_sites_per_vmod, 
+          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+          digits = digits, 
+          FUN = gen_ms2ions_a1_vnl0_fnl0
+        )
+        
+        parallel::stopCluster(cl)
+        
+        ms2s <- purrr::flatten(ms2s)
+        saveRDS(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
       }
-      
-      ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod)) {
-        ctmass <- aa_masses[names(ctmod)] + 2.01510147
-      } else {
-        ctmass <- aa_masses["C-term"] + 2.01510147
-      }
-      
-      amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
-      
-      n_cores <- detect_cores()
-      
-      # data_ms1 <- data_ms1[1:128]
-      data_ms1 <- chunksplit(data_ms1, n_cores, "list")
-      
-      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-      
-      parallel::clusterExport(
-        cl,
-        c("mgen_ms2ions_a1_vnl0_fnl0", 
-          "gen_ms2ions_a1_vnl0_fnl0", 
-          "combi_mvmods2", 
-          "combi_vmods2", 
-          "find_intercombi_p2", 
-          "check_ms1_mass_vmods2", 
-          "calc_ms2ions_a1_vnl0_fnl0", 
-          "ms2ions_by_type", 
-          "byions", "czions", "axions", 
-          "add_hexcodes"), 
-        envir = environment(proteoM:::gen_ms2ions_a1_vnl0_fnl0)
-      )
 
-      ans <- parallel::clusterApply(
-        cl, data_ms1, 
-        mgen_ms2ions_a1_vnl0_fnl0, 
-        aa_masses = aa_masses, 
-        ntmod = ntmod, 
-        ctmod = ctmod, 
-        ntmass = ntmass, 
-        ctmass = ctmass, 
-        amods = amods, 
-        mod_indexes = mod_indexes, 
-        type_ms2ions = type_ms2ions, 
-        maxn_vmods_per_pep = maxn_vmods_per_pep, 
-        maxn_sites_per_vmod = maxn_sites_per_vmod, 
-        maxn_vmods_sitescombi_per_pep = 
-          maxn_vmods_sitescombi_per_pep, 
-        digits = digits
-      )
-      
-      parallel::stopCluster(cl)
-      
-      ans <- purrr::flatten(ans)
-      saveRDS(ans, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
-      rm(list = "ans")
+      ms2s <- make_ms2frames(ms1_time, ms1s, ms2s, .path_cache, path_bin2, i)
+      rm(list = c("aa_masses", "ms1s", "ms2s"))
       gc()
     }
   }
@@ -319,74 +344,68 @@ hbatch_ms2ions <- function (time = NULL, types = NULL, mod_indexes = NULL,
   
   if (length(inds)) {
     for (i in inds) {
-      aa_masses <- readRDS(file.path(.path_fasta, "ms1masses", time, 
-                                     paste0("pepmasses_", i, ".rds")))
-      data_ms1 <- attr(aa_masses, "data")
+      aa_masses <- readRDS(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
+      ms1s <- attr(aa_masses, "data")
       attr(aa_masses, "data") <- NULL
       
-      ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod)) {
-        ntmass <- aa_masses[names(ntmod)] + 1.00727647
+      ms2i <- file.path(path_ms2time, paste0("ms2masses_", i, ".rds"))
+      
+      if (file.exists(ms2i)) {
+        ms2s <- readRDS(ms2i)
       } else {
-        ntmass <- aa_masses["N-term"] - 0.000549
+        ntmass <- find_nterm_mass(aa_masses)
+        ctmass <- find_cterm_mass(aa_masses)
+        ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
+        ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+        amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
+        vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
+        fmods_nl <- NULL
+        
+        n_cores <- detect_cores(16L)
+        cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+        
+        parallel::clusterExport(
+          cl,
+          c("gen_ms2ions_a1_vnl1_fnl0", 
+            "combi_mvmods2", 
+            "combi_vmods2", 
+            "find_intercombi_p2", 
+            "check_ms1_mass_vmods2", 
+            "calc_ms2ions_a1_vnl1_fnl0", 
+            "ms2ions_by_type", 
+            "byions", "czions", "axions", 
+            "add_hexcodes_vnl2"), 
+          envir = environment(proteoM:::gen_ms2ions_a1_vnl1_fnl0)
+        )
+        
+        ms2s <- parallel::clusterApply(
+          cl, chunksplit(ms1s, n_cores, "list"), 
+          mgen_ms2ions, 
+          aa_masses = aa_masses, 
+          ntmod = ntmod, 
+          ctmod = ctmod, 
+          ntmass = ntmass, 
+          ctmass = ctmass, 
+          amods = amods, 
+          vmods_nl = vmods_nl, 
+          fmods_nl = fmods_nl, 
+          mod_indexes = mod_indexes, 
+          type_ms2ions = type_ms2ions, 
+          maxn_vmods_per_pep = maxn_vmods_per_pep, 
+          maxn_sites_per_vmod = maxn_sites_per_vmod, 
+          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+          digits = digits, 
+          FUN = gen_ms2ions_a1_vnl1_fnl0
+        )
+        
+        parallel::stopCluster(cl)
+        
+        ms2s <- purrr::flatten(ms2s)
+        saveRDS(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
       }
       
-      ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod)) {
-        ctmass <- aa_masses[names(ctmod)] + 2.01510147
-      } else {
-        ctmass <- aa_masses["C-term"] + 2.01510147
-      }
-      
-      amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
-      vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
-      
-      n_cores <- detect_cores()
-      
-      # data_ms1 <- data_ms1[1:128]
-      data_ms1 <- chunksplit(data_ms1, n_cores, "list")
-
-      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-      
-      parallel::clusterExport(
-        cl,
-        c("mgen_ms2ions_a1_vnl1_fnl0", 
-          "gen_ms2ions_a1_vnl1_fnl0", 
-          "combi_mvmods2", 
-          "combi_vmods2", 
-          "find_intercombi_p2", 
-          "check_ms1_mass_vmods2", 
-          "calc_ms2ions_a1_vnl1_fnl0", 
-          "ms2ions_by_type", 
-          "byions", "czions", "axions", 
-          "add_hexcodes_vnl2"), 
-        envir = environment(proteoM:::gen_ms2ions_a1_vnl1_fnl0)
-      )
-
-      ans <- parallel::clusterApply(
-        cl, data_ms1, 
-        mgen_ms2ions_a1_vnl1_fnl0, 
-        aa_masses = aa_masses, 
-        ntmod = ntmod, 
-        ctmod = ctmod, 
-        ntmass = ntmass, 
-        ctmass = ctmass, 
-        amods = amods, 
-        vmods_nl = vmods_nl, 
-        mod_indexes = mod_indexes, 
-        type_ms2ions = type_ms2ions, 
-        maxn_vmods_per_pep = maxn_vmods_per_pep, 
-        maxn_sites_per_vmod = maxn_sites_per_vmod, 
-        maxn_vmods_sitescombi_per_pep = 
-          maxn_vmods_sitescombi_per_pep, 
-        digits = digits
-      )
-      
-      parallel::stopCluster(cl)
-      
-      ans <- purrr::flatten(ans)
-      saveRDS(ans, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
-      rm(list = "ans")
+      ms2s <- make_ms2frames(ms1_time, ms1s, ms2s, .path_cache, path_bin2, i)
+      rm(list = c("aa_masses", "ms1s", "ms2s"))
       gc()
     }
   }
@@ -400,74 +419,68 @@ hbatch_ms2ions <- function (time = NULL, types = NULL, mod_indexes = NULL,
   
   if (length(inds)) {
     for (i in inds) {
-      aa_masses <- readRDS(file.path(.path_fasta, "ms1masses", time, 
-                                     paste0("pepmasses_", i, ".rds")))
-      data_ms1 <- attr(aa_masses, "data")
+      aa_masses <- readRDS(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
+      ms1s <- attr(aa_masses, "data")
       attr(aa_masses, "data") <- NULL
       
-      ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod)) {
-        ntmass <- aa_masses[names(ntmod)] + 1.00727647
+      ms2i <- file.path(path_ms2time, paste0("ms2masses_", i, ".rds"))
+      
+      if (file.exists(ms2i)) {
+        ms2s <- readRDS(ms2i)
       } else {
-        ntmass <- aa_masses["N-term"] - 0.000549
+        ntmass <- find_nterm_mass(aa_masses)
+        ctmass <- find_cterm_mass(aa_masses)
+        ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
+        ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+        amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
+        vmods_nl <- NULL
+        fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
+        
+        n_cores <- detect_cores(16L)
+        cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+        
+        parallel::clusterExport(
+          cl,
+          c("gen_ms2ions_a1_vnl0_fnl1", 
+            "combi_mvmods2", 
+            "combi_vmods2", 
+            "find_intercombi_p2", 
+            "check_ms1_mass_vmods2", 
+            "calc_ms2ions_a1_vnl0_fnl1", 
+            "ms2ions_by_type", 
+            "byions", "czions", "axions", 
+            "add_hexcodes_fnl2"), 
+          envir = environment(proteoM:::gen_ms2ions_a1_vnl0_fnl1)
+        )
+        
+        ms2s <- parallel::clusterApply(
+          cl, chunksplit(ms1s, n_cores, "list"), 
+          mgen_ms2ions, 
+          aa_masses = aa_masses, 
+          ntmod = ntmod, 
+          ctmod = ctmod, 
+          ntmass = ntmass, 
+          ctmass = ctmass, 
+          amods = amods, 
+          vmods_nl = vmods_nl, 
+          fmods_nl = fmods_nl, 
+          mod_indexes = mod_indexes, 
+          type_ms2ions = type_ms2ions, 
+          maxn_vmods_per_pep = maxn_vmods_per_pep, 
+          maxn_sites_per_vmod = maxn_sites_per_vmod, 
+          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+          digits = digits, 
+          FUN = gen_ms2ions_a1_vnl0_fnl1
+        )
+        
+        parallel::stopCluster(cl)
+        
+        ms2s <- purrr::flatten(ms2s)
+        saveRDS(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
       }
-      
-      ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod)) {
-        ctmass <- aa_masses[names(ctmod)] + 2.01510147
-      } else {
-        ctmass <- aa_masses["C-term"] + 2.01510147
-      }
-      
-      amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
-      fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
-      
-      n_cores <- detect_cores()
-      
-      # data_ms1 <- data_ms1[1:128]
-      data_ms1 <- chunksplit(data_ms1, n_cores, "list")
-      
-      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-      
-      parallel::clusterExport(
-        cl,
-        c("mgen_ms2ions_a1_vnl0_fnl1", 
-          "gen_ms2ions_a1_vnl0_fnl1", 
-          "combi_mvmods2", 
-          "combi_vmods2", 
-          "find_intercombi_p2", 
-          "check_ms1_mass_vmods2", 
-          "calc_ms2ions_a1_vnl0_fnl1", 
-          "ms2ions_by_type", 
-          "byions", "czions", "axions", 
-          "add_hexcodes_fnl2"), 
-        envir = environment(proteoM:::gen_ms2ions_a1_vnl0_fnl1)
-      )
 
-      ans <- parallel::clusterApply(
-        cl, data_ms1, 
-        mgen_ms2ions_a1_vnl0_fnl1, 
-        aa_masses = aa_masses, 
-        ntmod = ntmod, 
-        ctmod = ctmod, 
-        ntmass = ntmass, 
-        ctmass = ctmass, 
-        amods = amods, 
-        fmods_nl = fmods_nl, 
-        mod_indexes = mod_indexes, 
-        type_ms2ions = type_ms2ions, 
-        maxn_vmods_per_pep = maxn_vmods_per_pep, 
-        maxn_sites_per_vmod = maxn_sites_per_vmod, 
-        maxn_vmods_sitescombi_per_pep = 
-          maxn_vmods_sitescombi_per_pep, 
-        digits = digits
-      )
-      
-      parallel::stopCluster(cl)
-      
-      ans <- purrr::flatten(ans)
-      saveRDS(ans, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
-      rm(list = "ans")
+      ms2s <- make_ms2frames(ms1_time, ms1s, ms2s, .path_cache, path_bin2, i)
+      rm(list = c("aa_masses", "ms1s", "ms2s"))
       gc()
     }
   }
@@ -478,154 +491,33 @@ hbatch_ms2ions <- function (time = NULL, types = NULL, mod_indexes = NULL,
 }
 
 
-#' Multiple \link{gen_ms2ions_base}.
+
+
+
+#' Multiple generations of MS2 ions.
 #'
-#' @param data Lists of named values. Peptide sequences in names and precursor
+#' @param ms1s Lists of named values. Peptide sequences in names and precursor
 #'   masses in values.
+#' @param FUN A function pointer to, e.g., \link{gen_ms2ions_base}.
 #' @inheritParams gen_ms2ions_base
-mgen_ms2ions_base <- function (data = NULL, aa_masses = NULL, 
-                               ntmass = NULL, ctmass = NULL, mod_indexes = NULL, 
-                               type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
-                               maxn_sites_per_vmod = 3L, 
-                               maxn_vmods_sitescombi_per_pep = 32L, 
-                               digits = 4L) {
+mgen_ms2ions <- function (ms1s = NULL, aa_masses = NULL, 
+                          ntmod = NULL, ctmod = NULL, 
+                          ntmass = NULL, ctmass = NULL, 
+                          amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
+                          mod_indexes = NULL, type_ms2ions = "by", 
+                          maxn_vmods_per_pep = 5L, 
+                          maxn_sites_per_vmod = 3L, 
+                          maxn_vmods_sitescombi_per_pep = 32L, 
+                          digits = 4L, 
+                          FUN) {
   
-  seqs <- names(data)
-  masses <- unname(data)
+  seqs <- names(ms1s)
+  masses <- unname(ms1s)
   
-  ans <- mapply(
-    gen_ms2ions_base, 
-    seqs, 
-    masses, 
-    MoreArgs = list(
-      aa_masses = aa_masses, 
-      ntmass = NULL, ctmass = NULL, 
-      mod_indexes = mod_indexes, 
-      type_ms2ions = type_ms2ions, 
-      maxn_vmods_per_pep = maxn_vmods_per_pep, 
-      maxn_sites_per_vmod = maxn_sites_per_vmod, 
-      maxn_vmods_sitescombi_per_pep = 
-        maxn_vmods_sitescombi_per_pep, 
-      digits = digits
-    ), 
-    SIMPLIFY = FALSE,
-    USE.NAMES = FALSE
-  )
-  
-  names(ans) <- seqs
-  
-  invisible(ans)
-}
-
-
-#' Multiple \link{gen_ms2ions_a0_vnl0_fnl1}.
-#' 
-#' @inheritParams gen_ms2ions_a0_vnl0_fnl1
-#' @rdname mgen_ms2ions_base
-mgen_ms2ions_a0_vnl0_fnl1 <- function (data = NULL, aa_masses = NULL, 
-                                       ntmass = NULL, ctmass = NULL, fmods_nl = NULL, 
-                                       mod_indexes = NULL, type_ms2ions = "by", 
-                                       maxn_vmods_per_pep = 5L, 
-                                       maxn_sites_per_vmod = 3L, 
-                                       maxn_vmods_sitescombi_per_pep = 32L, 
-                                       digits = 4L) {
-  
-  seqs <- names(data)
-  masses <- unname(data)
-  
-  ans <- mapply(
-    gen_ms2ions_a0_vnl0_fnl1, 
-    seqs, 
-    masses, 
-    MoreArgs = list(
-      aa_masses = aa_masses, 
-      ntmass = ntmass, 
-      ctmass = ctmass, 
-      fmods_nl = fmods_nl, 
-      mod_indexes = mod_indexes, 
-      type_ms2ions = type_ms2ions, 
-      maxn_vmods_per_pep = maxn_vmods_per_pep, 
-      maxn_sites_per_vmod = maxn_sites_per_vmod, 
-      maxn_vmods_sitescombi_per_pep = 
-        maxn_vmods_sitescombi_per_pep, 
-      digits = digits
-    ), 
-    SIMPLIFY = FALSE,
-    USE.NAMES = FALSE
-  )
-  
-  names(ans) <- seqs
-  
-  invisible(ans)
-}
-
-
-#' Multiple \link{gen_ms2ions_a1_vnl0_fnl0}.
-#' 
-#' @inheritParams gen_ms2ions_a1_vnl0_fnl0
-#' @rdname mgen_ms2ions_base
-mgen_ms2ions_a1_vnl0_fnl0 <- function (data = NULL, aa_masses = NULL, 
-                                       ntmod = NULL, ctmod = NULL, 
-                                       ntmass = NULL, ctmass = NULL, amods = NULL, 
-                                       mod_indexes = NULL, type_ms2ions = "by", 
-                                       maxn_vmods_per_pep = 5L, 
-                                       maxn_sites_per_vmod = 3L, 
-                                       maxn_vmods_sitescombi_per_pep = 32L, 
-                                       digits = 4L) {
-  
-  seqs <- names(data)
-  masses <- unname(data)
-  
-  ans <- mapply(
-    gen_ms2ions_a1_vnl0_fnl0, 
-    seqs, 
-    masses, 
-    MoreArgs = list(
-      aa_masses = aa_masses, 
-      ntmod = ntmod, 
-      ctmod = ctmod, 
-      ntmass = ntmass, 
-      ctmass = ctmass, 
-      amods = amods, 
-      mod_indexes = mod_indexes, 
-      type_ms2ions = type_ms2ions, 
-      maxn_vmods_per_pep = maxn_vmods_per_pep, 
-      maxn_sites_per_vmod = maxn_sites_per_vmod, 
-      maxn_vmods_sitescombi_per_pep = 
-        maxn_vmods_sitescombi_per_pep, 
-      digits = digits
-    ), 
-    SIMPLIFY = FALSE,
-    USE.NAMES = FALSE
-  )
-  
-  names(ans) <- seqs
-  
-  invisible(ans)
-}
-
-
-#' Multiple \link{gen_ms2ions_a1_vnl1_fnl0}.
-#' 
-#' @inheritParams gen_ms2ions_a1_vnl1_fnl0
-#' @rdname mgen_ms2ions_base
-mgen_ms2ions_a1_vnl1_fnl0 <- function (data = NULL, aa_masses = NULL, 
-                                       ntmod = NULL, ctmod = NULL, 
-                                       ntmass = NULL, ctmass = NULL, 
-                                       amods = NULL, vmods_nl = NULL, 
-                                       mod_indexes = NULL, type_ms2ions = "by", 
-                                       maxn_vmods_per_pep = 5L, 
-                                       maxn_sites_per_vmod = 3L, 
-                                       maxn_vmods_sitescombi_per_pep = 32L, 
-                                       digits = 4L) {
-  
-  seqs <- names(data)
-  masses <- unname(data)
-  
-  ans <- mapply(
-    gen_ms2ions_a1_vnl1_fnl0, 
-    seqs, 
-    masses, 
+  ms2s <- mapply(
+    FUN, 
+    aa_seq = seqs, 
+    ms1_mass = masses, 
     MoreArgs = list(
       aa_masses = aa_masses, 
       ntmod = ntmod, 
@@ -634,68 +526,145 @@ mgen_ms2ions_a1_vnl1_fnl0 <- function (data = NULL, aa_masses = NULL,
       ctmass = ctmass, 
       amods = amods, 
       vmods_nl = vmods_nl, 
+      fmods_nl = fmods_nl,
       mod_indexes = mod_indexes, 
       type_ms2ions = type_ms2ions, 
       maxn_vmods_per_pep = maxn_vmods_per_pep, 
       maxn_sites_per_vmod = maxn_sites_per_vmod, 
-      maxn_vmods_sitescombi_per_pep = 
-        maxn_vmods_sitescombi_per_pep, 
+      maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
       digits = digits
     ), 
     SIMPLIFY = FALSE,
     USE.NAMES = FALSE
   )
-
-  names(ans) <- seqs
   
-  invisible(ans)
+  names(ms2s) <- seqs
+
+  invisible(ms2s)
 }
 
 
-#' Multiple \link{gen_ms2ions_a1_vnl0_fnl1}.
+#' Bin MS2 ion series by precursor masses.
+#'
+#' The same MS2 results but different frame numbers according to the paramter
+#' set of min_mass, max_mass and ppm_ms1.
 #' 
-#' @inheritParams gen_ms2ions_a1_vnl0_fnl1
-#' @rdname mgen_ms2ions_base
-mgen_ms2ions_a1_vnl0_fnl1 <- function (data = NULL, aa_masses = NULL, 
-                                       ntmod = NULL, ctmod = NULL, 
-                                       ntmass = NULL, ctmass = NULL, 
-                                       amods = NULL, fmods_nl = NULL, 
-                                       mod_indexes = NULL, type_ms2ions = "by", 
-                                       maxn_vmods_per_pep = 5L, 
-                                       maxn_sites_per_vmod = 3L, 
-                                       maxn_vmods_sitescombi_per_pep = 32L, 
-                                       digits = 4L) {
+#' @param ms1_time A ms1_time stamp.
+#' @param ms2s Lists of MS2 ion series.
+#' @param path_bin2 A file path to binned MS2 results. 
+#' @param i An index of aa_masses
+#' @inheritParams hbatch_ms2ions
+#' @inheritParams mgen_ms2ions
+make_ms2frames <- function (ms1_time, ms1s, ms2s, .path_cache, path_bin2, i) {
+
+  path_time_cache <- file.path(.path_cache, "calc_pepmasses2", ms1_time, 
+                               "bin_ms1masses")
   
-  seqs <- names(data)
-  masses <- unname(data)
+  files_ms1bins <- list.files(path = path_time_cache, 
+                              pattern = "\\.[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]+.*\\.rda$", 
+                              all.files = TRUE, no.. = TRUE)
   
-  ans <- mapply(
-    gen_ms2ions_a1_vnl0_fnl1, 
-    seqs, 
-    masses, 
-    MoreArgs = list(
-      aa_masses = aa_masses, 
-      ntmod = ntmod, 
-      ctmod = ctmod, 
-      ntmass = ntmass, 
-      ctmass = ctmass, 
-      amods = amods, 
-      fmods_nl = fmods_nl, 
-      mod_indexes = mod_indexes, 
-      type_ms2ions = type_ms2ions, 
-      maxn_vmods_per_pep = maxn_vmods_per_pep, 
-      maxn_sites_per_vmod = maxn_sites_per_vmod, 
-      maxn_vmods_sitescombi_per_pep = 
-        maxn_vmods_sitescombi_per_pep, 
-      digits = digits
-    ), 
-    SIMPLIFY = FALSE,
-    USE.NAMES = FALSE
-  )
+  if (!length(files_ms1bins)) {
+    stop("Parameter files not found under ", path_time_cache, call. = FALSE)
+  }
   
-  names(ans) <- seqs
+  pars_ms1bins <- lapply(files_ms1bins, function (x) {
+    load(file.path(path_time_cache, x))
+    
+    list(min_mass = call_pars$min_mass, 
+         max_mass = call_pars$max_mass, 
+         ppm_ms1 = call_pars$ppm_ms1, 
+         .time_bin = gsub("\\.rda", "", x))
+  })
   
-  invisible(ans)
+  len <- length(pars_ms1bins)
+  
+  if (len == 1L) {
+    make_ms2frames_bypars(pars_ms1bins, ms1s, ms2s, path_bin2, i)
+  } else {
+    n_cores <- detect_cores(len)
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    
+    parallel::clusterApply(
+      cl, pars_ms1bins, 
+      make_ms2frames_bypars, 
+      ms1s, ms2s, path_bin2, i
+    )
+    
+    parallel::stopCluster(cl)
+  }
 }
 
+
+#' Bins MS2 ion series at a set of parameters.
+#' 
+#' The set of parameters include min_mass, max_mass and ppm_ms1. 
+#' 
+#' @param pars A set of cached parameters from \code{.Msearches}.
+#' @param is_ms1_three_frame Logical; is the searches by the three frames of
+#'   preceeding, current and following.
+#' @inheritParams make_ms2frames
+make_ms2frames_bypars <- function (pars, ms1s, ms2s, path_bin2, i, 
+                                   is_ms1_three_frame = TRUE) {
+  
+  min_mass <- pars$min_mass
+  max_mass <- pars$max_mass
+  ppm_ms1 <- pars$ppm_ms1
+  .time_bin <- pars$.time_bin
+  
+  out_path <- create_dir(file.path(path_bin2, .time_bin))
+  
+  if (is_ms1_three_frame) {
+    ppm_ms1_new <- as.integer(ceiling(ppm_ms1 * .5))
+  } else {
+    ppm_ms1_new <- ppm_ms1
+  }
+
+  ps <- find_ms1_cutpoints(min_mass, max_mass, ppm_ms1_new)
+  frames <- findInterval(ms1s, ps)
+
+  ans <- split(ms2s, frames)
+  saveRDS(ans, file.path(out_path, paste0("binned_ms2_", i, ".rds")))
+  
+  invisible(NULL)
+}
+
+
+#' Checks for pre-existed MS2 bins.
+#' 
+#' @inheritParams hbatch_ms2ions
+#' @inheritParams make_ms2frames
+check_ms2frames <- function (.path_fasta, ms1_time, .path_cache, path_bin2) {
+  
+  # finds `.times_bin` under a given `ms1_time`
+  .times_bin <- local({
+    path_cache <- file.path(.path_cache, "calc_pepmasses2", ms1_time, "bin_ms1masses")
+    
+    rdas <- list.files(path = path_cache, 
+                       pattern = "\\.[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]+.*\\.rda$", 
+                       all.files = TRUE, no.. = TRUE)
+    gsub("\\.rda", "", rdas)
+  })
+  
+  
+  if (!length(.times_bin)) {
+    stop("Parameter files not found under ", path_cache, call. = FALSE)
+  }
+  
+  # compare files
+  .path_bin1 <- file.path(.path_fasta, "ms1masses", ms1_time, "bin_ms1masses")
+  
+  nots <- lapply(.times_bin, function (x) {
+    ms1files <- list.files(path = file.path(.path_bin1, x), 
+                           pattern = "^binned_theopeps_\\d+\\.rds$")
+    
+    ms2files <- list.files(path = file.path(path_bin2, x), 
+                           pattern = "^binned_ms2_\\d+\\.rds$")
+    
+    (length(ms2files) != length(ms1files))
+  })
+  
+  nots <- unlist(nots, recursive = FALSE, use.names = FALSE)
+  newbins <- .times_bin[nots]
+}
 

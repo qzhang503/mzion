@@ -53,7 +53,6 @@
 #' unlist(res_data, use.names = FALSE) %>% length()
 #'
 #' }
-#'
 calc_pepmasses2 <- function (
   fasta = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
   acc_type = "uniprot_acc",
@@ -76,6 +75,7 @@ calc_pepmasses2 <- function (
   out_path = NULL,
   digits = 4L,
   .path_cache = NULL, 
+  .path_fasta = NULL, 
   .path_ms1masses = NULL) {
 
   old_opts <- options()
@@ -105,15 +105,15 @@ calc_pepmasses2 <- function (
   if (length(.time_stamp)) {
     message("Loading peptide masses from cache.")
 
-    aa_masses <- find_aa_masses(out_path = out_path,
-                                fixedmods = fixedmods,
-                                varmods = varmods,
-                                maxn_vmods_setscombi = maxn_vmods_setscombi)
+    aa_masses_all <- find_aa_masses(out_path = .path_fasta,
+                                    fixedmods = fixedmods,
+                                    varmods = varmods,
+                                    maxn_vmods_setscombi = maxn_vmods_setscombi)
 
     files <- list.files(path = file.path(.path_ms1masses, .time_stamp),
                         pattern = "pepmasses_\\d+\\.rds$")
 
-    if (length(files) != length(aa_masses)) {
+    if (length(files) != length(aa_masses_all)) {
       stop("Not all precursor masses were found: ", paste0("\n", files), ".\n",
            "Remove cache file: \n", file.path(.path_cache, "calc_pepmasses2", 
                                               paste0(.time_stamp, ".rda")),
@@ -121,7 +121,7 @@ calc_pepmasses2 <- function (
            call. = FALSE)
     }
 
-    rm(list = c("aa_masses", "files"))
+    rm(list = c("aa_masses_all", "files"))
     gc()
 
     fwd_peps <- NULL
@@ -129,24 +129,26 @@ calc_pepmasses2 <- function (
 
     .savecall <- FALSE
   } else {
+    # `MGF my_quries.rds` kept 
+    # (only affected by min_mass, max_mass and ppm_ms1)
     delete_files(out_path, ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$",
                                        "\\.xls$", "\\.csv$", "\\.txt$",
                                        "^mgf$", "^mgfs$"))
-
+    
     .time_stamp <- format(Sys.time(), ".%Y-%m-%d_%H%M%S")
 
-    aa_masses <- find_aa_masses(out_path = out_path,
-                                fixedmods = fixedmods,
-                                varmods = varmods,
-                                maxn_vmods_setscombi = maxn_vmods_setscombi, 
-                                exclude_phospho_nl = exclude_phospho_nl)
+    aa_masses_all <- find_aa_masses(out_path = .path_fasta,
+                                    fixedmods = fixedmods,
+                                    varmods = varmods,
+                                    maxn_vmods_setscombi = maxn_vmods_setscombi, 
+                                    exclude_phospho_nl = exclude_phospho_nl)
     
-    len <- length(aa_masses)
-    types <- purrr::map_chr(aa_masses, attr, "type", exact = TRUE)
+    len <- length(aa_masses_all)
+    types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
 
     # just the first one; nothing special
     # used for base masses; not involve terminal and anywhere masses
-    aa_masses_1 <- aa_masses[[1]]
+    aa_masses_1 <- aa_masses_all[[1]]
     gc()
 
     # --- Forward and reversed sequences  ---
@@ -176,6 +178,8 @@ calc_pepmasses2 <- function (
     # (mostly ftmass will be 18.010565 unless fixed [NC] terminal modifications)
     
     ftmass <- unname(aa_masses_1["N-term"] + aa_masses_1["C-term"])
+    
+    # 
     # --- End of the special case
     
     
@@ -203,7 +207,7 @@ calc_pepmasses2 <- function (
     # --- Distribution ---
     message("Distributing peptides by variable modifications.")
     
-    # Note 1-to-n expansion: `length(fw_peps) == length(aa_masses)` after this.
+    # Note 1-to-n expansion: `length(fw_peps) == length(aa_masses_all)` after this.
     n_cores <- detect_cores(16L)
     
     fwd_peps <- chunksplit(fwd_peps, n_cores, "list")
@@ -223,7 +227,7 @@ calc_pepmasses2 <- function (
       cl, 
       fwd_peps, 
       distri_peps, 
-      aa_masses = aa_masses, 
+      aa_masses_all = aa_masses_all, 
       max_miss = max_miss
     )
     
@@ -258,12 +262,12 @@ calc_pepmasses2 <- function (
                                     "amods- tmod+ vnl- fnl+"))
 
       for (i in inds) {
-        fwd_peps[[i]] <- add_term_mass2(aa_masses[[i]], fwd_peps[[i]])
+        fwd_peps[[i]] <- add_term_mass2(aa_masses_all[[i]], fwd_peps[[i]])
 
         if (i %in% nt_inds) {
           message("\tCompleted peptide terminal masses: ",
-                  paste(attributes(aa_masses[[i]])$fmods,
-                        attributes(aa_masses[[i]])$vmods,
+                  paste(attributes(aa_masses_all[[i]])$fmods,
+                        attributes(aa_masses_all[[i]])$vmods,
                         collapse = ", "))
         }
 
@@ -277,12 +281,12 @@ calc_pepmasses2 <- function (
     # --- Mass of variable mods and/or NLs ---
     message("Calculating peptide masses (variable modifications + neutral losses) ...")
 
-    fmods_ps <- lapply(aa_masses, attr, "fmods_ps", exact = TRUE)
-    vmods_ps <- lapply(aa_masses, attr, "vmods_ps", exact = TRUE)
-    fmods_nl <- lapply(aa_masses, attr, "fmods_nl", exact = TRUE)
-    vmods_nl <- lapply(aa_masses, attr, "vmods_nl", exact = TRUE)
-    amods <- lapply(aa_masses, attr, "amods", exact = TRUE)
-    tmod <- lapply(aa_masses, attr, "tmod", exact = TRUE)
+    fmods_ps <- lapply(aa_masses_all, attr, "fmods_ps", exact = TRUE)
+    vmods_ps <- lapply(aa_masses_all, attr, "vmods_ps", exact = TRUE)
+    fmods_nl <- lapply(aa_masses_all, attr, "fmods_nl", exact = TRUE)
+    vmods_nl <- lapply(aa_masses_all, attr, "vmods_nl", exact = TRUE)
+    amods <- lapply(aa_masses_all, attr, "amods", exact = TRUE)
+    tmod <- lapply(aa_masses_all, attr, "tmod", exact = TRUE)
 
     # `amods-` and `fnl+` (must be vnl- since amods-)
     #
@@ -303,7 +307,7 @@ calc_pepmasses2 <- function (
           amods_i <- amods[[i]]
           tmod_i <- tmod[[i]]
 
-          aa_masses_i <- aa_masses[[i]]
+          aa_masses_i <- aa_masses_all[[i]]
           ntmod_i <- attr(aa_masses_i, "ntmod", exact = TRUE)
           ctmod_i <- attr(aa_masses_i, "ctmod", exact = TRUE)
 
@@ -371,7 +375,7 @@ calc_pepmasses2 <- function (
     if (length(inds)) {
       for (i in inds) {
         amods_i <- amods[[i]]
-        aa_masses_i <- aa_masses[[i]]
+        aa_masses_i <- aa_masses_all[[i]]
 
         fwd_peps_i <- fwd_peps[[i]]
 
@@ -426,12 +430,12 @@ calc_pepmasses2 <- function (
     # === Outputs ===
     path_masses <- create_dir(file.path(.path_ms1masses, .time_stamp))
 
-    fwd_peps <- purrr::map2(aa_masses, fwd_peps, ~ {
+    fwd_peps <- purrr::map2(aa_masses_all, fwd_peps, ~ {
       attr(.x, "data") <- .y
       .x
     })
 
-    names(fwd_peps) <- seq_along(aa_masses)
+    names(fwd_peps) <- seq_along(aa_masses_all)
     gc()
 
     purrr::walk2(seq_along(fwd_peps), fwd_peps, ~ {
@@ -446,6 +450,7 @@ calc_pepmasses2 <- function (
   }
 
   assign(".path_cache", .path_cache, envir = .GlobalEnv)
+  assign(".path_fasta", .path_fasta, envir = .GlobalEnv)
   assign(".path_ms1masses", .path_ms1masses, envir = .GlobalEnv)
   assign(".time_stamp", .time_stamp, envir = .GlobalEnv)
 
@@ -460,12 +465,10 @@ find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
                             maxn_vmods_setscombi = 64L, 
                             exclude_phospho_nl = TRUE) {
 
-  if (!file.exists(file.path(out_path, "temp", "aa_masses_all.rds"))) {
+  if (!file.exists(file.path(out_path, "aa_masses_all.rds"))) {
     message("Computing the combinations of fixed and variable modifications.")
 
-    dir.create(file.path(out_path, "temp"), 
-               recursive = TRUE, 
-               showWarnings = FALSE)
+    dir.create(out_path, recursive = TRUE, showWarnings = FALSE)
 
     aa_masses <- calc_aamasses(fixedmods = fixedmods,
                                varmods = varmods,
@@ -474,9 +477,9 @@ find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
                                add_nlmasses = FALSE, 
                                exclude_phospho_nl = exclude_phospho_nl, 
                                out_path = out_path) %T>%
-      saveRDS(file.path(out_path, "temp", "aa_masses_all.rds"))
+      saveRDS(file.path(out_path, "aa_masses_all.rds"))
   } else {
-    aa_masses <- readRDS(file.path(out_path, "temp", "aa_masses_all.rds"))
+    aa_masses <- readRDS(file.path(out_path, "aa_masses_all.rds"))
   }
 
   invisible(aa_masses)
@@ -1509,7 +1512,8 @@ make_fastapeps0 <- function (fasta_db, max_miss = 2L) {
 #' Helper in calculating peptide masses.
 #'
 #' (2) "amods- tmod+ vnl- fnl-".
-#'
+#' 
+#' @inheritParams add_fixvar_masses
 #' @inheritParams distri_peps
 add_term_mass2 <- function (aa_masses, peps) {
   
@@ -1537,7 +1541,7 @@ add_term_mass2 <- function (aa_masses, peps) {
 #' @param ftmass The sum of masses of \code{fixed} N-term and C-term
 #'   modifications.
 #' @inheritParams calc_pepmasses2
-#' @inheritParams distri_peps
+#' @inheritParams add_fixvar_masses
 #' @inheritParams distri_fpeps
 ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
                             max_miss = 2L, min_len = 7L, max_len = 50L,
@@ -1740,13 +1744,13 @@ calcms1mass_noterm_bypep <- function (aa_seq, aa_masses, maxn_vmods_per_pep = 5L
 #'
 #' @param peps Lists of peptides, either "fwds" or "revs", from
 #'   \link{split_fastaseqs}.
+#' @param aa_masses_all All the amino acid lookup tables.
 #' @inheritParams calc_pepmasses2
-#' @inheritParams add_fixvar_masses
-distri_peps <- function (peps, aa_masses, max_miss) {
+distri_peps <- function (peps, aa_masses_all, max_miss) {
 
   nms <- lapply(peps, names)
 
-  out <- lapply(aa_masses, subpeps_by_vmods, nms)
+  out <- lapply(aa_masses_all, subpeps_by_vmods, nms)
   
   # USE.NAMEs of prot_acc
   out <- lapply(out, function (xs) {

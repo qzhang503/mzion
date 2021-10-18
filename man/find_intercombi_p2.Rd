@@ -10,7 +10,9 @@ find_intercombi_p2(intra_combis, maxn_vmods_sitescombi_per_pep = 32L)
 \item{intra_combis}{The results from \link{unique_mvmods}.}
 
 \item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
-combinatorial variable modifications per peptide sequence.}
+combinatorial variable modifications per peptide sequence. The default is
+64. May consider a smaller value, i.e. 32, when searching against
+phosphopeptide data.}
 }
 \description{
 For multiple residues (each residue one to multiple modifications).

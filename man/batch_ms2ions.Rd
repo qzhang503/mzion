@@ -17,6 +17,7 @@ batch_ms2ions(
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 32L,
+  .path_cache = NULL,
   .path_fasta = NULL,
   digits = 5L
 )
@@ -56,7 +57,14 @@ peptide.}
 variable modifications per site in a per peptide sequence.}
 
 \item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
-combinatorial variable modifications per peptide sequence.}
+combinatorial variable modifications per peptide sequence. The default is
+64. May consider a smaller value, i.e. 32, when searching against
+phosphopeptide data.}
+
+\item{.path_cache}{The file path of cached search parameters. At the NULL
+default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
+parameter is for users' awareness of the structure of file folders and the
+default is suggested.}
 
 \item{.path_fasta}{The parent file path to the theoretical masses of MS1
 precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",

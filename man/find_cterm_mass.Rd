@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils_engine.R
 \name{find_cterm_mass}
 \alias{find_cterm_mass}
-\title{Finds C-terminal mass.}
+\title{Finds MS2 C-terminal mass.}
 \usage{
 find_cterm_mass(aa_masses)
 }
@@ -11,5 +11,5 @@ find_cterm_mass(aa_masses)
 acid residues.}
 }
 \description{
-Not yet used.
+Finds MS2 C-terminal mass.
 }

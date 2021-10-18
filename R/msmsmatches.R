@@ -1,225 +1,3 @@
-#' Finds the indexes of top-n entries without re-ordering.
-#'
-#' At length(x) >= n, the length of output may be shorter than n with ties.
-#'
-#' @param x A numeric vector.
-#' @param n The number of top entries to keep.
-#' @return The indexes of the top-n entries.
-#' @examples
-#' \donttest{
-#' which_topx(c(1:5), 50)
-#'
-#' length(which_topx(sample(5000, 500), 100))
-#'
-#' length(which_topx(sample(100, 100, replace = TRUE), 100))
-#' }
-which_topx <- function(x, n = 50L, ...) {
-
-  len <- length(x)
-  p <- len - n
-
-  if (p  <= 0L) return(seq_along(x))
-
-  xp <- sort(x, partial = p, ...)[p]
-
-  which(x > xp)
-}
-
-
-#' Finds the indexes of top-n entries without re-ordering.
-#'
-#' @param x A numeric vector.
-#' @param n The number of top entries to keep.
-#' @return The indexes of the top-n entries.
-which_topx2 <- function(x, n = 50L, ...) {
-
-  len <- length(x)
-  p <- len - n
-
-  if (p  <= 0L) return(seq_along(x))
-
-  xp <- sort(x, partial = p, ...)[p]
-
-  ans <- which(x > xp)
-
-  # in case of ties -> length(ans) < n
-  # detrimental e.g. ms2_n = 500 and n = 100
-  #   -> expect 100 `ms2_moverzs` guaranteed but may be only 99
-  #
-  # MGF `ms2_moverzs` is increasing
-  # `ans2` goes first to ensure non-decreasing index for `ms2_moverzs`
-
-  d <- n - length(ans)
-
-  if (d > 0L) {
-    ans2 <- which(x == xp)
-    ans <- c(ans2[1:d], ans)
-    ans <- sort(ans)
-  }
-
-  invisible(ans)
-}
-
-
-#' Finds the top-n entries without re-ordering.
-#'
-#' @inheritParams which_topx
-#' @return The top-n entries.
-topx <- function(x, n = 50L, ...) {
-
-  len <- length(x)
-  p <- len - n
-
-  if (p  <= 0L) return(x)
-
-  xp <- sort(x, partial = p, ...)[p]
-
-  x[x > xp]
-}
-
-
-#' Finds the numeric difference in ppm.
-#'
-#' @param x A numeric value.
-#' @param y A numeric value.
-#' @return The difference between \eqn{x} and \eqn{y} in ppm.
-find_ppm_error <- function (x = 1000, y = 1000.01) {
-  (y - x)/y * 1E6
-}
-
-
-#' Finds the error range of a number.
-#'
-#' Assumes \eqn{x} is positive without checking.
-#'
-#' @param x A numeric value.
-#' @param ppm Numeric; the ppm allowed from \code{x}.
-#' @return The lower and the upper bound to \eqn{x} by \eqn{ppm}.
-find_mass_error_range <- function (x = 500L, ppm = 20L) {
-  d <- x * ppm/1E6
-  c(x-d, x+d)
-}
-
-
-#' Splits data by groups then into chunks.
-#' 
-#' Not currently used: groupProts <- map_pepprot <- chunk_groupsplit
-#' 
-#' @inheritParams chunksplit
-#' @param f A factor; see also base \code{split}.
-chunk_groupsplit <- function (data, f, n_chunks) {
-
-  if (n_chunks <= 1L) return(data)
-
-  data <- split(data, f)
-  len <- length(data)
-
-  labs <- levels(cut(1:len, n_chunks))
-
-  x <- cbind(
-    lower = floor(as.numeric( sub("\\((.+),.*", "\\1", labs))),
-    upper = ceiling(as.numeric( sub("[^,]*,([^]]*)\\]", "\\1", labs))))
-
-  grps <- findInterval(1:len, x[, 1])
-
-  data <- split(data, grps)
-
-  lapply(data, function (x) do.call(rbind, x))
-}
-
-
-#' Splits data into chunks by length.
-#'
-#' @param data Input data.
-#' @param n_chunks The number of chunks.
-#' @param type The type of data for splitting.
-chunksplit <- function (data, n_chunks = 5L, type = "list") {
-
-  stopifnot(type %in% c("list", "row"))
-
-  if (n_chunks <= 1L) return(data)
-
-  if (type == "list") {
-    len <- length(data)
-  } else if (type == "row") {
-    len <- nrow(data)
-  } else {
-    stop("Unknown type.", call. = TRUE)
-  }
-
-  if (len == 0L) return(data)
-
-  labs <- levels(cut(1:len, n_chunks))
-
-  x <- cbind(lower = floor(as.numeric( sub("\\((.+),.*", "\\1", labs))),
-             upper = ceiling(as.numeric( sub("[^,]*,([^]]*)\\]", "\\1", labs))))
-
-  grps <- findInterval(1:len, x[, 1])
-  split(data, grps)
-}
-
-
-#' Splits data into chunks with approximately equal sizes.
-#'
-#' @param nx Positive integer; an arbitrarily large number for data to be split
-#'   into for estimating the cumulative sizes.
-#' @inheritParams chunksplit
-chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
-
-  stopifnot(type %in% c("list", "row"))
-
-  if (n_chunks <= 1L) return(data)
-
-  if (type == "list") {
-    len <- length(data)
-  } else if (type == "row") {
-    len <- nrow(data)
-  } else {
-    stop("Unknown type.", call. = TRUE)
-  }
-
-  if (len == 0L) return(data)
-
-  # The finer groups by 'nx'
-  grps_nx <- local({
-    labsx <- levels(cut(1:len, nx))
-
-    xx <- cbind(lower = floor(as.numeric( sub("\\((.+),.*", "\\1",
-                                              labsx))),
-                upper = ceiling(as.numeric( sub("[^,]*,([^]]*)\\]", "\\1",
-                                                labsx))))
-
-    findInterval(1:len, xx[, 1])
-  })
-
-  # The equated size for a chunk
-  size_chunk <- local({
-    size_nx <- data %>%
-      split(., grps_nx) %>%
-      lapply(object.size) %>%
-      cumsum()
-
-    size_nx[length(size_nx)]/n_chunks
-  })
-
-  #  Intervals
-  grps <- local({
-    size_data <- data %>%
-      lapply(object.size) %>%
-      cumsum()
-
-    # the position indexes
-    ps <- purrr::map_dbl(1:(n_chunks-1), function (x) {
-      which(size_data < size_chunk * x) %>% `[`(length(.))
-    })
-
-    grps <- findInterval(1:len, ps)
-  })
-
-  split(data, grps)
-}
-
-
 #' Searches for MS ions.
 #'
 #' Database searches of MSMS data.
@@ -262,7 +40,9 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #' @param maxn_sites_per_vmod Integer; the maximum number of combinatorial
 #'   variable modifications per site in a per peptide sequence.
 #' @param maxn_vmods_sitescombi_per_pep Integer; the maximum number of
-#'   combinatorial variable modifications per peptide sequence.
+#'   combinatorial variable modifications per peptide sequence. The default is
+#'   64. May consider a smaller value, i.e. 32, when searching against
+#'   phosphopeptide data.
 #' @param min_len Integer; the minimum length of peptides. Shorter peptides will
 #'   be excluded.
 #' @param max_len Integer; the maximum length of peptides. Longer peptides will
@@ -308,7 +88,10 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #'   suggested.
 #' @param digits Integer; the number of decimal places to be used.
 #' @seealso \link{load_fasta2} for setting the values of \code{acc_type} and
-#'   \code{acc_pattern}. \link{parse_unimod} for the grammar of Unimod.
+#'   \code{acc_pattern}. \cr \link{parse_unimod} for the grammar of Unimod.
+#'   \href{https://proteoq.netlify.app/post/mixing-data-at-different-tmt-plexes/}{For
+#'    example}, the name tag of "TMT6plex" is common among TMT-6, -10 and -11
+#'   while "TMTpro" is specific to TMT-16.
 #' @return A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in
 #'   \code{psmQ.txt}.
 #' @examples
@@ -336,6 +119,7 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #'               "Deamidated (N)", "Phospho (S)", "Phospho (T)",
 #'              "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
 #'   max_miss = 2,
+#'   maxn_vmods_sitescombi_per_pep = 32,
 #'   quant = "tmt16",
 #'   fdr_type = "protein",
 #'   out_path = "~/proteoM/examples",
@@ -429,7 +213,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
   # (b) doubles
   target_fdr <- as.double(target_fdr)
   
-  stopifnot(target_fdr < .5)
+  if (target_fdr > .5) {
+    stop("Choose a smaller `target_fdr`.", call. = FALSE)
+  }
   
   # fdr_type
   fdr_type <- rlang::enexpr(fdr_type)
@@ -459,8 +245,15 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   # Output path
   out_path <- create_dir(out_path)
+  
+  # MGF path
+  mgf_path <- find_dir(mgf_path)
+  
+  if (is.null(mgf_path)) {
+    stop("`mgf_path` not found.", call. = FALSE)
+  }
 
-  filelist <- list.files(path = file.path(mgf_path), pattern = "\\.mgf$")
+  filelist <- list.files(path = mgf_path, pattern = "\\.mgf$")
 
   if (!length(filelist)) {
     stop("No `.mgf` files under ", mgf_path, call. = FALSE)
@@ -468,16 +261,17 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   rm(list = c("filelist"))
   
-  # file paths
+  # system paths
   if (is.null(.path_cache)) {
     .path_cache <- "~/proteoM/.MSearches/Cache/Calls/"
   }
+  .path_cache <- create_dir(.path_cache)
   
   if (is.null(.path_fasta)) {
     .path_fasta <- file.path(gsub("(.*)\\.[^\\.]*$", "\\1", fasta[1]))
-  }
+  } 
+  .path_fasta <- create_dir(.path_fasta)
   
-  .path_cache <- create_dir(.path_cache)
   .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
 
   ## Theoretical MS1 masses
@@ -500,6 +294,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
     out_path = out_path,
     digits = digits,
     .path_cache = .path_cache, 
+    .path_fasta = .path_fasta, 
     .path_ms1masses = .path_ms1masses
   )
 
@@ -515,7 +310,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
   gc()
 
   ## MGFs
-  load_mgfs(mgf_path = mgf_path,
+  load_mgfs(out_path = out_path, 
+            mgf_path = mgf_path,
             min_mass = min_mass,
             max_mass = max_mass, 
             min_ms2mass = min_ms2mass,
@@ -526,14 +322,13 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   ## MSMS matches
   ms2match(mgf_path = mgf_path,
-           aa_masses_all = readRDS(file.path(out_path, "temp", "aa_masses_all.rds")),
+           aa_masses_all = readRDS(file.path(.path_fasta, "aa_masses_all.rds")),
            out_path = out_path,
-           mod_indexes = find_mod_indexes(out_path),
+           mod_indexes = find_mod_indexes(.path_fasta),
            type_ms2ions = type_ms2ions,
            maxn_vmods_per_pep = maxn_vmods_per_pep,
            maxn_sites_per_vmod = maxn_sites_per_vmod,
-           maxn_vmods_sitescombi_per_pep =
-             maxn_vmods_sitescombi_per_pep,
+           maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
            minn_ms2 = minn_ms2,
            ppm_ms1 = ppm_ms1,
            ppm_ms2 = ppm_ms2,
@@ -758,7 +553,7 @@ try_ms2match <- function (mgf_path, aa_masses_all, out_path, mod_indexes,
     writeLines(lines, fileConn)
     close(fileConn)
     
-    rstudioapi::restartSession(command='source("~/matchMS.R")')
+    rstudioapi::restartSession(command = 'source("~/matchMS.R")')
   } else {
     rm(list = "ans")
     gc()
@@ -915,12 +710,16 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
   out <- grp_prots(out, file.path(out_path, "temp1"))
 
   if (nrow(out2)) {
-    out2 <- out2 %>% grp_prots(file.path(out_path, "temp2"))
+    out2 <- grp_prots(out2, file.path(out_path, "temp2"))
   } else {
     out2 <- out[0, ]
   }
-
-  out3 <- grp_prots(out3, file.path(out_path, "temp3"))
+  
+  if (nrow(out3)) {
+    out3 <- grp_prots(out3, file.path(out_path, "temp3"))
+  } else {
+    out3 <- out[0, ]
+  }
 
   # Cleanup
   out <- dplyr::bind_cols(
@@ -962,9 +761,11 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
       max <- max(out2$prot_hit_num, na.rm = TRUE)
     }
 
-    out3 <- out3[names(out)] %>%
-      dplyr::mutate(prot_hit_num = prot_hit_num + max)  %T>%
-      readr::write_tsv(file.path(out_path, "psmT3.txt"))
+    if (nrow(out3)) {
+      out3 <- out3[names(out)] %>%
+        dplyr::mutate(prot_hit_num = prot_hit_num + max)  %T>%
+        readr::write_tsv(file.path(out_path, "psmT3.txt"))
+    }
   }
 
   invisible(out)

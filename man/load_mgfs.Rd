@@ -5,6 +5,7 @@
 \title{Helper in loading MGFs.}
 \usage{
 load_mgfs(
+  out_path,
   mgf_path,
   min_mass = 500L,
   max_mass = 6000L,
@@ -18,6 +19,8 @@ load_mgfs(
 )
 }
 \arguments{
+\item{out_path}{A file path of outputs.}
+
 \item{mgf_path}{The file path to a list of MGF files. The experimenters need
 to supply the files. Note that the supported MGFs are from MSConvert or
 Proteome Discoverer.}
@@ -44,5 +47,6 @@ preceeding, current and following.}
 preceeding, current and following.}
 }
 \description{
-Helper in loading MGFs.
+Currently, \code{index_ms2} is always FALSE. Argument \code{ppm_ms2} is only
+effective at \code{index_ms2 = TRUE}.
 }

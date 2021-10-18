@@ -257,9 +257,204 @@ recur_flatten <- function (x) {
 
 ###
 
+#' Finds the indexes of top-n entries without re-ordering.
+#'
+#' At length(x) >= n, the length of output may be shorter than n with ties.
+#'
+#' @param x A numeric vector.
+#' @param n The number of top entries to keep.
+#' @return The indexes of the top-n entries.
+#' @examples
+#' \donttest{
+#' which_topx(c(1:5), 50)
+#'
+#' length(which_topx(sample(5000, 500), 100))
+#'
+#' length(which_topx(sample(100, 100, replace = TRUE), 100))
+#' }
+which_topx <- function(x, n = 50L, ...) {
+  
+  len <- length(x)
+  p <- len - n
+  
+  if (p  <= 0L) return(seq_along(x))
+  
+  xp <- sort(x, partial = p, ...)[p]
+  
+  which(x > xp)
+}
+
+
+#' Finds the indexes of top-n entries without re-ordering.
+#'
+#' @param x A numeric vector.
+#' @param n The number of top entries to keep.
+#' @return The indexes of the top-n entries.
+which_topx2 <- function(x, n = 50L, ...) {
+  
+  len <- length(x)
+  p <- len - n
+  
+  if (p  <= 0L) return(seq_along(x))
+  
+  xp <- sort(x, partial = p, ...)[p]
+  
+  ans <- which(x > xp)
+  
+  # in case of ties -> length(ans) < n
+  # detrimental e.g. ms2_n = 500 and n = 100
+  #   -> expect 100 `ms2_moverzs` guaranteed but may be only 99
+  #
+  # MGF `ms2_moverzs` is increasing
+  # `ans2` goes first to ensure non-decreasing index for `ms2_moverzs`
+  
+  d <- n - length(ans)
+  
+  if (d > 0L) {
+    ans2 <- which(x == xp)
+    ans <- c(ans2[1:d], ans)
+    ans <- sort(ans)
+  }
+  
+  invisible(ans)
+}
+
+
+#' Finds the top-n entries without re-ordering.
+#'
+#' @inheritParams which_topx
+#' @return The top-n entries.
+topx <- function(x, n = 50L, ...) {
+  
+  len <- length(x)
+  p <- len - n
+  
+  if (p  <= 0L) return(x)
+  
+  xp <- sort(x, partial = p, ...)[p]
+  
+  x[x > xp]
+}
+
+
+#' Finds the numeric difference in ppm.
+#'
+#' @param x A numeric value.
+#' @param y A numeric value.
+#' @return The difference between \eqn{x} and \eqn{y} in ppm.
+find_ppm_error <- function (x = 1000, y = 1000.01) {
+  (y - x)/y * 1E6
+}
+
+
+#' Finds the error range of a number.
+#'
+#' Assumes \eqn{x} is positive without checking.
+#'
+#' @param x A numeric value.
+#' @param ppm Numeric; the ppm allowed from \code{x}.
+#' @return The lower and the upper bound to \eqn{x} by \eqn{ppm}.
+find_mass_error_range <- function (x = 500L, ppm = 20L) {
+  d <- x * ppm/1E6
+  c(x-d, x+d)
+}
+
+
+#' Splits data into chunks by length.
+#'
+#' @param data Input data.
+#' @param n_chunks The number of chunks.
+#' @param type The type of data for splitting.
+chunksplit <- function (data, n_chunks = 5L, type = "list") {
+  
+  stopifnot(type %in% c("list", "row"))
+  
+  if (n_chunks <= 1L) return(data)
+  
+  if (type == "list") {
+    len <- length(data)
+  } else if (type == "row") {
+    len <- nrow(data)
+  } else {
+    stop("Unknown type.", call. = TRUE)
+  }
+  
+  if (len == 0L) return(data)
+  
+  labs <- levels(cut(1:len, n_chunks))
+  
+  x <- cbind(lower = floor(as.numeric( sub("\\((.+),.*", "\\1", labs))),
+             upper = ceiling(as.numeric( sub("[^,]*,([^]]*)\\]", "\\1", labs))))
+  
+  grps <- findInterval(1:len, x[, 1])
+  split(data, grps)
+}
+
+
+#' Splits data into chunks with approximately equal sizes.
+#'
+#' @param nx Positive integer; an arbitrarily large number for data to be split
+#'   into for estimating the cumulative sizes.
+#' @inheritParams chunksplit
+chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
+  
+  stopifnot(type %in% c("list", "row"))
+  
+  if (n_chunks <= 1L) return(data)
+  
+  if (type == "list") {
+    len <- length(data)
+  } else if (type == "row") {
+    len <- nrow(data)
+  } else {
+    stop("Unknown type.", call. = TRUE)
+  }
+  
+  if (len == 0L) return(data)
+  
+  # The finer groups by 'nx'
+  grps_nx <- local({
+    labsx <- levels(cut(1:len, nx))
+    
+    xx <- cbind(lower = floor(as.numeric( sub("\\((.+),.*", "\\1",
+                                              labsx))),
+                upper = ceiling(as.numeric( sub("[^,]*,([^]]*)\\]", "\\1",
+                                                labsx))))
+    
+    findInterval(1:len, xx[, 1])
+  })
+  
+  # The equated size for a chunk
+  size_chunk <- local({
+    size_nx <- data %>%
+      split(., grps_nx) %>%
+      lapply(object.size) %>%
+      cumsum()
+    
+    size_nx[length(size_nx)]/n_chunks
+  })
+  
+  #  Intervals
+  grps <- local({
+    size_data <- data %>%
+      lapply(object.size) %>%
+      cumsum()
+    
+    # the position indexes
+    ps <- purrr::map_dbl(1:(n_chunks-1), function (x) {
+      which(size_data < size_chunk * x) %>% `[`(length(.))
+    })
+    
+    grps <- findInterval(1:len, ps)
+  })
+  
+  split(data, grps)
+}
+
+
 #' Finds a file directory.
 #'
-#' With the option of creating a direcotry.
+#' With the option of creating a directory
 #'
 #' @param path A file path.
 #' @param create Logical; if TRUE create the path if not yet existed.
@@ -319,25 +514,6 @@ save_call2 <- function(path, fun, time = NULL) {
     p2 <- create_dir(file.path(path, fun))
     save(call_pars, file = file.path(p2, paste0(time, ".rda")))
   }
-}
-
-
-#' Finds the setting of a arguments.
-#'
-#' Not currently used.
-#'
-#' @param arg Argument to be matched.
-#' @inheritParams save_call2
-#' @import dplyr purrr
-#' @importFrom magrittr %>% %T>% %$%
-find_callarg_val <- function (time = ".2021-05-21_211227",
-                              path = "~/proteoM/.MSearches/Cache/Calls",
-                              fun = "calc_pepmasses2", arg = "fasta") {
-
-  stopifnot(length(arg) == 1L)
-
-  find_callarg_vals(time, path, fun, arg) %>%
-    purrr::flatten()
 }
 
 
@@ -422,63 +598,6 @@ match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
   oks <- unlist(oks, recursive = FALSE, use.names = FALSE)
 
   times[oks] %>% gsub("\\.rda$", "", .)
-}
-
-
-#' Matches the value of a function argument.
-#'
-#' @param f The function where one of its argument value will be matched.
-#' @param arg The argument where its value will be matched.
-#' @param val The value to be matched.
-#' @param default The default value of \code{arg}.
-#' @examples
-#' \donttest{
-#' foo <- function (quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16")) {
-#'  val <- rlang::enexpr(quant)
-#'  val <- match_valexpr(f = !!match.call()[[1]], arg = quant, val = !!val)
-#' }
-#'
-#' default <- foo()
-#' custom <- foo(quant = tmt6)
-#' }
-match_valexpr <- function (f = NULL, arg = NULL, val = NULL, default = NULL) {
-
-  f <- rlang::enexpr(f)
-  arg <- rlang::enexpr(arg)
-
-  stopifnot(length(f) == 1L, length(arg) == 1L)
-
-  f <- rlang::as_string(f)
-  arg <- rlang::as_string(arg)
-  ok_vals <- as.character(formals(f)[[arg]])[-1]
-
-  # may be plural, not yet to string
-  val <- rlang::enexpr(val)
-
-  if (length(val) == 0L) {
-    stop("`val` cannot be empty.", call. = FALSE)
-  }
-
-  if (length(val) > 1) {
-    if (is.null(default)) {
-      if (is.call(val[1])) {
-        val <- val[[2]]
-      } else {
-        val <- val[[1]]
-      }
-    } else {
-      stopifnot(length(default) == 1L)
-      val <- default
-    }
-  } else {
-    val <- rlang::as_string(val)
-  }
-
-  if (! val %in% ok_vals) {
-    stop("`", val, "` is not an option for `", f, "`.", call. = FALSE)
-  }
-
-  val
 }
 
 
@@ -635,7 +754,7 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
   if (!is.null(fmods_nl)) {
     sites <- names(fmods_nl)
     pattern <- paste(sites, collapse = "|")
-    theopeps <- sub_neuloss_peps(pattern, theopeps)
+    theopeps <- subset_neuloss_peps(pattern, theopeps)
 
     rm(list = c("sites", "pattern"))
   }
@@ -729,42 +848,37 @@ subset_theoframes <- function (mgf_frames = NULL, theopeps = NULL) {
 #' @param pattern A regex of amino-acid residue(s).
 #' @param theopeps Lists of theoretical peptides. A column of \code{pep_seq} is
 #'   assumed.
-sub_neuloss_peps <- function (pattern, theopeps) {
+subset_neuloss_peps <- function (pattern, theopeps) {
 
   rows <- lapply(theopeps, function (x) grepl(pattern, x$pep_seq))
-  # purrr::map2(theopeps, rows, function (x, y) x[y, ])
   mapply(function (x, y) x[y, ], theopeps, rows, SIMPLIFY = FALSE, USE.NAMES = FALSE)
 }
 
 
-#' Finds N-terminal mass.
-#'
-#' Not yet used.
+#' Finds MS2 N-terminal mass.
 #'
 #' @inheritParams hms2_base
 find_nterm_mass <- function (aa_masses) {
 
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-
+  
   if (length(ntmod)) {
-    ntmass <- aa_masses[names(ntmod)] - 0.000549
+    ntmass <- aa_masses[names(ntmod)] + 1.00727647 # + proton
   } else {
     ntmass <- aa_masses["N-term"] - 0.000549 # - electron
   }
-
+  
   ntmass
 }
 
 
-#' Finds C-terminal mass.
-#'
-#' Not yet used.
+#' Finds MS2 C-terminal mass.
 #'
 #' @inheritParams hms2_base
 find_cterm_mass <- function (aa_masses) {
-
+  
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-
+  
   if (length(ctmod)) {
     ctmass <- aa_masses[names(ctmod)] + 2.01510147
   } else {
@@ -919,7 +1033,7 @@ find_mod_indexes <- function (out_path, file = "mod_indexes.txt") {
   filepath <- file.path(out_path, file)
   
   if (!file.exists(filepath)) {
-    stop("File not found: ", filepath)
+    stop("File not found: ", filepath, call. = FALSE)
   }
   
   mod_indexes <- readr::read_tsv(filepath, show_col_types = FALSE)
@@ -934,7 +1048,7 @@ find_mod_indexes <- function (out_path, file = "mod_indexes.txt") {
 #' 
 #' @param x A set.
 #' @param y Another set.
-equal_sets <- function(x, y) all(x %in% y) && all(y %in% x)
+is_equal_sets <- function(x, y) all(x %in% y) && all(y %in% x)
 
 
 #' Finds the \code{aa_masses} corresponding to the base modification.
@@ -953,7 +1067,7 @@ find_base_aamasses_index <- function (out_path) {
   vmods_ps <- lapply(aa_masses_all, attr, "vmods_ps")
   vmods <- lapply(vmods_ps, names)
   
-  idxes <- lapply(vmods, equal_sets, base_mods)
+  idxes <- lapply(vmods, is_equal_sets, base_mods)
   idxes <- unlist(idxes, recursive = FALSE, use.names = FALSE)
 }
 

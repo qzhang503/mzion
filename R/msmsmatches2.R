@@ -83,9 +83,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   delete_files(out_path, ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
                                      "\\.xls$", "\\.csv$", "\\.txt$", 
-                                     "^mgf$", "^mgfs$"))
-  
-  saveRDS(aa_masses_all, file.path(out_path, "temp", "aa_masses_all.rds"))
+                                     "^mgf$", "^mgfs$", "Calls"))
   
   # For three-frame searches
   # (matches of secondary ions using `outer` and no adjustments)

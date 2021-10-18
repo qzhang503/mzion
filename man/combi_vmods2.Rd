@@ -29,7 +29,9 @@ peptide.}
 variable modifications per site in a per peptide sequence.}
 
 \item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
-combinatorial variable modifications per peptide sequence.}
+combinatorial variable modifications per peptide sequence. The default is
+64. May consider a smaller value, i.e. 32, when searching against
+phosphopeptide data.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }

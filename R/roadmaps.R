@@ -217,6 +217,43 @@
 #     greedysetcover3
 #     
 
+#################################
+# utils_engine.R
+#################################
+# which_topx
+# which_topx2
+# topx
+# find_ppm_error
+# find_mass_error_range
+# chunksplit
+# chunksplitLB
+# find_dir
+# create_dir
+# save_call2
+# find_callarg_vals
+# match_calltime
+# match_valexpr
+# delete_files
+# post_ms2match
+# post_frame_adv
+# purge_search_space
+# subset_theoframes
+# subset_neuloss_peps
+# find_nterm_mass
+# find_cterm_mass
+# quick_rightjoin
+# quick_leftjoin
+# detect_cores
+# find_free_mem
+# find_mod_indexes
+# is_equal_sets
+# find_base_aamasses_index
+# purge_decoys
+# 
+#################################
+
+
+
 
 ## (Tentative) same-site rules: no additive varmods
 # 

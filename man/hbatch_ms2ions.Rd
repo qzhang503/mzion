@@ -2,22 +2,23 @@
 % Please edit documentation in R/batch_ms2ions.R
 \name{hbatch_ms2ions}
 \alias{hbatch_ms2ions}
-\title{Helper of \link{batch_ms2ions} by time directory.}
+\title{Helper of \link{batch_ms2ions}}
 \usage{
 hbatch_ms2ions(
-  time = NULL,
+  ms1_time = NULL,
   types = NULL,
   mod_indexes = NULL,
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 32L,
+  .path_cache = NULL,
   .path_fasta = NULL,
   digits = 5L
 )
 }
 \arguments{
-\item{time}{A cached time (directory).}
+\item{ms1_time}{A cached MS1 time (directory).}
 
 \item{types}{The types of modification, e.g., "amods- tmod+ vnl- fnl-" etc.}
 
@@ -36,7 +37,14 @@ peptide.}
 variable modifications per site in a per peptide sequence.}
 
 \item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
-combinatorial variable modifications per peptide sequence.}
+combinatorial variable modifications per peptide sequence. The default is
+64. May consider a smaller value, i.e. 32, when searching against
+phosphopeptide data.}
+
+\item{.path_cache}{The file path of cached search parameters. At the NULL
+default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
+parameter is for users' awareness of the structure of file folders and the
+default is suggested.}
 
 \item{.path_fasta}{The parent file path to the theoretical masses of MS1
 precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
@@ -47,5 +55,10 @@ suggested.}
 \item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
-Helper of \link{batch_ms2ions} by time directory.
+For a given time stamp.
+}
+\details{
+length(pepmasses_i.rds) == length(ms2masses_i.rds). Note tht ms2masses_i can
+be nested due to the permutation and NLs of AA residues under the same
+pep_seq and ms1mass.
 }

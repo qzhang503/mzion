@@ -25,6 +25,7 @@ calc_pepmasses2(
   out_path = NULL,
   digits = 4L,
   .path_cache = NULL,
+  .path_fasta = NULL,
   .path_ms1masses = NULL
 )
 }
@@ -92,6 +93,12 @@ default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
 parameter is for users' awareness of the structure of file folders and the
 default is suggested.}
 
+\item{.path_fasta}{The parent file path to the theoretical masses of MS1
+precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
+"\\1", get("fasta", envir = environment())[1])}. The parameter is for
+users' awareness of the structure of file folders and the default is
+suggested.}
+
 \item{.path_ms1masses}{The file path to the theoretical masses of MS1
 precursors.}
 }
@@ -123,5 +130,4 @@ unlist(res_data[[1]], use.names = FALSE) \%>\% length()
 unlist(res_data, use.names = FALSE) \%>\% length()
 
 }
-
 }
