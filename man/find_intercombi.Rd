@@ -10,5 +10,20 @@ find_intercombi(intra_combis)
 \item{intra_combis}{The results from \link{unique_mvmods}.}
 }
 \description{
-For multiple residues (each residue one to multiple modifications).
+For uses with MS1 precursors. For multiple residues (each residue one to
+multiple modifications).
+}
+\examples{
+C <- list(c("Carbamidomethyl (C)"),
+          rep("Carbamidomethyl (C)", 2))
+
+N <- list(c("Deamidated (N)"),
+          rep("Deamidated (N)", 2))
+
+intra_combis <- list(C = C, N = N)
+
+ans <- find_intercombi(intra_combis)
+}
+\seealso{
+\link{find_intercombi_p2} for MS2 ions.
 }

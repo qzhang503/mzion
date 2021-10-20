@@ -11,14 +11,18 @@ check_ms2frames(.path_fasta, ms1_time, .path_cache, path_bin2)
 precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
 "\\1", get("fasta", envir = environment())[1])}. The parameter is for
 users' awareness of the structure of file folders and the default is
-suggested.}
+suggested. Occasionally experimenters may remove the file folder for disk
+space or (hopefully) in rare events of structural change incurred by the
+developer.}
 
 \item{ms1_time}{A cached MS1 time (directory).}
 
 \item{.path_cache}{The file path of cached search parameters. At the NULL
 default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
 parameter is for users' awareness of the structure of file folders and the
-default is suggested.}
+default is suggested. Occasionally experimenters may remove the file folder
+for disk space or (hopefully not) in events of (improper) structural change
+incurred by the developer.}
 
 \item{path_bin2}{A file path to binned MS2 results.}
 }

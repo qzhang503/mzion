@@ -137,6 +137,7 @@
 #             combi_vmods2
 #           find_intercombi_p2
 #           check_ms1_mass_vmods2
+#           expand_grid_rows (utils_engine.R)
 #           calc_ms2ions_a1_vnl0_fnl0
 #             ms2ions_by_type (ion_ladder.R)
 #               byions, czions, axions (ion_ladder.R)

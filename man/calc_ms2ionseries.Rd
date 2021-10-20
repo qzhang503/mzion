@@ -98,7 +98,7 @@ x <- calc_ms2ionseries("MAKEMASSPECFUN",
                          "Deamidated (N)"), 
                        c("dHex (S)"))
                       
-x$mass[[2]]
+stopifnot(is.null(x$mass[[2]]))
 
 # Change from fixed to variable for full combinatorials
 x <- calc_ms2ionseries("MAKEMASSPECFUN",

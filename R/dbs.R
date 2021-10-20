@@ -454,27 +454,32 @@ find_unique_sets <- function (ps = c(1:5), ns = c("A", "B", "C")) {
 
 #' Finds the combinations across residues.
 #'
-#' For multiple residues (each residue one to multiple modifications).
+#' For uses with MS1 precursors. For multiple residues (each residue one to
+#' multiple modifications).
 #'
 #' @param intra_combis The results from \link{unique_mvmods}.
+#' @seealso \link{find_intercombi_p2} for MS2 ions.
+#' @examples
+#' C <- list(c("Carbamidomethyl (C)"),
+#'           rep("Carbamidomethyl (C)", 2))
+#'
+#' N <- list(c("Deamidated (N)"),
+#'           rep("Deamidated (N)", 2))
+#'
+#' intra_combis <- list(C = C, N = N)
+#'
+#' ans <- find_intercombi(intra_combis)
 find_intercombi <- function (intra_combis) {
+  
+  len <- length(intra_combis)
 
-  if (!length(intra_combis)) { # scalar
+  if (!len) { # scalar
     v_out <- list()
   } else if (any(.Internal(unlist(lapply(intra_combis, purrr::is_empty), 
                                   recursive = FALSE, use.names = FALSE)))) { # list
     v_out <- list()
-  } else if (length(intra_combis) > 1L) {
-    inter_combi <- expand.grid(intra_combis, KEEP.OUT.ATTRS = FALSE, 
-                               stringsAsFactors = FALSE)
-
-    nrow <- nrow(inter_combi)
-    v_out <- vector("list", nrow)
-
-    for (i in 1:nrow) {
-      row <- inter_combi[i, ]
-      v_out[[i]] <- .Internal(unlist(row, recursive = TRUE, use.names = FALSE))
-    }
+  } else if (len > 1L) {
+    v_out <- expand_grid_rows(intra_combis, use.names = FALSE)
   } else {
     v_out <- purrr::flatten(intra_combis)
   }

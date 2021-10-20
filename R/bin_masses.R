@@ -9,7 +9,8 @@
 #' @inheritParams load_mgfs
 #' @inheritParams calc_pepmasses2
 bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L, 
-                           ppm_ms1 = 20L, .path_cache = NULL, .path_ms1masses = NULL, 
+                           ppm_ms1 = 20L, use_ms1_cache = TRUE, 
+                           .path_cache = NULL, .path_ms1masses = NULL, 
                            is_ms1_three_frame = TRUE) {
 
   old_opts <- options()
@@ -65,7 +66,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
          call. = FALSE)
   }
   
-  if (len_bts) {
+  if (len_bts && use_ms1_cache) {
     .path_bin <- file.path(.path_ms1masses, .time_stamp, fun, .time_bin)
     
     bins <- list.files(path = .path_bin, pattern = "binned_theopeps_\\d+\\.rds$")
@@ -154,6 +155,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   
   .savecall <- TRUE
 
+  assign(".time_bin", .time_bin, envir = .GlobalEnv)
   assign(".path_bin", .path_bin, envir = .GlobalEnv)
 
   invisible(NULL)

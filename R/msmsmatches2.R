@@ -32,7 +32,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   on.exit(
     if (exists(".savecall", envir = rlang::current_env())) {
       if (.savecall) {
-        save_call2(path = file.path(out_path, "Calls"), fun = "ms2match")
+        save_call2(path = file.path(out_path, "Calls"), fun = fun)
       }
     }, 
     add = TRUE
@@ -40,6 +40,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   # Check cached 
   fun <- as.character(match.call()[[1]])
+  
   args_except <- NULL
   
   cache_pars <- find_callarg_vals(time = NULL, 
@@ -79,7 +80,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
     }
   }
   
-  rm(list = c("fun", "args_except", "cache_pars", "call_pars"))
+  rm(list = c("args_except", "cache_pars", "call_pars"))
   
   delete_files(out_path, ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
                                      "\\.xls$", "\\.csv$", "\\.txt$", 

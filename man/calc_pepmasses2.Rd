@@ -24,6 +24,7 @@ calc_pepmasses2(
   max_miss = 2L,
   out_path = NULL,
   digits = 4L,
+  use_ms1_cache = TRUE,
   .path_cache = NULL,
   .path_fasta = NULL,
   .path_ms1masses = NULL
@@ -88,16 +89,22 @@ be excluded.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 
+\item{use_ms1_cache}{Logical; if TRUE, use cached precursor masses.}
+
 \item{.path_cache}{The file path of cached search parameters. At the NULL
 default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
 parameter is for users' awareness of the structure of file folders and the
-default is suggested.}
+default is suggested. Occasionally experimenters may remove the file folder
+for disk space or (hopefully not) in events of (improper) structural change
+incurred by the developer.}
 
 \item{.path_fasta}{The parent file path to the theoretical masses of MS1
 precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
 "\\1", get("fasta", envir = environment())[1])}. The parameter is for
 users' awareness of the structure of file folders and the default is
-suggested.}
+suggested. Occasionally experimenters may remove the file folder for disk
+space or (hopefully) in rare events of structural change incurred by the
+developer.}
 
 \item{.path_ms1masses}{The file path to the theoretical masses of MS1
 precursors.}

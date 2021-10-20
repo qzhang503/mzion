@@ -4,12 +4,10 @@
 \alias{find_mod_indexes}
 \title{Find the indexes of modifications.}
 \usage{
-find_mod_indexes(out_path, file = "mod_indexes.txt")
+find_mod_indexes(file)
 }
 \arguments{
-\item{out_path}{A output path.}
-
-\item{file}{The file name where modifications are recorded.}
+\item{file}{A full-path name of file where modifications are recorded.}
 }
 \description{
 Find the indexes of modifications.

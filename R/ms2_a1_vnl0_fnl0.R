@@ -64,6 +64,7 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ntmod = NULL, ctmod = NULL,
       "combi_mvmods2", 
       "combi_vmods2", 
       "find_intercombi_p2", 
+      "expand_grid_rows", 
       "check_ms1_mass_vmods2", 
       "calc_ms2ions_a1_vnl0_fnl0", 
       "ms2ions_by_type", 
@@ -536,18 +537,31 @@ combi_np <- function (n, p) {
 #' @inheritParams matchMS
 #' @importFrom purrr is_empty map map_lgl flatten 
 #' @seealso \link{find_intercombi}
+#' 
+#' @examples 
+#' N <- list(c(`7` = "Deamidated (N)"), 
+#'           c(`15` = "Deamidated (N)"), 
+#'           c(`7` = "Deamidated (N)", `15` = "Deamidated (N)"))
+#' 
+#' S <- c(`16` = "Carbamidomethyl (S)")
+#' 
+#' intra_combis <- list(N = N, S = S)
+#' 
+#' ans <- find_intercombi_p2(intra_combis)
 find_intercombi_p2 <- function (intra_combis, maxn_vmods_sitescombi_per_pep = 32L) {
   
   if ((!length(intra_combis)) || 
       any(.Internal(unlist(lapply(intra_combis, purrr::is_empty), 
                            recursive = FALSE, use.names = FALSE)))
-      ) { # scalar or list
-    v_out <- list() 
+  ) { # scalar or list
+    v_combis <- list() 
   } else if (length(intra_combis) == 1L) { # M, one to multiple positions; Oxidation and/or Carbamidomethyl
     if (length(intra_combis[[1]]) == 1L) { # 2: "Oxidation (M)"
-      v_out <- intra_combis
+      v_combis <- intra_combis
     } else { # 2: "Oxidation (M)"; 3: "Oxidation (M)"; 2: "Oxidation (M)", 3: "Oxidation (M)"; ... Carbamidomethyl
-      v_out <- purrr::flatten(intra_combis)
+      v_combis <- purrr::flatten(intra_combis)
+      len <- min(length(v_combis), maxn_vmods_sitescombi_per_pep)
+      v_combis <- v_combis[1:len]
     }
   } else { # M, N
     p_combis <- lapply(intra_combis, function (x) {
@@ -558,36 +572,20 @@ find_intercombi_p2 <- function (intra_combis, maxn_vmods_sitescombi_per_pep = 32
       }
     })
     
-    v_combis <- intra_combis
+    p_combis <- expand_grid_rows(p_combis, use.names = FALSE)
+    v_combis <- expand_grid_rows(intra_combis, use.names = FALSE)
     
-    # v_combis <- lapply(intra_combis, function (x) {
-    #   if (length(x) > 1L) {
-    #     lapply(x, unname)
-    #   } else {
-    #     unname(x)
-    #   }
-    # })
-
-    p_combis <- expand.grid(p_combis, KEEP.OUT.ATTRS = FALSE, 
-                            stringsAsFactors = FALSE)
-    v_combis <- expand.grid(v_combis, KEEP.OUT.ATTRS = FALSE, 
-                            stringsAsFactors = FALSE)
+    len <- min(length(v_combis), maxn_vmods_sitescombi_per_pep)
+    v_combis <- v_combis[1:len]
     
-    nrow <- min(nrow(v_combis), maxn_vmods_sitescombi_per_pep)
-    
-    p_out <- v_out <- vector("list", nrow)
-    
-    for (i in seq_len(nrow)) {
-      # needs `recursive = TRUE`
-      p_out[[i]] <- .Internal(unlist(p_combis[i, ], recursive = TRUE, use.names = FALSE))
-      v_out[[i]] <- .Internal(unlist(v_combis[i, ], recursive = TRUE, use.names = FALSE))
-
-      names(v_out[[i]]) <- p_out[[i]]
-      v_out[[i]] <- v_out[[i]][order(as.numeric(names(v_out[[i]])))]
+    for (i in seq_len(len)) {
+      vi <- v_combis[[i]]
+      names(vi) <- p_combis[[i]]
+      v_combis[[i]] <- vi[order(as.numeric(names(vi)))]
     }
   }
-
-  invisible(v_out)
+  
+  invisible(v_combis)
 }
 
 

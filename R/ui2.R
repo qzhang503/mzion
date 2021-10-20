@@ -176,8 +176,7 @@ calc_monopep <- function (aa_seq, aa_masses,
   # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
   if (include_insource_nl) {
     if (type %in% c("amods- tmod- vnl- fnl+", "amods- tmod+ vnl- fnl+")) {
-      fnl_combi <- expand.grid(fmods_nl, KEEP.OUT.ATTRS = FALSE, 
-                               stringsAsFactors = FALSE)
+      fnl_combi <- expand_grid_rows(fmods_nl)
       deltas <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
       masses <- round(mass - deltas, digits = digits)
     }
@@ -324,7 +323,7 @@ check_aaseq <- function (aa_seq, aa_masses_all, fixedmods, varmods) {
 #'                          "Deamidated (N)"), 
 #'                        c("dHex (S)"))
 #'                       
-#' x$mass[[2]]
+#' stopifnot(is.null(x$mass[[2]]))
 #' 
 #' # Change from fixed to variable for full combinatorials
 #' x <- calc_ms2ionseries("MAKEMASSPECFUN",
@@ -541,6 +540,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
                                     ntmod = ntmod, ctmod = ctmod, 
                                     ntmass = ntmass, ctmass = ctmass, 
                                     amods = amods, 
+                                    vmods_nl = NULL, fmods_nl = NULL,
                                     mod_indexes = mod_indexes, 
                                     type_ms2ions = type_ms2ions, 
                                     maxn_vmods_per_pep = maxn_vmods_per_pep, 
@@ -630,7 +630,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
     return(ans)
   }
   
-  ans
+  ans <- NULL
 }
 
 

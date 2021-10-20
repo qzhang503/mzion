@@ -17,6 +17,17 @@ phosphopeptide data.}
 \description{
 For multiple residues (each residue one to multiple modifications).
 }
+\examples{
+N <- list(c(`7` = "Deamidated (N)"), 
+          c(`15` = "Deamidated (N)"), 
+          c(`7` = "Deamidated (N)", `15` = "Deamidated (N)"))
+
+S <- c(`16` = "Carbamidomethyl (S)")
+
+intra_combis <- list(N = N, S = S)
+
+ans <- find_intercombi_p2(intra_combis)
+}
 \seealso{
 \link{find_intercombi}
 }

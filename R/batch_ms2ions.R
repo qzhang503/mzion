@@ -1,7 +1,6 @@
 #' Batch processing of MS2 ions
 #' 
 #' @inheritParams matchMS
-#' @export
 batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
                                      "~/proteoM/dbs/fasta/crap/crap.fasta"),
                            fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
@@ -45,35 +44,14 @@ batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_202
   }
   
   # ---
-  file_aa <- file.path(.path_fasta, "aa_masses_all.rds")
-  
-  if (!file.exists(file_aa)) {
-    aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
-                                   varmods = varmods,
-                                   maxn_vmods_setscombi = maxn_vmods_setscombi,
-                                   add_varmasses = FALSE,
-                                   add_nlmasses = FALSE, 
-                                   exclude_phospho_nl = exclude_phospho_nl, 
-                                   out_path = .path_fasta) %T>%
-      saveRDS(file_aa)
-  } else {
-    aa_masses_all <- readRDS(file_aa)
-  }
-  
-  types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
-  mod_indexes <- find_mod_indexes(.path_fasta)
-  
-  # ---
   path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
   ms1_times <- dir(path_ms1masses, all.files = TRUE, no.. = TRUE)
   
   if (!length(ms1_times)) {
     stop("Time stamps of MS1 masses not found.", call. = FALSE)
   }
-  
+
   lapply(ms1_times, hbatch_ms2ions, 
-         types = types, 
-         mod_indexes = mod_indexes, 
          type_ms2ions = type_ms2ions, 
          maxn_vmods_per_pep = maxn_vmods_per_pep, 
          maxn_sites_per_vmod = maxn_sites_per_vmod, 
@@ -98,13 +76,32 @@ batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_202
 #' @param types The types of modification, e.g., "amods- tmod+ vnl- fnl-" etc.
 #' @inheritParams batch_ms2ions
 #' @inheritParams ms2match
-hbatch_ms2ions <- function (ms1_time = NULL, types = NULL, mod_indexes = NULL, 
-                            type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
-                            maxn_sites_per_vmod = 3L, 
+hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by", 
+                            maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                             maxn_vmods_sitescombi_per_pep = 32L, 
                             .path_cache = NULL, .path_fasta = NULL, 
                             digits = 5L) {
   
+  # ---
+  .path_time <- file.path(.path_fasta, "ms1masses", ms1_time)
+  file_aa <- file.path(.path_time, "aa_masses_all.rds")
+  file_mod <- file.path(.path_time, "mod_indexes.txt")
+  
+  if (!file.exists(file_aa)) {
+    stop("File not found ", file_aa, call. = FALSE)
+  } else {
+    aa_masses_all <- readRDS(file_aa)
+  }
+  
+  if (!file.exists(file_mod)) {
+    stop("File not found ", file_mod, call. = FALSE)
+  } else {
+    mod_indexes <- find_mod_indexes(file_mod)
+  }
+  
+  types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
+
+  # ---
   path_ms2time <- create_dir(file.path(.path_fasta, "ms2masses", ms1_time))
   path_bin2 <- create_dir(file.path(path_ms2time, "bin_ms2masses"))
   
@@ -118,16 +115,6 @@ hbatch_ms2ions <- function (ms1_time = NULL, types = NULL, mod_indexes = NULL,
   path_ms1masses <- file.path(.path_fasta, "ms1masses")
   path_ms1time <- file.path(path_ms1masses, ms1_time)
   
-  file_ms1time <- local({
-    files <- list.files(path = path_ms1time, 
-                        pattern = paste0("^pepmasses_", "\\d+\\.rds$"))
-    
-    idxes <- gsub("^pepmasses_(\\d+)\\.rds$", "\\1", files)
-    idxes <- as.integer(idxes)
-    ords <- order(idxes)
-    files[ords]
-  })
-
   ## Targets
   # (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-" 
   inds <- which(types %in% c("amods- tmod- vnl- fnl-", 
@@ -486,6 +473,8 @@ hbatch_ms2ions <- function (ms1_time = NULL, types = NULL, mod_indexes = NULL,
   }
   
   ## Decoys...
+  # from binned_theopeps_rev_i.rds -> ms2masses_rev_i.rds -> binned_ms2_i.rds
+  # no guarantee to be the same "i" -> calculates decoys MS2 at real time. 
   
   invisible(NULL)
 }

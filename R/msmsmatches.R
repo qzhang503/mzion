@@ -77,15 +77,20 @@
 #'   the output of \code{psmQ.txt}. Outputs under the option TRUE are often
 #'   comparable to Mascot outputs with FDR controls at the levels of PSMs or
 #'   peptides.
+#' @param use_ms1_cache Logical; if TRUE, use cached precursor masses.
 #' @param .path_cache The file path of cached search parameters. At the NULL
 #'   default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
 #'   parameter is for users' awareness of the structure of file folders and the
-#'   default is suggested.
+#'   default is suggested. Occasionally experimenters may remove the file folder
+#'   for disk space or (hopefully not) in events of (improper) structural change
+#'   incurred by the developer.
 #' @param .path_fasta The parent file path to the theoretical masses of MS1
 #'   precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
 #'   "\\1", get("fasta", envir = environment())[1])}. The parameter is for
 #'   users' awareness of the structure of file folders and the default is
-#'   suggested.
+#'   suggested. Occasionally experimenters may remove the file folder for disk
+#'   space or (hopefully) in rare events of structural change incurred by the
+#'   developer.
 #' @param digits Integer; the number of decimal places to be used.
 #' @seealso \link{load_fasta2} for setting the values of \code{acc_type} and
 #'   \code{acc_pattern}. \cr \link{parse_unimod} for the grammar of Unimod.
@@ -157,6 +162,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      target_fdr = 0.01,
                      fdr_type = c("psm", "peptide", "protein"),
                      combine_tier_three = FALSE,
+                     use_ms1_cache = TRUE, 
                      .path_cache = NULL, 
                      .path_fasta = NULL,
                      digits = 4L) {
@@ -293,6 +299,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
     max_miss = max_miss,
     out_path = out_path,
     digits = digits,
+    use_ms1_cache = use_ms1_cache, 
     .path_cache = .path_cache, 
     .path_fasta = .path_fasta, 
     .path_ms1masses = .path_ms1masses
@@ -303,6 +310,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                 min_mass = min_mass, 
                 max_mass = max_mass, 
                 ppm_ms1 = ppm_ms1, 
+                use_ms1_cache = use_ms1_cache, 
                 .path_cache = .path_cache, 
                 .path_ms1masses = .path_ms1masses)
   
@@ -322,9 +330,11 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   ## MSMS matches
   ms2match(mgf_path = mgf_path,
-           aa_masses_all = readRDS(file.path(.path_fasta, "aa_masses_all.rds")),
+           aa_masses_all = 
+             readRDS(file.path(.path_ms1masses, .time_stamp, "aa_masses_all.rds")),
            out_path = out_path,
-           mod_indexes = find_mod_indexes(.path_fasta),
+           mod_indexes = 
+             find_mod_indexes(file.path(.path_ms1masses, .time_stamp, "mod_indexes.txt")),
            type_ms2ions = type_ms2ions,
            maxn_vmods_per_pep = maxn_vmods_per_pep,
            maxn_sites_per_vmod = maxn_sites_per_vmod,
@@ -415,6 +425,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
 
 #' Helper of \link{ms2match}.
+#' 
+#' Not yet used.
 #' 
 #' @param aa_masses_all All the amino acid lookup tables.
 #' 

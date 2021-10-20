@@ -1,7 +1,7 @@
 
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage("Welcome to proteoM!\n\n",
-                        "===================================================================================\n",
+                        "=======================================================================================\n",
                         # "NEW features (v1.0.0.0):\n",
                         "[x] A search engine for mass spectrometry-based proteomics data.\n",
                         "[x] See also package `proteoQ` for downstream data QA and informatics.\n", 
@@ -9,7 +9,8 @@
                         
                         # "Notes:\n",
                         "[x] Suggested configuration for large datasets: 32GB RAM and 8 (dual)-cores.\n",
-                        # "[x] Not yet tested under Linux or MacOS.\n",
+                        "[x] Need to remove previously cached results (or use a new .path_cache and .path_fasta)\n",
+                        # "    (OOps an accidental relocation of amino-acid lookups to a parent directory) \n",
                         # "remotes::install_version(\"RSQLite\", version = \"2.2.5\")\n",
-                        "===================================================================================\n")
+                        "=======================================================================================\n")
 }

@@ -54,6 +54,7 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ntmass, ctmass, fmods_nl,
     cl,
     c("frames_adv", 
       "gen_ms2ions_a0_vnl0_fnl1", 
+      "expand_grid_rows", 
       "gen_ms2ions_base", 
       "ms2ions_by_type", 
       "byions", "czions", "axions", 
@@ -246,10 +247,9 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
   # ---
   fmods_combi <- aas[idxes]
   names(fmods_combi) <- idxes
-  fnl_combi <- expand.grid(fmods_nl[fmods_combi], KEEP.OUT.ATTRS = FALSE, 
-                           stringsAsFactors = FALSE)
+  fnl_combi <- expand_grid_rows(fmods_nl[fmods_combi])
   
-  len <- nrow(fnl_combi)
+  len <- length(fnl_combi)
   
   if (len > maxn_vmods_sitescombi_per_pep) {
     len <- maxn_vmods_sitescombi_per_pep
@@ -262,7 +262,7 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
 
   for (i in 1:len) {
     aas2_i <- aas2
-    delta <- .Internal(unlist(fnl_combi[i, ], recursive = FALSE, use.names = FALSE))
+    delta <- .Internal(unlist(fnl_combi[[i]], recursive = FALSE, use.names = FALSE))
     aas2_i[idxes] <- aas2_i[idxes] - delta
     out[[i]] <- ms2ions_by_type(aas2_i, ntmass, ctmass, type_ms2ions, digits)
   }
@@ -270,10 +270,7 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
   len_a <- length(aas)
   nm <- .Internal(paste0(list(rep("0", len_a)), collapse = "", recycle0 = FALSE))
   
-  names(out) <- .Internal(paste0(list(nm, 
-                                      " [", 
-                                      as.character(seq_len(nrow(fnl_combi))), 
-                                      "]"), 
+  names(out) <- .Internal(paste0(list(nm, " [", as.character(seq_len(len)), "]"), 
                                  collapse = NULL, recycle0 = FALSE))
 
   invisible(out)

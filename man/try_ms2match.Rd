@@ -144,7 +144,7 @@ peptides.}
 \item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
-Helper of \link{ms2match}.
+Not yet used.
 }
 \examples{
 try_ms2match(mgf_path = mgf_path,

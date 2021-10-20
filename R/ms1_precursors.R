@@ -74,6 +74,7 @@ calc_pepmasses2 <- function (
   min_len = 7L, max_len = 50L, max_miss = 2L,
   out_path = NULL,
   digits = 4L,
+  use_ms1_cache = TRUE, 
   .path_cache = NULL, 
   .path_fasta = NULL, 
   .path_ms1masses = NULL) {
@@ -85,27 +86,36 @@ calc_pepmasses2 <- function (
   on.exit(
     if (exists(".savecall", envir = rlang::current_env())) {
       if (.savecall) {
-        save_call2(path = .path_cache, fun = "calc_pepmasses2", time = .time_stamp)
+        save_call2(path = .path_cache, fun = fun, time = .time_stamp)
       }
     },
     add = TRUE
   )
 
   # ---
+  fun <- as.character(match.call()[[1]])
+  
   .time_stamp <- match_calltime(path = .path_cache,
-                                fun = "calc_pepmasses2",
+                                fun = fun,
                                 nms = c("fasta", "acc_type", "acc_pattern",
                                         "fixedmods", "varmods",
                                         "include_insource_nl", "enzyme",
                                         "maxn_fasta_seqs", "maxn_vmods_setscombi",
                                         "maxn_vmods_per_pep", "maxn_sites_per_vmod",
                                         "min_len", "max_len", "max_miss"))
-
+  
   # ---
-  if (length(.time_stamp)) {
+  len_ts <- length(.time_stamp)
+  
+  if (len_ts && use_ms1_cache) {
+    
+    # can have multiple matches with use_ms1_cache on/off
+    .time_stamp <- .time_stamp[len_ts]
+    
     message("Loading peptide masses from cache.")
 
-    aa_masses_all <- find_aa_masses(out_path = .path_fasta,
+    aa_masses_all <- find_aa_masses(out_path = file.path(.path_fasta, "ms1masses", 
+                                                         .time_stamp),
                                     fixedmods = fixedmods,
                                     varmods = varmods,
                                     maxn_vmods_setscombi = maxn_vmods_setscombi)
@@ -115,7 +125,7 @@ calc_pepmasses2 <- function (
 
     if (length(files) != length(aa_masses_all)) {
       stop("Not all precursor masses were found: ", paste0("\n", files), ".\n",
-           "Remove cache file: \n", file.path(.path_cache, "calc_pepmasses2", 
+           "Remove cache file: \n", file.path(.path_cache, fun, 
                                               paste0(.time_stamp, ".rda")),
            " and try again.",
            call. = FALSE)
@@ -137,7 +147,8 @@ calc_pepmasses2 <- function (
     
     .time_stamp <- format(Sys.time(), ".%Y-%m-%d_%H%M%S")
 
-    aa_masses_all <- find_aa_masses(out_path = .path_fasta,
+    aa_masses_all <- find_aa_masses(out_path = file.path(.path_fasta, "ms1masses", 
+                                                         .time_stamp),
                                     fixedmods = fixedmods,
                                     varmods = varmods,
                                     maxn_vmods_setscombi = maxn_vmods_setscombi, 
@@ -312,14 +323,14 @@ calc_pepmasses2 <- function (
           ctmod_i <- attr(aa_masses_i, "ctmod", exact = TRUE)
 
           fwd_peps_i <- fwd_peps[[i]]
-          fnl_combi_i <- expand.grid(fmods_nl_i, KEEP.OUT.ATTRS = FALSE, 
-                                     stringsAsFactors = FALSE)
+          fnl_combi_i <- expand_grid_rows(fmods_nl_i, use.names = TRUE)
           
           cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
           
           parallel::clusterExport(
             cl,
             c("ms1_a0_vnl0_fnl1", 
+              "expand_grid_rows", 
               "hms1_a0_vnl0_fnl1", 
               "delta_ms1_a0_fnl1"), 
             envir = environment(proteoM:::ms1_a0_vnl0_fnl1))
@@ -1871,17 +1882,18 @@ delta_ms1_a0_fnl1 <- function (fnl_combi, aas, aa_masses) {
   # not an option but always: include_insource_nl = TRUE
   # bring back the option later...
 
-  nms <- colnames(fnl_combi)
+  nms <- lapply(fnl_combi, names)
+  nms <- .Internal(unlist(nms, recursive = FALSE, use.names = FALSE))
   oks <- aas[aas %in% nms]
 
   if (!length(oks)) return (0L)
 
-  len <- nrow(fnl_combi)
+  len <- length(fnl_combi)
   out <- vector("numeric", len)
   out[[1]] <- 0L
 
   for (i in 2:len) {
-    row <- fnl_combi[i, ]
+    row <- fnl_combi[[i]]
     aa_masses[nms] <- .Internal(unlist(row, recursive = FALSE, use.names = FALSE))
     oks <- aas[aas %in% nms]
     out[[i]] <- sum(aa_masses[oks])
@@ -2046,17 +2058,20 @@ ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
 
   if (include_insource_nl) {
     if (length(vmods_nl)) {
-      vnl_combi <- lapply(vmods_combi, 
-                          function (x) expand.grid(vmods_nl[x], 
-                                                   KEEP.OUT.ATTRS = FALSE, 
-                                                   stringsAsFactors = FALSE))
-      deltas_vnls <- lapply(vnl_combi, function (x) unique(rowSums(x)))
+      vnl_combi <- lapply(vmods_combi, function (x) expand_grid_rows(vmods_nl[x]))
+
+      deltas_vnls <- lapply(vnl_combi, function (x) {
+        ss <- lapply(x, sum)
+        ss <- .Internal(unlist(ss, recursive = FALSE, use.names = FALSE))
+        ss <- unique(ss)
+      })
+
       out <- mapply(`-`, out, deltas_vnls, SIMPLIFY = FALSE)
     }
     
     if (length(fmods_nl)) {
-      fnl_combi <- expand.grid(fmods_nl, KEEP.OUT.ATTRS = FALSE, 
-                               stringsAsFactors = FALSE)
+      fnl_combi <- expand_grid_rows(fmods_nl)
+                               
       deltas_fnls <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
       out <- mapply(`-`, out, deltas_fnls, SIMPLIFY = FALSE)
     }

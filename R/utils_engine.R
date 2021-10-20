@@ -722,13 +722,11 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
     setNames(purrr::map_dbl(., ~ .x$frame[1]))
 
   mgf_frames <- local({
-    labs <- levels(cut(1:length(mgf_frames), n_cores^2))
+    ranges <- 1:length(mgf_frames)
+    labs <- levels(cut(ranges, n_cores^2))
+    lower = floor(as.numeric( sub("\\((.+),.*", "\\1", labs)))
 
-    x <- cbind(
-      lower = floor(as.numeric( sub("\\((.+),.*", "\\1", labs))),
-      upper = ceiling(as.numeric( sub("[^,]*,([^]]*)\\]", "\\1", labs))))
-
-    grps <- findInterval(1:length(mgf_frames), x[, 1])
+    grps <- findInterval(ranges, lower)
 
     split(mgf_frames, grps)
   })
@@ -761,39 +759,43 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 
   # (1) for a given aa_masses_all[[i]], some mgf_frames[[i]]
   #     may not be found in theopeps[[i]]
+  frames_theo <- names(theopeps)
+  
   mgf_frames <- lapply(mgf_frames, function (x) {
-    oks <- names(x) %in% names(theopeps)
+    oks <- names(x) %in% frames_theo
     x <- x[oks]
     
     empties <- purrr::map_lgl(x, purrr::is_empty)
     x[!empties]
   })
-
+  
+  rm(list = "frames_theo")
+  
   # (2) splits `theopeps` in accordance to `mgf_frames` with
   #     preceding and following frames: (o)|range of mgf_frames[[1]]|(o)
-  theopeps <- local({
-    frames <- lapply(mgf_frames, function (x) as.integer(names(x)))
-
-    mins <- purrr::map_dbl(frames, ~ {
-      if (!length(.x)) x <- 0 else x <- min(.x, na.rm = TRUE)
-    })
-    
-    maxs <- purrr::map_dbl(frames, ~ {
-      if (!length(.x)) x <- 0 else x <- max(.x, na.rm = TRUE)
-    })
-    
-    nms <- as.integer(names(theopeps))
-
-    # (NAMEs are trivial node indexes from parallel processes)
-    theopeps <- mapply(function (x, y) {
-      theopeps[which(nms >= (x - 1L) & nms <= (y + 1L))]
-    }, mins, maxs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    
-    # --- may cause uneven length between `mgf_frames` and `theopeps`
-    # empties <- map_lgl(theopeps, is_empty)
-    # theopeps[!empties]
+  frames_mgf <- lapply(mgf_frames, function (x) as.integer(names(x)))
+  
+  mins <- purrr::map_dbl(frames_mgf, ~ {
+    if (!length(.x)) x <- 0 else x <- min(.x, na.rm = TRUE)
   })
-
+  
+  maxs <- purrr::map_dbl(frames_mgf, ~ {
+    if (!length(.x)) x <- 0 else x <- max(.x, na.rm = TRUE)
+  })
+  
+  frames_theo <- as.integer(names(theopeps))
+  
+  # separates into intervals
+  # (NAMEs are trivial node indexes from parallel processes)
+  
+  # DON'T: may cause uneven length between `mgf_frames` and `theopeps`
+  # empties <- map_lgl(theopeps, is_empty)
+  # theopeps[!empties]
+  
+  theopeps <- mapply(function (x, y) {
+    theopeps[which(frames_theo >= (x - 1L) & frames_theo <= (y + 1L))]
+  }, mins, maxs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
   # (3) removes unused frames of `theopeps`
   # (NAMEs are trivial cluster node indexes...)
   theopeps <- mapply(subset_theoframes, mgf_frames, theopeps, 
@@ -805,9 +807,9 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 
   mgf_frames <- mgf_frames[oks]
   theopeps <- theopeps[oks]
-
-  # (5) reverses the order (longer/heavier peptides towards the end)
-  # do the hard ones first when paralleling with LB
+  
+  # (5) reverses the order (longer/heavier peptides towards the beginning)
+  #     do the difficult ones first when paralleling with LB
   seqs <- rev(seq_along(theopeps))
   mgf_frames <- mgf_frames[seqs]
   theopeps <- theopeps[seqs]
@@ -1026,17 +1028,14 @@ find_free_mem <- function () {
 
 #' Find the indexes of modifications.
 #' 
-#' @param out_path A output path.
-#' @param file The file name where modifications are recorded.
-find_mod_indexes <- function (out_path, file = "mod_indexes.txt") {
+#' @param file A full-path name of file where modifications are recorded.
+find_mod_indexes <- function (file) {
   
-  filepath <- file.path(out_path, file)
-  
-  if (!file.exists(filepath)) {
-    stop("File not found: ", filepath, call. = FALSE)
+  if (!file.exists(file)) {
+    stop("File not found: ", file, call. = FALSE)
   }
   
-  mod_indexes <- readr::read_tsv(filepath, show_col_types = FALSE)
+  mod_indexes <- readr::read_tsv(file, show_col_types = FALSE)
   
   inds <- mod_indexes$Abbr
   names(inds) <- mod_indexes$Desc
@@ -1098,5 +1097,67 @@ purge_decoys <- function (target, decoy) {
   oks <- dpeps[! dpeps %in% tpeps]
   
   dplyr::filter(decoy, pep_seq %in% oks)
+}
+
+
+#' Based on expand.grid.
+#'
+#' Outputs are row vectors corresponding to the data.frame from the original
+#' expand.grid.
+#'
+#' Some overhead in making row vectors but can avoid the expensive row
+#' subsetting from a data.frame.
+#'
+#' @param use.names Logical; uses names or not.
+#' @examples
+#' x <- list(`Oxidation (M)` = c(0.000000, 63.998285),
+#'           `Carbamidomethyl (M)` = c(0.000000, 105.024835),
+#'           `Oxidation (M)` = c(0.000000, 63.998285))
+#'
+#' expand_grid_rows(x)
+#'
+#' x <- list(`Bar (M)` = c(0, 3),
+#'           `Foo (M)` = c(0, 5, 7),
+#'           `Bar (M)` = c(0, 3))
+#'
+#' expand_grid_rows(x)
+#'
+#' x <- list(`Bar (M)` = c(0, 3))
+#' expand_grid_rows(x)
+expand_grid_rows <- function (..., use.names = TRUE) 
+{
+  args <- list(...)[[1]]
+  nargs <- length(args)
+  
+  # if (!nargs) return(NULL)
+
+  cargs <- vector("list", nargs)
+  names(cargs) <- names(args)
+  
+  rep.fac <- 1L
+  ds <- lengths(args)
+  orep <- prod(ds)
+  
+  for (i in seq_len(nargs)) {
+    x <- args[[i]]
+    
+    nx <- length(x)
+    orep <- orep/nx
+    x <- x[rep.int(rep.int(seq_len(nx), rep.int(rep.fac, nx)), orep)]
+                                                
+    cargs[[i]] <- x
+    rep.fac <- rep.fac * nx
+  }
+  
+  # ---
+  ans <- vector("list", rep.fac)
+  
+  for (i in seq_len(rep.fac)) {
+    x <- lapply(cargs, `[[`, i)
+    x <- .Internal(unlist(x, recursive = FALSE, use.names = use.names))
+    ans[[i]] <- x
+  }
+
+  ans
 }
 

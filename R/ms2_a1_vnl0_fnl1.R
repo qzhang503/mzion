@@ -61,6 +61,7 @@ ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ntmod = NULL, ctmod = NULL,
       "find_intercombi_p2", 
       "check_ms1_mass_vmods2", 
       "calc_ms2ions_a1_vnl0_fnl1", 
+      "expand_grid_rows", 
       "ms2ions_by_type", 
       "byions", "czions", "axions", 
       "add_hexcodes_fnl2", 
@@ -284,8 +285,7 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses 
 
   fmods_combi <- aas[fnl_idxes]
   names(fmods_combi) <- fnl_idxes
-  fnl_combi <- expand.grid(fmods_nl[fmods_combi], KEEP.OUT.ATTRS = FALSE, 
-                           stringsAsFactors = FALSE)
+  fnl_combi <- expand_grid_rows(fmods_nl[fmods_combi])
   
   # go through each vmods_combi
   out <- lapply(vmods_combi, 
@@ -321,13 +321,13 @@ calc_ms2ions_a1_vnl0_fnl1 <- function (vmods_combi, fnl_combi, fnl_idxes,
   aas2[amod_idxes] <- aas2[amod_idxes] + delta_amod
   
   # updates fnl masses
-  len <- nrow(fnl_combi)
+  len <- length(fnl_combi)
   
   out <- vector("list", len)
 
   for (i in 1:len) {
     aas2_i <- aas2
-    delta_nl <- .Internal(unlist(fnl_combi[i, ], recursive = FALSE, use.names = FALSE))
+    delta_nl <- .Internal(unlist(fnl_combi[[i]], recursive = FALSE, use.names = FALSE))
     aas2_i[fnl_idxes] <- aas2_i[fnl_idxes] - delta_nl
     out[[i]] <- ms2ions_by_type(aas2_i, ntmass, ctmass, type_ms2ions, digits)
   }

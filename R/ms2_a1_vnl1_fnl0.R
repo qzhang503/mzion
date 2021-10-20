@@ -61,6 +61,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ntmod = NULL, ctmod = NULL,
       "find_intercombi_p2", 
       "check_ms1_mass_vmods2", 
       "calc_ms2ions_a1_vnl1_fnl0", 
+      "expand_grid_rows", 
       "ms2ions_by_type", 
       "byions", "czions", "axions", 
       "add_hexcodes_vnl2", 
@@ -309,10 +310,7 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses 
   }
 
   # 401 us
-  vnl_combi <- lapply(vmods_combi, 
-                      function (x) expand.grid(vmods_nl[x], 
-                                               KEEP.OUT.ATTRS = FALSE, 
-                                               stringsAsFactors = FALSE))
+  vnl_combi <- lapply(vmods_combi, function (x) expand_grid_rows(vmods_nl[x]))
 
   ## --- (tentative) to restricts the total number of vnl_combi's
   # nrows <- lapply(vnl_combi, function (x) length(attributes(x)$row.names)) # faster than nrow
@@ -324,6 +322,7 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses 
   # vmods_combi <- vmods_combi[oks]
   ## ---
   
+  # 725 us (was 5 ms)
   out <- mapply(
     calc_ms2ions_a1_vnl1_fnl0, 
     vmods_combi = vmods_combi, 
@@ -383,13 +382,13 @@ calc_ms2ions_a1_vnl1_fnl0 <- function (vmods_combi, vnl_combi, aas2, aa_masses,
   aas2[idxes] <- aas2[idxes] + delta_amod
   
   # updates vnl masses
-  len <- nrow(vnl_combi)
+  len <- length(vnl_combi)
   
   out <- vector("list", len)
   
   for (i in 1:len) {
     aas2_i <- aas2
-    delta_nl <- .Internal(unlist(vnl_combi[i, ], recursive = FALSE, 
+    delta_nl <- .Internal(unlist(vnl_combi[[i]], recursive = FALSE, 
                                  use.names = FALSE))
 
     aas2_i[idxes] <- aas2_i[idxes] - delta_nl

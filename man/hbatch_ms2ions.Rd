@@ -6,8 +6,6 @@
 \usage{
 hbatch_ms2ions(
   ms1_time = NULL,
-  types = NULL,
-  mod_indexes = NULL,
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
@@ -19,11 +17,6 @@ hbatch_ms2ions(
 }
 \arguments{
 \item{ms1_time}{A cached MS1 time (directory).}
-
-\item{types}{The types of modification, e.g., "amods- tmod+ vnl- fnl-" etc.}
-
-\item{mod_indexes}{Integer; the indexes of fixed and/or variable
-modifications.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
@@ -44,15 +37,21 @@ phosphopeptide data.}
 \item{.path_cache}{The file path of cached search parameters. At the NULL
 default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
 parameter is for users' awareness of the structure of file folders and the
-default is suggested.}
+default is suggested. Occasionally experimenters may remove the file folder
+for disk space or (hopefully not) in events of (improper) structural change
+incurred by the developer.}
 
 \item{.path_fasta}{The parent file path to the theoretical masses of MS1
 precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
 "\\1", get("fasta", envir = environment())[1])}. The parameter is for
 users' awareness of the structure of file folders and the default is
-suggested.}
+suggested. Occasionally experimenters may remove the file folder for disk
+space or (hopefully) in rare events of structural change incurred by the
+developer.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
+
+\item{types}{The types of modification, e.g., "amods- tmod+ vnl- fnl-" etc.}
 }
 \description{
 For a given time stamp.

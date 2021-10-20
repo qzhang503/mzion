@@ -9,6 +9,7 @@ bin_ms1masses(
   min_mass = 500L,
   max_mass = 6000L,
   ppm_ms1 = 20L,
+  use_ms1_cache = TRUE,
   .path_cache = NULL,
   .path_ms1masses = NULL,
   is_ms1_three_frame = TRUE
@@ -23,10 +24,14 @@ bin_ms1masses(
 
 \item{ppm_ms1}{The mass tolerance of MS1 species.}
 
+\item{use_ms1_cache}{Logical; if TRUE, use cached precursor masses.}
+
 \item{.path_cache}{The file path of cached search parameters. At the NULL
 default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
 parameter is for users' awareness of the structure of file folders and the
-default is suggested.}
+default is suggested. Occasionally experimenters may remove the file folder
+for disk space or (hopefully not) in events of (improper) structural change
+incurred by the developer.}
 
 \item{.path_ms1masses}{The file path to the theoretical masses of MS1
 precursors.}
