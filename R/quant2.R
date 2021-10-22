@@ -177,7 +177,7 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
   if (anyDuplicated(names(idxes))) {
     idxes <- idxes %>%
       split(., names(.)) %>%
-      imap_int(~ {
+      purrr::imap_int(~ {
         if (length(.x) > 1L) {
           p <- which.min(abs(ms[.x] - theos[.y]))
           .x <- .x[p]
@@ -200,9 +200,8 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
     `names<-`(names(idxes))
   
   if (length(rptr_ints) < len) {
-    es <- rep(NA, len) %>%
-      `names<-`(nms)
-    
+    es <- rep(NA, len)
+    names(es) <- nms
     es[names(rptr_ints)] <- rptr_ints
   } else {
     es <- rptr_ints

@@ -93,7 +93,9 @@
 #'   developer.
 #' @param digits Integer; the number of decimal places to be used.
 #' @seealso \link{load_fasta2} for setting the values of \code{acc_type} and
-#'   \code{acc_pattern}. \cr \link{parse_unimod} for the grammar of Unimod.
+#'   \code{acc_pattern}. \cr \link{table_unimods} summarizes
+#'   \href{https://www.unimod.org/}{Unimod} into a table format. \cr
+#'   \link{parse_unimod} for the grammar of Unimod.
 #'   \href{https://proteoq.netlify.app/post/mixing-data-at-different-tmt-plexes/}{For
 #'    example}, the name tag of "TMT6plex" is common among TMT-6, -10 and -11
 #'   while "TMTpro" is specific to TMT-16.

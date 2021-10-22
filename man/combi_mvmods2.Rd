@@ -41,3 +41,43 @@ Lists by residues in \code{amods}.
 \description{
 For all the \code{Anywhere} modifications specified in \code{amods}.
 }
+\examples{
+\donttest{
+## M
+fixedmods = c("TMT6plex (K)", "dHex (S)")
+varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", "Acetyl (Protein N-term)")
+
+aa_masses_all <- calc_aamasses(fixedmods, varmods,
+                               add_varmasses = FALSE,
+                               add_nlmasses = FALSE)
+
+aa_masses <- aa_masses_all[[8]]
+
+amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"), 
+              `Carbamyl (M)` = c(Anywhere = "M"))
+
+aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+
+ans <- combi_mvmods2(amods, aas, aa_masses)
+
+## M and N
+fixedmods = c("TMT6plex (K)", "dHex (S)")
+varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", 
+            "Deamidated (N)", "Acetyl (Protein N-term)")
+
+aa_masses_all <- calc_aamasses(fixedmods, varmods,
+                               add_varmasses = FALSE,
+                               add_nlmasses = FALSE)
+
+aa_masses <- aa_masses_all[[16]]
+
+amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"), 
+              `Carbamyl (M)` = c(Anywhere = "M"), 
+              `Deamidated (N)` = c(Anywhere = "N"))
+
+aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+
+ans <- combi_mvmods2(amods, aas, aa_masses)
+
+}
+}

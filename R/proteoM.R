@@ -5,7 +5,8 @@
 #' annotation, (4) quality assurance assessments and (5) informatic analysis.
 #'
 #' @section Main utility in database searches: matchMS (additional UI tools:
-#'   load_fasta2, parse_unimod, calc_monopeptide, calc_ms2ionseries)
+#'   load_fasta2, parse_unimod, table_unimods, calc_monopeptide,
+#'   calc_ms2ionseries)
 #'
 #' @docType package
 #' @name proteoM

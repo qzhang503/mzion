@@ -268,7 +268,6 @@ check_aaseq <- function (aa_seq, aa_masses_all, fixedmods, varmods) {
 }
 
 
-
 #' Calculates the mono-isotopic mass of a MS2 ions.
 #'
 #' For direct uses from an R console (with trade-offs in speed).

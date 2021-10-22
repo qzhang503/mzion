@@ -98,9 +98,9 @@ write_fasta <- function (fasta_db, file) {
   filepath <- gsub("(^.*/).*$", "\\1", file)
   dir.create(filepath, showWarnings = FALSE, recursive = TRUE)
   
-  lapply(fasta_db, function (x) paste(attr(x, "header"), x, sep = "\n")) %>%
-    unlist() %>%
-    writeLines(file)
+  res <- lapply(fasta_db, function (x) paste(attr(x, "header"), x, sep = "\n"))
+  res <- unlist(res)
+  writeLines(res, file)
 }
 
 
@@ -326,6 +326,55 @@ find_acc_type <- function (acc_pattern) {
 #' @inheritParams add_fixvar_masses
 #' @import purrr
 #' @return Lists by residues in \code{amods}.
+#' @seealso \link{ms1_a1_vnl0_fnl0} for examples.
+#' 
+#' @examples 
+#' \donttest{
+#' ## M
+#' fixedmods = c("TMT6plex (K)", "dHex (S)")
+#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", "Acetyl (Protein N-term)")
+#' 
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE)
+#' 
+#' aa_masses <- aa_masses_all[[8]]
+#' 
+#' amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"), 
+#'               `Carbamyl (M)` = c(Anywhere = "M"))
+#' 
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#' 
+#' ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL, 
+#'                      aa_masses = aa_masses, aas = aas)
+#' 
+#' stopifnot(length(ans) == 1L, 
+#'           length(ans[[1]]) == 3L)
+#' 
+#' ## M and N
+#' fixedmods = c("TMT6plex (K)", "dHex (S)")
+#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", 
+#'             "Deamidated (N)", "Acetyl (Protein N-term)")
+#' 
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE)
+#' 
+#' aa_masses <- aa_masses_all[[16]]
+#' 
+#' amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"), 
+#'               `Carbamyl (M)` = c(Anywhere = "M"), 
+#'               `Deamidated (N)` = c(Anywhere = "N"))
+#' 
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#' 
+#' ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL, 
+#'                      aa_masses = aa_masses, aas = aas)
+#' 
+#' stopifnot(length(ans) == 2L, 
+#'           length(ans[[1]]) == 3L, 
+#'           length(ans[[2]]) == 2L)
+#' }
 unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
                            maxn_vmods_per_pep = 5L,
                            maxn_sites_per_vmod = 3L,
@@ -336,12 +385,11 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
   
   residue_mods <- .Internal(unlist(amods, recursive = FALSE, use.names = FALSE))
   names(residue_mods) <- names(amods)
-  residue_mods <- split(residue_mods, residue_mods)
-  
+  residue_mods <- split_vec(residue_mods)
+
   lapply(residue_mods, function (x) {
     vmods_elements(aas = aas, residue_mods = x, 
                    ntmod = ntmod, ctmod = ctmod,
-                   aa_masses = aa_masses,
                    maxn_vmods_per_pep = maxn_vmods_per_pep,
                    maxn_sites_per_vmod = maxn_sites_per_vmod,
                    digits = digits)
@@ -359,11 +407,22 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
 #'   column residues of \code{M, M}.
 #' @inheritParams unique_mvmods
 #' @import purrr
+#' @examples 
+#' \donttest{
+#' ntmod <- list(`Acetyl (Protein N-term)` = c(`Protein N-term` = "N-term"))
+#' 
+#' ctmod <- list()
+#' names(ctmod) <- character()
+#' 
+#' aas <- unlist(strsplit("HQGVMNVGMGQKSMNS", ""))
+#' residue_mods <- c(`Carbamidomethyl (M)` = "M", `Carbamyl (M)` = "M")
+#' 
+#' x <- vmods_elements(aas, residue_mods, ntmod, ctmod)
+#' }
 vmods_elements <- function (aas,
                             residue_mods,
                             ntmod,
                             ctmod,
-                            aa_masses,
                             maxn_vmods_per_pep = 5L,
                             maxn_sites_per_vmod = 3L,
                             digits = 5L) {
@@ -373,7 +432,7 @@ vmods_elements <- function (aas,
   ns <- names(residue_mods)
   len_n <- length(ns)
 
-  # no need of ps[seq_len(.x)] as the exact positions not needed
+  ## no need of ps[seq_len(.x)] as the exact positions not needed
   # ps <- which(aas == residue)
   # len_p <- length(ps)
 
@@ -381,21 +440,26 @@ vmods_elements <- function (aas,
 
   # i.e., btw Anywhere "M" and "Acetyl N-term" where "M" on the "N-term"
   # MFGMFNVSMR cannot have three `Oxidation (M)` and `Acetyl (N-term)`
+  
+  len_nt <- length(ntmod)
+  len_ct <- length(ctmod)
 
-  if (length(ntmod) && length(ctmod)) {
+  if (len_nt && len_ct) {
     len_aas <- length(aas)
+    aas_1 <- aas[1]
+    aas_n <- aas[len_aas]
 
-    if (aas[1] == residue && aas[len_aas] == residue) {
+    if (aas_1 == residue && aas_n == residue) {
       len_p <- len_p - 2
-    } else if ((aas[1] == residue) || (aas[len_aas] == residue)) {
+    } else if ((aas_1 == residue) || (aas_n == residue)) {
       len_p <- len_p - 1
     }
-  } else if (length(ntmod)) {
-    if (aas[1] == residue) {
+  } else if (len_nt) {
+    if (aas_1 == residue) {
       len_p <- len_p - 1
     }
-  } else if (length(ctmod)) {
-    if (aas[length(aas)] == residue) {
+  } else if (len_ct) {
+    if (aas_n == residue) {
       len_p <- len_p - 1
     }
   }
@@ -414,10 +478,10 @@ vmods_elements <- function (aas,
   rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
   x <- x[!rows]
 
-  maxn_vmod <- x %>%
-    lapply(table) %>%
-    lapply(max)
-  rows <- maxn_vmod > maxn_sites_per_vmod
+  maxn_vmod <- lapply(x, count_elements)
+  maxn_vmod <- lapply(maxn_vmod, max)
+
+  rows <- (maxn_vmod > maxn_sites_per_vmod)
   x <- x[!rows]
 
   invisible(x)
@@ -444,7 +508,7 @@ find_unique_sets <- function (ps = c(1:5), ns = c("A", "B", "C")) {
   n_row <- nrow(x)
   out <- vector("list", n_row)
 
-  for (i in 1:n_row) {
+  for (i in seq_len(n_row)) {
     out[[i]] <- c(ns, x[i, ])
   }
 
@@ -501,54 +565,58 @@ find_intercombi <- function (intra_combis) {
 #'   starting residue \code{M}.
 #' @examples
 #' \donttest{
-#' peps <- c(a = 1, b = 2, c = 3)
+#' peps <- 1:26
+#' names(peps) <- LETTERS
 #' res <- roll_sum(peps, 2)
+#' 
+#' # length shorter than n
+#' peps <- c(a = 1)
+#' res <- roll_sum(peps, 2)
+#' 
+#' peps <- c(a = 1, b = 2, c = 3)
+#' res <- roll_sum(peps, 4)
 #' }
 roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE) {
   
   len <- length(peps)
-
+  
   if (!len) return(NULL)
-
+  
   if (n >= len) n <- len - 1L
-
+  
   res <- lapply(seq_len((len - n)), function (x) {
     ranges <- x:(x + n)
-
-    nms <- names(peps)[ranges]
-    nms <- purrr::accumulate(nms, paste0)
     
-    vals <- cumsum(peps[ranges])
+    psub <- peps[ranges]
+    nms <- accumulate_char(names(psub), paste0)
+
+    vals <- cumsum(psub)
     names(vals) <- nms
     
-    invisible(vals)
+    vals
   }) 
   
-  res <- unlist(res)
-
+  res <- .Internal(unlist(res, recursive = FALSE, use.names = TRUE))
+  
   if (include_cts && n >= 1L) {
-    res_cts <- local({
-      cts <- peps[(len - n + 1L):len]
-
-      ans <- lapply(n:1L, function (x) {
-        y <- tail(cts, x)
-
-        nms <- names(y)
-        nms <- purrr::accumulate(nms, paste0)
-        
-        vals <- cumsum(y)
-        names(vals)  <- nms
-        
-        invisible(vals)
-      })
+    ends <- peps[(len - n + 1L):len]
+    
+    res2 <- lapply(n:1L, function (x) {
+      y <- tail(ends, x)
+      nms <- accumulate_char(names(y), paste0)
       
-      unlist(ans)
+      vals <- cumsum(y)
+      names(vals)  <- nms
+      
+      vals
     })
+    
+    res2 <- .Internal(unlist(res2, recursive = FALSE, use.names = TRUE))
   } else {
-    res_cts <- NULL
+    res2 <- NULL
   }
-
-  c(res, res_cts)
+  
+  c(res, res2)
 }
 
 
@@ -557,6 +625,7 @@ roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE) {
 #' The general format: \code{parse_unimod("title (position = site)")}.
 #'
 #' @param unimod The name of a \href{https://www.unimod.org/}{Unimod} modification.
+#' @seealso \link{table_unimods}, \link{find_unimod}.
 #' @examples
 #' \donttest{
 #' # "dot" for anywhere (either position or site)
@@ -602,7 +671,7 @@ roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE) {
 #' x <- parse_unimod("Gln->pyro-Glu (N-term Q)")
 #' }
 #' @export
-parse_unimod <- function (unimod) {
+parse_unimod <- function (unimod = "Carbamyl (M)") {
   
   # unimod = "Carbamidomethyl (Protein N-term = C)" # --> pos_site = "Protein N-term = C"
   # unimod = "Carbamidomethyl (Any N-term = C)" # --> pos_site = "Any N-term = C"
@@ -627,8 +696,8 @@ parse_unimod <- function (unimod) {
   }
 
   # (assumed) no space in `title`
-  # title <- unimod %>% gsub("(.*)\\s\\([^\\(]*\\)$", "\\1", .)
-  title <- unimod %>% gsub("^([^ ]+?) .*", "\\1", .)
+  # title <- gsub("(.*)\\s\\([^\\(]*\\)$", "\\1", unimod)
+  title <- gsub("^([^ ]+?) .*", "\\1", unimod)
 
   pos_site <- unimod %>%
     gsub("^[^ ]+", "", .) %>%
@@ -671,7 +740,12 @@ parse_unimod <- function (unimod) {
   pos_allowed <- c("Anywhere", "Protein N-term", "Protein C-term",
                    "Any N-term", "Any C-term")
 
-  stopifnot(pos %in% pos_allowed)
+  if (! pos %in% pos_allowed) {
+    stop("`pos` needs to be one of ", 
+         paste0("\n  '", pos_allowed, collapse = "'"), 
+         "'",  
+         call. = FALSE)
+  }
 
   # standardize terminal sites
   if (site == ".") {
@@ -700,6 +774,7 @@ parse_unimod <- function (unimod) {
 #' \code{site} is the value.
 #'
 #' @inheritParams parse_unimod
+#' @seealso \link{table_unimods}, \link{parse_unimod}.
 #' @examples
 #' \donttest{
 #' x <- find_unimod("Carbamidomethyl (C)")
@@ -820,6 +895,78 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)") {
   invisible(list(monomass = monomass,
                  position_site = positions_sites[[1]][1],
                  nl = neulosses))
+}
+
+
+#' Parses \href{https://www.unimod.org/}{Unimod} entries.
+#'
+#' For convenience findings of the \code{title}, \code{site} and
+#' \code{position}.
+#'
+#' @param file A file path to a Unimod ".xml".
+#' @param out_nm A name to outputs.
+#' @seealso \link{find_unimod}, \link{parse_unimod}.
+#' @export
+#' @examples
+#' \donttest{
+#' ans <- table_unimods()
+#' 
+#' ans[with(ans, title == "TMTpro"), ]
+#' this_mod <- parse_unimod("TMTpro (Anywhere = K)")
+#' 
+#' ans[with(ans, grepl("^Gln->pyro", title)), ]
+#' this_mod <- parse_unimod("Gln->pryo-Glu (N-term = Q)")
+#' }
+table_unimods <- function (file = system.file("extdata", "master.xml", 
+                                              package = "proteoM"), 
+                           out_nm = "~/proteoM/unimods.txt") {
+  
+  parent <- xml2::read_xml(file)
+  
+  # <umod:elements>
+  # <umod:modifications>
+  # <umod:amino_acids>
+  # <umod:mod_bricks>
+  
+  children <- xml2::xml_children(parent)
+  contents <- xml2::xml_contents(parent)
+  
+  elements <-
+    xml2::xml_children(children[[which(xml2::xml_name(contents) == "elements")]])
+  modifications <-
+    xml2::xml_children(children[[which(xml2::xml_name(contents) == "modifications")]])
+  amino_acids <-
+    xml2::xml_children(children[[which(xml2::xml_name(contents) == "amino_acids")]])
+  mod_bricks <-
+    xml2::xml_children(children[[which(xml2::xml_name(contents) == "mod_bricks")]])
+  
+  titles <- xml2::xml_attr(modifications, "title")
+  
+  lapply(titles, function (title) {
+    idx <- which(xml2::xml_attr(modifications, "title") == title)
+    this_mod <- modifications[[idx]]
+    
+    # --- children of `this_mod` ---
+    modch <- xml2::xml_children(this_mod)
+    mod_attrs <-  xml2::xml_attrs(modch)
+    
+    sites <- lapply(mod_attrs, `[`, c("site"))
+    sites <- unlist(sites)
+    
+    positions <- lapply(mod_attrs, `[`, c("position"))
+    positions <- unlist(positions)
+    
+    rows_s <- unlist(lapply(sites, is.na))
+    rows_p <- unlist(lapply(positions, is.na))
+    rows <- rows_s | rows_p
+    
+    data.frame(title = title, 
+               position = positions[!rows], 
+               site = sites[!rows])
+  }) %>% 
+    dplyr::bind_rows() %>% 
+    `rownames<-`(NULL) %T>% 
+    readr::write_tsv(out_nm)
 }
 
 

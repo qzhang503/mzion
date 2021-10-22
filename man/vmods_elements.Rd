@@ -9,7 +9,6 @@ vmods_elements(
   residue_mods,
   ntmod,
   ctmod,
-  aa_masses,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   digits = 5L
@@ -28,9 +27,6 @@ calculations).}
 \item{ctmod}{The attribute \code{ctmod} from a \code{aa_masses} (for MS1
 calculations).}
 
-\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
-acid residues.}
-
 \item{maxn_vmods_per_pep}{The maximum number of variable modifications per
 peptide.}
 
@@ -42,4 +38,17 @@ variable modifications per site in a per peptide sequence.}
 \description{
 Excluding position differences, i.e., \code{A, B} and \code{B, A} is the
 same set.
+}
+\examples{
+\donttest{
+ntmod <- list(`Acetyl (Protein N-term)` = c(`Protein N-term` = "N-term"))
+
+ctmod <- list()
+names(ctmod) <- character()
+
+aas <- unlist(strsplit("HQGVMNVGMGQKSMNS", ""))
+residue_mods <- c(`Carbamidomethyl (M)` = "M", `Carbamyl (M)` = "M")
+
+x <- vmods_elements(aas, residue_mods, ntmod, ctmod)
+}
 }

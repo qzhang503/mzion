@@ -31,3 +31,6 @@ x <- find_unimod("Hex(5)HexNAc(2) (N)")
 x <- find_unimod("Gln->pyro-Glu (N-term Q)")
 }
 }
+\seealso{
+\link{table_unimods}, \link{parse_unimod}.
+}

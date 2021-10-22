@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils_engine.R
 \name{expand_grid_rows}
 \alias{expand_grid_rows}
-\title{Based on expand.grid.}
+\title{Expands grids.}
 \usage{
 expand_grid_rows(..., use.names = TRUE)
 }
@@ -10,8 +10,8 @@ expand_grid_rows(..., use.names = TRUE)
 \item{use.names}{Logical; uses names or not.}
 }
 \description{
-Outputs are row vectors corresponding to the data.frame from the original
-expand.grid.
+Outputs are vectors corresponding to rows in the the data.frame from the
+original expand.grid.
 }
 \details{
 Some overhead in making row vectors but can avoid the expensive row

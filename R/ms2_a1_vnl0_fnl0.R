@@ -330,6 +330,45 @@ check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod,
 #' @inheritParams add_fixvar_masses
 #' @import purrr
 #' @return Lists by residues in \code{amods}.
+#' @examples 
+#' \donttest{
+#' ## M
+#' fixedmods = c("TMT6plex (K)", "dHex (S)")
+#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", "Acetyl (Protein N-term)")
+#' 
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE)
+#' 
+#' aa_masses <- aa_masses_all[[8]]
+#' 
+#' amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"), 
+#'               `Carbamyl (M)` = c(Anywhere = "M"))
+#' 
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#' 
+#' ans <- combi_mvmods2(amods, aas, aa_masses)
+#' 
+#' ## M and N
+#' fixedmods = c("TMT6plex (K)", "dHex (S)")
+#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", 
+#'             "Deamidated (N)", "Acetyl (Protein N-term)")
+#' 
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE)
+#' 
+#' aa_masses <- aa_masses_all[[16]]
+#' 
+#' amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"), 
+#'               `Carbamyl (M)` = c(Anywhere = "M"), 
+#'               `Deamidated (N)` = c(Anywhere = "N"))
+#' 
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#' 
+#' ans <- combi_mvmods2(amods, aas, aa_masses)
+#' 
+#' }
 combi_mvmods2 <- function (amods, 
                            aas, 
                            aa_masses, 
@@ -348,7 +387,8 @@ combi_mvmods2 <- function (amods,
   
   residue_mods <- .Internal(unlist(amods, recursive = TRUE, use.names = FALSE))
   names(residue_mods) <- names(amods)
-  residue_mods <- split(residue_mods, residue_mods)
+  # residue_mods <- split(residue_mods, residue_mods)
+  residue_mods <- split_vec(residue_mods)
 
   lapply(residue_mods, function (x) combi_vmods2(
     aas, x, 
@@ -440,18 +480,19 @@ combi_vmods2 <- function (aas,
       out[[m]] <- ns
     }
   } else { # "Oxidation (M)" and "Carbamidomethyl (M)"
-    # module 10: 47.3 us
-    ns <- lapply(1:len_p2, function (x) {
-      expand.grid(rep(list(n), length(p[1:x])), KEEP.OUT.ATTRS = FALSE, 
-                  stringsAsFactors = FALSE)
+    lens <- seq_len(len_p2)
+    
+    # module 10: 99.3 us
+    ns <- lapply(lens, function (x) {
+      expand_grid_rows(rep(list(n), length(p[1:x])))        
     })
     
     # 39.2 us
-    ps <- lapply(1:len_p2, function (x) {
+    ps <- lapply(lens, function (x) {
       combn(as.character(p), x)
     })
     
-    # 693 us
+    # 61 us (was 693 us)
     out <- mapply(combi_np, ns, ps, SIMPLIFY = FALSE, USE.NAMES = FALSE)
   }
   
@@ -479,20 +520,24 @@ combi_vmods2 <- function (aas,
 
 
 #' Helper of \link{combi_vmods2}.
-#' 
+#'
+#' Values \code{n} are vectors (to avoid expensive row subsetting from
+#' data.frame). Values of \code{p} remain in columns (as only incurred fast
+#' column subsetting).
 #' @param n The number of modifications.
 #' @param p The number of positions.
 combi_np <- function (n, p) {
   
-  ln <- nrow(n)
+  ln <- length(n)
   lp <- ncol(p)
   np <- vector("list", ln * lp)
   
   k <- 1
   
+  # DON'T p[[j]] since p is matrix not data.frame
   for (i in seq_len(ln)) {
     for (j in seq_len(lp)) {
-      x <- n[i, ] 
+      x <- n[[i]] 
       names(x) <- p[, j]
       np[[k]] <- x
       
@@ -500,6 +545,8 @@ combi_np <- function (n, p) {
     }
   }
   
+  ### Shouldn't be the case of data.frame anymore with `expand_grid_rows`
+  #   
   # otherwise is data.frame
   # use names (positions) -> TRUE
   
@@ -514,16 +561,16 @@ combi_np <- function (n, p) {
   # 4 Carbamidomethyl (M) Carbamidomethyl (M)
   
   
-  # flattens to vectors
-  len_np <- length(nrow(np[[1]]))
+  ## flattens to vectors
+  # (disabled on 2021-10-21)
+  # len_np <- length(nrow(np[[1]]))
   
-  # case 'b' of data.frame
-  if (len_np) {
-    np <- lapply(np, unlist, use.names = TRUE)
-  }
+  ## case 'b' of data.frame
+  # (disabled on 2021-10-21)
+  # if (len_np) np <- lapply(np, unlist, use.names = TRUE)
   
-  ## or simply unlist for both 'a' and 'b'
-  # lapply(np, unlist, use.names = TRUE)
+  # ## or simply unlist for both 'a' and 'b'
+  # # lapply(np, unlist, use.names = TRUE)
   
   invisible(np)
 }

@@ -4,7 +4,7 @@
 \alias{parse_unimod}
 \title{Parse the name of a Unimod}
 \usage{
-parse_unimod(unimod)
+parse_unimod(unimod = "Carbamyl (M)")
 }
 \arguments{
 \item{unimod}{The name of a \href{https://www.unimod.org/}{Unimod} modification.}
@@ -56,4 +56,7 @@ x <- parse_unimod("Carbamidomethyl (. = .)")
 # Prefer an "=" sign between 'N-term' and 'Q'
 x <- parse_unimod("Gln->pyro-Glu (N-term Q)")
 }
+}
+\seealso{
+\link{table_unimods}, \link{find_unimod}.
 }

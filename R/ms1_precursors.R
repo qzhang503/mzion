@@ -139,7 +139,7 @@ calc_pepmasses2 <- function (
 
     .savecall <- FALSE
   } else {
-    # `MGF my_quries.rds` kept 
+    # `mgf_quries.rds` kept 
     # (only affected by min_mass, max_mass and ppm_ms1)
     delete_files(out_path, ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$",
                                        "\\.xls$", "\\.csv$", "\\.txt$",
@@ -190,7 +190,6 @@ calc_pepmasses2 <- function (
     
     ftmass <- unname(aa_masses_1["N-term"] + aa_masses_1["C-term"])
     
-    # 
     # --- End of the special case
     
     
@@ -400,7 +399,9 @@ calc_pepmasses2 <- function (
           c("ms1_a1_vnl0_fnl0", 
             "hms1_a1_vnl0_fnl0", 
             "unique_mvmods", 
+            "split_vec", 
             "vmods_elements", 
+            "count_elements", 
             "find_intercombi", 
             "delta_ms1_a0_fnl1", 
             "find_unique_sets", 
@@ -1584,7 +1585,8 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
   
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
-  parallel::clusterExport(cl, list("roll_sum"), envir = environment(proteoM:::roll_sum))
+  parallel::clusterExport(cl, c("roll_sum", "accumulate_char"), 
+                          envir = environment(proteoM:::roll_sum))
 
   ms_1 <- parallel::clusterApply(
     cl = cl, 

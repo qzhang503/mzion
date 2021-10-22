@@ -70,22 +70,21 @@
 # 
 # helpers at sets of realized modifications: 
 #   (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
-#   - ms1_a0_fnl1_byprot (-> export)
-#       ms1_a0_fnl1_bypep (-> export)
 #         delta_ms1_a0_fnl1 (-> export)
 #   
 #  (7-8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
 #    (9-10) "amods+ tmod- vnl+ fnl-", "amods+ tmod+ vnl+ fnl-"
 #    (11-12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
 #    (13-14) "amods+ tmod- vnl+ fnl+", "amods+ tmod+ vnl+ fnl+"
-#   - ms1_a1_vnl0_fnl0_byprot (-> export)
-#       - ms1_a1_vnl0_fnl0_bypep (-> export)
 #         [by nested combinatorial conditions; no explicit functions]
 #         - unique_mvmods (-> export; dbs.R)
+#           - split_vec (-> export; util_engine.R)
 #           - vmods_elements (-> export; dbs.R)
+#             - count_elements (-> export; util_engine.R)
 #             - find_unique_sets (-> export; dbs.R)
 #             - recur_flatten (-> export; utils_engine.R)
 #         - find_intercombi (-> export; dbs.R)
+#           - expand_grid_rows (utils_engine.R)
 #         - delta_ms1_a0_fnl1 (-> export; ms1_precursors.R)
 # 
 # 
@@ -133,8 +132,8 @@
 #     hms2_a1_vnl0_fnl0
 #       frames_adv_a1_vnl0_fnl0
 #         gen_ms2ions_a1_vnl0_fnl0
-#           combi_mvmods2
-#             combi_vmods2
+#           combi_mvmods2 (ms2_a1_vnl0_fnl0.R)
+#             combi_vmods2 (ms2_a1_vnl0_fnl0.R)
 #           find_intercombi_p2
 #           check_ms1_mass_vmods2
 #           expand_grid_rows (utils_engine.R)

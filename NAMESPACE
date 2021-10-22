@@ -9,6 +9,7 @@ export(matchMS)
 export(parse_unimod)
 export(proc_mgf_timstof)
 export(read_fasta)
+export(table_unimods)
 import(data.table, except = c(last, first, between, transpose,
   melt, dcast))
 import(dplyr)

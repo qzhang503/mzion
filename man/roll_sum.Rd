@@ -24,7 +24,15 @@ Concatenates adjacent peptides in a list (with mass).
 }
 \examples{
 \donttest{
-peps <- c(a = 1, b = 2, c = 3)
+peps <- 1:26
+names(peps) <- LETTERS
 res <- roll_sum(peps, 2)
+
+# length shorter than n
+peps <- c(a = 1)
+res <- roll_sum(peps, 2)
+
+peps <- c(a = 1, b = 2, c = 3)
+res <- roll_sum(peps, 4)
 }
 }

@@ -12,5 +12,7 @@ combi_np(n, p)
 \item{p}{The number of positions.}
 }
 \description{
-Helper of \link{combi_vmods2}.
+Values \code{n} are vectors (to avoid expensive row subsetting from
+data.frame). Values of \code{p} remain in columns (as only incurred fast
+column subsetting).
 }
