@@ -36,6 +36,10 @@ variable modifications per site in a per peptide sequence.}
 \item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
+The same residue, e.g. M, at different modifications, c("Carbamyl (M",
+"Oxidation (M)")).
+}
+\details{
 Excluding position differences, i.e., \code{A, B} and \code{B, A} is the
 same set.
 }

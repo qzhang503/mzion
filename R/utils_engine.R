@@ -737,3 +737,24 @@ accumulate_char <- function(x, f) {
 }
 
 
+#' Populates the count matrix for combinations.
+#' 
+#' @param nb The number of balls.
+#' @param ns The number of samplings (the number of columns). 
+combi_mat <- function (nb = 5L, ns = 3L) {
+  
+  # stopifnot(ns >= 1L)
+  
+  m <- matrix(nrow = nb, ncol = ns)
+  m[, 1] <- rep(1L, nb)
+  
+  if (ns == 1L) return(m)
+  
+  
+  for (i in seq(2, ns)) {
+    m[, i] <- cumsum(m[, i-1])
+  }
+  
+  m
+}
+

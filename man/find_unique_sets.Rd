@@ -14,3 +14,8 @@ find_unique_sets(ps = c(1:5), ns = c("A", "B", "C"))
 \description{
 At least one occupancy for each elements in \code{ns}.
 }
+\examples{
+\donttest{
+find_unique_sets()
+}
+}

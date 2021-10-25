@@ -2,7 +2,7 @@
 % Please edit documentation in R/dbs.R
 \name{unique_mvmods}
 \alias{unique_mvmods}
-\title{The unique entries of variable modifications (multiple sites)}
+\title{The unique combinations of variable modifications.}
 \usage{
 unique_mvmods(
   amods,
@@ -41,7 +41,12 @@ variable modifications per site in a per peptide sequence.}
 Lists by residues in \code{amods}.
 }
 \description{
-For all the \code{Anywhere} modifications specified in \code{amods}.
+The same residue, e.g. M, at different modifications, c("Carbamyl (M",
+"Oxidation (M)")).
+}
+\details{
+Goes over all the \code{Anywhere} modifications specified in \code{amods} for
+a given \code{aa_masses}.
 }
 \examples{
 \donttest{
@@ -55,20 +60,20 @@ aa_masses_all <- calc_aamasses(fixedmods, varmods,
 
 aa_masses <- aa_masses_all[[8]]
 
-amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"), 
+amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"),
               `Carbamyl (M)` = c(Anywhere = "M"))
 
 aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 
-ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL, 
+ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
                      aa_masses = aa_masses, aas = aas)
 
-stopifnot(length(ans) == 1L, 
+stopifnot(length(ans) == 1L,
           length(ans[[1]]) == 3L)
 
 ## M and N
 fixedmods = c("TMT6plex (K)", "dHex (S)")
-varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", 
+varmods = c("Carbamidomethyl (M)", "Carbamyl (M)",
             "Deamidated (N)", "Acetyl (Protein N-term)")
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods,
@@ -77,17 +82,17 @@ aa_masses_all <- calc_aamasses(fixedmods, varmods,
 
 aa_masses <- aa_masses_all[[16]]
 
-amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"), 
-              `Carbamyl (M)` = c(Anywhere = "M"), 
+amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"),
+              `Carbamyl (M)` = c(Anywhere = "M"),
               `Deamidated (N)` = c(Anywhere = "N"))
 
 aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 
-ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL, 
+ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
                      aa_masses = aa_masses, aas = aas)
 
-stopifnot(length(ans) == 2L, 
-          length(ans[[1]]) == 3L, 
+stopifnot(length(ans) == 2L,
+          length(ans[[1]]) == 3L,
           length(ans[[2]]) == 2L)
 }
 }

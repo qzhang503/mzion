@@ -312,9 +312,13 @@ find_acc_type <- function (acc_pattern) {
 }
 
 
-#' The unique entries of variable modifications (multiple sites)
+#' The unique combinations of variable modifications.
 #'
-#' For all the \code{Anywhere} modifications specified in \code{amods}.
+#' The same residue, e.g. M, at different modifications, c("Carbamyl (M",
+#' "Oxidation (M)")).
+#'
+#' Goes over all the \code{Anywhere} modifications specified in \code{amods} for
+#' a given \code{aa_masses}.
 #'
 #' @param amods Anywhere modifications.
 #' @param ntmod The attribute \code{ntmod} from a \code{aa_masses} (for MS1
@@ -327,52 +331,52 @@ find_acc_type <- function (acc_pattern) {
 #' @import purrr
 #' @return Lists by residues in \code{amods}.
 #' @seealso \link{ms1_a1_vnl0_fnl0} for examples.
-#' 
-#' @examples 
+#'
+#' @examples
 #' \donttest{
 #' ## M
 #' fixedmods = c("TMT6plex (K)", "dHex (S)")
 #' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", "Acetyl (Protein N-term)")
-#' 
+#'
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods,
 #'                                add_varmasses = FALSE,
 #'                                add_nlmasses = FALSE)
-#' 
+#'
 #' aa_masses <- aa_masses_all[[8]]
-#' 
-#' amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"), 
+#'
+#' amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"),
 #'               `Carbamyl (M)` = c(Anywhere = "M"))
-#' 
+#'
 #' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
-#' 
-#' ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL, 
+#'
+#' ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
 #'                      aa_masses = aa_masses, aas = aas)
-#' 
-#' stopifnot(length(ans) == 1L, 
+#'
+#' stopifnot(length(ans) == 1L,
 #'           length(ans[[1]]) == 3L)
-#' 
+#'
 #' ## M and N
 #' fixedmods = c("TMT6plex (K)", "dHex (S)")
-#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", 
+#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)",
 #'             "Deamidated (N)", "Acetyl (Protein N-term)")
-#' 
+#'
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods,
 #'                                add_varmasses = FALSE,
 #'                                add_nlmasses = FALSE)
-#' 
+#'
 #' aa_masses <- aa_masses_all[[16]]
-#' 
-#' amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"), 
-#'               `Carbamyl (M)` = c(Anywhere = "M"), 
+#'
+#' amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"),
+#'               `Carbamyl (M)` = c(Anywhere = "M"),
 #'               `Deamidated (N)` = c(Anywhere = "N"))
-#' 
+#'
 #' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
-#' 
-#' ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL, 
+#'
+#' ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
 #'                      aa_masses = aa_masses, aas = aas)
-#' 
-#' stopifnot(length(ans) == 2L, 
-#'           length(ans[[1]]) == 3L, 
+#'
+#' stopifnot(length(ans) == 2L,
+#'           length(ans[[1]]) == 3L,
 #'           length(ans[[2]]) == 2L)
 #' }
 unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
@@ -399,6 +403,9 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
 
 #' Find the sets of variable modifications.
 #'
+#' The same residue, e.g. M, at different modifications, c("Carbamyl (M",
+#' "Oxidation (M)")). 
+#' 
 #' Excluding position differences, i.e., \code{A, B} and \code{B, A} is the
 #' same set.
 #'
@@ -432,10 +439,7 @@ vmods_elements <- function (aas,
   ns <- names(residue_mods)
   len_n <- length(ns)
 
-  ## no need of ps[seq_len(.x)] as the exact positions not needed
-  # ps <- which(aas == residue)
-  # len_p <- length(ps)
-
+  # the exact positions not needed
   len_p <- sum(aas == residue)
 
   # i.e., btw Anywhere "M" and "Acetyl N-term" where "M" on the "N-term"
@@ -448,17 +452,18 @@ vmods_elements <- function (aas,
     len_aas <- length(aas)
     aas_1 <- aas[1]
     aas_n <- aas[len_aas]
-
     if (aas_1 == residue && aas_n == residue) {
       len_p <- len_p - 2
     } else if ((aas_1 == residue) || (aas_n == residue)) {
       len_p <- len_p - 1
     }
   } else if (len_nt) {
+    aas_1 <- aas[1]
     if (aas_1 == residue) {
       len_p <- len_p - 1
     }
   } else if (len_ct) {
+    aas_n <- aas[len_aas]
     if (aas_n == residue) {
       len_p <- len_p - 1
     }
@@ -466,25 +471,26 @@ vmods_elements <- function (aas,
 
   if (len_p <= 0) return(list())
   
+  len_p <- min(len_p, maxn_vmods_per_pep)
+  
   if (len_p > len_n) {
     x <- lapply((len_n + 1):len_p, function (x) find_unique_sets(seq_len(x), ns))
-    x <- recur_flatten(x)
+    # x <- recur_flatten(x)
+    x <- .Internal(unlist(x, recursive = FALSE, use.names = FALSE))
     x <- c(list(ns), x)
   } else {
     x <- list(ns)
   }
 
-  rows <- lapply(x, function (x) length(x) > maxn_vmods_per_pep)
-  rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
-  x <- x[!rows]
+  # rows <- lapply(x, function (x) length(x) > maxn_vmods_per_pep)
+  # rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
+  # x <- x[!rows]
 
   maxn_vmod <- lapply(x, count_elements)
   maxn_vmod <- lapply(maxn_vmod, max)
-
-  rows <- (maxn_vmod > maxn_sites_per_vmod)
-  x <- x[!rows]
-
-  invisible(x)
+  rows <- (maxn_vmod <= maxn_sites_per_vmod)
+  
+  x[rows]
 }
 
 
@@ -495,6 +501,10 @@ vmods_elements <- function (aas,
 #' @param ps A vector of positions.
 #' @param ns The names to be filled into \code{p}.
 #' @importFrom gtools combinations
+#' @examples 
+#' \donttest{
+#' find_unique_sets()
+#' }
 find_unique_sets <- function (ps = c(1:5), ns = c("A", "B", "C")) {
   
   lp <- length(ps)
@@ -514,6 +524,59 @@ find_unique_sets <- function (ps = c(1:5), ns = c("A", "B", "C")) {
 
   out
 }
+
+
+
+###
+# testing
+# ns from aa_masses_all
+make_unique_sets <- function (ns, len_p = 5L, len_n = 3L, 
+                              maxn_vmods_per_pep = 5L, 
+                              maxn_sites_per_vmod = 3L) {
+  
+  len_p <- min(len_p, maxn_vmods_per_pep)
+  
+  if (len_p > len_n) {
+    x <- lapply((len_n + 1):len_p, function (x) find_unique_sets(seq_len(x), ns))
+    # x <- recur_flatten(x)
+    x <- .Internal(unlist(x, recursive = FALSE, use.names = FALSE))
+    x <- c(list(ns), x)
+  } else {
+    x <- list(ns)
+  }
+  
+  maxn_vmod <- lapply(x, count_elements)
+  maxn_vmod <- lapply(maxn_vmod, max)
+  rows <- (maxn_vmod <= maxn_sites_per_vmod)
+  
+  x[rows]
+}
+
+make_unique_sets2 <- memoise::memoise(function (ns, len_p = 5L, len_n = 3L, 
+                                                maxn_vmods_per_pep = 5L, 
+                                                maxn_sites_per_vmod = 3L) {
+  
+  len_p <- min(len_p, maxn_vmods_per_pep)
+  
+  if (len_p > len_n) {
+    x <- lapply((len_n + 1):len_p, function (x) find_unique_sets(seq_len(x), ns))
+    # x <- recur_flatten(x)
+    x <- .Internal(unlist(x, recursive = FALSE, use.names = FALSE))
+    x <- c(list(ns), x)
+  } else {
+    x <- list(ns)
+  }
+  
+  maxn_vmod <- lapply(x, count_elements)
+  maxn_vmod <- lapply(maxn_vmod, max)
+  rows <- (maxn_vmod <= maxn_sites_per_vmod)
+  
+  x[rows]
+})
+###
+
+
+
 
 
 #' Finds the combinations across residues.

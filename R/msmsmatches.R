@@ -216,7 +216,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
   digits <- as.integer(digits)
   
   stopifnot(min_len >= 0L, max_len >= min_len, max_miss <= 10L, 
-            min_mass >= 0L, max_mass >= min_mass, min_ms2mass >= 0L)
+            min_mass >= 0L, max_mass >= min_mass, min_ms2mass >= 0L, 
+            maxn_vmods_per_pep >= maxn_sites_per_vmod)
 
   # (b) doubles
   target_fdr <- as.double(target_fdr)
