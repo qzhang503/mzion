@@ -2,20 +2,20 @@
 % Please edit documentation in R/dbs.R
 \name{find_unique_sets}
 \alias{find_unique_sets}
-\title{Finds the sets of \code{n} elements in \code{positions}.}
+\title{Finds the sets of unique labels for \code{n} balls in \code{p-positions}.}
 \usage{
-find_unique_sets(ps = c(1:5), ns = c("A", "B", "C"))
+find_unique_sets(p = 5L, labs = c("A", "B", "C"))
 }
 \arguments{
-\item{ps}{A vector of positions.}
+\item{p}{The number of positions.}
 
-\item{ns}{The names to be filled into \code{p}.}
+\item{labs}{The names to be filled into the \code{p}-number of positions.}
 }
 \description{
-At least one occupancy for each elements in \code{ns}.
+At least one occupancy for each balls in \code{ns}.
 }
 \examples{
 \donttest{
-find_unique_sets()
+find_unique_sets(5, c("Oxidation (M)", "Carbamidomethyl (M)", "Carbamyl (M)"))
 }
 }

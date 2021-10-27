@@ -119,7 +119,7 @@ calc_pepmasses2 <- function (
                                     fixedmods = fixedmods,
                                     varmods = varmods,
                                     maxn_vmods_setscombi = maxn_vmods_setscombi)
-
+    
     files <- list.files(path = file.path(.path_ms1masses, .time_stamp),
                         pattern = "pepmasses_\\d+\\.rds$")
 
@@ -154,6 +154,11 @@ calc_pepmasses2 <- function (
                                     maxn_vmods_setscombi = maxn_vmods_setscombi, 
                                     exclude_phospho_nl = exclude_phospho_nl)
     
+    .ms1_vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses_all, 
+                                       maxn_vmods_per_pep = maxn_vmods_per_pep, 
+                                       maxn_sites_per_vmod = maxn_sites_per_vmod)
+    .base_ent <- lapply(.ms1_vmodsets, `[[`, 1)
+
     len <- length(aa_masses_all)
     types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
 
@@ -408,6 +413,8 @@ calc_pepmasses2 <- function (
             "recur_flatten"), 
           envir = environment(proteoM:::ms1_a1_vnl0_fnl0))
         
+        # parallel::clusterExport(cl, c(".base_ent", ".ms1_vmodsets"))
+        
         fwd_peps[[i]] <- parallel::clusterApply(
           cl, 
           chunksplit(fwd_peps_i, n_cores, "list"), 
@@ -419,6 +426,8 @@ calc_pepmasses2 <- function (
           include_insource_nl = include_insource_nl,
           maxn_vmods_per_pep = maxn_vmods_per_pep,
           maxn_sites_per_vmod = maxn_sites_per_vmod,
+          .ms1_vmodsets = .ms1_vmodsets, 
+          .base_ent = .base_ent, 
           digits = digits
         ) %>% 
           purrr::flatten() %>% 
@@ -482,19 +491,19 @@ find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
 
     dir.create(out_path, recursive = TRUE, showWarnings = FALSE)
 
-    aa_masses <- calc_aamasses(fixedmods = fixedmods,
-                               varmods = varmods,
-                               maxn_vmods_setscombi = maxn_vmods_setscombi,
-                               add_varmasses = FALSE,
-                               add_nlmasses = FALSE, 
-                               exclude_phospho_nl = exclude_phospho_nl, 
-                               out_path = out_path) %T>%
+    aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
+                                   varmods = varmods,
+                                   maxn_vmods_setscombi = maxn_vmods_setscombi,
+                                   add_varmasses = FALSE,
+                                   add_nlmasses = FALSE, 
+                                   exclude_phospho_nl = exclude_phospho_nl, 
+                                   out_path = out_path) %T>%
       saveRDS(file.path(out_path, "aa_masses_all.rds"))
   } else {
-    aa_masses <- readRDS(file.path(out_path, "aa_masses_all.rds"))
+    aa_masses_all <- readRDS(file.path(out_path, "aa_masses_all.rds"))
   }
 
-  invisible(aa_masses)
+  invisible(aa_masses_all)
 }
 
 
@@ -1961,6 +1970,8 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
                                include_insource_nl = FALSE,
                                maxn_vmods_per_pep = 5L,
                                maxn_sites_per_vmod = 3L,
+                               .ms1_vmodsets = NULL, 
+                               .base_ent = NULL, 
                                digits = 4L) {
   
   mapply(ms1_a1_vnl0_fnl0, 
@@ -1973,6 +1984,8 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
            include_insource_nl = include_insource_nl,
            maxn_vmods_per_pep = maxn_vmods_per_pep,
            maxn_sites_per_vmod = maxn_sites_per_vmod,
+           .ms1_vmodsets = .ms1_vmodsets, 
+           .base_ent = .base_ent, 
            digits = digits
          ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
 }
@@ -2040,6 +2053,8 @@ ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
                               include_insource_nl = FALSE,
                               maxn_vmods_per_pep = 5L,
                               maxn_sites_per_vmod = 3L,
+                              .ms1_vmodsets = NULL, 
+                              .base_ent = NULL, 
                               digits = 4L) {
   
   aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
@@ -2049,6 +2064,8 @@ ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
                                aa_masses = aa_masses, aas = aas,
                                maxn_vmods_per_pep = maxn_vmods_per_pep,
                                maxn_sites_per_vmod = maxn_sites_per_vmod,
+                               .ms1_vmodsets = .ms1_vmodsets, 
+                               .base_ent = .base_ent, 
                                digits = digits)
   
   vmods_combi <- find_intercombi(vmods_combi)

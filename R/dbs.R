@@ -382,6 +382,8 @@ find_acc_type <- function (acc_pattern) {
 unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
                            maxn_vmods_per_pep = 5L,
                            maxn_sites_per_vmod = 3L,
+                           .ms1_vmodsets = NULL, 
+                           .base_ent = NULL, 
                            digits = 5L) {
   
   # (6) "amods- tmod- vnl- fnl+"
@@ -396,6 +398,8 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
                    ntmod = ntmod, ctmod = ctmod,
                    maxn_vmods_per_pep = maxn_vmods_per_pep,
                    maxn_sites_per_vmod = maxn_sites_per_vmod,
+                   .ms1_vmodsets = .ms1_vmodsets, 
+                   .base_ent = .base_ent, 
                    digits = digits)
   })
 }
@@ -432,6 +436,8 @@ vmods_elements <- function (aas,
                             ctmod,
                             maxn_vmods_per_pep = 5L,
                             maxn_sites_per_vmod = 3L,
+                            .ms1_vmodsets = NULL, 
+                            .base_ent = NULL, 
                             digits = 5L) {
 
   residue <- residue_mods[[1]]
@@ -473,108 +479,246 @@ vmods_elements <- function (aas,
   
   len_p <- min(len_p, maxn_vmods_per_pep)
   
-  if (len_p > len_n) {
-    x <- lapply((len_n + 1):len_p, function (x) find_unique_sets(seq_len(x), ns))
-    # x <- recur_flatten(x)
-    x <- .Internal(unlist(x, recursive = FALSE, use.names = FALSE))
-    x <- c(list(ns), x)
+  if (is.null(.ms1_vmodsets) || is.null(.base_ent)) {
+    if (len_p > len_n) {
+      x <- lapply((len_n + 1):len_p, function (x) find_unique_sets(x, ns))
+      x <- .Internal(unlist(x, recursive = FALSE, use.names = FALSE))
+      x <- c(list(ns), x)
+    } else {
+      x <- list(ns)
+    }
+    
+    maxn_vmod <- lapply(x, count_elements)
+    maxn_vmod <- lapply(maxn_vmod, max)
+    rows <- (maxn_vmod <= maxn_sites_per_vmod)
+    
+    x <- x[rows]
   } else {
-    x <- list(ns)
+    x <- extract_vmodsets(.ms1_vmodsets, .base_ent, len_p, ns)
   }
-
-  # rows <- lapply(x, function (x) length(x) > maxn_vmods_per_pep)
-  # rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
-  # x <- x[!rows]
-
-  maxn_vmod <- lapply(x, count_elements)
-  maxn_vmod <- lapply(maxn_vmod, max)
-  rows <- (maxn_vmod <= maxn_sites_per_vmod)
   
-  x[rows]
+  invisible(x)
 }
 
 
-#' Finds the sets of \code{n} elements in \code{positions}.
+#' Finds the sets of unique labels for \code{n} balls in \code{p-positions}.
 #'
-#' At least one occupancy for each elements in \code{ns}.
+#' At least one occupancy for each balls in \code{ns}.
 #'
-#' @param ps A vector of positions.
-#' @param ns The names to be filled into \code{p}.
+#' @param p The number of positions.
+#' @param labs The names to be filled into the \code{p}-number of positions.
 #' @importFrom gtools combinations
 #' @examples 
 #' \donttest{
-#' find_unique_sets()
+#' find_unique_sets(5, c("Oxidation (M)", "Carbamidomethyl (M)", "Carbamyl (M)"))
 #' }
-find_unique_sets <- function (ps = c(1:5), ns = c("A", "B", "C")) {
+find_unique_sets <- function (p = 5L, labs = c("A", "B", "C")) {
   
-  lp <- length(ps)
-  ln <- length(ns)
-  r <- lp - ln
-
-  if (r == 0L) return(list(ns))
-
-  x <- gtools::combinations(ln, r, ns, repeats = TRUE)
-
+  ps <- seq_len(p)
+  n <- length(labs)
+  r <- p - n
+  
+  if (r == 0L) return(list(labs))
+  if (r < 0L) return(NULL)
+  
+  x <- gtools::combinations(n, r, labs, repeats = TRUE)
+  
   n_row <- nrow(x)
   out <- vector("list", n_row)
-
+  
   for (i in seq_len(n_row)) {
-    out[[i]] <- c(ns, x[i, ])
+    out[[i]] <- c(labs, x[i, ])
   }
-
+  
   out
 }
 
 
-
 ###
-# testing
-# ns from aa_masses_all
-make_unique_sets <- function (ns, len_p = 5L, len_n = 3L, 
+
+#' Extracts sets of combinatorial vmods labels.
+#'
+#' For faster calculations of precursor masses.
+#'
+#' @param p The number of open positions for filling.
+#' @param labs The labels of balls.
+#' @param .ms1_vmodsets The complete set of combinatorial variable modifications
+#'   for MS1.
+#' @param .base_ent The base entries of .ms1_vmodsets. 
+#' @seealso make_ms1_vmodsets
+extract_vmodsets <- function (.ms1_vmodsets, .base_ent, p = 4L, 
+                              labs = c("Carbamyl (M)")) {
+  
+  n <- length(labs)
+  
+  idx <- lapply(.base_ent, is_equal_sets, labs)
+  idx <- which(unlist(idx, recursive = FALSE, use.names = FALSE))
+  
+  vmodsets <- .ms1_vmodsets[[idx]]
+  vmodsets[names(vmodsets) %in% n:p]
+}
+
+
+#' Makes the sets of labels of variable modifications.
+#' 
+#' No position permutation (for MS1 masses).
+#' 
+#' @param aa_masses_all All the amino acid lookup tables.
+#' @inheritParams matchMS
+#' @examples 
+#' \donttest{
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
+#' 
+#' varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", "Carbamidomethyl (M)", 
+#'             "Deamidated (N)", "Carbamyl (M)", 
+#'             "Gln->pyro-Glu (N-term = Q)")
+#' 
+#' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
+#'                                varmods = varmods,
+#'                                maxn_vmods_setscombi = 64,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE, 
+#'                                exclude_phospho_nl = TRUE, 
+#'                                out_path = NULL)
+#' 
+#' .ms1_vmodsets <- make_ms1_vmodsets(aa_masses_all)
+#' .base_ent <- lapply(.ms1_vmodsets, `[[`, 1)
+#' 
+#' extract_vmodsets(.ms1_vmodsets, .base_ent, p = 4, 
+#'                  labs = c("Carbamidomethyl (M)", "Carbamyl (M)"))
+#' }
+make_ms1_vmodsets <- function (aa_masses_all = NULL, maxn_vmods_per_pep = 5L, 
+                               maxn_sites_per_vmod = 3L) {
+  
+  # stopifnot(maxn_vmods_per_pep >= 2L)
+  
+  amods_all <- lapply(aa_masses_all, attr, "amods", exact = TRUE)
+  
+  len <- length(amods_all)
+  resmods_all <- vector("list", len)
+  
+  for (i in seq_len(len)) {
+    aa_masses <- aa_masses_all[[i]]
+    amods <- attr(aa_masses, "amods", exact = TRUE)
+    
+    # split into lists by individual residues
+    if (length(amods)) {
+      x <- .Internal(unlist(amods, recursive = FALSE, use.names = FALSE))
+      names(x) <- names(amods)
+      resmods_all[[i]] <- split_vec(x)
+    } else {
+      resmods_all[[i]] <- NULL
+    }
+  }
+  
+  # unique sets of modifications by individual residues
+  resmods_all <- unlist(resmods_all, recursive = FALSE, use.names = FALSE)
+  resmods_all <- unique(resmods_all)
+  
+  out <- lapply(resmods_all, bacth_vmods_combi, maxn_vmods_per_pep, 
+                maxn_sites_per_vmod)
+  
+  resids <- lapply(resmods_all, `[`, 1)
+  resids <- unlist(resids, recursive = FALSE, use.names = FALSE)
+  names(out) <- resids
+  
+  # assign(".ms1_vmodsets", out, envir = .GlobalEnv)
+  # .base_ent <- lapply(.ms1_vmodsets, `[[`, 1)
+  # assign(".base_ent", .base_ent, envir = .GlobalEnv)
+
+  invisible(out)
+}
+
+
+#' Helper in cycling through \code{2:maxn_vmods_per_pep} numbers of positions.
+#'
+#' For the same residue (M) at different names of modifications.
+#'
+#' @param resmods A vector of amino-acid residues with Unimod in names. For
+#'   example, c(`Oxidation (M)` = "M", `Carbamyl` = "M").The residues are the
+#'   same and the names are different.
+#' @inheritParams matchMS
+#' @examples 
+#' \donttest{
+#' resmods <- c(`Oxidation (M)` = "M", `Carbamidomethyl (M)` = "M")
+#' ans <- bacth_vmods_combi(resmods)
+#' }
+bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L, 
+                               maxn_sites_per_vmod = 3L) {
+  
+  # stopifnot(maxn_vmods_per_pep >= 2L)
+  
+  make_unique_sets(p = maxn_vmods_per_pep, 
+                   n = length(resmods), 
+                   labs = names(resmods), 
+                   maxn_vmods_per_pep = maxn_vmods_per_pep, 
+                   maxn_sites_per_vmod = maxn_sites_per_vmod)
+}
+
+
+#' Makes the unique sets of modifications by individual AA residues. 
+#' 
+#' @param p The number of open positions for filling.
+#' @param n The number of labels.
+#' @param labs The labels of balls.
+#' @inheritParams matchMS
+#' @examples 
+#' \donttest{
+#' # multiple outs
+#' p <- 5
+#' labs <- c("Oxidation (M)", "Carbamidomethyl (M)", "Carbamyl (M)")
+#' n <- length(labs)
+#' stopifnot(n == length(labs))
+#' 
+#' ans5 <- make_unique_sets(5, n, labs)
+#' ans7 <- make_unique_sets(7, n, labs)
+#' 
+#' stopifnot(identical(ans5, ans7))
+#' 
+#' # single out
+#' p <- 3
+#' labs <- c("Oxidation (M)", "Carbamidomethyl (M)", "Carbamyl (M)")
+#' n <- length(labs)
+#' stopifnot(n == length(labs))
+#' 
+#' ans <- make_unique_sets(p, n, labs)
+#' }
+make_unique_sets <- function (p = 5L, n = 2L, labs = c("X", "Y"), 
                               maxn_vmods_per_pep = 5L, 
                               maxn_sites_per_vmod = 3L) {
   
-  len_p <- min(len_p, maxn_vmods_per_pep)
+  # stopifnot(n == length(labs))
   
-  if (len_p > len_n) {
-    x <- lapply((len_n + 1):len_p, function (x) find_unique_sets(seq_len(x), ns))
-    # x <- recur_flatten(x)
-    x <- .Internal(unlist(x, recursive = FALSE, use.names = FALSE))
-    x <- c(list(ns), x)
-  } else {
-    x <- list(ns)
-  }
+  if (p < n) return(NULL)
   
-  maxn_vmod <- lapply(x, count_elements)
-  maxn_vmod <- lapply(maxn_vmod, max)
-  rows <- (maxn_vmod <= maxn_sites_per_vmod)
+  p <- min(p, maxn_vmods_per_pep)
+  ps <- n:p
   
-  x[rows]
+  combs <- lapply(ps, function (i) {
+    ans <- find_unique_sets(i, labs)
+
+    n_vmod <- lapply(ans, count_elements)
+    maxn_vmod <- lapply(n_vmod, max)
+    rows <- (maxn_vmod <= maxn_sites_per_vmod)
+
+    ans <- ans[rows]
+  })
+  
+  lens <- lapply(combs, length)
+  lens <- unlist(lens, recursive = FALSE, use.names = FALSE)
+  nms_p <- rep(ps, lens)
+  nms_n <- rep(n, length(nms_p))
+  
+  combs <- .Internal(unlist(combs, recursive = FALSE, use.names = FALSE))
+  # for (i in seq_along(combs)) attr(combs[[i]], "p") <- nms_p[i]
+  names(combs) <- nms_p
+
+  invisible(combs)
 }
 
-make_unique_sets2 <- memoise::memoise(function (ns, len_p = 5L, len_n = 3L, 
-                                                maxn_vmods_per_pep = 5L, 
-                                                maxn_sites_per_vmod = 3L) {
-  
-  len_p <- min(len_p, maxn_vmods_per_pep)
-  
-  if (len_p > len_n) {
-    x <- lapply((len_n + 1):len_p, function (x) find_unique_sets(seq_len(x), ns))
-    # x <- recur_flatten(x)
-    x <- .Internal(unlist(x, recursive = FALSE, use.names = FALSE))
-    x <- c(list(ns), x)
-  } else {
-    x <- list(ns)
-  }
-  
-  maxn_vmod <- lapply(x, count_elements)
-  maxn_vmod <- lapply(maxn_vmod, max)
-  rows <- (maxn_vmod <= maxn_sites_per_vmod)
-  
-  x[rows]
-})
-###
 
+
+###
 
 
 

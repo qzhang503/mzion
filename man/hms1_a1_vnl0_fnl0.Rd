@@ -13,6 +13,8 @@ hms1_a1_vnl0_fnl0(
   include_insource_nl = FALSE,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
+  .ms1_vmodsets = NULL,
+  .base_ent = NULL,
   digits = 4L
 )
 }

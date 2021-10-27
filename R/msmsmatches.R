@@ -182,6 +182,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
   )
 
   ## Preparation
+  # modifications
+  fixedmods <- sort(fixedmods)
+  varmods <- sort(varmods)
+  
   # accession pattern
   if ((!is.null(acc_pattern)) && acc_pattern == "") {
     acc_pattern <- NULL

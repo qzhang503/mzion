@@ -11,6 +11,8 @@ vmods_elements(
   ctmod,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
+  .ms1_vmodsets = NULL,
+  .base_ent = NULL,
   digits = 5L
 )
 }
