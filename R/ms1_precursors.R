@@ -407,7 +407,6 @@ calc_pepmasses2 <- function (
             "split_vec", 
             "count_elements", 
             "delta_ms1_a0_fnl1", 
-            # "find_unique_sets", 
             "recur_flatten"), 
           envir = environment(proteoM:::ms1_a1_vnl0_fnl0))
         
@@ -2332,19 +2331,52 @@ ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
 #' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 #' 
 #' vmods_combi <- match_mvmods(aas, aa_masses, amods, ms1vmods)
+#' 
+#' ## M and N
+#' fixedmods = c("TMT6plex (K)", "dHex (S)")
+#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", 
+#'             "Deamidated (N)", "Acetyl (Protein N-term)")
+#' 
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE)
+#' 
+#' maxn_vmods_per_pep <- 5L
+#' maxn_sites_per_vmod <- 3L
+#' 
+#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
+#'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
+#' 
+#' i <- 16L
+#' aa_masses <- aa_masses_all[[i]]
+#' amods <- attr(aa_masses, "amods")
+#' ms1vmods <- ms1vmods_all[[i]]
+#' 
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#' 
+#' vmods_combi <- match_mvmods(aas, aa_masses, amods, ms1vmods)
 #' }
 match_mvmods <- function (aas, aa_masses = NULL, amods = NULL, ms1vmods = NULL, 
                           maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L) {
   
-  max_ps <- lapply(amods, function (x) sum(aas == x))
-  max_ps <- .Internal(unlist(max_ps, recursive = FALSE, use.names = TRUE))
+  len_a <- length(amods)
+  max_ps <- vector("integer", len_a)
+  
+  for (i in seq_len(len_a)) {
+    max_ps[i] <- sum(aas == amods[[i]])
+  }
   
   # `make_ms1_vmodsets` obtained from the same `amods`
   #   -> no mess up in the order of `amods` -> no name sorting
   
-  ps <- lapply(ms1vmods, attr, "ps")
-  rows <- lapply(ps, function (x) all(x <= max_ps))
-  rows <- .Internal(unlist(rows, recursive = FALSE, use.names = TRUE))
+  len <- length(ms1vmods)
+  rows <- vector("logical", len)
+  
+  for (i in seq_len(len)) {
+    labs <- attr(ms1vmods[[i]], "labs")
+    rows[i] <- all(labs <= max_ps)
+  }
   
   ms1vmods[rows]
 }

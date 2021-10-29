@@ -43,8 +43,12 @@
 #' stopifnot(length(ms1vmods_all[[1]]) == 0L,
 #'           length(ms1vmods_all[[2]]) == 0L,
 #'           length(ms1vmods_all[[3]]) == 0L)
-#'
+#' 
+#' # M, N
 #' len_ps <- lapply(ms1vmods_all[[12]], function (x) attr(x, "ps"))
+#' 
+#' # M
+#' len_ps <- lapply(ms1vmods_all[[4]], function (x) attr(x, "ps"))
 #'
 #' ## More complex
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
@@ -71,6 +75,8 @@
 #' # No duplication within each aa_masses
 #' any_dups <- lapply(ms1vmods_all, 
 #'                    function (x) anyDuplicated(x))
+#' 
+#' stopifnot(all(unlist(any_dups) == 0L))
 #'
 #' # Can have identical sets of labels at different aa_masses
 #' identical(ms1vmods_all[[3]], ms1vmods_all[[9]])
@@ -345,27 +351,23 @@ find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L) {
     return(list())
   
   # all lists are non-empty
-  len_ps <- lapply(vmodsets, function (x) lapply(x, length)) 
+  len_ps <- lapply(vmodsets, function (x) lapply(x, length))
   
-  if (len > 1L) {
-    v_out <- expand_grid_rows(vmodsets, use.names = FALSE)
-    ps <- expand_grid_rows(len_ps, use.names = FALSE)
-    
-    lens <- lapply(v_out, length)
-    lens <- .Internal(unlist(lens, recursive = FALSE, use.names = FALSE))
-    oks <- (lens <= maxn_vmods_per_pep)
-    
-    ps <- ps[oks]
-    v_out <- v_out[oks]
-  } else {
-    v_out <- purrr::flatten(vmodsets)
-    ps <- lapply(v_out, length)
-  }
+  v_out <- expand_grid_rows(vmodsets, use.names = FALSE)
+  # ps <- expand_grid_rows(len_ps, use.names = TRUE)
   
-  mapply(function (x, y) {
-    attr(x, "ps") <- y
+  lens <- lapply(v_out, length)
+  lens <- .Internal(unlist(lens, recursive = FALSE, use.names = FALSE))
+  oks <- (lens <= maxn_vmods_per_pep)
+  
+  v_out <- v_out[oks]
+  # ps <- ps[oks]
+  labs <- lapply(v_out, count_elements)
+  
+  mapply(function (x, z) {
+    attr(x, "labs") <- z
     x
-  }, v_out, ps, 
+  }, v_out, labs, 
   SIMPLIFY = FALSE, USE.NAMES = FALSE)
 }
 

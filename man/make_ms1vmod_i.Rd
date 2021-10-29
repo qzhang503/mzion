@@ -63,7 +63,11 @@ stopifnot(length(ms1vmods_all[[1]]) == 0L,
           length(ms1vmods_all[[2]]) == 0L,
           length(ms1vmods_all[[3]]) == 0L)
 
+# M, N
 len_ps <- lapply(ms1vmods_all[[12]], function (x) attr(x, "ps"))
+
+# M
+len_ps <- lapply(ms1vmods_all[[4]], function (x) attr(x, "ps"))
 
 ## More complex
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
@@ -90,6 +94,8 @@ ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
 # No duplication within each aa_masses
 any_dups <- lapply(ms1vmods_all, 
                    function (x) anyDuplicated(x))
+
+stopifnot(all(unlist(any_dups) == 0L))
 
 # Can have identical sets of labels at different aa_masses
 identical(ms1vmods_all[[3]], ms1vmods_all[[9]])

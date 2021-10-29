@@ -229,7 +229,8 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
                                       digits = 4L) {
   
   # 2.2 us
-  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, 
+                            useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
 
@@ -306,7 +307,7 @@ check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod,
   bare <- sum(aas2) + 18.010565
   
   # No need of is_empty(ntmod) && is_empty(ctmod)
-  if (!length(ntmod) && !length(ctmod)) {
+  if (!(length(ntmod) || length(ctmod))) {
     delta <- 0
   } else if (length(ntmod) && length(ctmod)) {
     delta <- aa_masses[names(ntmod)] + aa_masses[names(ctmod)]
@@ -391,7 +392,6 @@ combi_mvmods2 <- function (amods,
   
   residue_mods <- .Internal(unlist(amods, recursive = TRUE, use.names = FALSE))
   names(residue_mods) <- names(amods)
-  # residue_mods <- split(residue_mods, residue_mods)
   residue_mods <- split_vec(residue_mods)
 
   lapply(residue_mods, function (x) combi_vmods2(
@@ -420,7 +420,7 @@ combi_vmods2 <- function (aas,
                           digits = 4L) {
   
   ##################################################################
-  # values: n (modifications)
+  # values: n (labels)
   # names: p (positions)
   # 
   # n = LETTERS[1:2]; p = c(1, 3, 16)
@@ -503,16 +503,6 @@ combi_vmods2 <- function (aas,
   # ---
   out <- .Internal(unlist(out, recursive = FALSE, use.names = FALSE))
 
-  # rows <- lapply(out, function (x) length(x) > maxn_vmods_per_pep)
-  # rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
-  # out <- out[!rows]
-  
-  ## `table()` slow
-  # maxn_vmod <- lapply(out, table)
-  # maxn_vmod <- lapply(maxn_vmod, max)
-  # rows <- (maxn_vmod > maxn_sites_per_vmod)
-  # out <- out[!rows]
-  
   len_out <- length(out)
   
   if (len_out > maxn_vmods_sitescombi_per_pep) {

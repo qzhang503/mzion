@@ -66,5 +66,30 @@ ms1vmods <- ms1vmods_all[[i]]
 aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 
 vmods_combi <- match_mvmods(aas, aa_masses, amods, ms1vmods)
+
+## M and N
+fixedmods = c("TMT6plex (K)", "dHex (S)")
+varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", 
+            "Deamidated (N)", "Acetyl (Protein N-term)")
+
+aa_masses_all <- calc_aamasses(fixedmods, varmods,
+                               add_varmasses = FALSE,
+                               add_nlmasses = FALSE)
+
+maxn_vmods_per_pep <- 5L
+maxn_sites_per_vmod <- 3L
+
+ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+                       maxn_vmods_per_pep = maxn_vmods_per_pep,
+                       maxn_sites_per_vmod = maxn_sites_per_vmod)
+
+i <- 16L
+aa_masses <- aa_masses_all[[i]]
+amods <- attr(aa_masses, "amods")
+ms1vmods <- ms1vmods_all[[i]]
+
+aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+
+vmods_combi <- match_mvmods(aas, aa_masses, amods, ms1vmods)
 }
 }
