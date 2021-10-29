@@ -7,7 +7,7 @@
 find_intercombi_p2(intra_combis, maxn_vmods_sitescombi_per_pep = 32L)
 }
 \arguments{
-\item{intra_combis}{The results from \link{unique_mvmods}.}
+\item{intra_combis}{Inter-residue combinations.}
 
 \item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
 combinatorial variable modifications per peptide sequence. The default is
@@ -27,7 +27,4 @@ S <- c(`16` = "Carbamidomethyl (S)")
 intra_combis <- list(N = N, S = S)
 
 ans <- find_intercombi_p2(intra_combis)
-}
-\seealso{
-\link{find_intercombi}
 }

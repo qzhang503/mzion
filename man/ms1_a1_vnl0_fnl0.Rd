@@ -14,8 +14,7 @@ ms1_a1_vnl0_fnl0(
   include_insource_nl = FALSE,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  .ms1_vmodsets = NULL,
-  .base_ent = NULL,
+  ms1vmods = NULL,
   digits = 4L
 )
 }
@@ -48,10 +47,12 @@ peptide.}
 \item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
 variable modifications per site in a per peptide sequence.}
 
+\item{ms1vmods}{The set of all possible MS1 vmod labels at a given aa_masses.}
+
 \item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
-(7) "amods+ tmod- vnl- fnl-"; (8) "amods+ tmod-+ vnl- fnl-".
+(7) "amods+ tmod- vnl- fnl-"; (8) "amods+ tmod+ vnl- fnl-".
 }
 \examples{
 \donttest{
@@ -99,5 +100,46 @@ stopifnot(x[[1]] - 1990.9226 < 1e-4,
           x[[3]] - 2047.9440 < 1e-4,
           x[[4]] - 2048.9281 < 1e-4)
 
+
+# (8-b)
+.ms1_vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses_all, 
+                                   maxn_vmods_per_pep = 5L, 
+                                   maxn_sites_per_vmod = 3L)
+.base_ent <- lapply(.ms1_vmodsets, `[[`, 1)
+
+ x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]], 
+                      .ms1_vmodsets = .ms1_vmodsets, 
+                      .base_ent = .base_ent)
+
+# (8-c)
+fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+
+varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+            "Gln->pyro-Glu (N-term = Q)")
+
+aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
+                               varmods = varmods,
+                               maxn_vmods_setscombi = 64,
+                               add_varmasses = FALSE,
+                               add_nlmasses = FALSE,
+                               exclude_phospho_nl = TRUE,
+                               out_path = NULL)
+
+ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i)
+
+i <- 10
+aa_masses <- aa_masses_all[[i]]
+ms1vmods <- ms1vmods_all[[i]]
+
+pep <- c("HQGVMCNVGMGQKMNSC" = 2051.90346)
+amods <- attr(aa_masses, "amods")
+
+x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
+                      ms1vmods = ms1vmods)
+
+# y <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
+#                       ms1vmods = NULL)
+
+# identical(x, y)
 }
 }

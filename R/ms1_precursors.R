@@ -154,10 +154,9 @@ calc_pepmasses2 <- function (
                                     maxn_vmods_setscombi = maxn_vmods_setscombi, 
                                     exclude_phospho_nl = exclude_phospho_nl)
     
-    .ms1_vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses_all, 
-                                       maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                                       maxn_sites_per_vmod = maxn_sites_per_vmod)
-    .base_ent <- lapply(.ms1_vmodsets, `[[`, 1)
+    ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+                           maxn_vmods_per_pep = maxn_vmods_per_pep,
+                           maxn_sites_per_vmod = maxn_sites_per_vmod)
 
     len <- length(aa_masses_all)
     types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
@@ -391,6 +390,7 @@ calc_pepmasses2 <- function (
       for (i in inds) {
         amods_i <- amods[[i]]
         aa_masses_i <- aa_masses_all[[i]]
+        ms1vmods_i <- ms1vmods_all[[i]]
 
         fwd_peps_i <- fwd_peps[[i]]
 
@@ -402,18 +402,14 @@ calc_pepmasses2 <- function (
         parallel::clusterExport(
           cl,
           c("ms1_a1_vnl0_fnl0", 
+            "match_mvmods", 
             "hms1_a1_vnl0_fnl0", 
-            "unique_mvmods", 
             "split_vec", 
-            "vmods_elements", 
             "count_elements", 
-            "find_intercombi", 
             "delta_ms1_a0_fnl1", 
-            "find_unique_sets", 
+            # "find_unique_sets", 
             "recur_flatten"), 
           envir = environment(proteoM:::ms1_a1_vnl0_fnl0))
-        
-        # parallel::clusterExport(cl, c(".base_ent", ".ms1_vmodsets"))
         
         fwd_peps[[i]] <- parallel::clusterApply(
           cl, 
@@ -426,8 +422,7 @@ calc_pepmasses2 <- function (
           include_insource_nl = include_insource_nl,
           maxn_vmods_per_pep = maxn_vmods_per_pep,
           maxn_sites_per_vmod = maxn_sites_per_vmod,
-          .ms1_vmodsets = .ms1_vmodsets, 
-          .base_ent = .base_ent, 
+          ms1vmods = ms1vmods_i, 
           digits = digits
         ) %>% 
           purrr::flatten() %>% 
@@ -1208,7 +1203,7 @@ parse_aamasses <- function (aa_masses, add_nlmasses = TRUE) {
     }
 
     ## entries with NL = 0 also kept
-    ## (beneficial when calling `find_intercombi`)
+    ## (beneficial when expand.grid)
     # idx <- map_lgl(neulosses, ~ length(.x) > 1)
     # neulosses <- neulosses[idx]
 
@@ -1527,6 +1522,101 @@ make_fastapeps0 <- function (fasta_db, max_miss = 2L) {
   rm(list = c("inds_m", "fasta_db", "fasta_dbm", "peps_m"))
 
   invisible(peps)
+}
+
+
+#' Find mis-cleavages in a vector.
+#'
+#' A convenience utility may be used to extract the first \eqn{n+1} peptides
+#' from 0 to n mis-cleavages. It also assumes that the data were already sorted
+#' in a desirable way.
+#'
+#' @param x A vector of data.
+#' @param n Integer. The number of mis-cleavages.
+keep_n_misses <- function (x, n) {
+  
+  len <- length(x)
+  
+  if (n < 0L) {
+    stop("`n` cannot be nagative integers: ", n)
+  }
+  
+  if (!len) {
+    stop("Length of `x` cannot be zero.")
+  }
+  
+  x[1:min(n + 1, len)]
+}
+
+
+#' Exclude mis-cleavages in a vector.
+#'
+#' @inheritParams keep_n_misses
+#' @seealso keep_n_misses
+exclude_n_misses <- function (x, n) {
+  
+  len <- length(x)
+  
+  if (n < 0L) {
+    stop("`n` cannot be nagative integers: ", n)
+  }
+  
+  if (!len) {
+    stop("Length of `x` cannot be zero.")
+  }
+  
+  x[-(1:min(n + 1, len))]
+}
+
+
+#' Excludes a character in string counting
+#'
+#' @param x A character string
+#' @param char A character to be excluded for counting.
+#' @importFrom stringi stri_length stri_count_fixed
+str_exclude_count <- function (x, char = "-") {
+  stringi::stri_length(x) - stringi::stri_count_fixed(x, char)
+}
+
+
+#' Remove a starting character from the first \code{n} entries.
+#'
+#' @param x A list of character strings.
+#' @param char A starting character to be removed.
+#' @param n The number of beginning entries to be considered.
+rm_char_in_nfirst2 <- function (x, char = "^-", n = (max_miss + 1L) * 2L) {
+  
+  nms <- names(x)
+  
+  len <- length(nms)
+  n <- min(len, n)
+  
+  seqs <- seq_len(n)
+  
+  nms[seqs] <- gsub(char, "", nms[seqs])
+  names(x) <- nms
+  
+  x
+}
+
+
+#' Remove a trailing character from the last \code{n} entries.
+#'
+#' @param char A trailing character to be removed.
+#' @inheritParams rm_char_in_nfirst2
+rm_char_in_nlast2 <- function (x, char = "-$", n = (max_miss + 1L) * 2L) {
+  
+  nms <- names(x)
+  
+  len <- length(nms)
+  n <- min(len, n)
+  
+  seqs <- (len - n + 1L):len
+  
+  nms[seqs] <- gsub(char, "", nms[seqs])
+  names(x) <- nms
+  
+  x
 }
 
 
@@ -1879,6 +1969,74 @@ distri_fpeps <- function (data, max_miss, is_fixed_protnt, is_fixed_protct) {
 }
 
 
+#' Concatenates adjacent peptides in a list (with mass).
+#' 
+#' @param peps A list of peptide sequences with a one-letter representation of
+#'   amino acid residues.
+#' @param n The number of mis-cleavages for consideration.
+#' @param include_cts Logical; the list, \code{peps}, includes the protein
+#'   C-terminal sequence or not. At the default of TRUE, mis-cleaved peptides at
+#'   the end of the protein C-terms will be added as they should. The arguments
+#'   would be typically at FALSE, for example, when used for generating
+#'   mis-cleaved peptides from the N-terminal of peptides with the removal of a
+#'   starting residue \code{M}.
+#' @examples
+#' \donttest{
+#' peps <- 1:26
+#' names(peps) <- LETTERS
+#' res <- roll_sum(peps, 2)
+#' 
+#' # length shorter than n
+#' peps <- c(a = 1)
+#' res <- roll_sum(peps, 2)
+#' 
+#' peps <- c(a = 1, b = 2, c = 3)
+#' res <- roll_sum(peps, 4)
+#' }
+roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE) {
+  
+  len <- length(peps)
+  
+  if (!len) return(NULL)
+  
+  if (n >= len) n <- len - 1L
+  
+  res <- lapply(seq_len((len - n)), function (x) {
+    ranges <- x:(x + n)
+    
+    psub <- peps[ranges]
+    nms <- accumulate_char(names(psub), paste0)
+    
+    vals <- cumsum(psub)
+    names(vals) <- nms
+    
+    vals
+  }) 
+  
+  res <- .Internal(unlist(res, recursive = FALSE, use.names = TRUE))
+  
+  if (include_cts && n >= 1L) {
+    ends <- peps[(len - n + 1L):len]
+    
+    res2 <- lapply(n:1L, function (x) {
+      y <- tail(ends, x)
+      nms <- accumulate_char(names(y), paste0)
+      
+      vals <- cumsum(y)
+      names(vals)  <- nms
+      
+      vals
+    })
+    
+    res2 <- .Internal(unlist(res2, recursive = FALSE, use.names = TRUE))
+  } else {
+    res2 <- NULL
+  }
+  
+  c(res, res2)
+}
+
+
 #' Helper of peptide-mass calculation..
 #'
 #' (5) "amods- tmod+ vnl- fnl+"; (6) "amods- tmod- vnl- fnl+".
@@ -1963,6 +2121,7 @@ ms1_a0_vnl0_fnl1 <- function (mass, aa_seq, fnl_combi, aa_masses, digits = 4L) {
 #' @param amods \code{Anywhere} variable modifications.
 #' @param fmods_nl The attribute of \code{fmods_nl} from an \code{aa_masses}.
 #' @param vmods_nl The attribute of \code{vmods_nl} from an \code{aa_masses}.
+#' @param ms1vmods The set of all possible MS1 vmod labels at a given aa_masses.
 #' @inheritParams matchMS
 #' @inheritParams add_fixvar_masses
 hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
@@ -1970,8 +2129,7 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
                                include_insource_nl = FALSE,
                                maxn_vmods_per_pep = 5L,
                                maxn_sites_per_vmod = 3L,
-                               .ms1_vmodsets = NULL, 
-                               .base_ent = NULL, 
+                               ms1vmods = NULL, 
                                digits = 4L) {
   
   mapply(ms1_a1_vnl0_fnl0, 
@@ -1984,8 +2142,7 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
            include_insource_nl = include_insource_nl,
            maxn_vmods_per_pep = maxn_vmods_per_pep,
            maxn_sites_per_vmod = maxn_sites_per_vmod,
-           .ms1_vmodsets = .ms1_vmodsets, 
-           .base_ent = .base_ent, 
+           ms1vmods = ms1vmods, 
            digits = digits
          ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
 }
@@ -1993,7 +2150,7 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 
 #' Helper by individual peptides.
 #'
-#' (7) "amods+ tmod- vnl- fnl-"; (8) "amods+ tmod-+ vnl- fnl-".
+#' (7) "amods+ tmod- vnl- fnl-"; (8) "amods+ tmod+ vnl- fnl-".
 #'
 #' @param mass The mass of a peptide.
 #' @param aa_seq Character string; a peptide sequence with one-letter
@@ -2046,30 +2203,64 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #'           x[[2]] - 1991.9066 < 1e-4,
 #'           x[[3]] - 2047.9440 < 1e-4,
 #'           x[[4]] - 2048.9281 < 1e-4)
+#' 
+#' 
+#' # (8-b)
+#' .ms1_vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses_all, 
+#'                                    maxn_vmods_per_pep = 5L, 
+#'                                    maxn_sites_per_vmod = 3L)
+#' .base_ent <- lapply(.ms1_vmodsets, `[[`, 1)
+#' 
+#'  x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]], 
+#'                       .ms1_vmodsets = .ms1_vmodsets, 
+#'                       .base_ent = .base_ent)
+#' 
+#' # (8-c)
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+#' 
+#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+#'             "Gln->pyro-Glu (N-term = Q)")
+#' 
+#' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
+#'                                varmods = varmods,
+#'                                maxn_vmods_setscombi = 64,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE,
+#'                                exclude_phospho_nl = TRUE,
+#'                                out_path = NULL)
 #'
+#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i)
+#' 
+#' i <- 10
+#' aa_masses <- aa_masses_all[[i]]
+#' ms1vmods <- ms1vmods_all[[i]]
+#' 
+#' pep <- c("HQGVMCNVGMGQKMNSC" = 2051.90346)
+#' amods <- attr(aa_masses, "amods")
+#' 
+#' x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
+#'                       ms1vmods = ms1vmods)
+#' 
+#' # y <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
+#' #                       ms1vmods = NULL)
+#' 
+#' # identical(x, y)
 #' }
 ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
                               vmods_nl = NULL, fmods_nl = NULL,
                               include_insource_nl = FALSE,
                               maxn_vmods_per_pep = 5L,
                               maxn_sites_per_vmod = 3L,
-                              .ms1_vmodsets = NULL, 
-                              .base_ent = NULL, 
+                              ms1vmods = NULL, 
                               digits = 4L) {
   
-  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, 
+                            useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   
-  vmods_combi <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
-                               aa_masses = aa_masses, aas = aas,
-                               maxn_vmods_per_pep = maxn_vmods_per_pep,
-                               maxn_sites_per_vmod = maxn_sites_per_vmod,
-                               .ms1_vmodsets = .ms1_vmodsets, 
-                               .base_ent = .base_ent, 
-                               digits = digits)
-  
-  vmods_combi <- find_intercombi(vmods_combi)
-  
+  vmods_combi <- match_mvmods(aas = aas, aa_masses = aa_masses, amods = amods, 
+                              ms1vmods = ms1vmods)
+
   deltas <- lapply(vmods_combi, function (x) sum(aa_masses[x]))
   
   masses <- lapply(deltas, function (x) round(mass + x, digits = digits))
@@ -2099,5 +2290,62 @@ ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
   names(out) <- rep(aa_seq, length(out))
   
   invisible(out)
+}
+
+
+#' Matches to the pre-calculated labels of combinatorial MS1 variable
+#' modifications.
+#' 
+#' @param aas \code{aa_seq} split in a sequence of LETTERS.
+#' @param ms1vmods The i-th result from lapply(aa_masses_all, make_ms1vmod_i). 
+#' @param amods \code{Anywhere} variable modifications.
+#' @inheritParams make_ms1vmod_i
+#' @examples
+#' \donttest{
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
+#'                "Carbamidomethyl (C)")
+#'
+#' varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", 
+#'              "Deamidated (N)",
+#'              "Gln->pyro-Glu (N-term = Q)")
+#' 
+#' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
+#'                                varmods = varmods,
+#'                                maxn_vmods_setscombi = 64,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE,
+#'                                exclude_phospho_nl = TRUE,
+#'                                out_path = NULL)
+#' 
+#' maxn_vmods_per_pep <- 5L
+#' maxn_sites_per_vmod <- 3L
+#' 
+#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
+#'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
+#' 
+#' i <- 11L
+#' aa_masses <- aa_masses_all[[i]]
+#' amods <- attr(aa_masses, "amods")
+#' ms1vmods <- ms1vmods_all[[i]]
+#' 
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#' 
+#' vmods_combi <- match_mvmods(aas, aa_masses, amods, ms1vmods)
+#' }
+match_mvmods <- function (aas, aa_masses = NULL, amods = NULL, ms1vmods = NULL, 
+                          maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L) {
+  
+  max_ps <- lapply(amods, function (x) sum(aas == x))
+  max_ps <- .Internal(unlist(max_ps, recursive = FALSE, use.names = TRUE))
+  
+  # `make_ms1_vmodsets` obtained from the same `amods`
+  #   -> no mess up in the order of `amods` -> no name sorting
+  
+  ps <- lapply(ms1vmods, attr, "ps")
+  rows <- lapply(ps, function (x) all(x <= max_ps))
+  rows <- .Internal(unlist(rows, recursive = FALSE, use.names = TRUE))
+  
+  ms1vmods[rows]
 }
 

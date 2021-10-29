@@ -293,9 +293,12 @@ calc_ms2ions_a1_vnl0_fnl0 <- function (vmods_combi, aas2, aa_masses,
 #' 'bare + 18.010565 + terminals + anywhere'.
 #'
 #' @param ms1_mass The mass of a theoretical MS1 (for subsetting).
+#' @param ntmod The attribute \code{ntmod} from a \code{aa_masses} (for MS1
+#'   calculations).
+#' @param ctmod The attribute \code{ctmod} from a \code{aa_masses} (for MS1
+#'   calculations).
 #' @param tol The tolerance in mass.
 #' @inheritParams calc_ms2ions_a1_vnl0_fnl0
-#' @inheritParams unique_mvmods
 #' @importFrom purrr is_empty
 check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod, 
                                    ms1_mass, tol = 1e-3) {
@@ -325,7 +328,8 @@ check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod,
 #'
 #' For all the \code{Anywhere} modifications specified in \code{amods}.
 #' 
-#' @inheritParams unique_mvmods
+#' @param amods Anywhere modifications.
+#' @param aas \code{aa_seq} split in a sequence of LETTERS.
 #' @inheritParams matchMS
 #' @inheritParams add_fixvar_masses
 #' @import purrr
@@ -580,10 +584,9 @@ combi_np <- function (n, p) {
 #' 
 #' For multiple residues (each residue one to multiple modifications).
 #' 
-#' @param intra_combis The results from \link{unique_mvmods}.
+#' @param intra_combis Inter-residue combinations.
 #' @inheritParams matchMS
 #' @importFrom purrr is_empty map map_lgl flatten 
-#' @seealso \link{find_intercombi}
 #' 
 #' @examples 
 #' N <- list(c(`7` = "Deamidated (N)"), 

@@ -36,6 +36,18 @@
 #   find_reporter_ints
 # 
 # 
+# vmod_labels.R
+#   - make_ms1vmod_i
+#     - make_ms1_vmodsets
+#       - bacth_vmods_combi
+#         - make_unique_sets
+#           - find_unique_sets
+#     - find_intercombi2
+#       - expand_grid_rows (utils_engine.R)
+# 
+
+
+
 # 
 # ms1_precursors.R: 
 #   - calc_pepmasses2
@@ -47,22 +59,22 @@
 #       - load_fasta2 (dbs.R)
 #       - chunksplit (msmsmatches.R)
 #         - make_fastapeps0 (-> export)
-#           - keep_n_misses (-> export; dbs.R)
+#           - keep_n_misses (-> export; ms1_precursors.R)
 #     - distri_fpeps (fixedmods)
 #     - ms1masses_bare
 #       - ms1masses_noterm
 #         - calcms1mass_noterm (-> export)
 #           - calcms1mass_noterm_byprot (-> export)
 #             - calcms1mass_noterm_bypep (-> export)
-#       - roll_sum (-> export; dbs.R)
+#       - roll_sum (-> export; ms1_precursors.R)
 #     - distri_peps (varmods)
 #       - subpeps_by_vmods (ions.R)
 #         - find_nmodtree
 #           ...
 #         - find_cmodtree
 #           ...
-#       - rm_char_in_nfirst2 (dbs.R)
-#       - rm_char_in_nlast2 (dbs.R)
+#       - rm_char_in_nfirst2 (ms1_precursors.R)
+#       - rm_char_in_nlast2 (ms1_precursors.R)
 #     - tbl_prots_peps
 #     - flat_pepseqs
 #     - add_term_mass2
@@ -70,13 +82,22 @@
 # 
 # helpers at sets of realized modifications: 
 #   (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
-#         delta_ms1_a0_fnl1 (-> export)
+#     - hms1_a0_vnl0_fnl1
+#       - ms1_a0_vnl0_fnl1
+#         - delta_ms1_a0_fnl1 (-> export)
 #   
 #  (7-8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
 #    (9-10) "amods+ tmod- vnl+ fnl-", "amods+ tmod+ vnl+ fnl-"
 #    (11-12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
 #    (13-14) "amods+ tmod- vnl+ fnl+", "amods+ tmod+ vnl+ fnl+"
 #         [by nested combinatorial conditions; no explicit functions]
+#         - hms1_a1_vnl0_fnl0
+#           - ms1_a1_vnl0_fnl0
+#             - match_mvmods
+#             - expand_grid_rows (utils_engine.R)
+
+
+# Moved to utils_ui.R 
 #         - unique_mvmods (-> export; dbs.R)
 #           - split_vec (-> export; util_engine.R)
 #           - vmods_elements (-> export; dbs.R)
@@ -85,7 +106,8 @@
 #             - recur_flatten (-> export; utils_engine.R)
 #         - find_intercombi (-> export; dbs.R)
 #           - expand_grid_rows (utils_engine.R)
-#         - delta_ms1_a0_fnl1 (-> export; ms1_precursors.R)
+
+
 # 
 # 
 ## ms2match (msmsmatches2.R)

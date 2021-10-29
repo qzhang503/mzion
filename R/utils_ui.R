@@ -633,3 +633,257 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
 }
 
 
+#' The unique combinations of variable modifications.
+#'
+#' The same residue, e.g. M, at different modifications, c("Carbamyl (M",
+#' "Oxidation (M)")).
+#'
+#' Goes over all the \code{Anywhere} modifications specified in \code{amods} for
+#' a given \code{aa_masses}.
+#'
+#' @param amods Anywhere modifications.
+#' @param ntmod The attribute \code{ntmod} from a \code{aa_masses} (for MS1
+#'   calculations).
+#' @param ctmod The attribute \code{ctmod} from a \code{aa_masses} (for MS1
+#'   calculations).
+#' @param aas \code{aa_seq} split in a sequence of LETTERS.
+#' @inheritParams matchMS
+#' @inheritParams add_fixvar_masses
+#' @import purrr
+#' @return Lists by residues in \code{amods}.
+#' @seealso \link{ms1_a1_vnl0_fnl0} for examples.
+#'
+#' @examples
+#' \donttest{
+#' ## M
+#' fixedmods = c("TMT6plex (K)", "dHex (S)")
+#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", "Acetyl (Protein N-term)")
+#'
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE)
+#'
+#' aa_masses <- aa_masses_all[[8]]
+#'
+#' amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"),
+#'               `Carbamyl (M)` = c(Anywhere = "M"))
+#'
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#'
+#' ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
+#'                      aa_masses = aa_masses, aas = aas)
+#'
+#' stopifnot(length(ans) == 1L,
+#'           length(ans[[1]]) == 3L)
+#'
+#' ## M and N
+#' fixedmods = c("TMT6plex (K)", "dHex (S)")
+#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)",
+#'             "Deamidated (N)", "Acetyl (Protein N-term)")
+#'
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE)
+#'
+#' aa_masses <- aa_masses_all[[16]]
+#'
+#' amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"),
+#'               `Carbamyl (M)` = c(Anywhere = "M"),
+#'               `Deamidated (N)` = c(Anywhere = "N"))
+#'
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#'
+#' ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
+#'                      aa_masses = aa_masses, aas = aas)
+#'
+#' stopifnot(length(ans) == 2L,
+#'           length(ans[[1]]) == 3L,
+#'           length(ans[[2]]) == 2L)
+#' }
+unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
+                           maxn_vmods_per_pep = 5L,
+                           maxn_sites_per_vmod = 3L,
+                           .ms1_vmodsets = NULL, 
+                           .base_ent = NULL, 
+                           digits = 5L) {
+  
+  # (6) "amods- tmod- vnl- fnl+"
+  if (!length(amods)) return(NULL)
+  
+  residue_mods <- .Internal(unlist(amods, recursive = FALSE, use.names = FALSE))
+  names(residue_mods) <- names(amods)
+  residue_mods <- split_vec(residue_mods)
+  
+  lapply(residue_mods, function (x) {
+    vmods_elements(aas = aas, residue_mods = x, 
+                   ntmod = ntmod, ctmod = ctmod,
+                   maxn_vmods_per_pep = maxn_vmods_per_pep,
+                   maxn_sites_per_vmod = maxn_sites_per_vmod,
+                   .ms1_vmodsets = .ms1_vmodsets, 
+                   .base_ent = .base_ent, 
+                   digits = digits)
+  })
+}
+
+
+#' Find the sets of variable modifications.
+#'
+#' The same residue, e.g. M, at different modifications, c("Carbamyl (M",
+#' "Oxidation (M)")). 
+#' 
+#' Excluding position differences, i.e., \code{A, B} and \code{B, A} is the
+#' same set.
+#'
+#' @param residue_mods Amino-acid residues with Unimod names. For example
+#'   rownames of \code{Carbamidomethyl (M)} and \code{Oxidation (M)} and a
+#'   column residues of \code{M, M}.
+#' @inheritParams unique_mvmods
+#' @import purrr
+#' @examples 
+#' \donttest{
+#' ntmod <- list(`Acetyl (Protein N-term)` = c(`Protein N-term` = "N-term"))
+#' 
+#' ctmod <- list()
+#' names(ctmod) <- character()
+#' 
+#' aas <- unlist(strsplit("HQGVMNVGMGQKSMNS", ""))
+#' residue_mods <- c(`Carbamidomethyl (M)` = "M", `Carbamyl (M)` = "M")
+#' 
+#' x <- vmods_elements(aas, residue_mods, ntmod, ctmod)
+#' }
+vmods_elements <- function (aas,
+                            residue_mods,
+                            ntmod,
+                            ctmod,
+                            maxn_vmods_per_pep = 5L,
+                            maxn_sites_per_vmod = 3L,
+                            .ms1_vmodsets = NULL, 
+                            .base_ent = NULL, 
+                            digits = 5L) {
+  
+  residue <- residue_mods[[1]]
+  
+  ns <- names(residue_mods)
+  len_n <- length(ns)
+  
+  # the exact positions not needed
+  len_p <- sum(aas == residue)
+  
+  # i.e., btw Anywhere "M" and "Acetyl N-term" where "M" on the "N-term"
+  # MFGMFNVSMR cannot have three `Oxidation (M)` and `Acetyl (N-term)`
+  
+  len_nt <- length(ntmod)
+  len_ct <- length(ctmod)
+  
+  if (len_nt && len_ct) {
+    len_aas <- length(aas)
+    aas_1 <- aas[1]
+    aas_n <- aas[len_aas]
+    if (aas_1 == residue && aas_n == residue) {
+      len_p <- len_p - 2
+    } else if ((aas_1 == residue) || (aas_n == residue)) {
+      len_p <- len_p - 1
+    }
+  } else if (len_nt) {
+    aas_1 <- aas[1]
+    if (aas_1 == residue) {
+      len_p <- len_p - 1
+    }
+  } else if (len_ct) {
+    aas_n <- aas[len_aas]
+    if (aas_n == residue) {
+      len_p <- len_p - 1
+    }
+  }
+  
+  if (len_p <= 0) return(list())
+  
+  len_p <- min(len_p, maxn_vmods_per_pep)
+  
+  if (is.null(.ms1_vmodsets) || is.null(.base_ent)) {
+    if (len_p > len_n) {
+      x <- lapply((len_n + 1):len_p, function (x) find_unique_sets(x, ns))
+      x <- .Internal(unlist(x, recursive = FALSE, use.names = FALSE))
+      x <- c(list(ns), x)
+    } else {
+      x <- list(ns)
+    }
+    
+    maxn_vmod <- lapply(x, count_elements)
+    maxn_vmod <- lapply(maxn_vmod, max)
+    rows <- (maxn_vmod <= maxn_sites_per_vmod)
+    
+    x <- x[rows]
+  } else {
+    x <- extract_vmodsets(.ms1_vmodsets, .base_ent, len_p, ns)
+  }
+  
+  invisible(x)
+}
+
+
+#' Finds the combinations across residues.
+#'
+#' For uses with MS1 precursors. For multiple residues (each residue one to
+#' multiple modifications).
+#'
+#' @param intra_combis The results from \link{unique_mvmods}.
+#' @inheritParams matchMS
+#' @seealso \link{find_intercombi_p2} for MS2 ions.
+#' @examples
+#' \donttest{
+#' C <- list(c("Carbamidomethyl (C)"),
+#'           rep("Carbamidomethyl (C)", 2))
+#'
+#' N <- list(c("Deamidated (N)"),
+#'           rep("Deamidated (N)", 2))
+#'
+#' intra_combis <- list(C = C, N = N)
+#'
+#' ans <- find_intercombi(intra_combis)
+#' 
+#' # three large lists
+#' S <- list(c("Carbamidomethyl (S)", "Phospho (S)", "Phospho (S)"),
+#'            c("Carbamidomethyl (S)", "Phospho (S)", "Phospho (S)", "Phospho (S)"))
+#' 
+#' M <- list(c("Oxidation (M)", "Carbamidomethyl (M)"), 
+#'           c("Oxidation (M)", "Carbamidomethyl (M)", "Carbamyl (M)"))
+#' 
+#' N <- list(c("Deamidated (N)"),
+#'           rep("Deamidated (N)", 2))
+#' 
+#' ans <- find_intercombi(list(S = S, M = M, N = N))
+#' }
+find_intercombi <- function (intra_combis, maxn_vmods_per_pep = 5L) {
+  
+  len <- length(intra_combis)
+  
+  if (!len) { # scalar
+    v_out <- list()
+  } else if (any(.Internal(unlist(lapply(intra_combis, purrr::is_empty), 
+                                  recursive = FALSE, use.names = FALSE)))) { # list
+    v_out <- list()
+  } else if (len > 1L) {
+    v_out <- expand_grid_rows(intra_combis, use.names = FALSE)
+    
+    lens <- lapply(v_out, length)
+    lens <- .Internal(unlist(lens, recursive = FALSE, use.names = FALSE))
+    oks <- (lens <= maxn_vmods_per_pep)
+    v_out <- v_out[oks]
+    
+    ## DONT: 
+    ## each aa_masses is a realization of a set of combinatorial amods;
+    ## if length > maxn_vmods_per_pep, the combination should be dropped;
+    ## duplicated entries if subset by 1:min(length(x), maxn_vmods_per_pep)
+    
+    # v_out <- lapply(v_out, function (x) x[1:min(length(x), maxn_vmods_per_pep)])
+  } else {
+    v_out <- purrr::flatten(intra_combis)
+  }
+  
+  invisible(v_out)
+}
+
+
+
+
