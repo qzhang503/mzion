@@ -8,6 +8,8 @@ frames_adv(
   mgf_frames = NULL,
   theopeps = NULL,
   aa_masses = NULL,
+  ms1vmods = NULL,
+  ms2vmods = NULL,
   ntmod = NULL,
   ctmod = NULL,
   ntmass = NULL,
@@ -38,6 +40,11 @@ whose MS1 masses are in the same interval.}
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
 
+\item{ms1vmods}{The set of all possible MS1 vmod labels at a given aa_masses.}
+
+\item{ms2vmods}{Matrices of labels of variable modifications. Each
+permutation in a row for each matrix.}
+
 \item{ntmass}{The mass of N-terminal.}
 
 \item{ctmass}{The mass of C-terminal.}
@@ -56,11 +63,12 @@ modifications.}
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
 
-\item{maxn_vmods_per_pep}{The maximum number of variable modifications per
-peptide.}
+\item{maxn_vmods_per_pep}{The maximum number of \code{Anywhere}
+(non-terminal) variable modifications per peptide.}
 
 \item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
-variable modifications per site in a per peptide sequence.}
+\code{Anywhere} (non-terminal) variable modifications per site in a per
+peptide sequence.}
 
 \item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
 combinatorial variable modifications per peptide sequence. The default is

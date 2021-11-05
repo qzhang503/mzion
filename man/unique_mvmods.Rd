@@ -31,11 +31,12 @@ acid residues.}
 
 \item{aas}{\code{aa_seq} split in a sequence of LETTERS.}
 
-\item{maxn_vmods_per_pep}{The maximum number of variable modifications per
-peptide.}
+\item{maxn_vmods_per_pep}{The maximum number of \code{Anywhere}
+(non-terminal) variable modifications per peptide.}
 
 \item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
-variable modifications per site in a per peptide sequence.}
+\code{Anywhere} (non-terminal) variable modifications per site in a per
+peptide sequence.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }

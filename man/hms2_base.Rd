@@ -13,6 +13,8 @@ hms2_a0_vnl0_fnl1(
   mgf_frames,
   theopeps,
   aa_masses,
+  ms1vmods,
+  ms2vmods,
   ntmass,
   ctmass,
   fmods_nl,
@@ -32,6 +34,8 @@ hms2_a1_vnl0_fnl0(
   mgf_frames,
   theopeps,
   aa_masses,
+  ms1vmods,
+  ms2vmods,
   ntmod = NULL,
   ctmod = NULL,
   ntmass,
@@ -53,6 +57,8 @@ hms2_a1_vnl0_fnl1(
   mgf_frames,
   theopeps,
   aa_masses,
+  ms1vmods,
+  ms2vmods,
   ntmod = NULL,
   ctmod = NULL,
   ntmass,
@@ -75,6 +81,8 @@ hms2_a1_vnl1_fnl0(
   mgf_frames,
   theopeps,
   aa_masses,
+  ms1vmods,
+  ms2vmods,
   ntmod = NULL,
   ctmod = NULL,
   ntmass,
@@ -97,6 +105,8 @@ hms2_base(
   mgf_frames,
   theopeps,
   aa_masses,
+  ms1vmods,
+  ms2vmods,
   ntmass,
   ctmass,
   mod_indexes,
@@ -121,6 +131,11 @@ mgf queries with the same frame number.}
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
 
+\item{ms1vmods}{The set of all possible MS1 vmod labels at a given aa_masses.}
+
+\item{ms2vmods}{Matrices of labels of variable modifications. Each
+permutation in a row for each matrix.}
+
 \item{ntmass}{The mass of N-terminal.}
 
 \item{ctmass}{The mass of C-terminal.}
@@ -135,11 +150,12 @@ modifications.}
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
 
-\item{maxn_vmods_per_pep}{The maximum number of variable modifications per
-peptide.}
+\item{maxn_vmods_per_pep}{The maximum number of \code{Anywhere}
+(non-terminal) variable modifications per peptide.}
 
 \item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
-variable modifications per site in a per peptide sequence.}
+\code{Anywhere} (non-terminal) variable modifications per site in a per
+peptide sequence.}
 
 \item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
 combinatorial variable modifications per peptide sequence. The default is

@@ -1,10 +1,9 @@
-#' Makes the sets of labels for an \code{aa_masses}.
+#' Makes the sets of MS1 labels for a given \code{aa_masses}.
 #'
 #' For \code{Anywhere} variable modifications (\code{amods}) across all
 #' residues.
 #'
-#' For the universe of labels, loops through \code{aa_masses_all} and the
-#' indexes of lists are in one-to-one correspondence to \code{aa_masses_all}.
+#' For the universe of labels, loops through \code{aa_masses_all}.
 #'
 #' By the design of \code{aa_masses}, the \code{amods} in a \code{aa_masses} are
 #' all realized. Therefore, each list in the resulted labels should contain at
@@ -12,16 +11,20 @@
 #' example, if \code{amods} contain M, N and S, each list in the result should
 #' contains at least one of the residues.
 #'
+#' Currently, variable terminal modifications are exempted from the restriction
+#' by \code{maxn_vmods_per_pep}. If taken into account (e.g. variable N-term),
+#' the combination of \code{Anywhere} can be further reduced.
+#'
 #' @param aa_masses A named list containing the (mono-isotopic) masses of amino
 #'   acid residues.
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
 #' ## Simple
-#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
 #'                "Carbamidomethyl (C)")
 #'
-#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
+#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
 #'             "Deamidated (N)",
 #'             "Gln->pyro-Glu (N-term = Q)")
 #'
@@ -39,15 +42,15 @@
 #' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-#' 
+#'
 #' stopifnot(length(ms1vmods_all[[1]]) == 0L,
 #'           length(ms1vmods_all[[2]]) == 0L,
 #'           length(ms1vmods_all[[3]]) == 0L)
-#' 
-#' # M, N
+#'
+#' # (M, N)
 #' len_ps <- lapply(ms1vmods_all[[12]], function (x) attr(x, "ps"))
-#' 
-#' # M
+#'
+#' # (M)
 #' len_ps <- lapply(ms1vmods_all[[4]], function (x) attr(x, "ps"))
 #'
 #' ## More complex
@@ -73,9 +76,9 @@
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
 #' # No duplication within each aa_masses
-#' any_dups <- lapply(ms1vmods_all, 
+#' any_dups <- lapply(ms1vmods_all,
 #'                    function (x) anyDuplicated(x))
-#' 
+#'
 #' stopifnot(all(unlist(any_dups) == 0L))
 #'
 #' # Can have identical sets of labels at different aa_masses
@@ -84,12 +87,53 @@
 #' attr(aa_masses_all[[3]], "tmod")
 #' attr(aa_masses_all[[9]], "tmod")
 #'
-#' # For each aa_masses, finds 'n' (the number of lables) 
-#' #  from the base entry
-#' lapply(ms1vmods_all, `[[`, 1)
+#' ms1vmods <- ms1vmods_all[[64]]
+#' n <- length(ms1vmods[[1]])
 #' 
-#' ms1vmods_64 <- ms1vmods_all[[64]]
-#' n <- length(ms1vmods_64[[1]])
+#' 
+#' ## "Oxidation (M)" on the N-term
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+#'
+#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+#'             "Gln->pyro-Glu (N-term = Q)")
+#'
+#' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
+#'                                varmods = varmods,
+#'                                maxn_vmods_setscombi = 64,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE,
+#'                                exclude_phospho_nl = TRUE,
+#'                                out_path = NULL)
+#'
+#' maxn_vmods_per_pep <- 5L
+#' maxn_sites_per_vmod <- 3L
+#'
+#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
+#'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
+#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+#' 
+#' i <- 6L
+#' aa_masses <- aa_masses_all[[i]]
+#' amods <- attr(aa_masses, "amods")
+#'
+#' ms1vmods <- ms1vmods_all[[i]]
+#' ms2vmods <- ms2vmods_all[[i]]
+#' 
+#' aas <- unlist(strsplit("MHQGVMNVGMGQKNS", ""))
+#' 
+#' # Subset from ms1vmods by aas
+#' oks <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
+#' ms2vmods <- ms2vmods[oks]
+#'
+#' vmods_combi <- find_vmodscombi(aas, ms2vmods)
+#' 
+#' # "Oxidation (M)" on N-term kept in the label space
+#' lapply(vmods_combi, function (x) any(names(x) == 1))
+#' 
+#' # Otherwise check if any attr(aa_masses, "amods") in the N-term
+#' amods <- attr(aa_masses, "amods")
+#' # may do it during `combi_byvmodsM`...
 #' }
 make_ms1vmod_i <- function (aa_masses = NULL, maxn_vmods_per_pep = 5L, 
                             maxn_sites_per_vmod = 3L) {
@@ -170,11 +214,19 @@ bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L,
   
   # stopifnot(maxn_vmods_per_pep >= 2L)
   
-  make_unique_sets(p = maxn_vmods_per_pep, 
-                   n = length(resmods), 
-                   labs = names(resmods), 
-                   maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                   maxn_sites_per_vmod = maxn_sites_per_vmod)
+  resid <- unname(resmods[[1]])
+
+  ans <- make_unique_sets(p = maxn_vmods_per_pep, 
+                          n = length(resmods), 
+                          labs = names(resmods), 
+                          # resid = resmods, 
+                          maxn_vmods_per_pep = maxn_vmods_per_pep, 
+                          maxn_sites_per_vmod = maxn_sites_per_vmod)
+  
+  lapply(ans, function (x) {
+    names(x) <- rep(resid, length(x))
+    x
+  })
 }
 
 
@@ -337,6 +389,34 @@ find_unique_sets <- function (p = 5L, labs = c("A", "B", "C")) {
 #'                               maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
 #' ms1vmods <- find_intercombi2(vmodsets)
+#' 
+#' ## `Oxidation (M)`, "Carbamidomethyl (M)"
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
+#'
+#' varmods <- c("Acetyl (Protein N-term)",
+#'              "Oxidation (M)", "Carbamidomethyl (M)",
+#'              "Deamidated (N)")
+#'
+#' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
+#'                                varmods = varmods,
+#'                                maxn_vmods_setscombi = 64,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE,
+#'                                exclude_phospho_nl = TRUE,
+#'                                out_path = NULL)
+#' 
+#' maxn_vmods_per_pep <- 5L
+#' maxn_sites_per_vmod <- 3L
+#' 
+#' i <- 16L
+#' aa_masses <- aa_masses_all[[i]]
+#'
+#' vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses,
+#'                               maxn_vmods_per_pep = maxn_vmods_per_pep,
+#'                               maxn_sites_per_vmod = maxn_sites_per_vmod)
+#'
+#' ms1vmods <- find_intercombi2(vmodsets)
+#' 
 #' }
 find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L) {
   
@@ -351,23 +431,45 @@ find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L) {
     return(list())
   
   # all lists are non-empty
+  vmod_nms <- lapply(vmodsets, function (x) lapply(x, names))
   len_ps <- lapply(vmodsets, function (x) lapply(x, length))
   
   v_out <- expand_grid_rows(vmodsets, use.names = FALSE)
-  # ps <- expand_grid_rows(len_ps, use.names = TRUE)
+  nm_out <- expand_grid_rows(vmod_nms, use.names = FALSE)
+
+  v_out <- mapply(function (x, y) {
+    names(x) <- y
+    x
+  }, v_out, nm_out, 
+  SIMPLIFY = FALSE, USE.NAMES = FALSE)
+
+  ps <- expand_grid_rows(len_ps, use.names = TRUE)
   
+  ## Characteristics of expand grids: 
+  # (residues will be in sections, e.g. M, M, M, N)
+  #  M                      M                  M                   N       
+  # "Carbamidomethyl (M)", "Carbamyl (M)", "Carbamidomethyl (M)", "Deamidated (N)"
+  # 
+  # The same order for ps (M > N)
+  # M N 
+  # 3 1
+  # 
+  # Therefore can safely tell from ps that the first three are M(s)
+
   lens <- lapply(v_out, length)
   lens <- .Internal(unlist(lens, recursive = FALSE, use.names = FALSE))
   oks <- (lens <= maxn_vmods_per_pep)
   
   v_out <- v_out[oks]
-  # ps <- ps[oks]
+  ps <- ps[oks]
   labs <- lapply(v_out, count_elements)
   
-  mapply(function (x, z) {
+  mapply(function (x, y, z) {
+    attr(x, "ps") <- y
     attr(x, "labs") <- z
     x
-  }, v_out, labs, 
+  }, v_out, ps, labs, 
   SIMPLIFY = FALSE, USE.NAMES = FALSE)
 }
+
 

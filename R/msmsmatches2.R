@@ -101,12 +101,20 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   } else {
     ppm_ms2_new <- ppm_ms2
   }
+  
+  # The universes of MS1 varmods combinations & MS2 permutations
+  ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+                         maxn_vmods_per_pep = maxn_vmods_per_pep,
+                         maxn_sites_per_vmod = maxn_sites_per_vmod)
+  
+  ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
 
   message("\n===  MS2 ion searches started at ", Sys.time(), ". ===\n")
   
   ## Targets 
   obj_sizes <- numeric(length(aa_masses_all))
   types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
+  
   
   # (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-" 
   inds <- which(types %in% c("amods- tmod- vnl- fnl-", 
@@ -115,6 +123,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
+      ms1vmods <- ms1vmods_all[[i]]
+      ms2vmods <- ms2vmods_all[[i]]
       
       # need ntmod and ctmod for `amod+_...` for 
       #   excluding additive terminal mod and anywhere mod
@@ -141,6 +151,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       out <- ms2match_base(
         i = i, 
         aa_masses = aa_masses, 
+        ms1vmods = ms1vmods, 
+        ms2vmods = ms2vmods, 
         ntmass = ntmass, 
         ctmass = ctmass, 
         mod_indexes = mod_indexes, 
@@ -172,6 +184,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
     }
   }
   
+  
   # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+" 
   #        (mutual exclusive btw. (1, 2) and (5, 6)
   #         "ANY" fmod has neuloss -> 5, 6;
@@ -183,6 +196,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
+      ms1vmods <- ms1vmods_all[[i]]
+      ms2vmods <- ms2vmods_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
       if (length(ntmod)) {
@@ -203,6 +218,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       out <- ms2match_a0_vnl0_fnl1(
         i = i, 
         aa_masses = aa_masses, 
+        ms1vmods = ms1vmods, 
+        ms2vmods = ms2vmods, 
         ntmass = ntmass, 
         ctmass = ctmass, 
         fmods_nl = fmods_nl, 
@@ -235,6 +252,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
     }
   }
   
+  
   # (7, 8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
   #        (ALL amods are vnl-)
   
@@ -244,6 +262,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
+      ms1vmods <- ms1vmods_all[[i]]
+      ms2vmods <- ms2vmods_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
       if (length(ntmod)) {
@@ -264,6 +284,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       out <- ms2match_a1_vnl0_fnl0(
         i = i, 
         aa_masses = aa_masses, 
+        ms1vmods = ms1vmods, 
+        ms2vmods = ms2vmods, 
         ntmod = ntmod, 
         ctmod = ctmod, 
         ntmass = ntmass, 
@@ -298,6 +320,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
     }
   }
   
+  
   # (9, 10) "amods+ tmod- vnl+ fnl-", "amods+ tmod+ vnl+ fnl-"
   #         (ANY amod is vnl+)
   
@@ -307,6 +330,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
+      ms1vmods <- ms1vmods_all[[i]]
+      ms2vmods <- ms2vmods_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
       if (length(ntmod)) {
@@ -328,6 +353,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       out <- ms2match_a1_vnl1_fnl0(
         i = i, 
         aa_masses = aa_masses, 
+        ms1vmods = ms1vmods, 
+        ms2vmods = ms2vmods, 
         ntmod = ntmod, 
         ctmod = ctmod, 
         ntmass = ntmass, 
@@ -363,6 +390,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
     }
   }
   
+  
   # (11, 12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
   #          (mutual exclusive btw. (11, 12) and (7, 8);
   #           logicial ANY versus ALL)
@@ -373,6 +401,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
+      ms1vmods <- ms1vmods_all[[i]]
+      ms2vmods <- ms2vmods_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
       if (length(ntmod)) {
@@ -394,6 +424,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       out <- ms2match_a1_vnl0_fnl1(
         i = i, 
         aa_masses = aa_masses, 
+        ms1vmods = ms1vmods, 
+        ms2vmods = ms2vmods, 
         ntmod = ntmod, 
         ctmod = ctmod, 
         ntmass = ntmass, 
@@ -472,6 +504,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
     rev <- ms2match_a1_vnl0_fnl0(
       i = i_max2, 
       aa_masses = aa_masses, 
+      ms1vmods = ms1vmods, 
+      ms2vmods = ms2vmods, 
       ntmod = ntmod, 
       ctmod = ctmod, 
       ntmass = ntmass, 
@@ -493,6 +527,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
     rev <- ms2match_base(
       i = i_max2, 
       aa_masses = aa_masses, 
+      ms1vmods = ms1vmods, 
+      ms2vmods = ms2vmods, 
       ntmass = ntmass, 
       ctmass = ctmass, 
       mod_indexes = mod_indexes, 

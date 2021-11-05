@@ -1,9 +1,12 @@
 #' Matching MS2 ions.
-#' 
+#'
 #' (1) "amods- tmod- vnl- fnl-", (2) "amods- tmod+ vnl- fnl-"
-#' 
+#'
 #' @param i Integer; the index for a set of corresponding aa_masses and
 #'   theoretical peptides.
+#' @param ms1vmods The set of all possible MS1 vmod labels at a given aa_masses.
+#' @param ms2vmods Matrices of labels of variable modifications. Each
+#'   permutation in a row for each matrix.
 #' @param ntmass The mass of N-terminal.
 #' @param ctmass The mass of C-terminal.
 #' @param type_ms2ions Character; the type of
@@ -15,8 +18,8 @@
 #' @inheritParams add_fixvar_masses
 #' @import purrr
 #' @import parallel
-ms2match_base <- function (i, aa_masses, ntmass, ctmass, mod_indexes, 
-                           mgf_path, out_path, type_ms2ions = "by", 
+ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass, 
+                           mod_indexes, mgf_path, out_path, type_ms2ions = "by", 
                            maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                            maxn_vmods_sitescombi_per_pep = 32L, 
                            minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
@@ -79,6 +82,8 @@ ms2match_base <- function (i, aa_masses, ntmass, ctmass, mod_indexes,
     cl, hms2_base, 
     mgf_frames, theopeps, 
     MoreArgs = list(aa_masses = aa_masses, 
+                    ms1vmods = ms1vmods, 
+                    ms2vmods = ms2vmods, 
                     ntmass = ntmass, 
                     ctmass = ctmass, 
                     mod_indexes = mod_indexes, 
@@ -119,7 +124,8 @@ ms2match_base <- function (i, aa_masses, ntmass, ctmass, mod_indexes,
 #' @inheritParams matchMS
 #' @inheritParams ms2match
 #' @inheritParams ms2match_base
-hms2_base <- function (mgf_frames, theopeps, aa_masses, ntmass, ctmass, 
+hms2_base <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmods, 
+                       ntmass, ctmass, 
                        mod_indexes, type_ms2ions = "by", 
                        maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                        maxn_vmods_sitescombi_per_pep = 32L, 
@@ -129,6 +135,8 @@ hms2_base <- function (mgf_frames, theopeps, aa_masses, ntmass, ctmass,
   res <- frames_adv(mgf_frames = mgf_frames, 
                     theopeps = theopeps, 
                     aa_masses = aa_masses, 
+                    ms1vmods = ms1vmods, 
+                    ms2vmods = ms2vmods, 
                     ntmod = NULL, ctmod = NULL, 
                     ntmass = ntmass, 
                     ctmass = ctmass, 
@@ -170,7 +178,8 @@ hms2_base <- function (mgf_frames, theopeps, aa_masses, ntmass, ctmass,
 #' @inheritParams hms2_base
 #' @return Matches to each MGF as a list elements. The length of the output is
 #'   equal to the number of MGFs in the given frame.
-frames_adv <- function (mgf_frames = NULL, theopeps = NULL, aa_masses = NULL, 
+frames_adv <- function (mgf_frames = NULL, theopeps = NULL, 
+                        aa_masses = NULL, ms1vmods = NULL, ms2vmods = NULL, 
                         ntmod = NULL, ctmod = NULL, 
                         ntmass = NULL, ctmass = NULL, 
                         amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
@@ -205,6 +214,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL, aa_masses = NULL,
     ms1_mass = theomasses_bf_ms1, 
     MoreArgs = list(
       aa_masses = aa_masses, 
+      ms1vmods = ms1vmods, 
+      ms2vmods = ms2vmods, 
       ntmod = ntmod, ctmod = ctmod, 
       ntmass = ntmass, 
       ctmass = ctmass, 
@@ -227,6 +238,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL, aa_masses = NULL,
     ms1_mass = theomasses_cr_ms1, 
     MoreArgs = list(
       aa_masses = aa_masses, 
+      ms1vmods = ms1vmods, 
+      ms2vmods = ms2vmods, 
       ntmod = ntmod, ctmod = ctmod, 
       ntmass = ntmass, 
       ctmass = ctmass, 
@@ -260,6 +273,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL, aa_masses = NULL,
       ms1_mass = theomasses_af_ms1, 
       MoreArgs = list(
         aa_masses = aa_masses, 
+        ms1vmods = ms1vmods, 
+        ms2vmods = ms2vmods, 
         ntmod = ntmod, ctmod = ctmod, 
         ntmass = ntmass, 
         ctmass = ctmass, 
@@ -348,6 +363,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL, aa_masses = NULL,
         ms1_mass = theomasses_cr_ms1, 
         MoreArgs = list(
           aa_masses = aa_masses, 
+          ms1vmods = ms1vmods, 
+          ms2vmods = ms2vmods, 
           ntmod = ntmod, ctmod = ctmod, 
           ntmass = ntmass, 
           ctmass = ctmass, 
@@ -381,6 +398,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL, aa_masses = NULL,
         ms1_mass = theomasses_bf_ms1, 
         MoreArgs = list(
           aa_masses = aa_masses, 
+          ms1vmods = ms1vmods, 
+          ms2vmods = ms2vmods, 
           ntmod = ntmod, ctmod = ctmod, 
           ntmass = ntmass, 
           ctmass = ctmass, 
@@ -404,6 +423,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL, aa_masses = NULL,
         ms1_mass = theomasses_cr_ms1, 
         MoreArgs = list(
           aa_masses = aa_masses, 
+          ms1vmods = ms1vmods, 
+          ms2vmods = ms2vmods, 
           ntmod = ntmod, ctmod = ctmod, 
           ntmass = ntmass, 
           ctmass = ctmass, 
@@ -526,7 +547,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL, aa_masses = NULL,
 #'                         amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
 #'                         mod_indexes = mod_indexes)
 #' }
-gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses = NULL, 
+gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL, 
+                              aa_masses = NULL, ms1vmods = NULL, ms2vmods = NULL, 
                               ntmod = NULL, ctmod = NULL, 
                               ntmass = NULL, ctmass = NULL, 
                               amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 

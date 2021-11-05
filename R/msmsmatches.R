@@ -35,10 +35,11 @@
 #'   fasta files.
 #' @param maxn_vmods_setscombi Integer; the maximum number of combinatorial
 #'   variable modifications and neutral losses.
-#' @param maxn_vmods_per_pep The maximum number of variable modifications per
-#'   peptide.
+#' @param maxn_vmods_per_pep The maximum number of \code{Anywhere}
+#'   (non-terminal) variable modifications per peptide.
 #' @param maxn_sites_per_vmod Integer; the maximum number of combinatorial
-#'   variable modifications per site in a per peptide sequence.
+#'   \code{Anywhere} (non-terminal) variable modifications per site in a per
+#'   peptide sequence.
 #' @param maxn_vmods_sitescombi_per_pep Integer; the maximum number of
 #'   combinatorial variable modifications per peptide sequence. The default is
 #'   64. May consider a smaller value, i.e. 32, when searching against

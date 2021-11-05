@@ -9,7 +9,8 @@
 #' @import purrr
 #' @import parallel
 #' @import dplyr
-ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ntmod = NULL, ctmod = NULL, 
+ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods, 
+                                   ntmod = NULL, ctmod = NULL, 
                                    ntmass = NULL, ctmass = NULL, amods, fmods_nl, 
                                    mod_indexes, mgf_path, out_path, 
                                    type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
@@ -79,6 +80,8 @@ ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ntmod = NULL, ctmod = NULL,
     cl, hms2_a1_vnl0_fnl1, 
     mgf_frames, theopeps, 
     MoreArgs = list(aa_masses = aa_masses, 
+                    ms1vmods = ms1vmods, 
+                    ms2vmods = ms2vmods, 
                     ntmod = ntmod, 
                     ctmod = ctmod, 
                     ntmass = ntmass, 
@@ -117,7 +120,7 @@ ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ntmod = NULL, ctmod = NULL,
 #' 
 #' @inheritParams ms2match_a1_vnl0_fnl0
 #' @rdname hms2_base
-hms2_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, 
+hms2_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmods, 
                                ntmod = NULL, ctmod = NULL, 
                                ntmass, ctmass, 
                                amods, fmods_nl, mod_indexes, type_ms2ions = "by", 
@@ -130,6 +133,8 @@ hms2_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
   res <- frames_adv(mgf_frames = mgf_frames, 
                     theopeps = theopeps, 
                     aa_masses = aa_masses, 
+                    ms1vmods = ms1vmods, 
+                    ms2vmods = ms2vmods, 
                     ntmod = ntmod, 
                     ctmod = ctmod, 
                     ntmass = ntmass, 
@@ -222,7 +227,9 @@ hms2_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses,
 #' ms1_mass <- ms1_masses$mass[[2]][2] # 1367.6996
 #' 
 #' }
-gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses = NULL, 
+gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL, 
+                                      aa_masses = NULL, 
+                                      ms1vmods = NULL, ms2vmods = NULL, 
                                       ntmod = NULL, ctmod = NULL, 
                                       ntmass = NULL, ctmass = NULL, 
                                       amods = NULL, 
@@ -242,6 +249,7 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses 
   if (!grepl(pattern, aa_seq)) {
     out <- gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                                     aa_masses = aa_masses, 
+                                    ms1vmods = NULL, ms2vmods = NULL, 
                                     ntmod = ntmod, ctmod = ctmod, 
                                     ntmass = ntmass, ctmass = ctmass, 
                                     amods = amods, mod_indexes = mod_indexes, 
@@ -258,28 +266,24 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL, aa_masses 
   aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
-
-  vmods_combi <- combi_mvmods2(amods = amods, 
-                               aas = aas, 
-                               aa_masses = aa_masses, 
-                               maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                               maxn_sites_per_vmod = maxn_sites_per_vmod, 
-                               maxn_vmods_sitescombi_per_pep = 
-                                 maxn_vmods_sitescombi_per_pep, 
-                               digits = digits)
   
-  vmods_combi <- find_intercombi_p2(vmods_combi, maxn_vmods_sitescombi_per_pep)
+  ms1vmods <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
+  oks <- ms1vmods$inds
+  ms2vmods <- ms2vmods[oks]
+  
+  vmods_combi <- find_vmodscombi(aas = aas, ms2vmods = ms2vmods, 
+                                 maxn_vmods_sitescombi_per_pep = 
+                                   maxn_vmods_sitescombi_per_pep)
 
-  # filtered by MS1 masses
-  if (length(vmods_combi) && !is.null(ms1_mass)) {
-    idxes <- lapply(vmods_combi, check_ms1_mass_vmods2, aas2, aa_masses, 
-                    ntmod, ctmod, ms1_mass)
-    idxes <- .Internal(unlist(idxes, recursive = FALSE, use.names = FALSE))
-    
-    vmods_combi <- vmods_combi[idxes]
-    rm(list = c("idxes"))
-  }
-
+  idxes <- check_ms1_mass_vmods2(vmods_combi = vmods_combi, 
+                                 aas2 = aas2, aa_masses = aa_masses, 
+                                 ntmod = ntmod, ctmod = ctmod, 
+                                 ms1_mass = ms1_mass)
+  
+  if (!any(idxes)) return(NULL)
+  
+  vmods_combi <- vmods_combi[idxes]
+  
   # NLs of fixedmods
   fnl_idxes <- which(aas %in% names(fmods_nl))
 

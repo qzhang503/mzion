@@ -4,8 +4,9 @@
 #' 
 #' @param fmods_nl The attribute of \code{fmods_nl} from an \code{aa_masses}.
 #' @rdname ms2match_base
-ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ntmass, ctmass, fmods_nl, 
-                                   mod_indexes, mgf_path, out_path, 
+ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods, 
+                                   ntmass, ctmass, 
+                                   fmods_nl, mod_indexes, mgf_path, out_path, 
                                    type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                                    maxn_sites_per_vmod = 3L, 
                                    maxn_vmods_sitescombi_per_pep = 32L, 
@@ -70,6 +71,8 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ntmass, ctmass, fmods_nl,
     cl, hms2_a0_vnl0_fnl1, 
     mgf_frames, theopeps, 
     MoreArgs = list(aa_masses = aa_masses, 
+                    ms1vmods = ms1vmods, 
+                    ms2vmods = ms2vmods, 
                     ntmass = ntmass, 
                     ctmass = ctmass, 
                     fmods_nl = fmods_nl, 
@@ -108,7 +111,8 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ntmass, ctmass, fmods_nl,
 #'
 #' @inheritParams ms2match_base
 #' @rdname hms2_base
-hms2_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ntmass, ctmass, 
+hms2_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmods, 
+                               ntmass, ctmass, 
                                fmods_nl, mod_indexes, type_ms2ions = "by", 
                                maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                                maxn_vmods_sitescombi_per_pep = 32L, 
@@ -118,6 +122,8 @@ hms2_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ntmass, ctmass,
   res <- frames_adv(mgf_frames = mgf_frames, 
                     theopeps = theopeps, 
                     aa_masses = aa_masses, 
+                    ms1vmods = ms1vmods, 
+                    ms2vmods = ms2vmods, 
                     ntmod = NULL, ctmod = NULL, 
                     ntmass = ntmass, 
                     ctmass = ctmass, 
@@ -192,7 +198,8 @@ hms2_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ntmass, ctmass,
 #'                                 mod_indexes = mod_indexes)
 #' 
 #' }
-gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses, 
+gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, 
+                                      aa_masses = NULL, ms1vmods = NULL, ms2vmods = NULL, 
                                       ntmod = NULL, ctmod = NULL, # not used
                                       ntmass = NULL, ctmass = NULL, 
                                       amods = NULL, vmods_nl = NULL, # not used
@@ -211,7 +218,7 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL, aa_masses,
   
   if (!grepl(pattern, aa_seq)) {
     out <- gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
-                            aa_masses = aa_masses, 
+                            aa_masses = aa_masses, ms1vmods = NULL, ms2vmods = NULL, 
                             ntmod = NULL, ctmod = NULL, 
                             ntmass = ntmass, ctmass = ctmass, 
                             amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 

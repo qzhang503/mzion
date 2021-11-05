@@ -9,8 +9,8 @@ find_intercombi(intra_combis, maxn_vmods_per_pep = 5L)
 \arguments{
 \item{intra_combis}{The results from \link{unique_mvmods}.}
 
-\item{maxn_vmods_per_pep}{The maximum number of variable modifications per
-peptide.}
+\item{maxn_vmods_per_pep}{The maximum number of \code{Anywhere}
+(non-terminal) variable modifications per peptide.}
 }
 \description{
 For uses with MS1 precursors. For multiple residues (each residue one to

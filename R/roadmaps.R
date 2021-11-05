@@ -117,7 +117,7 @@
 #     purge_search_space (utils_engine.R)
 #       subset_theoframes (msmsmatches.R)
 #     hms2_base (helper)
-#       frames_adv_base (frame-advancing)
+#       frames_adv (frame-advancing)
 #         gen_ms2ions_base (for specific pep_seq)
 #           ms2ions_by_type (ion_ladder.R)
 #             byions, czions, axions (ion_ladder.R)
@@ -132,7 +132,7 @@
 #   ms2match_a0_vnl0_fnl1 
 #     purge_search_space
 #     hms2_a0_vnl0_fnl1
-#       frames_adv_a0_vnl0_fnl1
+#       frames_adv
 #         gen_ms2ions_a0_vnl0_fnl1
 #           // early return
 #           gen_ms2ions_base (ms2base.R)
@@ -152,7 +152,7 @@
 #   ms2match_a1_vnl0_fnl0 
 #     purge_search_space
 #     hms2_a1_vnl0_fnl0
-#       frames_adv_a1_vnl0_fnl0
+#       frames_adv
 #         gen_ms2ions_a1_vnl0_fnl0
 #           combi_mvmods2 (ms2_a1_vnl0_fnl0.R)
 #             combi_vmods2 (ms2_a1_vnl0_fnl0.R)
@@ -174,7 +174,7 @@
 #   ms2match_a1_vnl1_fnl0 
 #     purge_search_space
 #     hms2_a1_vnl1_fnl0
-#       frames_adv_a1_vnl1_fnl0
+#       frames_adv
 #         gen_ms2ions_a1_vnl1_fnl0
 #           combi_mvmods2 (ms2_a1_vnl0_fnl0.R)
 #             combi_vmods2 (ms2_a1_vnl0_fnl0.R)
@@ -195,7 +195,7 @@
 #   ms2match_a1_vnl0_fnl1 
 #     purge_search_space
 #     hms2_a1_vnl0_fnl1
-#       frames_adv_a1_vnl0_fnl1
+#       frames_adv
 #         gen_ms2ions_a1_vnl0_fnl1
 #           combi_mvmods2 (ms2_a1_vnl0_fnl0.R)
 #             combi_vmods2 (ms2_a1_vnl0_fnl0.R)
@@ -274,6 +274,29 @@
 # 
 #################################
 
+
+#######################################################################
+## MS2 permutations
+#
+# aas - "H" "Q" "G" "V" "M" "N" "V" "G" "M" "G" "Q" "K" "M" "N" "S"
+# 
+# Ma - Carbamidomethyl (M)
+# Mb - Carbamyl (M)
+# N - Deamidated (N)
+# 
+# Level 1 - sets of MS1 labels (lists of 6)
+# 
+# Level 2 - permutation of Level-1 with  the positions of residues in aas
+#    (lists of 6, the number of total permutations in `n2_perm`; 
+# 
+#       Carbamidomethyl (M) Carbamyl (M) Deamidated (N) n1_perm n2_perm
+# L1.1                   1            1              1      6      36
+# L1.2                   2            1              1     12      24
+# L1.3                   1            2              1     12      24
+# L1.4                   1            1              2     12      36
+# L1.5                   2            1              2     30      30
+# L1.6                   1            2              2     30      30
+#######################################################################
 
 
 

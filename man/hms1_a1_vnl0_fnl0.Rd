@@ -37,11 +37,12 @@ adding back precursor masses) have not yet taken into account in MS2 ion
 searches. A more systemically approach such as \code{open} MS1 masses might
 be developed in the future.}
 
-\item{maxn_vmods_per_pep}{The maximum number of variable modifications per
-peptide.}
+\item{maxn_vmods_per_pep}{The maximum number of \code{Anywhere}
+(non-terminal) variable modifications per peptide.}
 
 \item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
-variable modifications per site in a per peptide sequence.}
+\code{Anywhere} (non-terminal) variable modifications per site in a per
+peptide sequence.}
 
 \item{ms1vmods}{The set of all possible MS1 vmod labels at a given aa_masses.}
 

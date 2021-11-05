@@ -12,7 +12,9 @@
 gen_ms2ions_a0_vnl0_fnl1(
   aa_seq,
   ms1_mass = NULL,
-  aa_masses,
+  aa_masses = NULL,
+  ms1vmods = NULL,
+  ms2vmods = NULL,
   ntmod = NULL,
   ctmod = NULL,
   ntmass = NULL,
@@ -32,6 +34,8 @@ gen_ms2ions_a1_vnl0_fnl0(
   aa_seq,
   ms1_mass = NULL,
   aa_masses = NULL,
+  ms1vmods = NULL,
+  ms2vmods = NULL,
   ntmod = NULL,
   ctmod = NULL,
   ntmass = NULL,
@@ -51,6 +55,8 @@ gen_ms2ions_a1_vnl0_fnl1(
   aa_seq = NULL,
   ms1_mass = NULL,
   aa_masses = NULL,
+  ms1vmods = NULL,
+  ms2vmods = NULL,
   ntmod = NULL,
   ctmod = NULL,
   ntmass = NULL,
@@ -70,6 +76,8 @@ gen_ms2ions_a1_vnl1_fnl0(
   aa_seq = NULL,
   ms1_mass = NULL,
   aa_masses = NULL,
+  ms1vmods = NULL,
+  ms2vmods = NULL,
   ntmod = NULL,
   ctmod = NULL,
   ntmass = NULL,
@@ -89,6 +97,8 @@ gen_ms2ions_base(
   aa_seq = NULL,
   ms1_mass = NULL,
   aa_masses = NULL,
+  ms1vmods = NULL,
+  ms2vmods = NULL,
   ntmod = NULL,
   ctmod = NULL,
   ntmass = NULL,
@@ -112,6 +122,11 @@ representation of amino acids.}
 
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
+
+\item{ms1vmods}{The set of all possible MS1 vmod labels at a given aa_masses.}
+
+\item{ms2vmods}{Matrices of labels of variable modifications. Each
+permutation in a row for each matrix.}
 
 \item{ntmod}{The attribute \code{ntmod} from a \code{aa_masses} (for MS1
 calculations).}
@@ -138,11 +153,12 @@ modifications.}
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
 
-\item{maxn_vmods_per_pep}{The maximum number of variable modifications per
-peptide.}
+\item{maxn_vmods_per_pep}{The maximum number of \code{Anywhere}
+(non-terminal) variable modifications per peptide.}
 
 \item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
-variable modifications per site in a per peptide sequence.}
+\code{Anywhere} (non-terminal) variable modifications per site in a per
+peptide sequence.}
 
 \item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
 combinatorial variable modifications per peptide sequence. The default is
@@ -207,7 +223,7 @@ out <- gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = NULL,
 
 }
 \donttest{
-# (8) "amods+ tmod+ vnl- fnl-"
+# (8a) "amods+ tmod+ vnl- fnl-"
 fixedmods <- c("TMT6plex (K)")
 varmods <- c("Deamidated (N)", "Carbamidomethyl (S)",
              "Acetyl (Protein N-term)")
@@ -220,7 +236,19 @@ aa_masses_all <- calc_aamasses(fixedmods, varmods,
                                add_varmasses = FALSE,
                                add_nlmasses = FALSE)
 
-aa_masses <- aa_masses_all[[8]]
+maxn_vmods_per_pep <- 5L
+maxn_sites_per_vmod <- 3L
+
+ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+                       maxn_vmods_per_pep = maxn_vmods_per_pep,
+                       maxn_sites_per_vmod = maxn_sites_per_vmod)
+                       
+ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+
+i <- 8L
+aa_masses <- aa_masses_all[[i]]
+ms1vmods <- ms1vmods_all[[i]]
+ms2vmods <- ms2vmods_all[[i]]
 
 ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
@@ -244,9 +272,75 @@ ms1_masses <- calc_monopeptide("MHQGVMNVGMGQKMNS",
                                fixedmods, varmods)
 ms1_mass <- ms1_masses$mass[[8]][2] # 2077.9256
 
+# 379 us
 out <- gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
-                                aa_masses = aa_masses, ntmod = ntmod, ctmod = ctmod,
+                                aa_masses = aa_masses, 
+                                ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
+                                ntmod = ntmod, ctmod = ctmod,
                                 ntmass = ntmass, ctmass = ctmass, amods = amods, 
+                                vmods_nl = NULL, fmods_nl = NULL, 
+                                mod_indexes = mod_indexes)
+
+# (8b)
+fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+            "Gln->pyro-Glu (N-term = Q)")
+
+fixedmods <- sort(fixedmods)
+varmods <- sort(varmods)
+
+mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
+  as.hexmode() \%>\%
+  `names<-`(c(fixedmods, varmods))
+
+aa_masses_all <- calc_aamasses(fixedmods, varmods,
+                               add_varmasses = FALSE,
+                               add_nlmasses = FALSE)
+
+maxn_vmods_per_pep <- 5L
+maxn_sites_per_vmod <- 3L
+
+ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+                       maxn_vmods_per_pep = maxn_vmods_per_pep,
+                       maxn_sites_per_vmod = maxn_sites_per_vmod)
+                       
+ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+
+i <- 4L
+aa_masses <- aa_masses_all[[i]]
+ms1vmods <- ms1vmods_all[[i]]
+ms2vmods <- ms2vmods_all[[i]]
+
+ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
+ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+
+if (is_empty(ntmod)) {
+  ntmass <- aa_masses["N-term"] - 0.000549 # - electron
+} else {
+  ntmass <- aa_masses[names(ntmod)] - 0.000549
+}
+
+if (is_empty(ctmod)) {
+  ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
+} else {
+  ctmass <- aa_masses[names(ctmod)] + 2.01510147
+}
+
+amods <- attr(aa_masses, "amods", exact = TRUE)
+
+aa_seq <- "EKNALVNEADSADVLQVANTDDEGGPENHRENFNNNNNNSVAVSSLNNGR"
+ms1_masses <- calc_monopeptide("MHQGVMNVGMGQKMNS",
+                               fixedmods, varmods)
+ms1_mass <- ms1_masses$mass[[8]][2] 
+
+# ms1_mass beyong the indexes limited by 
+# `maxn_vmods_sitescombi_per_pep`
+out <- gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+                                aa_masses = aa_masses, 
+                                ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
+                                ntmod = ntmod, ctmod = ctmod,
+                                ntmass = ntmass, ctmass = ctmass, 
+                                amods = amods, 
                                 vmods_nl = NULL, fmods_nl = NULL, 
                                 mod_indexes = mod_indexes)
 }
@@ -393,9 +487,11 @@ vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
 aa_seq <- "MHQGVMNVGMGQKMNS"
 
 out <- gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = NULL, 
-                                aa_masses = aa_masses, ntmod = ntmod, ctmod = ctmod, 
+                                aa_masses = aa_masses, 
+                                ntmod = ntmod, ctmod = ctmod, 
                                 ntmass = ntmass, ctmass = ctmass, 
-                                amods = amods, vmods_nl = vmods_nl, fmods_nl = NULL,
+                                amods = amods, 
+                                vmods_nl = vmods_nl, fmods_nl = NULL,
                                 mod_indexes = mod_indexes)
 }
 \donttest{
