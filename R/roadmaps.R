@@ -91,6 +91,7 @@
 #   (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
 #     - hms1_a0_vnl0_fnl1
 #       - ms1_a0_vnl0_fnl1
+#         - expand_grid_rows
 #         - delta_ms1_a0_fnl1 (-> export)
 #   
 #  (7-8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
@@ -102,9 +103,8 @@
 #           - ms1_a1_vnl0_fnl0
 #             - match_mvmods (vmods_ms1_labels.R)
 #             - expand_grid_rows (utils_engine.R)
+#             - delta_ms1_a0_fnl1 (ms1_precursors.R)
 
-# 
-# 
 ## ms2match (msmsmatches2.R)
 # 
 # ms2base.R: (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-"

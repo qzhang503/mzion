@@ -332,9 +332,9 @@ calc_pepmasses2 <- function (
           
           parallel::clusterExport(
             cl,
-            c("ms1_a0_vnl0_fnl1", 
+            c("hms1_a0_vnl0_fnl1", 
+              "ms1_a0_vnl0_fnl1", 
               "expand_grid_rows", 
-              "hms1_a0_vnl0_fnl1", 
               "delta_ms1_a0_fnl1"), 
             envir = environment(proteoM:::ms1_a0_vnl0_fnl1))
           
@@ -401,13 +401,14 @@ calc_pepmasses2 <- function (
         
         parallel::clusterExport(
           cl,
-          c("ms1_a1_vnl0_fnl0", 
+          c("hms1_a1_vnl0_fnl0", 
+            "ms1_a1_vnl0_fnl0", 
             "match_mvmods", 
-            "hms1_a1_vnl0_fnl0", 
-            "split_vec", 
-            "count_elements", 
-            "delta_ms1_a0_fnl1", 
-            "recur_flatten"), 
+            "expand_grid_rows", 
+            # "split_vec", 
+            # "count_elements", 
+            "recur_flatten", 
+            "delta_ms1_a0_fnl1"), 
           envir = environment(proteoM:::ms1_a1_vnl0_fnl0))
         
         fwd_peps[[i]] <- parallel::clusterApply(
@@ -2258,6 +2259,10 @@ ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   
   vmods_combi <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$ms1
+  
+  # "Carbamidomethyl (M)", "Carbamyl (M)" requires two "M"s
+  # aas may only have one "M"
+  if (!length(vmods_combi)) return(NULL)
 
   deltas <- lapply(vmods_combi, function (x) sum(aa_masses[x]))
   
