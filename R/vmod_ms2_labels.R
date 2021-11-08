@@ -96,7 +96,7 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
   #     (e.g., Carbamidomethyl (M)", "Oxidation (M)")
   #     -> permutation of the names
   #   else one-to-one correspondence between sites and names 
-  #     (e.g., "Oxidation (M)")
+  #     (e.g., M <-> "Oxidation (M)")
   #     -> single-row matrix
   # 
   #   -> permutation (by indexes matched to `aas`)
@@ -107,9 +107,15 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
   tot <- 0L
   
   for (i in 1:len) {
-    ms2vmods_i <- ms2vmods[[i]]
-    ans <- combi_byvmodsM(ms2vmods_i, aas)
-    ans <- add_aas_pos(ms2vmods_i, ans)
+    M <- ms2vmods[[i]]
+    nrows <- nrow(M)
+    
+    if (nrows == 1L) {
+      ans <- list(combi_namesiteU(M = M, aas = aas))
+    } else {
+      ans <- combi_namesiteM(M = M, aas = aas, nrows = nrows)
+    }
+
     ans <- .Internal(unlist(ans, recursive = FALSE, use.names = FALSE))
 
     len_a <- length(ans)
@@ -153,17 +159,11 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
 }
 
 
-#' Permutations of a set of MS1 labels.
+
+#' Helper of \link{combi_vmodsMat} (by each rows of labels).
 #'
-#' Inputs in a matrix where each row corresponds to a permutation entry. With
-#' one-to-one correspondance between \emph{names} and \emph{site}, the input is
-#' a single-row matrix.
-#'
-#' The permutations are first against site matrix M2 (or M3 at a list form for
-#' speed). Note that, e.g., \emph{names} 'Carbamidomethyl (M)' and 'Carbamyl
-#' (M)' are both at \emph{site} 'M'. The redundancy at the levels of
-#' \emph{sites} are tracked and later applied back to form non-redundant
-#' permutations by \emph{names}.
+#' One-to-one correspondence between Names and Sites. Finds the positions of
+#' residues (sites) from a given amino acid sequence (aas).
 #'
 #' @param M A matrix of labels of modification names with permutation. Each
 #'   permutation in a row. The corresponding matrix of site permutations in the
@@ -172,108 +172,40 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
 #'   Note that M is a matrix other than lists of vectors, which allows the
 #'   application of one copy of attributes to all rows.
 #' @param aas \code{aa_seq} split in a sequence of LETTERS.
-#' @examples
-#' \donttest{
-#' # One MS1 set of labels:
-#' #    "Carbamidomethyl (M)", "Carbamyl (M)", "Deamidated (N)"
-#' #
-#' # Expands to six name permutation (an input matrix)
-#' #   (each row unique by names but not at sites)
-#' #
-#' #      [,1]                  [,2]                  [,3]
-#' # [1,] "Carbamidomethyl (M)" "Carbamyl (M)"        "Deamidated (N)"
-#' # [2,] "Carbamidomethyl (M)" "Deamidated (N)"      "Carbamyl (M)"
-#' # [3,] "Carbamyl (M)"        "Carbamidomethyl (M)" "Deamidated (N)"
-#' # [4,] "Carbamyl (M)"        "Deamidated (N)"      "Carbamidomethyl (M)"
-#' # [5,] "Deamidated (N)"      "Carbamidomethyl (M)" "Carbamyl (M)"
-#' # [6,] "Deamidated (N)"      "Carbamyl (M)"        "Carbamidomethyl (M)"
-#'
-#' # The same 'site' table for both rows [1,] and [3,]
-#' #   (Redundancy at sites tracked)
-#' # 5   9   6
-#' # "M" "M" "N"
-#' # 5  13   6
-#' "M" "M" "N"
-#' 9  13   6
-#' # "M" "M" "N"
-#' # 5   9  14
-#' # "M" "M" "N"
-#' # 5  13  14
-#' # "M" "M" "N"
-#' # 9  13  14
-#' # "M" "M" "N"
-#'
-#' # Differentiated after applied back to 'names'
-#' #        5                   9               6
-#' # "Carbamidomethyl (M)" "Carbamyl (M)" "Deamidated (N)"
-#' #        5                   9               6
-#' # "Carbamyl (M)" "Carbamidomethyl (M)" "Deamidated (N)"
-#' # ...
-#' }
-combi_byvmodsM <- function (M, aas) {
-
-  nrows <- nrow(M)
+combi_namesiteU <- function (M, aas) {
+  
+  m <- attr(M, "resids")
   ps <- attr(M, "ps")
+  
+  ans <- find_vmodposU(m, ps, aas)
+  combi <- ans$combi
+  vpos <- ans$vpos
 
-  if (nrows == 1L) {
-    m <- attr(M, "resids")
-    ans <- list(combi_byvmodsR(m, ps, aas))
-  } else {
-    M2 <- attr(M, "resids")
+  len_out <- nrow(combi)
+  out <- rep(list(M[1, ]), len_out)
+  
+  for (i in seq_along(vpos)) { # by residue
+    ansi <- combi[[i]] # list of six: 5, 9; 9, 13 etc.
+    pi <- vpos[[i]] # 1, 3
     
-    M3 <- vector("list", nrows)
-    for (i in 1:nrows) M3[[i]] <- M2[i, ]
-    
-    uM3 <- unique(M3)
-    
-    lenM <- length(M3)
-    lenU <- length(uM3)
-    ans <- vector("list", lenM)
-    cache <- vector("list", lenU)
-    
-    for (i in 1:lenM) {
-      m <- M3[[i]]
-      
-      for (j in 1:lenU) {
-        ok <- identical(m, cache[[j]])
-        if (ok) break
-      }
-      
-      if (ok) {
-        ans[[i]] <- ans[[j]]
-      } else {
-        # note the same `i` for `ans` and `cache`
-        ans[[i]] <- combi_byvmodsR(m, ps, aas)
-        cache[[i]] <- m
-      }
+    for (j in seq_len(len_out)) { # by combi
+      names(out[[j]])[pi] <- ansi[[j]]
     }
   }
   
-  ans
+  out
 }
 
 
-#' Helper of \link{combi_byvmodsM} (by each rows of labels).
+#' Helper of \link{combi_namesiteU}.
 #'
-#' Finds the positions of residues (sites) from a given amino acid sequence
-#' (aas).
+#' One-to-one correspondence between Names and Sites.
 #'
 #' @param vec A vector of labels.
 #' @param ps Named vector; counts for each site. Sites in names and counts in
 #'   values.
 #' @param aas \code{aa_seq} split in a sequence of LETTERS.
-#' @examples
-#' \donttest{
-#' vec <- c("M", "M", "N")
-#' ps <- c(M = 2, N = 1)
-#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
-#'
-#' ans <- combi_byvmodsR(vec, ps, aas)
-#' 
-#' stopifnot(length(ans) == 6L)
-#' }
-combi_byvmodsR <- function (vec, ps, aas) {
-
+find_vmodposU <- function (vec, ps, aas) {
   nres <- length(ps)
   M <- vpos <- vector("list", nres)
   
@@ -291,63 +223,116 @@ combi_byvmodsR <- function (vec, ps, aas) {
     }
   }
   
-  ans <- expand.grid(M, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+  ans <- list(
+    combi = expand.grid(M, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE), 
+    vpos = vpos
+  )
+}
 
-  # `aas` positions -> names
+
+#' Helper of \link{combi_vmodsMat} (by each rows of labels).
+#'
+#' Multiple Names to the same Site. Finds the positions of
+#' residues (sites) from a given amino acid sequence (aas).
+#' 
+#' @param nrows The number of rows of M.
+#' @inheritParams combi_namesiteU
+combi_namesiteM <- function (M, aas, nrows) {
+  
+  ps <- attr(M, "ps")
+  m <- attr(M, "resids")
+  
+  # to vectors only because of slow `unique` on matrix
+  mv <- vector("list", nrows)
+  for (i in 1:nrows) mv[[i]] <- m[i, ] # asplit
+  umv <- unique(mv) # 4.7 us
+  # umv <- mv[!duplicated.default(mv)] # 2 us
+  
+  lenm <- length(mv)
+  lenu <- length(umv)
+  ans <- vector("list", lenm)
+  cache <- vector("list", lenu)
+  
+  for (i in 1:lenm) {
+    Vec <- M[i, ]
+    vec <- mv[[i]]
+    
+    for (j in 1:lenu) {
+      ok <- identical(vec, cache[[j]])
+      if (ok) break
+    }
+    
+    if (ok) {
+      ans[[i]] <- match_aas_indexes(ans[[j]], Vec) # 21 us
+    } else {
+      ans[[i]] <- find_vmodposM(Vec = Vec, vec = vec, ps = ps, aas = aas) # 184 us
+      cache[[i]] <- vec
+    }
+  }
+  
+  ans
+}
+
+
+#' Matches the indexes of amino-acid residues to cached results.
+#' 
+#' @param X Lists of cached results.
+#' @param Vec A vector of names (lower-case vec for sites).
+match_aas_indexes <- function (X, Vec) {
+  
+  len <- length(X)
+  out <- rep(list(Vec), len)
+  
+  for (i in 1:len) {
+    names(out[[i]]) <- names(X[[i]])
+  }
+  
+  out
+}
+
+
+#' Helper of \link{combi_namesiteM} (by each rows of labels).
+#'
+#' Multiple Names to the same Site.
+#' 
+#' @param Vec A vector of names (lower-case vec for sites).
+#' @inheritParams find_vmodposU
+find_vmodposM <- function (Vec, vec, ps, aas) {
+  
+  nres <- length(ps)
+  M <- vpos <- vector("list", nres)
+  
+  for (i in seq_len(nres)) { # by residues
+    resid <- names(ps)[i] # M
+    aapos <- which(aas == resid) # M:5, 9, 13; N: 6, 14
+    
+    ct <- ps[[i]] # M: 2; N: 1
+    vpos[[i]] <- which(vec == resid) # M: 1, 2; N: 3
+    
+    if (ct == 1L) {
+      M[[i]] <- vec_to_list(aapos)
+    } else {
+      M[[i]] <- combn(as.character(aapos), ct, simplify = FALSE)
+    }
+  }
+  
+  ans <- expand.grid(M, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+  
   len_out <- nrow(ans)
-  out <- rep(list(vec), len_out)
+  out <- rep(list(Vec), len_out)
   
   for (i in seq_along(vpos)) { # by residue
     ansi <- ans[[i]] # list of six: 5, 9; 9, 13 etc.
     pi <- vpos[[i]] # 1, 3
     
     for (j in seq_len(len_out)) { # by combi
-      out[[j]][pi] <- ansi[[j]]
+      names(out[[j]])[pi] <- ansi[[j]]
     }
   }
-
+  
   out
 }
 
-
-#' Add site indexes of matched residues from an amino-acid sequence (aas).
-#'
-#' Incorporates the aas site indexes (pos, from \link{combi_byvmodsM}) to the
-#' labels of modifications (vmods).
-#'
-#' @param vmods A set of permutated variable modifications (at the levels of
-#'   same MS1 label).
-#' @param pos Lists of position indexes of matched sites from an amino-acid
-#'   sequence.
-add_aas_pos <- function (vmods, pos) {
-  
-  len_vms <- nrow(vmods)
-  out <- vector("list", len_vms)
-  
-  for (i in 1:len_vms) {
-    pi <- pos[[i]]
-    len_p <- length(pi)
-    vmods_i <- rep(list(vmods[i, ]), len_p)
-    
-    for (j in 1:len_p) {
-      names(vmods_i[[j]]) <- pi[[j]]
-    }
-    
-    out[[i]] <- vmods_i
-  }
-  
-  # out[[1]]
-  #       5                     9                     6 
-  # "Carbamidomethyl (M)"  "Carbamyl (M)"  "Deamidated (N)" 
-  # ...
-  
-  # out[[2]]
-  #       5                     6                     9 
-  # "Carbamidomethyl (M)"  "Deamidated (N)"  "Carbamyl (M)" 
-  # ...
-  
-  out
-}
 
 
 #' Makes the sets of MS2 labels (with permutations) for an \code{aa_masses}.
@@ -533,7 +518,7 @@ find_ms2resids <- function (M, vec) {
 
 
 
-##################################################################
+##
 # labels: n
 # positions: p
 # 
@@ -551,7 +536,7 @@ find_ms2resids <- function (M, vec) {
 # p!/(n1!n2!n3!)/(p-n1-n2-n3)!
 # = combn(p, n1+n2+n3) * (n1+n2+n3)!/(n1!n2!n3!)
 # = combn(p, n1+n2+n3) * combn(n1+n2+n3, n1+n2) * combn(n1+n2, n1)
-##################################################################
+##
 
 
 

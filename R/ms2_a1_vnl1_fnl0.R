@@ -39,9 +39,12 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
   #     hms2_a1_vnl1_fnl0
   #       frames_adv_a1_vnl1_fnl0
   #         gen_ms2ions_a1_vnl1_fnl0
-  #           combi_mvmods2 (ms2_a1_vnl0_fnl0.R)
-  #             combi_vmods2 (ms2_a1_vnl0_fnl0.R)
-  #           find_intercombi_p2 (ms2_a1_vnl0_fnl0.R)
+  #           - find_vmodscombi
+  #             - combi_namesiteU
+  #               - find_vmodposU
+  #             - combi_namesiteM
+  #               - find_vmodposM
+  #               - match_aas_indexes
   #           check_ms1_mass_vmods2 (ms2_a1_vnl0_fnl0.R)
   #           calc_ms2ions_a1_vnl1_fnl0
   #             ms2ions_by_type (ion_ladder.R)
@@ -57,9 +60,14 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
     cl,
     c("frames_adv", 
       "gen_ms2ions_a1_vnl1_fnl0", 
-      "combi_mvmods2", 
-      "combi_vmods2", 
-      "find_intercombi_p2", 
+      
+      "find_vmodscombi", 
+      "combi_namesiteU", 
+      "find_vmodposU", 
+      "combi_namesiteM", 
+      "find_vmodposM", 
+      "match_aas_indexes", 
+
       "check_ms1_mass_vmods2", 
       "calc_ms2ions_a1_vnl1_fnl0", 
       "expand_grid_rows", 

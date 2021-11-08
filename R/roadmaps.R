@@ -36,7 +36,7 @@
 #   find_reporter_ints
 # 
 # 
-# vmod_labels.R
+# vmod_ms1_labels.R
 #   - make_ms1vmod_i
 #     - make_ms1_vmodsets
 #       - bacth_vmods_combi
@@ -45,7 +45,13 @@
 #     - find_intercombi2
 #       - expand_grid_rows (utils_engine.R)
 # 
-
+# vmod_ms2_labels.R
+#   - find_vmodscombi
+#     - combi_namesiteU
+#       - find_vmodposU
+#     - combi_namesiteM
+#       - find_vmodposM
+#       - match_aas_indexes
 
 
 # 
@@ -125,7 +131,7 @@
 #           find_ms2_bypep
 #             fuzzy_match_one
 #             fuzzy_match_one2
-#       post_frame_adv
+#       post_frame_adv (utils_engine.R)
 #     post_ms2match (utils_engine.R)
 # 
 # ms2_a0_vnl0_fnl1.R: (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
@@ -145,7 +151,7 @@
 #           find_ms2_bypep (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
 #             fuzzy_match_one2 (ms2base.R)
-#       post_frame_adv (ms2base.R)
+#       post_frame_adv (utils_engine.R)
 #     post_ms2match (utils_engine.R)
 # 
 # ms2_a1_vnl0_fnl0.R: (7, 8) "amods+ tmod+ vnl- fnl-", "amods+ tmod- vnl- fnl-"
@@ -154,9 +160,12 @@
 #     hms2_a1_vnl0_fnl0
 #       frames_adv
 #         gen_ms2ions_a1_vnl0_fnl0
-#           combi_mvmods2 (ms2_a1_vnl0_fnl0.R)
-#             combi_vmods2 (ms2_a1_vnl0_fnl0.R)
-#           find_intercombi_p2
+#           - find_vmodscombi
+#             - combi_namesiteU
+#               - find_vmodposU
+#             - combi_namesiteM
+#               - find_vmodposM
+#               - match_aas_indexes
 #           check_ms1_mass_vmods2
 #           expand_grid_rows (utils_engine.R)
 #           calc_ms2ions_a1_vnl0_fnl0
@@ -167,7 +176,7 @@
 #           find_ms2_bypep (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
-#       post_frame_adv (ms2base.R)
+#       post_frame_adv (utils_engine.R)
 #     post_ms2match (utils_engine.R)
 # 
 # ms2_a1_vnl1_fnl0.R: (9, 10) "amods+ tmod+ vnl+ fnl-", "amods+ tmod- vnl+ fnl-"
@@ -176,9 +185,12 @@
 #     hms2_a1_vnl1_fnl0
 #       frames_adv
 #         gen_ms2ions_a1_vnl1_fnl0
-#           combi_mvmods2 (ms2_a1_vnl0_fnl0.R)
-#             combi_vmods2 (ms2_a1_vnl0_fnl0.R)
-#           find_intercombi_p2 (ms2_a1_vnl0_fnl0.R)
+#           - find_vmodscombi
+#             - combi_namesiteU
+#               - find_vmodposU
+#             - combi_namesiteM
+#               - find_vmodposM
+#               - match_aas_indexes
 #           check_ms1_mass_vmods2 (ms2_a1_vnl0_fnl0.R)
 #           calc_ms2ions_a1_vnl1_fnl0
 #             ms2ions_by_type (ion_ladder.R)
@@ -188,7 +200,7 @@
 #           find_ms2_bypep (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
-#       post_frame_adv (ms2base.R)
+#       post_frame_adv (utils_engine.R)
 #     post_ms2match (utils_engine.R)
 # 
 # ms2_a1_vnl0_fnl1.R: (11, 12) "amods+ tmod+ vnl- fnl+", "amods+ tmod- vnl- fnl+"
@@ -197,9 +209,12 @@
 #     hms2_a1_vnl0_fnl1
 #       frames_adv
 #         gen_ms2ions_a1_vnl0_fnl1
-#           combi_mvmods2 (ms2_a1_vnl0_fnl0.R)
-#             combi_vmods2 (ms2_a1_vnl0_fnl0.R)
-#           find_intercombi_p2 (ms2_a1_vnl0_fnl0.R)
+#           - find_vmodscombi
+#             - combi_namesiteU
+#               - find_vmodposU
+#             - combi_namesiteM
+#               - find_vmodposM
+#               - match_aas_indexes
 #           check_ms1_mass_vmods2 (ms2_a1_vnl0_fnl0.R)
 #           calc_ms2ions_a1_vnl0_fnl1
 #             ms2ions_by_type
@@ -209,7 +224,7 @@
 #           find_ms2_bypep (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
-#       post_frame_adv (ms2base.R)
+#       post_frame_adv (utils_engine.R)
 #     post_ms2match (utils_engine.R)
 # 
 

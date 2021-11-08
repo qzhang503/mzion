@@ -82,6 +82,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   rm(list = c("args_except", "cache_pars", "call_pars"))
   
+  
   delete_files(out_path, ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
                                      "\\.xls$", "\\.csv$", "\\.txt$", 
                                      "^mgf$", "^mgfs$", "Calls"))
@@ -89,7 +90,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   # For three-frame searches
   # (matches of secondary ions using `outer` and no adjustments)
   is_ms2_three_frame <- is_ms1_three_frame <- TRUE
-
+  
   if (is_ms1_three_frame) {
     ppm_ms1_new <- as.integer(ceiling(ppm_ms1 * .5))
   } else {
@@ -108,7 +109,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                          maxn_sites_per_vmod = maxn_sites_per_vmod)
   
   ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
-
+  
   message("\n===  MS2 ion searches started at ", Sys.time(), ". ===\n")
   
   ## Targets 
@@ -410,7 +411,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       } else {
         ntmass <- aa_masses["N-term"] - 0.000549
       }
-
+      
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
       if (length(ctmod)) {
         ctmass <- aa_masses[names(ctmod)] + 2.01510147
@@ -465,7 +466,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   # (1) makes binned_theopeps_rev_[i_max].rds
   i_max <- which.max(obj_sizes)
   i_max2 <- paste0("rev_", i_max)
-  
+
   .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
 
   bin_file <- file.path(.path_bin, paste0("binned_theopeps_", i_max, ".rds"))
@@ -483,7 +484,9 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   # (2) makes MS2 ions 
   aa_masses <- aa_masses_all[[i_max]]
-  
+  ms1vmods <- ms1vmods_all[[i_max]]
+  ms2vmods <- ms2vmods_all[[i_max]]
+
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
   if (length(ntmod)) {
     ntmass <- aa_masses[names(ntmod)] + 1.00727647

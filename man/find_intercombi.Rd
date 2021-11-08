@@ -41,6 +41,3 @@ N <- list(c("Deamidated (N)"),
 ans <- find_intercombi(list(S = S, M = M, N = N))
 }
 }
-\seealso{
-\link{find_intercombi_p2} for MS2 ions.
-}

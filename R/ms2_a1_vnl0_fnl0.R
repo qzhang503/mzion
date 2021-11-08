@@ -43,9 +43,12 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
   #     hms2_a1_vnl0_fnl0
   #       frames_adv_a1_vnl0_fnl0
   #         gen_ms2ions_a1_vnl0_fnl0
-  #           combi_mvmods2
-  #             combi_vmods2
-  #           find_intercombi_p2
+  #           - find_vmodscombi
+  #             - combi_namesiteU
+  #               - find_vmodposU
+  #             - combi_namesiteM
+  #               - find_vmodposM
+  #               - match_aas_indexes
   #           check_ms1_mass_vmods2
   #           calc_ms2ions_a1_vnl0_fnl0
   #             ms2ions_by_type (ion_ladder.R)
@@ -57,14 +60,17 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
   #             fuzzy_match_one (ms2base.R)
   #       post_frame_adv (ms2base.R)
   #     post_ms2match (utils_engine.R)
-  
+
   parallel::clusterExport(
     cl,
     c("frames_adv", 
       "gen_ms2ions_a1_vnl0_fnl0", 
-      "combi_mvmods2", 
-      "combi_vmods2", 
-      "find_intercombi_p2", 
+      "find_vmodscombi", 
+      "combi_namesiteU", 
+      "find_vmodposU", 
+      "combi_namesiteM", 
+      "find_vmodposM", 
+      "match_aas_indexes", 
       "expand_grid_rows", 
       "check_ms1_mass_vmods2", 
       "calc_ms2ions_a1_vnl0_fnl0", 
@@ -426,308 +432,6 @@ check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod,
 }
 
 
-#' Finds the combinations of variable modifications (multiple sites).
-#'
-#' For all the \code{Anywhere} modifications specified in \code{amods}.
-#' 
-#' @param amods Anywhere modifications.
-#' @param aas \code{aa_seq} split in a sequence of LETTERS.
-#' @inheritParams matchMS
-#' @inheritParams add_fixvar_masses
-#' @import purrr
-#' @return Lists by residues in \code{amods}.
-#' @examples 
-#' \donttest{
-#' ## M
-#' fixedmods = c("TMT6plex (K)", "dHex (S)")
-#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", "Acetyl (Protein N-term)")
-#' 
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE)
-#' 
-#' aa_masses <- aa_masses_all[[8]]
-#' 
-#' amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"), 
-#'               `Carbamyl (M)` = c(Anywhere = "M"))
-#' 
-#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
-#' 
-#' ans <- combi_mvmods2(amods, aas, aa_masses)
-#' 
-#' ## M and N
-#' fixedmods = c("TMT6plex (K)", "dHex (S)")
-#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", 
-#'             "Deamidated (N)", "Acetyl (Protein N-term)")
-#' 
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE)
-#' 
-#' aa_masses <- aa_masses_all[[16]]
-#' 
-#' amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"), 
-#'               `Carbamyl (M)` = c(Anywhere = "M"), 
-#'               `Deamidated (N)` = c(Anywhere = "N"))
-#' 
-#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
-#' 
-#' ans <- combi_mvmods2(amods, aas, aa_masses)
-#' 
-#' }
-combi_mvmods2 <- function (amods, 
-                           aas, 
-                           aa_masses, 
-                           maxn_vmods_per_pep = 5L, 
-                           maxn_sites_per_vmod = 3L, 
-                           maxn_vmods_sitescombi_per_pep = 32L, 
-                           digits = 4L) {
-  
-  ## Split by residues
-  # Oxidation (M) Carbamidomethyl (M) 
-  # "M"                 "M" 
-  # 
-  # $S
-  # dHex (S) 
-  # "S" 
-  
-  residue_mods <- .Internal(unlist(amods, recursive = TRUE, use.names = FALSE))
-  names(residue_mods) <- names(amods)
-  residue_mods <- split_vec(residue_mods)
-
-  lapply(residue_mods, function (x) combi_vmods2(
-    aas, x, 
-    aa_masses, 
-    maxn_vmods_per_pep, 
-    maxn_sites_per_vmod, 
-    maxn_vmods_sitescombi_per_pep, 
-    digits
-  ))
-}
-
-
-#' The combinations of variable modifications (single site).
-#' 
-#' @param residue_mods A residue with \code{Anywhere} modification(s).
-#' @inheritParams combi_mvmods2
-#' @import purrr
-#' @importFrom stringr str_locate_all
-combi_vmods2 <- function (aas, 
-                          residue_mods, 
-                          aa_masses, 
-                          maxn_vmods_per_pep = 5L, 
-                          maxn_sites_per_vmod = 3L, 
-                          maxn_vmods_sitescombi_per_pep = 32L, 
-                          digits = 4L) {
-  
-  ##################################################################
-  # values: n (labels)
-  # names: p (positions)
-  # 
-  # n = LETTERS[1:2]; p = c(1, 3, 16)
-  # n = c("Carbamidomethyl (M)",  "Oxidation (M)"); p = c(1, 3, 16)
-  # 2*3, 4*3, 8*1
-  # l = length(p)
-  # n^1 * combn(p, 1) + n^2 * combn(p, 2) + ... + n^l * combn(p, l)
-  # 
-  ##################################################################
-  
-  ##################################################################
-  # !!! Danger !!!
-  # combn(3, 1) is combn(1:3, 1) not combn("3", 1)
-  ##################################################################
-  
-  residue <- residue_mods[[1]]
-  
-  n <- names(residue_mods)
-  p <- which(aas == residue)
-  
-  # (1) btw Anywhere "M" and "Acetyl N-term" where "M" on the "N-term"
-  # MFGMFNVSMR cannot have three `Oxidation (M)` and `Acetyl (N-term)`
-  # (2) the same for fixed terminal mod: `TMT6plex (N-term)` 
-  
-  # p <- check_tmod_p(aas, residue, p, ntmod, ctmod)
-  # p <- check_tmod_p(aas, residue, p, fntmod, fctmod)
-  
-  len_n <- length(n)
-  len_p <- length(p)
-  
-  if (len_n > len_p) {
-    return(NULL)
-  }
-  
-  if (len_p == 1L) {
-    names(n) <- p
-    return(n)
-  }
-  
-  # --- combinations ---
-  len_p2 <- min(len_p, maxn_sites_per_vmod)
-  
-  if (len_p2 < len_p) {
-    p <- p[1:len_p2]
-  }
-  
-  if (len_n == 1L) { # "Oxidation (M)"
-    out <- vector("list", len_p2)
-    
-    for (m in 1:len_p2) {
-      ns <- rep(n, m)
-      ps <- combn(p, m)
-      
-      ncol <- ncol(ps)
-      ns <- rep(list(ns), ncol)
-      
-      for (i in 1:ncol) {
-        names(ns[[i]]) <- ps[, i]
-      }
-      
-      out[[m]] <- ns
-    }
-  } else { # "Oxidation (M)" and "Carbamidomethyl (M)"
-    lens <- seq_len(len_p2)
-    
-    # module 10: 99.3 us
-    ns <- lapply(lens, function (x) {
-      expand_grid_rows(rep(list(n), length(p[1:x])))        
-    })
-    
-    # 39.2 us
-    ps <- lapply(lens, function (x) {
-      combn(as.character(p), x)
-    })
-    
-    # 61 us
-    out <- mapply(combi_np, ns, ps, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  }
-  
-  # ---
-  out <- .Internal(unlist(out, recursive = FALSE, use.names = FALSE))
-
-  len_out <- length(out)
-  
-  if (len_out > maxn_vmods_sitescombi_per_pep) {
-    out <- out[1:maxn_vmods_sitescombi_per_pep]
-  }
-
-  invisible(out)
-}
-
-
-#' Helper of \link{combi_vmods2}.
-#'
-#' Values \code{n} are vectors (to avoid expensive row subsetting from
-#' data.frame). Values of \code{p} remain in columns (as only incurred fast
-#' column subsetting).
-#' @param n The number of modifications.
-#' @param p The number of positions.
-combi_np <- function (n, p) {
-  
-  ln <- length(n)
-  lp <- ncol(p)
-  np <- vector("list", ln * lp)
-  
-  k <- 1
-  
-  # DON'T p[[j]] since p is matrix not data.frame
-  for (i in seq_len(ln)) {
-    for (j in seq_len(lp)) {
-      x <- n[[i]] 
-      names(x) <- p[, j]
-      np[[k]] <- x
-      
-      k <- k + 1
-    }
-  }
-  
-  ### Shouldn't be the case of data.frame anymore with `expand_grid_rows`
-  #   
-  # otherwise is data.frame
-  # use names (positions) -> TRUE
-  
-  # (a) np: are lists of single-element vector
-  # [[6]]
-  # 10 
-  # "Carbamidomethyl (M)" 
-  # 
-  # (b) are lists of data.frames (one row and multiple columns)
-  # [[12]]
-  #           6                  10
-  # 4 Carbamidomethyl (M) Carbamidomethyl (M)
-  
-  
-  ## flattens to vectors
-  # (disabled on 2021-10-21)
-  # len_np <- length(nrow(np[[1]]))
-  
-  ## case 'b' of data.frame
-  # (disabled on 2021-10-21)
-  # if (len_np) np <- lapply(np, unlist, use.names = TRUE)
-  
-  # ## or simply unlist for both 'a' and 'b'
-  # # lapply(np, unlist, use.names = TRUE)
-  
-  invisible(np)
-}
-
-
-#' Finds the combinations of positions and sites across residues.
-#' 
-#' For multiple residues (each residue one to multiple modifications).
-#' 
-#' @param intra_combis Inter-residue combinations.
-#' @inheritParams matchMS
-#' @importFrom purrr is_empty map map_lgl flatten 
-#' 
-#' @examples 
-#' N <- list(c(`7` = "Deamidated (N)"), 
-#'           c(`15` = "Deamidated (N)"), 
-#'           c(`7` = "Deamidated (N)", `15` = "Deamidated (N)"))
-#' 
-#' S <- c(`16` = "Carbamidomethyl (S)")
-#' 
-#' intra_combis <- list(N = N, S = S)
-#' 
-#' ans <- find_intercombi_p2(intra_combis)
-find_intercombi_p2 <- function (intra_combis, maxn_vmods_sitescombi_per_pep = 32L) {
-  
-  if ((!length(intra_combis)) || 
-      any(.Internal(unlist(lapply(intra_combis, purrr::is_empty), 
-                           recursive = FALSE, use.names = FALSE)))
-  ) { # scalar or list
-    v_combis <- list() 
-  } else if (length(intra_combis) == 1L) { # M, one to multiple positions; Oxidation and/or Carbamidomethyl
-    if (length(intra_combis[[1]]) == 1L) { # 2: "Oxidation (M)"
-      v_combis <- intra_combis
-    } else { # 2: "Oxidation (M)"; 3: "Oxidation (M)"; 2: "Oxidation (M)", 3: "Oxidation (M)"; ... Carbamidomethyl
-      v_combis <- purrr::flatten(intra_combis)
-      len <- min(length(v_combis), maxn_vmods_sitescombi_per_pep)
-      v_combis <- v_combis[1:len]
-    }
-  } else { # M, N
-    p_combis <- lapply(intra_combis, function (x) {
-      if (length(x) > 1L) {
-        lapply(x, names)
-      } else {
-        names(x)
-      }
-    })
-    
-    p_combis <- expand_grid_rows(p_combis, use.names = FALSE)
-    v_combis <- expand_grid_rows(intra_combis, use.names = FALSE)
-    
-    len <- min(length(v_combis), maxn_vmods_sitescombi_per_pep)
-    v_combis <- v_combis[1:len]
-    
-    for (i in seq_len(len)) {
-      vi <- v_combis[[i]]
-      names(vi) <- p_combis[[i]]
-      v_combis[[i]] <- vi[order(as.numeric(names(vi)))]
-    }
-  }
-  
-  invisible(v_combis)
-}
 
 
 #' Adds hex codes (without NLs).

@@ -829,7 +829,6 @@ vmods_elements <- function (aas,
 #'
 #' @param intra_combis The results from \link{unique_mvmods}.
 #' @inheritParams matchMS
-#' @seealso \link{find_intercombi_p2} for MS2 ions.
 #' @examples
 #' \donttest{
 #' C <- list(c("Carbamidomethyl (C)"),
