@@ -26,11 +26,13 @@
 # mgf.R
 #   - readMGF
 #    - read_mgf_chunks
+#     // START parallel
 #     - proc_mgf_chunks_i
 #      - proc_mgf_chunks
 #       - proc_mgfs
-#     - proc_mgfs
-#    - find_ms1_interval
+#         - which_topx2
+#         - find_ms1_interval
+#     // END parallel
 # 
 # calc_tmtint (quant2.R)
 #   find_reporter_ints
@@ -54,7 +56,6 @@
 #       - match_aas_indexes
 
 
-# 
 # ms1_precursors.R: 
 #   - calc_pepmasses2
 #    - find_aa_masses
@@ -99,20 +100,8 @@
 #         [by nested combinatorial conditions; no explicit functions]
 #         - hms1_a1_vnl0_fnl0
 #           - ms1_a1_vnl0_fnl0
-#             - match_mvmods
+#             - match_mvmods (vmods_ms1_labels.R)
 #             - expand_grid_rows (utils_engine.R)
-
-
-# Moved to utils_ui.R 
-#         - unique_mvmods (-> export; dbs.R)
-#           - split_vec (-> export; util_engine.R)
-#           - vmods_elements (-> export; dbs.R)
-#             - count_elements (-> export; util_engine.R)
-#             - find_unique_sets (-> export; dbs.R)
-#             - recur_flatten (-> export; utils_engine.R)
-#         - find_intercombi (-> export; dbs.R)
-#           - expand_grid_rows (utils_engine.R)
-
 
 # 
 # 
@@ -136,9 +125,9 @@
 # 
 # ms2_a0_vnl0_fnl1.R: (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
 #   ms2match_a0_vnl0_fnl1 
-#     purge_search_space
+#     purge_search_space (utils_engine.R)
 #     hms2_a0_vnl0_fnl1
-#       frames_adv
+#       frames_adv (ms2_base.R)
 #         gen_ms2ions_a0_vnl0_fnl1
 #           // early return
 #           gen_ms2ions_base (ms2base.R)
@@ -155,60 +144,79 @@
 #     post_ms2match (utils_engine.R)
 # 
 # ms2_a1_vnl0_fnl0.R: (7, 8) "amods+ tmod+ vnl- fnl-", "amods+ tmod- vnl- fnl-"
-#   ms2match_a1_vnl0_fnl0 
-#     purge_search_space
-#     hms2_a1_vnl0_fnl0
-#       frames_adv
-#         gen_ms2ions_a1_vnl0_fnl0
-#           - find_vmodscombi
-#             - combi_namesiteU
-#               - find_vmodposU
-#             - combi_namesiteM
-#               - find_vmodposM
-#               - match_aas_indexes
-#           check_ms1_mass_vmods2
-#           expand_grid_rows (utils_engine.R)
-#           calc_ms2ions_a1_vnl0_fnl0
-#             ms2ions_by_type (ion_ladder.R)
-#               byions, czions, axions (ion_ladder.R)
-#           add_hexcodes
-#         search_mgf2 (ms2base.R)
-#           find_ms2_bypep (ms2base.R)
-#             fuzzy_match_one (ms2base.R)
-#             fuzzy_match_one (ms2base.R)
-#       post_frame_adv (utils_engine.R)
-#     post_ms2match (utils_engine.R)
+#   "ms2match_a1_vnl0_fnl0"
+#     "purge_search_space" (utils_engine.R)
+#     // START parallel
+#     "hms2_a1_vnl0_fnl0"
+#       "frames_adv" (ms2_base.R)
+#         "gen_ms2ions_a1_vnl0_fnl0" (ms2_a1_vnl0_fnl0.R)
+#           "match_mvmods" (vmods_ms1_labels.R)
+#             "expand_grid_rows" (utils_engine.R)
+#           "find_vmodscombi" (vmods_ms2_labels.R)
+#             "combi_namesiteU" (vmods_ms2_labels.R)
+#               "find_vmodposU" (vmods_ms2_labels.R)
+#                 "vec_to_list" (utils_engine.R)
+#             "combi_namesiteM" (vmods_ms2_labels.R)
+#               "find_vmodposM" (vmods_ms2_labels.R)
+#                 "vec_to_list" (vmods_ms2_labels.R)
+#               "match_aas_indexes" (vmods_ms2_labels.R)
+#           "check_ms1_mass_vmods2" (ms2_a1_vnl0_fnl0.R)
+#           "calc_ms2ions_a1_vnl0_fnl0" (ms2_a1_vnl0_fnl0.R)
+#             "ms2ions_by_type" (ion_ladder.R)
+#               "byions", "czions", "axions"
+#                 "bions_base", "yions_base",
+#                 "cions_base", "zions_base", 
+#                 "aions_base", "xions_base", 
+#           "add_hexcodes" (ms2_a1_vnl0_fnl0.R)
+#         "search_mgf2" (ms2base.R)
+#           "find_ms2_bypep" (ms2base.R)
+#             "fuzzy_match_one" (ms2base.R)
+#             "fuzzy_match_one2" (ms2base.R)
+#       "post_frame_adv" (utils_engine.R)
+#     // END parallel
+#     "post_ms2match" (utils_engine.R)
 # 
 # ms2_a1_vnl1_fnl0.R: (9, 10) "amods+ tmod+ vnl+ fnl-", "amods+ tmod- vnl+ fnl-"
-#   ms2match_a1_vnl1_fnl0 
-#     purge_search_space
-#     hms2_a1_vnl1_fnl0
-#       frames_adv
-#         gen_ms2ions_a1_vnl1_fnl0
-#           - find_vmodscombi
-#             - combi_namesiteU
-#               - find_vmodposU
-#             - combi_namesiteM
-#               - find_vmodposM
-#               - match_aas_indexes
-#           check_ms1_mass_vmods2 (ms2_a1_vnl0_fnl0.R)
-#           calc_ms2ions_a1_vnl1_fnl0
-#             ms2ions_by_type (ion_ladder.R)
-#               byions, czions, axions (ion_ladder.R)
-#           add_hexcodes_vnl2
-#         search_mgf2 (ms2base.R)
-#           find_ms2_bypep (ms2base.R)
-#             fuzzy_match_one (ms2base.R)
-#             fuzzy_match_one (ms2base.R)
-#       post_frame_adv (utils_engine.R)
-#     post_ms2match (utils_engine.R)
+#   "ms2match_a1_vnl1_fnl0" 
+#     "purge_search_space" (utils_engine.R)
+#     // START parallel
+#     "hms2_a1_vnl1_fnl0"
+#       "frames_adv" (ms2_base.R)
+#         "gen_ms2ions_a1_vnl1_fnl0"
+#           "match_mvmods" (vmods_ms1_labels.R)
+#             "expand_grid_rows" (utils_engine.R)
+#           "find_vmodscombi" (vmods_ms2_labels.R)
+#             "combi_namesiteU" (vmods_ms2_labels.R)
+#               "find_vmodposU" (vmods_ms2_labels.R)
+#                 "vec_to_list" (utils_engine.R)
+#             "combi_namesiteM" (vmods_ms2_labels.R)
+#               "find_vmodposM" (vmods_ms2_labels.R)
+#                 "vec_to_list" (vmods_ms2_labels.R)
+#               "match_aas_indexes" (vmods_ms2_labels.R)
+#           "check_ms1_mass_vmods2" (ms2_a1_vnl0_fnl0.R)
+#           "expand_grid_rows" (utils_engine.R)
+#           "calc_ms2ions_a1_vnl1_fnl0"
+#             "ms2ions_by_type" (ion_ladder.R)
+#               "byions", "czions", "axions"
+#                 "bions_base", "yions_base",
+#                 "cions_base", "zions_base", 
+#                 "aions_base", "xions_base", 
+#           "add_hexcodes_vnl2"
+#         "search_mgf2" (ms2base.R)
+#           "find_ms2_bypep" (ms2base.R)
+#             "fuzzy_match_one" (ms2base.R)
+#             "fuzzy_match_one2" (ms2base.R)
+#       "post_frame_adv" (utils_engine.R)
+#     // END parallel
+#     "post_ms2match" (utils_engine.R)
 # 
 # ms2_a1_vnl0_fnl1.R: (11, 12) "amods+ tmod+ vnl- fnl+", "amods+ tmod- vnl- fnl+"
 #   ms2match_a1_vnl0_fnl1 
-#     purge_search_space
+#     purge_search_space (utils_engine.R)
 #     hms2_a1_vnl0_fnl1
-#       frames_adv
+#       frames_adv (ms2_base.R)
 #         gen_ms2ions_a1_vnl0_fnl1
+#           - match_mvmods (vmods_ms1_labels.R)
 #           - find_vmodscombi
 #             - combi_namesiteU
 #               - find_vmodposU
@@ -217,13 +225,13 @@
 #               - match_aas_indexes
 #           check_ms1_mass_vmods2 (ms2_a1_vnl0_fnl0.R)
 #           calc_ms2ions_a1_vnl0_fnl1
-#             ms2ions_by_type
+#             ms2ions_by_type (ion_ladder.R)
 #               byions, czions, axions
 #           add_hexcodes_fnl2
 #         search_mgf2 (ms2base.R)
 #           find_ms2_bypep (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
-#             fuzzy_match_one (ms2base.R)
+#             fuzzy_match_one2 (ms2base.R)
 #       post_frame_adv (utils_engine.R)
 #     post_ms2match (utils_engine.R)
 # 
@@ -262,15 +270,7 @@
 # topx
 # find_ppm_error
 # find_mass_error_range
-# chunksplit
-# chunksplitLB
-# find_dir
-# create_dir
-# save_call2
-# find_callarg_vals
-# match_calltime
-# match_valexpr
-# delete_files
+# `%+%`
 # post_ms2match
 # post_frame_adv
 # purge_search_space
@@ -284,9 +284,51 @@
 # find_free_mem
 # find_mod_indexes
 # is_equal_sets
-# find_base_aamasses_index
 # purge_decoys
-# 
+# expand_grid_rows
+# count_elements
+# vec_to_list
+# split_vec
+# accumulate_char
+# combi_mat
+
+#################################
+# utils_os.R
+#################################
+# `names_pos<-`
+# find_int_cols
+# ins_cols_after
+# add_cols_at
+# replace_cols_at
+# reloc_col_after
+# reloc_col_after_last
+# reloc_col_after_first
+# reloc_col_before
+# reloc_col_before_last
+# reloc_col_before_first
+# find_preceding_colnm
+# recur_flatten
+# chunksplit
+# chunksplitLB
+# find_dir
+# create_dir
+# save_call2
+# find_callarg_vals
+# match_calltime
+# delete_files
+#################################
+
+#################################
+# utils_ui.R (user interfaces)
+#################################
+# calc_monopeptide
+# calc_monopep
+# check_aaseq
+# calc_ms2ionseries
+# calc_ms2ions
+# unique_mvmods
+# vmods_elements
+# find_intercombi
 #################################
 
 

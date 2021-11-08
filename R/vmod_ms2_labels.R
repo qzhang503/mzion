@@ -274,23 +274,6 @@ combi_namesiteM <- function (M, aas, nrows) {
 }
 
 
-#' Matches the indexes of amino-acid residues to cached results.
-#' 
-#' @param X Lists of cached results.
-#' @param Vec A vector of names (lower-case vec for sites).
-match_aas_indexes <- function (X, Vec) {
-  
-  len <- length(X)
-  out <- rep(list(Vec), len)
-  
-  for (i in 1:len) {
-    names(out[[i]]) <- names(X[[i]])
-  }
-  
-  out
-}
-
-
 #' Helper of \link{combi_namesiteM} (by each rows of labels).
 #'
 #' Multiple Names to the same Site.
@@ -333,6 +316,22 @@ find_vmodposM <- function (Vec, vec, ps, aas) {
   out
 }
 
+
+#' Matches the indexes of amino-acid residues to cached results.
+#' 
+#' @param X Lists of cached results.
+#' @param Vec A vector of names (lower-case vec for sites).
+match_aas_indexes <- function (X, Vec) {
+  
+  len <- length(X)
+  out <- rep(list(Vec), len)
+  
+  for (i in 1:len) {
+    names(out[[i]]) <- names(X[[i]])
+  }
+  
+  out
+}
 
 
 #' Makes the sets of MS2 labels (with permutations) for an \code{aa_masses}.

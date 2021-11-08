@@ -82,7 +82,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   rm(list = c("args_except", "cache_pars", "call_pars"))
   
-  
   delete_files(out_path, ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
                                      "\\.xls$", "\\.csv$", "\\.txt$", 
                                      "^mgf$", "^mgfs$", "Calls"))
@@ -180,7 +179,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
           saveRDS(file.path(out_path, "temp", paste0("reporters_", i, ".rds")))
       }
       
-      rm(list = c("out"))
+      rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
+                  "ntmod", "ntmass", "ctmod", "ctmass"))
       gc()
     }
   }
@@ -248,7 +248,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
           saveRDS(file.path(out_path, "temp", paste0("reporters_", i, ".rds")))
       }
       
-      rm(list = c("out"))
+      rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
+                  "ntmod", "ntmass", "ctmod", "ctmass"))
       gc()
     }
   }
@@ -316,7 +317,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
           saveRDS(file.path(out_path, "temp", paste0("reporters_", i, ".rds")))
       }
       
-      rm(list = c("out"))
+      rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
+                  "ntmod", "ntmass", "ctmod", "ctmass"))
       gc()
     }
   }
@@ -386,7 +388,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
           saveRDS(file.path(out_path, "temp", paste0("reporters_", i, ".rds")))
       }
       
-      rm(list = c("out"))
+      rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
+                  "ntmod", "ntmass", "ctmod", "ctmass"))
       gc()
     }
   }
@@ -457,7 +460,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
           saveRDS(file.path(out_path, "temp", paste0("reporters_", i, ".rds")))
       }
       
-      rm(list = c("out"))
+      rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
+                  "ntmod", "ntmass", "ctmod", "ctmass"))
       gc()
     }
   }
@@ -468,7 +472,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   i_max2 <- paste0("rev_", i_max)
 
   .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
-
   bin_file <- file.path(.path_bin, paste0("binned_theopeps_", i_max, ".rds"))
   bin_file2 <- file.path(.path_bin, paste0("binned_theopeps_", i_max2, ".rds"))
   
@@ -504,7 +507,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
   
   if (length(amods)) { # (7, 8)
-    rev <- ms2match_a1_vnl0_fnl0(
+    out <- ms2match_a1_vnl0_fnl0(
       i = i_max2, 
       aa_masses = aa_masses, 
       ms1vmods = ms1vmods, 
@@ -527,7 +530,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       min_ms2mass = min_ms2mass, 
       digits = digits)
   } else { # (1, 2)
-    rev <- ms2match_base(
+    out <- ms2match_base(
       i = i_max2, 
       aa_masses = aa_masses, 
       ms1vmods = ms1vmods, 
@@ -548,9 +551,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       digits = digits)
   }
   
-  saveRDS(rev, file.path(out_path, "temp", paste0("ion_matches_", i_max2, ".rds"))) 
+  saveRDS(out, file.path(out_path, "temp", paste0("ion_matches_", i_max2, ".rds"))) 
   
-  rm(list = c("rev"))
+  rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
+              "ntmod", "ntmass", "ctmod", "ctmass"))
   gc()
   
   .savecall <- TRUE

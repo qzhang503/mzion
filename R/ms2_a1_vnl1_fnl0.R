@@ -32,52 +32,31 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
   parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
   parallel::clusterExport(cl, list("%fin%"), envir = environment(fastmatch::`%fin%`))
   parallel::clusterExport(cl, list("fmatch"), envir = environment(fastmatch::fmatch))
-  
-  # ms2_a1_vnl1_fnl0.R: (9, 10) "amods+ tmod+ vnl+ fnl-", "amods+ tmod- vnl+ fnl-"
-  #   ms2match_a1_vnl1_fnl0 
-  #     purge_search_space
-  #     hms2_a1_vnl1_fnl0
-  #       frames_adv_a1_vnl1_fnl0
-  #         gen_ms2ions_a1_vnl1_fnl0
-  #           - find_vmodscombi
-  #             - combi_namesiteU
-  #               - find_vmodposU
-  #             - combi_namesiteM
-  #               - find_vmodposM
-  #               - match_aas_indexes
-  #           check_ms1_mass_vmods2 (ms2_a1_vnl0_fnl0.R)
-  #           calc_ms2ions_a1_vnl1_fnl0
-  #             ms2ions_by_type (ion_ladder.R)
-  #               byions, czions, axions (ion_ladder.R)
-  #           add_hexcodes_vnl2
-  #         search_mgf2 (ms2base.R)
-  #           find_ms2_bypep (ms2base.R)
-  #             fuzzy_match_one (ms2base.R)
-  #       post_frame_adv (ms2base.R)
-  #     post_ms2match (utils_engine.R)
-  
+
   parallel::clusterExport(
     cl,
-    c("frames_adv", 
+    c("hms2_a1_vnl1_fnl0", 
+      "frames_adv", 
       "gen_ms2ions_a1_vnl1_fnl0", 
-      
+      "match_mvmods", 
+      "expand_grid_rows", 
       "find_vmodscombi", 
       "combi_namesiteU", 
       "find_vmodposU", 
+      "vec_to_list", 
       "combi_namesiteM", 
       "find_vmodposM", 
       "match_aas_indexes", 
-
       "check_ms1_mass_vmods2", 
       "calc_ms2ions_a1_vnl1_fnl0", 
-      "expand_grid_rows", 
       "ms2ions_by_type", 
       "byions", "czions", "axions", 
+      "bions_base", "yions_base",
+      "cions_base", "zions_base", 
+      "aions_base", "xions_base", 
       "add_hexcodes_vnl2", 
       "search_mgf2", 
-      "find_mass_error_range", 
       "find_ms2_bypep", 
-      "find_ms1_interval", 
       "fuzzy_match_one", 
       "fuzzy_match_one2", 
       "post_frame_adv"), 

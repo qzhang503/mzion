@@ -26,7 +26,7 @@
 \alias{astar2ions}
 \alias{a0ions}
 \alias{a02ions}
-\alias{xions}
+\alias{xions_base}
 \alias{x2ions}
 \title{Masses of singly-charged b- and y-ions.}
 \usage{
@@ -80,7 +80,7 @@ a0ions(aas2, tmass, digits = 4L)
 
 a02ions(aas2, tmass, digits = 4L)
 
-xions(aas2, tmass, digits = 4L)
+xions_base(aas2, tmass, digits = 4L)
 
 x2ions(aas2, tmass, digits = 4L)
 }

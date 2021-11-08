@@ -25,20 +25,6 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
                            minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
                            min_ms2mass = 110L, digits = 4L) {
   
-  # ms2base.R: (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-"
-  #   ms2match_base 
-  #     purge_search_space (utils_engine.R)
-  #     hms2_base (helper)
-  #       frames_adv (frame-advancing)
-  #         gen_ms2ions_base (for specific pep_seq)
-  #           ms2ions_by_type (ion_ladder.R)
-  #             byions, czions, axions
-  #         search_mgf2
-  #           find_ms2_bypep
-  #             fuzzy_match_one
-  #       post_frame_adv
-  #     post_ms2match (utils_engine.R)
-
   # note: split into 16^2 lists
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
@@ -57,19 +43,20 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
 
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
   
-  parallel::clusterExport(cl, list("%>%"), 
-                          envir = environment(magrittr::`%>%`))
-  parallel::clusterExport(cl, list("%fin%"), 
-                          envir = environment(fastmatch::`%fin%`))
-  parallel::clusterExport(cl, list("fmatch"), 
-                          envir = environment(fastmatch::fmatch))
+  parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
+  parallel::clusterExport(cl, list("%fin%"), envir = environment(fastmatch::`%fin%`))
+  parallel::clusterExport(cl, list("fmatch"), envir = environment(fastmatch::fmatch))
 
   parallel::clusterExport(
     cl,
-    c("frames_adv", 
+    c("hms2_base", 
+      "frames_adv", 
       "gen_ms2ions_base", 
       "ms2ions_by_type", 
       "byions", "czions", "axions", 
+      "bions_base", "yions_base",
+      "cions_base", "zions_base", 
+      "aions_base", "xions_base", 
       "search_mgf2", 
       "find_ms2_bypep", 
       "fuzzy_match_one", 
@@ -947,39 +934,4 @@ fuzzy_match_one2 <- function (x, y) {
   ps <- mi | bf | af
 }
 
-
-#' Helper of \link{find_ms2_bypep}
-#' 
-#' Not currently used.
-#' 
-#' @inheritParams find_ms2_bypep
-#' @param ex Indexed \code{expts}.
-find_ms2_bycombi <- function (theos, expts, ex, ppm_ms2, min_ms2mass) {
-  
-  d <- ppm_ms2/1e6
-  
-  th <- ceiling(
-    log(unlist(theos, recursive = FALSE, use.names = FALSE)/min_ms2mass)/log(1+d)
-  )
-  ps <- fuzzy_match_one(th, ex)
-  
-  if (sum(ps) == 0) {
-    es <- rep(NA, length(theos))
-    out <- list(theo = theos, expt = es)
-  } else {
-    es <- theos
-    es[!ps] <- NA
-    
-    lth <- length(ps)
-    mid <- lth/2L
-    
-    bps <- fuzzy_match_one(ex, th[1:mid])
-    yps <- fuzzy_match_one(ex, th[(mid+1L):lth])
-    
-    es[ps] <- c(expts[bps], expts[yps])
-    out <- list(theo = theos, expt = es)
-  }
-
-  out
-}
 

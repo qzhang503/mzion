@@ -402,7 +402,7 @@ a02ions <- function (aas2, tmass, digits = 4L) {
 #' X-ions.
 #' 
 #' @rdname bions_base
-xions <- function (aas2, tmass, digits = 4L) {
+xions_base <- function (aas2, tmass, digits = 4L) {
   
   # +CO -H2 = 27.9949146 - 2*1.007825
   ions <- c(tmass + 25.9792646, rev(aas2))

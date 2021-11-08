@@ -243,16 +243,30 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgfs",
     stop("No mgf files under ", filepath, call. = FALSE)
   }
 
-  # n_cores <- detect_cores(16L)
   n_cores <- detect_cores(32L)
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
   parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
-  parallel::clusterExport(cl, list("proc_mgf_chunks"),
-                          envir = environment(proteoM:::proc_mgf_chunks))
-  parallel::clusterExport(cl, list("proc_mgfs"),
-                          envir = environment(proteoM:::proc_mgfs))
+  
+  parallel::clusterExport(
+    cl, 
+    c("stri_startswith_fixed", 
+      "stri_endswith_fixed", 
+      "stri_replace_first_fixed", 
+      "stri_split_fixed"), 
+    envir = environment(stringi::stri_startswith_fixed)
+  )
 
+  parallel::clusterExport(
+    cl,
+    c("proc_mgf_chunks_i", 
+      "proc_mgf_chunks", 
+      "proc_mgfs", 
+      "which_topx2", 
+      "find_ms1_interval"), 
+    envir = environment(proteoM:::proc_mgf_chunks)
+  )
+  
   out <- parallel::clusterApply(cl, file.path(filepath, filelist),
                                 proc_mgf_chunks_i,
                                 topn_ms2ions = topn_ms2ions,
@@ -386,8 +400,8 @@ proc_mgf_chunks <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
 
   basename <- gsub("\\.[^.]*$", "", filepath)
 
-  begins <- which(stri_startswith_fixed(lines, "BEGIN IONS"))
-  ends <- which(stri_endswith_fixed(lines, "END IONS"))
+  begins <- which(stringi::stri_startswith_fixed(lines, "BEGIN IONS"))
+  ends <- which(stringi::stri_endswith_fixed(lines, "END IONS"))
 
   af <- local({
     le <- ends[length(ends)]

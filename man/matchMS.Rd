@@ -38,7 +38,7 @@ matchMS(
   target_fdr = 0.01,
   fdr_type = c("psm", "peptide", "protein"),
   combine_tier_three = FALSE,
-  use_ms1_cache = TRUE,
+  use_ms1_cache = FALSE,
   .path_cache = NULL,
   .path_fasta = NULL,
   digits = 4L

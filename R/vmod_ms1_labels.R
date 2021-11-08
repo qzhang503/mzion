@@ -1,3 +1,106 @@
+#' Matches to the pre-calculated labels of combinatorial MS1 variable
+#' modifications.
+#'
+#' No checking of conflicting [NC]-term and Anywhere sites. Even so, it only
+#' sets a overall limit on the counts. Still need to check the MS2 permutation
+#' with indexes in aas for exact exclusion of certain permutations.
+#'
+#' @param aas \code{aa_seq} split in a sequence of LETTERS.
+#' @param ms1vmods The i-th result from lapply(aa_masses_all, make_ms1vmod_i).
+#' @param amods \code{Anywhere} variable modifications.
+#' @examples
+#' \donttest{
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
+#'                "Carbamidomethyl (C)")
+#'
+#' varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)",
+#'              "Deamidated (N)",
+#'              "Gln->pyro-Glu (N-term = Q)")
+#'
+#' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
+#'                                varmods = varmods,
+#'                                maxn_vmods_setscombi = 64,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE,
+#'                                exclude_phospho_nl = TRUE,
+#'                                out_path = NULL)
+#'
+#' maxn_vmods_per_pep <- 5L
+#' maxn_sites_per_vmod <- 3L
+#'
+#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
+#'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
+#'
+#' i <- 11L
+#' aa_masses <- aa_masses_all[[i]]
+#' amods <- attr(aa_masses, "amods")
+#' ms1vmods <- ms1vmods_all[[i]]
+#'
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#'
+#' vmods_combi <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
+#'
+#' ## M and N
+#' fixedmods = c("TMT6plex (K)", "dHex (S)")
+#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)",
+#'             "Deamidated (N)", "Acetyl (Protein N-term)")
+#'
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
+#'                                add_varmasses = FALSE,
+#'                                add_nlmasses = FALSE)
+#'
+#' maxn_vmods_per_pep <- 5L
+#' maxn_sites_per_vmod <- 3L
+#'
+#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
+#'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
+#'
+#' i <- 16L
+#' aa_masses <- aa_masses_all[[i]]
+#' amods <- attr(aa_masses, "amods")
+#' ntmod <- attr(aa_masses, "ntmod")
+#' ctmod <- attr(aa_masses, "ctmod")
+#'
+#' ms1vmods <- ms1vmods_all[[i]]
+#'
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#'
+#' vmods_combi <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
+#'
+#' stopifnot(sapply(vmods_combi$ms1, function (x) all(names(amods) %in% x)),
+#'           length(vmods_combi$ms1) == 6L)
+#'
+#' }
+match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL) {
+  
+  ## stronger check by each residues
+  resids <- unique(amods)
+  len_r <- length(resids)
+  max_rs <- vector("integer", len_r)
+  
+  for (i in seq_len(len_r)) {
+    max_rs[i] <- sum(aas == resids[[i]])
+  }
+  
+  ## `make_ms1_vmodsets` obtained from the same `amods`
+  ##   -> no mess up in the order of `amods` -> no name sorting
+  
+  len <- length(ms1vmods)
+  rows <- vector("logical", len)
+  
+  for (i in seq_len(len)) {
+    ps <- attr(ms1vmods[[i]], "ps")
+    rows[i] <- all(ps <= max_rs) # && all(labs <= max_ls)
+  }
+  
+  rows <- which(rows)
+  
+  list(ms1 = ms1vmods[rows], inds = rows)
+}
+
+
 #' Makes the sets of MS1 labels for a given \code{aa_masses}.
 #'
 #' For \code{Anywhere} variable modifications (\code{amods}) across all
