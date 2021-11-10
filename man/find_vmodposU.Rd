@@ -17,3 +17,6 @@ values.}
 \description{
 One-to-one correspondence between Names and Sites.
 }
+\details{
+Custom functions: vec_to_list.
+}

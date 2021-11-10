@@ -215,7 +215,7 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL,
   }
 
   # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+" 
-  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   
   idxes <- which(aas %in% names(fmods_nl))

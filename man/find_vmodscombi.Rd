@@ -106,5 +106,8 @@ oks <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
 ms2vmods <- ms2vmods[oks]
 
 vmods_combi <- find_vmodscombi(aas, ms2vmods)
+
+n_pos <- lapply(vmods_combi, function (x) names(x[x == "Deamidated (N)"]))
+stopifnot(all(sapply(n_pos, function (x) all(x \%in\% c("6", "14")))))
 }
 }

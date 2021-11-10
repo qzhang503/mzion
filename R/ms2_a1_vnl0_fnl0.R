@@ -268,12 +268,9 @@ hms2_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmo
 #' amods <- attr(aa_masses, "amods", exact = TRUE)
 #' 
 #' aa_seq <- "EKNALVNEADSADVLQVANTDDEGGPENHRENFNNNNNNSVAVSSLNNGR"
-#' ms1_masses <- calc_monopeptide("MHQGVMNVGMGQKMNS",
-#'                                fixedmods, varmods)
-#' ms1_mass <- ms1_masses$mass[[8]][2] 
+#' ms1_masses <- calc_monopeptide(aa_seq, fixedmods, varmods)
+#' ms1_mass <- ms1_masses$mass[[3]][1] # 5824.7551
 #' 
-#' # ms1_mass beyong the indexes limited by 
-#' # `maxn_vmods_sitescombi_per_pep`
 #' out <- gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
 #'                                 aa_masses = aa_masses, 
 #'                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
@@ -295,7 +292,7 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
                                       maxn_vmods_sitescombi_per_pep = 32L, 
                                       digits = 4L) {
   
-  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, 
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
                             useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]

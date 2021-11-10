@@ -76,7 +76,8 @@
 match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL) {
   
   ## stronger check by each residues
-  resids <- unique(amods)
+  resids <- amods[!duplicated.default(amods)]
+  # resids <- unique(amods)
   len_r <- length(resids)
   max_rs <- vector("integer", len_r)
   

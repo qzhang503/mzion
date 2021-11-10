@@ -177,8 +177,21 @@ hms2_a1_vnl1_fnl0 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmo
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods,
 #'                                add_varmasses = FALSE,
 #'                                add_nlmasses = FALSE)
+#' 
+#' maxn_vmods_per_pep <- 5L
+#' maxn_sites_per_vmod <- 3L
 #'
-#' aa_masses <- aa_masses_all[[16]]
+#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
+#'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
+#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+#'
+#' i <- 16L
+#' aa_masses <- aa_masses_all[[i]]
+#' amods <- attr(aa_masses, "amods")
+#'
+#' ms1vmods <- ms1vmods_all[[i]]
+#' ms2vmods <- ms2vmods_all[[i]]
 #'
 #' ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 #' ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
@@ -204,9 +217,12 @@ hms2_a1_vnl1_fnl0 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmo
 #' ms1_mass <- ms1_masses$mass[[16]][2] # 2197.9679
 #'
 #' out <- gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
-#'                                 aa_masses = aa_masses, ntmod = ntmod, ctmod = ctmod, 
+#'                                 aa_masses = aa_masses, 
+#'                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
+#'                                 ntmod = ntmod, ctmod = ctmod, 
 #'                                 ntmass = ntmass, ctmass = ctmass, 
-#'                                 amods = amods, vmods_nl = vmods_nl, fmods_nl = NULL, 
+#'                                 amods = amods, 
+#'                                 vmods_nl = vmods_nl, fmods_nl = NULL, 
 #'                                 mod_indexes = mod_indexes)
 #' 
 #' # Not in the category; 
@@ -234,7 +250,20 @@ hms2_a1_vnl1_fnl0 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmo
 #'                                add_varmasses = FALSE, 
 #'                                add_nlmasses = FALSE)
 #' 
-#' aa_masses <- aa_masses_all[[8]]
+#' maxn_vmods_per_pep <- 5L
+#' maxn_sites_per_vmod <- 3L
+#'
+#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
+#'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
+#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+#'
+#' i <- 8L
+#' aa_masses <- aa_masses_all[[i]]
+#' amods <- attr(aa_masses, "amods")
+#'
+#' ms1vmods <- ms1vmods_all[[i]]
+#' ms2vmods <- ms2vmods_all[[i]]
 #' 
 #' ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 #' ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
@@ -256,8 +285,11 @@ hms2_a1_vnl1_fnl0 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmo
 #' 
 #' aa_seq <- "MHQGVMNVGMGQKMNS"
 #' 
-#' out <- gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = NULL, 
+#' # No-matches at `ms1_mass = 2123.9424` as the matching index 
+#' # exceeds `maxn_vmods_sitescombi_per_pep`
+#' out <- gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = 2123.9424, 
 #'                                 aa_masses = aa_masses, 
+#'                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
 #'                                 ntmod = ntmod, ctmod = ctmod, 
 #'                                 ntmass = ntmass, ctmass = ctmass, 
 #'                                 amods = amods, 
@@ -277,7 +309,7 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
                                       maxn_vmods_sitescombi_per_pep = 32L, 
                                       digits = 4L) {
 
-  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
   

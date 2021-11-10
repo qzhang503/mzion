@@ -86,11 +86,14 @@
 #' ms2vmods <- ms2vmods[oks]
 #'
 #' vmods_combi <- find_vmodscombi(aas, ms2vmods)
+#' 
+#' n_pos <- lapply(vmods_combi, function (x) names(x[x == "Deamidated (N)"]))
+#' stopifnot(all(sapply(n_pos, function (x) all(x %in% c("6", "14")))))
 #' }
 find_vmodscombi <- function (aas = NULL, ms2vmods = NULL, 
                              maxn_vmods_sitescombi_per_pep = 64L) {
   
-  # Starts from sets of MS1 labels
+  # Starts from sets of combinatorial MS1 labels
   # 
   #   if multiple names for the same site 
   #     (e.g., Carbamidomethyl (M)", "Oxidation (M)")
@@ -111,12 +114,12 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
     nrows <- nrow(M)
     
     if (nrows == 1L) {
-      ans <- list(combi_namesiteU(M = M, aas = aas))
+      # ans <- list(combi_namesiteU(M = M, aas = aas))
+      ans <- combi_namesiteU(M = M, aas = aas)
     } else {
       ans <- combi_namesiteM(M = M, aas = aas, nrows = nrows)
+      ans <- .Internal(unlist(ans, recursive = FALSE, use.names = FALSE))
     }
-
-    ans <- .Internal(unlist(ans, recursive = FALSE, use.names = FALSE))
 
     len_a <- length(ans)
     tot <- tot + len_a
@@ -151,7 +154,7 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
   # Belongs to the same permutated MS1 label, e.g.
   #   "Carbamyl (M)", "Carbamidomethyl (M)", "Deamidated (N)"
   # 
-  # with sub lists at different aas indexes 
+  # with sub lists at different `aas` indexes 
   #         5                 9                    14
   #   "Carbamyl (M)", "Carbamidomethyl (M)", "Deamidated (N)"
   #         5                 13                    14
@@ -200,12 +203,15 @@ combi_namesiteU <- function (M, aas) {
 #' Helper of \link{combi_namesiteU}.
 #'
 #' One-to-one correspondence between Names and Sites.
+#' 
+#' Custom functions: vec_to_list.
 #'
 #' @param vec A vector of labels.
 #' @param ps Named vector; counts for each site. Sites in names and counts in
 #'   values.
 #' @param aas \code{aa_seq} split in a sequence of LETTERS.
 find_vmodposU <- function (vec, ps, aas) {
+  
   nres <- length(ps)
   M <- vpos <- vector("list", nres)
   
@@ -217,9 +223,9 @@ find_vmodposU <- function (vec, ps, aas) {
     vpos[[i]] <- which(vec == resid) # M: 1, 2; N: 3
     
     if (ct == 1L) {
-      M[[i]] <- vec_to_list(aapos) # faster than combn
+      M[[i]] <- vec_to_list(aapos)
     } else {
-      M[[i]] <- combn(as.character(aapos), ct, simplify = FALSE)
+      M[[i]] <- combn(aapos, ct, simplify = FALSE)
     }
   }
   
@@ -242,31 +248,33 @@ combi_namesiteM <- function (M, aas, nrows) {
   ps <- attr(M, "ps")
   m <- attr(M, "resids")
   
-  # to vectors only because of slow `unique` on matrix
+  # to vectors for speed
   mv <- vector("list", nrows)
-  for (i in 1:nrows) mv[[i]] <- m[i, ] # asplit
-  umv <- unique(mv) # 4.7 us
-  # umv <- mv[!duplicated.default(mv)] # 2 us
+  for (i in 1:nrows) mv[[i]] <- m[i, ]
+  uniqs <- !duplicated.default(mv)
+  umv <- mv[uniqs]
   
-  lenm <- length(mv)
-  lenu <- length(umv)
-  ans <- vector("list", lenm)
-  cache <- vector("list", lenu)
-  
-  for (i in 1:lenm) {
+  len <- length(mv)
+  cache <- ans <- vector("list", len)
+
+  for (i in 1:len) {
     Vec <- M[i, ]
     vec <- mv[[i]]
+    is_new <- uniqs[i]
     
-    for (j in 1:lenu) {
-      ok <- identical(vec, cache[[j]])
-      if (ok) break
-    }
-    
-    if (ok) {
-      ans[[i]] <- match_aas_indexes(ans[[j]], Vec) # 21 us
-    } else {
-      ans[[i]] <- find_vmodposM(Vec = Vec, vec = vec, ps = ps, aas = aas) # 184 us
+    if (is_new) {
+      ans[[i]] <- find_vmodposM(Vec = Vec, vec = vec, ps = ps, aas = aas)
       cache[[i]] <- vec
+    } else {
+      # must have a preceding match by the implementation of `duplicated`
+      for (j in 1:len) {
+        cj <- cache[[j]]
+        
+        if ((!is.null(cj)) && identical(vec, cj)) {
+          ans[[i]] <- match_aas_indexes(ans[[j]], Vec)
+          break
+        }
+      }
     }
   }
   

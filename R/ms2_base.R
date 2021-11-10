@@ -545,7 +545,7 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
                               maxn_vmods_sitescombi_per_pep = 32L, 
                               digits = 4L) {
   
-  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
   

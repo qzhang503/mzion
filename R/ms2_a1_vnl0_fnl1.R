@@ -177,8 +177,19 @@ hms2_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmo
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods,
 #'                                add_varmasses = FALSE,
 #'                                add_nlmasses = FALSE)
-#'
-#' aa_masses <- aa_masses_all[[2]]
+#' 
+#' maxn_vmods_per_pep <- 5L
+#' maxn_sites_per_vmod <- 3L
+#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
+#'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
+#' 
+#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+#' 
+#' i <- 2L
+#' aa_masses <- aa_masses_all[[i]]
+#' ms1vmods <- ms1vmods_all[[i]]
+#' ms2vmods <- ms2vmods_all[[i]]
 #'
 #' ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 #' ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
@@ -204,8 +215,11 @@ hms2_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmo
 #' ms1_mass <- ms1_masses$mass[[2]][2] # 2041.8958
 #'
 #' out <- gen_ms2ions_a1_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = ms1_mass, 
-#'                                 aa_masses = aa_masses, ntmod = ntmod, ctmod = ctmod,
-#'                                 ntmass = ntmass, ctmass = ctmass, amods = amods, 
+#'                                 aa_masses = aa_masses, 
+#'                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
+#'                                 ntmod = ntmod, ctmod = ctmod,
+#'                                 ntmass = ntmass, ctmass = ctmass, 
+#'                                 amods = amods, 
 #'                                 vmods_nl = NULL, fmods_nl = fmods_nl, 
 #'                                 mod_indexes = mod_indexes)
 #' 
@@ -251,7 +265,7 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
   }
   
   # (11, 12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
-  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
   
