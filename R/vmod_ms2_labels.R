@@ -114,7 +114,6 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
     nrows <- nrow(M)
     
     if (nrows == 1L) {
-      # ans <- list(combi_namesiteU(M = M, aas = aas))
       ans <- combi_namesiteU(M = M, aas = aas)
     } else {
       ans <- combi_namesiteM(M = M, aas = aas, nrows = nrows)
@@ -183,7 +182,7 @@ combi_namesiteU <- function (M, aas) {
   ans <- find_vmodposU(m, ps, aas)
   combi <- ans$combi
   vpos <- ans$vpos
-
+  
   len_out <- nrow(combi)
   out <- rep(list(M[1, ]), len_out)
   
@@ -191,9 +190,12 @@ combi_namesiteU <- function (M, aas) {
     ansi <- combi[[i]] # list of six: 5, 9; 9, 13 etc.
     pi <- vpos[[i]] # 1, 3
     
-    for (j in seq_len(len_out)) { # by combi
-      names(out[[j]])[pi] <- ansi[[j]]
-    }
+    for (j in seq_len(len_out)) names(out[[j]])[pi] <- ansi[[j]]
+    
+    # lapply(seq_len(len_out), function (j) { # by combi
+    #   names(out[[j]])[pi] <- ansi[[j]]
+    #   out <<- out
+    # })
   }
   
   out
@@ -222,14 +224,13 @@ find_vmodposU <- function (vec, ps, aas) {
     ct <- ps[[i]] # M: 2; N: 1
     vpos[[i]] <- which(vec == resid) # M: 1, 2; N: 3
     
-    if (ct == 1L) {
-      M[[i]] <- vec_to_list(aapos)
-    } else {
-      M[[i]] <- combn(aapos, ct, simplify = FALSE)
-    }
+    if (ct == 1L) 
+      M[[i]] <- vec_to_list(aapos) 
+    else 
+      M[[i]] <-combn(as.character(aapos), ct, simplify = FALSE)
   }
   
-  ans <- list(
+  list(
     combi = expand.grid(M, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE), 
     vpos = vpos
   )
@@ -300,11 +301,10 @@ find_vmodposM <- function (Vec, vec, ps, aas) {
     ct <- ps[[i]] # M: 2; N: 1
     vpos[[i]] <- which(vec == resid) # M: 1, 2; N: 3
     
-    if (ct == 1L) {
-      M[[i]] <- vec_to_list(aapos)
-    } else {
+    if (ct == 1L) 
+      M[[i]] <- vec_to_list(aapos) 
+    else 
       M[[i]] <- combn(as.character(aapos), ct, simplify = FALSE)
-    }
   }
   
   ans <- expand.grid(M, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
@@ -316,9 +316,12 @@ find_vmodposM <- function (Vec, vec, ps, aas) {
     ansi <- ans[[i]] # list of six: 5, 9; 9, 13 etc.
     pi <- vpos[[i]] # 1, 3
     
-    for (j in seq_len(len_out)) { # by combi
-      names(out[[j]])[pi] <- ansi[[j]]
-    }
+    for (j in seq_len(len_out)) names(out[[j]])[pi] <- ansi[[j]]
+    
+    # lapply(seq_len(len_out), function (j) { # by combi
+    #   names(out[[j]])[pi] <- ansi[[j]]
+    #   out <<- out
+    # })
   }
   
   out
@@ -334,9 +337,12 @@ match_aas_indexes <- function (X, Vec) {
   len <- length(X)
   out <- rep(list(Vec), len)
   
-  for (i in 1:len) {
-    names(out[[i]]) <- names(X[[i]])
-  }
+  for (i in 1:len) names(out[[i]]) <- names(X[[i]])
+  
+  # lapply(1:len, function (i) {
+  #   names(out[[i]]) <- names(X[[i]])
+  #   out <<- out
+  # })
   
   out
 }
