@@ -107,7 +107,7 @@ find_mass_error_range <- function (x = 500L, ppm = 20L) {
 #'
 #' @param x A numeric value.
 #' @param y A numeric value.
-`%+%` <- function(x, y)  mapply(sum, x, y, MoreArgs = list(na.rm = TRUE))
+`%+%` <- function(x, y) mapply(sum, x, y, MoreArgs = list(na.rm = TRUE))
 
 
 #' Post processing after ms2match.
@@ -121,11 +121,10 @@ post_ms2match <- function (out, i, aa_masses, out_path) {
   nm_fmods <- attr(aa_masses, "fmods", exact = TRUE)
   nm_vmods <- attr(aa_masses, "vmods", exact = TRUE)
 
-  if (grepl("^rev", i)) {
+  if (grepl("^rev", i)) 
     is_decoy <- TRUE
-  } else {
+  else 
     is_decoy <- FALSE
-  }
 
   out <- out %>%
     dplyr::mutate(pep_fmod = nm_fmods,
@@ -154,10 +153,10 @@ post_frame_adv <- function (res, mgf_frames) {
 
   empties <- purrr::map_lgl(res, purrr::is_empty)
 
-  res <- do.call(rbind, mgf_frames) %>%
-    dplyr::mutate(matches = res)
-
-  res[!empties, ]
+  out <- do.call(rbind, mgf_frames)
+  out <- dplyr::mutate(out, matches = res)
+  
+  out[!empties, ]
 }
 
 
@@ -319,12 +318,11 @@ find_nterm_mass <- function (aa_masses) {
 
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
   
-  if (length(ntmod)) {
+  if (length(ntmod)) 
     ntmass <- aa_masses[names(ntmod)] + 1.00727647 # + proton
-  } else {
+  else 
     ntmass <- aa_masses["N-term"] - 0.000549 # - electron
-  }
-  
+
   ntmass
 }
 
@@ -336,12 +334,11 @@ find_cterm_mass <- function (aa_masses) {
   
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
   
-  if (length(ctmod)) {
+  if (length(ctmod)) 
     ctmass <- aa_masses[names(ctmod)] + 2.01510147
-  } else {
+  else 
     ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
-  }
-  
+
   ctmass
 }
 
@@ -438,17 +435,16 @@ detect_cores <- function (max_n_cores = NULL) {
     max_n_cores <- min(max_n_cores, n_cores)
   }
 
-  if (n_cores > 128L) {
+  if (n_cores > 128L) 
     max_n_cores <- min(max_n_cores, n_cores - 8L)
-  } else if (n_cores <= 128L && n_cores > 64L) {
+  else if (n_cores <= 128L && n_cores > 64L) 
     max_n_cores <- min(max_n_cores, n_cores - 4L)
-  } else if (n_cores <= 64L && n_cores > 32L) {
+  else if (n_cores <= 64L && n_cores > 32L) 
     max_n_cores <- min(max_n_cores, n_cores - 2L)
-  } else if (n_cores <= 32L && n_cores > 16L) {
+  else if (n_cores <= 32L && n_cores > 16L) 
     max_n_cores <- min(max_n_cores, n_cores - 1L)
-  } else {
+  else 
     max_n_cores <- min(max_n_cores, n_cores)
-  }
 
   invisible(max_n_cores)
 }
@@ -486,9 +482,7 @@ find_free_mem <- function () {
 #' @param file A full-path name of file where modifications are recorded.
 find_mod_indexes <- function (file) {
   
-  if (!file.exists(file)) {
-    stop("File not found: ", file, call. = FALSE)
-  }
+  if (!file.exists(file)) stop("File not found: ", file, call. = FALSE)
   
   mod_indexes <- readr::read_tsv(file, show_col_types = FALSE)
   
@@ -614,9 +608,7 @@ count_elements <- function (vec) {
   
   out <- vector("integer", len)
   
-  for (i in seq_len(len)) {
-    out[i] <- sum(vec == vals[i])
-  }
+  for (i in seq_len(len)) out[i] <- sum(vec == vals[i])
   
   names(out) <- vals
   
@@ -640,9 +632,7 @@ vec_to_list <- function (x) {
   out <- vector("list", len)
   names(out) <- x
   
-  for(i in seq_len(len)) {
-    out[[i]] <- x[i]
-  }
+  for(i in seq_len(len)) out[[i]] <- x[i]
   
   out
 }
@@ -696,9 +686,7 @@ split_vec <- function (vec) {
   
   out <- vector("list", len)
   
-  for (i in seq_len(len)) {
-    out[[i]] <- vec[vec == vals[i]]
-  }
+  for (i in seq_len(len)) out[[i]] <- vec[vec == vals[i]]
   
   names(out) <- vals
   
@@ -729,9 +717,7 @@ accumulate_char <- function(x, f) {
   
   out[1] <- x[1]
   
-  for (i in seq(2, len)) {
-    out[i] <- f(out[i-1], x[i])
-  }
+  for (i in seq(2, len)) out[i] <- f(out[i-1], x[i])
   
   out
 }
@@ -750,11 +736,9 @@ combi_mat <- function (nb = 5L, ns = 3L) {
   
   if (ns == 1L) return(m)
   
-  
-  for (i in seq(2, ns)) {
-    m[, i] <- cumsum(m[, i-1])
-  }
+  for (i in seq(2, ns)) m[, i] <- cumsum(m[, i-1])
   
   m
 }
+
 

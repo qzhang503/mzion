@@ -278,12 +278,11 @@ calc_pepmasses2 <- function (
       for (i in inds) {
         fwd_peps[[i]] <- add_term_mass2(aa_masses_all[[i]], fwd_peps[[i]])
 
-        if (i %in% nt_inds) {
+        if (i %in% nt_inds) 
           message("\tCompleted peptide terminal masses: ",
                   paste(attributes(aa_masses_all[[i]])$fmods,
                         attributes(aa_masses_all[[i]])$vmods,
                         collapse = ", "))
-        }
 
         gc()
       }
@@ -1448,11 +1447,10 @@ split_fastaseqs <- function (fasta, acc_type, acc_pattern, maxn_fasta_seqs,
 
   fasta_db <- load_fasta2(fasta, acc_type, acc_pattern)
 
-  if (length(fasta_db) > maxn_fasta_seqs) {
+  if (length(fasta_db) > maxn_fasta_seqs) 
     stop("More than `", maxn_fasta_seqs, "` sequences in fasta files.\n",
          "  May consider a higher `maxn_fasta_seqs`.",
          call. = FALSE)
-  }
 
   n_cores <- detect_cores(16L)
 
@@ -1490,14 +1488,10 @@ make_fastapeps0 <- function (fasta_db, max_miss = 2L) {
 
   inds_m <- grep("^M", fasta_db)
   
-  fasta_db <- lapply(fasta_db, function (x) {
-    s <- gsub("([KR]{1})", paste0("\\1", "@"), x)
-    paste0("-", s, "-")
-  })
+  fasta_db <- lapply(fasta_db, function (x) 
+    paste0("-", gsub("([KR]{1})", paste0("\\1", "@"), x), "-"))
   
-  fasta_dbm <- lapply(fasta_db[inds_m], function (x) {
-    gsub("^-M", "-", x)
-  })
+  fasta_dbm <- lapply(fasta_db[inds_m], function (x) gsub("^-M", "-", x))
   
   # --- with protein N-term (initiator) methionine ---
   peps <- lapply(fasta_db, function (x) {
@@ -1537,13 +1531,9 @@ keep_n_misses <- function (x, n) {
   
   len <- length(x)
   
-  if (n < 0L) {
-    stop("`n` cannot be nagative integers: ", n)
-  }
+  if (n < 0L) stop("`n` cannot be nagative integers: ", n)
   
-  if (!len) {
-    stop("Length of `x` cannot be zero.")
-  }
+  if (!len) stop("Length of `x` cannot be zero.")
   
   x[1:min(n + 1, len)]
 }
@@ -1557,13 +1547,9 @@ exclude_n_misses <- function (x, n) {
   
   len <- length(x)
   
-  if (n < 0L) {
-    stop("`n` cannot be nagative integers: ", n)
-  }
+  if (n < 0L) stop("`n` cannot be nagative integers: ", n)
   
-  if (!len) {
-    stop("Length of `x` cannot be zero.")
-  }
+  if (!len) stop("Length of `x` cannot be zero.")
   
   x[-(1:min(n + 1, len))]
 }
@@ -1632,14 +1618,13 @@ add_term_mass2 <- function (aa_masses, peps) {
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
   
   # No needs of is_empty(ntmod) && is_empty(ctmod)
-  if (length(ntmod) && length(ctmod)) {
+  if (length(ntmod) && length(ctmod)) 
     delta <- aa_masses[names(ntmod)] + aa_masses[names(ctmod)]
-  } else if (length(ntmod)) {
+  else if (length(ntmod)) 
     delta <- aa_masses[names(ntmod)]
-  } else if (length(ctmod)) {
+  else if (length(ctmod)) 
     delta <- aa_masses[names(ctmod)]
-  }
-  
+
   peps + delta
 }
 
@@ -1725,12 +1710,11 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
   # (USE.NAMES of prot_acc)
   ms <- mapply(`c`, ms_1, ms_2, SIMPLIFY = FALSE, USE.NAMES = TRUE)
 
-  if (min_len > 1L && !is.infinite(max_len)) {
+  if (min_len > 1L && !is.infinite(max_len)) 
     ms <- lapply(ms, function (x) {
-      x %>% .[str_exclude_count(names(.)) >= min_len &
-                 str_exclude_count(names(.)) <= max_len]
+      cts <- str_exclude_count(names(x), "-")
+      x[cts >= min_len & cts <= max_len]
     })
-  }
 
   # "HD101_HUMAN" etc. has no tryptic peptides
   lens <- unlist(lapply(ms, length), recursive = FALSE, use.names = FALSE)
@@ -1798,13 +1782,12 @@ ms1masses_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L,
 calcms1mass_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L, 
                                 maxn_sites_per_vmod = 3L, digits = 4L) {
 
-  lapply(aa_seqs, function (prot_peps) {
-    calcms1mass_noterm_byprot(prot_peps = prot_peps,
+  lapply(aa_seqs, function (x) 
+    calcms1mass_noterm_byprot(prot_peps = x,
                               aa_masses = aa_masses,
                               maxn_vmods_per_pep = maxn_vmods_per_pep,
                               maxn_sites_per_vmod = maxn_sites_per_vmod,
-                              digits = digits)
-  })
+                              digits = digits))
 }
 
 
@@ -1841,7 +1824,8 @@ calcms1mass_noterm_bypep <- function (aa_seq, aa_masses, maxn_vmods_per_pep = 5L
 
   if (is.na(aa_seq)) return(NULL)
   
-  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
+                            useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
 
   aas <- aa_masses[aas]
@@ -2103,7 +2087,8 @@ hms1_a0_vnl0_fnl1 <- function (masses, fnl_combi, aa_masses, digits = 4L) {
 #' @importFrom stringr str_split
 ms1_a0_vnl0_fnl1 <- function (mass, aa_seq, fnl_combi, aa_masses, digits = 4L) {
   
-  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
+                            useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
 
   delta <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
@@ -2254,7 +2239,7 @@ ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
                               ms1vmods = NULL, 
                               digits = 4L) {
   
-  aas <- .Internal(strsplit(aa_seq, "", fixed = FALSE, perl = FALSE, 
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
                             useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   

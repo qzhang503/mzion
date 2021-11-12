@@ -51,8 +51,12 @@
 #   - find_vmodscombi
 #     - combi_namesiteU
 #       - find_vmodposU
+#         - vec_to_list
+#         - sim_combn
 #     - combi_namesiteM
 #       - find_vmodposM
+#         - vec_to_list
+#         - sim_combn
 #       - match_aas_indexes
 
 
@@ -156,9 +160,11 @@
 #             "combi_namesiteU" (vmods_ms2_labels.R)
 #               "find_vmodposU" (vmods_ms2_labels.R)
 #                 "vec_to_list" (utils_engine.R)
+#                 "sim_combn" (vmod_ms2_labels.R)
 #             "combi_namesiteM" (vmods_ms2_labels.R)
 #               "find_vmodposM" (vmods_ms2_labels.R)
 #                 "vec_to_list" (vmods_ms2_labels.R)
+#                 "sim_combn" (vmod_ms2_labels.R)
 #               "match_aas_indexes" (vmods_ms2_labels.R)
 #           "check_ms1_mass_vmods2" (ms2_a1_vnl0_fnl0.R)
 #           "calc_ms2ions_a1_vnl0_fnl0" (ms2_a1_vnl0_fnl0.R)
@@ -189,9 +195,11 @@
 #             "combi_namesiteU" (vmods_ms2_labels.R)
 #               "find_vmodposU" (vmods_ms2_labels.R)
 #                 "vec_to_list" (utils_engine.R)
+#                 "sim_combn" (vmod_ms2_labels.R)
 #             "combi_namesiteM" (vmods_ms2_labels.R)
 #               "find_vmodposM" (vmods_ms2_labels.R)
-#                 "vec_to_list" (vmods_ms2_labels.R)
+#                 "vec_to_list" (utils_engine.R)
+#                 "sim_combn" (vmod_ms2_labels.R)
 #               "match_aas_indexes" (vmods_ms2_labels.R)
 #           "check_ms1_mass_vmods2" (ms2_a1_vnl0_fnl0.R)
 #           "expand_grid_rows" (utils_engine.R)
@@ -220,8 +228,10 @@
 #           - find_vmodscombi
 #             - combi_namesiteU
 #               - find_vmodposU
+#                 - "sim_combn" (vmod_ms2_labels.R)
 #             - combi_namesiteM
 #               - find_vmodposM
+#                 - "sim_combn" (vmod_ms2_labels.R)
 #               - match_aas_indexes
 #           check_ms1_mass_vmods2 (ms2_a1_vnl0_fnl0.R)
 #           calc_ms2ions_a1_vnl0_fnl1
@@ -246,7 +256,7 @@
 #             calc_probi_byvmods
 #               add_seions
 #               find_ppm_outer_bycombi
-# 
+#                 sim_outer
 
 
 ## calc_protfdr (scores.R)

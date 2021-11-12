@@ -79,6 +79,9 @@
 #'   comparable to Mascot outputs with FDR controls at the levels of PSMs or
 #'   peptides.
 #' @param use_ms1_cache Logical; if TRUE, use cached precursor masses.
+#'
+#'   Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
+#'   \code{fdr_type = psm} to \code{fdr_type = protein}.
 #' @param .path_cache The file path of cached search parameters. At the NULL
 #'   default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
 #'   parameter is for users' awareness of the structure of file folders and the
@@ -165,7 +168,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      target_fdr = 0.01,
                      fdr_type = c("psm", "peptide", "protein"),
                      combine_tier_three = FALSE,
-                     use_ms1_cache = FALSE, 
+                     use_ms1_cache = TRUE, 
                      .path_cache = NULL, 
                      .path_fasta = NULL,
                      digits = 4L) {
@@ -188,9 +191,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
   varmods <- sort(varmods)
   
   # accession pattern
-  if ((!is.null(acc_pattern)) && acc_pattern == "") {
+  if ((!is.null(acc_pattern)) && acc_pattern == "") 
     acc_pattern <- NULL
-  }
   
   # numeric types 
   stopifnot(vapply(c(maxn_fasta_seqs, maxn_vmods_setscombi, maxn_vmods_per_pep, 
@@ -235,11 +237,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
   fdr_type <- rlang::enexpr(fdr_type)
   oks <- eval(formals()[["fdr_type"]])
 
-  if (length(fdr_type) > 1L) {
+  if (length(fdr_type) > 1L) 
     fdr_type <- oks[[1]]
-  } else {
+  else 
     fdr_type <- rlang::as_string(fdr_type)
-  }
 
   stopifnot(fdr_type %in% oks)
   rm(list = c("oks"))
@@ -248,11 +249,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
   quant <- rlang::enexpr(quant)
   oks <- eval(formals()[["quant"]])
 
-  if (length(quant) > 1L) {
+  if (length(quant) > 1L) 
     quant <- oks[[1]]
-  } else {
+  else 
     quant <- rlang::as_string(quant)
-  }
 
   stopifnot(quant %in% oks, length(quant) == 1L)
   rm(list = c("oks"))
@@ -263,15 +263,13 @@ matchMS <- function (out_path = "~/proteoM/outs",
   # MGF path
   mgf_path <- find_dir(mgf_path)
   
-  if (is.null(mgf_path)) {
+  if (is.null(mgf_path)) 
     stop("`mgf_path` not found.", call. = FALSE)
-  }
 
   filelist <- list.files(path = mgf_path, pattern = "\\.mgf$")
 
-  if (!length(filelist)) {
+  if (!length(filelist)) 
     stop("No `.mgf` files under ", mgf_path, call. = FALSE)
-  }
 
   rm(list = c("filelist"))
   
@@ -729,17 +727,15 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
 
   out <- grp_prots(out, file.path(out_path, "temp1"))
 
-  if (nrow(out2)) {
+  if (nrow(out2)) 
     out2 <- grp_prots(out2, file.path(out_path, "temp2"))
-  } else {
+  else 
     out2 <- out[0, ]
-  }
   
-  if (nrow(out3)) {
+  if (nrow(out3)) 
     out3 <- grp_prots(out3, file.path(out_path, "temp3"))
-  } else {
+  else 
     out3 <- out[0, ]
-  }
 
   # Cleanup
   out <- dplyr::bind_cols(

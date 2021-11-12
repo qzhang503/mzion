@@ -2,7 +2,8 @@
 #' matches.
 #' 
 #' @param ... Arguments for \link[stats]{dist}
-my_dist <- function (...) {
+my_dist <- function (...) 
+{
   dots <- rlang::enexprs(...)
   
   dummies <- c("p")
@@ -36,11 +37,14 @@ my_dist <- function (...) {
 #' 
 #' # distances (against normalized vectors)
 #' as.dist(1 - sim)
-cos_sim <- function (M) {
+cos_sim <- function (M) 
+{
   stopifnot(is.matrix(M))
   
   L <- sqrt(rowSums(M * M)) # vector lengths; no `mean` subtraction
   Mn <- M / L # normalized M 
   Mn %*% t(Mn) # dot products; vectors in the rows of Mn
 }
+
+
 

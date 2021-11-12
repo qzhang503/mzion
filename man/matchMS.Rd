@@ -38,7 +38,7 @@ matchMS(
   target_fdr = 0.01,
   fdr_type = c("psm", "peptide", "protein"),
   combine_tier_three = FALSE,
-  use_ms1_cache = FALSE,
+  use_ms1_cache = TRUE,
   .path_cache = NULL,
   .path_fasta = NULL,
   digits = 4L
@@ -153,7 +153,10 @@ the output of \code{psmQ.txt}. Outputs under the option TRUE are often
 comparable to Mascot outputs with FDR controls at the levels of PSMs or
 peptides.}
 
-\item{use_ms1_cache}{Logical; if TRUE, use cached precursor masses.}
+\item{use_ms1_cache}{Logical; if TRUE, use cached precursor masses.
+
+  Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
+  \code{fdr_type = psm} to \code{fdr_type = protein}.}
 
 \item{.path_cache}{The file path of cached search parameters. At the NULL
 default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The

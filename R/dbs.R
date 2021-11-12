@@ -46,16 +46,14 @@ read_fasta <- function (file = NULL, acc_pattern = ">([^ ]+?) .*",
   # removes empty lines
   empties <- grep("^\\s*$", lines)
   
-  if (length(empties)) {
+  if (length(empties)) 
     lines <- lines[-empties]
-  }
   
   rm(list = c("empties"))
   
   # removes comment lines
-  if (nchar(comment_char)) {
+  if (nchar(comment_char)) 
     lines <- lines[!grepl(paste0("^", comment_char), lines)]
-  }
 
   # begins and ends
   headers <- grep(">", lines)
@@ -117,15 +115,13 @@ write_fasta <- function (fasta_db, file) {
 #' }
 load_fasta <- function (fasta = NULL) {
   
-  if (is.null(fasta)) {
+  if (is.null(fasta)) 
     stop("FASTA file(s) are required.", call. = FALSE)
-  }
 
-  if (!all(file.exists(fasta))) {
+  if (!all(file.exists(fasta))) 
     stop("Missing FASTA file(s): \n",
          purrr::reduce(fasta %>% .[!file.exists(.)], paste, sep = "\n"),
          call. = FALSE)
-  }
 
   lapply(fasta, function (x) read_fasta(x)) %>%
     do.call(`c`, .) %>%
@@ -188,29 +184,25 @@ load_fasta <- function (fasta = NULL) {
 #' @export
 load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL) {
   
-  if (is.null(fasta)) {
+  if (is.null(fasta)) 
     stop("FASTA file(s) are required.", call. = FALSE)
-  }
 
-  if (!all(file.exists(fasta))) {
+  if (!all(file.exists(fasta))) 
     stop("Missing FASTA file(s): \n",
          paste(fasta %>% .[!file.exists(.)], collapse = "\n"),
          call. = FALSE)
-  }
 
   len_f <- length(fasta)
   len_a <- length(acc_type)
   len_p <- length(acc_pattern)
 
-  if (len_f < len_a) {
+  if (len_f < len_a) 
     stop("More accession types than fasta files.",
          call. = FALSE)
-  }
 
-  if (len_f < len_p) {
+  if (len_f < len_p) 
     stop("More acc_pattern types than fasta files.",
          call. = FALSE)
-  }
 
   if (len_a && len_a < len_f) {
     warning("More fasta files than accession types; ",
@@ -426,19 +418,16 @@ parse_unimod <- function (unimod = "Carbamyl (M)") {
   pos <- pos %>%
     gsub("^([NC]){1}-term", "Any \\1-term", .)
 
-  if (pos %in% c(".", "")) {
-    pos <- "Anywhere"
-  }
+  if (pos %in% c(".", "")) pos <- "Anywhere"
 
   pos_allowed <- c("Anywhere", "Protein N-term", "Protein C-term",
                    "Any N-term", "Any C-term")
 
-  if (! pos %in% pos_allowed) {
+  if (! pos %in% pos_allowed) 
     stop("`pos` needs to be one of ", 
          paste0("\n  '", pos_allowed, collapse = "'"), 
          "'",  
          call. = FALSE)
-  }
 
   # standardize terminal sites
   if (site == ".") {
@@ -449,10 +438,9 @@ parse_unimod <- function (unimod = "Carbamyl (M)") {
     }
   }
 
-  if (pos == "Anywhere" && site == ".") {
+  if (pos == "Anywhere" && site == ".") 
     stop("'position' or 'site' cannot be both 'Anywhere'.",
          call. = FALSE)
-  }
 
   invisible(list(title = title, position = pos, site = site))
 }
@@ -574,17 +562,15 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)") {
   positions_sites <- positions_sites[sites == site & positions == position] %>%
     .[purrr::map_lgl(., function (x) !is.null(x))]
 
-  if (purrr::is_empty(positions_sites)) {
+  if (purrr::is_empty(positions_sites)) 
     stop("'", unimod, "' not found.", call. = FALSE)
-  }
 
   neulosses <- positions_sites[[1]][-1]
-  if (purrr::is_empty(neulosses)) {
-    neulosses <- 0
-  } else {
+  if (length(neulosses))
     neulosses <- as.numeric(neulosses)
-  }
-
+  else 
+    neulosses <- 0
+  
   invisible(list(monomass = monomass,
                  position_site = positions_sites[[1]][1],
                  nl = neulosses))

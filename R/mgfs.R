@@ -128,9 +128,8 @@ readMGF <- function (filepath = "~/proteoM/mgfs",
   # parsing rules
   filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
 
-  if (!length(filelist)) {
+  if (!length(filelist)) 
     stop("No '.mgf' files under ", filepath, call. = FALSE)
-  }
 
   pat_mgf <- find_mgf_type(file.path(filepath, filelist[[1]]))
 
@@ -239,9 +238,8 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgfs",
 
   filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
 
-  if (!length(filelist)) {
+  if (!length(filelist)) 
     stop("No mgf files under ", filepath, call. = FALSE)
-  }
 
   n_cores <- detect_cores(32L)
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
@@ -607,7 +605,8 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
 #' }
 #' @return Frame numbers.
 #' @seealso find_ms1_cutpoints
-find_ms1_interval <- function (mass = 1800.0, from = 350L, ppm = 20L) {
+find_ms1_interval <- function (mass = 1800.0, from = 350L, ppm = 20L) 
+{
   d <- ppm/1e6
   ceiling(log(unlist(mass, recursive = FALSE, use.names = FALSE)/from)/log(1+d))
 }
@@ -620,6 +619,7 @@ find_ms1_interval <- function (mass = 1800.0, from = 350L, ppm = 20L) {
 #'   name.
 #' @export
 proc_mgf_timstof <- function (path, n = 1000L) {
+  
   filelist <- list.files(path = file.path(path),
                          pattern = "^.*\\.mgf$")
 
@@ -676,11 +676,10 @@ find_mgf_type <- function (file) {
   scan_msonvert <- "scan=\\d+"
   scan_pd <- "scans: \"\\d+\""
 
-  if (grepl(file_msconvert, ln_tit) && grepl(scan_msonvert, ln_tit)) {
+  if (grepl(file_msconvert, ln_tit) && grepl(scan_msonvert, ln_tit)) 
     type <- "msconvert"
-  } else if (grepl(file_pd, ln_tit) && grepl(scan_pd, ln_tit)) {
+  else if (grepl(file_pd, ln_tit) && grepl(scan_pd, ln_tit)) 
     type <- "pd"
-  }
 
   if (type == "msconvert") {
     pat_file2 <- "^.* File:\"([^\"]+)\".*"

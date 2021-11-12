@@ -3,7 +3,8 @@
 \docType{package}
 \name{proteoM}
 \alias{proteoM}
-\title{proteoM: A package for database searches of mass spectrometry data.}
+\title{proteoM: A package for database searches of mass spectrometry data (TMT and
+LFQ).}
 \description{
 The proteoM package provides utilities for (1) database searches. The
 companion package proteoQ provides utilities for (2) data preprocessing, (3)

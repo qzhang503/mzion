@@ -204,15 +204,21 @@ contain_termpos_any <- function (pos) {
   
   force(pos)
 
-  stopifnot(pos %in% c("Protein N-term", "Any N-term", 
-                       "Protein C-term", "Any C-term"))
-
+  oks <- c("Protein N-term", "Any N-term", "Protein C-term", "Any C-term")
+           
+  if (! pos %in% oks) {
+    stop("`pos` needs to be one of '", 
+         paste(oks, collapse = "', '"), 
+         "'.", 
+         call. = FALSE)
+  }
+  
   pos <- paste0("^", pos)
 
   function (vmods) {
-    if (length(vmods) == 0L) return(FALSE)
-    if (length(vmods) == 1L && vmods == "") return(FALSE)
-    
+    if (!length(vmods)) return(FALSE)
+    if (vmods == "") return(FALSE)
+
     vmods %>% 
       purrr::map_lgl(function (x) {
         grepl(pos, names(x)) 
@@ -299,7 +305,6 @@ subset_protntsite <- function (peps, sites = "M") {
     purrr::map(~ {
       peps_i <- .x
       
-      # maybe use `reduce(sites, f)`
       purrr::walk(sites, ~ {
         peps_i <<- peps_i %>% 
           .[grepl(paste0("^-", .x), .)]
@@ -307,8 +312,6 @@ subset_protntsite <- function (peps, sites = "M") {
       
       peps_i
     })
-  
-  # peps %>% purrr::map(~ .x %>% .[grepl(paste0("^-", sites), .)])
 }
 
 
@@ -318,7 +321,7 @@ subset_protntsite <- function (peps, sites = "M") {
 #' 
 #' @rdname subset_protntsite
 subset_protntany <- function (peps) {
-  purrr::map(peps, ~ .x %>% .[grepl("^-", .)])
+  lapply(peps, function (x) x[grepl("^-", x)])
 }
 
 
@@ -346,9 +349,7 @@ subset_anyntsite <- function (peps, sites = "Q") {
 #' 
 #' Flowchart f(4-nt): `Acetyl (N-term)`
 #' @rdname subset_protntsite
-subset_anyntany <- function (peps) {
-  peps 
-}
+subset_anyntany <- function (peps) peps
 
 
 #' Subsets proteins by variable modifications.
@@ -418,9 +419,7 @@ subset_anyctsite <- function (peps, sites = "Q") {
 #' 
 #' Flowchart (4-ct): `Amidated (C-term)`
 #' @rdname subset_protntsite
-subset_anyctany <- function (peps) {
-  peps 
-}
+subset_anyctany <- function (peps) peps
 
 
 

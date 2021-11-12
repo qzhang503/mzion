@@ -2,7 +2,7 @@
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage("Welcome to proteoM!\n\n",
                         "=======================================================================================\n",
-                        # "NEW features (v1.0.2.1):\n",
+                        # "NEW features (v1.0.3.2):\n",
                         "[x] A search engine for mass spectrometry-based proteomics data.\n",
                         "[x] Utility 'parse_unimods_all' for the summary of Unimods.\n",
                         "[x] See also package `proteoQ` for downstream data QA and informatics.\n", 

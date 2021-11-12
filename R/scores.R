@@ -177,7 +177,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   df2$theo <- round(df2$theo, digits = digits) # 4.4 us
   
   # subtracts `m` and the counts of secondary b0, y0 matches etc. from noise
-  # (OK n < 0L)
+  # (OK if n < 0L)
   
   n <- N - m - sum(!is.na(df2$expt))
   
@@ -203,7 +203,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   ## step 1: compiles secondary intensities
   
   # (1.1)
-  len <- length(df2$expt) # .6 us
+  len <- length(df2$expt)
   
   i_se <- match(df2$expt, expt_moverzs) # secondary ions (df2) in expts; 4 us
   i_s <- which(!is.na(i_se)) # indexes in df2; 1.7 us
@@ -213,7 +213,8 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   df2$int[i_s] <- expt_ints[i_e] # the corresponding intensities from expts; 1.4 us
   
   # (1.2) collapse b0, b*, b2 etc.
-  int2 <- split(df2$int, rep(seq_len(len/m), each = m))
+  f <- rep(seq_len(len/m), each = m)
+  int2 <- .Internal(split(df2$int, as.factor(f)))
   int2 <- Reduce(`%+%`, int2)
 
   y2 <- list(idx = 1:m, int2 = int2)
@@ -295,8 +296,9 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   
   n <- max(n, topn_ms2ions + k[length(k)])
   
-  pr <- min(mapply(dhyper, x[-c(1:2)], m, n, k[-c(1:2)]), na.rm = TRUE)
-  
+  prs <- mapply(dhyper, x[-c(1:2)], m, n, k[-c(1:2)])
+  pr <- min(prs, na.rm = TRUE)
+
   list(pep_ivmod = nms, 
        pep_prob = pr, 
        pri_matches = list(df), 
@@ -473,7 +475,7 @@ calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by",
                              out_path = "~/proteoM/outs", digits = 5L) {
 
   if (nrow(res)) { # 3 ms
-    probs <- split(res, seq_len(nrow(res))) 
+    probs <- split.data.frame(res, seq_len(nrow(res))) 
     
     probs <- lapply(probs, scalc_pepprobs, 
                     topn_ms2ions = topn_ms2ions, 
@@ -611,12 +613,11 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   prob_cos <- local({
     idxes <- prob_cos %>% .[. <= target_fdr]
     
-    if (length(idxes)) {
+    if (length(idxes)) 
       fct_homol <- target_fdr/max(idxes, na.rm = TRUE)
-    } else {
+    else 
       fct_homol <- 1L
-    }
-    
+
     prob_cos <- prob_cos * fct_homol
   })
   
@@ -629,11 +630,10 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   oks <- purrr::map_lgl(out, function (x) nrow(x) > 0L)
   out <- dplyr::bind_rows(out[oks])
   
-  if (!nrow(out)) {
+  if (!nrow(out)) 
     stop("No PSM matches for scoring. Consider different search parameters.", 
          call. = FALSE)
-  }
-  
+
   # Adjusted p-values
   out <- out %>% 
     dplyr::left_join(prob_cos, by = "pep_len") %>% 
@@ -719,8 +719,20 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     
     parallel::clusterExport(cl, list("%>%"), 
                             envir = environment(magrittr::`%>%`))
+    
     parallel::clusterExport(cl, list("scalc_pepprobs"), 
                             envir = environment(proteoM:::scalc_pepprobs))
+
+    # parallel::clusterExport(cl, 
+    #                         list("calc_pepprobs_i", 
+    #                              "scalc_pepprobs", 
+    #                              "calc_probi", 
+    #                              "calc_probi_bypep", 
+    #                              "calc_probi_byvmods", 
+    #                              "add_seions", 
+    #                              "find_ppm_outer_bycombi", 
+    #                              "sim_outer"), 
+    #                         envir = environment(proteoM:::scalc_pepprobs))
     
     probs <- parallel::clusterApplyLB(cl, df, 
                                       calc_pepprobs_i, 
@@ -819,7 +831,7 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path) {
       dplyr::filter(row_number() == 1L) %>% 
       dplyr::ungroup()
   }
-  
+
   td <- td %>% 
     dplyr::select(pep_prob, pep_isdecoy) %>% 
     dplyr::arrange(pep_prob) %>% 
@@ -905,11 +917,10 @@ find_optlens <- function (all_lens, counts, min_count = 128L) {
   
   idxes <- which(counts >= min_count)
   
-  if (length(idxes)) {
+  if (length(idxes)) 
     return(all_lens[idxes])
-  } else {
+  else 
     find_optlens(all_lens, min_count/2L)
-  }
 }
 
 
@@ -1087,11 +1098,10 @@ calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm",
     df1 <- df[df$x <= valley, ]
     rank1 <- 4L
     
-    if (nrow(df1) <= rank1) {
+    if (nrow(df1) <= rank1) 
       fit1 <- lm(y ~ x, df1)
-    } else {
+    else 
       fit1 <- lm(y ~ splines::ns(x, rank1), df1)
-    }
 
     newx1 <- min(df1$x, na.rm = TRUE):max(df1$x, na.rm = TRUE)
     newy1 <- predict(fit1, data.frame(x = newx1)) %>% `names<-`(newx1)
@@ -1333,10 +1343,9 @@ calc_protfdr_i <- function (td, target_fdr = .01) {
 #'   prediction.
 fit_protfdr <- function (vec, max_n_pep = 1000L) {
   
-  if (length(vec) <= 10L) {
+  if (length(vec) <= 10L) 
     return(data.frame(prot_n_pep = as.numeric(names(vec)), 
                       prot_score_co = vec))
-  }
 
   rv <- rev(vec)
   df <- data.frame(x = as.numeric(names(rv)), y = rv)
@@ -1439,7 +1448,7 @@ fit_protfdr <- function (vec, max_n_pep = 1000L) {
 #' }
 find_ppm_outer_bycombi <- function (theos, expts, ppm_ms2 = 25L) {
   
-  d <- outer(theos, expts, "find_ppm_error")
+  d <- sim_outer(theos, expts, "find_ppm_error")
   row_cols <- which(abs(d) <= ppm_ms2, arr.ind = TRUE)
   
   e1 <- expts[row_cols[, 2]]
@@ -1633,6 +1642,38 @@ calc_peploc <- function (x) {
   x0 <- x0[, -c("uniq_id3")]
 
   invisible(x0)
+}
+
+
+
+#' From \link[base]{outer}.
+#' 
+#' @param X A numeric vector.
+#' @param Y A numeric vector.
+#' @param FUN A function to be used for the outer products.
+#' @param ... Optional arguments for \code{FUN}.
+sim_outer <- function (X, Y, FUN = "*", ...) 
+{
+  dX <- length(X)
+  dY <- length(Y)
+  
+  robj <- 
+    if (is.character(FUN) && FUN == "*") {
+      if (!missing(...)) 
+        stop("using ... with FUN = \"*\" is an error")
+      tcrossprod(as.vector(X), as.vector(Y))
+    } else {
+      FUN <- match.fun(FUN)
+      Y <- rep(Y, rep.int(dX, dY))
+      if (dX) 
+        X <- rep(X, times = ceiling(dY/dX))
+      
+      FUN(X, Y, ...)
+    }
+  
+  dim(robj) <- c(dX, dY)
+  
+  robj
 }
 
 

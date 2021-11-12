@@ -43,6 +43,7 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
       "combi_namesiteU", 
       "find_vmodposU", 
       "vec_to_list", 
+      "sim_combn", 
       "combi_namesiteM", 
       "find_vmodposM", 
       "match_aas_indexes", 
@@ -320,7 +321,7 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
   len <- length(vmods_combi)
   out <- vector("list", len)
   
-  for (i in 1:len) {
+  for (i in 1:len) 
     out[[i]] <- calc_ms2ions_a1_vnl0_fnl0(vmods_combi = vmods_combi[[i]], 
                                           aas2 = aas2, 
                                           aa_masses = aa_masses, 
@@ -328,7 +329,6 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
                                           ctmass = ctmass, 
                                           type_ms2ions = type_ms2ions, 
                                           digits = digits)
-  }
   
   out <- add_hexcodes(out, vmods_combi, length(aas), mod_indexes)
 
@@ -378,22 +378,20 @@ check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod,
     bare <- sum(aas2) + 18.010565
     
     # No need of is_empty(ntmod) && is_empty(ctmod)
-    if (!(length(ntmod) || length(ctmod))) {
+    if (!(length(ntmod) || length(ctmod)))
       delta <- 0
-    } else if (length(ntmod) && length(ctmod)) {
+    else if (length(ntmod) && length(ctmod))
       delta <- aa_masses[names(ntmod)] + aa_masses[names(ctmod)]
-    } else if (length(ntmod)) {
+    else if (length(ntmod))
       delta <- aa_masses[names(ntmod)]
-    } else if (length(ctmod)) {
+    else if (length(ctmod))
       delta <- aa_masses[names(ctmod)]
-    }
-    
+
     bd <- bare + delta
     
     idxes <- vector("logical", len)
     
     for (i in 1:len) {
-      # be any faster if only check against unique(vmods_combi)?
       vmods_combi_i <- vmods_combi[[i]]
       vmass <- sum(aa_masses[vmods_combi_i])
       ok_mass <- bd + vmass

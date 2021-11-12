@@ -44,6 +44,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
       "combi_namesiteU", 
       "find_vmodposU", 
       "vec_to_list", 
+      "sim_combn", 
       "combi_namesiteM", 
       "find_vmodposM", 
       "match_aas_indexes", 
@@ -309,7 +310,8 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
                                       maxn_vmods_sitescombi_per_pep = 32L, 
                                       digits = 4L) {
 
-  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
+                            useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
   
@@ -329,8 +331,6 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
   if (!any(idxes)) return(NULL)
   
   vmods_combi <- vmods_combi[idxes]
-  
-  # 401 us
   vnl_combi <- lapply(vmods_combi, function (x) expand_grid_rows(vmods_nl[x]))
 
   ## --- (tentative) to restricts the total number of vnl_combi's
@@ -375,10 +375,8 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
   out <- .Internal(unlist(out, recursive = FALSE, use.names = TRUE))
   
   len_out <- length(out)
-  
-  if (len_out > maxn_vmods_sitescombi_per_pep) {
+  if (len_out > maxn_vmods_sitescombi_per_pep) 
     out <- out[1:maxn_vmods_sitescombi_per_pep]
-  }
   
   invisible(out)
 }

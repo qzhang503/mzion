@@ -45,6 +45,7 @@ ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
       "combi_namesiteU", 
       "find_vmodposU", 
       "vec_to_list", 
+      "sim_combn", 
       "combi_namesiteM", 
       "find_vmodposM", 
       "match_aas_indexes", 
@@ -246,26 +247,27 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
   # (7, 8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
   # (no pep_seq dispatching by fmod residues -> possible no matched sites)
   sites <- names(fmods_nl)
-  pattern <- paste(sites, collapse = "|")
-
-  if (!grepl(pattern, aa_seq)) {
-    out <- gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
-                                    aa_masses = aa_masses, 
-                                    ms1vmods = NULL, ms2vmods = NULL, 
-                                    ntmod = ntmod, ctmod = ctmod, 
-                                    ntmass = ntmass, ctmass = ctmass, 
-                                    amods = amods, mod_indexes = mod_indexes, 
-                                    type_ms2ions = type_ms2ions, 
-                                    maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                                    maxn_sites_per_vmod = maxn_sites_per_vmod, 
-                                    maxn_vmods_sitescombi_per_pep = 
-                                      maxn_vmods_sitescombi_per_pep, 
-                                    digits = digits)
-    return(out)
-  }
   
+  pattern <- paste(sites, collapse = "|")
+  if (!grepl(pattern, aa_seq)) 
+    return(
+      gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+                               aa_masses = aa_masses, 
+                               ms1vmods = NULL, ms2vmods = NULL, 
+                               ntmod = ntmod, ctmod = ctmod, 
+                               ntmass = ntmass, ctmass = ctmass, 
+                               amods = amods, mod_indexes = mod_indexes, 
+                               type_ms2ions = type_ms2ions, 
+                               maxn_vmods_per_pep = maxn_vmods_per_pep, 
+                               maxn_sites_per_vmod = maxn_sites_per_vmod, 
+                               maxn_vmods_sitescombi_per_pep = 
+                                 maxn_vmods_sitescombi_per_pep, 
+                               digits = digits)
+    )
+    
   # (11, 12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
-  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
+                            useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
   

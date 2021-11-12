@@ -6,46 +6,33 @@
 #' @param ntmass The mass of a fixed or variable N-term modification.
 #' @param ctmass The mass of a fixed or variable C-term modification.
 #' @inheritParams matchMS
-ms2ions_by_type <- function (aas2, ntmass, ctmass, type_ms2ions, digits) {
-  
+ms2ions_by_type <- function (aas2, ntmass, ctmass, type_ms2ions, digits) 
   switch(type_ms2ions, 
          by = byions(ntmass, ctmass, aas2, digits), 
          cz = czions(ntmod, ctmod, aas2, digits), 
          ax = axions(ntmod, ctmod, aas2, digits), 
          stop("Unknown type.", call. = FALSE))
-}
-
 
 
 #' Masses of singly-charged b- and y-ions.
 #' 
 #' @inheritParams ms2ions_by_type
 #' @rdname bions_base
-byions <- function (ntmass, ctmass, aas2, digits = 4L) {
-  bs <- bions_base(aas2, ntmass, digits)
-  ys <- yions_base(aas2, ctmass, digits)
-  c(bs, ys)
-}
+byions <- function (ntmass, ctmass, aas2, digits = 4L) 
+  c(bions_base(aas2, ntmass, digits), yions_base(aas2, ctmass, digits))
 
 
 #' Masses of singly-charged c- and z-ions.
 #'
 #' @rdname bions_base
-czions <- function (ntmass, ctmass, aas2, digits = 4L) {
-  cs <- cions_base(aas2, ntmass, digits)
-  zs <- zions_base(aas2, ctmass, digits)
-  c(cs, zs)
-}
-
+czions <- function (ntmass, ctmass, aas2, digits = 4L) 
+  c(cions_base(aas2, ntmass, digits), zions_base(aas2, ctmass, digits))
 
 #' Masses of singly-charged a- and x-ions.
 #'
 #' @rdname bions_base
-axions <- function (ntmass, ctmass, aas2, digits = 4L) {
-  as <- aions_base(aas2, ntmass, digits)
-  xs <- xions_base(aas2, ctmass, digits)
-  c(as, xs)
-}
+axions <- function (ntmass, ctmass, aas2, digits = 4L) 
+  c(aions_base(aas2, ntmass, digits), xions_base(aas2, ctmass, digits))
 
 
 #' B-ions.
@@ -191,10 +178,8 @@ yions_base <- function (aas2, tmass, digits = 4L) {
 #' B2-ions.
 #' 
 #' @rdname bions_base
-b2ions_base <- function (aas2, tmass, digits = 4L) {
-  ions <- bions_base(aas2, tmass, digits)
-  (ions + 1.00727647)/2
-}
+b2ions_base <- function (aas2, tmass, digits = 4L) 
+  (bions_base(aas2, tmass, digits) + 1.00727647)/2
 
 
 #' B*-ions.
@@ -213,10 +198,8 @@ bstarions <- function (aas2, tmass, digits = 4L) {
 #' B*2-ions.
 #' 
 #' @rdname bions_base
-bstar2ions <- function (aas2, tmass, digits = 4L) {
-  ions <- bstarions(aas2, tmass, digits)
-  (ions + 1.00727647)/2
-}
+bstar2ions <- function (aas2, tmass, digits = 4L) 
+  (bstarions(aas2, tmass, digits) + 1.00727647)/2
 
 
 #' B0-ions.
@@ -235,19 +218,15 @@ b0ions <- function (aas2, tmass, digits = 4L) {
 #' B02-ions.
 #' 
 #' @rdname bions_base
-b02ions <- function (aas2, tmass, digits = 4L) {
-  ions <- b0ions(aas2, tmass, digits)
-  (ions + 1.00727647)/2
-}
+b02ions <- function (aas2, tmass, digits = 4L) 
+  (b0ions(aas2, tmass, digits) + 1.00727647)/2
 
 
 #' Y2-ions.
 #' 
 #' @rdname bions_base
-y2ions <- function (aas2, tmass, digits = 4L) {
-  ions <- yions_base(aas2, tmass, digits)
-  (ions + 1.00727647)/2
-}
+y2ions <- function (aas2, tmass, digits = 4L) 
+  (yions_base(aas2, tmass, digits) + 1.00727647)/2
 
 
 #' Y*-ions.
@@ -265,10 +244,8 @@ ystarions <- function (aas2, tmass, digits = 4L) {
 #' Y*2-ions.
 #' 
 #' @rdname bions_base
-ystar2ions <- function (aas2, tmass, digits = 4L) {
-  ions <- ystarions(aas2, tmass, digits)
-  (ions + 1.00727647)/2
-}
+ystar2ions <- function (aas2, tmass, digits = 4L) 
+  (ystarions(aas2, tmass, digits) + 1.00727647)/2
 
 
 #' Y0-ions.
@@ -286,10 +263,8 @@ y0ions <- function (aas2, tmass, digits = 4L) {
 #' Y02-ions.
 #' 
 #' @rdname bions_base
-y02ions <- function (aas2, tmass, digits = 4L) {
-  ions <- y0ions(aas2, tmass, digits)
-  (ions + 1.00727647)/2
-}
+y02ions <- function (aas2, tmass, digits = 4L) 
+  (y0ions(aas2, tmass, digits) + 1.00727647)/2
 
 
 #' C-ions.
@@ -307,10 +282,8 @@ cions_base <- function (aas2, tmass, digits = 4L) {
 #' C2-ions.
 #' 
 #' @rdname bions_base
-c2ions <- function (aas2, tmass, digits = 4L) {
-  ions <- cions_base(aas2, tmass, digits)
-  (ions + 1.00727647)/2
-}
+c2ions <- function (aas2, tmass, digits = 4L) 
+  (cions_base(aas2, tmass, digits) + 1.00727647)/2
 
 
 #' Z-ions.
@@ -328,10 +301,8 @@ zions_base <- function (aas2, tmass, digits = 4L) {
 #' Z2-ions.
 #' 
 #' @rdname bions_base
-z2ions <- function (aas2, tmass, digits = 4L) {
-  ions <- zions_base(aas2, tmass, digits)
-  (ions + 1.00727647)/2
-}
+z2ions <- function (aas2, tmass, digits = 4L) 
+  (zions_base(aas2, tmass, digits) + 1.00727647)/2
 
 
 #' A-ions.
@@ -349,10 +320,8 @@ aions_base <- function (aas2, tmass, digits = 4L) {
 #' A2-ions.
 #' 
 #' @rdname bions_base
-a2ions <- function (aas2, tmass, digits = 4L) {
-  ions <- aions_base(aas2, tmass, digits)
-  (ions + 1.00727647)/2
-}
+a2ions <- function (aas2, tmass, digits = 4L) 
+  (aions_base(aas2, tmass, digits) + 1.00727647)/2
 
 
 #' A*-ions.
@@ -371,10 +340,8 @@ astarions <- function (aas2, tmass, digits = 4L) {
 #' A*2-ions.
 #' 
 #' @rdname bions_base
-astar2ions <- function (aas2, tmass, digits = 4L) {
-  ions <- astarions(aas2, tmass, digits)
-  (ions + 1.00727647)/2
-}
+astar2ions <- function (aas2, tmass, digits = 4L) 
+  (astarions(aas2, tmass, digits) + 1.00727647)/2
 
 
 #' A0-ions.
@@ -393,10 +360,8 @@ a0ions <- function (aas2, tmass, digits = 4L) {
 #' A02-ions.
 #' 
 #' @rdname bions_base
-a02ions <- function (aas2, tmass, digits = 4L) {
-  ions <- a0ions(aas2, tmass, digits)
-  (ions + 1.00727647)/2
-}
+a02ions <- function (aas2, tmass, digits = 4L) 
+  (a0ions(aas2, tmass, digits) + 1.00727647)/2
 
 
 #' X-ions.
@@ -415,9 +380,6 @@ xions_base <- function (aas2, tmass, digits = 4L) {
 #' X2-ions.
 #' 
 #' @rdname bions_base
-x2ions <- function (aas2, tmass, digits = 4L) {
-  ions <- xions(aas2, tmass, digits)
-  (ions + 1.00727647)/2
-}
-
+x2ions <- function (aas2, tmass, digits = 4L) 
+  (xions(aas2, tmass, digits) + 1.00727647)/2
 

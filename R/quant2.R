@@ -167,9 +167,7 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
   
   idxes <- find_reporters_ppm(theos, ms, ppm_reporters, len, nms)
   
-  if (!length(idxes)) {
-    return(rep(NA, len) %>% `names<-`(nms))
-  }
+  if (!length(idxes)) return(rep(NA, len) %>% `names<-`(nms))
   
   # 126      127N      127C      128N      128N      128C
   # 135569.00 120048.00 122599.00   3397.98 140551.00 144712.00
@@ -192,9 +190,7 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
   # 126 <NA> 127C 128N 128C 129N 129C <NA> <NA> <NA>
   #  2   NA    3    4    5    6    8   NA   NA   NA
   
-  if (anyNA(names(idxes))) {
-    names(idxes) <- nms
-  }
+  if (anyNA(names(idxes))) names(idxes) <- nms
   
   rptr_ints <- is[idxes] %>%
     `names<-`(names(idxes))
@@ -209,6 +205,7 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
   
   es
 }
+
 
 #' Finds the indexes of reporter ions.
 #'
@@ -362,7 +359,8 @@ parDist <- function (mat) {
   
   if (len > 1L) {
     for (i in 2:len) {
-      out[[i]] <- c(out[1:(i-1)] %>% purrr::map_dbl(`[[`, i), out[[i]])
+      # out[[i]] <- c(out[1:(i-1)] %>% purrr::map_dbl(`[[`, i), out[[i]])
+      out[[i]] <- c(purrr::map_dbl(out[1:(i-1)], `[[`, i), out[[i]])
     }
   }
   
@@ -763,13 +761,11 @@ as_dist <- function (m, diag = FALSE, upper = FALSE) {
   attr(ans, "call") <- match.call()
   class(ans) <- "dist"
   
-  if (is.null(attr(ans, "Diag")) || !missing(diag)) {
+  if (is.null(attr(ans, "Diag")) || !missing(diag)) 
     attr(ans, "Diag") <- diag
-  }
     
-  if (is.null(attr(ans, "Upper")) || !missing(upper)) {
+  if (is.null(attr(ans, "Upper")) || !missing(upper)) 
     attr(ans, "Upper") <- upper
-  }
 
   ans
 }
@@ -784,11 +780,10 @@ as_lgldist <- function(m, diag = FALSE, upper = FALSE) {
   
   d = proteoCpp::to_lgldistC(m)
   
-  if (!is.null(rownames(m))) {
+  if (!is.null(rownames(m))) 
     attr(d, "Labels") <- rownames(m)
-  } else if (!is.null(colnames(m))) {
+  else if (!is.null(colnames(m))) 
     attr(d, "Labels") <- colnames(m)
-  }
 
   attr(d, "class") = "dist"
   attr(d, "Size") = nrow(m)
@@ -814,9 +809,8 @@ greedysetcover3 <- function (mat) {
     gc()
   }
   
-  if (nrow(mat) == 1L) {
+  if (nrow(mat) == 1L) 
     return(data.frame(prot_acc = colnames(mat), pep_seq = rownames(mat)))
-  }
   
   prot_acc <- NULL
   pep_seq <- NULL

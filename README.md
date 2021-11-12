@@ -1,7 +1,7 @@
 proteoM
 ================
 true
-2021-10-14
+2021-11-11
 
 -   [Installation](#installation)
 -   [Database searches](#database-searches)
@@ -81,4 +81,5 @@ matchMS(
 ## Possible Next steps
 
 -   Search against real MGFs.
--   Data QC and informatics with `library(proteoQ)`.
+-   Data QC and informatics with
+    [proteoQ](https://github.com/qzhang503/proteoQ/).

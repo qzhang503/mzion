@@ -24,7 +24,10 @@ bin_ms1masses(
 
 \item{ppm_ms1}{The mass tolerance of MS1 species.}
 
-\item{use_ms1_cache}{Logical; if TRUE, use cached precursor masses.}
+\item{use_ms1_cache}{Logical; if TRUE, use cached precursor masses.
+
+  Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
+  \code{fdr_type = psm} to \code{fdr_type = protein}.}
 
 \item{.path_cache}{The file path of cached search parameters. At the NULL
 default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The

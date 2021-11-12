@@ -215,7 +215,8 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL,
   }
 
   # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+" 
-  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
+                            useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   
   idxes <- which(aas %in% names(fmods_nl))
@@ -227,12 +228,9 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL,
   #   (as `distri_peps` does not filter pep_seq by fixedmods)
   
   len_i <- length(idxes)
+  if (len_i > maxn_vmods_per_pep) 
+    idxes <- idxes[1:maxn_vmods_per_pep]
 
-  if (len_i > maxn_vmods_per_pep) {
-    len_i <- maxn_vmods_per_pep
-    idxes <- idxes[1:len_i]
-  }
-  
   # ---
   fmods_combi <- aas[idxes]
   names(fmods_combi) <- idxes
@@ -240,11 +238,9 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL,
   
   len <- length(fnl_combi)
   
-  if (len > maxn_vmods_sitescombi_per_pep) {
-    len <- maxn_vmods_sitescombi_per_pep
-    fnl_combi <- fnl_combi[1:len, ]
-  }
-  
+  if (len > maxn_vmods_sitescombi_per_pep) 
+    fnl_combi <- fnl_combi[1:maxn_vmods_sitescombi_per_pep, ]
+
   out <- vector("list", len)
   
   aas2 <- aa_masses[aas]

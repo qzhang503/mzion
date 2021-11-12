@@ -186,13 +186,14 @@ combi_namesiteU <- function (M, aas) {
   len_out <- nrow(combi)
   out <- rep(list(M[1, ]), len_out)
   
+  
   for (i in seq_along(vpos)) { # by residue
     ansi <- combi[[i]] # list of six: 5, 9; 9, 13 etc.
     pi <- vpos[[i]] # 1, 3
     
-    for (j in seq_len(len_out)) names(out[[j]])[pi] <- ansi[[j]]
+    for (j in seq_len(len_out)) names(out[[j]])[pi] <- ansi[[j]] # by combi
     
-    # lapply(seq_len(len_out), function (j) { # by combi
+    # lapply(seq_len(len_out), function (j) { 
     #   names(out[[j]])[pi] <- ansi[[j]]
     #   out <<- out
     # })
@@ -227,7 +228,7 @@ find_vmodposU <- function (vec, ps, aas) {
     if (ct == 1L) 
       M[[i]] <- vec_to_list(aapos) 
     else 
-      M[[i]] <-combn(as.character(aapos), ct, simplify = FALSE)
+      M[[i]] <- sim_combn(aapos, ct)
   }
   
   list(
@@ -249,7 +250,7 @@ combi_namesiteM <- function (M, aas, nrows) {
   ps <- attr(M, "ps")
   m <- attr(M, "resids")
   
-  # to vectors for speed
+  # convert to vectors for speed
   mv <- vector("list", nrows)
   for (i in 1:nrows) mv[[i]] <- m[i, ]
   uniqs <- !duplicated.default(mv)
@@ -304,7 +305,7 @@ find_vmodposM <- function (Vec, vec, ps, aas) {
     if (ct == 1L) 
       M[[i]] <- vec_to_list(aapos) 
     else 
-      M[[i]] <- combn(as.character(aapos), ct, simplify = FALSE)
+      M[[i]] <- sim_combn(aapos, ct)
   }
   
   ans <- expand.grid(M, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
@@ -316,7 +317,7 @@ find_vmodposM <- function (Vec, vec, ps, aas) {
     ansi <- ans[[i]] # list of six: 5, 9; 9, 13 etc.
     pi <- vpos[[i]] # 1, 3
     
-    for (j in seq_len(len_out)) names(out[[j]])[pi] <- ansi[[j]]
+    for (j in seq_len(len_out)) names(out[[j]])[pi] <- ansi[[j]] # by combi
     
     # lapply(seq_len(len_out), function (j) { # by combi
     #   names(out[[j]])[pi] <- ansi[[j]]
@@ -494,11 +495,10 @@ make_ms2vmods <- function (vec = NULL) {
   n_nms <- length(unique(names(vec)))
   n_vals <- length(unique(vec))
   
-  if (n_nms == n_vals) {
+  if (n_nms == n_vals)
     ans <- matrix(vec, nrow = 1L)
-  } else {
+  else 
     ans <- find_perm_sets(vec)
-  }
   
   attr(ans, "ps") <- attr(vec, "ps")
   attr(ans, "labs") <- attr(vec, "labs")
@@ -520,12 +520,9 @@ find_ms2resids <- function (M, vec) {
   names(vecinv) <- vec
   vecinv <- vecinv[unique(names(vecinv))]
   
-  for (i in seq_len(nrow(M))) {
-    row <- M[i, ]
-    M[i, ] <- vecinv[row]
-  }
-  
-  M
+  for (i in 1:nrow(M)) M[i, ] <- vecinv[M[i, ]]
+
+  invisible(M)
 }
 
 
@@ -540,15 +537,15 @@ find_ms2resids <- function (M, vec) {
 # n = c("Carbamidomethyl (M)",  "Carbamidomethyl (M)", "Oxidation (M)"); 
 # p = c(1, 3, 5, 9)
 # 
-# combn(p, n1 + n2) * combn(n1 + n2, n2)
-# = combn(4, 3) * combn(3, 2)
+# choose(p, n1 + n2) * choose(n1 + n2, n2)
+# = choose(4, 3) * choose(3, 2)
 # 
 # n = c("A", "A", "B", "B", "C"); n1 = 2, n2 = = 2, n3 = 1
 # p = c(1, 3, 5, 7, 8, 9)
 # 
 # p!/(n1!n2!n3!)/(p-n1-n2-n3)!
-# = combn(p, n1+n2+n3) * (n1+n2+n3)!/(n1!n2!n3!)
-# = combn(p, n1+n2+n3) * combn(n1+n2+n3, n1+n2) * combn(n1+n2, n1)
+# = choose(p, n1+n2+n3) * (n1+n2+n3)!/(n1!n2!n3!)
+# = choose(p, n1+n2+n3) * choose(n1+n2+n3, n1+n2) * choose(n1+n2, n1)
 ##
 
 
@@ -582,7 +579,7 @@ add_one_label <- function (M, x) {
     k <- k + 1L
   }
   
-  unique(out)
+  out[!duplicated.matrix(out), ]
 }
 
 
@@ -630,12 +627,67 @@ find_perm_sets <- function (labs = c("A", "A", "A", "B", "B", "C")) {
     ct <- ns2[[i]]
     x <- names(ns2)[i]
     
-    for (j in seq_len(ct)) {
-      M <- add_one_label(M, x)
-    }
+    for (j in seq_len(ct)) M <- add_one_label(M, x)
   }
   
   invisible(M)
+}
+
+
+
+#' From \link[utils]{combn}.
+#' 
+#' To avoid the conversion, e.g., \code{3} to \code{1:3}.
+#' 
+#' @param x Integer; the vector source for combinations.
+#' @param m Integer; the number of elements to choose.
+sim_combn <- function (x, m) 
+{
+  if (length(m) > 1L) 
+    stop("length(m) > 1", domain = NA)
+  if (m < 0L) 
+    stop("m < 0", domain = NA)
+  m <- as.integer(m)
+  
+  n <- length(x)
+  if (n < m) stop("n < m", domain = NA)
+  
+  x0 <- x
+  e <- 0
+  h <- m
+  a <- seq_len(m)
+  
+  len.r <- length(r <- x[a])
+  # count <- as.integer(round(choose(n, m)))
+  count <- as.integer(choose(n, m))
+  
+  out <- vector("list", count)
+  out[[1L]] <- r
+  
+  if (m > 0) {
+    i <- 2L
+    nmmp1 <- n - m + 1L
+    
+    while (a[1L] != nmmp1) {
+      if (e < n - h) {
+        h <- 1L
+        e <- a[m]
+        j <- 1L
+      } else {
+        e <- a[m - h]
+        h <- h + 1L
+        j <- 1L:h
+      }
+      
+      a[m - h + j] <- e + j
+      r <- x[a]
+      out[[i]] <- r
+      
+      i <- i + 1L
+    }
+  }
+  
+  out
 }
 
 

@@ -77,15 +77,12 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL) {
   
   ## stronger check by each residues
   resids <- amods[!duplicated.default(amods)]
-  # resids <- unique(amods)
   len_r <- length(resids)
   max_rs <- vector("integer", len_r)
   
-  for (i in seq_len(len_r)) {
-    max_rs[i] <- sum(aas == resids[[i]])
-  }
+  for (i in seq_len(len_r)) max_rs[i] <- sum(aas == resids[[i]])
   
-  ## `make_ms1_vmodsets` obtained from the same `amods`
+  ## `make_ms1_vmodsets` is obtained from the same `amods`
   ##   -> no mess up in the order of `amods` -> no name sorting
   
   len <- length(ms1vmods)
@@ -261,8 +258,6 @@ make_ms1vmod_i <- function (aa_masses = NULL, maxn_vmods_per_pep = 5L,
 make_ms1_vmodsets <- function (aa_masses_all = NULL, maxn_vmods_per_pep = 5L, 
                                maxn_sites_per_vmod = 3L) {
   
-  # stopifnot(maxn_vmods_per_pep >= 2L)
-  
   if (!is.list(aa_masses_all)) aa_masses_all <- list(aa_masses_all)
   
   amods_all <- lapply(aa_masses_all, attr, "amods", exact = TRUE)
@@ -315,8 +310,6 @@ make_ms1_vmodsets <- function (aa_masses_all = NULL, maxn_vmods_per_pep = 5L,
 #' }
 bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L, 
                                maxn_sites_per_vmod = 3L) {
-  
-  # stopifnot(maxn_vmods_per_pep >= 2L)
   
   resid <- unname(resmods[[1]])
 
@@ -529,7 +522,7 @@ find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L) {
   # scalar
   if (!len) return(list())
   
-  # empty if any is empty
+  # return "empty" if any is "empty"
   if (any(.Internal(unlist(lapply(vmodsets, purrr::is_empty), 
                            recursive = FALSE, use.names = FALSE)))) 
     return(list())

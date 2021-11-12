@@ -31,12 +31,11 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   ## Initial setups
   fun <- as.character(match.call()[[1]])
   
-  if (is_ms1_three_frame) {
+  if (is_ms1_three_frame) 
     ppm_ms1_new <- as.integer(ceiling(ppm_ms1 * .5))
-  } else {
+  else 
     ppm_ms1_new <- ppm_ms1
-  }
-  
+
   # checks pre-existed precursor masses
   .time_stamp <- get(".time_stamp", envir = .GlobalEnv, inherits = FALSE)
   .path_mass <- file.path(.path_ms1masses, .time_stamp)
@@ -46,25 +45,24 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   
   len_m <- length(masses)
   
-  if (!len_m) {
-    stop("File not found: ",
-         file.path(.path_mass, paste0("pepmasses_", "[...].rds")))
-  }
+  if (!len_m) stop("File not found: ",
+                   file.path(.path_mass, paste0("pepmasses_", "[...].rds")))
   
   # checks pre-existed, binned precursor masses
-  .time_bin <- match_calltime(path = file.path(.path_cache, "calc_pepmasses2", .time_stamp), 
+  .time_bin <- match_calltime(path = file.path(.path_cache, 
+                                               "calc_pepmasses2", 
+                                               .time_stamp), 
                               fun = fun,
                               nms = c("min_mass", "max_mass", "ppm_ms1")) 
   
   # already binned
   len_bts <- length(.time_bin)
   
-  if (len_bts > 1L) {
+  if (len_bts > 1L) 
     stop("More than one cached results found: \n\n", 
          paste(file.path(.path_ms1masses, .time_stamp, fun), collapse = "\n"), 
          "\n\nDelete the caches and start over.", 
          call. = FALSE)
-  }
   
   if (len_bts && use_ms1_cache) {
     .path_bin <- file.path(.path_ms1masses, .time_stamp, fun, .time_bin)
@@ -133,7 +131,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
           "find_ms1_cutpoints"), 
         envir = environment(proteoM:::binTheoSeqs_i))
       
-      # No need of purrr::flatten() as saveRDS by INDIVIDUAL idx (and return NULL)
+      # No need of flatten() as saveRDS by INDIVIDUAL idx (and return NULL)
       parallel::clusterApplyLB(
         cl = cl, 
         x = chunksplit(idxes, n_cores, "list"), 
@@ -169,9 +167,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
 binTheoSeqs_i <- function (idx = 1L, min_mass = 500L,max_mass = 6000L,
                            ppm_ms1 = 20L, in_path = NULL, out_path = NULL) {
   
-  if (is.null(in_path)) {
-    stop("`in_path` cannot be NULL.")
-  }
+  if (is.null(in_path)) stop("`in_path` cannot be NULL.")
   
   message("\tSet: ", idx)
   
@@ -196,13 +192,9 @@ binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 500L,
                           max_mass = 6000L, ppm_ms1 = 20L, 
                           out_path = NULL) {
   
-  if (is.null(res)) {
-    stop("`res` cannot be NULL.")
-  }
+  if (is.null(res)) stop("`res` cannot be NULL.")
   
-  if (is.null(out_path)) {
-    stop("`out_path` cannot be NULL.")
-  }
+  if (is.null(out_path)) stop("`out_path` cannot be NULL.")
   
   out_dir <- create_dir(gsub("(^.*/).*$", "\\1", out_path))
   out_nm <- paste0(paste0("binned_theopeps_", idx), ".rds")
@@ -265,17 +257,11 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 500L,
 binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 500L,
                          max_mass = 6000L, ppm_ms1 = 20L, out_path = NULL) {
   
-  if (is.null(res)) {
-    stop("`res` cannot be NULL.")
-  }
+  if (is.null(res)) stop("`res` cannot be NULL.")
   
-  if (is.null(out_path)) {
-    stop("`out_path` cannot be NULL.")
-  }
+  if (is.null(out_path)) stop("`out_path` cannot be NULL.")
   
-  if (is.null(idxes)) {
-    idxes <- seq_along(res)
-  }
+  if (is.null(idxes)) idxes <- seq_along(res)
   
   out_dir <- create_dir(gsub("(^.*/).*$", "\\1", out_path))
   
@@ -291,15 +277,13 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 500L,
   
   n_cores <- local({
     len <- length(res)
-    # n_cores <- detect_cores(32L)
     n_cores <- detect_cores(16L)
     
-    if (len > n_cores) {
+    if (len > n_cores) 
       n_cores <- min(floor(n_cores/2L), len)
-    } else {
+    else 
       n_cores <- min(n_cores, len)
-    }
-    
+
     n_cores <- max(1L, n_cores)
   })
 
@@ -345,9 +329,7 @@ find_ms1_cutpoints <- function (from = 500L, to = 10000L, ppm = 20L) {
   x <- vector("numeric", n)
   x[1] <- from
 
-  for (i in seq_len(n-1)) {
-    x[i+1] <- x[i] * (1 + d)
-  }
+  for (i in seq_len(n-1)) x[i+1] <- x[i] * (1 + d)
 
   x
 }
@@ -366,9 +348,7 @@ s_readRDS <- function (file, out_path) {
     error = function (e) NULL
   )
   
-  if (is.null(ans)) {
-    stop("Files found: ", file.path(out_path, file), call. = FALSE)
-  }
+  if (is.null(ans)) stop("Files found: ", file.path(out_path, file), call. = FALSE)
   
   ans
 }
