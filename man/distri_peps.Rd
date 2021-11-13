@@ -4,13 +4,13 @@
 \alias{distri_peps}
 \title{Distributes peptides by variable modifications.}
 \usage{
-distri_peps(peps, aa_masses_all, max_miss)
+distri_peps(prps, aa_masses_all, max_miss)
 }
 \arguments{
-\item{peps}{Lists of peptides, either "fwds" or "revs", from
-\link{split_fastaseqs}.}
+\item{prps}{Lists of peptide sequences with a one-letter representation
+of amino acid residues. Each list is named by protein accession.}
 
-\item{aa_masses_all}{All the amino acid lookup tables.}
+\item{aa_masses_all}{All the amino acid look-up tables.}
 
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
 }

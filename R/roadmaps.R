@@ -79,7 +79,7 @@
 #             - calcms1mass_noterm_bypep (-> export)
 #       - roll_sum (-> export; ms1_precursors.R)
 #     - distri_peps (varmods)
-#       - subpeps_by_vmods (ions.R)
+#       - subpeps_by_vmods (dispatch.R)
 #         - find_nmodtree
 #           ...
 #         - find_cmodtree

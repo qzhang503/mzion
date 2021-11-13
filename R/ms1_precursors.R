@@ -1838,20 +1838,20 @@ calcms1mass_noterm_bypep <- function (aa_seq, aa_masses, maxn_vmods_per_pep = 5L
 
 #' Distributes peptides by variable modifications.
 #'
-#' @param peps Lists of peptides, either "fwds" or "revs", from
-#'   \link{split_fastaseqs}.
-#' @param aa_masses_all All the amino acid lookup tables.
+#' @param prps Lists of peptide sequences with a one-letter representation
+#'   of amino acid residues. Each list is named by protein accession.
+#' @param aa_masses_all All the amino acid look-up tables.
 #' @inheritParams calc_pepmasses2
-distri_peps <- function (peps, aa_masses_all, max_miss) {
+distri_peps <- function (prps, aa_masses_all, max_miss) {
 
-  nms <- lapply(peps, names)
+  nms <- lapply(prps, names)
 
   out <- lapply(aa_masses_all, subpeps_by_vmods, nms)
   
   # USE.NAMEs of prot_acc
   out <- lapply(out, function (xs) {
     idxes <- mapply(fastmatch::fmatch, xs, nms, SIMPLIFY = FALSE, USE.NAMES = TRUE)
-    mapply(function (x, y) x[y], peps, idxes, SIMPLIFY = FALSE, USE.NAMES = TRUE)
+    mapply(function (x, y) x[y], prps, idxes, SIMPLIFY = FALSE, USE.NAMES = TRUE)
   })
   
   n2 <- ct_counts(max_miss)

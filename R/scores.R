@@ -822,14 +822,19 @@ post_pepscores <- function (df) {
 #' @inheritParams matchMS
 probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path) {
   
-  td <- td %>% dplyr::filter(pep_len == len)
+  td <- dplyr::filter(td, pep_len == len)
   
   if (fdr_type %in% c("peptide", "protein")) {
-    td <- td %>% 
-      dplyr::arrange(pep_seq, pep_prob) %>% 
-      dplyr::group_by(pep_seq) %>% 
-      dplyr::filter(row_number() == 1L) %>% 
-      dplyr::ungroup()
+    td <- dplyr::arrange(td, pep_seq, pep_prob)
+    td <- dplyr::group_by(td, pep_seq)
+    td <- dplyr::filter(td, row_number() == 1L)
+    td <- dplyr::ungroup(td)
+    
+    # td <- td %>% 
+    #   dplyr::arrange(pep_seq, pep_prob) %>% 
+    #   dplyr::group_by(pep_seq) %>% 
+    #   dplyr::filter(row_number() == 1L) %>% 
+    #   dplyr::ungroup()
   }
 
   td <- td %>% 

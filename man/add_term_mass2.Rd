@@ -9,9 +9,6 @@ add_term_mass2(aa_masses, peps)
 \arguments{
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
-
-\item{peps}{Lists of peptides, either "fwds" or "revs", from
-\link{split_fastaseqs}.}
 }
 \description{
 (2) "amods- tmod+ vnl- fnl-".
