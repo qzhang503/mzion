@@ -60,9 +60,13 @@ In the less common cases of multiple modifications to the same
 \code{Anywhere} site, e.g., "Oxidation (M)" and "Carbamyl (M)", an amino-acid
 sequence should contain at least two "M"s. This is due to the design that
 \code{vmods} in an \code{aa_masses} are realized. The additional subsetting
-by the counts of residues is, however, not applied at this stage of the
-peptide distributions. A downstream step in the calculations of MS2 ions will
+by the counts of residues is applied at this stage of the peptide
+distributions. A downstream step in the calculations of MS2 ions will also
 guard against this.
+
+In the case of, e.g., "Oxidation (M)" and "Protein (N-term)", and the peptide
+sequence has only one "M" on the N-term, the entry is still kept with
+the "additive" effect of modifications.
 }
 \examples{
 \donttest{
@@ -116,6 +120,24 @@ vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 posns <- names(vmods)
 
 stopifnot(contain_anysite(vmods, posns, length(vmods)))
+
+ans <- find_anysite(vmods, posns)
+stopifnot(length(ans) == 2L)
+
+
+## `Oxidation (M)` and `Carbamyl (M)`
+sites <- list(`Dimethyl (Protein N-term = P)` = "P",
+              `Oxidation (M)` = "M", `Carbamyl (M)` = "M",
+              `Deamidated (N)` = "N")
+positions <- c("Any N-term", "Anywhere", "Anywhere", "Anywhere")
+vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
+
+vmods <- unname(vmods)
+vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
+vmods <- vmods[!duplicated.default(vmods)]
+
+posns <- names(vmods)
+stopifnot(length(posns) < length(positions))
 
 ans <- find_anysite(vmods, posns)
 stopifnot(length(ans) == 2L)

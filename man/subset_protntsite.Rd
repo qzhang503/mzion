@@ -19,7 +19,7 @@ subset_anyntsite(prps, site = "Q")
 
 subset_anyntany(peps)
 
-subset_anysite(prps, sites = "N")
+subset_anysite(prps, sites, min_n_res)
 
 subset_protctsite(prps, site = "V")
 
@@ -32,6 +32,8 @@ subset_anyctany(peps)
 of amino acid residues. Each list is named by protein accession.}
 
 \item{site}{A site. No need to specify "any terminal" sites.}
+
+\item{min_n_res}{The minimum numbers of residues for a given set of sites.}
 }
 \description{
 Flowchart (1-nt): `Dimethyl (Protein N-term = P)`
@@ -90,6 +92,8 @@ subset_anyntsite(prps, find_anyntsite(vmods, posns))
 }
 \donttest{
 ## Anywhere
+min_n_res <- c(P = 1, M = 1, N = 1)
+
 sites <- list(`Dimethyl (N-term = P)` = "P", 
               `Oxidation (M)` = "M", 
               `Deamidated (N)` = "N")
@@ -99,14 +103,39 @@ vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
 vmods <- unname(vmods)
 vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 
-# (no need since Anywhere)
-# posns <- names(vmods)
-
 prps <- list(PROT_A = c("-MAKEMASSPECFUN", "-PAKEKASSPECFUN"), 
              PROT_B = c("PAKEKASSPECFUN", "NKAKEKASSPECFU", 
                         "-NKAKEKASSPECFU"))
 
 # should contain both M and N
-subset_anysite(prps, sites)
+subset_anysite(prps, sites, min_n_res)
+
+## Multiple mods to the same site
+# (mimic from aa_masses)
+min_n_res <- c(P = 1, M = 2, N = 1)
+
+sites <- list(`Dimethyl (N-term = P)` = "P", 
+              `Oxidation (M)` = "M", `Carbamyl (M)` = "M", 
+              `Deamidated (N)` = "N")
+positions <- c("Any N-term", "Anywhere", "Anywhere", "Anywhere")
+vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
+
+# No need of modification names
+vmods <- unname(vmods)
+sites <- unname(sites)
+vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
+
+is_same <- any(length(min_n_res) > 1L)
+if (is_same) {
+  ok <- !duplicated.default(vmods)
+  vmods <- vmods[ok]
+  sites <- sites[ok]
+}
+
+prps <- list(PROT_A = c("-MAKEMASSPECFUN", "-PAKEKASSPECFUN"), 
+             PROT_B = c("PAKEKASSPECFUN", "NKAKEKASSPECFU", 
+                        "-NKAKEKASSPECFU"))
+
+ans <- subset_anysite(prps, sites, min_n_res)
 }
 }

@@ -20,5 +20,5 @@ A function for checking the existence of a residue at the
 \description{
 Note to the developer: when manufacturing, a \code{pos} must be terminal in
 one of \code{c("Protein N-term", "Any N-term", "Protein C-term", "Any
-C-term")}.
+C-term")}. \code{"Anywhere"} is not one of them.
 }

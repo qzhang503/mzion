@@ -11,15 +11,16 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    maxn_sites_per_vmod = 3L, 
                                    maxn_vmods_sitescombi_per_pep = 32L, 
                                    minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                                   min_ms2mass = 110L, digits = 4L) {
-  
+                                   min_ms2mass = 110L, digits = 4L) 
+{
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
   theopeps <- tempdata$theopeps
   rm(list = c("tempdata"))
   gc()
   
-  if (!length(mgf_frames) || !length(theopeps)) return(NULL)
+  if (!length(mgf_frames) || !length(theopeps)) 
+    return(NULL)
   
   n_cores <- detect_cores(32L)
   
@@ -99,8 +100,8 @@ hms2_a0_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmo
                                maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                                maxn_vmods_sitescombi_per_pep = 32L, 
                                minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                               min_ms2mass = 110L, digits = 4L) {
-  
+                               min_ms2mass = 110L, digits = 4L) 
+{
   res <- frames_adv(mgf_frames = mgf_frames, 
                     theopeps = theopeps, 
                     aa_masses = aa_masses, 
@@ -190,29 +191,28 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL,
                                       maxn_vmods_per_pep = 5L, 
                                       maxn_sites_per_vmod = 3L, 
                                       maxn_vmods_sitescombi_per_pep = 32L, 
-                                      digits = 4L) {
-  
+                                      digits = 4L) 
+{
   # (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-" 
   # (no pep_seq dispatching by Anywhere fmod residues -> possible no matched sites)
   
   sites <- names(fmods_nl)
   pattern <- .Internal(paste0(list(sites), collapse = "|", recycle0 = FALSE))
   
-  if (!grepl(pattern, aa_seq)) {
-    out <- gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
-                            aa_masses = aa_masses, ms1vmods = NULL, ms2vmods = NULL, 
-                            ntmod = NULL, ctmod = NULL, 
-                            ntmass = ntmass, ctmass = ctmass, 
-                            amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
-                            mod_indexes = mod_indexes, 
-                            type_ms2ions = type_ms2ions, 
-                            maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                            maxn_sites_per_vmod = maxn_sites_per_vmod, 
-                            maxn_vmods_sitescombi_per_pep = 
-                              maxn_vmods_sitescombi_per_pep, 
-                            digits = digits)
-    return(out)
-  }
+  if (!grepl(pattern, aa_seq)) 
+    return(
+      gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+                       aa_masses = aa_masses, ms1vmods = NULL, ms2vmods = NULL, 
+                       ntmod = NULL, ctmod = NULL, 
+                       ntmass = ntmass, ctmass = ctmass, 
+                       amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
+                       mod_indexes = mod_indexes, 
+                       type_ms2ions = type_ms2ions, 
+                       maxn_vmods_per_pep = maxn_vmods_per_pep, 
+                       maxn_sites_per_vmod = maxn_sites_per_vmod, 
+                       maxn_vmods_sitescombi_per_pep = 
+                         maxn_vmods_sitescombi_per_pep, 
+                       digits = digits))
 
   # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+" 
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 

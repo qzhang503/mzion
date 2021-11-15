@@ -17,20 +17,17 @@
 #'   "positions" (for vectorization) as inputs.
 find_pos_site <- function (pos) 
 {
-  # oks <- c("Protein N-term", "Protein C-term", "Any N-term", 
-  #          "Any C-term", "Anywhere")
-  # 
-  # if (! pos %in% oks) 
-  #   stop("`pos` needs to be one of '", paste(oks, collapse = "', '"), "'.", 
-  #        call. = FALSE)
-  
   force(pos)
   
   # "^" for regex, not the indicator of an "N-term"
   p <- paste0("^", pos)
   
   function (vmods, posns) {
-    idxes <- grepl(p, posns) & vmods %in% LETTERS
+    idxes <- .Internal(grepl(p, posns, ignore.case = FALSE, 
+                             FALSE, perl = FALSE, fixed = FALSE, 
+                             useBytes = FALSE, FALSE)) & 
+      vmods %in% LETTERS
+    
     vmods[idxes]
   }
 }
@@ -104,9 +101,13 @@ find_anyntsite <- find_pos_site("Any N-term")
 #' \code{Anywhere} site, e.g., "Oxidation (M)" and "Carbamyl (M)", an amino-acid
 #' sequence should contain at least two "M"s. This is due to the design that
 #' \code{vmods} in an \code{aa_masses} are realized. The additional subsetting
-#' by the counts of residues is, however, not applied at this stage of the
-#' peptide distributions. A downstream step in the calculations of MS2 ions will
+#' by the counts of residues is applied at this stage of the peptide
+#' distributions. A downstream step in the calculations of MS2 ions will also
 #' guard against this.
+#'
+#' In the case of, e.g., "Oxidation (M)" and "Protein (N-term)", and the peptide
+#' sequence has only one "M" on the N-term, the entry is still kept with
+#' the "additive" effect of modifications. 
 #'
 #' @rdname  find_protntsite
 #'
@@ -124,6 +125,24 @@ find_anyntsite <- find_pos_site("Any N-term")
 #' posns <- names(vmods)
 #'
 #' stopifnot(contain_anysite(vmods, posns, length(vmods)))
+#'
+#' ans <- find_anysite(vmods, posns)
+#' stopifnot(length(ans) == 2L)
+#'
+#'
+#' ## `Oxidation (M)` and `Carbamyl (M)`
+#' sites <- list(`Dimethyl (Protein N-term = P)` = "P",
+#'               `Oxidation (M)` = "M", `Carbamyl (M)` = "M",
+#'               `Deamidated (N)` = "N")
+#' positions <- c("Any N-term", "Anywhere", "Anywhere", "Anywhere")
+#' vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
+#'
+#' vmods <- unname(vmods)
+#' vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
+#' vmods <- vmods[!duplicated.default(vmods)]
+#'
+#' posns <- names(vmods)
+#' stopifnot(length(posns) < length(positions))
 #'
 #' ans <- find_anysite(vmods, posns)
 #' stopifnot(length(ans) == 2L)
@@ -197,13 +216,6 @@ find_anyctsite <- find_pos_site("Any C-term")
 #'   corresponding postitions and counts as inputs.
 contain_pos_site <- function (pos) 
 {
-  # oks <- c("Protein N-term", "Protein C-term", "Any N-term", 
-  #          "Any C-term", "Anywhere")
-  # 
-  # if (! pos %in% oks) 
-  #   stop("`pos` needs to be one of '", paste(oks, collapse = "', '"), "'.", 
-  #        call. = FALSE)
-  
   force(pos)
   
   # "^" for regex, not the indicator of an "N-term"
@@ -215,8 +227,11 @@ contain_pos_site <- function (pos)
     if (len == 1L && vmods == "") 
       return(FALSE)
     
-    idxes <- grepl(p, posns) & vmods %in% LETTERS
-    
+    idxes <- .Internal(grepl(p, posns, ignore.case = FALSE, 
+                             FALSE, perl = FALSE, fixed = FALSE, 
+                             useBytes = FALSE, FALSE)) & 
+      vmods %in% LETTERS
+
     any(idxes)
   }
 }
@@ -257,7 +272,7 @@ contain_anyctsite <- contain_pos_site("Any C-term")
 #'
 #' Note to the developer: when manufacturing, a \code{pos} must be terminal in
 #' one of \code{c("Protein N-term", "Any N-term", "Protein C-term", "Any
-#' C-term")}.
+#' C-term")}. \code{"Anywhere"} is not one of them.
 #'
 #' @param pos The position. It must be terminal in \code{c("Protein N-term",
 #'   "Any N-term", "Protein C-term", "Any C-term")}.
@@ -267,12 +282,6 @@ contain_anyctsite <- contain_pos_site("Any C-term")
 #'   \code{vmods} as inputs.
 contain_termpos_any <- function (pos) 
 {
-  # oks <- c("Protein N-term", "Any N-term", "Protein C-term", "Any C-term")
-  #          
-  # if (! pos %in% oks) 
-  #   stop("`pos` needs to be one of '", paste(oks, collapse = "', '"), "'.", 
-  #        call. = FALSE)
-  
   force(pos)
   
   # "^" for regex, not the indicator of an "N-term"
@@ -284,8 +293,10 @@ contain_termpos_any <- function (pos)
     if (len == 1L && vmods == "") 
       return(FALSE)
     
-    idxes <- grepl(p, posns)
-    
+    idxes <- .Internal(grepl(p, posns, ignore.case = FALSE, 
+                             FALSE, perl = FALSE, fixed = FALSE, 
+                             useBytes = FALSE, FALSE))
+
     any(idxes)
   }
 }
@@ -466,9 +477,12 @@ subset_anyntany <- function (peps) peps
 #' 
 #' Flowchart (5): `Oxidation (M)`
 #' @rdname subset_protntsite
+#' @inheritParams find_nmodtree
 #' @examples 
 #' \donttest{
 #' ## Anywhere
+#' min_n_res <- c(P = 1, M = 1, N = 1)
+#' 
 #' sites <- list(`Dimethyl (N-term = P)` = "P", 
 #'               `Oxidation (M)` = "M", 
 #'               `Deamidated (N)` = "N")
@@ -478,21 +492,51 @@ subset_anyntany <- function (peps) peps
 #' vmods <- unname(vmods)
 #' vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 #' 
-#' # (no need since Anywhere)
-#' # posns <- names(vmods)
-#' 
 #' prps <- list(PROT_A = c("-MAKEMASSPECFUN", "-PAKEKASSPECFUN"), 
 #'              PROT_B = c("PAKEKASSPECFUN", "NKAKEKASSPECFU", 
 #'                         "-NKAKEKASSPECFU"))
 #' 
 #' # should contain both M and N
-#' subset_anysite(prps, sites)
+#' subset_anysite(prps, sites, min_n_res)
+#' 
+#' ## Multiple mods to the same site
+#' # (mimic from aa_masses)
+#' min_n_res <- c(P = 1, M = 2, N = 1)
+#' 
+#' sites <- list(`Dimethyl (N-term = P)` = "P", 
+#'               `Oxidation (M)` = "M", `Carbamyl (M)` = "M", 
+#'               `Deamidated (N)` = "N")
+#' positions <- c("Any N-term", "Anywhere", "Anywhere", "Anywhere")
+#' vmods <- purrr::map2(sites, positions, ~ setNames(.x, .y))
+#' 
+#' # No need of modification names
+#' vmods <- unname(vmods)
+#' sites <- unname(sites)
+#' vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
+#' 
+#' is_same <- any(length(min_n_res) > 1L)
+#' if (is_same) {
+#'   ok <- !duplicated.default(vmods)
+#'   vmods <- vmods[ok]
+#'   sites <- sites[ok]
 #' }
-subset_anysite <- function (prps, sites = "N") 
+#' 
+#' prps <- list(PROT_A = c("-MAKEMASSPECFUN", "-PAKEKASSPECFUN"), 
+#'              PROT_B = c("PAKEKASSPECFUN", "NKAKEKASSPECFU", 
+#'                         "-NKAKEKASSPECFU"))
+#' 
+#' ans <- subset_anysite(prps, sites, min_n_res)
+#' }
+subset_anysite <- function (prps, sites, min_n_res) 
 {
   lapply(prps, function (ps) {
-    ans <- lapply(sites, grepl, ps)
-    oks <- Reduce(`&`, ans)
+    oks <- lapply(ps, function (p) {
+      a <- .Call(stringi:::C_stri_count_fixed, 
+                 str = p, pattern = sites, opts_fixed = NULL)
+      all(a >= min_n_res)
+    })
+    oks <- .Internal(unlist(oks, recursive = FALSE, use.names = FALSE))
+
     ps[oks]
   })
 }
@@ -538,20 +582,21 @@ subset_anyctany <- function (peps) peps
 #'
 #' @param vmods A named list of variable modifications. See also
 #'   \link{find_protntsite} for examples of \code{vmods}.
+#' @param min_n_res The minimum numbers of residues for a given set of sites.
 #' @param posns The position (e.g., \code{Protein N-term}, \code{Anywhere},
 #'   etc.) of \code{vmods}. The argument can be obtained from \code{vmods} but
 #'   passed as a parameter for vectorization.
 #' @param len The count of \code{vmods} (passed as a parameter for
 #'   vectorization).
 #' @inheritParams distri_peps
-find_nmodtree <- function (prps, vmods, posns, len) 
+find_nmodtree <- function (prps, min_n_res, vmods, posns, len) 
 {
   if (contain_protntsite(vmods, posns, len)) { # level_1: Protein N-term + Site
     prps <- subset_protntsite(prps, find_protntsite(vmods, posns))
     
     if (contain_anysite(vmods, posns, len)) {
       # (1) -|* .. |
-      prps <- subset_anysite(prps, find_anysite(vmods, posns))
+      prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res)
     } else {
       # (2) -|*    |
       prps <- prps
@@ -562,7 +607,7 @@ find_nmodtree <- function (prps, vmods, posns, len)
       
       if (contain_anysite(vmods, posns, len)) {
         # (3) -|o .. |
-        prps <- subset_anysite(prps, find_anysite(vmods, posns))
+        prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res)
       } else {
         # (4) -|o    |
         prps <- prps
@@ -573,7 +618,7 @@ find_nmodtree <- function (prps, vmods, posns, len)
         
         if (contain_anysite(vmods, posns, len)) {
           # (5) |* .. |
-          prps <- subset_anysite(prps, find_anysite(vmods, posns))
+          prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res)
         } else {
           # (6) |*    |
           prps <- prps
@@ -584,7 +629,7 @@ find_nmodtree <- function (prps, vmods, posns, len)
           
           if (contain_anysite(vmods, posns, len)) {
             # (7) |o .. |
-            prps <- subset_anysite(prps, find_anysite(vmods, posns))
+            prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res)
           } else {
             # (8) |o    |
             prps <- prps
@@ -592,7 +637,7 @@ find_nmodtree <- function (prps, vmods, posns, len)
         } else { 
           if (contain_anysite(vmods, posns, len)) { # level_5: Anywhere
             # (9) |  .. |
-            prps <- subset_anysite(prps, find_anysite(vmods, posns))
+            prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res)
           } else {
             # (10) |     |
             prps <- prps
@@ -610,7 +655,7 @@ find_nmodtree <- function (prps, vmods, posns, len)
 #' C-term + site -> (4-ct) Any C-term.
 #'
 #' @inheritParams find_nmodtree
-find_cmodtree <- function (prps, vmods, posns, len) 
+find_cmodtree <- function (prps, min_n_res, vmods, posns, len) 
 {
   if (contain_protctsite(vmods, posns, len)) { # level_1: Protein C-term + Site
     # (1) -|* .. *|-, (2) -|*    *|-, (3) -|o .. *|-, (4) -|o    *|-, (5) |* .. *|-, 
@@ -650,17 +695,22 @@ find_cmodtree <- function (prps, vmods, posns, len)
 #' @inheritParams distri_peps
 subpeps_by_vmods <- function(aa_masses, prps) 
 {
-  vmods <- attr(aa_masses, "vmods_ps") 
+  vmods <- attr(aa_masses, "vmods_ps", exact = TRUE) 
+  min_n_res <- attr(aa_masses, "min_n_res", exact = TRUE)
+  is_same <- attr(aa_masses, "is_same", exact = TRUE)
   
   if (is.list(vmods)) {
     vmods <- unname(vmods)
     vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
   }
   
+  if (is_same) 
+    vmods <- vmods[!duplicated.default(vmods)]
+
   posns <- names(vmods)
   len <- length(vmods)
-  
-  prps <- find_nmodtree(prps, vmods, posns, len)
-  prps <- find_cmodtree(prps, vmods, posns, len)
+
+  prps <- find_nmodtree(prps, min_n_res, vmods, posns, len)
+  prps <- find_cmodtree(prps, min_n_res, vmods, posns, len)
 }
 

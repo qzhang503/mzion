@@ -17,14 +17,15 @@ ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    maxn_sites_per_vmod = 3L, 
                                    maxn_vmods_sitescombi_per_pep = 32L, 
                                    minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                                   min_ms2mass = 110L, digits = 4L) {
-  
+                                   min_ms2mass = 110L, digits = 4L) 
+{
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
   theopeps <- tempdata$theopeps
   rm(list = c("tempdata"))
   
-  if (!length(mgf_frames) || !length(theopeps)) return(NULL)
+  if (!length(mgf_frames) || !length(theopeps)) 
+    return(NULL)
   
   n_cores <- detect_cores(32L)
   
@@ -117,8 +118,8 @@ hms2_a1_vnl0_fnl1 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmo
                                maxn_sites_per_vmod = 3L, 
                                maxn_vmods_sitescombi_per_pep = 32L, 
                                minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                               min_ms2mass = 110L, digits = 4L) {
-  
+                               min_ms2mass = 110L, digits = 4L) 
+{
   res <- frames_adv(mgf_frames = mgf_frames, 
                     theopeps = theopeps, 
                     aa_masses = aa_masses, 
@@ -242,13 +243,14 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
                                       maxn_vmods_per_pep = 5L, 
                                       maxn_sites_per_vmod = 3L, 
                                       maxn_vmods_sitescombi_per_pep = 32L, 
-                                      digits = 4L) {
-  
+                                      digits = 4L) 
+{
   # (7, 8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
   # (no pep_seq dispatching by fmod residues -> possible no matched sites)
   sites <- names(fmods_nl)
   
   pattern <- paste(sites, collapse = "|")
+  
   if (!grepl(pattern, aa_seq)) 
     return(
       gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
@@ -262,9 +264,8 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
                                maxn_sites_per_vmod = maxn_sites_per_vmod, 
                                maxn_vmods_sitescombi_per_pep = 
                                  maxn_vmods_sitescombi_per_pep, 
-                               digits = digits)
-    )
-    
+                               digits = digits))
+
   # (11, 12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
                             useBytes = FALSE))
@@ -321,8 +322,8 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
 #' @inheritParams hms1_a0_vnl0_fnl1
 calc_ms2ions_a1_vnl0_fnl1 <- function (vmods_combi, fnl_combi, fnl_idxes, 
                                        aas2, aa_masses, 
-                                       ntmass, ctmass, type_ms2ions, digits) {
-
+                                       ntmass, ctmass, type_ms2ions, digits) 
+{
   # updates amod masses
   delta_amod <- aa_masses[vmods_combi]
   amod_idxes <- as.numeric(names(vmods_combi))
@@ -350,8 +351,8 @@ calc_ms2ions_a1_vnl0_fnl1 <- function (vmods_combi, fnl_combi, fnl_idxes,
 #' 
 #' @inheritParams add_hexcodes
 #' @inheritParams calc_ms2ions_a1_vnl0_fnl1
-add_hexcodes_fnl2 <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
-
+add_hexcodes_fnl2 <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) 
+{
   idxes <- .Internal(unlist(vmods_combi, recursive = FALSE, use.names = FALSE))
   nms <- names(vmods_combi)
   

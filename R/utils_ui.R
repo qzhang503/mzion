@@ -92,7 +92,8 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
                               maxn_vmods_setscombi = 64,
                               maxn_vmods_per_pep = Inf,
                               maxn_sites_per_vmod = Inf,
-                              digits = 4) {
+                              digits = 4) 
+{
   options(digits = 9L)
   
   aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
@@ -140,8 +141,8 @@ calc_monopep <- function (aa_seq, aa_masses,
                           include_insource_nl = FALSE,
                           maxn_vmods_per_pep = 5,
                           maxn_sites_per_vmod = 3,
-                          digits = 5) {
-  
+                          digits = 5) 
+{
   if (is.na(aa_seq)) return(NULL)
   
   aas <- aa_seq %>% stringr::str_split("", simplify = TRUE)
@@ -228,18 +229,16 @@ calc_monopep <- function (aa_seq, aa_masses,
 #'   representation of amino acids.
 #' @param aa_masses_all All the amino acid lookup tables.
 #' @inheritParams matchMS
-check_aaseq <- function (aa_seq, aa_masses_all, fixedmods, varmods) {
-  
-  if (any(grepl("Protein N-term", fixedmods))) {
+check_aaseq <- function (aa_seq, aa_masses_all, fixedmods, varmods) 
+{
+  if (any(grepl("Protein N-term", fixedmods))) 
     stop("Need to change fixed 'Protein N-term' modification to variable.", 
          call. = FALSE)
-  }
-  
-  if (any(grepl("Protein C-term", fixedmods))) {
+
+  if (any(grepl("Protein C-term", fixedmods))) 
     stop("Need to change fixed 'Protein C-term' modification to variable.", 
          call. = FALSE)
-  }
-  
+
   # ---
   has_prot_nt <- any(grepl("Protein N-term", varmods))
   
@@ -249,21 +248,18 @@ check_aaseq <- function (aa_seq, aa_masses_all, fixedmods, varmods) {
   
   has_prot_ct <- any(grepl("Protein C-term", varmods))
   
-  if (has_prot_ct) {
+  if (has_prot_ct) 
     aa_seq <- paste0(aa_seq, "-")
-  }
   
   peps <- lapply(aa_masses_all, subpeps_by_vmods, aa_seq) %>%
     purrr::flatten()
   
-  if (has_prot_nt) {
-    peps <- peps %>% purrr::map(~ gsub("^-", "", .x))
-  }
-  
-  if (has_prot_ct) {
-    peps <- peps %>% purrr::map(~ gsub("-$", "", .x))
-  }
-  
+  if (has_prot_nt) 
+    peps <- purrr::map(peps, ~ gsub("^-", "", .x))
+
+  if (has_prot_ct) 
+    peps <- purrr::map(peps, ~ gsub("-$", "", .x))
+
   invisible(peps)
 }
 
@@ -360,8 +356,8 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
                                maxn_vmods_per_pep = 5L, 
                                maxn_sites_per_vmod = 3L, 
                                maxn_vmods_sitescombi_per_pep = 32L, 
-                               digits = 5L) {
-  
+                               digits = 5L) 
+{
   options(digits = 9L)
   
   aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
@@ -435,8 +431,8 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
 calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL, 
                           type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                           maxn_sites_per_vmod = 3L, 
-                          maxn_vmods_sitescombi_per_pep = 32L, digits = 5L) {
-  
+                          maxn_vmods_sitescombi_per_pep = 32L, digits = 5L) 
+{
   # tmt6_mass <- 229.162932
   # tmtpro_mass <- 304.207146
   # h2o <- 18.010565
@@ -483,19 +479,19 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
                   "amods- tmod+ vnl- fnl+")) {
     
     ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-    if (length(ntmod)) {
-      ntmass <- aa_masses[names(ntmod)] + 1.00727647
-    } else {
-      ntmass <- aa_masses["N-term"] - 0.000549
-    }
     
+    ntmass <- if (length(ntmod)) 
+      aa_masses[names(ntmod)] + 1.00727647
+    else 
+      aa_masses["N-term"] - 0.000549
+
     ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-    if (length(ctmod)) {
-      ctmass <- aa_masses[names(ctmod)] + 2.01510147
-    } else {
-      ctmass <- aa_masses["C-term"] + 2.01510147
-    }
     
+    ctmass <- if (length(ctmod)) 
+      aa_masses[names(ctmod)] + 2.01510147
+    else 
+      aa_masses["C-term"] + 2.01510147
+
     fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
     
     ans <- gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = ms1_mass, 
@@ -519,18 +515,18 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
                   "amods+ tmod+ vnl- fnl-")) {
     
     ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-    if (length(ntmod)) {
-      ntmass <- aa_masses[names(ntmod)] + 1.00727647
-    } else {
-      ntmass <- aa_masses["N-term"] - 0.000549
-    }
+    
+    ntmass <- if (length(ntmod)) 
+      aa_masses[names(ntmod)] + 1.00727647
+    else 
+      aa_masses["N-term"] - 0.000549
     
     ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-    if (length(ctmod)) {
-      ctmass <- aa_masses[names(ctmod)] + 2.01510147
-    } else {
-      ctmass <- aa_masses["C-term"] + 2.01510147
-    }
+    
+    ctmass <- if (length(ctmod)) 
+      aa_masses[names(ctmod)] + 2.01510147
+    else 
+      aa_masses["C-term"] + 2.01510147
     
     amods <- attr(aa_masses, "amods", exact = TRUE)
     
@@ -558,19 +554,19 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
                   "amods+ tmod+ vnl+ fnl-")) {
     
     ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-    if (length(ntmod)) {
-      ntmass <- aa_masses[names(ntmod)] + 1.00727647
-    } else {
-      ntmass <- aa_masses["N-term"] - 0.000549
-    }
+    
+    ntmass <- if (length(ntmod)) 
+      aa_masses[names(ntmod)] + 1.00727647
+    else 
+      aa_masses["N-term"] - 0.000549
     
     ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-    if (length(ctmod)) {
-      ctmass <- aa_masses[names(ctmod)] + 2.01510147
-    } else {
-      ctmass <- aa_masses["C-term"] + 2.01510147
-    }
     
+    ctmass <- if (length(ctmod)) 
+      aa_masses[names(ctmod)] + 2.01510147
+    else 
+      aa_masses["C-term"] + 2.01510147
+
     amods <- attr(aa_masses, "amods", exact = TRUE)
     vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
     
@@ -597,19 +593,19 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
   if (type %in% c("amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+")) {
     
     ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-    if (length(ntmod)) {
-      ntmass <- aa_masses[names(ntmod)] + 1.00727647
-    } else {
-      ntmass <- aa_masses["N-term"] - 0.000549
-    }
     
+    ntmass <- if (length(ntmod)) 
+      aa_masses[names(ntmod)] + 1.00727647
+    else 
+      aa_masses["N-term"] - 0.000549
+
     ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-    if (length(ctmod)) {
-      ctmass <- aa_masses[names(ctmod)] + 2.01510147
-    } else {
-      ctmass <- aa_masses["C-term"] + 2.01510147
-    }
     
+    ctmass <- if (length(ctmod)) 
+      aa_masses[names(ctmod)] + 2.01510147
+    else 
+      aa_masses["C-term"] + 2.01510147
+
     amods <- attr(aa_masses, "amods", exact = TRUE)
     fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
     
@@ -705,8 +701,8 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
                            maxn_sites_per_vmod = 3L,
                            .ms1_vmodsets = NULL, 
                            .base_ent = NULL, 
-                           digits = 5L) {
-  
+                           digits = 5L) 
+{
   # (6) "amods- tmod- vnl- fnl+"
   if (!length(amods)) return(NULL)
   
@@ -759,8 +755,8 @@ vmods_elements <- function (aas,
                             maxn_sites_per_vmod = 3L,
                             .ms1_vmodsets = NULL, 
                             .base_ent = NULL, 
-                            digits = 5L) {
-  
+                            digits = 5L) 
+{
   residue <- residue_mods[[1]]
   
   ns <- names(residue_mods)
@@ -853,8 +849,8 @@ vmods_elements <- function (aas,
 #' 
 #' ans <- find_intercombi(list(S = S, M = M, N = N))
 #' }
-find_intercombi <- function (intra_combis, maxn_vmods_per_pep = 5L) {
-  
+find_intercombi <- function (intra_combis, maxn_vmods_per_pep = 5L) 
+{
   len <- length(intra_combis)
   
   if (!len) { # scalar

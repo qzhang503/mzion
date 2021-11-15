@@ -8,8 +8,8 @@
 #' @param ppm_reporters The mass tolerance of MS2 reporter ions.
 calc_tmtint <- function (data = NULL,
                          quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16"),
-                         ppm_reporters = 10) {
-  
+                         ppm_reporters = 10) 
+{
   if (quant == "none") {
     out <- data
   } else {
@@ -73,8 +73,8 @@ calc_tmtint <- function (data = NULL,
 #'
 #' @param df Results from \link{calc_protfdr}.
 #' @inheritParams matchMS
-add_rptrs <- function (df = NULL, quant = "none", out_path = NULL) {
-  
+add_rptrs <- function (df = NULL, quant = "none", out_path = NULL) 
+{
   if (grepl("^tmt[0-9]+$", quant)) {
     files <- list.files(path = file.path(out_path, "temp"),
                         pattern = "^reporters_\\d+\\.rds$")
@@ -158,8 +158,8 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL) {
 #'                         len , nms)
 #' }
 find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
-                                ppm_reporters = 10, len, nms) {
-  
+                                ppm_reporters = 10, len, nms) 
+{
   range <- findInterval(ul, ms2_moverzs)
   
   ms <-ms2_moverzs[range[1]:range[2]]
@@ -167,7 +167,8 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
   
   idxes <- find_reporters_ppm(theos, ms, ppm_reporters, len, nms)
   
-  if (!length(idxes)) return(rep(NA, len) %>% `names<-`(nms))
+  if (!length(idxes)) 
+    return(rep(NA, len) %>% `names<-`(nms))
   
   # 126      127N      127C      128N      128N      128C
   # 135569.00 120048.00 122599.00   3397.98 140551.00 144712.00
@@ -213,8 +214,8 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
 #'   reporter ions).
 #' @inheritParams find_reporter_ints
 #' @return A vector of indexes
-find_reporters_ppm <- function (theos, expts, ppm_reporters = 10, len, nms) {
-  
+find_reporters_ppm <- function (theos, expts, ppm_reporters = 10, len, nms) 
+{
   d <- outer(theos, expts, "find_ppm_error")
   row_cols <- which(abs(d) <= ppm_reporters, arr.ind = TRUE)
   
@@ -226,8 +227,8 @@ find_reporters_ppm <- function (theos, expts, ppm_reporters = 10, len, nms) {
 #'
 #' @param out_path An output path.
 #' @param df The results after scoring.
-add_prot_acc <- function (df, out_path = "~/proteoM/outs") {
-  
+add_prot_acc <- function (df, out_path = "~/proteoM/outs") 
+{
   message("Adding protein accessions.")
   
   uniq_peps <- unique(df$pep_seq)
@@ -282,8 +283,8 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs") {
 #'
 #' @param mat A logical matrix; peptides in rows and proteins in columns.
 #' @param out_path A file pth to outputs.
-cut_protgrps <- function (mat, out_path = NULL) {
-  
+cut_protgrps <- function (mat, out_path = NULL) 
+{
   cns <- colnames(mat)
   
   mat <- as.list(mat)
@@ -328,8 +329,8 @@ cut_protgrps <- function (mat, out_path = NULL) {
 #'
 #' @param mat A bool matrix.
 #' @import parallel
-parDist <- function (mat) {
-  
+parDist <- function (mat) 
+{
   message("Calculating distance matrix.")
   
   gc()
@@ -338,10 +339,9 @@ parDist <- function (mat) {
   mem <- find_free_mem() *.45/1024
   n_cores <- floor(min(mem/size, detect_cores(16L)))
   
-  if (n_cores <= 1L) {
+  if (n_cores <= 1L) 
     stop("Not enough memory for parallel distance calculation.", 
          call. = FALSE)
-  }
   
   idxes <- chunksplit(seq_along(mat), 2 * n_cores, "list")
   len <- length(mat)
@@ -357,12 +357,9 @@ parDist <- function (mat) {
   rm(list = c("mat"))
   gc()
   
-  if (len > 1L) {
-    for (i in 2:len) {
-      # out[[i]] <- c(out[1:(i-1)] %>% purrr::map_dbl(`[[`, i), out[[i]])
+  if (len > 1L) 
+    for (i in 2:len) 
       out[[i]] <- c(purrr::map_dbl(out[1:(i-1)], `[[`, i), out[[i]])
-    }
-  }
   
   lapply(out, function (x) {
     names(x) <- nms
@@ -375,8 +372,8 @@ parDist <- function (mat) {
 #'
 #' @param out The data frame from upstream steps.
 #' @param out_path The output path.
-grp_prots <- function (out, out_path = NULL) {
-  
+grp_prots <- function (out, out_path = NULL) 
+{
   dir.create(file.path(out_path), recursive = TRUE, showWarnings = FALSE)
   
   out <- dplyr::arrange(out, pep_seq)
@@ -386,14 +383,12 @@ grp_prots <- function (out, out_path = NULL) {
   
   df <- out[rows, ]
   
-  if (nrow(df) > 1L) {
+  if (nrow(df) > 1L) 
     df <- groupProts2(df, out_path)
-  } else {
-    df <- df %>%
-      dplyr::mutate(prot_isess = TRUE,
-                    prot_hit_num = 1L,
-                    prot_family_member = 1L)
-  }
+  else 
+    df <- dplyr::mutate(df, prot_isess = TRUE,
+                        prot_hit_num = 1L,
+                        prot_family_member = 1L)
   
   # non-essential entries
   prot_accs <- df %>%
@@ -425,8 +420,8 @@ grp_prots <- function (out, out_path = NULL) {
 #'
 #' @param df Interim results from \link{matchMS}.
 #' @param out_path The output path.
-groupProts2 <- function (df, out_path = NULL) {
-  
+groupProts2 <- function (df, out_path = NULL) 
+{
   # `pep_seq` in `df` are all from target and significant;
   # yet target `pep_seq` can be assigned to both target and decoy proteins
   #
@@ -447,9 +442,8 @@ groupProts2 <- function (df, out_path = NULL) {
   sets <- greedysetcover3(mat)
   gc()
   
-  if (!is.null(out_path)) {
-    saveRDS(sets, file.path(out_path, "prot_pep_setcover.rds")) 
-  }
+  if (!is.null(out_path)) 
+    saveRDS(sets, file.path(out_path, "prot_pep_setcover.rds"))
   
   sets <- sets %>% 
     `[[`("prot_acc") %>%
@@ -461,11 +455,10 @@ groupProts2 <- function (df, out_path = NULL) {
   df0 <- dplyr::filter(df, !prot_isess)
   df <- dplyr::filter(df, prot_isess)
 
-  if (nrow(mat) == 1L) {
-    mat_ess <- mat
-  } else {
-    mat_ess <- mat[, colnames(mat) %in% unique(df$prot_acc)]
-  }
+  mat_ess <- if (nrow(mat) == 1L) 
+    mat
+  else 
+    mat[, colnames(mat) %in% unique(df$prot_acc)]
 
   peps_uniq <- local({
     rsums <- Matrix::rowSums(mat)
@@ -508,8 +501,8 @@ groupProts2 <- function (df, out_path = NULL) {
 #' 
 #' out <- proteoM:::map_pepprot2(df)
 #' }
-map_pepprot2 <- function (df, out_path = NULL) {
-
+map_pepprot2 <- function (df, out_path = NULL) 
+{
   df <- df[, c("prot_acc", "pep_seq")] 
   df <- unique(df)
   
@@ -639,8 +632,8 @@ map_pepprot2 <- function (df, out_path = NULL) {
 #'
 #' @param mat A logical matrix; peptides in rows and proteins in columns.
 #' @param out_path A file pth to outputs.
-cut_protgrps2 <- function (mat = NULL, out_path = NULL) {
-  
+cut_protgrps2 <- function (mat = NULL, out_path = NULL) 
+{
   cns <- colnames(mat)
   
   if (nrow(mat) == 1L) {
@@ -728,9 +721,8 @@ cut_protgrps2 <- function (mat = NULL, out_path = NULL) {
     dplyr::ungroup()
   
   
-  if (!is.null(out_path)) {
+  if (!is.null(out_path)) 
     saveRDS(grps, file.path(out_path, "prot_grps.rds"))
-  }
   
   # stopifnot(identical(grps$prot_acc, cns))
   
@@ -743,19 +735,18 @@ cut_protgrps2 <- function (mat = NULL, out_path = NULL) {
 #' Assumed the input is already a symmetric matrix (not yet being used).
 #' 
 #' @inheritParams stats::as.dist
-as_dist <- function (m, diag = FALSE, upper = FALSE) {
-  
+as_dist <- function (m, diag = FALSE, upper = FALSE) 
+{
   p <- nrow(m)
   
   ans <- m[row(m) > col(m)]
   gc()
   attributes(ans) <- NULL
   
-  if (!is.null(rownames(m))) {
+  if (!is.null(rownames(m))) 
     attr(ans, "Labels") <- rownames(m)
-  } else if (!is.null(colnames(m))) {
+  else if (!is.null(colnames(m))) 
     attr(ans, "Labels") <- colnames(m)
-  }
   
   attr(ans, "Size") <- p
   attr(ans, "call") <- match.call()
@@ -776,8 +767,8 @@ as_dist <- function (m, diag = FALSE, upper = FALSE) {
 #' Assumed the input is already a symmetric matrix.
 #' 
 #' @inheritParams stats::as.dist
-as_lgldist <- function(m, diag = FALSE, upper = FALSE) {
-  
+as_lgldist <- function(m, diag = FALSE, upper = FALSE) 
+{
   d = proteoCpp::to_lgldistC(m)
   
   if (!is.null(rownames(m))) 
@@ -802,8 +793,8 @@ as_lgldist <- function(m, diag = FALSE, upper = FALSE) {
 #' @param mat A bool matrix of protein (cols)-peptide (rows) map. 
 #' 
 #' @return A two-column data frame of prot_acc and pep_seq. 
-greedysetcover3 <- function (mat) {
-  
+greedysetcover3 <- function (mat) 
+{
   if (is.matrix(mat)) {
     mat <- Matrix::Matrix(as.matrix(mat), sparse = TRUE)
     gc()

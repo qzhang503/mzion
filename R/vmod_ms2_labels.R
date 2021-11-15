@@ -91,8 +91,8 @@
 #' stopifnot(all(sapply(n_pos, function (x) all(x %in% c("6", "14")))))
 #' }
 find_vmodscombi <- function (aas = NULL, ms2vmods = NULL, 
-                             maxn_vmods_sitescombi_per_pep = 64L) {
-  
+                             maxn_vmods_sitescombi_per_pep = 64L) 
+{
   # Starts from sets of combinatorial MS1 labels
   # 
   #   if multiple names for the same site 
@@ -174,8 +174,8 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
 #'   Note that M is a matrix other than lists of vectors, which allows the
 #'   application of one copy of attributes to all rows.
 #' @param aas \code{aa_seq} split in a sequence of LETTERS.
-combi_namesiteU <- function (M, aas) {
-  
+combi_namesiteU <- function (M, aas) 
+{
   m <- attr(M, "resids")
   ps <- attr(M, "ps")
   
@@ -186,17 +186,12 @@ combi_namesiteU <- function (M, aas) {
   len_out <- nrow(combi)
   out <- rep(list(M[1, ]), len_out)
   
-  
   for (i in seq_along(vpos)) { # by residue
     ansi <- combi[[i]] # list of six: 5, 9; 9, 13 etc.
     pi <- vpos[[i]] # 1, 3
     
-    for (j in seq_len(len_out)) names(out[[j]])[pi] <- ansi[[j]] # by combi
-    
-    # lapply(seq_len(len_out), function (j) { 
-    #   names(out[[j]])[pi] <- ansi[[j]]
-    #   out <<- out
-    # })
+    for (j in seq_len(len_out)) 
+      names(out[[j]])[pi] <- ansi[[j]] # by combi
   }
   
   out
@@ -213,8 +208,8 @@ combi_namesiteU <- function (M, aas) {
 #' @param ps Named vector; counts for each site. Sites in names and counts in
 #'   values.
 #' @param aas \code{aa_seq} split in a sequence of LETTERS.
-find_vmodposU <- function (vec, ps, aas) {
-  
+find_vmodposU <- function (vec, ps, aas) 
+{
   nres <- length(ps)
   M <- vpos <- vector("list", nres)
   
@@ -245,8 +240,8 @@ find_vmodposU <- function (vec, ps, aas) {
 #' 
 #' @param nrows The number of rows of M.
 #' @inheritParams combi_namesiteU
-combi_namesiteM <- function (M, aas, nrows) {
-  
+combi_namesiteM <- function (M, aas, nrows) 
+{
   ps <- attr(M, "ps")
   m <- attr(M, "resids")
   
@@ -268,7 +263,7 @@ combi_namesiteM <- function (M, aas, nrows) {
       ans[[i]] <- find_vmodposM(Vec = Vec, vec = vec, ps = ps, aas = aas)
       cache[[i]] <- vec
     } else {
-      # must have a preceding match by the implementation of `duplicated`
+      # must have a preceding match by the way of `duplicated`
       for (j in 1:len) {
         cj <- cache[[j]]
         
@@ -290,8 +285,8 @@ combi_namesiteM <- function (M, aas, nrows) {
 #' 
 #' @param Vec A vector of names (lower-case vec for sites).
 #' @inheritParams find_vmodposU
-find_vmodposM <- function (Vec, vec, ps, aas) {
-  
+find_vmodposM <- function (Vec, vec, ps, aas) 
+{
   nres <- length(ps)
   M <- vpos <- vector("list", nres)
   
@@ -317,12 +312,8 @@ find_vmodposM <- function (Vec, vec, ps, aas) {
     ansi <- ans[[i]] # list of six: 5, 9; 9, 13 etc.
     pi <- vpos[[i]] # 1, 3
     
-    for (j in seq_len(len_out)) names(out[[j]])[pi] <- ansi[[j]] # by combi
-    
-    # lapply(seq_len(len_out), function (j) { # by combi
-    #   names(out[[j]])[pi] <- ansi[[j]]
-    #   out <<- out
-    # })
+    for (j in seq_len(len_out)) 
+      names(out[[j]])[pi] <- ansi[[j]] # by combi
   }
   
   out
@@ -333,18 +324,14 @@ find_vmodposM <- function (Vec, vec, ps, aas) {
 #' 
 #' @param X Lists of cached results.
 #' @param Vec A vector of names (lower-case vec for sites).
-match_aas_indexes <- function (X, Vec) {
-  
+match_aas_indexes <- function (X, Vec) 
+{
   len <- length(X)
   out <- rep(list(Vec), len)
   
-  for (i in 1:len) names(out[[i]]) <- names(X[[i]])
-  
-  # lapply(1:len, function (i) {
-  #   names(out[[i]]) <- names(X[[i]])
-  #   out <<- out
-  # })
-  
+  for (i in 1:len) 
+    names(out[[i]]) <- names(X[[i]])
+
   out
 }
 
@@ -488,8 +475,8 @@ match_aas_indexes <- function (X, Vec) {
 #' 
 #' ans_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
 #' }
-make_ms2vmods <- function (vec = NULL) {
-  
+make_ms2vmods <- function (vec = NULL) 
+{
   # stopifnot(maxn_vmods_per_pep >= 2L)
   
   n_nms <- length(unique(names(vec)))
@@ -514,8 +501,8 @@ make_ms2vmods <- function (vec = NULL) {
 #' 
 #' @param M A modification-name matrix from \link{make_ms2vmods}.
 #' @param vec A vector of labels.
-find_ms2resids <- function (M, vec) {
-  
+find_ms2resids <- function (M, vec) 
+{
   vecinv <- names(vec)
   names(vecinv) <- vec
   vecinv <- vecinv[unique(names(vecinv))]
@@ -556,8 +543,8 @@ find_ms2resids <- function (M, vec) {
 #' 
 #' @param M A permutation table with unique sets by rows.
 #' @param x A label to be added to M for additional permutations.
-add_one_label <- function (M, x) {
-  
+add_one_label <- function (M, x) 
+{
   ncols <- ncol(M)
   nrows <- nrow(M)
   
@@ -608,8 +595,8 @@ add_one_label <- function (M, x) {
 #' ## Others
 #' x <- find_perm_sets(rep("A", 3))
 #' }
-find_perm_sets <- function (labs = c("A", "A", "A", "B", "B", "C")) {
-  
+find_perm_sets <- function (labs = c("A", "A", "A", "B", "B", "C")) 
+{
   grps <- split_vec(labs)
   len_grps <- length(grps)
   

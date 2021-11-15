@@ -7,11 +7,13 @@
 #' @param ctmass The mass of a fixed or variable C-term modification.
 #' @inheritParams matchMS
 ms2ions_by_type <- function (aas2, ntmass, ctmass, type_ms2ions, digits) 
+{
   switch(type_ms2ions, 
          by = byions(ntmass, ctmass, aas2, digits), 
          cz = czions(ntmod, ctmod, aas2, digits), 
          ax = axions(ntmod, ctmod, aas2, digits), 
          stop("Unknown type.", call. = FALSE))
+}
 
 
 #' Masses of singly-charged b- and y-ions.
@@ -151,11 +153,12 @@ axions <- function (ntmass, ctmass, aas2, digits = 4L)
 #' y <- yions_base(aas2, ctmass)
 #'
 #' }
-bions_base <- function (aas2, tmass, digits = 4L) {
-  
+bions_base <- function (aas2, tmass, digits = 4L) 
+{
   ions <- c(tmass, aas2)
   ions <- cumsum(ions)
   ions <- ions[-1]
+  
   round(ions, digits = digits)
 }
 
@@ -163,14 +166,14 @@ bions_base <- function (aas2, tmass, digits = 4L) {
 #' Y-ions.
 #' 
 #' @rdname bions_base
-yions_base <- function (aas2, tmass, digits = 4L) {
-  
-  # (1) OH (C-term), + H (neutralizes the N-term on a fragment) + H+
+yions_base <- function (aas2, tmass, digits = 4L) 
+{
+  # (1) OH (C-term), + H (neutralizes the N-term on a fragment) + H+ 
   # (2) Other C-term (other than OH) + H + H+: X + 1.007825 + 1.00727647
-  
   ions <- c(tmass, rev(aas2))
   ions <- cumsum(ions)
   ions <- ions[-1]
+  
   round(ions, digits = digits)
 }
 
@@ -185,12 +188,13 @@ b2ions_base <- function (aas2, tmass, digits = 4L)
 #' B*-ions.
 #' 
 #' @rdname bions_base
-bstarions <- function (aas2, tmass, digits = 4L) {
-  
+bstarions <- function (aas2, tmass, digits = 4L) 
+{
   # -NH3:17.026549
   ions <- c(tmass - 17.026549, aas2)
   ions <- cumsum(ions)
   ions <- ions[-1]
+  
   round(ions, digits = digits)
 }
 
@@ -205,12 +209,13 @@ bstar2ions <- function (aas2, tmass, digits = 4L)
 #' B0-ions.
 #' 
 #' @rdname bions_base
-b0ions <- function (aas2, tmass, digits = 4L) {
-  
+b0ions <- function (aas2, tmass, digits = 4L) 
+{
   # -H2O 18.010565
   ions <- c(tmass - 18.010565, aas2)
   ions <- cumsum(ions)
   ions <- ions[-1]
+  
   round(ions, digits = digits)
 }
 
@@ -232,11 +237,12 @@ y2ions <- function (aas2, tmass, digits = 4L)
 #' Y*-ions.
 #' 
 #' @rdname bions_base
-ystarions <- function (aas2, tmass, digits = 4L) {
-  
+ystarions <- function (aas2, tmass, digits = 4L) 
+{
   ions <- c(tmass - 17.026549, rev(aas2))
   ions <- cumsum(ions)
   ions <- ions[-1]
+  
   round(ions, digits = digits)
 }
 
@@ -251,11 +257,12 @@ ystar2ions <- function (aas2, tmass, digits = 4L)
 #' Y0-ions.
 #' 
 #' @rdname bions_base
-y0ions <- function (aas2, tmass, digits = 4L) {
-  
+y0ions <- function (aas2, tmass, digits = 4L) 
+{
   ions <- c(tmass - 18.010565, rev(aas2))
   ions <- cumsum(ions)
   ions <- ions[-1]
+  
   round(ions, digits = digits)
 }
 
@@ -270,11 +277,12 @@ y02ions <- function (aas2, tmass, digits = 4L)
 #' C-ions.
 #' 
 #' @rdname bions_base
-cions_base <- function (aas2, tmass, digits = 4L) {
-  
+cions_base <- function (aas2, tmass, digits = 4L) 
+{
   ions <- c(tmass + 17.026549, aas2)
   ions <- cumsum(ions)
   ions <- ions[-1]
+  
   round(ions, digits = digits)
 }
 
@@ -289,11 +297,12 @@ c2ions <- function (aas2, tmass, digits = 4L)
 #' Z-ions.
 #' 
 #' @rdname bions_base
-zions_base <- function (aas2, tmass, digits = 4L) {
-  
+zions_base <- function (aas2, tmass, digits = 4L) 
+{
   ions <- c(tmass - 17.026549, rev(aas2))
   ions <- cumsum(ions)
   ions <- ions[-1]
+  
   round(ions, digits = digits)
 }
 
@@ -308,11 +317,12 @@ z2ions <- function (aas2, tmass, digits = 4L)
 #' A-ions.
 #' 
 #' @rdname bions_base
-aions_base <- function (aas2, tmass, digits = 4L) {
-  
+aions_base <- function (aas2, tmass, digits = 4L) 
+{
   ions <- c(tmass - 27.9949146, aas2)
   ions <- cumsum(ions)
   ions <- ions[-1]
+  
   round(ions, digits = digits)
 }
 
@@ -327,12 +337,13 @@ a2ions <- function (aas2, tmass, digits = 4L)
 #' A*-ions.
 #' 
 #' @rdname bions_base
-astarions <- function (aas2, tmass, digits = 4L) {
-  
+astarions <- function (aas2, tmass, digits = 4L) 
+{
   # -CO -NH3 = -(27.9949146 + 17.026549)
   ions <- c(tmass - 45.0214636, aas2)
   ions <- cumsum(ions)
   ions <- ions[-1]
+  
   round(ions, digits = digits)
 }
 
@@ -347,12 +358,13 @@ astar2ions <- function (aas2, tmass, digits = 4L)
 #' A0-ions.
 #' 
 #' @rdname bions_base
-a0ions <- function (aas2, tmass, digits = 4L) {
-  
+a0ions <- function (aas2, tmass, digits = 4L) 
+{
   # -CO -H2O = -(27.9949146 + 18.010565)
   ions <- c(tmass - 46.0054796, aas2)
   ions <- cumsum(ions)
   ions <- ions[-1]
+  
   round(ions, digits = digits)
 }
 
@@ -367,12 +379,13 @@ a02ions <- function (aas2, tmass, digits = 4L)
 #' X-ions.
 #' 
 #' @rdname bions_base
-xions_base <- function (aas2, tmass, digits = 4L) {
-  
+xions_base <- function (aas2, tmass, digits = 4L) 
+{
   # +CO -H2 = 27.9949146 - 2*1.007825
   ions <- c(tmass + 25.9792646, rev(aas2))
   ions <- cumsum(ions)
   ions <- ions[-1]
+  
   round(ions, digits = digits)
 }
 

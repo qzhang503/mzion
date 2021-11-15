@@ -4,11 +4,13 @@
 \alias{find_cmodtree}
 \title{Find and subset peptides.}
 \usage{
-find_cmodtree(prps, vmods, posns, len)
+find_cmodtree(prps, min_n_res, vmods, posns, len)
 }
 \arguments{
 \item{prps}{Lists of peptide sequences with a one-letter representation
 of amino acid residues. Each list is named by protein accession.}
+
+\item{min_n_res}{The minimum numbers of residues for a given set of sites.}
 
 \item{vmods}{A named list of variable modifications. See also
 \link{find_protntsite} for examples of \code{vmods}.}

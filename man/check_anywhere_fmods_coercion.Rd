@@ -14,5 +14,6 @@ check_anywhere_fmods_coercion(site, aa_masses_all, vmods_ps)
 \item{vmods_ps}{All of the "vmods_ps" attributes from "aa_masses_all".}
 }
 \description{
-The coerced site needs to be present in final \code{aa_masses_all}.
+The coerced site needs to be present in the final \code{aa_masses_all},
+as either a fixed or a variable modification.
 }

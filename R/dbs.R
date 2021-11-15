@@ -39,8 +39,8 @@
 #' @seealso \code{\link{write_fasta}}
 #' @export
 read_fasta <- function (file = NULL, acc_pattern = ">([^ ]+?) .*", 
-                        comment_char = "") {
-  
+                        comment_char = "") 
+{
   lines <- readLines(file)
   
   # removes empty lines
@@ -68,7 +68,7 @@ read_fasta <- function (file = NULL, acc_pattern = ">([^ ]+?) .*",
 
   db <- mapply(function (x, y) {
     attr(x, "header") <- y
-    return(x)
+    x
   }, seqs, hdrs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
   
   names(db) <- gsub(acc_pattern, "\\1", hdrs)
@@ -91,8 +91,8 @@ read_fasta <- function (file = NULL, acc_pattern = ">([^ ]+?) .*",
 #'
 #' @import dplyr purrr
 #' @importFrom magrittr %>% %T>% %$% %<>%
-write_fasta <- function (fasta_db, file) {
-  
+write_fasta <- function (fasta_db, file) 
+{
   filepath <- gsub("(^.*/).*$", "\\1", file)
   dir.create(filepath, showWarnings = FALSE, recursive = TRUE)
   
@@ -113,8 +113,8 @@ write_fasta <- function (fasta_db, file) {
 #' \donttest{
 #' fasta_db <- load_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 #' }
-load_fasta <- function (fasta = NULL) {
-  
+load_fasta <- function (fasta = NULL) 
+{
   if (is.null(fasta)) 
     stop("FASTA file(s) are required.", call. = FALSE)
 
@@ -182,8 +182,8 @@ load_fasta <- function (fasta = NULL) {
 #'           identical(fasta_db, fasta_db3))
 #' }
 #' @export
-load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL) {
-  
+load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL) 
+{
   if (is.null(fasta)) 
     stop("FASTA file(s) are required.", call. = FALSE)
 
@@ -248,8 +248,8 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL) {
 #' Not used for custom acc_type, i.e. acc_type = "my_acctype".
 #'
 #' @inheritParams load_fasta2
-find_acc_pattern <- function (acc_type) {
-  
+find_acc_pattern <- function (acc_type) 
+{
   stopifnot(length(acc_type) == 1L)
   stopifnot(acc_type %in% c("uniprot_acc", "uniprot_id", "refseq_acc", "other"))
 
@@ -276,8 +276,8 @@ find_acc_pattern <- function (acc_type) {
 #' Not used for custom acc_pattern, i.e. acc_pattern = "...".
 #'
 #' @inheritParams load_fasta2
-find_acc_type <- function (acc_pattern) {
-  
+find_acc_type <- function (acc_pattern) 
+{
   stopifnot(length(acc_pattern) == 1L)
 
   pat_upacc <- "^>..\\|([^\\|]+)\\|[^ ]+?"
@@ -356,8 +356,8 @@ find_acc_type <- function (acc_pattern) {
 #' x <- parse_unimod("Gln->pyro-Glu (N-term Q)")
 #' }
 #' @export
-parse_unimod <- function (unimod = "Carbamyl (M)") {
-  
+parse_unimod <- function (unimod = "Carbamyl (M)") 
+{
   # unimod = "Carbamidomethyl (Protein N-term = C)" # --> pos_site = "Protein N-term = C"
   # unimod = "Carbamidomethyl (Any N-term = C)" # --> pos_site = "Any N-term = C"
   # unimod = "Carbamidomethyl (N-term = C)" # --> pos_site = "N-term = C"
@@ -375,10 +375,9 @@ parse_unimod <- function (unimod = "Carbamyl (M)") {
   ## dual parentheses
   # unimod = "Carbamidomethyl ((. = C))" # --> pos_site = ". = C"
 
-  if (grepl("([NC]{1}-term|Anywhere) [A-Z]{1}", unimod)) {
-    unimod <- unimod %>%
-      gsub("^(.*[NC]{1}-term|.*Anywhere)\\s*([A-Z]{1})", "\\1 = \\2", .)
-  }
+  if (grepl("([NC]{1}-term|Anywhere) [A-Z]{1}", unimod)) 
+    unimod <- 
+      gsub("^(.*[NC]{1}-term|.*Anywhere)\\s*([A-Z]{1})", "\\1 = \\2", unimod)
 
   # (assumed) no space in `title`
   # title <- gsub("(.*)\\s\\([^\\(]*\\)$", "\\1", unimod)
@@ -403,9 +402,7 @@ parse_unimod <- function (unimod = "Carbamyl (M)") {
     site <- pos_site
   }
 
-  if (site == "") {
-    site = "."
-  }
+  if (site == "") site = "."
 
   if (site %in% c("Protein N-term", "Protein C-term",
                   "Anywhere N-term", "Anywhere C-term",
@@ -415,8 +412,7 @@ parse_unimod <- function (unimod = "Carbamyl (M)") {
   }
 
   # standardize `position`
-  pos <- pos %>%
-    gsub("^([NC]){1}-term", "Any \\1-term", .)
+  pos <- gsub("^([NC]){1}-term", "Any \\1-term", pos)
 
   if (pos %in% c(".", "")) pos <- "Anywhere"
 
@@ -470,8 +466,8 @@ parse_unimod <- function (unimod = "Carbamyl (M)") {
 #' x <- find_unimod("Gln->pyro-Glu (N-term Q)")
 #' }
 #' @export
-find_unimod <- function (unimod = "Carbamidomethyl (C)") {
-  
+find_unimod <- function (unimod = "Carbamidomethyl (C)") 
+{
   options(digits = 9L)
 
   res <- parse_unimod(unimod)
@@ -503,11 +499,10 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)") {
   this_mod <- local({
     idx <- which(xml2::xml_attr(modifications, "title") == title)
 
-    if (purrr::is_empty(idx)) {
+    if (purrr::is_empty(idx)) 
       stop("Modification not found: '", title, "'.\n",
            "For example, use 'Acetyl' (title) instead of 'Acetylation' (full_name).",
            call. = FALSE)
-    }
 
     this_mod <- modifications[[idx]]
   })
@@ -542,7 +537,7 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)") {
   # --- neutral loss ---
   idx_nl <- grep("NeutralLoss", modch)
 
-  if (length(idx_nl) > 0L) {
+  if (length(idx_nl)) {
     nls <- purrr::map(idx_nl, ~ {
       modnl <- xml2::xml_children(modch[.x])
 
@@ -566,10 +561,11 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)") {
     stop("'", unimod, "' not found.", call. = FALSE)
 
   neulosses <- positions_sites[[1]][-1]
-  if (length(neulosses))
-    neulosses <- as.numeric(neulosses)
+  
+  neulosses <- if (length(neulosses))
+    as.numeric(neulosses)
   else 
-    neulosses <- 0
+    0
   
   invisible(list(monomass = monomass,
                  position_site = positions_sites[[1]][1],
@@ -598,8 +594,8 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)") {
 #' }
 table_unimods <- function (file = system.file("extdata", "master.xml", 
                                               package = "proteoM"), 
-                           out_nm = "~/proteoM/unimods.txt") {
-  
+                           out_nm = "~/proteoM/unimods.txt") 
+{
   parent <- xml2::read_xml(file)
   
   # <umod:elements>

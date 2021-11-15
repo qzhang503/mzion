@@ -171,8 +171,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      use_ms1_cache = TRUE, 
                      .path_cache = NULL, 
                      .path_fasta = NULL,
-                     digits = 4L) {
-
+                     digits = 4L) 
+{
   options(digits = 9L)
 
   on.exit(

@@ -15,14 +15,15 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    maxn_sites_per_vmod = 3L, 
                                    maxn_vmods_sitescombi_per_pep = 32L, 
                                    minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                                   min_ms2mass = 110L, digits = 4L) {
-  
+                                   min_ms2mass = 110L, digits = 4L) 
+{
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
   theopeps <- tempdata$theopeps
   rm(list = c("tempdata"))
   
-  if (!length(mgf_frames) || !length(theopeps)) return(NULL)
+  if (!length(mgf_frames) || !length(theopeps)) 
+    return(NULL)
   
   n_cores <- detect_cores(32L)
   
@@ -113,8 +114,8 @@ hms2_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmo
                                maxn_sites_per_vmod = 3L, 
                                maxn_vmods_sitescombi_per_pep = 32L, 
                                minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                               min_ms2mass = 110L, digits = 4L) {
-  
+                               min_ms2mass = 110L, digits = 4L) 
+{
   # `res[[i]]` contains results for multiple mgfs within a frame
   # (the number of entries equals to the number of mgf frames)
   res <- frames_adv(mgf_frames = mgf_frames, 
@@ -291,8 +292,8 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
                                       maxn_vmods_per_pep = 5L, 
                                       maxn_sites_per_vmod = 3L, 
                                       maxn_vmods_sitescombi_per_pep = 32L, 
-                                      digits = 4L) {
-  
+                                      digits = 4L) 
+{
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
                             useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
@@ -313,7 +314,8 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
                                  ntmod = ntmod, ctmod = ctmod, 
                                  ms1_mass = ms1_mass)
   
-  if (!any(idxes)) return(NULL)
+  if (!any(idxes)) 
+    return(NULL)
   
   vmods_combi <- vmods_combi[idxes]
   
@@ -343,8 +345,8 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
 #' @inheritParams add_fixvar_masses
 #' @inheritParams ms2match_base
 calc_ms2ions_a1_vnl0_fnl0 <- function (vmods_combi, aas2, aa_masses, 
-                                       ntmass, ctmass, type_ms2ions, digits) {
-
+                                       ntmass, ctmass, type_ms2ions, digits) 
+{
   # mass delta
   delta <- aa_masses[vmods_combi]
   
@@ -370,22 +372,22 @@ calc_ms2ions_a1_vnl0_fnl0 <- function (vmods_combi, aas2, aa_masses,
 #' @inheritParams calc_ms2ions_a1_vnl0_fnl0
 #' @importFrom purrr is_empty
 check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod, 
-                                   ms1_mass, tol = 1e-3) {
-
+                                   ms1_mass, tol = 1e-3) 
+{
   len <- length(vmods_combi)
   
   if (len && !is.null(ms1_mass)) {
     bare <- sum(aas2) + 18.010565
     
     # No need of is_empty(ntmod) && is_empty(ctmod)
-    if (!(length(ntmod) || length(ctmod)))
-      delta <- 0
+    delta <- if (!(length(ntmod) || length(ctmod)))
+      0
     else if (length(ntmod) && length(ctmod))
-      delta <- aa_masses[names(ntmod)] + aa_masses[names(ctmod)]
+      aa_masses[names(ntmod)] + aa_masses[names(ctmod)]
     else if (length(ntmod))
-      delta <- aa_masses[names(ntmod)]
+      aa_masses[names(ntmod)]
     else if (length(ctmod))
-      delta <- aa_masses[names(ctmod)]
+      aa_masses[names(ctmod)]
 
     bd <- bare + delta
     
@@ -404,8 +406,6 @@ check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod,
 }
 
 
-
-
 #' Adds hex codes (without NLs).
 #' 
 #' To indicate the variable modifications of an amino acid sequence.
@@ -414,8 +414,8 @@ check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod,
 #' @param len The number of amino acid residues for the sequence indicated in
 #'   \code{ms2ions}.
 #' @inheritParams calc_aamasses
-add_hexcodes <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
-  
+add_hexcodes <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) 
+{
   hex_mods = rep("0", len)
   rows <- lapply(ms2ions, function (x) !is.null(x))
   rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))

@@ -46,5 +46,3 @@ cos_sim <- function (M)
   Mn %*% t(Mn) # dot products; vectors in the rows of Mn
 }
 
-
-

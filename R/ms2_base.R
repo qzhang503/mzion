@@ -23,8 +23,8 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
                            maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                            maxn_vmods_sitescombi_per_pep = 32L, 
                            minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                           min_ms2mass = 110L, digits = 4L) {
-  
+                           min_ms2mass = 110L, digits = 4L) 
+{
   # note: split into 16^2 lists
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
@@ -117,8 +117,8 @@ hms2_base <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmods,
                        maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                        maxn_vmods_sitescombi_per_pep = 32L, 
                        minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                       min_ms2mass = 110L, digits = 4L) {
-
+                       min_ms2mass = 110L, digits = 4L) 
+{
   res <- frames_adv(mgf_frames = mgf_frames, 
                     theopeps = theopeps, 
                     aa_masses = aa_masses, 
@@ -176,8 +176,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
                         maxn_sites_per_vmod = 3L, 
                         maxn_vmods_sitescombi_per_pep = 32L, 
                         minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                        min_ms2mass = 110L, digits = 4L, FUN) {
-  
+                        min_ms2mass = 110L, digits = 4L, FUN) 
+{
   len <- length(mgf_frames)
   out <- vector("list", len) 
   
@@ -543,8 +543,8 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
                               type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                               maxn_sites_per_vmod = 3L, 
                               maxn_vmods_sitescombi_per_pep = 32L, 
-                              digits = 4L) {
-  
+                              digits = 4L) 
+{
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
                             useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
@@ -607,8 +607,8 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
                          theomasses_bf_ms1, theomasses_cr_ms1, theomasses_af_ms1, 
                          theos_bf_ms2, theos_cr_ms2, theos_af_ms2, 
                          minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                         min_ms2mass = 110L) {
-  
+                         min_ms2mass = 110L) 
+{
   # --- subsets from the `before` and the `after` by MS1 mass tolerance 
   d <- expt_mass_ms1 * ppm_ms1/1E6
   bf_allowed <- which(theomasses_bf_ms1 >= (expt_mass_ms1 - d)) # 2 us
@@ -621,26 +621,20 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
   theos_af_ms2 <- theos_af_ms2[af_allowed]
   
   # --- find MS2 matches ---
-  if (length(theos_bf_ms2)) {
-    ans_bf <- lapply(theos_bf_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, 
-                     min_ms2mass)
-  } else {
-    ans_bf <- theos_bf_ms2
-  }
+  ans_bf <- if (length(theos_bf_ms2)) 
+    lapply(theos_bf_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, min_ms2mass)
+  else 
+    theos_bf_ms2
   
-  if (length(theos_cr_ms2)) {
-    ans_cr <- lapply(theos_cr_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, 
-                     min_ms2mass)
-  } else {
-    ans_cr <- theos_cr_ms2
-  }
+  ans_cr <- if (length(theos_cr_ms2)) 
+    lapply(theos_cr_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, min_ms2mass)
+  else 
+    theos_cr_ms2
   
-  if (length(theos_af_ms2)) {
-    ans_af <- lapply(theos_af_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, 
-                     min_ms2mass)
-  } else {
-    ans_af <- theos_af_ms2
-  }
+  ans_af <- if (length(theos_af_ms2)) 
+    lapply(theos_af_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, min_ms2mass)
+  else 
+    theos_af_ms2
   
   ans <- c(ans_bf, ans_cr, ans_af)
   
@@ -807,8 +801,8 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
 #' 
 #' x <- find_ms2_bypep(theos, expts)
 #' }
-find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L) {
-  
+find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L) 
+{
   ##############################################################################
   # `theos` may be empty: 
   #   e.g. the matched one is after `maxn_vmods_sitescombi_per_pep` 
@@ -898,8 +892,8 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L) {
 #' 
 #' stopifnot(identical(ans1, ans2))
 #' stopifnot(ans1 == c(TRUE, TRUE))
-fuzzy_match_one <- function (x, y) {
-  
+fuzzy_match_one <- function (x, y) 
+{
   mi <- x %fin% y # 1.1 us
   bf <- (x - 1L) %fin% y # 1.7 us
   af <- (x + 1L) %fin% y # 1.6 us
@@ -921,8 +915,8 @@ fuzzy_match_one <- function (x, y) {
 #' stopifnot(ans1 == c(FALSE, TRUE))
 #' 
 #' ans3 <- fuzzy_match_one2(c(74953, 74955, 80000), c(74955, 80000))
-fuzzy_match_one2 <- function (x, y) {
-  
+fuzzy_match_one2 <- function (x, y) 
+{
   mi <- x %fin% y
   if (any(mi)) y[y %fin% x[mi]] <- 0L
   

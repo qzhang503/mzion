@@ -25,8 +25,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                       maxn_fasta_seqs, maxn_vmods_setscombi, 
                       min_len, max_len, max_miss, 
 
-                      digits) {
-  
+                      digits) 
+{
   options(digits = 9L)
   
   on.exit(
@@ -90,17 +90,15 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   # (matches of secondary ions using `outer` and no adjustments)
   is_ms2_three_frame <- is_ms1_three_frame <- TRUE
   
-  if (is_ms1_three_frame) {
-    ppm_ms1_new <- as.integer(ceiling(ppm_ms1 * .5))
-  } else {
-    ppm_ms1_new <- ppm_ms1
-  }
+  ppm_ms1_new <- if (is_ms1_three_frame) 
+    as.integer(ceiling(ppm_ms1 * .5))
+  else 
+    ppm_ms1
   
-  if (is_ms2_three_frame) {
-    ppm_ms2_new <- as.integer(ceiling(ppm_ms2 * .5))
-  } else {
-    ppm_ms2_new <- ppm_ms2
-  }
+  ppm_ms2_new <- if (is_ms2_three_frame) 
+    as.integer(ceiling(ppm_ms2 * .5))
+  else 
+    ppm_ms2
   
   # The universes of MS1 varmods combinations & MS2 permutations
   ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
@@ -134,18 +132,18 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       #   or fixed N-term `TMT + hydrogen`
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod)) {
-        ntmass <- aa_masses[names(ntmod)] + 1.00727647 # + proton
-      } else {
-        ntmass <- aa_masses["N-term"] - 0.000549 # - electron
-      }
+      
+      ntmass <- if (length(ntmod)) 
+        aa_masses[names(ntmod)] + 1.00727647 # + proton
+      else 
+        aa_masses["N-term"] - 0.000549 # - electron
       
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod)) {
-        ctmass <- aa_masses[names(ctmod)] + 2.01510147
-      } else {
-        ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
-      }
+      
+      ctmass <- if (length(ctmod)) 
+        aa_masses[names(ctmod)] + 2.01510147
+      else 
+        aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
       
       # (`map` against groups of frames)
       out <- ms2match_base(
@@ -201,19 +199,19 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ms2vmods <- ms2vmods_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod)) {
-        ntmass <- aa_masses[names(ntmod)] + 1.00727647
-      } else {
-        ntmass <- aa_masses["N-term"] - 0.000549
-      }
       
+      ntmass <- if (length(ntmod)) 
+        aa_masses[names(ntmod)] + 1.00727647
+      else 
+        aa_masses["N-term"] - 0.000549
+
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod)) {
-        ctmass <- aa_masses[names(ctmod)] + 2.01510147
-      } else {
-        ctmass <- aa_masses["C-term"] + 2.01510147
-      }
       
+      ctmass <- if (length(ctmod)) 
+        aa_masses[names(ctmod)] + 2.01510147
+      else 
+        aa_masses["C-term"] + 2.01510147
+
       fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
       
       out <- ms2match_a0_vnl0_fnl1(
@@ -268,18 +266,18 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ms2vmods <- ms2vmods_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod)) {
-        ntmass <- aa_masses[names(ntmod)] + 1.00727647
-      } else {
-        ntmass <- aa_masses["N-term"] - 0.000549
-      }
       
+      ntmass <- if (length(ntmod)) 
+        aa_masses[names(ntmod)] + 1.00727647
+      else 
+        aa_masses["N-term"] - 0.000549
+
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod)) {
-        ctmass <- aa_masses[names(ctmod)] + 2.01510147
-      } else {
-        ctmass <- aa_masses["C-term"] + 2.01510147
-      }
+      
+      ctmass <- if (length(ctmod)) 
+        aa_masses[names(ctmod)] + 2.01510147
+      else 
+        aa_masses["C-term"] + 2.01510147
       
       amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
       
@@ -337,19 +335,20 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ms2vmods <- ms2vmods_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod)) {
-        ntmass <- aa_masses[names(ntmod)] + 1.00727647
+      
+      ntmass <- if (length(ntmod)) {
+        aa_masses[names(ntmod)] + 1.00727647
       } else {
-        ntmass <- aa_masses["N-term"] - 0.000549
+        aa_masses["N-term"] - 0.000549
       }
       
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod)) {
-        ctmass <- aa_masses[names(ctmod)] + 2.01510147
-      } else {
-        ctmass <- aa_masses["C-term"] + 2.01510147
-      }
       
+      ctmass <- if (length(ctmod)) 
+        aa_masses[names(ctmod)] + 2.01510147
+      else 
+        aa_masses["C-term"] + 2.01510147
+
       amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
       vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
       
@@ -409,18 +408,18 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ms2vmods <- ms2vmods_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      if (length(ntmod)) {
-        ntmass <- aa_masses[names(ntmod)] + 1.00727647
-      } else {
-        ntmass <- aa_masses["N-term"] - 0.000549
-      }
+      
+      ntmass <- if (length(ntmod)) 
+        aa_masses[names(ntmod)] + 1.00727647
+      else 
+        aa_masses["N-term"] - 0.000549
       
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      if (length(ctmod)) {
-        ctmass <- aa_masses[names(ctmod)] + 2.01510147
-      } else {
+      
+      ctmass <- if (length(ctmod)) 
+        aa_masses[names(ctmod)] + 2.01510147
+      else 
         ctmass <- aa_masses["C-term"] + 2.01510147
-      }
       
       amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
       fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
@@ -491,19 +490,19 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   ms2vmods <- ms2vmods_all[[i_max]]
 
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-  if (length(ntmod)) {
-    ntmass <- aa_masses[names(ntmod)] + 1.00727647
-  } else {
-    ntmass <- aa_masses["N-term"] - 0.000549
-  }
   
+  ntmass <- if (length(ntmod)) 
+    aa_masses[names(ntmod)] + 1.00727647
+  else 
+    aa_masses["N-term"] - 0.000549
+
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-  if (length(ctmod)) {
-    ctmass <- aa_masses[names(ctmod)] + 2.01510147
-  } else {
-    ctmass <- aa_masses["C-term"] + 2.01510147
-  }
   
+  ctmass <- if (length(ctmod)) 
+    aa_masses[names(ctmod)] + 2.01510147
+  else 
+    aa_masses["C-term"] + 2.01510147
+
   amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
   
   if (length(amods)) { # (7, 8)
@@ -576,20 +575,16 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
 #' #                                  pep_seq      mass  frame    prot_acc
 #' # 2148391     CSCNNGEMCDRFQGCLCSPGWQGLQCER 3694.4923 100001   TIE2_HUMAN
 #' # 2148392 EGSARASEQPENAESPDNEDGDCEETTEEAGR 3694.5248 100001  TXLNB_HUMAN
-reverse_peps_in_frame <- function (pep_frame) {
-  
+reverse_peps_in_frame <- function (pep_frame) 
+{
   nms <- names(pep_frame)
   
-  if ("pep_seq" %in% nms) {
+  if ("pep_seq" %in% nms) 
     pep_frame[["pep_seq"]] <- reverse_seqs(pep_frame[["pep_seq"]])
-  }
-  
-  if ("prot_acc" %in% nms) {
+
+  if ("prot_acc" %in% nms) 
     pep_frame[["prot_acc"]] <- paste0("-", pep_frame[["prot_acc"]])
-  }
-  
-  
-  
+
   pep_frame
 }
 
@@ -597,8 +592,8 @@ reverse_peps_in_frame <- function (pep_frame) {
 #' Reverses peptide sequences.
 #' 
 #' @param seqs Lists of peptide sequences.
-reverse_seqs <- function (seqs) {
-  
+reverse_seqs <- function (seqs) 
+{
   fis <- stringi::stri_sub(seqs, 1, 1)
   las <- stringi::stri_sub(seqs, -1, -1)
   lens <- stringi::stri_length(seqs)

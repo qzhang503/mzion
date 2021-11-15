@@ -292,19 +292,18 @@ chunksplit <- function (data, n_chunks = 5L, type = "list") {
 #' @param nx Positive integer; an arbitrarily large number for data to be split
 #'   into for estimating the cumulative sizes.
 #' @inheritParams chunksplit
-chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
-  
+chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") 
+{
   stopifnot(type %in% c("list", "row"))
   
   if (n_chunks <= 1L) return(data)
   
-  if (type == "list") {
+  if (type == "list") 
     len <- length(data)
-  } else if (type == "row") {
+  else if (type == "row") 
     len <- nrow(data)
-  } else {
+  else 
     stop("Unknown type.", call. = TRUE)
-  }
   
   if (len == 0L) return(data)
   
@@ -354,8 +353,8 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") {
 #'
 #' @param path A file path.
 #' @param create Logical; if TRUE create the path if not yet existed.
-find_dir <- function (path, create = FALSE) {
-  
+find_dir <- function (path, create = FALSE) 
+{
   stopifnot(length(path) == 1L)
   
   path <- gsub("\\\\", "/", path)
@@ -384,9 +383,7 @@ find_dir <- function (path, create = FALSE) {
 #' Creates a file directory.
 #'
 #' @inheritParams find_dir
-create_dir <- function (path) {
-  find_dir(path, create = TRUE)
-}
+create_dir <- function (path) find_dir(path, create = TRUE)
 
 
 #' Saves the arguments in a function call
@@ -395,8 +392,8 @@ create_dir <- function (path) {
 #' @param fun The name of function being saved.
 #' @param time The time stamp.
 #' @importFrom rlang caller_env
-save_call2 <- function(path, fun, time = NULL) {
-  
+save_call2 <- function(path, fun, time = NULL) 
+{
   stopifnot(length(path) == 1L, length(fun) == 1L)
   
   call_pars <- mget(names(formals(fun)), envir = caller_env(), inherits = FALSE)
@@ -421,8 +418,8 @@ save_call2 <- function(path, fun, time = NULL) {
 #' @importFrom magrittr %>% %T>% %$%
 #' @return The time stamp of a matched cache results.
 find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
-                               args = NULL) {
-  
+                               args = NULL) 
+{
   stopifnot(length(path) == 1L, length(fun) == 1L)
   
   if (is.null(time)) {
@@ -432,19 +429,17 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
     file <- file.path(path, fun, time)
   }
   
-  if (!file.exists(file)) {
+  if (!file.exists(file)) 
     return(NULL)
-  }
-  
+
   load(file = file)
   
   nots <- which(! args %in% names(call_pars))
   
-  if (length(nots)) {
+  if (length(nots)) 
     stop("Arguments '", paste(args[nots], collapse = ", "),
          "' not found in the latest call to ", fun, call. = FALSE)
-  }
-  
+
   call_pars[args]
 }
 
@@ -467,15 +462,15 @@ match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
   if (length(type) > 1L) type <- TRUE
   
   # current
-  if (type) {
-    args <- mget(names(formals(fun)) %>% .[. %in% nms], 
-                 envir = rlang::caller_env(), inherits = FALSE)
-  } else {
-    args <- mget(names(formals(fun)) %>% .[! . %in% nms], 
-                 envir = rlang::caller_env(), inherits = FALSE)
-  }
-  
-  if (!length(args)) stop("Arguments for matching is empty.", call. = FALSE)
+  args <- if (type) 
+    mget(names(formals(fun)) %>% .[. %in% nms], 
+         envir = rlang::caller_env(), inherits = FALSE)
+  else 
+    mget(names(formals(fun)) %>% .[! . %in% nms], 
+         envir = rlang::caller_env(), inherits = FALSE)
+
+  if (!length(args)) 
+    stop("Arguments for matching is empty.", call. = FALSE)
   
   args <- lapply(args, sort)
   
@@ -502,8 +497,8 @@ match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
 #' The directory will be kept.
 #' @param path A file path.
 #' @param ignores The file extensions to be ignored.
-delete_files <- function (path, ignores = NULL, ...) {
-  
+delete_files <- function (path, ignores = NULL, ...) 
+{
   dots <- rlang::enexprs(...)
   recursive <- dots[["recursive"]]
   
@@ -535,10 +530,9 @@ delete_files <- function (path, ignores = NULL, ...) {
     })
   }
   
-  if (length(nms) > 0L) {
+  if (length(nms) > 0L) 
     suppressMessages(file.remove(file.path(nms)))
-  }
-  
+
   invisible(NULL)
 }
 

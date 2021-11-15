@@ -13,12 +13,13 @@
 #'
 #' length(which_topx(sample(100, 100, replace = TRUE), 100))
 #' }
-which_topx <- function(x, n = 50L, ...) {
-  
+which_topx <- function(x, n = 50L, ...) 
+{
   len <- length(x)
   p <- len - n
   
-  if (p  <= 0L) return(seq_along(x))
+  if (p  <= 0L) 
+    return(seq_along(x))
   
   xp <- sort(x, partial = p, ...)[p]
   
@@ -31,12 +32,13 @@ which_topx <- function(x, n = 50L, ...) {
 #' @param x A numeric vector.
 #' @param n The number of top entries to keep.
 #' @return The indexes of the top-n entries.
-which_topx2 <- function(x, n = 50L, ...) {
-  
+which_topx2 <- function(x, n = 50L, ...) 
+{
   len <- length(x)
   p <- len - n
   
-  if (p  <= 0L) return(seq_along(x))
+  if (p  <= 0L) 
+    return(seq_along(x))
   
   xp <- sort(x, partial = p, ...)[p]
   
@@ -65,12 +67,13 @@ which_topx2 <- function(x, n = 50L, ...) {
 #'
 #' @inheritParams which_topx
 #' @return The top-n entries.
-topx <- function(x, n = 50L, ...) {
-  
+topx <- function(x, n = 50L, ...) 
+{
   len <- length(x)
   p <- len - n
   
-  if (p  <= 0L) return(x)
+  if (p  <= 0L) 
+    return(x)
   
   xp <- sort(x, partial = p, ...)[p]
   
@@ -83,9 +86,7 @@ topx <- function(x, n = 50L, ...) {
 #' @param x A numeric value.
 #' @param y A numeric value.
 #' @return The difference between \eqn{x} and \eqn{y} in ppm.
-find_ppm_error <- function (x = 1000, y = 1000.01) {
-  (y - x)/y * 1E6
-}
+find_ppm_error <- function (x = 1000, y = 1000.01) (y - x)/y * 1E6
 
 
 #' Finds the error range of a number.
@@ -95,7 +96,8 @@ find_ppm_error <- function (x = 1000, y = 1000.01) {
 #' @param x A numeric value.
 #' @param ppm Numeric; the ppm allowed from \code{x}.
 #' @return The lower and the upper bound to \eqn{x} by \eqn{ppm}.
-find_mass_error_range <- function (x = 500L, ppm = 20L) {
+find_mass_error_range <- function (x = 500L, ppm = 20L) 
+{
   d <- x * ppm/1E6
   c(x-d, x+d)
 }
@@ -114,8 +116,8 @@ find_mass_error_range <- function (x = 500L, ppm = 20L) {
 #'
 #' @param out An output from various ms2match(es).
 #' @inheritParams ms2match_base
-post_ms2match <- function (out, i, aa_masses, out_path) {
-
+post_ms2match <- function (out, i, aa_masses, out_path) 
+{
   create_dir(file.path(out_path, "temp"))
 
   nm_fmods <- attr(aa_masses, "fmods", exact = TRUE)
@@ -147,8 +149,8 @@ post_ms2match <- function (out, i, aa_masses, out_path) {
 #' 
 #' @param res Results from frame-advanced searches.
 #' @param mgf_frames Data of MGF frames.
-post_frame_adv <- function (res, mgf_frames) {
-
+post_frame_adv <- function (res, mgf_frames) 
+{
   res <- unlist(res, recursive = FALSE)
 
   empties <- purrr::map_lgl(res, purrr::is_empty)
@@ -166,8 +168,8 @@ post_frame_adv <- function (res, mgf_frames) {
 #' @inheritParams ms2match_base
 #' @inheritParams post_ms2match
 purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
-                                fmods_nl = NULL) {
-
+                                fmods_nl = NULL) 
+{
   # loads freshly mgfs (as will be modified)
   mgf_frames <- readRDS(file.path(mgf_path, "mgf_queries.rds")) %>%
     dplyr::group_by(frame) %>%
@@ -229,11 +231,17 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
   frames_mgf <- lapply(mgf_frames, function (x) as.integer(names(x)))
   
   mins <- purrr::map_dbl(frames_mgf, ~ {
-    if (!length(.x)) x <- 0 else x <- min(.x, na.rm = TRUE)
+    if (!length(.x)) 
+      0 
+    else 
+      min(.x, na.rm = TRUE)
   })
   
   maxs <- purrr::map_dbl(frames_mgf, ~ {
-    if (!length(.x)) x <- 0 else x <- max(.x, na.rm = TRUE)
+    if (!length(.x)) 
+      0 
+    else 
+      max(.x, na.rm = TRUE)
   })
   
   frames_theo <- as.integer(names(theopeps))
@@ -278,12 +286,11 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 #'   whose MS1 masses are in the same interval.
 #' @param theopeps Binned theoretical peptides at a given combination of fixed
 #'   and variable.
-subset_theoframes <- function (mgf_frames = NULL, theopeps = NULL) {
-  
-  if (!(length(mgf_frames) && length(theopeps))) {
+subset_theoframes <- function (mgf_frames = NULL, theopeps = NULL) 
+{
+  if (!(length(mgf_frames) && length(theopeps))) 
     return(NULL)
-  }
-  
+
   frames <- as.integer(names(mgf_frames))
   breaks <- which(diff(frames) != 1L) + 1L
   grps <- findInterval(frames, frames[breaks])
@@ -304,42 +311,40 @@ subset_theoframes <- function (mgf_frames = NULL, theopeps = NULL) {
 #' @param pattern A regex of amino-acid residue(s).
 #' @param theopeps Lists of theoretical peptides. A column of \code{pep_seq} is
 #'   assumed.
-subset_neuloss_peps <- function (pattern, theopeps) {
-
+subset_neuloss_peps <- function (pattern, theopeps) 
+{
   rows <- lapply(theopeps, function (x) grepl(pattern, x$pep_seq))
-  mapply(function (x, y) x[y, ], theopeps, rows, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
+  mapply(function (x, y) x[y, ], theopeps, rows, 
+         SIMPLIFY = FALSE, USE.NAMES = FALSE)
 }
 
 
 #' Finds MS2 N-terminal mass.
 #'
 #' @inheritParams hms2_base
-find_nterm_mass <- function (aa_masses) {
-
+find_nterm_mass <- function (aa_masses) 
+{
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
   
-  if (length(ntmod)) 
-    ntmass <- aa_masses[names(ntmod)] + 1.00727647 # + proton
+  ntmass <- if (length(ntmod)) 
+    aa_masses[names(ntmod)] + 1.00727647 # + proton
   else 
-    ntmass <- aa_masses["N-term"] - 0.000549 # - electron
-
-  ntmass
+    aa_masses["N-term"] - 0.000549 # - electron
 }
 
 
 #' Finds MS2 C-terminal mass.
 #'
 #' @inheritParams hms2_base
-find_cterm_mass <- function (aa_masses) {
-  
+find_cterm_mass <- function (aa_masses) 
+{
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
   
-  if (length(ctmod)) 
-    ctmass <- aa_masses[names(ctmod)] + 2.01510147
+  ctmass <- if (length(ctmod)) 
+    aa_masses[names(ctmod)] + 2.01510147
   else 
-    ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
-
-  ctmass
+    aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
 }
 
 
@@ -375,8 +380,8 @@ find_cterm_mass <- function (aa_masses) {
 #' # FALSE
 #' identical(x1, x2)
 #' }
-quick_rightjoin <- function (x, y, by = NULL) {
-
+quick_rightjoin <- function (x, y, by = NULL) 
+{
   # the indexes of y in x;
   # NA rows in "x", if "y" not found in "x"
 
@@ -409,8 +414,8 @@ quick_rightjoin <- function (x, y, by = NULL) {
 #'
 #' stopifnot(identical(x1, x2))
 #' }
-quick_leftjoin <- function (x, y, by = NULL) {
-
+quick_leftjoin <- function (x, y, by = NULL) 
+{
   rows <- match(x[[by]], y[[by]])
   y <- y[rows, ]
   y[[by]] <- NULL
@@ -425,43 +430,39 @@ quick_leftjoin <- function (x, y, by = NULL) {
 #' Detects and suggests the number of CPU cores.
 #'
 #' @param max_n_cores The maximum number of cores for uses.
-detect_cores <- function (max_n_cores = NULL) {
-
+detect_cores <- function (max_n_cores = NULL) 
+{
   n_cores <- parallel::detectCores()
 
-  if (is.null(max_n_cores)) {
-    max_n_cores <- n_cores
-  } else {
-    max_n_cores <- min(max_n_cores, n_cores)
-  }
-
-  if (n_cores > 128L) 
-    max_n_cores <- min(max_n_cores, n_cores - 8L)
-  else if (n_cores <= 128L && n_cores > 64L) 
-    max_n_cores <- min(max_n_cores, n_cores - 4L)
-  else if (n_cores <= 64L && n_cores > 32L) 
-    max_n_cores <- min(max_n_cores, n_cores - 2L)
-  else if (n_cores <= 32L && n_cores > 16L) 
-    max_n_cores <- min(max_n_cores, n_cores - 1L)
+  max_n_cores <- if (is.null(max_n_cores)) 
+    n_cores
   else 
-    max_n_cores <- min(max_n_cores, n_cores)
+    min(max_n_cores, n_cores)
 
-  invisible(max_n_cores)
+  max_n_cores <- if (n_cores > 128L) 
+    min(max_n_cores, n_cores - 8L)
+  else if (n_cores <= 128L && n_cores > 64L) 
+    min(max_n_cores, n_cores - 4L)
+  else if (n_cores <= 64L && n_cores > 32L) 
+    min(max_n_cores, n_cores - 2L)
+  else if (n_cores <= 32L && n_cores > 16L) 
+    min(max_n_cores, n_cores - 1L)
+  else 
+    min(max_n_cores, n_cores)
 }
 
 
 #' Finds the amount of free system memory.
 #' 
 #' In the unit of MB.
-find_free_mem <- function () {
-  
+find_free_mem <- function () 
+{
   nm_os <- Sys.info()['sysname']
   
   gc()
   
-  if (nm_os == "Windows") {
-    free_mem <- 
-      system('wmic OS get FreePhysicalMemory /Value', intern=TRUE)[3] %>% 
+  free_mem <- if (nm_os == "Windows") {
+    system('wmic OS get FreePhysicalMemory /Value', intern=TRUE)[3] %>% 
       gsub("^FreePhysicalMemory=(\\d+)\\r", "\\1", .) %>% 
       as.numeric() %>% 
       `/`(1024)
@@ -470,19 +471,18 @@ find_free_mem <- function () {
     # not yet tested for "Linux", "Darwin"
     # inaccurate e.g. if physical RAM is 32000 but in .RProfile 
     # `invisible(utils::memory.limit(64000))`
-    free_mem <- memory.limit() - memory.size(max = TRUE)
+    memory.limit() - memory.size(max = TRUE)
   }
-  
-  free_mem
 }
 
 
 #' Find the indexes of modifications.
 #' 
 #' @param file A full-path name of file where modifications are recorded.
-find_mod_indexes <- function (file) {
-  
-  if (!file.exists(file)) stop("File not found: ", file, call. = FALSE)
+find_mod_indexes <- function (file) 
+{
+  if (!file.exists(file)) 
+    stop("File not found: ", file, call. = FALSE)
   
   mod_indexes <- readr::read_tsv(file, show_col_types = FALSE)
   
@@ -601,14 +601,15 @@ expand_grid_rows <- function (..., use.names = TRUE)
 #' 
 #' microbenchmark::microbenchmark(count_elements(vec), table(vec))
 #' }
-count_elements <- function (vec) {
-  
+count_elements <- function (vec) 
+{
   vals <- unique(vec)
   len <- length(vals)
   
   out <- vector("integer", len)
   
-  for (i in seq_len(len)) out[i] <- sum(vec == vals[i])
+  for (i in seq_len(len)) 
+    out[i] <- sum(vec == vals[i])
   
   names(out) <- vals
   
@@ -626,13 +627,14 @@ count_elements <- function (vec) {
 #' identical(vec_to_list(x), split(x, x))
 #' microbenchmark::microbenchmark(vec_to_list(x), split(x, x))
 #' }
-vec_to_list <- function (x) {
-  
+vec_to_list <- function (x) 
+{
   len <- length(x)
   out <- vector("list", len)
   names(out) <- x
   
-  for(i in seq_len(len)) out[[i]] <- x[i]
+  for(i in seq_len(len)) 
+    out[[i]] <- x[i]
   
   out
 }
@@ -679,14 +681,15 @@ vec_to_list <- function (x) {
 #' microbenchmark::microbenchmark(split_vec(vec), split(vec, vec))
 #' }
 #' 
-split_vec <- function (vec) {
-
+split_vec <- function (vec) 
+{
   vals <- unique(vec)
   len <- length(vals)
   
   out <- vector("list", len)
   
-  for (i in seq_len(len)) out[[i]] <- vec[vec == vals[i]]
+  for (i in seq_len(len)) 
+    out[[i]] <- vec[vec == vals[i]]
   
   names(out) <- vals
   
@@ -707,17 +710,19 @@ split_vec <- function (vec) {
 #' 
 #' x <- "-EDEIQDXI-"
 #' accumulate_char(x, paste0)
-accumulate_char <- function(x, f) {
-  
+accumulate_char <- function(x, f) 
+{
   len <- length(x)
   
-  if (len == 1L) return(x)
+  if (len == 1L) 
+    return(x)
   
   out <- vector("character", len)
   
   out[1] <- x[1]
   
-  for (i in seq(2, len)) out[i] <- f(out[i-1], x[i])
+  for (i in seq(2, len)) 
+    out[i] <- f(out[i-1], x[i])
   
   out
 }
@@ -727,16 +732,18 @@ accumulate_char <- function(x, f) {
 #' 
 #' @param nb The number of balls.
 #' @param ns The number of samplings (the number of columns). 
-combi_mat <- function (nb = 5L, ns = 3L) {
-  
+combi_mat <- function (nb = 5L, ns = 3L) 
+{
   # stopifnot(ns >= 1L)
   
   m <- matrix(nrow = nb, ncol = ns)
   m[, 1] <- rep(1L, nb)
   
-  if (ns == 1L) return(m)
+  if (ns == 1L) 
+    return(m)
   
-  for (i in seq(2, ns)) m[, i] <- cumsum(m[, i-1])
+  for (i in seq(2, ns)) 
+    m[, i] <- cumsum(m[, i-1])
   
   m
 }

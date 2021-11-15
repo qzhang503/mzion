@@ -11,8 +11,8 @@
 bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L, 
                            ppm_ms1 = 20L, use_ms1_cache = TRUE, 
                            .path_cache = NULL, .path_ms1masses = NULL, 
-                           is_ms1_three_frame = TRUE) {
-
+                           is_ms1_three_frame = TRUE) 
+{
   old_opts <- options()
   options(warn = 1L)
   on.exit(options(old_opts), add = TRUE)
@@ -31,10 +31,10 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   ## Initial setups
   fun <- as.character(match.call()[[1]])
   
-  if (is_ms1_three_frame) 
-    ppm_ms1_new <- as.integer(ceiling(ppm_ms1 * .5))
+  ppm_ms1_new <- if (is_ms1_three_frame) 
+    as.integer(ceiling(ppm_ms1 * .5))
   else 
-    ppm_ms1_new <- ppm_ms1
+    ppm_ms1
 
   # checks pre-existed precursor masses
   .time_stamp <- get(".time_stamp", envir = .GlobalEnv, inherits = FALSE)
@@ -165,9 +165,10 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
 #' @param in_path An input path of \code{pepmasses_}.
 #' @inheritParams binTheoSeqs2
 binTheoSeqs_i <- function (idx = 1L, min_mass = 500L,max_mass = 6000L,
-                           ppm_ms1 = 20L, in_path = NULL, out_path = NULL) {
-  
-  if (is.null(in_path)) stop("`in_path` cannot be NULL.")
+                           ppm_ms1 = 20L, in_path = NULL, out_path = NULL) 
+{
+  if (is.null(in_path)) 
+    stop("`in_path` cannot be NULL.")
   
   message("\tSet: ", idx)
   
@@ -190,11 +191,13 @@ binTheoSeqs_i <- function (idx = 1L, min_mass = 500L,max_mass = 6000L,
 #' @inheritParams binTheoSeqs
 binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 500L,
                           max_mass = 6000L, ppm_ms1 = 20L, 
-                          out_path = NULL) {
+                          out_path = NULL) 
+{
+  if (is.null(res)) 
+    stop("`res` cannot be NULL.")
   
-  if (is.null(res)) stop("`res` cannot be NULL.")
-  
-  if (is.null(out_path)) stop("`out_path` cannot be NULL.")
+  if (is.null(out_path)) 
+    stop("`out_path` cannot be NULL.")
   
   out_dir <- create_dir(gsub("(^.*/).*$", "\\1", out_path))
   out_nm <- paste0(paste0("binned_theopeps_", idx), ".rds")
@@ -217,8 +220,8 @@ binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 500L,
 #' @param out_nm A output name with prepending file path.
 #' @inheritParams binTheoSeqs
 bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 500L, 
-                          max_mass = 6000L, ppm_ms1 = 20L) {
-
+                          max_mass = 6000L, ppm_ms1 = 20L) 
+{
   ps <- find_ms1_cutpoints(min_mass, max_mass, ppm_ms1)
   frames <- findInterval(peps, ps)
   
@@ -255,13 +258,16 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 500L,
 #'   correspond to the lists of \code{res}.
 #' @import parallel
 binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 500L,
-                         max_mass = 6000L, ppm_ms1 = 20L, out_path = NULL) {
+                         max_mass = 6000L, ppm_ms1 = 20L, out_path = NULL) 
+{
+  if (is.null(res)) 
+    stop("`res` cannot be NULL.")
   
-  if (is.null(res)) stop("`res` cannot be NULL.")
+  if (is.null(out_path)) 
+    stop("`out_path` cannot be NULL.")
   
-  if (is.null(out_path)) stop("`out_path` cannot be NULL.")
-  
-  if (is.null(idxes)) idxes <- seq_along(res)
+  if (is.null(idxes)) 
+    idxes <- seq_along(res)
   
   out_dir <- create_dir(gsub("(^.*/).*$", "\\1", out_path))
   
@@ -321,8 +327,8 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 500L,
 #' @param ppm Numeric; the ppm for data binning.
 #' @return Cut points.
 #' @seealso find_ms1_interval
-find_ms1_cutpoints <- function (from = 500L, to = 10000L, ppm = 20L) {
-
+find_ms1_cutpoints <- function (from = 500L, to = 10000L, ppm = 20L) 
+{
   d <- ppm/1e6
   n <- ceiling(log(to/from)/log(1+d))
 
@@ -341,14 +347,15 @@ find_ms1_cutpoints <- function (from = 500L, to = 10000L, ppm = 20L) {
 #'
 #' @param file A file name.
 #' @param out_path An output path.
-s_readRDS <- function (file, out_path) {
-  
+s_readRDS <- function (file, out_path) 
+{
   ans <- tryCatch(
     readRDS(file = file.path(out_path, file)),
     error = function (e) NULL
   )
   
-  if (is.null(ans)) stop("Files found: ", file.path(out_path, file), call. = FALSE)
+  if (is.null(ans)) 
+    stop("Files found: ", file.path(out_path, file), call. = FALSE)
   
   ans
 }

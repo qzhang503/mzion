@@ -17,14 +17,15 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    maxn_sites_per_vmod = 3L, 
                                    maxn_vmods_sitescombi_per_pep = 32L, 
                                    minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                                   min_ms2mass = 110L, digits = 4L) {
-  
+                                   min_ms2mass = 110L, digits = 4L) 
+{
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
   theopeps <- tempdata$theopeps
   rm(list = c("tempdata"))
   
-  if (!length(mgf_frames) || !length(theopeps)) return(NULL)
+  if (!length(mgf_frames) || !length(theopeps)) 
+    return(NULL)
   
   n_cores <- detect_cores(32L)
   
@@ -116,8 +117,8 @@ hms2_a1_vnl1_fnl0 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmo
                                maxn_sites_per_vmod = 3L, 
                                maxn_vmods_sitescombi_per_pep = 32L, 
                                minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                               min_ms2mass = 110L, digits = 4L) {
-  
+                               min_ms2mass = 110L, digits = 4L) 
+{
   res <- frames_adv(mgf_frames = mgf_frames, 
                     theopeps = theopeps, 
                     aa_masses = aa_masses, 
@@ -308,8 +309,8 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
                                       maxn_vmods_per_pep = 5L, 
                                       maxn_sites_per_vmod = 3L, 
                                       maxn_vmods_sitescombi_per_pep = 32L, 
-                                      digits = 4L) {
-
+                                      digits = 4L) 
+{
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
                             useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
@@ -374,8 +375,7 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
   
   out <- .Internal(unlist(out, recursive = FALSE, use.names = TRUE))
   
-  len_out <- length(out)
-  if (len_out > maxn_vmods_sitescombi_per_pep) 
+  if (length(out) > maxn_vmods_sitescombi_per_pep) 
     out <- out[1:maxn_vmods_sitescombi_per_pep]
   
   invisible(out)
@@ -393,8 +393,8 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
 #' @inheritParams add_fixvar_masses
 #' @inheritParams ms2match_base
 calc_ms2ions_a1_vnl1_fnl0 <- function (vmods_combi, vnl_combi, aas2, aa_masses, 
-                                       ntmass, ctmass, type_ms2ions, digits) {
-
+                                       ntmass, ctmass, type_ms2ions, digits) 
+{
   # updates vmod masses
   delta_amod <- aa_masses[vmods_combi]
   idxes <- as.numeric(names(vmods_combi))
@@ -424,8 +424,8 @@ calc_ms2ions_a1_vnl1_fnl0 <- function (vmods_combi, vnl_combi, aas2, aa_masses,
 #' 
 #' @param vmods_combi Lists of variable modifications.
 #' @inheritParams add_hexcodes
-add_hexcodes_vnl2 <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) {
-
+add_hexcodes_vnl2 <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) 
+{
   idxes <- .Internal(unlist(vmods_combi, recursive = FALSE, use.names = FALSE))
   nms <- names(vmods_combi)
   

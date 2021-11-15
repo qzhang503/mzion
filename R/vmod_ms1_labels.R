@@ -73,14 +73,15 @@
 #'           length(vmods_combi$ms1) == 6L)
 #'
 #' }
-match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL) {
-  
+match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL) 
+{
   ## stronger check by each residues
   resids <- amods[!duplicated.default(amods)]
   len_r <- length(resids)
   max_rs <- vector("integer", len_r)
   
-  for (i in seq_len(len_r)) max_rs[i] <- sum(aas == resids[[i]])
+  for (i in seq_len(len_r)) 
+    max_rs[i] <- sum(aas == resids[[i]])
   
   ## `make_ms1_vmodsets` is obtained from the same `amods`
   ##   -> no mess up in the order of `amods` -> no name sorting
@@ -237,8 +238,8 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL) {
 #' # may do it during `combi_byvmodsM`...
 #' }
 make_ms1vmod_i <- function (aa_masses = NULL, maxn_vmods_per_pep = 5L, 
-                            maxn_sites_per_vmod = 3L) {
-  
+                            maxn_sites_per_vmod = 3L) 
+{
   # stopifnot(maxn_vmods_per_pep >= 2L)
   
   vmodsets <- make_ms1_vmodsets(aa_masses_all = list(aa_masses), 
@@ -256,9 +257,10 @@ make_ms1vmod_i <- function (aa_masses = NULL, maxn_vmods_per_pep = 5L,
 #' @param aa_masses_all All the amino acid lookup tables.
 #' @inheritParams matchMS
 make_ms1_vmodsets <- function (aa_masses_all = NULL, maxn_vmods_per_pep = 5L, 
-                               maxn_sites_per_vmod = 3L) {
-  
-  if (!is.list(aa_masses_all)) aa_masses_all <- list(aa_masses_all)
+                               maxn_sites_per_vmod = 3L) 
+{
+  if (!is.list(aa_masses_all)) 
+    aa_masses_all <- list(aa_masses_all)
   
   amods_all <- lapply(aa_masses_all, attr, "amods", exact = TRUE)
   
@@ -309,8 +311,8 @@ make_ms1_vmodsets <- function (aa_masses_all = NULL, maxn_vmods_per_pep = 5L,
 #' ans <- bacth_vmods_combi(resmods)
 #' }
 bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L, 
-                               maxn_sites_per_vmod = 3L) {
-  
+                               maxn_sites_per_vmod = 3L) 
+{
   resid <- unname(resmods[[1]])
 
   ans <- make_unique_sets(p = maxn_vmods_per_pep, 
@@ -356,8 +358,8 @@ bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L,
 #' }
 make_unique_sets <- function (p = 5L, n = 2L, labs = c("X", "Y"), 
                               maxn_vmods_per_pep = 5L, 
-                              maxn_sites_per_vmod = 3L) {
-  
+                              maxn_sites_per_vmod = 3L) 
+{
   # stopifnot(n == length(labs))
   
   if (p < n) return(NULL)
@@ -400,8 +402,8 @@ make_unique_sets <- function (p = 5L, n = 2L, labs = c("X", "Y"),
 #'                       "Carbamidomethyl (M)", 
 #'                       "Carbamyl (M)"))
 #' }
-find_unique_sets <- function (p = 5L, labs = c("A", "B", "C")) {
-  
+find_unique_sets <- function (p = 5L, labs = c("A", "B", "C")) 
+{
   ps <- seq_len(p)
   n <- length(labs)
   r <- p - n
@@ -414,9 +416,8 @@ find_unique_sets <- function (p = 5L, labs = c("A", "B", "C")) {
   n_row <- nrow(x)
   out <- vector("list", n_row)
   
-  for (i in seq_len(n_row)) {
+  for (i in seq_len(n_row)) 
     out[[i]] <- c(labs, x[i, ])
-  }
   
   out
 }
@@ -515,8 +516,8 @@ find_unique_sets <- function (p = 5L, labs = c("A", "B", "C")) {
 #' ms1vmods <- find_intercombi2(vmodsets)
 #' 
 #' }
-find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L) {
-  
+find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L) 
+{
   len <- length(vmodsets)
   
   # scalar
