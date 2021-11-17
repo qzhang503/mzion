@@ -11,7 +11,8 @@
 #'
 #' @import dplyr
 #' @importFrom magrittr %>% %T>% %$% %<>%
-`names_pos<-` <- function(x, pos, value) {
+`names_pos<-` <- function(x, pos, value) 
+{
   names(x)[pos] <- value
   x
 }
@@ -20,23 +21,26 @@
 #' Finds the columns of reporter-ion intensity.
 #'
 #' @param TMT_plex Numeric; the multiplexity of TMT, i.e., 10, 11 etc.
-find_int_cols <- function (TMT_plex) {
-  
-  if (TMT_plex == 16) {
-    col_int <- c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
-                 "I130N", "I130C", "I131N", "I131C",
-                 "I132N", "I132C", "I133N", "I133C", "I134N")
-  } else if (TMT_plex == 11) {
-    col_int <- c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
-                 "I130N", "I130C", "I131N", "I131C")
-  } else if (TMT_plex == 10) {
-    col_int <- c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
-                 "I130N", "I130C", "I131")
-  } else if(TMT_plex == 6) {
-    col_int <- c("I126", "I127", "I128", "I129", "I130", "I131")
-  } else {
-    col_int <- NULL
-  }
+find_int_cols <- function (TMT_plex) 
+{
+  col_int <- if (TMT_plex == 18) 
+    c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
+      "I130N", "I130C", "I131N", "I131C",
+      "I132N", "I132C", "I133N", "I133C", "I134N", "I134C", "I135N") 
+  else if (TMT_plex == 16) 
+    c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
+      "I130N", "I130C", "I131N", "I131C",
+      "I132N", "I132C", "I133N", "I133C", "I134N")
+  else if (TMT_plex == 11) 
+    c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
+      "I130N", "I130C", "I131N", "I131C")
+  else if (TMT_plex == 10) 
+    c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
+      "I130N", "I130C", "I131")
+  else if(TMT_plex == 6) 
+    c("I126", "I127", "I128", "I129", "I130", "I131")
+  else 
+    NULL
 }
 
 
@@ -51,19 +55,21 @@ find_int_cols <- function (TMT_plex) {
 #' @import dplyr
 #' @importFrom stringr str_split
 #' @importFrom magrittr %>% %T>% %$% %<>%
-ins_cols_after <- function(df = NULL, idx_bf = ncol(df), idx_ins = NULL) {
-  
-  if (is.null(df)) stop("`df` cannot be `NULL`.", call. = FALSE)
-  if (is.null(idx_ins)) return(df)
-  if (idx_bf >= ncol(df)) return(df)
+ins_cols_after <- function(df = NULL, idx_bf = ncol(df), idx_ins = NULL) 
+{
+  if (is.null(df)) 
+    stop("`df` cannot be `NULL`.", call. = FALSE)
+  if (is.null(idx_ins)) 
+    return(df)
+  if (idx_bf >= ncol(df)) 
+    return(df)
   
   col_nms <- names(df)[idx_ins]
   
   dplyr::bind_cols(
     df[, 1:idx_bf, drop = FALSE],
     df[, idx_ins, drop = FALSE],
-    df[, (idx_bf + 1):ncol(df), drop = FALSE] %>% dplyr::select(-col_nms),
-  )
+    dplyr::select(df[, (idx_bf + 1):ncol(df), drop = FALSE], -col_nms))
 }
 
 
@@ -73,27 +79,24 @@ ins_cols_after <- function(df = NULL, idx_bf = ncol(df), idx_ins = NULL) {
 #' @param df2 The data frame to be inserted.
 #' @param idx The index of \code{df} column for \code{df2} to be inserted
 #'   (after).
-add_cols_at <- function(df, df2, idx) {
-  
+add_cols_at <- function(df, df2, idx) 
+{
   stopifnot(idx >= 0L)
   
-  if (idx == 0L) {
-    bf <- NULL
-  } else {
-    bf <- df[, seq_len(idx), drop = FALSE]
-  }
+  bf <- if (idx == 0L) 
+    NULL
+  else 
+    df[, seq_len(idx), drop = FALSE]
   
-  if ((idx + 1L) <= ncol(df)) {
-    af <- df[, (idx + 1L) : ncol(df), drop = FALSE]
-  } else {
-    af <- NULL
-  }
+  af <- if ((idx + 1L) <= ncol(df)) 
+    df[, (idx + 1L) : ncol(df), drop = FALSE]
+  else 
+    NULL
   
   dplyr::bind_cols(
     bf,
     df2,
-    af,
-  )
+    af)
 }
 
 
@@ -105,31 +108,28 @@ add_cols_at <- function(df, df2, idx) {
 #' @param df2 The data columns to replace those in \code{df}.
 #' @param idxs The sequences of column indexes in \code{df}. Note that
 #'   \code{idxs} need to be a continuous sequences.
-replace_cols_at <- function(df, df2, idxs) {
-  
+replace_cols_at <- function(df, df2, idxs) 
+{
   ncol <- ncol(df)
   stopifnot(all(idxs >= 1L), all(idxs <= ncol))
   
   idxs <- sort(idxs)
   stopifnot(all.equal(idxs - idxs[1] + 1L, seq_along(idxs)))
   
-  if (idxs[1] >= 2L) {
-    bf <- df[, 1:(idxs[1]-1L), drop = FALSE]
-  } else {
-    bf <- NULL
-  }
+  bf <- if (idxs[1] >= 2L) 
+    df[, 1:(idxs[1]-1L), drop = FALSE]
+  else 
+    NULL
   
-  if (idxs[length(idxs)] < ncol(df)) {
-    af <- df[, (idxs[length(idxs)]+1L):ncol(df), drop = FALSE]
-  } else {
-    af <- NULL
-  }
+  af <- if (idxs[length(idxs)] < ncol(df)) 
+    df[, (idxs[length(idxs)]+1L):ncol(df), drop = FALSE]
+  else 
+    NULL
   
   dplyr::bind_cols(
     bf,
     df2,
-    af
-  )
+    af)
 }
 
 
@@ -139,26 +139,29 @@ replace_cols_at <- function(df, df2, idxs) {
 #' @param to_move The column to be moved.
 #' @param col_before The anchor column to which the \code{to_move} will be moved
 #'   after.
-reloc_col_after <- function(df, to_move = "after_anchor", col_before = "anchor") {
+reloc_col_after <- function(df, to_move = "after_anchor", col_before = "anchor") 
+{
+  if (!(to_move %in% names(df) && col_before %in% names(df))) 
+    return(df)
   
-  if (!(to_move %in% names(df) && col_before %in% names(df))) return(df)
+  if (to_move == col_before) 
+    return(df)
   
-  if (to_move == col_before) return(df)
-  
-  df2 <- df %>% dplyr::select(one_of(to_move))
-  df <- df %>% dplyr::select(-one_of(to_move))
+  df2 <- dplyr::select(df, one_of(to_move))
+  df <- dplyr::select(df, -one_of(to_move))
   
   idx <- which(names(df) == col_before)
   df <- add_cols_at(df, df2, idx)
   
-  return(df)
+  invisible(df)
 }
 
 
 #' Relocate column "to_move" immediately after the last column.
 #'
 #' @inheritParams reloc_col_after
-reloc_col_after_last <- function (df, to_move = "after_anchor") {
+reloc_col_after_last <- function (df, to_move = "after_anchor") 
+{
   col_last <- names(df)[ncol(df)]
   reloc_col_after(df, to_move, col_last)
 }
@@ -167,7 +170,8 @@ reloc_col_after_last <- function (df, to_move = "after_anchor") {
 #' Relocate column "to_move" immediately after the first column.
 #'
 #' @inheritParams reloc_col_after
-reloc_col_after_first <- function(df, to_move = "after_anchor") {
+reloc_col_after_first <- function(df, to_move = "after_anchor") 
+{
   col_first <- names(df)[1]
   reloc_col_after(df, to_move, col_first)
 }
@@ -182,25 +186,27 @@ reloc_col_after_first <- function(df, to_move = "after_anchor") {
 #' @param col_after The anchor column to which the \code{to_move} will be moved
 #'   before.
 reloc_col_before <- function(df, to_move = "before_anchor",
-                             col_after = "anchor") {
+                             col_after = "anchor") 
+{
+  if (!(to_move %in% names(df) && col_after %in% names(df))) 
+    return(df)
   
-  if (!(to_move %in% names(df) && col_after %in% names(df))) return(df)
-  
-  df2 <- df %>% dplyr::select(one_of(to_move))
-  df <- df %>% dplyr::select(-one_of(to_move))
+  df2 <- dplyr::select(df, one_of(to_move))
+  df <- dplyr::select(df, -one_of(to_move))
   
   idx <- which(names(df) == col_after)
   
   df <- add_cols_at(df, df2, idx - 1)
   
-  return(df)
+  invisible(df)
 }
 
 
 #' Relocate column "to_move" immediately before the last column.
 #'
 #' @inheritParams reloc_col_after
-reloc_col_before_last <- function(df, to_move = "after_anchor") {
+reloc_col_before_last <- function(df, to_move = "after_anchor") 
+{
   col_last <- names(df)[ncol(df)]
   reloc_col_before(df, to_move, col_last)
 }
@@ -209,7 +215,8 @@ reloc_col_before_last <- function(df, to_move = "after_anchor") {
 #' Relocate column "to_move" immediately before the first column.
 #'
 #' @inheritParams reloc_col_after
-reloc_col_before_first <- function (df, to_move = "after_anchor") {
+reloc_col_before_first <- function (df, to_move = "after_anchor") 
+{
   col_first <- names(df)[1]
   reloc_col_before(df, to_move, col_first)
 }
@@ -220,33 +227,30 @@ reloc_col_before_first <- function (df, to_move = "after_anchor") {
 #' To keep columns at the same order after descriptive summary.
 #'
 #' @inheritParams reloc_col_after
-find_preceding_colnm <- function(df, to_move) {
-  
-  if (!to_move %in% names(df)) {
-    stop("Column ", to_move, " not found.",
-         call. = FALSE)
-  }
-  
+find_preceding_colnm <- function(df, to_move) 
+{
+  if (!to_move %in% names(df)) 
+    stop("Column ", to_move, " not found.", call. = FALSE)
+
   ind_bf <- which(names(df) == to_move) - 1
   
-  if (ind_bf == 0) {
+  if (ind_bf == 0) 
     names(df)[1]
-  } else {
+  else 
     names(df)[ind_bf]
-  }
 }
 
 
 #' Flatten lists recursively
 #'
 #' @param x Lists
-recur_flatten <- function (x) {
-  
-  if (!inherits(x, "list")) {
+recur_flatten <- function (x) 
+{
+  if (!inherits(x, "list")) 
     list(x)
-  } else {
-    .Internal(unlist(c(lapply(x, recur_flatten)), recursive = FALSE, use.names = FALSE))
-  }
+  else 
+    .Internal(unlist(c(lapply(x, recur_flatten)), recursive = FALSE, 
+                     use.names = FALSE))
 }
 
 
@@ -261,21 +265,22 @@ recur_flatten <- function (x) {
 #' @param data Input data.
 #' @param n_chunks The number of chunks.
 #' @param type The type of data for splitting.
-chunksplit <- function (data, n_chunks = 5L, type = "list") {
-  
+chunksplit <- function (data, n_chunks = 5L, type = "list") 
+{
   stopifnot(type %in% c("list", "row"))
   
-  if (n_chunks <= 1L) return(data)
+  if (n_chunks <= 1L) 
+    return(data)
   
-  if (type == "list") {
+  if (type == "list") 
     len <- length(data)
-  } else if (type == "row") {
+  else if (type == "row") 
     len <- nrow(data)
-  } else {
+  else 
     stop("Unknown type.", call. = TRUE)
-  }
   
-  if (len == 0L) return(data)
+  if (len == 0L) 
+    return(data)
   
   labs <- levels(cut(1:len, n_chunks))
   
@@ -283,6 +288,7 @@ chunksplit <- function (data, n_chunks = 5L, type = "list") {
              upper = ceiling(as.numeric( sub("[^,]*,([^]]*)\\]", "\\1", labs))))
   
   grps <- findInterval(1:len, x[, 1])
+  
   split(data, grps)
 }
 
@@ -296,7 +302,8 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list")
 {
   stopifnot(type %in% c("list", "row"))
   
-  if (n_chunks <= 1L) return(data)
+  if (n_chunks <= 1L) 
+    return(data)
   
   if (type == "list") 
     len <- length(data)
@@ -305,7 +312,8 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list")
   else 
     stop("Unknown type.", call. = TRUE)
   
-  if (len == 0L) return(data)
+  if (len == 0L) 
+    return(data)
   
   # The finer groups by 'nx'
   grps_nx <- local({
@@ -455,8 +463,8 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
 match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
                             fun = "calc_pepmasses2",
                             nms = c("parallel", "out_path"),
-                            type = c(TRUE, FALSE)) {
-  
+                            type = c(TRUE, FALSE)) 
+{
   stopifnot(length(path) == 1L, length(fun) == 1L)
   
   if (length(type) > 1L) type <- TRUE

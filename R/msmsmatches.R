@@ -107,6 +107,8 @@
 #'   \code{psmQ.txt}.
 #' @examples
 #' \donttest{
+#' # A hypothetical example
+#' # (see also https://github.com/qzhang503/proteoM)
 #' matchMS(
 #'   fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
 #'             "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
@@ -119,7 +121,7 @@
 #' )
 #'
 #' \dontrun{
-#' # Supposed phosphopeptides and TMTpro
+#' # Hypothetical phosphopeptides and 16-plex TMTpro
 #' matchMS(
 #'   fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
 #'             "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
@@ -132,6 +134,23 @@
 #'   max_miss = 2,
 #'   maxn_vmods_sitescombi_per_pep = 32,
 #'   quant = "tmt16",
+#'   fdr_type = "protein",
+#'   out_path = "~/proteoM/examples",
+#' )
+#' 
+#' # Hypothetical phosphopeptides and 18-plex TMTpro
+#' matchMS(
+#'   fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+#'             "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+#'             "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'   acc_type = c("refseq_acc", "refseq_acc", "other"),
+#'   fixedmods = c("TMTpro18 (N-term)", "TMTpro18 (K)", "Carbamidomethyl (C)"),
+#'   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
+#'               "Deamidated (N)", "Phospho (S)", "Phospho (T)",
+#'              "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
+#'   max_miss = 2,
+#'   maxn_vmods_sitescombi_per_pep = 32,
+#'   quant = "tmt18",
 #'   fdr_type = "protein",
 #'   out_path = "~/proteoM/examples",
 #' )
@@ -164,7 +183,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      topn_ms2ions = 100L,
                      minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L,
                      ppm_reporters = 10L,
-                     quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16"),
+                     quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
                      target_fdr = 0.01,
                      fdr_type = c("psm", "peptide", "protein"),
                      combine_tier_three = FALSE,
@@ -185,6 +204,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
     add = TRUE
   )
 
+  ## Tentative not for users
+  if (include_insource_nl) 
+    stop("Currently only supports `include_insource_nl = TRUE`.")
+  
   ## Preparation
   # modifications
   fixedmods <- sort(fixedmods)
@@ -229,9 +252,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
   # (b) doubles
   target_fdr <- as.double(target_fdr)
   
-  if (target_fdr > .5) {
+  if (target_fdr > .5) 
     stop("Choose a smaller `target_fdr`.", call. = FALSE)
-  }
   
   # fdr_type
   fdr_type <- rlang::enexpr(fdr_type)
@@ -256,6 +278,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   stopifnot(quant %in% oks, length(quant) == 1L)
   rm(list = c("oks"))
+  
+  check_tmt_pars(fixedmods, varmods, quant) 
 
   # Output path
   out_path <- create_dir(out_path)
@@ -788,3 +812,73 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
 }
 
 
+#' Checks the compatibility of TMT names and plexes.
+#' 
+#' @inheritParams matchMS
+check_tmt_pars <- function (fixedmods, varmods, quant) 
+{
+  if (TRUE) {
+    # mono-isotopic
+    H <- 1.007825035
+    O <- 15.99491463
+    C <- 12
+    N <- 14.003074
+    C13 <- 13.00335483
+    N15 <- 15.00010897
+    
+    # average
+    H_a <- 1.00794
+    O_a <- 15.9994
+    C_a <- 12.0107
+    C13_a <- C13
+    N_a <- 14.0067
+    N15_a <- N15
+    
+    # TMTpro-16
+    H * 25 + C * 8 + C13 * 7 + N * 1 + N15 * 2 + O * 3 # 304.207146
+    H_a * 25 + C_a * 8 + C13_a * 7 + N_a * 1 + N15_a * 2 + O_a * 3 # 304.312702
+    
+    # TMTpro-18
+    H*(25) + C*(7) + C13*(8) + N*(2) + N15*(1) + O*(3) # 304.213465
+    H_a*(25) + C_a*(7) + C13_a*(8) + N_a*(2) + N15_a*(1) + O_a*(3) # 304.311948
+    
+    # TMTpro-zero
+    H*(25) + C*(8) + C*(7) + N + N*(2) + O*(3) # 295.189592
+    H_a*(25) + C_a*(8) + C_a*(7) + N_a*(1) + N_a*(2) + O_a*(3) # 295.3773
+  }
+  
+  tmt_msg_1 <- "*** TMT6plex for tmt6, tmt10, tmt11 ***"
+  tmt_msg_2 <- "*** TMTpro for tmt16 ***"
+  tmt_msg_3 <- "*** TMTpro18 for tmt18 ***"
+  
+  fvmods <- c(fixedmods, varmods)
+  
+  if (grepl("^tmt[0-9]+", quant)) {
+    possibles <- fvmods[grepl("^TMT", fvmods)]
+    
+    if (quant == "tmt18") {
+      ok <- all(grepl("TMTpro18 ", possibles))
+      
+      if (!ok) 
+        stop("All TMT modifications need to be `TMTpro18` at `", quant, "`.\n", 
+             tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
+             call. = FALSE)
+    } else if (quant == "tmt16") {
+      ok <- all(grepl("TMTpro ", possibles))
+      
+      if (!ok) 
+        stop("All TMT modifications need to be `TMTpro` at `", quant, "`.\n", 
+             tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
+             call. = FALSE)
+    } else {
+      ok <- all(grepl("TMT6plex", possibles))
+      
+      if (!ok) 
+        stop("All TMT modifications need to be `TMT6plex` at `", quant, "`.\n", 
+             tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
+             call. = FALSE)
+    }
+  }
+  
+  invisible(NULL)
+}

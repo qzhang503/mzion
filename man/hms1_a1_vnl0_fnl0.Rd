@@ -49,5 +49,5 @@ peptide sequence.}
 \item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
-Helper of \link{ms1_a1_vnl0_fnl0}.
+Needs additional unlist if \code{include_insource_nl = TRUE}.
 }

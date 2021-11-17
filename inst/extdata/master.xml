@@ -44014,6 +44014,90 @@ antiserum and mass spectrometric analysis</umod:text>
          </umod:xref>
          <umod:misc_notes>This modification describes the native TMTpro Reagent without isotopic label with reporter mass m/z 126.127726</umod:misc_notes>
       </umod:mod>
+      <umod:mod title="TMTpro16" full_name="TMTpro 16plex Tandem Mass Tag"
+                username_of_poster="rbomgard"
+                group_of_poster=""
+                date_time_posted="2019-09-06 19:43:32"
+                date_time_modified="2019-09-10 09:11:27"
+                approved="0"
+                record_id="2016">
+         <umod:specificity hidden="1" site="S" position="Anywhere" classification="Isotopic label"
+                           spec_group="5"/>
+         <umod:specificity hidden="1" site="H" position="Anywhere" classification="Isotopic label"
+                           spec_group="4"/>
+         <umod:specificity hidden="1" site="N-term" position="Protein N-term"
+                           classification="Isotopic label"
+                           spec_group="3"/>
+         <umod:specificity hidden="0" site="N-term" position="Any N-term" classification="Isotopic label"
+                           spec_group="2"/>
+         <umod:specificity hidden="0" site="K" position="Anywhere" classification="Isotopic label"
+                           spec_group="1"/>
+         <umod:specificity hidden="1" site="T" position="Anywhere" classification="Isotopic label"
+                           spec_group="6"/>
+         <umod:delta mono_mass="304.207146" avge_mass="304.3127"
+                     composition="H(25) C(8) 13C(7) N 15N(2) O(3)">
+            <umod:element symbol="H" number="25"/>
+            <umod:element symbol="C" number="8"/>
+            <umod:element symbol="13C" number="7"/>
+            <umod:element symbol="N" number="1"/>
+            <umod:element symbol="15N" number="2"/>
+            <umod:element symbol="O" number="3"/>
+         </umod:delta>
+         <umod:alt_name>Tandem Mass Tag and TMT are registered Trademarks of Proteome Sciences plc.</umod:alt_name>
+         <umod:xref>
+            <umod:text>TMTpro 16plex Label Reagent Set</umod:text>
+            <umod:source>Misc. URL</umod:source>
+            <umod:url>https://www.thermofisher.com/order/catalog/product/A44520</umod:url>
+         </umod:xref>
+         <umod:xref>
+            <umod:text>ryan.bomgarden@thermofisher.com</umod:text>
+            <umod:source>Other</umod:source>
+            <umod:url/>
+         </umod:xref>
+         <umod:misc_notes>This modification describes the isotope-labeled TMTpro Reagent with m/z values of the TMTpro fragment ions to be quantified for 16plex: 126.127726,127. 124761, 127.131081, 128.128116, 128.134436, 129.131471, 129.13779, 130.134825, 130.141145, 131.13818, 131.1445, 132.141535, 132.147855, 133.14489, 133.15121, and 134.148245</umod:misc_notes>
+      </umod:mod>
+      <umod:mod title="TMTpro18" full_name="TMTpro 18plex Tandem Mass Tag"
+                username_of_poster="ASMS2021"
+                group_of_poster=""
+                date_time_posted="2021-11-15 19:43:32"
+                date_time_modified="2021-11-16 09:11:27"
+                approved="0"
+                record_id="2016">
+         <umod:specificity hidden="1" site="S" position="Anywhere" classification="Isotopic label"
+                           spec_group="5"/>
+         <umod:specificity hidden="1" site="H" position="Anywhere" classification="Isotopic label"
+                           spec_group="4"/>
+         <umod:specificity hidden="1" site="N-term" position="Protein N-term"
+                           classification="Isotopic label"
+                           spec_group="3"/>
+         <umod:specificity hidden="0" site="N-term" position="Any N-term" classification="Isotopic label"
+                           spec_group="2"/>
+         <umod:specificity hidden="0" site="K" position="Anywhere" classification="Isotopic label"
+                           spec_group="1"/>
+         <umod:specificity hidden="1" site="T" position="Anywhere" classification="Isotopic label"
+                           spec_group="6"/>
+         <umod:delta mono_mass="304.213466" avge_mass="304.311948"
+                     composition="H(25) C(7) 13C(8) N(2) 15N O(3)">
+            <umod:element symbol="H" number="25"/>
+            <umod:element symbol="C" number="7"/>
+            <umod:element symbol="13C" number="8"/>
+            <umod:element symbol="N" number="2"/>
+            <umod:element symbol="15N" number="1"/>
+            <umod:element symbol="O" number="3"/>
+         </umod:delta>
+         <umod:alt_name>Tandem Mass Tag and TMT are registered Trademarks of Proteome Sciences plc.</umod:alt_name>
+         <umod:xref>
+            <umod:text>TMTpro18 18plex Label Reagent Set</umod:text>
+            <umod:source>Misc. URL</umod:source>
+            <umod:url>https://www.thermofisher.com/order/catalog/product/A44520</umod:url>
+         </umod:xref>
+         <umod:xref>
+            <umod:text>ryan.bomgarden@thermofisher.com</umod:text>
+            <umod:source>Other</umod:source>
+            <umod:url/>
+         </umod:xref>
+         <umod:misc_notes>This modification describes the isotope-labeled TMTpro Reagent with m/z values of the TMTpro fragment ions to be quantified for 18plex: 126.127726,127. 124761, 127.131081, 128.128116, 128.134436, 129.131471, 129.13779, 130.134825, 130.141145, 131.13818, 131.1445, 132.141535, 132.147855, 133.14489, 133.15121, 134.148245, 134.154565 and 135.15160</umod:misc_notes>
+      </umod:mod>
    </umod:modifications>
    <umod:amino_acids>
       <umod:aa title="-" three_letter="" full_name="" mono_mass="0.0" avge_mass="0.0"/>

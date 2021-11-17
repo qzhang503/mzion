@@ -405,8 +405,6 @@ calc_pepmasses2 <- function (
             "ms1_a1_vnl0_fnl0", 
             "match_mvmods", 
             "expand_grid_rows", 
-            # "split_vec", 
-            # "count_elements", 
             "recur_flatten", 
             "delta_ms1_a0_fnl1"), 
           envir = environment(proteoM:::ms1_a1_vnl0_fnl0))
@@ -2075,6 +2073,8 @@ ms1_a0_vnl0_fnl1 <- function (mass, aa_seq, fnl_combi, aa_masses, digits = 4L)
 
 
 #' Helper of \link{ms1_a1_vnl0_fnl0}.
+#' 
+#' Needs additional unlist if \code{include_insource_nl = TRUE}.
 #' 
 #' @param masses A named list of peptide masses.
 #' @param amods \code{Anywhere} variable modifications.

@@ -34,7 +34,7 @@ matchMS(
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
   ppm_reporters = 10L,
-  quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16"),
+  quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
   target_fdr = 0.01,
   fdr_type = c("psm", "peptide", "protein"),
   combine_tier_three = FALSE,
@@ -184,6 +184,8 @@ Database searches of MSMS data.
 }
 \examples{
 \donttest{
+# A hypothetical example
+# (see also https://github.com/qzhang503/proteoM)
 matchMS(
   fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
             "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
@@ -196,7 +198,7 @@ matchMS(
 )
 
 \dontrun{
-# Supposed phosphopeptides and TMTpro
+# Hypothetical phosphopeptides and 16-plex TMTpro
 matchMS(
   fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
             "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
@@ -209,6 +211,23 @@ matchMS(
   max_miss = 2,
   maxn_vmods_sitescombi_per_pep = 32,
   quant = "tmt16",
+  fdr_type = "protein",
+  out_path = "~/proteoM/examples",
+)
+
+# Hypothetical phosphopeptides and 18-plex TMTpro
+matchMS(
+  fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+            "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+            "~/proteoM/dbs/fasta/crap/crap.fasta"),
+  acc_type = c("refseq_acc", "refseq_acc", "other"),
+  fixedmods = c("TMTpro18 (N-term)", "TMTpro18 (K)", "Carbamidomethyl (C)"),
+  varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
+              "Deamidated (N)", "Phospho (S)", "Phospho (T)",
+             "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
+  max_miss = 2,
+  maxn_vmods_sitescombi_per_pep = 32,
+  quant = "tmt18",
   fdr_type = "protein",
   out_path = "~/proteoM/examples",
 )

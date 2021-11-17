@@ -23,9 +23,9 @@ calc_tmtint <- function (data = NULL,
     nms_tmt11 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
                    "130N", "130C", "131N", "131C")
     
-    nms_tmt16 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
-                   "130N", "130C", "131N", "131C", "132N", "132C",
-                   "133N", "133C", "134N")
+    nms_tmtpro <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
+                    "130N", "130C", "131N", "131C", "132N", "132C",
+                    "133N", "133C", "134N", "134C", "135N")
     
     tmts <- c(
       `126` = 126.127726, `127N` = 127.124761, `127C` = 127.131080,
@@ -33,13 +33,14 @@ calc_tmtint <- function (data = NULL,
       `129C` = 129.137790, `130N` = 130.134825, `130C` = 130.141145,
       `131N` = 131.138180, `131C` = 131.144499, `132N` = 132.141535,
       `132C` = 132.147855, `133N` = 133.14489, `133C` = 133.15121,
-      `134N` = 134.148245)
+      `134N` = 134.148245, `134C` = 134.154565, `135N` = 135.15160)
     
     theos <- switch(quant,
                     tmt6 = tmts %>% .[names(.) %in% nms_tmt6],
                     tmt10 = tmts %>% .[names(.) %in% nms_tmt10],
                     tmt11 = tmts %>% .[names(.) %in% nms_tmt11],
-                    tmt16 = tmts %>% .[names(.) %in% nms_tmt16],
+                    tmt16 = tmts %>% .[names(.) %in% nms_tmtpro],
+                    tmt18 = tmts %>% .[names(.) %in% nms_tmtpro],
                     stop("Unknown TMt type.", call. = FALSE))
     
     ul <- switch(quant,
@@ -47,6 +48,7 @@ calc_tmtint <- function (data = NULL,
                  tmt10 = c(126.1, 131.2),
                  tmt11 = c(126.1, 131.2),
                  tmt16 = c(126.1, 134.2),
+                 tmt18 = c(126.1, 135.2),
                  stop("Unknown TMt type.", call. = FALSE))
     
     # stopifnot(all(c("ms2_moverz", "ms2_int") %in% names(data)))
@@ -85,11 +87,10 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
     
     files <- files[idxes]
     
-    reporters <- lapply(files, function (x) {
-      readRDS(file.path(out_path, "temp", x))
-    }) %>%
+    reporters <- lapply(files, function (x) 
+      readRDS(file.path(out_path, "temp", x))) %>%
       dplyr::bind_rows()
-    
+
     rm(list = c("idxes", "files"))
     
     df <- df %>%
@@ -216,7 +217,7 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
 #' @return A vector of indexes
 find_reporters_ppm <- function (theos, expts, ppm_reporters = 10, len, nms) 
 {
-  d <- outer(theos, expts, "find_ppm_error")
+  d <- sim_outer(theos, expts, "find_ppm_error")
   row_cols <- which(abs(d) <= ppm_reporters, arr.ind = TRUE)
   
   row_cols[, 2]

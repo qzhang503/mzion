@@ -45,9 +45,10 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   
   len_m <- length(masses)
   
-  if (!len_m) stop("File not found: ",
-                   file.path(.path_mass, paste0("pepmasses_", "[...].rds")))
-  
+  if (!len_m) 
+    stop("File not found: ", 
+         file.path(.path_mass, paste0("pepmasses_", "[...].rds")))
+
   # checks pre-existed, binned precursor masses
   .time_bin <- match_calltime(path = file.path(.path_cache, 
                                                "calc_pepmasses2", 

@@ -586,8 +586,17 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)")
 #' \donttest{
 #' ans <- table_unimods()
 #' 
+#' # TMT-16
 #' ans[with(ans, title == "TMTpro"), ]
 #' this_mod <- parse_unimod("TMTpro (Anywhere = K)")
+#' 
+#' # "TMTpro16" the same as "TMTpro"
+#' ans[with(ans, title == "TMTpro16"), ]
+#' this_mod <- parse_unimod("TMTpro16 (Anywhere = K)")
+#' 
+#' # TMT-18
+#' ans[with(ans, title == "TMTpro18"), ]
+#' this_mod <- parse_unimod("TMTpro18 (Anywhere = K)")
 #' 
 #' ans[with(ans, grepl("^Gln->pyro", title)), ]
 #' this_mod <- parse_unimod("Gln->pryo-Glu (N-term = Q)")
