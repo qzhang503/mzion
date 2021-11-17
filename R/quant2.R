@@ -217,7 +217,7 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
 #' @return A vector of indexes
 find_reporters_ppm <- function (theos, expts, ppm_reporters = 10, len, nms) 
 {
-  d <- sim_outer(theos, expts, "find_ppm_error")
+  d <- outer(theos, expts, "find_ppm_error")
   row_cols <- which(abs(d) <= ppm_reporters, arr.ind = TRUE)
   
   row_cols[, 2]

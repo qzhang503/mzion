@@ -37,7 +37,7 @@
 # calc_tmtint (quant2.R)
 #   find_reporter_ints
 #     find_reporters_ppm
-#       sim_outer
+#       sim_outer ()
 #   find_int_cols
 # 
 # 
