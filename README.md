@@ -1,7 +1,7 @@
 proteoM
 ================
 true
-2021-11-11
+2021-11-18
 
 -   [Installation](#installation)
 -   [Database searches](#database-searches)
@@ -20,7 +20,7 @@ devtools::install_github("qzhang503/proteoM")
 ## Database searches
 
 ``` r
-## An example of global TMT
+## An example of TMT-10plex
 library(proteoQDA)
 
 # Fasta databases 
@@ -29,6 +29,9 @@ copy_refseq_mm("~/proteoM/dbs/fasta/refseq")
 copy_crap("~/proteoM/dbs/fasta/crap")
 
 # MGF (e.g. by Proteome Discoverer)
+# if with Thermo's `RawConverter (v1.2.0.1)`:
+#   - Experiment Tpe: Data Dependent
+#   - Options: Select monoisotopic m/z in DDA
 copy_pd_mgf("~/proteoM/examples/mgfs")
 
 # Ion searches
@@ -80,6 +83,21 @@ matchMS(
 
 ## Possible Next steps
 
--   Search against real MGFs.
+-   Search against real MGFs
+
+    -   With `RawConverter (v1.2.0.1)`:
+        -   Experiment Type
+        -   [x] Data Dependent
+        -   Options
+        -   [x] Select monoisotopic m/z in DDA
+        -   [x] Export Centroided Peaks in MS1
+        -   Output Formats
+        -   [x] MGF
+    -   With `MSConvert (v3.0.20287-769529fa4)`:
+        -   Options
+        -   [x] Output format: mgf
+        -   Filters
+        -   [x] peakPicking: msLevel=1-
+
 -   Data QC and informatics with
-    [proteoQ](https://github.com/qzhang503/proteoQ/).
+    [proteoQ](https://github.com/qzhang503/proteoQ/)

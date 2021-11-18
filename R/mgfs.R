@@ -35,18 +35,22 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
   
   args_except <- NULL
   
-  cache_pars <- find_callarg_vals(time = NULL, 
-                                  path = file.path(out_path, "Calls"), 
-                                  fun = paste0(fun, ".rda"), 
-                                  args = names(formals(fun)) %>% 
-                                    .[! . %in% args_except]) %>% 
+  cache_pars <- find_callarg_vals(
+    time = NULL, 
+    path = file.path(out_path, "Calls"), 
+    fun = paste0(fun, ".rda"), 
+    args = names(formals(fun)) %>% 
+      .[! . %in% args_except]
+  ) %>% 
     .[sort(names(.))]
   
-  call_pars <- mget(names(formals()) %>% .[! . %in% args_except], 
-                    envir = rlang::current_env(), 
-                    inherits = FALSE) %>% 
+  call_pars <- mget(
+    names(formals()) %>% .[! . %in% args_except], 
+    envir = rlang::current_env(), 
+    inherits = FALSE
+  ) %>% 
     .[sort(names(.))]
-  
+
   ok_pars <- identical(call_pars, cache_pars)
 
   rds <- file.path(mgf_path, "mgf_queries.rds")
@@ -71,9 +75,12 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
     #   .[! . == ""]
     # unlink(file.path(mgf_path, dirs), recursive = TRUE)
 
-    delete_files(out_path, ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
-                                       "\\.xls$", "\\.csv$", "\\.txt$", 
-                                       "^mgf$", "^mgfs$", "Calls"))
+    delete_files(
+      out_path, 
+      ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
+                  "\\.xls$", "\\.csv$", "\\.txt$", 
+                  "^mgf$", "^mgfs$", "Calls")
+    )
 
     readMGF(filepath = mgf_path,
             min_mass = min_mass,
@@ -509,6 +516,7 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
   ms1_moverzs <- lapply(ms1s, function (x) round(as.numeric(x[, 1]), digits = 5L))
   ms1_moverzs <- .Internal(unlist(ms1_moverzs, recursive = FALSE, use.names = FALSE))
 
+  # may be NA's if no MS1 intensities available
   ms1_ints <- lapply(ms1s, function (x) round(as.numeric(x[, 2]), digits = 0L))
   ms1_ints <- .Internal(unlist(ms1_ints, recursive = FALSE, use.names = FALSE))
 
@@ -519,7 +527,11 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
   scan_titles <- 
     stringi::stri_replace_first_fixed(lines[begins + n_to_title], "TITLE=", "")
 
-  if (pat_file == "^.* File:\"([^\"]+)\".*") {
+  if (pat_file == "^TITLE=(.*)$") {
+    raw_files <- gsub(pat_file, "\\1", scan_titles)
+    raw_files <- gsub("\\\\", "/", raw_files)
+    raw_files <- gsub("^.*/(.*)", "\\1", raw_files)
+  } else if (pat_file == "^.* File:\"([^\"]+)\".*") {
     raw_files <- gsub(pat_file, "\\1", scan_titles)
     raw_files <- gsub("\\\\", "/", raw_files)
   } else if (pat_file == "^.*File: \"([^\"]+)\".*") {
@@ -530,8 +542,14 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
     stop("Unknown MGF format.", call. = FALSE)
   }
 
-  scan_nums <- as.integer(gsub(pat_scan, "\\1", scan_titles))
-
+  if (is.null(pat_scan)) {
+    scan_nums <- 
+      stringi::stri_replace_first_fixed(lines[begins + n_to_scan], "SCANS=", "")
+    scan_nums <- as.integer(scan_nums)
+  } else {
+    scan_nums <- as.integer(gsub(pat_scan, "\\1", scan_titles))
+  }
+  
   ret_times <- 
     stringi::stri_replace_first_fixed(lines[begins + n_to_rt], "RTINSECONDS=", "")
   ret_times <- as.numeric(ret_times)
@@ -653,47 +671,108 @@ proc_mgf_timstof <- function (path, n = 1000L)
 #' @param file The path to an MGF file.
 find_mgf_type <- function (file) 
 {
-  hdr <- readLines(file, 1000L)
+  hdr <- readLines(file, 5000L)
+  begins <- which(stringi::stri_startswith_fixed(hdr, "BEGIN IONS"))
+  ends <- which(stringi::stri_endswith_fixed(hdr, "END IONS"))
+  
+  if (!length(begins))
+    stop("The tag of `BEGIN IONS` not found in MGF.", call. = FALSE)
+  
+  # if (!length(ends))
+  #   stop("The tag of `END IONS` not found in MGF.", call. = FALSE)
 
-  ln_tit <- hdr %>%
-    .[grepl("^TITLE", .)] %>%
-    `[`(1)
+  type <- local({
+    ln_tit <- hdr %>%
+      .[grepl("^TITLE", .)] %>%
+      `[`(1)
+    
+    file_msconvert <- "File:\""
+    file_pd <- "File: \""
+    
+    scan_msonvert <- "scan=\\d+"
+    scan_pd <- "scans: \"\\d+\""
+    
+    if (grepl(file_msconvert, ln_tit) && grepl(scan_msonvert, ln_tit)) 
+      "msconvert"
+    else if (grepl(file_pd, ln_tit) && grepl(scan_pd, ln_tit)) 
+      "pd"
+    else if (!grepl("File|scan", ln_tit))
+      "rawconvert"
+    else 
+      stop("Unkown format of MGFs.")
+  })
 
-  file_msconvert <- "File:\""
-  file_pd <- "File: \""
+  ## MSConvert
+  # BEGIN IONS
+  # TITLE=rawname.179.179.3 File:"rawname.raw", NativeID:"controllerType=0 controllerNumber=1 scan=179"
+  # RTINSECONDS=63.4689
+  # PEPMASS=482.224129434954 280125.927246099978
+  # CHARGE=3+
+  
+  ## Proteome Discoverer
+  # MASS=Monoisotopic
+  # BEGIN IONS
+  # TITLE=File: "Z:\Folder\rawname.raw"; SpectrumID: "1"; scans: "179"
+  # PEPMASS=482.22421 110739.89844
+  # CHARGE=3+
+  # RTINSECONDS=63
+  # SCANS=179
+  
+  ## RawConverter
+  # BEGIN IONS
+  # TITLE=Z:\Folder\rawname.raw
+  # SCANS=179
+  # RTINSECONDS=63.4689
+  # CHARGE=3+
+  # PEPMASS=482.2242
+  
+  n_spacer <- if (length(begins) >= 2L && length(ends)) {
+    begins[2] - ends[1] - 1L
+  } else {
+    if (type == "msconvert") 
+      0L
+    else if (type %in% c("rawconvert", "pd"))
+      1L
+    else 
+      stop("Unkown format of MGFs.")
+  }
+  
+  if (type == "rawconvert") {
+    n_hdr <- 6L
+    hdr <- hdr[1:n_hdr]
+    
+    pat_file <- "^TITLE=(.*)$"
+    pat_scan <- NULL
 
-  scan_msonvert <- "scan=\\d+"
-  scan_pd <- "scans: \"\\d+\""
+    n_to_pepmass <- which(stringi::stri_startswith_fixed(hdr, "PEPMASS")) - 1L
+    n_to_title <- which(stringi::stri_startswith_fixed(hdr, "TITLE")) - 1L
+    n_to_scan <- which(stringi::stri_startswith_fixed(hdr, "SCANS")) - 1L
+    n_to_rt <- which(stringi::stri_startswith_fixed(hdr, "RTINSECONDS")) - 1L
+    n_to_charge <- which(stringi::stri_startswith_fixed(hdr, "CHARGE")) - 1L
+  } else if (type == "msconvert") {
+    pat_file <- "^.* File:\"([^\"]+)\".*"
+    pat_scan <- "^.* scan=([0-9]+)\"$"
 
-  if (grepl(file_msconvert, ln_tit) && grepl(scan_msonvert, ln_tit)) 
-    type <- "msconvert"
-  else if (grepl(file_pd, ln_tit) && grepl(scan_pd, ln_tit)) 
-    type <- "pd"
-  else 
-    stop("Unkown format of MGFs.")
-
-  if (type == "msconvert") {
-    pat_file2 <- "^.* File:\"([^\"]+)\".*"
-    pat_scan2 <- "^.* scan=([0-9]+)\"$"
-
-    n_spacer = 0L
-    n_hdr = 5L
-    n_to_pepmass = 3L
-    n_to_title = 1L
-    n_to_scan = 0L
-    n_to_rt = 2L
-    n_to_charge = 4L
+    # may change later
+    n_spacer <- 0L
+    n_hdr <- 5L
+    n_to_pepmass <- 3L
+    n_to_title <- 1L
+    n_to_scan <- 0L
+    n_to_rt <- 2L
+    n_to_charge <- 4L
   } else if (type == "pd") {
-    pat_file2 <- "^.*File: \"([^\"]+)\".*"
-    pat_scan2 <- "^.* scans: \"([0-9]+)\"$"
+    pat_file <- "^.*File: \"([^\"]+)\".*"
+    pat_scan <- "^.* scans: \"([0-9]+)\"$"
 
-    n_spacer = 1L
-    n_hdr = 6L
-    n_to_pepmass = 2L
-    n_to_title = 1L
-    n_to_scan = 5L
-    n_to_rt = 4L
-    n_to_charge = 3L
+    # may change later
+    n_spacer <- 1L
+    n_hdr <- 6L
+    n_to_pepmass <- 2L
+    n_to_title <- 1L
+    n_to_scan <- 5L
+    n_to_rt <- 4L
+    n_to_charge <- 3L
   } else {
     stop("The `File` lines in MGF needs to be in the format of ",
          "File:\"my.raw\" or File: \"my.raw\".\n",
@@ -701,8 +780,8 @@ find_mgf_type <- function (file)
          "scan=123 or scans: \"123\".")
   }
 
-  invisible(list(pat_file = pat_file2,
-                 pat_scan = pat_scan2,
+  invisible(list(pat_file = pat_file,
+                 pat_scan = pat_scan,
                  n_spacer = n_spacer,
                  n_hdr = n_hdr,
                  n_to_pepmass = n_to_pepmass,

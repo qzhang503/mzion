@@ -1,6 +1,7 @@
 #' Searches for MS ions.
 #'
 #' Database searches of MSMS data.
+#' 
 #' @param out_path A file path of outputs.
 #' @param mgf_path The file path to a list of MGF files. The experimenters need
 #'   to supply the files. Note that the supported MGFs are from MSConvert or
