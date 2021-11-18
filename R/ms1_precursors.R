@@ -72,6 +72,7 @@ calc_pepmasses2 <- function (
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   min_len = 7L, max_len = 50L, max_miss = 2L,
+  n_13c = 0L,
   out_path = NULL,
   digits = 4L,
   use_ms1_cache = TRUE, 
@@ -95,15 +96,16 @@ calc_pepmasses2 <- function (
   # ---
   fun <- as.character(match.call()[[1]])
   
-  .time_stamp <- match_calltime(path = .path_cache,
-                                fun = fun,
-                                nms = c("fasta", "acc_type", "acc_pattern",
-                                        "fixedmods", "varmods",
-                                        "include_insource_nl", "enzyme",
-                                        "maxn_fasta_seqs", "maxn_vmods_setscombi",
-                                        "maxn_vmods_per_pep", "maxn_sites_per_vmod",
-                                        "min_len", "max_len", "max_miss"))
-  
+  .time_stamp <- match_calltime(
+    path = .path_cache,
+    fun = fun,
+    nms = c("fasta", "acc_type", "acc_pattern",
+            "fixedmods", "varmods",
+            "include_insource_nl", "enzyme",
+            "maxn_fasta_seqs", "maxn_vmods_setscombi",
+            "maxn_vmods_per_pep", "maxn_sites_per_vmod",
+            "min_len", "max_len", "max_miss", "n_13c"))
+
   # ---
   len_ts <- length(.time_stamp)
   
@@ -114,12 +116,12 @@ calc_pepmasses2 <- function (
     
     message("Loading peptide masses from cache.")
 
-    aa_masses_all <- find_aa_masses(out_path = file.path(.path_fasta, "ms1masses", 
-                                                         .time_stamp),
-                                    fixedmods = fixedmods,
-                                    varmods = varmods,
-                                    maxn_vmods_setscombi = maxn_vmods_setscombi)
-    
+    aa_masses_all <- find_aa_masses(
+      out_path = file.path(.path_fasta, "ms1masses", .time_stamp),
+      fixedmods = fixedmods,
+      varmods = varmods,
+      maxn_vmods_setscombi = maxn_vmods_setscombi)
+
     files <- list.files(path = file.path(.path_ms1masses, .time_stamp),
                         pattern = "pepmasses_\\d+\\.rds$")
 
@@ -140,20 +142,22 @@ calc_pepmasses2 <- function (
     .savecall <- FALSE
   } else {
     # `mgf_quries.rds` kept 
-    # (only affected by min_mass, max_mass and ppm_ms1)
-    delete_files(out_path, ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$",
-                                       "\\.xls$", "\\.csv$", "\\.txt$",
-                                       "^mgf$", "^mgfs$"))
+    # (which only affected by min_mass, max_mass and ppm_ms1)
+    delete_files(out_path, 
+                 ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$",
+                             "\\.xls$", "\\.csv$", "\\.txt$",
+                             "^mgf$", "^mgfs$"))
     
     .time_stamp <- format(Sys.time(), ".%Y-%m-%d_%H%M%S")
 
-    aa_masses_all <- find_aa_masses(out_path = file.path(.path_fasta, "ms1masses", 
-                                                         .time_stamp),
-                                    fixedmods = fixedmods,
-                                    varmods = varmods,
-                                    maxn_vmods_setscombi = maxn_vmods_setscombi, 
-                                    exclude_phospho_nl = exclude_phospho_nl)
-    
+    aa_masses_all <- find_aa_masses(
+      out_path = file.path(.path_fasta, "ms1masses", 
+                           .time_stamp),
+      fixedmods = fixedmods,
+      varmods = varmods,
+      maxn_vmods_setscombi = maxn_vmods_setscombi, 
+      exclude_phospho_nl = exclude_phospho_nl)
+
     ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
                            maxn_vmods_per_pep = maxn_vmods_per_pep,
                            maxn_sites_per_vmod = maxn_sites_per_vmod)
@@ -440,6 +444,7 @@ calc_pepmasses2 <- function (
                 "vmods_nl_i", "aa_masses_1", "aa_masses_i"))
     gc()
 
+    fwd_peps <- lapply(fwd_peps, add_ms1_13c, n_13c)
 
     # === Outputs ===
     path_masses <- create_dir(file.path(.path_ms1masses, .time_stamp))
@@ -1607,7 +1612,7 @@ add_term_mass2 <- function (aa_masses, peps)
 ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
                             max_miss = 2L, min_len = 7L, max_len = 50L,
                             maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
-                            is_fixed_protnt = FALSE, is_fixed_protct = FALSE,
+                            is_fixed_protnt = FALSE, is_fixed_protct = FALSE, 
                             digits = 4L) 
 {
   # (1) before rolling sum (not yet terminal H2O)
@@ -1692,6 +1697,27 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
     lapply(function (x) x + ftmass) # 18.010565
 
   invisible(ms)
+}
+
+
+#' Adds Carbon-13 masses.
+#'
+#' @param peps A named vector of peptide sequences. Sequences in names and
+#'   masses in values.
+#' @inheritParams matchMS
+add_ms1_13c <- function (peps, n_13c = 1L) 
+{
+  if (n_13c <= 0L) 
+    return(peps)
+  
+  len <- n_13c + 1L
+  out <- vector("list", len)
+  out[[1]] <- peps
+  
+  for (i in 2:len) 
+    out[[i]] <- out[[i-1]] + 1.00335483
+  
+  unlist(out, recursive = FALSE, use.names = TRUE)
 }
 
 

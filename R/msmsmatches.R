@@ -52,6 +52,8 @@
 #' @param min_mass The minimum precursor mass for interrogation.
 #' @param max_mass The maximum precursor mass for interrogation.
 #' @param min_ms2mass The minimum MS2 mass for interrogation.
+#' @param n_13c The maximum number of 13C off-sets for consideration in MS1
+#'   masses.
 #' @param type_ms2ions Character; the type of
 #'   \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 #'   ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
@@ -137,7 +139,7 @@
 #'   fdr_type = "protein",
 #'   out_path = "~/proteoM/examples",
 #' )
-#' 
+#'
 #' # Hypothetical phosphopeptides and 18-plex TMTpro
 #' matchMS(
 #'   fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
@@ -179,6 +181,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      maxn_vmods_sitescombi_per_pep = 64L,
                      min_len = 7L, max_len = 50L, max_miss = 2L,
                      min_mass = 500L, max_mass = 6000L, min_ms2mass = 110L, 
+                     n_13c = 0L, 
                      type_ms2ions = "by",
                      topn_ms2ions = 100L,
                      minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L,
@@ -221,7 +224,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   stopifnot(vapply(c(maxn_fasta_seqs, maxn_vmods_setscombi, maxn_vmods_per_pep, 
                      maxn_sites_per_vmod, maxn_vmods_sitescombi_per_pep, 
                      min_len, max_len, max_miss, topn_ms2ions, minn_ms2, 
-                     min_mass, max_mass, min_ms2mass, 
+                     min_mass, max_mass, min_ms2mass, n_13c, 
                      ppm_ms1, ppm_ms2, ppm_reporters, digits, 
                      target_fdr), 
                    is.numeric, logical(1L)))
@@ -240,6 +243,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   min_mass <- as.integer(min_mass)
   max_mass <- as.integer(max_mass)
   min_ms2mass <- as.integer(min_ms2mass)
+  n_13c <- as.integer(n_13c)
   ppm_ms1 <- as.integer(ppm_ms1)
   ppm_ms2 <- as.integer(ppm_ms2)
   ppm_reporters <- as.integer(ppm_reporters)
@@ -247,6 +251,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   stopifnot(min_len >= 0L, max_len >= min_len, max_miss <= 10L, 
             min_mass >= 0L, max_mass >= min_mass, min_ms2mass >= 0L, 
+            n_13c >= 0L, 
             maxn_vmods_per_pep >= maxn_sites_per_vmod)
 
   # (b) doubles
@@ -271,10 +276,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
   quant <- rlang::enexpr(quant)
   oks <- eval(formals()[["quant"]])
 
-  if (length(quant) > 1L) 
-    quant <- oks[[1]]
+  quant <- if (length(quant) > 1L) 
+    oks[[1]]
   else 
-    quant <- rlang::as_string(quant)
+    rlang::as_string(quant)
 
   stopifnot(quant %in% oks, length(quant) == 1L)
   rm(list = c("oks"))
@@ -327,6 +332,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
     min_len = min_len,
     max_len = max_len,
     max_miss = max_miss,
+    n_13c = n_13c,
     out_path = out_path,
     digits = digits,
     use_ms1_cache = use_ms1_cache, 

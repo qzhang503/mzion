@@ -442,6 +442,16 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
 
   load(file = file)
   
+  # --- back-compatibility
+  call_pars <- local({
+    new_arg <- "n_13c"
+    
+    if ((new_arg %in% args) && (! new_arg %in% names(call_pars)))
+      call_pars[[new_arg]] <- 0L
+
+    call_pars
+  })
+  
   nots <- which(! args %in% names(call_pars))
   
   if (length(nots)) 

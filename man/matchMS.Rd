@@ -28,6 +28,7 @@ matchMS(
   min_mass = 500L,
   max_mass = 6000L,
   min_ms2mass = 110L,
+  n_13c = 0L,
   type_ms2ions = "by",
   topn_ms2ions = 100L,
   minn_ms2 = 6L,
@@ -116,6 +117,9 @@ be excluded.}
 \item{max_mass}{The maximum precursor mass for interrogation.}
 
 \item{min_ms2mass}{The minimum MS2 mass for interrogation.}
+
+\item{n_13c}{The maximum number of 13C off-sets for consideration in MS1
+masses.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2

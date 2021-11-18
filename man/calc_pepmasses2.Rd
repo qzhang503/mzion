@@ -22,6 +22,7 @@ calc_pepmasses2(
   min_len = 7L,
   max_len = 50L,
   max_miss = 2L,
+  n_13c = 0L,
   out_path = NULL,
   digits = 4L,
   use_ms1_cache = TRUE,
@@ -84,6 +85,9 @@ be excluded.}
 be excluded.}
 
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
+
+\item{n_13c}{The maximum number of 13C off-sets for consideration in MS1
+masses.}
 
 \item{out_path}{An output path.}
 
