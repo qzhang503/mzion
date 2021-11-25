@@ -39,7 +39,7 @@ ion searches. The default is to use the top-100 ions in an MS2 event.}
 \item{penalize_sions}{Logical; if TRUE, penalizes secondary ions of b0, y0
 etc. with lower weights in peptide scoring.}
 
-\item{ppm_ms2}{The mass tolerance of MS2 species.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }

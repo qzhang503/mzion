@@ -82,7 +82,8 @@ a hit.}
 
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
 
-\item{min_ms2mass}{The minimum MS2 mass for interrogation.}
+\item{min_ms2mass}{A non-negative integer; the minimum MS2 mass for
+interrogation.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 

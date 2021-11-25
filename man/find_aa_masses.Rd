@@ -24,7 +24,8 @@ find_aa_masses(
 modifications and neutral losses.}
 
 \item{exclude_phospho_nl}{If TRUE, excludes neutral losses in the MS2 ion
-searches against variable modifications of phospho sites.}
+searches against variable modifications of phospho sites. May toggle it to
+\code{FALSE} if search speed against phospho data is not a primary concern.}
 }
 \description{
 Finds the existence of \code{aa_masses_all.rds}.

@@ -69,7 +69,9 @@ custom examples.}
 \item{fixedmods}{A character vector of fixed modifications. See also
 \link{parse_unimod} for grammars.}
 
-\item{varmods}{A character vector of variable modifications.}
+\item{varmods}{A character vector of variable modifications. Multiple
+modifications to the same residue are allowed, for example, both a less
+common \code{Carbamyl (M)} and a common \code{Oxidation (M)}.}
 
 \item{include_insource_nl}{Logical Logical; if TRUE, includes MS1 precursor
 masses with the losses of neutral species prior to MS2 fragmentation. The
@@ -80,7 +82,8 @@ searches. A more systemically approach such as \code{open} MS1 masses might
 be developed in the future.}
 
 \item{exclude_phospho_nl}{If TRUE, excludes neutral losses in the MS2 ion
-searches against variable modifications of phospho sites.}
+searches against variable modifications of phospho sites. May toggle it to
+\code{FALSE} if search speed against phospho data is not a primary concern.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from proteins. The enzyme
@@ -104,22 +107,31 @@ combinatorial variable modifications per peptide sequence. The default is
 64. May consider a smaller value, i.e. 32, when searching against
 phosphopeptide data.}
 
-\item{min_len}{Integer; the minimum length of peptides. Shorter peptides will
-be excluded.}
+\item{min_len}{A positive integer; the minimum length of peptides. Shorter
+peptides will be excluded.}
 
-\item{max_len}{Integer; the maximum length of peptides. Longer peptides will
-be excluded.}
+\item{max_len}{A positive integer; the maximum length of peptides. Longer
+peptides will be excluded.}
 
-\item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
+\item{max_miss}{A non-negative integer; the maximum number of mis-cleavages
+per peptide sequence.}
 
-\item{min_mass}{The minimum precursor mass for interrogation.}
+\item{min_mass}{A non-negative integer; the minimum precursor mass for
+interrogation.}
 
-\item{max_mass}{The maximum precursor mass for interrogation.}
+\item{max_mass}{A non-negative integer; the maximum precursor mass for
+interrogation.}
 
-\item{min_ms2mass}{The minimum MS2 mass for interrogation.}
+\item{min_ms2mass}{A non-negative integer; the minimum MS2 mass for
+interrogation.}
 
-\item{n_13c}{The maximum number of 13C off-sets for consideration in MS1
-masses.}
+\item{n_13c}{A non-negative integer; the maximum number of 13C off-sets for
+consideration in MS1 masses. The default is 0 with no off-sets.
+Peak-pickings by various MGF conversion tools may have attempted to adjust
+precursor masses to the corresponding mono-isotopic masses in isotope
+envelopes. Nevertheless, by setting \code{n_13c = 1}, another 1% increase
+in the number of PSM may be readily achieved at a relatively small cost of
+search time.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
@@ -132,16 +144,20 @@ ion searches. The default is to use the top-100 ions in an MS2 event.}
 \item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
 a hit.}
 
-\item{ppm_ms1}{The mass tolerance of MS1 species.}
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
 
-\item{ppm_ms2}{The mass tolerance of MS2 species.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
 
-\item{ppm_reporters}{The mass tolerance of MS2 reporter ions.}
+\item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
+ions.}
 
 \item{quant}{A quantitation method. The default is "none". Additional choices
-include \code{tmt6} etc. For other multiplicities of \code{tmt}, use the
-compatible higher plexes, for example, \code{tmt16} for \code{tmt12} etc.
-and \code{tmt10} for \code{tmt8} etc.}
+include \code{tmt6, tmt10, tmt11, tmt16 and tmt18}. For other
+multiplicities of \code{tmt}, use the compatible higher plexes. For
+example, apply \code{tmt16} for \code{tmt12} provided a set of 12-plexes
+being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It is also
+possible that an experimenter may construct a \code{tmt12} from a 18-plex
+TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is suitable.}
 
 \item{target_fdr}{Numeric; a targeted false-discovery rate (FDR) at the
 levels of PSM, peptide or protein. See also argument \code{fdr_type}.}

@@ -79,7 +79,7 @@ list_leftmatch <- function (a, b)
   
   oks <- a %in% b
   
-  b2 <- rep(NA, length(a))
+  b2 <- rep(NA_real_, length(a))
   b2[oks] <- b
   
   b2
@@ -174,7 +174,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   ## matches additionally against secondary ions
   df2 <- add_seions(df_theo, type_ms2ions = type_ms2ions, digits = digits)
   df2 <- find_ppm_outer_bycombi(df2, expt_moverzs, ppm_ms2) # 132 us
-  df2$theo <- round(df2$theo, digits = digits) # 4.4 us
+  df2$theo <- round(df2$theo, digits = digits)
   
   # subtracts `m` and the counts of secondary b0, y0 matches etc. from noise
   # (OK if n < 0L)
@@ -184,14 +184,14 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   ## step 0: the original tidyverse approach
   
   # m2 <- nrow(df2)
-  
+  # 
   # y2 <- df2 %>% 
   #   left_join(expts, by = "expt") %>% 
   #   `[[`("int") %>% 
   #   split(rep(seq_len(m2/m), each = m)) %>% 
   #   Reduce(`%+%`, .) %>% 
   #   data.frame(idx = seq_len(m), int2 = .)
-  
+  # 
   # y <- left_join(expts, df %>% mutate(idx = row_number()), by = "expt") %>% 
   #   dplyr::left_join(y2, by = "idx") %>% 
   #   mutate(int = ifelse(is.na(int2), int, int + int2)) %>% 
@@ -205,12 +205,12 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   # (1.1)
   len <- length(df2$expt)
   
-  i_se <- match(df2$expt, expt_moverzs) # secondary ions (df2) in expts; 4 us
-  i_s <- which(!is.na(i_se)) # indexes in df2; 1.7 us
-  i_e <- i_se[i_s] # indexes of the matches in expts; .4 us
+  i_se <- match(df2$expt, expt_moverzs) # secondary ions (df2) in expts
+  i_s <- which(!is.na(i_se)) # indexes in df2
+  i_e <- i_se[i_s] # indexes of the matches in expts
   
   df2$int <- rep(NA, len) # matched intensities; .7 us
-  df2$int[i_s] <- expt_ints[i_e] # the corresponding intensities from expts; 1.4 us
+  df2$int[i_s] <- expt_ints[i_e] # the corresponding intensities from expts
   
   # (1.2) collapse b0, b*, b2 etc.
   f <- rep(seq_len(len/m), each = m)
@@ -229,9 +229,9 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   # (2.1)
   df$idx <- 1:m
   
-  i_ep <- match(expt_moverzs, df$expt) # expts in primary ions (df); 4 us
-  i_e <- which(!is.na(i_ep)) # indexes in expts; 1.7 us
-  i_p <- i_ep[i_e] # indexes of matches in primary df; .4 us
+  i_ep <- match(expt_moverzs, df$expt) # expts in primary ions (df)
+  i_e <- which(!is.na(i_ep)) # indexes in expts
+  i_p <- i_ep[i_e] # indexes of matches in primary df
   
   # (2.2)
   nu <- rep(NA, topn_ms2ions)
@@ -240,7 +240,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   y$theo <- nu
   y$idx <- nu
   
-  y$theo[i_e] <- df$theo[i_p] # .5 us
+  y$theo[i_e] <- df$theo[i_p]
   y$idx[i_e] <- df$idx[i_p]
   
   ## step 3: add `int2` from `y2`
@@ -734,8 +734,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     #                              "calc_probi_bypep", 
     #                              "calc_probi_byvmods", 
     #                              "add_seions", 
-    #                              "find_ppm_outer_bycombi", 
-    #                              "sim_outer"), 
+    #                              "find_ppm_outer_bycombi"), 
     #                         envir = environment(proteoM:::scalc_pepprobs))
     
     probs <- parallel::clusterApplyLB(cl, df, 
@@ -816,6 +815,82 @@ post_pepscores <- function (df)
 }
 
 
+#' Finds the cut-off in peptide scores for a given \code{target_fdr}.
+#' 
+#' Assume normal distribution for log(decoy_score).
+#' 
+#' @param td A data frame of target-decoy results at a given peptide length.
+#' @inheritParams matchMS
+find_pepscore_co1 <- function (td, target_fdr) 
+{
+  target <- dplyr::filter(td, !pep_isdecoy)
+  decoy <- dplyr::filter(td, pep_isdecoy)
+  
+  nt <- nrow(target)
+  nd <- nrow(decoy)
+  
+  if (nd <= 5L) return(NA)
+  
+  n <- nt + nd
+  lambt <- nt/(n)
+  lambd <- 1 - lambt
+  
+  vecd <- log2(decoy$pep_score)
+  sigmad <- sd(vecd, na.rm = TRUE)
+  mud <- mean(vecd, na.rm = TRUE)
+  
+  if (is.na(sigmad)) return(NA)
+  
+  xs <- seq(mud + sigmad, mud + 3*sigmad, 0.014355293)
+  
+  for (i in seq_along(xs)) {
+    y <- (1 - pnorm(xs[i], mud, sigmad)) * nd / n
+    
+    if (y <= target_fdr) break
+  }
+  
+  2^(xs[i])
+}
+
+
+#' Finds the cut-off in peptide scores for a given \code{target_fdr}.
+#' 
+#' Assume log-normal for decoy scores.
+#' 
+#' @param td A data frame of target-decoy results at a given peptide length.
+#' @inheritParams matchMS
+find_pepscore_co2 <- function (td, target_fdr) 
+{
+  target <- dplyr::filter(td, !pep_isdecoy)
+  decoy <- dplyr::filter(td, pep_isdecoy)
+  
+  nt <- nrow(target)
+  nd <- nrow(decoy)
+  
+  if (nd <= 5L) return(NA)
+  
+  n <- nt + nd
+  lambt <- nt/(n)
+  lambd <- 1 - lambt
+  
+  vecd <- decoy$pep_score
+  sigmad <- sd(vecd, na.rm = TRUE)
+  mud <- mean(vecd, na.rm = TRUE)
+  
+  if (is.na(sigmad)) return(NA)
+  
+  xs <- seq( mud + 4*sigmad, mud + sigmad, -.1)
+  
+  for (i in seq_along(xs)) {
+    y <- (1 - plnorm(xs[i], mud, sigmad, lower.tail = FALSE)) * nd / n
+    
+    if (y >= target_fdr) break
+  }
+  
+  xs[i]
+}
+
+
 #' Helper of \link{calc_pepfdr}.
 #'
 #' Calculates the probability cut-off for target-decoy pairs at a given peptide
@@ -844,13 +919,33 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path)
     dplyr::mutate(pep_score = -log10(pep_prob) * 10)
   
   # ---
+  # len 7:19
+  # ans_param <- c(46.0, 42.8, 21.5, 20.3, 16.0, 19.25, 20.5, 22.1, 24.7, 
+  #                26.4, 29.8, 33.3, 38.5)
+  # ans_nonparam <- c(45.6, 37.3, 26.2, 21.4, 16.6, 19.5, 21.6, 22.4, 24.8, 
+  #                   27.0, 31.1, 33.4, 37.0)
+
+  # ---
   count <- nrow(td)
   
-  if (count < (1 / target_fdr)) 
-    return(NA)
-  
+  if (count < (1 / target_fdr)) {
+    # return(NA)
+    if (count <= 20L) 
+      return(NA)
+    
+    best_co <- tryCatch(
+      (find_pepscore_co1(td, target_fdr) + find_pepscore_co2(td, target_fdr))/2,
+      error = function(e) NA
+    )
+    
+    prob_co <- 10^(-best_co/10)
+    names(prob_co) <- count
+    
+    return(prob_co)
+  }
+
   # ---
-  rows <- which(td$fdr <= target_fdr) 
+  rows <- which(td$fdr <= target_fdr)
   
   if (length(rows)) {
     row <- max(rows, na.rm = TRUE)
@@ -899,7 +994,13 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path)
     prob_co <- 10^(-best_co/10)
     
   } else {
-    prob_co <- NA
+    best_co <- tryCatch(
+      (find_pepscore_co1(td, target_fdr) + find_pepscore_co2(td, target_fdr))/2,
+      error = function(e) NA
+    )
+    
+    prob_co <- 10^(-best_co/10)
+    # prob_co <- NA
   }
   
   names(prob_co) <- count
@@ -933,18 +1034,28 @@ find_optlens <- function (all_lens, counts, min_count = 128L)
 #' 
 #' @param prob_cos A vector of probability cut-offs.
 #' @param guess An integer of guessed valley.
-find_probco_valley <- function (prob_cos, guess = 13L) 
+find_probco_valley <- function (prob_cos, guess = 12L) 
 {
   len <- length(prob_cos)
   
-  if (len == 1L) {
-    ans <- 1L
-  } else {
-    idxes <- as.integer(names(prob_cos))
-    ans <- which.min(abs(idxes - guess))
-  }
+  if (len == 1L) return(as.integer(names(prob_cos)[1]))
 
-  as.integer(names(prob_cos)[ans])
+  min_len <- as.integer(names(prob_cos)[1])
+  if (min_len > guess) return(min_len)
+  
+  deltas <- prob_cos[2:len] - prob_cos[1:(len-1)]
+  idxes <- which(deltas > 0) 
+  ups <- as.numeric(names(idxes))
+  
+  ups_left <- ups[ups <= guess & ups - guess >= -3L]
+  lens_left <- length(ups_left)
+  if (lens_left) return(ups_left[lens_left])
+  
+  ups_right <- ups[ups > guess & ups - guess <= 3L]
+  lens_right <- length(ups_right)
+  if (lens_right) return(ups_right[1])
+
+  invisible(guess)
 }
 
 
@@ -1010,7 +1121,7 @@ find_probco_valley <- function (prob_cos, guess = 13L)
 #'                         out_path = "~/proteoM/bi_1")
 #' 
 #' }
-calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm", 
+calc_pepfdr <- function (out, nms, target_fdr = .01, fdr_type = "psm", 
                          min_len = 7L, max_len = 50L, out_path) 
 {
   if (!is.null(nms)) {
@@ -1018,9 +1129,9 @@ calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm",
     
     # keeps the best hit for each `scan_num`
     # (separated bests for targets and decoys)
-    out_t <- out[[nms_t]]
+    nrow_t <- nrow(out[[nms_t]])
     
-    if (!nrow(out_t)) {
+    if (!nrow_t) {
       lens <- min_len:max_len
       prob_cos <- rep(.5, length(lens))
       names(prob_cos) <- lens
@@ -1028,53 +1139,44 @@ calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm",
       return(prob_cos)
     }
     
-    out[[nms_t]] <- out_t %>% 
-      dplyr::group_by(scan_num, raw_file) %>% 
-      dplyr::arrange(pep_prob) %>% 
-      dplyr::filter(row_number() == 1L) %>% 
-      dplyr::ungroup()
-    
-    rm(list = "out_t")
-    
-    out[[nms]] <- out[[nms]] %>% 
-      dplyr::group_by(scan_num, raw_file) %>% 
-      dplyr::arrange(pep_prob) %>% 
-      dplyr::filter(row_number() == 1L) %>% 
-      dplyr::ungroup()
-    
-    td <- out[c(nms_t, nms)]
+    out[c(nms_t, nms)] <- lapply(out[c(nms_t, nms)], function (x) {
+      x %>% 
+        dplyr::group_by(scan_num, raw_file) %>% 
+        dplyr::arrange(pep_prob) %>% 
+        dplyr::filter(row_number() == 1L) %>% 
+        dplyr::ungroup()
+    })
     
     # decoy sequences may be present in targets
-    td[[nms]] <- purge_decoys(target = td[[nms_t]], decoy = td[[nms]])
+    out[[nms]] <- purge_decoys(target = out[[nms_t]], decoy = out[[nms]])
     
-    rm(list = c("out"))
-    gc()
-    
-    # ---
     #  keeps the best hit for each `scan_num`
-    # (combined best for targets and decoys)
-    td <- td %>% 
-      dplyr::bind_rows() %>% 
+    td <- dplyr::bind_rows(out[c(nms_t, nms)]) %>% 
       dplyr::group_by(scan_num, raw_file) %>% 
       dplyr::arrange(pep_prob) %>% 
       dplyr::filter(row_number() == 1L) %>% 
       dplyr::ungroup()
     
+    rm(list = c("out", "nrow_t"))
+    gc()
+
+    # ---
     all_lens <- sort(unique(td$pep_len))
     
-    prob_cos <- all_lens %>% 
-      lapply(probco_bypeplen, td, fdr_type, target_fdr, out_path) %>% 
-      unlist()
-    
-    if (length(prob_cos) == 1L && !is.na(prob_cos)) 
+    prob_cos <- lapply(all_lens, probco_bypeplen, 
+                       td, fdr_type, target_fdr, out_path)
+    prob_cos <- unlist(prob_cos)
+
+    if (length(prob_cos) == 1L && !is.na(prob_cos)) {
+      names(prob_cos) <- all_lens
       return(prob_cos)
-    
+    }
+
     if (all(is.na(prob_cos))) {
-      newx <- min_len : max_len
-      
-      prob_cos <- rep(target_fdr, length(newx)) %>% 
-        `names<-`(newx)
-      
+      newx <- min_len:max_len
+      prob_cos <- rep(target_fdr, length(newx))
+      names(prob_cos) <- newx
+
       return(prob_cos)
     }
     
@@ -1082,6 +1184,10 @@ calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm",
     names(counts) <- all_lens
     names(prob_cos) <- all_lens
     prob_cos <- prob_cos[!is.na(prob_cos)]
+    
+    # pdf(file.path(out_path, "pepprob_len.pdf")) 
+    # plot(prob_cos ~ names(prob_cos), xlab = "pep_len", ylab = "prob_co")
+    # dev.off()
     
     lens <- find_optlens(all_lens, counts, 128L)
     
@@ -1093,48 +1199,101 @@ calc_pepfdr <- function (out, nms = "rev_2", target_fdr = .01, fdr_type = "psm",
     counts <- counts %>% .[names(.) %in% lens]
     
     valley <- find_probco_valley(prob_cos)
-    best_score_co <- -log10(prob_cos[as.character(valley)])
+    best_co <- -log10(prob_cos[as.character(valley)])
+    
+    # low cut-offs at high pep_len may be by chance
+    prob_cos <- local({
+      len <- length(prob_cos)
+      prs <- prob_cos[valley:len]
+      prs[prs > .02] <- NA
+      prob_cos[valley:len] <- prs
+      
+      prob_cos[!is.na(prob_cos)]
+    })
     
     ## fittings
     df <- data.frame(x = as.numeric(names(prob_cos)), y = -log10(prob_cos))
-    
-    # valley left
-    df1 <- df[df$x <= valley, ]
-    rank1 <- 4L
-    
-    fit1 <- if (nrow(df1) <= rank1) 
-      lm(y ~ x, df1)
-    else 
-      lm(y ~ splines::ns(x, rank1), df1)
 
-    newx1 <- min(df1$x, na.rm = TRUE):max(df1$x, na.rm = TRUE)
-    newy1 <- predict(fit1, data.frame(x = newx1)) %>% `names<-`(newx1)
+    # valley left
+    df_left <- df[df$x <= valley, ]
+    rank_left <- 4L
     
-    # valley right
-    df2 <- df[df$x > valley, ]
-    rank2 <- 2L
-    
-    if (nrow(df2) > rank2) {
-      fit2 <- lm(y ~ splines::ns(x, rank2), df2)
-      newx2 <- min(df2$x, na.rm = TRUE):max(df2$x, na.rm = TRUE)
-      newy2 <- predict(fit2, data.frame(x = newx2)) %>% `names<-`(newx2)
-    } else {
-      slope <- .28
-      newx2 <- valley:max(df2$x, na.rm = TRUE)
-      newy2 <- best_score_co + slope * (newx2 - valley) %>% `names<-`(newx2)
+    fit_left <- if (nrow(df_left) <= rank_left) {
+      lm(y ~ x, df_left)
+    }
+    else {
+      local({
+        fit_ns <- tryCatch(
+          lm(y ~ splines::ns(x, rank_left), df_left),
+          error = function(e) NA
+        )
+        
+        fit_bs <- tryCatch(
+          lm(y ~ splines::bs(x, rank_left), df_left),
+          error = function(e) NA
+        )
+        
+        res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
+        res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
+
+        if (res1 <= res2) fit_ns else fit_bs
+      })
+    }
       
-      # excludes the valley itself (already in left fitting)
-      newx2 <- newx2[-1]
-      newy2 <- newy2[-1]
+    newx_left <- min(df_left$x, na.rm = TRUE):max(df_left$x, na.rm = TRUE)
+    newy_left <- predict(fit_left, data.frame(x = newx_left))
+    names(newy_left) <- newx_left
+
+    # valley right (small rank to down-weight wiggly high `pep_len` points)
+    df_right <- df[df$x > valley, ]
+    rank_right <- 2L
+    
+    if (nrow(df_right) > rank_right) {
+      fit_right <- lm(y ~ splines::ns(x, rank_right), df_right)
+
+      newx_right <- min(df_right$x, na.rm = TRUE):max(df_right$x, na.rm = TRUE)
+      newy_right <- predict(fit_right, data.frame(x = newx_right))
+      names(newy_right) <- newx_right
+    } 
+    else {
+      slope <- .28
+      newx_right <- valley:max(df_right$x, na.rm = TRUE)
+      newy_right <- best_co + slope * (newx_right - valley)
+      names(newy_right) <- newx_right
+
+      # excludes the `valley` itself (already in left fitting)
+      newx_right <- newx_right[-1]
+      newy_right <- newy_right[-1]
     }
     
     # left + right
-    newx <- c(newx1, newx2)
-    newy <- c(newy1, newy2)
-
-    # ggplot2::ggplot(df, aes(x = x, y = y)) + geom_point() +
-    #   stat_smooth(method = "lm", formula = y ~ splines::ns(x, 4), se = FALSE)
+    newx <- c(newx_left, newx_right)
+    newy <- c(newy_left, newy_right)
     
+    local({
+      n_row <- nrow(df)
+      
+      df_new <- rbind2(
+        cbind(df, type = rep("Original", n_row)), 
+        data.frame(x = newx, y = newy, type = "Fitted")
+      )
+
+      n_row2 <- nrow(df_new) - n_row
+      
+      # `*10` only for plots
+      df_new$y <- df_new$y * 10 
+
+      pdf(file.path(out_path, "pepscore_len.pdf")) 
+      plot(y ~ x, df_new, col = c(rep("blue", n_row), rep("red", n_row2)), 
+           xlab = "pep_len", ylab = "score_co", pch = 19)
+      legend("bottomright", legend = c("Original", "Fitted"), 
+             col = c("blue", "red"), pch = 19, bty = "n")
+      dev.off()
+      
+      # ggplot2::ggplot(df, aes(x = x, y = y)) + geom_point() +
+      #   stat_smooth(method = "lm", formula = y ~ splines::bs(x, rank_left), se = FALSE)
+    })
+
     prob_cos <- 10^-newy
     
   } else {
@@ -1456,10 +1615,53 @@ fit_protfdr <- function (vec, max_n_pep = 1000L)
 #'                   "P", "E", "C", "P", "G", "Q", "S", "S", "D")
 #'
 #' find_ppm_outer_bycombi(theos, expts)
+#' 
+#' # No secondary matches
+#' theos <- c(56.5233, 235.1522, 284.6864, 326.2050, 361.7235, 
+#'            418.2656, 474.8076, 653.4366, 95.0128, 452.2707, 
+#'            551.3391, 634.3762, 705.4133, 818.4974, 931.5815, 
+#'            1288.8394, 48.0100, 226.6390, 276.1732, 317.6917, 
+#'            353.2103, 409.7523, 466.2944, 644.9233, 94.0287, 
+#'            451.2866, 550.3550, 633.3921, 704.4292, 817.5133, 
+#'            930.5974, 1287.8553, 47.5180, 226.1470, 275.6812, 
+#'            317.1997, 352.7183, 409.2603, 465.8024, 644.4313,
+#'            188.6415, 245.1835, 301.7256, 337.2441, 378.7627, 
+#'            428.2969, 606.9258, 670.9551, 359.2492, 472.3333, 
+#'            585.4174, 656.4545, 739.4916, 838.5600, 1195.8179, 
+#'            1323.8765, 180.1282, 236.6703, 293.2123, 328.7309, 
+#'            370.2494, 419.7836, 598.4126, 662.4419, 358.2651, 
+#'            471.3492, 584.4333, 655.4704, 738.5075, 837.5759, 
+#'            1194.8338, 1322.8924, 179.6362, 236.1783, 292.7203, 
+#'            328.2389, 369.7574, 419.2916, 597.9206, 661.9499)
+#' 
+#' a <- c("Q", "K", "V", "M", "A", "I", "I", "K")
+#' b <- rev(a)
+#' names(theos) <- c(rep(a, 5), rep(b, 5))
+#' 
+#' expts <- c(101.01134,110.07162,112.03947,116.01675,118.83968,
+#'            120.08091,126.12779,127.12479,127.13109,128.12816,
+#'            128.13440,129.13150,129.13777,130.13483,130.14053,
+#'            131.13824,150.26431,155.08147,156.07658,159.07658,
+#'            173.14934,175.05345,175.15630,176.13777,176.15942,
+#'            176.72833,187.07147,188.15984,203.04829,203.35188,
+#'            204.05164,219.14928,227.06596,229.16634,230.16991,
+#'            231.17354,232.95274,248.17976,268.16522,315.25906,
+#'            318.07504,319.07828,333.21524,361.11679,361.20996,
+#'            372.28027,376.27521,377.27872,389.11212,390.11490,
+#'            404.25201,432.24750,489.26880,489.35962,504.09521,
+#'            510.33450,515.28448,527.35297,533.29462,542.31720,
+#'            560.34607,577.31445,588.33716,594.34283,599.39276,
+#'            602.44226,604.36749,614.35211,632.36328,659.46362,
+#'            694.44006,694.93970,695.39063,707.20782,734.39813,
+#'            752.41211,753.41321,756.51660,757.52002,830.91998,
+#'            851.48267,852.48303,855.58301,899.52069,956.62952,
+#'            1027.66833,1230.73962,1232.75513,1233.75024)
+#' 
+#' find_ppm_outer_bycombi(theos, expts)
 #' }
 find_ppm_outer_bycombi <- function (theos, expts, ppm_ms2 = 25L) 
 {
-  d <- sim_outer(theos, expts, "find_ppm_error")
+  d <- outer(theos, expts, "find_ppm_error")
   row_cols <- which(abs(d) <= ppm_ms2, arr.ind = TRUE)
   
   e1 <- expts[row_cols[, 2]]
@@ -1653,38 +1855,6 @@ calc_peploc <- function (x)
   x0 <- x0[, -c("uniq_id3")]
 
   invisible(x0)
-}
-
-
-
-#' From \link[base]{outer}.
-#' 
-#' @param X A numeric vector.
-#' @param Y A numeric vector.
-#' @param FUN A function to be used for the outer products.
-#' @param ... Optional arguments for \code{FUN}.
-sim_outer <- function (X, Y, FUN = "*", ...) 
-{
-  dX <- length(X)
-  dY <- length(Y)
-  
-  robj <- 
-    if (is.character(FUN) && FUN == "*") {
-      if (!missing(...)) 
-        stop("using ... with FUN = \"*\" is an error")
-      tcrossprod(as.vector(X), as.vector(Y))
-    } else {
-      FUN <- match.fun(FUN)
-      Y <- rep(Y, rep.int(dX, dY))
-      if (dX) 
-        X <- rep(X, times = ceiling(dY/dX))
-      
-      FUN(X, Y, ...)
-    }
-  
-  dim(robj) <- c(dX, dY)
-  
-  robj
 }
 
 

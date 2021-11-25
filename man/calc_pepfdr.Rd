@@ -6,7 +6,7 @@
 \usage{
 calc_pepfdr(
   out,
-  nms = "rev_2",
+  nms,
   target_fdr = 0.01,
   fdr_type = "psm",
   min_len = 7L,
@@ -23,11 +23,11 @@ calc_pepfdr(
 
 \item{fdr_type}{Character string; the type of FDR for controlling.}
 
-\item{min_len}{Integer; the minimum length of peptides. Shorter peptides will
-be excluded.}
+\item{min_len}{A positive integer; the minimum length of peptides. Shorter
+peptides will be excluded.}
 
-\item{max_len}{Integer; the maximum length of peptides. Longer peptides will
-be excluded.}
+\item{max_len}{A positive integer; the maximum length of peptides. Longer
+peptides will be excluded.}
 
 \item{out_path}{A file path of outputs.}
 }

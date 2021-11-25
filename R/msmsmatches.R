@@ -1,7 +1,7 @@
 #' Searches for MS ions.
 #'
 #' Database searches of MSMS data.
-#' 
+#'
 #' @param out_path A file path of outputs.
 #' @param mgf_path The file path to a list of MGF files. The experimenters need
 #'   to supply the files. Note that the supported MGFs are from MSConvert or
@@ -19,9 +19,12 @@
 #'   custom examples.
 #' @param fixedmods A character vector of fixed modifications. See also
 #'   \link{parse_unimod} for grammars.
-#' @param varmods A character vector of variable modifications.
+#' @param varmods A character vector of variable modifications. Multiple
+#'   modifications to the same residue are allowed, for example, both a less
+#'   common \code{Carbamyl (M)} and a common \code{Oxidation (M)}.
 #' @param exclude_phospho_nl If TRUE, excludes neutral losses in the MS2 ion
-#'   searches against variable modifications of phospho sites.
+#'   searches against variable modifications of phospho sites. May toggle it to
+#'   \code{FALSE} if search speed against phospho data is not a primary concern.
 #' @param include_insource_nl Logical Logical; if TRUE, includes MS1 precursor
 #'   masses with the losses of neutral species prior to MS2 fragmentation. The
 #'   default is FALSE. The setting at TRUE remains experimenting by allowing
@@ -45,16 +48,25 @@
 #'   combinatorial variable modifications per peptide sequence. The default is
 #'   64. May consider a smaller value, i.e. 32, when searching against
 #'   phosphopeptide data.
-#' @param min_len Integer; the minimum length of peptides. Shorter peptides will
-#'   be excluded.
-#' @param max_len Integer; the maximum length of peptides. Longer peptides will
-#'   be excluded.
-#' @param max_miss The maximum number of mis-cleavages per peptide sequence.
-#' @param min_mass The minimum precursor mass for interrogation.
-#' @param max_mass The maximum precursor mass for interrogation.
-#' @param min_ms2mass The minimum MS2 mass for interrogation.
-#' @param n_13c The maximum number of 13C off-sets for consideration in MS1
-#'   masses.
+#' @param min_len A positive integer; the minimum length of peptides. Shorter
+#'   peptides will be excluded.
+#' @param max_len A positive integer; the maximum length of peptides. Longer
+#'   peptides will be excluded.
+#' @param max_miss A non-negative integer; the maximum number of mis-cleavages
+#'   per peptide sequence.
+#' @param min_mass A non-negative integer; the minimum precursor mass for
+#'   interrogation.
+#' @param max_mass A non-negative integer; the maximum precursor mass for
+#'   interrogation.
+#' @param min_ms2mass A non-negative integer; the minimum MS2 mass for
+#'   interrogation.
+#' @param n_13c A non-negative integer; the maximum number of 13C off-sets for
+#'   consideration in MS1 masses. The default is 0 with no off-sets.
+#'   Peak-pickings by various MGF conversion tools may have attempted to adjust
+#'   precursor masses to the corresponding mono-isotopic masses in isotope
+#'   envelopes. Nevertheless, by setting \code{n_13c = 1}, another 1% increase
+#'   in the number of PSM may be readily achieved at a relatively small cost of
+#'   search time.
 #' @param type_ms2ions Character; the type of
 #'   \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 #'   ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
@@ -63,13 +75,17 @@
 #'   ion searches. The default is to use the top-100 ions in an MS2 event.
 #' @param minn_ms2 Integer; the minimum number of MS2 ions for consideration as
 #'   a hit.
-#' @param ppm_ms1 The mass tolerance of MS1 species.
-#' @param ppm_ms2 The mass tolerance of MS2 species.
-#' @param ppm_reporters The mass tolerance of MS2 reporter ions.
+#' @param ppm_ms1 A positive integer; the mass tolerance of MS1 species.
+#' @param ppm_ms2 A positive integer; the mass tolerance of MS2 species.
+#' @param ppm_reporters A positive integer; the mass tolerance of MS2 reporter
+#'   ions.
 #' @param quant A quantitation method. The default is "none". Additional choices
-#'   include \code{tmt6} etc. For other multiplicities of \code{tmt}, use the
-#'   compatible higher plexes, for example, \code{tmt16} for \code{tmt12} etc.
-#'   and \code{tmt10} for \code{tmt8} etc.
+#'   include \code{tmt6, tmt10, tmt11, tmt16 and tmt18}. For other
+#'   multiplicities of \code{tmt}, use the compatible higher plexes. For
+#'   example, apply \code{tmt16} for \code{tmt12} provided a set of 12-plexes
+#'   being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It is also
+#'   possible that an experimenter may construct a \code{tmt12} from a 18-plex
+#'   TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is suitable.
 #' @param target_fdr Numeric; a targeted false-discovery rate (FDR) at the
 #'   levels of PSM, peptide or protein. See also argument \code{fdr_type}.
 #' @param fdr_type Character string; the type of FDR control. The value is in

@@ -16,7 +16,9 @@ representation of amino acids.}
 \item{fixedmods}{A character vector of fixed modifications. See also
 \link{parse_unimod} for grammars.}
 
-\item{varmods}{A character vector of variable modifications.}
+\item{varmods}{A character vector of variable modifications. Multiple
+modifications to the same residue are allowed, for example, both a less
+common \code{Carbamyl (M)} and a common \code{Oxidation (M)}.}
 }
 \description{
 A sequence may be invalide at a given set of fixedmods and varmods. For

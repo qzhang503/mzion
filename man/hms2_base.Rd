@@ -165,11 +165,12 @@ phosphopeptide data.}
 \item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
 a hit.}
 
-\item{ppm_ms1}{The mass tolerance of MS1 species.}
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
 
-\item{ppm_ms2}{The mass tolerance of MS2 species.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
 
-\item{min_ms2mass}{The minimum MS2 mass for interrogation.}
+\item{min_ms2mass}{A non-negative integer; the minimum MS2 mass for
+interrogation.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 

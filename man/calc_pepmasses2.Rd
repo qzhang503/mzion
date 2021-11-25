@@ -60,7 +60,8 @@ searches. A more systemically approach such as \code{open} MS1 masses might
 be developed in the future.}
 
 \item{exclude_phospho_nl}{If TRUE, excludes neutral losses in the MS2 ion
-searches against variable modifications of phospho sites.}
+searches against variable modifications of phospho sites. May toggle it to
+\code{FALSE} if search speed against phospho data is not a primary concern.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from proteins. The enzyme
@@ -86,8 +87,13 @@ be excluded.}
 
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
 
-\item{n_13c}{The maximum number of 13C off-sets for consideration in MS1
-masses.}
+\item{n_13c}{A non-negative integer; the maximum number of 13C off-sets for
+consideration in MS1 masses. The default is 0 with no off-sets.
+Peak-pickings by various MGF conversion tools may have attempted to adjust
+precursor masses to the corresponding mono-isotopic masses in isotope
+envelopes. Nevertheless, by setting \code{n_13c = 1}, another 1% increase
+in the number of PSM may be readily achieved at a relatively small cost of
+search time.}
 
 \item{out_path}{An output path.}
 

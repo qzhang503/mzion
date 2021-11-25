@@ -258,7 +258,6 @@
 #             calc_probi_byvmods
 #               add_seions
 #               find_ppm_outer_bycombi
-#                 sim_outer
 
 
 ## calc_protfdr (scores.R)

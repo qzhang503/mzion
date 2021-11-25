@@ -30,7 +30,7 @@ MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 
 \item{ret_range}{The range of retention time in seconds.}
 
-\item{ppm_ms2}{The mass tolerance of MS2 species.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
 
 \item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
 

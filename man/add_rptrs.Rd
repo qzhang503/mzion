@@ -10,9 +10,12 @@ add_rptrs(df = NULL, quant = "none", out_path = NULL)
 \item{df}{Results from \link{calc_protfdr}.}
 
 \item{quant}{A quantitation method. The default is "none". Additional choices
-include \code{tmt6} etc. For other multiplicities of \code{tmt}, use the
-compatible higher plexes, for example, \code{tmt16} for \code{tmt12} etc.
-and \code{tmt10} for \code{tmt8} etc.}
+include \code{tmt6, tmt10, tmt11, tmt16 and tmt18}. For other
+multiplicities of \code{tmt}, use the compatible higher plexes. For
+example, apply \code{tmt16} for \code{tmt12} provided a set of 12-plexes
+being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It is also
+possible that an experimenter may construct a \code{tmt12} from a 18-plex
+TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is suitable.}
 
 \item{out_path}{A file path of outputs.}
 }

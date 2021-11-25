@@ -22,7 +22,7 @@ bin_ms1masses(
 
 \item{max_mass}{A maximum mass of precursors.}
 
-\item{ppm_ms1}{The mass tolerance of MS1 species.}
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
 
 \item{use_ms1_cache}{Logical; if TRUE, use cached precursor masses.
 

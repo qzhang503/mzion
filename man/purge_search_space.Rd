@@ -24,7 +24,7 @@ acid residues.}
 to supply the files. Note that the supported MGFs are from MSConvert or
 Proteome Discoverer.}
 
-\item{ppm_ms1}{The mass tolerance of MS1 species.}
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
 
 \item{fmods_nl}{The attribute of \code{fmods_nl} from an \code{aa_masses}.}
 }

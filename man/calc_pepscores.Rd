@@ -35,16 +35,16 @@ is equivalent to \code{fdr_type = peptide} with the additional filtration
 of data at \code{prot_tier == 1}. A variant is to set \code{fdr_type =
 psm}, followed by a data filtration at \code{prot_tier == 1}.}
 
-\item{min_len}{Integer; the minimum length of peptides. Shorter peptides will
-be excluded.}
+\item{min_len}{A positive integer; the minimum length of peptides. Shorter
+peptides will be excluded.}
 
-\item{max_len}{Integer; the maximum length of peptides. Longer peptides will
-be excluded.}
+\item{max_len}{A positive integer; the maximum length of peptides. Longer
+peptides will be excluded.}
 
 \item{penalize_sions}{Logical; if TRUE, penalizes secondary ions of b0, y0
 etc. with lower weights in peptide scoring.}
 
-\item{ppm_ms2}{The mass tolerance of MS2 species.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
 
 \item{out_path}{A file path of outputs.}
 

@@ -67,18 +67,23 @@ phosphopeptide data.}
 \item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
 a hit.}
 
-\item{ppm_ms1}{The mass tolerance of MS1 species.}
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
 
-\item{ppm_ms2}{The mass tolerance of MS2 species.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
 
-\item{min_ms2mass}{The minimum MS2 mass for interrogation.}
+\item{min_ms2mass}{A non-negative integer; the minimum MS2 mass for
+interrogation.}
 
 \item{quant}{A quantitation method. The default is "none". Additional choices
-include \code{tmt6} etc. For other multiplicities of \code{tmt}, use the
-compatible higher plexes, for example, \code{tmt16} for \code{tmt12} etc.
-and \code{tmt10} for \code{tmt8} etc.}
+include \code{tmt6, tmt10, tmt11, tmt16 and tmt18}. For other
+multiplicities of \code{tmt}, use the compatible higher plexes. For
+example, apply \code{tmt16} for \code{tmt12} provided a set of 12-plexes
+being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It is also
+possible that an experimenter may construct a \code{tmt12} from a 18-plex
+TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is suitable.}
 
-\item{ppm_reporters}{The mass tolerance of MS2 reporter ions.}
+\item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
+ions.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenters need to supply the files.}
@@ -100,7 +105,9 @@ ion searches. The default is to use the top-100 ions in an MS2 event.}
 \item{fixedmods}{A character vector of fixed modifications. See also
 \link{parse_unimod} for grammars.}
 
-\item{varmods}{A character vector of variable modifications.}
+\item{varmods}{A character vector of variable modifications. Multiple
+modifications to the same residue are allowed, for example, both a less
+common \code{Carbamyl (M)} and a common \code{Oxidation (M)}.}
 
 \item{include_insource_nl}{Logical Logical; if TRUE, includes MS1 precursor
 masses with the losses of neutral species prior to MS2 fragmentation. The
@@ -120,13 +127,14 @@ fasta files.}
 \item{maxn_vmods_setscombi}{Integer; the maximum number of combinatorial
 variable modifications and neutral losses.}
 
-\item{min_len}{Integer; the minimum length of peptides. Shorter peptides will
-be excluded.}
+\item{min_len}{A positive integer; the minimum length of peptides. Shorter
+peptides will be excluded.}
 
-\item{max_len}{Integer; the maximum length of peptides. Longer peptides will
-be excluded.}
+\item{max_len}{A positive integer; the maximum length of peptides. Longer
+peptides will be excluded.}
 
-\item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
+\item{max_miss}{A non-negative integer; the maximum number of mis-cleavages
+per peptide sequence.}
 
 \item{target_fdr}{Numeric; a targeted false-discovery rate (FDR) at the
 levels of PSM, peptide or protein. See also argument \code{fdr_type}.}

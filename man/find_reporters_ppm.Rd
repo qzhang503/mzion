@@ -12,7 +12,8 @@ find_reporters_ppm(theos, expts, ppm_reporters = 10, len, nms)
 \item{expts}{Numeric vector; a series of experimental MS2s (in the region of
 reporter ions).}
 
-\item{ppm_reporters}{The mass tolerance of MS2 reporter ions.}
+\item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
+ions.}
 
 \item{len}{The length of reporter-ion plexes.}
 

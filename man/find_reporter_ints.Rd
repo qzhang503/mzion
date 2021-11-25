@@ -25,7 +25,8 @@ the region of reporter ions).}
 
 \item{ul}{The upper and lower bound for reporter-ion m-over-z's.}
 
-\item{ppm_reporters}{The mass tolerance of MS2 reporter ions.}
+\item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
+ions.}
 
 \item{len}{The length of reporter-ion plexes.}
 
