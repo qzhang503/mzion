@@ -614,17 +614,19 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                           max_len = max_len, 
                           out_path = out_path)
   
-  prob_cos <- local({
-    idxes <- prob_cos %>% .[. <= target_fdr]
-    
-    fct_homol <- if (length(idxes)) 
-      target_fdr/max(idxes, na.rm = TRUE)
-    else 
-      1L
+  if (TRUE) {
+    prob_cos <- local({
+      idxes <- prob_cos %>% .[. <= target_fdr]
+      
+      fct_homol <- if (length(idxes)) 
+        target_fdr/max(idxes, na.rm = TRUE)
+      else 
+        1L
+      
+      prob_cos <- prob_cos * fct_homol
+    })
+  }
 
-    prob_cos <- prob_cos * fct_homol
-  })
-  
   ## Outputs
   prob_cos <- prob_cos%>% 
     data.frame(pep_len = as.numeric(names(.)), pep_prob_co = .) 
@@ -962,7 +964,6 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path)
         error = function (e) NA)
     )
     
-    # p <- suppressWarnings(
     #   ggplot(df, aes(x = x, y = y)) + 
     #     geom_point() + 
     #     stat_smooth(method = "nls", formula = y ~ SSlogis(x, Asym, xmid, scal), 
@@ -970,12 +971,7 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path)
     #     geom_hline(yintercept = target_fdr, size = .5) + 
     #     scale_x_continuous(minor_breaks = seq(1, 100, 10)) + 
     #     labs(title = paste("pep_len = ", len), x = "Score", y = "Prob")
-    # )
-    # 
-    # try(suppressMessages(
-    #   ggsave(filename = file.path(out_path, "temp", paste0("peplen_sco_", len, ".png")))
-    # ))
-    
+
     if (!all(is.na(fit))) {
       newx <- min(df$x, na.rm = TRUE):max(df$x, na.rm = TRUE)
       newy <- predict(fit, data.frame(x = newx)) %>% `names<-`(newx)
@@ -1200,15 +1196,16 @@ calc_pepfdr <- function (out, nms, target_fdr = .01, fdr_type = "psm",
     
     valley <- find_probco_valley(prob_cos)
     best_co <- -log10(prob_cos[as.character(valley)])
-    
-    # low cut-offs at high pep_len may be by chance
+
     prob_cos <- local({
-      len <- length(prob_cos)
-      prs <- prob_cos[valley:len]
-      prs[prs > .02] <- NA
-      prob_cos[valley:len] <- prs
+      start <- which(names(prob_cos) == valley)
+      end <- length(prob_cos)
+      x <- -log10(prob_cos[start:end])
+      ans <- tsoutliers(x)
+      x[ans$index] <- ans$replacements
+      prob_cos[start:end] <- 1/10^x
       
-      prob_cos[!is.na(prob_cos)]
+      prob_cos
     })
     
     ## fittings
@@ -1216,11 +1213,11 @@ calc_pepfdr <- function (out, nms, target_fdr = .01, fdr_type = "psm",
 
     # valley left
     df_left <- df[df$x <= valley, ]
-    rank_left <- 4L
+    rank_left <- 4L # often results in: originals == fitted <-> no fitting
     
     fit_left <- if (nrow(df_left) <= rank_left) {
       lm(y ~ x, df_left)
-    }
+    } 
     else {
       local({
         fit_ns <- tryCatch(
@@ -1235,7 +1232,7 @@ calc_pepfdr <- function (out, nms, target_fdr = .01, fdr_type = "psm",
         
         res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
         res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
-
+        
         if (res1 <= res2) fit_ns else fit_bs
       })
     }
@@ -1246,10 +1243,26 @@ calc_pepfdr <- function (out, nms, target_fdr = .01, fdr_type = "psm",
 
     # valley right (small rank to down-weight wiggly high `pep_len` points)
     df_right <- df[df$x > valley, ]
-    rank_right <- 2L
+    rank_right <- 3L # changed from 2 to 3
     
     if (nrow(df_right) > rank_right) {
-      fit_right <- lm(y ~ splines::ns(x, rank_right), df_right)
+      # fit_right <- lm(y ~ splines::ns(x, rank_right), df_right)
+      fit_right <- local({
+        fit_ns <- tryCatch(
+          lm(y ~ splines::ns(x, rank_right), df_right),
+          error = function(e) NA
+        )
+        
+        fit_bs <- tryCatch(
+          lm(y ~ splines::bs(x, rank_right), df_right),
+          error = function(e) NA
+        )
+        
+        res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
+        res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
+        
+        if (res1 <= res2) fit_ns else fit_bs
+      })
 
       newx_right <- min(df_right$x, na.rm = TRUE):max(df_right$x, na.rm = TRUE)
       newy_right <- predict(fit_right, data.frame(x = newx_right))
@@ -1286,7 +1299,7 @@ calc_pepfdr <- function (out, nms, target_fdr = .01, fdr_type = "psm",
       pdf(file.path(out_path, "pepscore_len.pdf")) 
       plot(y ~ x, df_new, col = c(rep("blue", n_row), rep("red", n_row2)), 
            xlab = "pep_len", ylab = "score_co", pch = 19)
-      legend("bottomright", legend = c("Original", "Fitted"), 
+      legend("topright", legend = c("Original", "Fitted"), 
              col = c("blue", "red"), pch = 19, bty = "n")
       dev.off()
       
@@ -1295,8 +1308,8 @@ calc_pepfdr <- function (out, nms, target_fdr = .01, fdr_type = "psm",
     })
 
     prob_cos <- 10^-newy
-    
-  } else {
+  } 
+  else {
     seqs <- min_len : max_len
     prob_cos <- rep(.05, length(seqs))
     names(prob_cos) <- seqs
@@ -1856,5 +1869,141 @@ calc_peploc <- function (x)
 
   invisible(x0)
 }
+
+
+### From package "forecast"
+
+na.interp <- function (x, lambda = NULL, 
+                       linear = (frequency(x) <= 1 | 
+                                   sum(!is.na(x)) <= 2 * frequency(x))) 
+{
+  missng <- is.na(x)
+  if (sum(missng) == 0L) {
+    return(x)
+  }
+  origx <- x
+  rangex <- range(x, na.rm = TRUE)
+  drangex <- rangex[2L] - rangex[1L]
+  if (is.null(tsp(x))) {
+    x <- ts(x)
+  }
+  if (length(dim(x)) > 1) {
+    if (NCOL(x) == 1) {
+      x <- x[, 1]
+    }
+    else {
+      stop("The time series is not univariate.")
+    }
+  }
+  if (!is.null(lambda)) {
+    x <- BoxCox(x, lambda = lambda)
+    lambda <- attr(x, "lambda")
+  }
+  freq <- frequency(x)
+  tspx <- tsp(x)
+  n <- length(x)
+  tt <- 1:n
+  idx <- tt[!missng]
+  if (linear) {
+    x <- ts(approx(idx, x[idx], tt, rule = 2)$y)
+  }
+  else {
+    if ("msts" %in% class(x)) {
+      K <- pmin(trunc(attributes(x)$msts/2), 20L)
+    }
+    else {
+      K <- min(trunc(freq/2), 5)
+    }
+    X <- cbind(fourier(x, K), poly(tt, degree = pmin(pmax(trunc(n/10), 
+                                                          1), 6L)))
+    fit <- lm(x ~ X, na.action = na.exclude)
+    pred <- predict(fit, newdata = data.frame(X))
+    x[missng] <- pred[missng]
+    fit <- mstl(x, robust = TRUE)
+    sa <- seasadj(fit)
+    sa <- approx(idx, sa[idx], 1:n, rule = 2)$y
+    seas <- seasonal(fit)
+    if (NCOL(seas) > 1) {
+      seas <- rowSums(seas)
+    }
+    x[missng] <- sa[missng] + seas[missng]
+  }
+  if (!is.null(lambda)) {
+    x <- InvBoxCox(x, lambda = lambda)
+  }
+  tsp(x) <- tspx
+  if (!linear & (max(x) > rangex[2L] + 0.5 * drangex | min(x) < 
+                 rangex[1L] - 0.5 * drangex)) 
+    return(na.interp(origx, lambda = lambda, linear = TRUE))
+  else return(x)
+}
+
+is.constant <- function (x) 
+{
+  x <- as.numeric(x)
+  y <- rep(x[1], length(x))
+  return(isTRUE(all.equal(x, y)))
+}
+
+
+tsoutliers <- 
+  function (x, iterate = 2, lambda = NULL) 
+  {
+    n <- length(x)
+    freq <- frequency(x)
+    missng <- is.na(x)
+    nmiss <- sum(missng)
+    if (nmiss > 0L) {
+      xx <- na.interp(x, lambda = lambda)
+    }
+    else {
+      xx <- x
+    }
+    if (is.constant(xx)) {
+      return(list(index = integer(0), replacements = numeric(0)))
+    }
+    if (!is.null(lambda)) {
+      xx <- BoxCox(xx, lambda = lambda)
+      lambda <- attr(xx, "lambda")
+    }
+    if (freq > 1 && n > 2 * freq) {
+      fit <- mstl(xx, robust = TRUE)
+      rem <- remainder(fit)
+      detrend <- xx - trendcycle(fit)
+      strength <- 1 - var(rem)/var(detrend)
+      if (strength >= 0.6) {
+        xx <- seasadj(fit)
+      }
+    }
+    tt <- 1:n
+    mod <- supsmu(tt, xx)
+    resid <- xx - mod$y
+    if (nmiss > 0L) {
+      resid[missng] <- NA
+    }
+    resid.q <- quantile(resid, probs = c(0.25, 0.75), na.rm = TRUE)
+    iqr <- diff(resid.q)
+    limits <- resid.q + 3 * iqr * c(-1, 1)
+    if ((limits[2] - limits[1]) > 1e-14) {
+      outliers <- which((resid < limits[1]) | (resid > limits[2]))
+    }
+    else {
+      outliers <- numeric(0)
+    }
+    x[outliers] <- NA
+    x <- na.interp(x, lambda = lambda)
+    if (iterate > 1) {
+      tmp <- tsoutliers(x, iterate = 1, lambda = lambda)
+      if (length(tmp$index) > 0) {
+        outliers <- sort(unique(c(outliers, tmp$index)))
+        x[outliers] <- NA
+        if (sum(!is.na(x)) == 1L) {
+          x[is.na(x)] <- x[!is.na(x)]
+        }
+        else x <- na.interp(x, lambda = lambda)
+      }
+    }
+    return(list(index = outliers, replacements = x[outliers]))
+  }
 
 
