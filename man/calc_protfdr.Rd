@@ -4,12 +4,16 @@
 \alias{calc_protfdr}
 \title{Calculates the cut-offs of protein scores.}
 \usage{
-calc_protfdr(out, target_fdr = 0.01)
+calc_protfdr(df, target_fdr = 0.01, out_path)
 }
 \arguments{
-\item{out}{An output from upstream steps.}
+\item{df}{An output from upstream steps.}
 
 \item{target_fdr}{Numeric; the levels of false-discovery rate (FDR).}
+
+\item{out_path}{A file path of outputs.}
+
+\item{outpath}{An output path.}
 }
 \description{
 Calculates the cut-offs of protein scores.

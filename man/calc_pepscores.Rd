@@ -14,6 +14,24 @@ calc_pepscores(
   penalize_sions = FALSE,
   ppm_ms2 = 25L,
   out_path = "~/proteoM/outs",
+  mgf_path,
+  maxn_vmods_per_pep,
+  maxn_sites_per_vmod,
+  maxn_vmods_sitescombi_per_pep,
+  minn_ms2,
+  ppm_ms1,
+  min_ms2mass,
+  quant,
+  ppm_reporters,
+  fasta,
+  acc_type,
+  acc_pattern,
+  fixedmods,
+  varmods,
+  include_insource_nl,
+  enzyme,
+  maxn_fasta_seqs,
+  maxn_vmods_setscombi,
   digits = 5L
 )
 }
@@ -47,6 +65,80 @@ etc. with lower weights in peptide scoring.}
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
 
 \item{out_path}{A file path of outputs.}
+
+\item{mgf_path}{The file path to a list of MGF files. The experimenters need
+to supply the files. Note that the supported MGFs are from MSConvert or
+Proteome Discoverer.}
+
+\item{maxn_vmods_per_pep}{The maximum number of \code{Anywhere}
+(non-terminal) variable modifications per peptide.}
+
+\item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
+\code{Anywhere} (non-terminal) variable modifications per site in a per
+peptide sequence.}
+
+\item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
+combinatorial variable modifications per peptide sequence. The default is
+64. May consider a smaller value, i.e. 32, when searching against
+phosphopeptide data.}
+
+\item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
+a hit.}
+
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
+
+\item{min_ms2mass}{A non-negative integer; the minimum MS2 mass for
+interrogation.}
+
+\item{quant}{A quantitation method. The default is "none". Additional choices
+include \code{tmt6, tmt10, tmt11, tmt16 and tmt18}. For other
+multiplicities of \code{tmt}, use the compatible higher plexes. For
+example, apply \code{tmt16} for \code{tmt12} provided a set of 12-plexes
+being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It is also
+possible that an experimenter may construct a \code{tmt12} from a 18-plex
+TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is suitable.}
+
+\item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
+ions.}
+
+\item{fasta}{Character string(s) to the name(s) of fasta file(s) with
+prepended directory path. The experimenters need to supply the files.}
+
+\item{acc_type}{Character string(s); the types of protein accessions in one
+of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
+the corresponding regular expressions need to be supplied via argument
+\code{acc_pattern}.}
+
+\item{acc_pattern}{Regular expression(s) describing the patterns to separate
+the header lines of fasta entries. At the \code{NULL} default, the pattern
+will be automated when \code{acc_type} are among c("uniprot_acc",
+"uniprot_id", "refseq_acc", "other"). See also \link{load_fasta2} for
+custom examples.}
+
+\item{fixedmods}{A character vector of fixed modifications. See also
+\link{parse_unimod} for grammars.}
+
+\item{varmods}{A character vector of variable modifications. Multiple
+modifications to the same residue are allowed, for example, both a less
+common \code{Carbamyl (M)} and a common \code{Oxidation (M)}.}
+
+\item{include_insource_nl}{Logical Logical; if TRUE, includes MS1 precursor
+masses with the losses of neutral species prior to MS2 fragmentation. The
+default is FALSE. The setting at TRUE remains experimenting by allowing
+additional masses in the universe of MS1 precursors. The offsets in NLs (by
+adding back precursor masses) have not yet taken into account in MS2 ion
+searches. A more systemically approach such as \code{open} MS1 masses might
+be developed in the future.}
+
+\item{enzyme}{A character string; the proteolytic specificity of the assumed
+enzyme will be used to generate peptide sequences from proteins. The enzyme
+is currently \code{trypsin}.}
+
+\item{maxn_fasta_seqs}{Integer; the maximum number of protein sequences in
+fasta files.}
+
+\item{maxn_vmods_setscombi}{Integer; the maximum number of combinatorial
+variable modifications and neutral losses.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }

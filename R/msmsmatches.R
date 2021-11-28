@@ -224,7 +224,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
     add = TRUE
   )
 
-  ## Tentative not for users
+  ## Tentative; not for users
   if (include_insource_nl) 
     stop("Currently only supports `include_insource_nl = TRUE`.")
   
@@ -274,7 +274,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   # (b) doubles
   target_fdr <- as.double(target_fdr)
   
-  if (target_fdr > .5) 
+  if (target_fdr > .1) 
     stop("Choose a smaller `target_fdr`.", call. = FALSE)
   
   # fdr_type
@@ -417,27 +417,56 @@ matchMS <- function (out_path = "~/proteoM/outs",
            digits = digits)
 
   ## Peptide scores
-  out <- calc_pepscores(topn_ms2ions = topn_ms2ions,
-                        type_ms2ions = type_ms2ions,
-                        target_fdr = target_fdr,
-                        fdr_type = fdr_type,
-                        min_len = min_len,
-                        max_len = max_len,
-                        penalize_sions = TRUE,
-                        ppm_ms2 = ppm_ms2,
-                        out_path = out_path,
-                        digits = digits)
-  
+  calc_pepscores(topn_ms2ions = topn_ms2ions,
+                 type_ms2ions = type_ms2ions,
+                 target_fdr = target_fdr,
+                 fdr_type = fdr_type,
+                 min_len = min_len,
+                 max_len = max_len,
+                 penalize_sions = TRUE,
+                 ppm_ms2 = ppm_ms2,
+                 out_path = out_path,
+                 
+                 # dummies
+                 mgf_path = mgf_path,
+                 maxn_vmods_per_pep = maxn_vmods_per_pep,
+                 maxn_sites_per_vmod = maxn_sites_per_vmod,
+                 maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
+                 minn_ms2 = minn_ms2,
+                 ppm_ms1 = ppm_ms1,
+                 min_ms2mass = min_ms2mass,
+                 quant = quant,
+                 ppm_reporters = ppm_reporters,
+                 fasta = fasta,
+                 acc_type = acc_type,
+                 acc_pattern = acc_pattern,
+                 fixedmods = fixedmods,
+                 varmods = varmods,
+                 include_insource_nl = include_insource_nl,
+                 enzyme = enzyme,
+                 maxn_fasta_seqs = maxn_fasta_seqs,
+                 maxn_vmods_setscombi = maxn_vmods_setscombi,
+                 
+                 digits = digits)
+
+  ## Don't (not yet) cache matching from this point on
+
+  ## Peptide FDR 
+  out <- calc_pepfdr(target_fdr = target_fdr, 
+                     fdr_type = fdr_type, 
+                     min_len = min_len, 
+                     max_len = max_len, 
+                     out_path = out_path) %>% 
+    post_pepfdr(out_path)
+
   ## Peptide ranks and score deltas between `pep_ivmod`
   out <- calc_peploc(out)
-
   gc()
 
   ## Protein accessions, score cut-offs and optional reporter ions
   out <- add_prot_acc(out, out_path)
-  out <- calc_protfdr(out, target_fdr)
+  out <- calc_protfdr(out, target_fdr, out_path)
   out <- add_rptrs(out, quant, out_path)
-
   gc()
 
   ## Clean-ups

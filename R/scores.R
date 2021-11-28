@@ -513,34 +513,81 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             target_fdr = 0.01, fdr_type = "psm", 
                             min_len = 7L, max_len = 50L, 
                             penalize_sions = FALSE, ppm_ms2 = 25L, 
-                            out_path = "~/proteoM/outs", digits = 5L) 
+                            out_path = "~/proteoM/outs", 
+                            
+                            mgf_path, maxn_vmods_per_pep, maxn_sites_per_vmod,
+                            maxn_vmods_sitescombi_per_pep, minn_ms2, ppm_ms1,
+                            min_ms2mass, quant, ppm_reporters,
+                            fasta, acc_type, acc_pattern, fixedmods,
+                            varmods, include_insource_nl, enzyme,
+                            maxn_fasta_seqs, maxn_vmods_setscombi,
+
+                            digits = 5L) 
 {
-  ok_res <- file.path(out_path, "scores.rds")
+  on.exit(
+    if (exists(".savecall", envir = rlang::current_env())) {
+      if (.savecall) {
+        save_call2(path = file.path(out_path, "Calls"), fun = fun)
+      }
+    }, 
+    add = TRUE
+  )
   
-  if (file.exists(ok_res)) {
-    message("Found cached peptide scores.")
-    return(readRDS(ok_res))
+  # Check priors
+  pati <- "^ion_matches_"
+  
+  listi_t <- find_targets(out_path, pattern = pati)$files
+  leni_t <- length(listi_t)
+  
+  if (!leni_t) 
+    stop("No target results with pattern '", pati, "'.")
+  
+  listi_d <- find_decoy(out_path, pattern = pati)$files
+  leni_d <- length(listi_d)
+  
+  if (!leni_d) 
+    stop("No decoy results with pattern '", pati, "'.")
+
+  ## Check cached current
+  fun <- as.character(match.call()[[1]])
+  
+  args_except <- NULL
+  
+  cache_pars <- find_callarg_vals(time = NULL, 
+                                  path = file.path(out_path, "Calls"), 
+                                  fun = paste0(fun, ".rda"), 
+                                  args = names(formals(fun)) %>% 
+                                    .[! . %in% args_except]) %>% 
+    .[sort(names(.))]
+  
+  call_pars <- mget(names(formals()) %>% .[! . %in% args_except], 
+                    envir = rlang::current_env(), 
+                    inherits = FALSE) %>% 
+    .[sort(names(.))]
+  
+  if (identical(cache_pars, call_pars)) {
+    ok_scores <- find_targets(out_path, pattern = "^pepscores_")
+    listsc_t <- ok_scores$files
+    lensc_t <- length(listsc_t)
+    
+    if (lensc_t == leni_t) {
+      message("Found cached 'pepscores_[...]'.")
+      .savecall <- FALSE
+      return(NULL)
+    } 
+    else {
+      message("Recalculating peptide scores (not all 'pepscores_' found).")
+      rm(list = c("listsc_t"))
+    }
   } 
-  
-  
-  dir.create(file.path(out_path, "temp"), recursive = TRUE, showWarnings = FALSE)
-  message("Calculating peptide scores.")
-  
-  ## --- Target ---
-  list_t <- list.files(path = file.path(out_path, "temp"), 
-                       pattern = "^ion_matches_\\d+\\.rds$")
-  
-  if (!length(list_t)) 
-    stop("Target matches not found.", call. = FALSE)
-  
-  nms_t <- gsub("^ion_matches_(\\d+)\\.rds$", "\\1", list_t)
-  
-  ord <- order(as.integer(nms_t))
-  nms_t <- nms_t[ord]
-  list_t <- list_t[ord]
-  
-  for (i in seq_along(list_t)) {
-    calcpepsc(file = list_t[i], 
+  else {
+    message("Calculating peptide scores.")
+    dir.create(file.path(out_path, "temp"), recursive = TRUE, showWarnings = FALSE)
+    rm(list = c("args_except", "cache_pars", "call_pars"))
+  }
+
+  for (i in seq_along(listi_t)) {
+    calcpepsc(file = listi_t[i], 
               topn_ms2ions = topn_ms2ions, 
               type_ms2ions = type_ms2ions, 
               penalize_sions = penalize_sions, 
@@ -551,115 +598,56 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     gc()
   }
   
-  ## --- Decoy ---
-  list_d <- list.files(path = file.path(out_path, "temp"), 
-                       pattern = "^ion_matches_rev_[0-9]+\\.rds$")
+  calcpepsc(file = listi_d, 
+            topn_ms2ions = topn_ms2ions, 
+            type_ms2ions = type_ms2ions, 
+            penalize_sions = penalize_sions, 
+            ppm_ms2 = ppm_ms2, 
+            out_path = out_path, 
+            digits = digits)
+
+  .savecall <- TRUE
   
-  if (!length(list_d)) 
-    stop("Decoy matches not found.", call. = FALSE)
-  
+  invisible(NULL)
+}
+
+
+#' Find the index or name of decoy results.
+#' 
+#' @param pattern The pattern of files.
+#' @inheritParams matchMS
+find_decoy <- function (out_path, pattern = "^ion_matches_") 
+{
+  pat <- paste0(pattern, "rev_[0-9]+\\.rds$")
+  list_d <- list.files(path = file.path(out_path, "temp"), pattern = pat)
+
   if (length(list_d) > 1L) {
-    warning("More than one decoy matches found: '", decoy, "'.\n", 
-            "The first will be used.", call. = FALSE)
-    list_d <- list_d[[1]]
+    warning("More than one decoy results found; ", 
+            "'", list_d[1], "' will be used.", call. = FALSE)
+    list_d <- list_d[1]
   }
   
-  nms_d <- gsub("^ion_matches_(rev_[0-9]+)\\.rds$", "\\1", list_d)
+  nms_d <- gsub(paste0(pattern, "(rev_[0-9]+)\\.rds$"), "\\1", list_d)
   
-  rev <- calcpepsc(file = list_d, 
-                   topn_ms2ions = topn_ms2ions, 
-                   type_ms2ions = type_ms2ions, 
-                   penalize_sions = penalize_sions, 
-                   ppm_ms2 = ppm_ms2, 
-                   out_path = out_path, 
-                   digits = digits)
-  
-  if (is.null(rev)) 
-    rev <- readRDS(file.path(out_path, "temp", paste0("pepscores_", nms_d, ".rds")))
-  
-  rev <- rev %>% 
-    list() %>% 
-    `names<-`(nms_d)
+  list(idxes = nms_d, files = list_d)
+}
 
-  ## --- FDR (target + decoy) --- 
-  # Reload targets
-  out <- local({
-    files <- list.files(path = file.path(out_path, "temp"), 
-                        pattern = "^pepscores_\\d+\\.rds$")
-    
-    if (!length(files)) 
-      stop("Target scores not found.", call. = FALSE)
-    
-    nms <- gsub("^pepscores_(\\d+)\\.rds$", "\\1", files)
-    
-    ord <- order(as.integer(nms))
-    nms <- nms[ord]
-    files <- files[ord]
-    
-    out <- lapply(files, function (x) readRDS(file.path(out_path, "temp", x)))
-    names(out) <- nms
-    
-    out <- c(out, rev)
-  })
-  
-  rm(list = c("rev"))
-  gc()
-  
-  ## Probability cut-offs
-  prob_cos <- calc_pepfdr(out, 
-                          nms = nms_d, 
-                          target_fdr = target_fdr, 
-                          fdr_type = fdr_type, 
-                          min_len = min_len, 
-                          max_len = max_len, 
-                          out_path = out_path)
-  
-  if (TRUE) {
-    prob_cos <- local({
-      idxes <- prob_cos %>% .[. <= target_fdr]
-      
-      fct_homol <- if (length(idxes)) 
-        target_fdr/max(idxes, na.rm = TRUE)
-      else 
-        1L
-      
-      prob_cos <- prob_cos * fct_homol
-    })
-  }
 
-  ## Outputs
-  prob_cos <- prob_cos%>% 
-    data.frame(pep_len = as.numeric(names(.)), pep_prob_co = .) 
-
-  fct_score <- 10
+#' Find the index or name of target results.
+#' 
+#' @param out_path An output path.
+#' @param pattern The pattern of files.
+find_targets <- function (out_path, pattern = "^ion_matches_") 
+{
+  pat <- paste0(pattern, "[0-9]+\\.rds$")
+  list_t <- list.files(path = file.path(out_path, "temp"), pattern = pat)
   
-  oks <- purrr::map_lgl(out, function (x) nrow(x) > 0L)
-  out <- dplyr::bind_rows(out[oks])
+  nms_t <- gsub(paste0(pattern, "(\\d+)\\.rds$"), "\\1", list_t)
+  ord <- order(as.integer(nms_t))
+  nms_t <- nms_t[ord]
+  list_t <- list_t[ord]
   
-  if (!nrow(out)) 
-    stop("No PSM matches for scoring. Consider different search parameters.", 
-         call. = FALSE)
-
-  # Adjusted p-values
-  out <- out %>% 
-    dplyr::left_join(prob_cos, by = "pep_len") %>% 
-    dplyr::mutate(pep_issig = ifelse(pep_prob <= pep_prob_co, TRUE, FALSE), 
-                  pep_adjp = p.adjust(pep_prob, "BH"))
-  
-  prob_cos <- purrr::map_dbl(prob_cos$pep_prob_co, function (x) {
-    row <- which.min(abs(log10(out$pep_prob/x)))
-    out[row, ]$pep_adjp
-  }) %>% 
-    dplyr::bind_cols(prob_cos, pep_adjp_co = .) %T>% 
-    saveRDS(file.path(out_path, "temp", "pep_prob_cos.rds"))
-  
-  out <- out %>% 
-    dplyr::left_join(prob_cos[, c("pep_len", "pep_adjp_co")], by = "pep_len") %>% 
-    dplyr::mutate(pep_score = -log10(pep_adjp) * fct_score, 
-                  pep_score = ifelse(pep_score > 250, 250, pep_score), 
-                  pep_score_co = -log10(pep_adjp_co) * fct_score) %>% 
-    dplyr::select(-c("pep_prob", "pep_adjp", "pep_prob_co", "pep_adjp_co")) %T>%
-    saveRDS(ok_res)
+  list(idxes = nms_t, files = list_t)
 }
 
 
@@ -693,7 +681,8 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     colnames(dfb) <- cols_scores
     saveRDS(dfb, file.path(out_path, "temp", paste0("pepscores_", idx, ".rds")))
     
-    return (NULL)
+    return (dfb)
+    # return (NULL)
   }
   
   df$uniq_id <- paste(df$scan_num, df$raw_file, sep = "@")
@@ -729,16 +718,6 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     parallel::clusterExport(cl, list("scalc_pepprobs"), 
                             envir = environment(proteoM:::scalc_pepprobs))
 
-    # parallel::clusterExport(cl, 
-    #                         list("calc_pepprobs_i", 
-    #                              "scalc_pepprobs", 
-    #                              "calc_probi", 
-    #                              "calc_probi_bypep", 
-    #                              "calc_probi_byvmods", 
-    #                              "add_seions", 
-    #                              "find_ppm_outer_bycombi"), 
-    #                         envir = environment(proteoM:::scalc_pepprobs))
-    
     probs <- parallel::clusterApplyLB(cl, df, 
                                       calc_pepprobs_i, 
                                       topn_ms2ions = topn_ms2ions, 
@@ -931,7 +910,6 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path)
   count <- nrow(td)
   
   if (count < (1 / target_fdr)) {
-    # return(NA)
     if (count <= 20L) 
       return(NA)
     
@@ -964,13 +942,15 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path)
         error = function (e) NA)
     )
     
-    #   ggplot(df, aes(x = x, y = y)) + 
-    #     geom_point() + 
-    #     stat_smooth(method = "nls", formula = y ~ SSlogis(x, Asym, xmid, scal), 
-    #                 se = FALSE) + 
-    #     geom_hline(yintercept = target_fdr, size = .5) + 
-    #     scale_x_continuous(minor_breaks = seq(1, 100, 10)) + 
-    #     labs(title = paste("pep_len = ", len), x = "Score", y = "Prob")
+    if (FALSE) {
+      ggplot(df, aes(x = x, y = y)) + 
+        geom_point() + 
+        stat_smooth(method = "nls", formula = y ~ SSlogis(x, Asym, xmid, scal), 
+                    se = FALSE) + 
+        geom_hline(yintercept = target_fdr, size = .5) + 
+        scale_x_continuous(minor_breaks = seq(1, 100, 10)) + 
+        labs(title = paste("pep_len = ", len), x = "Score", y = "Prob")
+    }
 
     if (!all(is.na(fit))) {
       newx <- min(df$x, na.rm = TRUE):max(df$x, na.rm = TRUE)
@@ -996,7 +976,6 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path)
     )
     
     prob_co <- 10^(-best_co/10)
-    # prob_co <- NA
   }
   
   names(prob_co) <- count
@@ -1067,282 +1046,340 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 #' @inheritParams matchMS
 #' @examples 
 #' \donttest{
-#' out_path <- "~/proteoM/bi_1"
-#' 
-#' # Reload decoy
-#' rev <- local({
-#'   files <- list.files(path = file.path(out_path, "temp"), 
-#'                       pattern = "^pepscores_rev_\\d+\\.rds$")
-#'   
-#'   if (!length(files)) stop("Decoy scores not found.", call. = FALSE)
-#'   
-#'   nms <- gsub("^pepscores_rev_(\\d+)\\.rds$", "\\1", files)
-#'   
-#'   ord <- order(as.integer(nms))
-#'   nms <- nms[ord]
-#'   files <- files[ord]
-#'   
-#'   out <- lapply(files, function (x) readRDS(file.path(out_path, "temp", x)))
-#'   names(out) <- paste0("rev_", nms)
-#'   
-#'   out
-#' })
-#' 
-#' 
-#' # Reload targets and concatenate decoy
-#' out <- local({
-#'   files <- list.files(path = file.path(out_path, "temp"), 
-#'                       pattern = "^pepscores_\\d+\\.rds$")
-#'   
-#'   if (!length(files)) stop("Target scores not found.", call. = FALSE)
-#'   
-#'   nms <- gsub("^pepscores_(\\d+)\\.rds$", "\\1", files)
-#'   
-#'   ord <- order(as.integer(nms))
-#'   nms <- nms[ord]
-#'   files <- files[ord]
-#'   
-#'   out <- lapply(files, function (x) readRDS(file.path(out_path, "temp", x)))
-#'   names(out) <- nms
-#'   
-#'   out <- c(out, rev)
-#' })
-#' 
-#' prob_cos <- calc_pepfdr(out, 
-#'                         nms = "rev_1", 
-#'                         target_fdr = .01, 
+#' prob_cos <- calc_pepfdr(target_fdr = .01, 
 #'                         fdr_type = "protein", 
 #'                         min_len = 7L, 
 #'                         max_len = 50L, 
 #'                         out_path = "~/proteoM/bi_1")
-#' 
 #' }
-calc_pepfdr <- function (out, nms, target_fdr = .01, fdr_type = "psm", 
+calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm", 
                          min_len = 7L, max_len = 50L, out_path) 
 {
-  if (!is.null(nms)) {
-    nms_t <- gsub("^rev_", "", nms)
+  pat <- "^pepscores_"
+  ok_decoy <- find_decoy(out_path, pattern = pat)
+  nm_d <- ok_decoy$idxes
+  file_d <- ok_decoy$files
+  
+  if (!length(file_d)) 
+    stop("No decoy results with pattern '", pat, "'.")
+
+  nm_t <- gsub("^rev_", "", nm_d)
+  
+  td <- local({
+    decoy <- readRDS(
+      file.path(out_path, "temp", file_d)
+    ) %>% 
+      list() %>% 
+      `names<-`(nm_d)
     
-    # keeps the best hit for each `scan_num`
-    # (separated bests for targets and decoys)
-    nrow_t <- nrow(out[[nms_t]])
+    file_t <- list.files(path = file.path(out_path, "temp"), 
+                         pattern = paste0(pat, nm_t, ".rds$"))
     
-    if (!nrow_t) {
-      lens <- min_len:max_len
-      prob_cos <- rep(.5, length(lens))
-      names(prob_cos) <- lens
-      
-      return(prob_cos)
-    }
+    if (!length(file_t)) 
+      stop("Target scores not found.", call. = FALSE)
     
-    out[c(nms_t, nms)] <- lapply(out[c(nms_t, nms)], function (x) {
-      x %>% 
-        dplyr::group_by(scan_num, raw_file) %>% 
-        dplyr::arrange(pep_prob) %>% 
-        dplyr::filter(row_number() == 1L) %>% 
-        dplyr::ungroup()
-    })
+    target <- readRDS(
+      file.path(out_path, "temp", file_t)
+    ) %>% 
+      list() %>% 
+      `names<-`(nm_t)
     
-    # decoy sequences may be present in targets
-    out[[nms]] <- purge_decoys(target = out[[nms_t]], decoy = out[[nms]])
+    c(target, decoy)
+  })
+  
+  if (!nrow(td[[nm_t]])) {
+    seqs <- min_len:max_len
+    prob_cos <- rep(.5, length(seqs))
     
-    #  keeps the best hit for each `scan_num`
-    td <- dplyr::bind_rows(out[c(nms_t, nms)]) %>% 
+    return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
+  }
+  
+  # keeps separated best hits for targets and decoys
+  td <- lapply(td, function (x) {
+    x %>% 
       dplyr::group_by(scan_num, raw_file) %>% 
       dplyr::arrange(pep_prob) %>% 
       dplyr::filter(row_number() == 1L) %>% 
       dplyr::ungroup()
-    
-    rm(list = c("out", "nrow_t"))
-    gc()
+  })
+  
+  # decoy sequences may be present in targets
+  td[[nm_d]] <- purge_decoys(target = td[[nm_t]], decoy = td[[nm_d]])
+  
+  #  keeps the best hit for each `scan_num`
+  td <- dplyr::bind_rows(td[c(nm_t, nm_d)]) %>% 
+    dplyr::group_by(scan_num, raw_file) %>% 
+    dplyr::arrange(pep_prob) %>% 
+    dplyr::filter(row_number() == 1L) %>% 
+    dplyr::ungroup()
+  
+  gc()
+  
+  # --- 
+  all_lens <- sort(unique(td$pep_len))
 
-    # ---
-    all_lens <- sort(unique(td$pep_len))
-    
-    prob_cos <- lapply(all_lens, probco_bypeplen, 
-                       td, fdr_type, target_fdr, out_path)
-    prob_cos <- unlist(prob_cos)
-
-    if (length(prob_cos) == 1L && !is.na(prob_cos)) {
-      names(prob_cos) <- all_lens
-      return(prob_cos)
-    }
-
-    if (all(is.na(prob_cos))) {
-      newx <- min_len:max_len
-      prob_cos <- rep(target_fdr, length(newx))
-      names(prob_cos) <- newx
-
-      return(prob_cos)
-    }
-    
-    counts <- as.numeric(names(prob_cos))
-    names(counts) <- all_lens
-    names(prob_cos) <- all_lens
-    prob_cos <- prob_cos[!is.na(prob_cos)]
-    
-    # pdf(file.path(out_path, "pepprob_len.pdf")) 
-    # plot(prob_cos ~ names(prob_cos), xlab = "pep_len", ylab = "prob_co")
-    # dev.off()
-    
-    lens <- find_optlens(all_lens, counts, 128L)
-    
-    # no fittings
-    if (length(lens) <= 3L) return(prob_cos)
-    
-    # quality ones for fittings
-    prob_cos <- prob_cos %>% .[names(.) %in% lens]
-    counts <- counts %>% .[names(.) %in% lens]
-    
-    valley <- find_probco_valley(prob_cos)
-    best_co <- -log10(prob_cos[as.character(valley)])
-
-    prob_cos <- local({
-      start <- which(names(prob_cos) == valley)
-      end <- length(prob_cos)
-      x <- -log10(prob_cos[start:end])
-      ans <- tsoutliers(x)
-      x[ans$index] <- ans$replacements
-      prob_cos[start:end] <- 1/10^x
-      
-      prob_cos
-    })
-    
-    ## fittings
-    df <- data.frame(x = as.numeric(names(prob_cos)), y = -log10(prob_cos))
-
-    # valley left
-    df_left <- df[df$x <= valley, ]
-    rank_left <- 4L # often results in: originals == fitted <-> no fitting
-    
-    fit_left <- if (nrow(df_left) <= rank_left) {
-      lm(y ~ x, df_left)
-    } 
-    else {
-      local({
-        fit_ns <- tryCatch(
-          lm(y ~ splines::ns(x, rank_left), df_left),
-          error = function(e) NA
-        )
-        
-        fit_bs <- tryCatch(
-          lm(y ~ splines::bs(x, rank_left), df_left),
-          error = function(e) NA
-        )
-        
-        res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
-        res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
-        
-        if (res1 <= res2) fit_ns else fit_bs
-      })
-    }
-      
-    newx_left <- min(df_left$x, na.rm = TRUE):max(df_left$x, na.rm = TRUE)
-    newy_left <- predict(fit_left, data.frame(x = newx_left))
-    names(newy_left) <- newx_left
-
-    # valley right (small rank to down-weight wiggly high `pep_len` points)
-    df_right <- df[df$x > valley, ]
-    rank_right <- 3L # changed from 2 to 3
-    
-    if (nrow(df_right) > rank_right) {
-      # fit_right <- lm(y ~ splines::ns(x, rank_right), df_right)
-      fit_right <- local({
-        fit_ns <- tryCatch(
-          lm(y ~ splines::ns(x, rank_right), df_right),
-          error = function(e) NA
-        )
-        
-        fit_bs <- tryCatch(
-          lm(y ~ splines::bs(x, rank_right), df_right),
-          error = function(e) NA
-        )
-        
-        res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
-        res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
-        
-        if (res1 <= res2) fit_ns else fit_bs
-      })
-
-      newx_right <- min(df_right$x, na.rm = TRUE):max(df_right$x, na.rm = TRUE)
-      newy_right <- predict(fit_right, data.frame(x = newx_right))
-      names(newy_right) <- newx_right
-    } 
-    else {
-      slope <- .28
-      newx_right <- valley:max(df_right$x, na.rm = TRUE)
-      newy_right <- best_co + slope * (newx_right - valley)
-      names(newy_right) <- newx_right
-
-      # excludes the `valley` itself (already in left fitting)
-      newx_right <- newx_right[-1]
-      newy_right <- newy_right[-1]
-    }
-    
-    # left + right
-    newx <- c(newx_left, newx_right)
-    newy <- c(newy_left, newy_right)
-    
-    local({
-      n_row <- nrow(df)
-      
-      df_new <- rbind2(
-        cbind(df, type = rep("Original", n_row)), 
-        data.frame(x = newx, y = newy, type = "Fitted")
-      )
-
-      n_row2 <- nrow(df_new) - n_row
-      
-      # `*10` only for plots
-      df_new$y <- df_new$y * 10 
-
-      pdf(file.path(out_path, "pepscore_len.pdf")) 
-      plot(y ~ x, df_new, col = c(rep("blue", n_row), rep("red", n_row2)), 
-           xlab = "pep_len", ylab = "score_co", pch = 19)
-      legend("topright", legend = c("Original", "Fitted"), 
-             col = c("blue", "red"), pch = 19, bty = "n")
-      dev.off()
-      
-      # ggplot2::ggplot(df, aes(x = x, y = y)) + geom_point() +
-      #   stat_smooth(method = "lm", formula = y ~ splines::bs(x, rank_left), se = FALSE)
-    })
-
-    prob_cos <- 10^-newy
-  } 
-  else {
-    seqs <- min_len : max_len
-    prob_cos <- rep(.05, length(seqs))
-    names(prob_cos) <- seqs
+  prob_cos <- lapply(all_lens, probco_bypeplen, 
+                     td = td, 
+                     fdr_type = fdr_type, 
+                     target_fdr = target_fdr, 
+                     out_path = out_path)
+  prob_cos <- unlist(prob_cos)
+  
+  if (length(prob_cos) == 1L && !is.na(prob_cos)) {
+    return(data.frame(pep_len = all_lens, pep_prob_co = prob_cos))
   }
   
-  invisible(prob_cos)
+  if (all(is.na(prob_cos))) {
+    seqs <- min_len:max_len
+    prob_cos <- rep(target_fdr, length(seqs))
+    
+    return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
+  }
+  
+  counts <- as.numeric(names(prob_cos))
+  names(counts) <- all_lens
+  names(prob_cos) <- all_lens
+  prob_cos <- prob_cos[!is.na(prob_cos)]
+  
+  lens <- find_optlens(all_lens, counts, 128L)
+  
+  # no fittings
+  if (length(lens) <= 3L) {
+    return(data.frame(pep_len = as.numeric(names(prob_cos)), 
+                      pep_prob_co = prob_cos))
+  }
+  
+  # quality ones for fittings
+  prob_cos <- prob_cos %>% .[names(.) %in% lens]
+  counts <- counts %>% .[names(.) %in% lens]
+  
+  valley <- find_probco_valley(prob_cos)
+  best_co <- -log10(prob_cos[as.character(valley)])
+  
+  prob_cos <- local({
+    start <- which(names(prob_cos) == valley)
+    end <- length(prob_cos)
+    x <- -log10(prob_cos[start:end])
+    ans <- tsoutliers(x)
+    x[ans$index] <- ans$replacements
+    prob_cos[start:end] <- 1/10^x
+    
+    prob_cos
+  })
+  
+  ## fittings
+  df <- data.frame(x = as.numeric(names(prob_cos)), y = -log10(prob_cos))
+  
+  # valley left
+  df_left <- df[df$x <= valley, ]
+  rank_left <- 4L # often results in: originals == fitted <-> no fitting
+  
+  fit_left <- if (nrow(df_left) <= rank_left) {
+    lm(y ~ x, df_left)
+  } 
+  else {
+    local({
+      fit_ns <- tryCatch(
+        lm(y ~ splines::ns(x, rank_left), df_left),
+        error = function(e) NA
+      )
+      
+      fit_bs <- tryCatch(
+        lm(y ~ splines::bs(x, rank_left), df_left),
+        error = function(e) NA
+      )
+      
+      res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
+      res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
+      
+      if (res1 <= res2) fit_ns else fit_bs
+    })
+  }
+  
+  newx_left <- min(df_left$x, na.rm = TRUE):max(df_left$x, na.rm = TRUE)
+  newy_left <- predict(fit_left, data.frame(x = newx_left))
+  names(newy_left) <- newx_left
+  
+  # valley right (small rank to down-weight wiggly high `pep_len` points)
+  df_right <- df[df$x > valley, ]
+  rank_right <- 3L # changed from 2 to 3
+  
+  if (nrow(df_right) > rank_right) {
+    # fit_right <- lm(y ~ splines::ns(x, rank_right), df_right)
+    fit_right <- local({
+      fit_ns <- tryCatch(
+        lm(y ~ splines::ns(x, rank_right), df_right),
+        error = function(e) NA
+      )
+      
+      fit_bs <- tryCatch(
+        lm(y ~ splines::bs(x, rank_right), df_right),
+        error = function(e) NA
+      )
+      
+      res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
+      res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
+      
+      if (res1 <= res2) fit_ns else fit_bs
+    })
+    
+    newx_right <- min(df_right$x, na.rm = TRUE):max(df_right$x, na.rm = TRUE)
+    newy_right <- predict(fit_right, data.frame(x = newx_right))
+    names(newy_right) <- newx_right
+  } 
+  else {
+    slope <- .28
+    newx_right <- valley:max(df_right$x, na.rm = TRUE)
+    newy_right <- best_co + slope * (newx_right - valley)
+    names(newy_right) <- newx_right
+    
+    # excludes the `valley` itself (already in left fitting)
+    newx_right <- newx_right[-1]
+    newy_right <- newy_right[-1]
+  }
+  
+  # left + right
+  newx <- c(newx_left, newx_right)
+  newy <- c(newy_left, newy_right)
+  
+  local({
+    n_row <- nrow(df)
+    
+    df_new <- rbind2(
+      cbind(df, type = rep("Original", n_row)), 
+      data.frame(x = newx, y = newy, type = "Fitted")
+    )
+    
+    n_row2 <- nrow(df_new) - n_row
+    
+    # `*10` only for plots
+    df_new$y <- df_new$y * 10 
+    
+    pdf(file.path(out_path, "pepscore_len.pdf")) 
+    plot(y ~ x, df_new, col = c(rep("blue", n_row), rep("red", n_row2)), 
+         xlab = "pep_len", ylab = "score_co", pch = 19)
+    legend("topright", legend = c("Original", "Fitted"), 
+           col = c("blue", "red"), pch = 19, bty = "n")
+    dev.off()
+  })
+  
+  prob_cos <- 10^-newy
+  
+  if (TRUE) {
+    prob_cos <- local({
+      idxes <- prob_cos %>% .[. <= target_fdr]
+      
+      fct_homol <- if (length(idxes)) 
+        target_fdr/max(idxes, na.rm = TRUE)
+      else 
+        1L
+      
+      prob_cos <- prob_cos * fct_homol
+    })
+  }
+  
+  prob_cos <- data.frame(pep_len = as.numeric(names(prob_cos)), 
+                         pep_prob_co = prob_cos) %T>% 
+    saveRDS(file.path(out_path, "temp", "pep_probco.rds"))
+}
+
+
+#' Post processing after peptide FDR.
+#' 
+#' @param prob_cos Probability cut-offs (in data frame).
+#' @param out_path An output path.
+post_pepfdr <- function (prob_cos = NULL, out_path = NULL) 
+{
+  if (is.null(prob_cos)) {
+    prob_cos <- file.path(out_path, "temp", "pep_probco.rds")
+    
+    if (file.exists(prob_cos)) 
+      prob_cos <- readRDS(prob_cos)
+    else 
+      stop("File not found: ", prob_cos)
+  }
+
+  fct_score <- 10
+  
+  td <- local({
+    pat <- "^pepscores_"
+    
+    ok_targets <- find_targets(out_path, pat)
+    list_t <- ok_targets$files
+    nms_t <- ok_targets$idxes
+    
+    if (!length(list_t)) stop("No target results with pattern '", pat, "'.")
+
+    targets <- lapply(list_t, function (x) readRDS(file.path(out_path, "temp", x)))
+    names(targets) <- nms_t
+    
+    # decoy
+    ok_decoy <- find_decoy(out_path, pat)
+    list_d <- ok_decoy$files
+    nm_d <- ok_decoy$idxes
+    if (!length(list_d)) stop("No decoy results with pattern '", pat, "'.")
+
+    decoy <- readRDS(file.path(out_path, "temp", list_d)) %>% 
+      list() %>% 
+      `names<-`(nm_d)
+    
+    c(targets, decoy)
+  })
+  
+  oks <- purrr::map_lgl(td, function (x) nrow(x) > 0L)
+  td <- dplyr::bind_rows(td[oks])
+  
+  if (!nrow(td)) 
+    stop("No PSM matches for scoring. Consider different search parameters.", 
+         call. = FALSE)
+  
+  # Adjusted p-values
+  td <- td %>% 
+    dplyr::left_join(prob_cos, by = "pep_len") %>% 
+    dplyr::mutate(pep_issig = ifelse(pep_prob <= pep_prob_co, TRUE, FALSE), 
+                  pep_adjp = p.adjust(pep_prob, "BH"))
+  
+  adjp_cos <- purrr::map_dbl(prob_cos$pep_prob_co, function (x) {
+    row <- which.min(abs(log10(td$pep_prob/x)))
+    td[row, ]$pep_adjp
+  }) 
+  
+  prob_cos <- dplyr::bind_cols(prob_cos, pep_adjp_co = adjp_cos)
+  
+  td <- td %>% 
+    dplyr::left_join(prob_cos[, c("pep_len", "pep_adjp_co")], by = "pep_len") %>% 
+    dplyr::mutate(pep_score = -log10(pep_adjp) * fct_score, 
+                  pep_score = ifelse(pep_score > 250, 250, pep_score), 
+                  pep_score_co = -log10(pep_adjp_co) * fct_score) %>% 
+    dplyr::select(-c("pep_prob", "pep_adjp", "pep_prob_co", "pep_adjp_co"))
 }
 
 
 #' Calculates the cut-offs of protein scores.
 #'
-#' @param out An output from upstream steps.
+#' @param df An output from upstream steps.
+#' @param outpath An output path.
 #' @inheritParams calc_pepfdr
-calc_protfdr <- function (out, target_fdr = .01) 
+calc_protfdr <- function (df, target_fdr = .01, out_path) 
 {
   message("Calculating peptide-protein FDR.")
   
   # target-decoy pair
-  nms_d <- unique(out$pep_mod_group) %>% 
+  nms_d <- unique(df$pep_mod_group) %>% 
     .[grepl("^rev_\\d+", .)]
   
   nms_t <- gsub("^rev_", "", nms_d)
   
-  out2 <- dplyr::filter(out, pep_mod_group %in% c(nms_t, nms_d), pep_issig)
+  td <- dplyr::filter(df, pep_mod_group %in% c(nms_t, nms_d), pep_issig)
 
   # score cut-offs as a function of prot_n_pep
-  max_n_pep <- max(out$prot_n_pep, na.rm = TRUE)
-  all_n_peps <- unique(out$prot_n_pep)
+  max_n_pep <- max(df$prot_n_pep, na.rm = TRUE)
+  all_n_peps <- unique(df$prot_n_pep)
 
   # protein enrichment score cut-offs at each `prot_n_pep`
-  score_co <- out2 %>% 
+  score_co <- td %>% 
     split(.$prot_n_pep) %>% 
-    purrr::map_dbl(calc_protfdr_i, target_fdr) 
+    purrr::map_dbl(calc_protfdr_i, target_fdr, out_path) 
 
   # fitted score cut-offs
   score_co <- score_co %>% 
@@ -1351,7 +1388,7 @@ calc_protfdr <- function (out, target_fdr = .01)
     dplyr::rename(prot_es_co = prot_score_co)
   
   # add protein enrichment score
-  prot_es <- out %>% 
+  prot_es <- df %>% 
     dplyr::group_by(prot_acc, pep_seq) %>% 
     dplyr::arrange(-pep_score) %>% 
     dplyr::filter(row_number() == 1L) %>% 
@@ -1362,21 +1399,16 @@ calc_protfdr <- function (out, target_fdr = .01)
     dplyr::summarise(prot_es = max(pep_es, na.rm = TRUE))
   
   # puts together
-  out <- out %>% 
+  df <- df %>% 
     dplyr::left_join(prot_es, by = "prot_acc")
 
-  out <- out %>% 
+  df <- df %>% 
     dplyr::left_join(score_co, by = "prot_n_pep") %>% 
     dplyr::mutate(prot_issig = ifelse(prot_es >= prot_es_co, TRUE, FALSE)) %>% 
     dplyr::mutate(pep_score = round(pep_score, digits = 1), 
                   pep_score_co = round(pep_score_co, digits = 1), 
                   prot_es = round(prot_es, digits = 1), 
                   prot_es_co = round(prot_es_co, digits = 1))
-  
-  rm(list = c("out2", "prot_es"))
-  gc()
-
-  invisible(out)
 }
 
 
@@ -1385,12 +1417,13 @@ calc_protfdr <- function (out, target_fdr = .01)
 #' For prot_n_pep at value i.
 #' 
 #' @param td A data frame with paired target-decoys at prot_n_pep = i.
+#' @param out_path An output path.
 #' @inheritParams calc_pepfdr
 #' @return A score cut-off at a given prot_n_pep.
-calc_protfdr_i <- function (td, target_fdr = .01) 
+calc_protfdr_i <- function (td, target_fdr = .01, out_path) 
 {
   options(digits = 9L)
-  
+
   td <- td %>% 
     dplyr::group_by(prot_acc, pep_seq) %>% 
     dplyr::arrange(-pep_score) %>% 
@@ -1469,7 +1502,10 @@ calc_protfdr_i <- function (td, target_fdr = .01)
   rm(list = "prot_scores")
   
   rows <- which(td$fdr <= target_fdr)
-  row <- if (length(rows)) max(rows, na.rm = TRUE) else -Inf
+  row <- if (length(rows)) 
+    max(rows, na.rm = TRUE) 
+  else 
+    -Inf
 
   if (row == -Inf) {
     score_co <- 0L
@@ -1478,25 +1514,35 @@ calc_protfdr_i <- function (td, target_fdr = .01)
     score_co <- td$prot_es[row]
 
     score_co2 <- local({
-      df <- data.frame(x = td[["prot_es"]], y = td[["fdr"]])
+      data <- data.frame(x = td[["prot_es"]], y = td[["fdr"]])
       
       fit <- suppressWarnings(
         tryCatch(
-          nls(y ~ SSlogis(x, Asym, xmid, scal), data = df, 
+          nls(y ~ SSlogis(x, Asym, xmid, scal), data = data, 
               control = list(tol = 1e-03, warnOnly = TRUE), 
               algorithm = "port"), 
           error = function (e) NA)
       )
       
-      # ggplot(df, aes(x = x, y = y)) + geom_point() + 
-      #  stat_smooth(method = "nls", formula = y ~ SSlogis(x, Asym, xmid, scal), 
-      #  se = FALSE)
+      if (FALSE) {
+        prot_n_pep <- td$prot_n_pep[1]
+        title <- paste0("prot_n_pep$", prot_n_pep)
+        
+        p <- ggplot(data, aes(x = x, y = y)) + geom_point() + 
+          stat_smooth(method = "nls", formula = y ~ SSlogis(x, Asym, xmid, scal), 
+                      se = FALSE) + 
+          labs(title = title, x = "Enrichment score", y = "FDR")
+        
+        suppressWarnings(
+          ggsave(file.path(out_path, "temp", paste0(title, ".png")))
+        )
+      }
 
       if (all(is.na(fit))) {
         score_co2 <- score_co
       } else {
-        min_score <- min(df$x, na.rm = TRUE)
-        max_score <- max(df$x, na.rm = TRUE)
+        min_score <- min(data$x, na.rm = TRUE)
+        max_score <- max(data$x, na.rm = TRUE)
         newx <- min_score:max_score
         newy <- predict(fit, data.frame(x = newx)) %>% 
           `names<-`(newx)
@@ -1535,6 +1581,7 @@ fit_protfdr <- function (vec, max_n_pep = 1000L)
   amp <- max(df$y, na.rm = TRUE) * .8
   sca <- 0.5
   
+  ## nls
   f <- function (x, m = 0, s = 1, a = 1) { a - a / (1 + exp(-(x-m)/s)) }
   
   fit <- suppressWarnings(
@@ -1567,23 +1614,65 @@ fit_protfdr <- function (vec, max_n_pep = 1000L)
         .[[length(.)]]
     }
   }
-  
-  # ggplot(df, aes(x = x, y = y)) + 
-  #   geom_point() + 
-  #   stat_smooth(method='nls',formula = y ~ f(x, m, s, a), se = FALSE, 
-  #               method.args = list(algorithm = "port", 
-  #                                  start = c(m = elbow, s = .5,a = amp))) + 
-  #   labs(title = "Protein score cut-offs", x = "prot_n_pep", y = "Score")
-  
-  
-  # --- Outputs
-  newx <- seq(1, max_n_pep, by = 1)
-  
-  out <- data.frame(
-    prot_n_pep = newx, 
-    prot_score_co = predict(fit, data.frame(x = newx))) %>% 
-    dplyr::mutate(prot_score_co = ifelse(prot_n_pep >= elbow, 0, prot_score_co))
 
+  ## lm
+  df_left <- df[df$x <= elbow, ]
+  df_right <- df[df$x > elbow, ]
+  
+  fit_left <- tryCatch(
+    lm(y ~ x, data = df_left), 
+    error = function (e) NA)
+  
+  fit_right <- tryCatch(
+    lm(y ~ x, data = df_right), 
+    error = function (e) NA)
+  
+  res_left <- if (class(fit_left) == "lm") sum(resid(fit_left)^2) else Inf
+  res_right <- if (class(fit_right) == "lm") sum(resid(fit_right)^2) else Inf
+  res_lm <- sum(res_left + res_right)
+  
+  res_nls <- if (class(fit) == "nls") sum(resid(fit)^2) else Inf
+
+  ## nls vs. lm
+  if (res_nls <= res_lm) {
+    newx <- 1:max_n_pep
+    newy <- predict(fit, data.frame(x = newx))
+    
+    if (FALSE) {
+      ggplot(df, aes(x = x, y = y)) + 
+        geom_point() + 
+        stat_smooth(method='nls',formula = y ~ f(x, m, s, a), se = FALSE, 
+                    method.args = list(algorithm = "port", 
+                                       start = c(m = elbow, s = .5,a = amp))) + 
+        labs(title = "Protein score cut-offs", x = "prot_n_pep", y = "Score")
+    }
+    
+    out <- data.frame(
+      prot_n_pep = newx, 
+      prot_score_co = newy) %>% 
+      dplyr::mutate(prot_score_co = ifelse(prot_n_pep >= elbow, 0, prot_score_co))
+  } else {
+    newx_left <- 1:elbow
+    newy_left <- predict(fit_left, data.frame(x = newx_left))
+    newx_right <- (elbow + 1L):max_n_pep
+    newy_right <- predict(fit_right, data.frame(x = newx_right))
+    
+    newx <- c(newx_left, newx_right)
+    newy <- c(newy_left, newy_right)
+    
+    if (FALSE) {
+      ggplot(df, mapping = aes(x = x, y = y)) + 
+        geom_point() + 
+        geom_segment(aes(x = newx_left[1], y = newy_left[1], xend = elbow, yend = 0))
+    }
+    
+    out <- data.frame(
+      prot_n_pep = newx, 
+      prot_score_co = newy) %>% 
+      dplyr::mutate(prot_score_co = ifelse(prot_n_pep >= elbow, 0, prot_score_co))
+    
+  }
+  
   invisible(out)
 }
 
@@ -1707,7 +1796,7 @@ try_calc_peploc <- function (out = NULL)
   if (is.na(out)) {
     message("Retry with a new R session: \n\n",
             "proteoM:::calc_peploc(\n",
-            "  out = \"", file.path(out_path, "scores.rds"), "\" \n",
+            "  out = \"", file.path(out_path, "temp", "scores.rds"), "\" \n",
             ")")
     
     fileConn <- file(file.path("~/calc_peploc.R"))
@@ -1715,7 +1804,7 @@ try_calc_peploc <- function (out = NULL)
     lines <- c(
       "library(proteoM)\n",
       "proteoM:::calc_peploc(",
-      paste0("  out = readRDS(", "\"", file.path(out_path, "scores.rds"), "\"", ")"),
+      paste0("  out = readRDS(", "\"", file.path(out_path, "temp", "scores.rds"), "\"", ")"),
       ")\n",
       "unlink(\"~/calc_peploc.R\")"
     )
@@ -1871,8 +1960,11 @@ calc_peploc <- function (x)
 }
 
 
-### From package "forecast"
-
+#' Interpolate missing values in a time series.
+#'
+#' From \code{forecast}. 
+#' 
+#' @inheritParams tsoutliers
 na.interp <- function (x, lambda = NULL, 
                        linear = (frequency(x) <= 1 | 
                                    sum(!is.na(x)) <= 2 * frequency(x))) 
@@ -1938,72 +2030,76 @@ na.interp <- function (x, lambda = NULL,
   else return(x)
 }
 
+
+#' Checks if data are constant.
+#' 
+#' @param x A vector.
 is.constant <- function (x) 
 {
   x <- as.numeric(x)
   y <- rep(x[1], length(x))
+  
   return(isTRUE(all.equal(x, y)))
 }
 
 
-tsoutliers <- 
-  function (x, iterate = 2, lambda = NULL) 
-  {
-    n <- length(x)
-    freq <- frequency(x)
-    missng <- is.na(x)
-    nmiss <- sum(missng)
-    if (nmiss > 0L) {
-      xx <- na.interp(x, lambda = lambda)
-    }
-    else {
-      xx <- x
-    }
-    if (is.constant(xx)) {
-      return(list(index = integer(0), replacements = numeric(0)))
-    }
-    if (!is.null(lambda)) {
-      xx <- BoxCox(xx, lambda = lambda)
-      lambda <- attr(xx, "lambda")
-    }
-    if (freq > 1 && n > 2 * freq) {
-      fit <- mstl(xx, robust = TRUE)
-      rem <- remainder(fit)
-      detrend <- xx - trendcycle(fit)
-      strength <- 1 - var(rem)/var(detrend)
-      if (strength >= 0.6) {
-        xx <- seasadj(fit)
-      }
-    }
-    tt <- 1:n
-    mod <- supsmu(tt, xx)
-    resid <- xx - mod$y
-    if (nmiss > 0L) {
-      resid[missng] <- NA
-    }
-    resid.q <- quantile(resid, probs = c(0.25, 0.75), na.rm = TRUE)
-    iqr <- diff(resid.q)
-    limits <- resid.q + 3 * iqr * c(-1, 1)
-    if ((limits[2] - limits[1]) > 1e-14) {
-      outliers <- which((resid < limits[1]) | (resid > limits[2]))
-    }
-    else {
-      outliers <- numeric(0)
-    }
-    x[outliers] <- NA
-    x <- na.interp(x, lambda = lambda)
-    if (iterate > 1) {
-      tmp <- tsoutliers(x, iterate = 1, lambda = lambda)
-      if (length(tmp$index) > 0) {
-        outliers <- sort(unique(c(outliers, tmp$index)))
-        x[outliers] <- NA
-        if (sum(!is.na(x)) == 1L) {
-          x[is.na(x)] <- x[!is.na(x)]
-        }
-        else x <- na.interp(x, lambda = lambda)
-      }
-    }
-    return(list(index = outliers, replacements = x[outliers]))
-  }
+#' Identify and replace outliers in a time series.
+#' 
+#' From \code{forecast}.
+#' 
+#' @param x Time series
+#' @param lambda Box-Cox transformation parameter. If lambda="auto", then a
+#'   transformation is automatically selected using BoxCox.lambda. The
+#'   transformation is ignored if NULL. Otherwise, data transformed before model
+#'   is estimated.
+#' @param linear Should a linear interpolation be used.
+tsoutliers <- function (x, iterate = 2, lambda = NULL) 
+{
+  n <- length(x)
+  freq <- frequency(x)
+  missng <- is.na(x)
+  nmiss <- sum(missng)
+  
+  xx <- if (nmiss > 0L) 
+    na.interp(x, lambda = lambda)
+  else 
+    x
+  
+  if (is.constant(xx)) 
+    return(list(index = integer(0), replacements = numeric(0)))
+  
+  tt <- 1:n
+  mod <- supsmu(tt, xx)
+  resid <- xx - mod$y
+  
+  if (nmiss) resid[missng] <- NA
 
+  resid.q <- quantile(resid, probs = c(0.25, 0.75), na.rm = TRUE)
+  iqr <- diff(resid.q)
+  limits <- resid.q + 3 * iqr * c(-1, 1)
+  
+  outliers <- if ((limits[2] - limits[1]) > 1e-14) 
+    which((resid < limits[1]) | (resid > limits[2]))
+  else 
+    numeric(0)
+  
+  x[outliers] <- NA
+  x <- na.interp(x, lambda = lambda)
+  
+  if (iterate > 1) {
+    tmp <- tsoutliers(x, iterate = 1, lambda = lambda)
+    
+    if (length(tmp$index)) {
+      outliers <- sort(unique(c(outliers, tmp$index)))
+      x[outliers] <- NA
+      
+      if (sum(!is.na(x)) == 1L) 
+        x[is.na(x)] <- x[!is.na(x)]
+      else 
+        x <- na.interp(x, lambda = lambda)
+    }
+  }
+  
+  invisible(list(index = outliers, replacements = x[outliers]))
+}
 

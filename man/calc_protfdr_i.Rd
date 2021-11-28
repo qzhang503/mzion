@@ -4,12 +4,14 @@
 \alias{calc_protfdr_i}
 \title{Helper of \link{calc_protfdr}.}
 \usage{
-calc_protfdr_i(td, target_fdr = 0.01)
+calc_protfdr_i(td, target_fdr = 0.01, out_path)
 }
 \arguments{
 \item{td}{A data frame with paired target-decoys at prot_n_pep = i.}
 
 \item{target_fdr}{Numeric; the levels of false-discovery rate (FDR).}
+
+\item{out_path}{An output path.}
 }
 \value{
 A score cut-off at a given prot_n_pep.
