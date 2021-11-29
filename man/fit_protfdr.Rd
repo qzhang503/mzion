@@ -4,7 +4,7 @@
 \alias{fit_protfdr}
 \title{Fits the raw cut-offs of protein scores.}
 \usage{
-fit_protfdr(vec, max_n_pep = 1000L)
+fit_protfdr(vec, max_n_pep = 1000L, out_path)
 }
 \arguments{
 \item{vec}{Named numeric vector. The values are the score cut-offs as a
@@ -13,6 +13,8 @@ peptides being identified.}
 
 \item{max_n_pep}{Integer; the maximum value of \code{prot_n_pep} for
 prediction.}
+
+\item{out_path}{An output path.}
 }
 \description{
 Assumed a sigmoidal function.

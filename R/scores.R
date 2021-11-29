@@ -780,17 +780,17 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @param df A results after pep_scores.
 post_pepscores <- function (df) 
 {
-  df[["scan_num"]] <- as.numeric(df[["scan_num"]]) # 70 us
-  df[["pep_len"]] <- stringr::str_length(df[["pep_seq"]]) # 6 us
-  df[["scan_title"]] <- as.character(df[["scan_title"]]) # 69 us
-  df[["ms1_moverz"]] <- as.numeric(df[["ms1_moverz"]]) # 4.5 us
-  df[["ms1_mass"]] <- as.numeric(df[["ms1_mass"]]) # 5.4 us
-  df[["ms1_int"]] <- as.numeric(df[["ms1_int"]]) # 5.5 us
-  df[["ms1_charge"]] <- as.character(df[["ms1_charge"]]) # 5.9 us
-  df[["ret_time"]] <- as.integer(df[["ret_time"]]) # 5.6 us
-  df[["ms2_n"]] <- as.integer(df[["ms2_n"]]) # 5.3 us
-  df[["pep_fmod"]] <- as.character(df[["pep_fmod"]]) # 4.6 us
-  df[["pep_vmod"]] <- as.character(df[["pep_vmod"]]) # 4.8 us
+  df[["scan_num"]] <- as.numeric(df[["scan_num"]])
+  df[["pep_len"]] <- stringr::str_length(df[["pep_seq"]])
+  df[["scan_title"]] <- as.character(df[["scan_title"]])
+  df[["ms1_moverz"]] <- as.numeric(df[["ms1_moverz"]])
+  df[["ms1_mass"]] <- as.numeric(df[["ms1_mass"]])
+  df[["ms1_int"]] <- as.numeric(df[["ms1_int"]])
+  df[["ms1_charge"]] <- as.character(df[["ms1_charge"]])
+  df[["ret_time"]] <- as.integer(df[["ret_time"]])
+  df[["ms2_n"]] <- as.integer(df[["ms2_n"]])
+  df[["pep_fmod"]] <- as.character(df[["pep_fmod"]])
+  df[["pep_vmod"]] <- as.character(df[["pep_vmod"]])
   
   invisible(df)
 }
@@ -942,16 +942,6 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path)
         error = function (e) NA)
     )
     
-    if (FALSE) {
-      ggplot(df, aes(x = x, y = y)) + 
-        geom_point() + 
-        stat_smooth(method = "nls", formula = y ~ SSlogis(x, Asym, xmid, scal), 
-                    se = FALSE) + 
-        geom_hline(yintercept = target_fdr, size = .5) + 
-        scale_x_continuous(minor_breaks = seq(1, 100, 10)) + 
-        labs(title = paste("pep_len = ", len), x = "Score", y = "Prob")
-    }
-
     if (!all(is.na(fit))) {
       newx <- min(df$x, na.rm = TRUE):max(df$x, na.rm = TRUE)
       newy <- predict(fit, data.frame(x = newx)) %>% `names<-`(newx)
@@ -960,6 +950,22 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path)
       score_co2 <- which(newy <= target_fdr)[1] %>% names() %>% as.numeric()
       best_co <- min(score_co, score_co2, na.rm = TRUE)
       
+      try(
+        local({
+          pdf(file.path(out_path, "temp", paste0("probco_peplen@", len, ".pdf"))) 
+          plot(y ~ x, df, xlab = "pep_score", col = "blue", ylab = "FDR", pch = 19)
+          title(main = paste0("Peptide length ", len))
+          lines(newx, newy, col = "red", type = "b")
+          abline(h = target_fdr, col = "green", lwd = 3, lty = 2)
+          legend("topright", legend = c("Original", "Fitted"), 
+                 col = c("blue", "red"), pch = 19, bty = "n")
+          legend("center", pch = 19, 
+                 legend = c(paste0("Best: ", round(best_co, 2)), 
+                            paste0("Fitted: ", round(score_co2, 2))))
+          dev.off()
+        })
+      )
+
       rm(list = c("newx", "newy", "score_co", "score_co2"))
     } else {
       best_co <- score_co
@@ -1255,12 +1261,16 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     # `*10` only for plots
     df_new$y <- df_new$y * 10 
     
-    pdf(file.path(out_path, "pepscore_len.pdf")) 
-    plot(y ~ x, df_new, col = c(rep("blue", n_row), rep("red", n_row2)), 
-         xlab = "pep_len", ylab = "score_co", pch = 19)
-    legend("topright", legend = c("Original", "Fitted"), 
-           col = c("blue", "red"), pch = 19, bty = "n")
-    dev.off()
+    try(
+      local({
+        pdf(file.path(out_path, "temp", "pepscore_len.pdf")) 
+        plot(y ~ x, df_new, col = c(rep("blue", n_row), rep("red", n_row2)), 
+             xlab = "pep_len", ylab = "score_co", pch = 19)
+        legend("topright", legend = c("Original", "Fitted"), 
+               col = c("blue", "red"), pch = 19, bty = "n")
+        dev.off()
+      })
+    )
   })
   
   prob_cos <- 10^-newy
@@ -1383,7 +1393,7 @@ calc_protfdr <- function (df, target_fdr = .01, out_path)
 
   # fitted score cut-offs
   score_co <- score_co %>% 
-    fit_protfdr(max_n_pep) %>% 
+    fit_protfdr(max_n_pep, out_path) %>% 
     dplyr::filter(prot_n_pep %in% all_n_peps) %>% 
     dplyr::rename(prot_es_co = prot_score_co)
   
@@ -1502,10 +1512,7 @@ calc_protfdr_i <- function (td, target_fdr = .01, out_path)
   rm(list = "prot_scores")
   
   rows <- which(td$fdr <= target_fdr)
-  row <- if (length(rows)) 
-    max(rows, na.rm = TRUE) 
-  else 
-    -Inf
+  row <- if (length(rows)) max(rows, na.rm = TRUE) else -Inf
 
   if (row == -Inf) {
     score_co <- 0L
@@ -1524,20 +1531,6 @@ calc_protfdr_i <- function (td, target_fdr = .01, out_path)
           error = function (e) NA)
       )
       
-      if (FALSE) {
-        prot_n_pep <- td$prot_n_pep[1]
-        title <- paste0("prot_n_pep$", prot_n_pep)
-        
-        p <- ggplot(data, aes(x = x, y = y)) + geom_point() + 
-          stat_smooth(method = "nls", formula = y ~ SSlogis(x, Asym, xmid, scal), 
-                      se = FALSE) + 
-          labs(title = title, x = "Enrichment score", y = "FDR")
-        
-        suppressWarnings(
-          ggsave(file.path(out_path, "temp", paste0(title, ".png")))
-        )
-      }
-
       if (all(is.na(fit))) {
         score_co2 <- score_co
       } else {
@@ -1551,6 +1544,27 @@ calc_protfdr_i <- function (td, target_fdr = .01, out_path)
         score_co2 <- which(newy <= target_fdr)[1] %>% 
           names() %>% 
           as.numeric()
+        
+        local({
+          title <- paste0("prot_n_pep@", td$prot_n_pep[1])
+          
+          try(
+            local({
+              pdf(file.path(out_path, "temp", paste0(title, ".pdf"))) 
+              plot(y ~ x, data, xlab = "Enrichment score", col = "blue", 
+                   ylab = "FDR", pch = 19)
+              title(main = title)
+              lines(newx, newy, col = "red", type = "b")
+              abline(h = target_fdr, col = "green", lwd = 3, lty = 2)
+              legend("topright", legend = c("Original", "Fitted"), 
+                     col = c("blue", "red"), pch = 19, bty = "n")
+              legend("center", pch = 19, 
+                     legend = c(paste0("Original: ", round(score_co, 2)), 
+                                paste0("Fitted: ", round(score_co2, 2))))
+              dev.off()
+            })
+          )
+        })
       }
 
       score_co2
@@ -1570,7 +1584,8 @@ calc_protfdr_i <- function (td, target_fdr = .01, out_path)
 #'   peptides being identified.
 #' @param max_n_pep Integer; the maximum value of \code{prot_n_pep} for
 #'   prediction.
-fit_protfdr <- function (vec, max_n_pep = 1000L) 
+#' @param out_path An output path.
+fit_protfdr <- function (vec, max_n_pep = 1000L, out_path) 
 {
   if (length(vec) <= 10L) 
     return(data.frame(prot_n_pep = as.numeric(names(vec)), prot_score_co = vec))
@@ -1638,15 +1653,6 @@ fit_protfdr <- function (vec, max_n_pep = 1000L)
     newx <- 1:max_n_pep
     newy <- predict(fit, data.frame(x = newx))
     
-    if (FALSE) {
-      ggplot(df, aes(x = x, y = y)) + 
-        geom_point() + 
-        stat_smooth(method='nls',formula = y ~ f(x, m, s, a), se = FALSE, 
-                    method.args = list(algorithm = "port", 
-                                       start = c(m = elbow, s = .5,a = amp))) + 
-        labs(title = "Protein score cut-offs", x = "prot_n_pep", y = "Score")
-    }
-    
     out <- data.frame(
       prot_n_pep = newx, 
       prot_score_co = newy) %>% 
@@ -1659,19 +1665,27 @@ fit_protfdr <- function (vec, max_n_pep = 1000L)
     
     newx <- c(newx_left, newx_right)
     newy <- c(newy_left, newy_right)
-    
-    if (FALSE) {
-      ggplot(df, mapping = aes(x = x, y = y)) + 
-        geom_point() + 
-        geom_segment(aes(x = newx_left[1], y = newy_left[1], xend = elbow, yend = 0))
-    }
-    
+
     out <- data.frame(
       prot_n_pep = newx, 
       prot_score_co = newy) %>% 
       dplyr::mutate(prot_score_co = ifelse(prot_n_pep >= elbow, 0, prot_score_co))
     
   }
+  
+  try(
+    local({
+      pdf(file.path(out_path, "temp", "Protein_score_co.pdf")) 
+      plot(y ~ x, df, xlab = "prot_n_pep", col = "blue", 
+           ylab = "Protein score", pch = 19)
+      title(main = "Protein score CO")
+      lines(newx, newy, col = "red", type = "b")
+      lines(newx, newy, col = "red")
+      legend("topright", legend = c("Original", "Fitted"), 
+             col = c("blue", "red"), pch = 19, bty = "n")
+      dev.off()
+    })
+  )
   
   invisible(out)
 }
