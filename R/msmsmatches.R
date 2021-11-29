@@ -470,6 +470,20 @@ matchMS <- function (out_path = "~/proteoM/outs",
   gc()
 
   ## Clean-ups
+  out <- local({
+    raws <- readRDS(file.path(mgf_path, "raw_indexes.rds"))
+    raws2 <- names(raws)
+    names(raws2) <- raws
+    out$raw_file <- unname(raws2[out$raw_file])
+    
+    scans <- readRDS(file.path(mgf_path, "scan_indexes.rds"))
+    scans2 <- names(scans)
+    names(scans2) <- scans
+    out$scan_title <- unname(scans2[out$scan_title])
+    
+    out
+  })
+  
   out <- out %>%
     dplyr::mutate(pep_ms1_delta = ms1_mass - theo_ms1) %>%
     dplyr::rename(pep_scan_title = scan_title,

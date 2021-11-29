@@ -71,10 +71,6 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
     else 
       ppm_ms2
 
-    # dirs <- list.dirs(mgf_path, full.names = FALSE, recursive = TRUE) %>%
-    #   .[! . == ""]
-    # unlink(file.path(mgf_path, dirs), recursive = TRUE)
-
     delete_files(
       out_path, 
       ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
@@ -158,13 +154,13 @@ readMGF <- function (filepath = "~/proteoM/mgfs",
 
     # refresh at every `i`
     temp_dir <- local({
-      temp_dir <- find_dir(file.path(filepath, "temp"))
+      dir <- find_dir(file.path(filepath, "temp"))
 
-      if (!is.null(temp_dir)) 
-        fs::file_delete(temp_dir)
+      if (!is.null(dir)) 
+        fs::file_delete(dir)
 
       dir.create(file.path(filepath, "temp"), showWarnings = FALSE)
-      temp_dir <- find_dir(file.path(filepath, "temp"))
+      find_dir(file.path(filepath, "temp"))
     })
 
     readr::read_lines_chunked(file = file.path(filepath, filelist[i]),
@@ -188,14 +184,14 @@ readMGF <- function (filepath = "~/proteoM/mgfs",
                                 n_to_charge = n_to_charge)
 
     local({
-      temp_dir2 <- file.path(filepath, gsub("\\.[^.]*$", "", filelist[i]))
-      dir.create(temp_dir2, showWarnings = FALSE)
-      temp_dir2 <- find_dir(temp_dir2)
+      dir2 <- file.path(filepath, gsub("\\.[^.]*$", "", filelist[i]))
+      dir.create(dir2, showWarnings = FALSE)
+      dir2 <- find_dir(dir2)
 
-      if (fs::file_exists(temp_dir2)) 
-        fs::file_delete(temp_dir2)
+      if (fs::file_exists(dir2)) 
+        fs::file_delete(dir2)
 
-      fs::file_move(temp_dir, temp_dir2)
+      fs::file_move(temp_dir, dir2)
     })
   }
 
@@ -205,8 +201,26 @@ readMGF <- function (filepath = "~/proteoM/mgfs",
     dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass) %>% 
     dplyr::mutate(frame = find_ms1_interval(ms1_mass,
                                             from = min_mass,
-                                            ppm = ppm_ms1)) %T>%
-    saveRDS(out_path)
+                                            ppm = ppm_ms1)) 
+  
+  out <- local({
+    raws_files <- out$raw_file
+    raws <- raws_files[!duplicated.default(raws_files)]
+    inds <- seq_along(raws)
+    names(inds) <- raws
+    saveRDS(inds, file.path(filepath, "raw_indexes.rds"))
+    out$raw_file <- unname(inds[raws_files])
+    
+    scans <- out$scan_title
+    inds <- seq_along(scans)
+    names(inds) <- scans
+    saveRDS(inds, file.path(filepath, "scan_indexes.rds"))
+    out$scan_title <- unname(inds[scans])
+    
+    out
+  })
+  
+  saveRDS(out, out_path)
 
   rm(list = c("out"))
   gc()
