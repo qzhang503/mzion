@@ -22,10 +22,26 @@ is equivalent to \code{fdr_type = peptide} with the additional filtration
 of data at \code{prot_tier == 1}. A variant is to set \code{fdr_type =
 psm}, followed by a data filtration at \code{prot_tier == 1}.}
 
-\item{combine_tier_three}{Logical; if TRUE, combines all protein results to
-the output of \code{psmQ.txt}. Outputs under the option TRUE are often
-comparable to Mascot outputs with FDR controls at the levels of PSMs or
-peptides.}
+\item{combine_tier_three}{Logical; if TRUE, combines search results at tiers
+  1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
+  that data will be segregated into the three quality tiers according to the
+  choice of \code{fdr_type}. The (convenience) parameter matters since
+  \href{http://github.com/qzhang503/proteoQ}{proteoQ} will only look for the
+  inputs of \code{psmQ[...].txt}.
+
+  For instance, if the aim is to bypass the constraint by protein FDR and
+  focus on PSMs that have met the cut-offs specified by \code{target_fdr},
+  experimenters may set \code{combine_tier_three = TRUE} and hence pool all
+  significant peptides in \code{psmQ.txt} for downstream proteoQ.
+
+  Tier-1: both proteins and peptides with scores above significance
+  thresholds.
+
+  Tier-2: \eqn{\ge} 2 significant peptides but protein scores below
+  significance thresholds.
+
+  Tier-3: one significant peptide and protein scores below significance
+  thresholds.}
 }
 \description{
 Helper of \link{psmC2Q}.

@@ -22,7 +22,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
   on.exit(options(old_opts), add = TRUE)
   
   on.exit(
-    if (exists(".savecall", envir = rlang::current_env())) {
+    if (exists(".savecall", envir = fun_env)) {
       if (.savecall) {
         save_call2(path = file.path(out_path, "Calls"), fun = fun)
       }
@@ -32,6 +32,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
 
   # ---
   fun <- as.character(match.call()[[1]])
+  fun_env <- environment()
   
   args_except <- NULL
   
@@ -46,7 +47,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
   
   call_pars <- mget(
     names(formals()) %>% .[! . %in% args_except], 
-    envir = rlang::current_env(), 
+    envir = fun_env, 
     inherits = FALSE
   ) %>% 
     .[sort(names(.))]
@@ -689,8 +690,8 @@ find_mgf_type <- function (file)
   begins <- which(stringi::stri_startswith_fixed(hdr, "BEGIN IONS"))
   ends <- which(stringi::stri_endswith_fixed(hdr, "END IONS"))
   
-  if (!length(begins))
-    stop("The tag of `BEGIN IONS` not found in MGF.", call. = FALSE)
+  if (!length(begins)) 
+    stop("Check corrupted files: the tag of `BEGIN IONS` not found in MGF.")
   
   # if (!length(ends))
   #   stop("The tag of `END IONS` not found in MGF.", call. = FALSE)

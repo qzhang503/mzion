@@ -27,17 +27,19 @@ matchMS(
   max_miss = 2L,
   min_mass = 500L,
   max_mass = 6000L,
-  min_ms2mass = 110L,
+  ppm_ms1 = 20L,
   n_13c = 0L,
   type_ms2ions = "by",
   topn_ms2ions = 100L,
+  min_ms2mass = 110L,
   minn_ms2 = 6L,
-  ppm_ms1 = 20L,
   ppm_ms2 = 25L,
   ppm_reporters = 10L,
   quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
   target_fdr = 0.01,
   fdr_type = c("psm", "peptide", "protein"),
+  max_pepscores_co = Inf,
+  max_protscores_co = Inf,
   combine_tier_three = FALSE,
   use_ms1_cache = TRUE,
   .path_cache = NULL,
@@ -122,8 +124,7 @@ interrogation.}
 \item{max_mass}{A non-negative integer; the maximum precursor mass for
 interrogation.}
 
-\item{min_ms2mass}{A non-negative integer; the minimum MS2 mass for
-interrogation.}
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
 
 \item{n_13c}{A non-negative integer; the maximum number of 13C off-sets for
 consideration in MS1 masses. The default is 0 with no off-sets.
@@ -141,10 +142,11 @@ and y-ions.}
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in MS2
 ion searches. The default is to use the top-100 ions in an MS2 event.}
 
+\item{min_ms2mass}{A non-negative integer; the minimum MS2 mass for
+interrogation.}
+
 \item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
 a hit.}
-
-\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
 
@@ -168,10 +170,42 @@ is equivalent to \code{fdr_type = peptide} with the additional filtration
 of data at \code{prot_tier == 1}. A variant is to set \code{fdr_type =
 psm}, followed by a data filtration at \code{prot_tier == 1}.}
 
-\item{combine_tier_three}{Logical; if TRUE, combines all protein results to
-the output of \code{psmQ.txt}. Outputs under the option TRUE are often
-comparable to Mascot outputs with FDR controls at the levels of PSMs or
-peptides.}
+\item{max_pepscores_co}{Numeric; the upper limit in the cut-offs of peptide
+scores for discriminating significant and insignificant identities. The
+default is \code{Inf} without any restriction. Experimenters might consider
+to relax the restriction by a define threshold, i.e.,
+\code{max_pepscores_co = 50}. A graphic summary of experimentally
+determined cut-offs can be found at
+\code{`out_path`/temp/pepscore_len.pdf}.}
+
+\item{max_protscores_co}{Numeric; the upper limit in the cut-offs of protein
+scores for discriminating significant and insignificant identities. The
+default is \code{Inf} without any restriction. Experimenters might consider
+to relax the restriction by a define threshold, i.e.,
+\code{max_protscores_co = 50}. A graphic summary of experimentally
+determined cut-offs can be found at
+\code{`out_path`/temp/protein_score_co.pdf}.}
+
+\item{combine_tier_three}{Logical; if TRUE, combines search results at tiers
+  1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
+  that data will be segregated into the three quality tiers according to the
+  choice of \code{fdr_type}. The (convenience) parameter matters since
+  \href{http://github.com/qzhang503/proteoQ}{proteoQ} will only look for the
+  inputs of \code{psmQ[...].txt}.
+
+  For instance, if the aim is to bypass the constraint by protein FDR and
+  focus on PSMs that have met the cut-offs specified by \code{target_fdr},
+  experimenters may set \code{combine_tier_three = TRUE} and hence pool all
+  significant peptides in \code{psmQ.txt} for downstream proteoQ.
+
+  Tier-1: both proteins and peptides with scores above significance
+  thresholds.
+
+  Tier-2: \eqn{\ge} 2 significant peptides but protein scores below
+  significance thresholds.
+
+  Tier-3: one significant peptide and protein scores below significance
+  thresholds.}
 
 \item{use_ms1_cache}{Logical; if TRUE, use cached precursor masses.
 

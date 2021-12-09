@@ -28,7 +28,6 @@
 #' @inheritParams calc_aamasses
 #' @inheritParams matchMS
 #' @import parallel
-#' @importFrom rlang current_env
 #' @examples
 #' \donttest{
 #' res <- calc_pepmasses2()
@@ -85,7 +84,7 @@ calc_pepmasses2 <- function (
   on.exit(options(old_opts), add = TRUE)
 
   on.exit(
-    if (exists(".savecall", envir = rlang::current_env())) {
+    if (exists(".savecall", envir = fun_env)) {
       if (.savecall) {
         save_call2(path = .path_cache, fun = fun, time = .time_stamp)
       }
@@ -95,6 +94,7 @@ calc_pepmasses2 <- function (
 
   # ---
   fun <- as.character(match.call()[[1]])
+  fun_env <- environment()
   
   .time_stamp <- match_calltime(
     path = .path_cache,

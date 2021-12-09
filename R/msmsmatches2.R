@@ -30,7 +30,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   options(digits = 9L)
   
   on.exit(
-    if (exists(".savecall", envir = rlang::current_env())) {
+    if (exists(".savecall", envir = fun_env)) {
       if (.savecall) {
         save_call2(path = file.path(out_path, "Calls"), fun = fun)
       }
@@ -40,6 +40,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   # Check cached 
   fun <- as.character(match.call()[[1]])
+  fun_env <- environment()
   
   args_except <- NULL
   
@@ -51,7 +52,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
     .[sort(names(.))]
   
   call_pars <- mget(names(formals()) %>% .[! . %in% args_except], 
-                    envir = rlang::current_env(), 
+                    envir = fun_env, 
                     inherits = FALSE) %>% 
     .[sort(names(.))]
   

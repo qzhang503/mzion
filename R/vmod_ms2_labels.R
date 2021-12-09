@@ -632,8 +632,10 @@ sim_combn <- function (x, m)
 {
   if (length(m) > 1L) 
     stop("length(m) > 1", domain = NA)
+  
   if (m < 0L) 
     stop("m < 0", domain = NA)
+  
   m <- as.integer(m)
   
   n <- length(x)
@@ -645,7 +647,6 @@ sim_combn <- function (x, m)
   a <- seq_len(m)
   
   len.r <- length(r <- x[a])
-  # count <- as.integer(round(choose(n, m)))
   count <- as.integer(choose(n, m))
   
   out <- vector("list", count)

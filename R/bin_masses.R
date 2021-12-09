@@ -18,7 +18,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   on.exit(options(old_opts), add = TRUE)
   
   on.exit(
-    if (exists(".savecall", envir = rlang::current_env())) {
+    if (exists(".savecall", envir = fun_env)) {
       if (.savecall) {
         res <- NULL
         save_call2(path = file.path(.path_cache, "calc_pepmasses2", .time_stamp), 
@@ -30,6 +30,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
   
   ## Initial setups
   fun <- as.character(match.call()[[1]])
+  fun_env <- environment()
   
   ppm_ms1_new <- if (is_ms1_three_frame) 
     as.integer(ceiling(ppm_ms1 * .5))

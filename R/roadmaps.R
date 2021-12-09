@@ -4,6 +4,8 @@
 #   load_mgfs (mgf.R)
 #   ms2match (msmsmatches2.R)
 #   calc_pepscores (scores.R)
+#   calc_pepfdr
+#   post_pepfdr
 #   calc_peploc (scores)
 #   add_prot_acc (quant2.R)
 #   calc_protfdr (scores.R)
@@ -38,7 +40,6 @@
 #   find_reporter_ints
 #     find_reporters_ppm
 #   find_int_cols
-# 
 # 
 # vmod_ms1_labels.R
 #   - make_ms1vmod_i

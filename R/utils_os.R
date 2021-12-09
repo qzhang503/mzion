@@ -399,18 +399,18 @@ create_dir <- function (path) find_dir(path, create = TRUE)
 #' @param path A (system) file path.
 #' @param fun The name of function being saved.
 #' @param time The time stamp.
-#' @importFrom rlang caller_env
 save_call2 <- function(path, fun, time = NULL) 
 {
   stopifnot(length(path) == 1L, length(fun) == 1L)
   
-  call_pars <- mget(names(formals(fun)), envir = caller_env(), inherits = FALSE)
+  call_pars <- mget(names(formals(fun)), envir = parent.frame(), inherits = FALSE)
   call_pars[names(call_pars) == "..."] <- NULL
   
   if (is.null(time)) {
     p2 <- create_dir(path)
     save(call_pars, file = file.path(p2, paste0(fun, ".rda")))
-  } else {
+  } 
+  else {
     stopifnot(length(time) == 1L)
     p2 <- create_dir(file.path(path, fun))
     save(call_pars, file = file.path(p2, paste0(time, ".rda")))
@@ -468,7 +468,6 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
 #' @param type Logical; if TRUE, includes all arguments in \code{nms}. At FALSE,
 #'   excludes all \code{nms}.
 #' @inheritParams find_callarg_vals
-#' @importFrom rlang caller_env
 #' @return An empty object if no matches.
 match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
                             fun = "calc_pepmasses2",
@@ -482,10 +481,10 @@ match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
   # current
   args <- if (type) 
     mget(names(formals(fun)) %>% .[. %in% nms], 
-         envir = rlang::caller_env(), inherits = FALSE)
+         envir = parent.frame(), inherits = FALSE)
   else 
     mget(names(formals(fun)) %>% .[! . %in% nms], 
-         envir = rlang::caller_env(), inherits = FALSE)
+         envir = parent.frame(), inherits = FALSE)
 
   if (!length(args)) 
     stop("Arguments for matching is empty.", call. = FALSE)

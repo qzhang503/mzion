@@ -28,7 +28,8 @@ add_seions <- function (ms2s, type_ms2ions = "by", digits = 5L)
     
     round(c(b2s, bstars, bstar2s, b0s, b02s, y2s, ystars, ystar2s, y0s, y02s), 
           digits = digits)
-  } else if (type_ms2ions == "ax") {
+  } 
+  else if (type_ms2ions == "ax") {
     proton <- 1.00727647
     h2o <- 18.010565
     nh3 <- 17.026549
@@ -45,7 +46,8 @@ add_seions <- function (ms2s, type_ms2ions = "by", digits = 5L)
     x2s <- (xs + proton)/2
     
     round(c(a2s, astars, astar2s, a0s, a02s, x2s), digits = digits)
-  } else if (type_ms2ions == "cz") {
+  } 
+  else if (type_ms2ions == "cz") {
     proton <- 1.00727647
     
     cs <- ms2s[1:(len/2)]
@@ -182,7 +184,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   n <- N - m - sum(!is.na(df2$expt))
   
   ## step 0: the original tidyverse approach
-  
+  # 
   # m2 <- nrow(df2)
   # 
   # y2 <- df2 %>% 
@@ -245,7 +247,6 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   
   ## step 3: add `int2` from `y2`
   #  (dplyr::left_join(y, y2, by = "idx"))
-  
   i_yy2 <- match(y$idx, y2$idx)
   i_y <- which(!is.na(i_yy2))
   i_y2 <- i_yy2[i_y]
@@ -255,20 +256,17 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   
   ## step 4: collapses `int2` to `int`
   #  (mutate(y, int = ifelse(is.na(int2), int, int + int2)))
-
   y$int <- y$int %+% y$int2
   y$int2 <- NULL
   y$idx <- NULL
   
   ## step 5: arrange(-int)
-  
   idx <- order(y$int, decreasing = TRUE, method = "radix", na.last = TRUE) # 16.4 us
   y$expt <- y$expt[idx]
   y$int <- y$int[idx]
   y$theo <- y$theo[idx]
   
   ## step 6: mutate(k = row_number(), x = k - cumsum(is.na(theo)))
-  
   k <- 1:topn_ms2ions
   x <- k - cumsum(is.na(y$theo))
   
@@ -276,7 +274,6 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   y$x <- x
   
   ## step 7: filter(!is.na(theo))
-  
   idx <- !is.na(y$theo)
   
   y$expt <- y$expt[idx]
@@ -489,7 +486,8 @@ calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by",
     probs <- .Internal(unlist(probs, recursive = FALSE, use.names = FALSE))
     
     probs <- dplyr::bind_rows(probs) # 276 us
-  } else {
+  } 
+  else {
     probs <- data.frame(
       pep_seq = as.character(), 
       pep_ivmod = as.character(), 
@@ -525,7 +523,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             digits = 5L) 
 {
   on.exit(
-    if (exists(".savecall", envir = rlang::current_env())) {
+    if (exists(".savecall", envir = fun_env)) {
       if (.savecall) {
         save_call2(path = file.path(out_path, "Calls"), fun = fun)
       }
@@ -550,6 +548,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
 
   ## Check cached current
   fun <- as.character(match.call()[[1]])
+  fun_env <- environment()
   
   args_except <- NULL
   
@@ -561,7 +560,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     .[sort(names(.))]
   
   call_pars <- mget(names(formals()) %>% .[! . %in% args_except], 
-                    envir = rlang::current_env(), 
+                    envir = fun_env, 
                     inherits = FALSE) %>% 
     .[sort(names(.))]
   
@@ -950,24 +949,27 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path)
       score_co2 <- which(newy <= target_fdr)[1] %>% names() %>% as.numeric()
       best_co <- min(score_co, score_co2, na.rm = TRUE)
       
-      try(
-        local({
-          pdf(file.path(out_path, "temp", paste0("probco_peplen@", len, ".pdf"))) 
-          plot(y ~ x, df, xlab = "pep_score", col = "blue", ylab = "FDR", pch = 19)
-          title(main = paste0("Peptide length ", len))
-          lines(newx, newy, col = "red", type = "b")
-          abline(h = target_fdr, col = "green", lwd = 3, lty = 2)
-          legend("topright", legend = c("Original", "Fitted"), 
-                 col = c("blue", "red"), pch = 19, bty = "n")
-          legend("center", pch = 19, 
-                 legend = c(paste0("Best: ", round(best_co, 2)), 
-                            paste0("Fitted: ", round(score_co2, 2))))
-          dev.off()
-        })
-      )
+      if (FALSE) {
+        try(
+          local({
+            pdf(file.path(out_path, "temp", paste0("probco_peplen@", len, ".pdf"))) 
+            plot(y ~ x, df, xlab = "pep_score", col = "blue", ylab = "FDR", pch = 19)
+            title(main = paste0("Peptide length ", len))
+            lines(newx, newy, col = "red", type = "b")
+            abline(h = target_fdr, col = "green", lwd = 3, lty = 2)
+            legend("topright", legend = c("Raw", "Smoothed"), 
+                   col = c("blue", "red"), pch = 19, bty = "n")
+            legend("center", pch = 19, 
+                   legend = c(paste0("Best: ", round(best_co, 2)), 
+                              paste0("Smoothed: ", round(score_co2, 2))))
+            dev.off()
+          })
+        )
+      }
 
       rm(list = c("newx", "newy", "score_co", "score_co2"))
-    } else {
+    } 
+    else {
       best_co <- score_co
     }
     
@@ -975,7 +977,8 @@ probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path)
     
     prob_co <- 10^(-best_co/10)
     
-  } else {
+  } 
+  else {
     best_co <- tryCatch(
       (find_pepscore_co1(td, target_fdr) + find_pepscore_co2(td, target_fdr))/2,
       error = function(e) NA
@@ -1059,8 +1062,11 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 #'                         out_path = "~/proteoM/bi_1")
 #' }
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm", 
-                         min_len = 7L, max_len = 50L, out_path) 
+                         min_len = 7L, max_len = 50L, 
+                         max_pepscores_co = Inf, out_path) 
 {
+  fct_score <- 10
+  
   pat <- "^pepscores_"
   ok_decoy <- find_decoy(out_path, pattern = pat)
   nm_d <- ok_decoy$idxes
@@ -1160,7 +1166,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   counts <- counts %>% .[names(.) %in% lens]
   
   valley <- find_probco_valley(prob_cos)
-  best_co <- -log10(prob_cos[as.character(valley)])
+  best_co <- -fct_score * log10(prob_cos[as.character(valley)])
   
   prob_cos <- local({
     start <- which(names(prob_cos) == valley)
@@ -1174,7 +1180,8 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   })
   
   ## fittings
-  df <- data.frame(x = as.numeric(names(prob_cos)), y = -log10(prob_cos))
+  df <- data.frame(x = as.numeric(names(prob_cos)), 
+                   y = -fct_score * log10(prob_cos))
   
   # valley left
   df_left <- df[df$x <= valley, ]
@@ -1211,7 +1218,6 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   rank_right <- 3L # changed from 2 to 3
   
   if (nrow(df_right) > rank_right) {
-    # fit_right <- lm(y ~ splines::ns(x, rank_right), df_right)
     fit_right <- local({
       fit_ns <- tryCatch(
         lm(y ~ splines::ns(x, rank_right), df_right),
@@ -1234,7 +1240,16 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     names(newy_right) <- newx_right
   } 
   else {
-    slope <- .28
+    fit_right <- tryCatch(
+      lm(y ~ x, df_right),
+      error = function(e) NA
+    )
+    
+    slope <- if (class(fit_right) == "lm") 
+      unname(coef(fit_right)[2])
+    else 
+      .25
+
     newx_right <- valley:max(df_right$x, na.rm = TRUE)
     newy_right <- best_co + slope * (newx_right - valley)
     names(newy_right) <- newx_right
@@ -1259,21 +1274,24 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     n_row2 <- nrow(df_new) - n_row
     
     # `*10` only for plots
-    df_new$y <- df_new$y * 10 
+    # df_new$y <- df_new$y * 10 
+    df_new$y <- df_new$y
     
     try(
       local({
         pdf(file.path(out_path, "temp", "pepscore_len.pdf")) 
         plot(y ~ x, df_new, col = c(rep("blue", n_row), rep("red", n_row2)), 
              xlab = "pep_len", ylab = "score_co", pch = 19)
-        legend("topright", legend = c("Original", "Fitted"), 
+        legend("topright", legend = c("Raw", "Smoothed"), 
                col = c("blue", "red"), pch = 19, bty = "n")
         dev.off()
       })
     )
   })
   
-  prob_cos <- 10^-newy
+  ## Outputs
+  newy[newy > max_pepscores_co] <- max_pepscores_co
+  prob_cos <- 10^(-newy/10)
   
   if (TRUE) {
     prob_cos <- local({
@@ -1301,12 +1319,12 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
 post_pepfdr <- function (prob_cos = NULL, out_path = NULL) 
 {
   if (is.null(prob_cos)) {
-    prob_cos <- file.path(out_path, "temp", "pep_probco.rds")
+    file_prob <- file.path(out_path, "temp", "pep_probco.rds")
     
-    if (file.exists(prob_cos)) 
-      prob_cos <- readRDS(prob_cos)
+    if (file.exists(file_prob)) 
+      prob_cos <- readRDS(file_prob)
     else 
-      stop("File not found: ", prob_cos)
+      stop("File not found: ", file_prob)
   }
 
   fct_score <- 10
@@ -1370,7 +1388,8 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
 #' @param df An output from upstream steps.
 #' @param outpath An output path.
 #' @inheritParams calc_pepfdr
-calc_protfdr <- function (df, target_fdr = .01, out_path) 
+#' @inheritParams matchMS
+calc_protfdr <- function (df, target_fdr = .01, max_protscores_co, out_path) 
 {
   message("Calculating peptide-protein FDR.")
   
@@ -1395,8 +1414,10 @@ calc_protfdr <- function (df, target_fdr = .01, out_path)
   score_co <- score_co %>% 
     fit_protfdr(max_n_pep, out_path) %>% 
     dplyr::filter(prot_n_pep %in% all_n_peps) %>% 
-    dplyr::rename(prot_es_co = prot_score_co)
-  
+    dplyr::rename(prot_es_co = prot_score_co) %>% 
+    dplyr::mutate(prot_es_co = ifelse(prot_es_co > max_protscores_co, 
+                                      max_protscores_co, prot_es_co))
+
   # add protein enrichment score
   prot_es <- df %>% 
     dplyr::group_by(prot_acc, pep_seq) %>% 
@@ -1548,22 +1569,24 @@ calc_protfdr_i <- function (td, target_fdr = .01, out_path)
         local({
           title <- paste0("prot_n_pep@", td$prot_n_pep[1])
           
-          try(
-            local({
-              pdf(file.path(out_path, "temp", paste0(title, ".pdf"))) 
-              plot(y ~ x, data, xlab = "Enrichment score", col = "blue", 
-                   ylab = "FDR", pch = 19)
-              title(main = title)
-              lines(newx, newy, col = "red", type = "b")
-              abline(h = target_fdr, col = "green", lwd = 3, lty = 2)
-              legend("topright", legend = c("Original", "Fitted"), 
-                     col = c("blue", "red"), pch = 19, bty = "n")
-              legend("center", pch = 19, 
-                     legend = c(paste0("Original: ", round(score_co, 2)), 
-                                paste0("Fitted: ", round(score_co2, 2))))
-              dev.off()
-            })
-          )
+          if (FALSE) {
+            try(
+              local({
+                pdf(file.path(out_path, "temp", paste0(title, ".pdf"))) 
+                plot(y ~ x, data, xlab = "Enrichment score", col = "blue", 
+                     ylab = "FDR", pch = 19)
+                title(main = title)
+                lines(newx, newy, col = "red", type = "b")
+                abline(h = target_fdr, col = "green", lwd = 3, lty = 2)
+                legend("topright", legend = c("Raw", "Smoothed"), 
+                       col = c("blue", "red"), pch = 19, bty = "n")
+                legend("center", pch = 19, 
+                       legend = c(paste0("Raw: ", round(score_co, 2)), 
+                                  paste0("Smoothed: ", round(score_co2, 2))))
+                dev.off()
+              })
+            )
+          }
         })
       }
 
@@ -1675,13 +1698,13 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
   
   try(
     local({
-      pdf(file.path(out_path, "temp", "Protein_score_co.pdf")) 
+      pdf(file.path(out_path, "temp", "protein_score_co.pdf")) 
       plot(y ~ x, df, xlab = "prot_n_pep", col = "blue", 
            ylab = "Protein score", pch = 19)
       title(main = "Protein score CO")
       lines(newx, newy, col = "red", type = "b")
       lines(newx, newy, col = "red")
-      legend("topright", legend = c("Original", "Fitted"), 
+      legend("topright", legend = c("Raw", "Smoothed"), 
              col = c("blue", "red"), pch = 19, bty = "n")
       dev.off()
     })
@@ -1984,44 +2007,46 @@ na.interp <- function (x, lambda = NULL,
                                    sum(!is.na(x)) <= 2 * frequency(x))) 
 {
   missng <- is.na(x)
-  if (sum(missng) == 0L) {
+  
+  if (sum(missng) == 0L) 
     return(x)
-  }
+
   origx <- x
   rangex <- range(x, na.rm = TRUE)
   drangex <- rangex[2L] - rangex[1L]
-  if (is.null(tsp(x))) {
+  
+  if (is.null(tsp(x))) 
     x <- ts(x)
-  }
+
   if (length(dim(x)) > 1) {
-    if (NCOL(x) == 1) {
+    if (NCOL(x) == 1) 
       x <- x[, 1]
-    }
-    else {
+    else 
       stop("The time series is not univariate.")
-    }
   }
+  
   if (!is.null(lambda)) {
     x <- BoxCox(x, lambda = lambda)
     lambda <- attr(x, "lambda")
   }
+  
   freq <- frequency(x)
   tspx <- tsp(x)
   n <- length(x)
   tt <- 1:n
   idx <- tt[!missng]
-  if (linear) {
+  
+  if (linear) 
     x <- ts(approx(idx, x[idx], tt, rule = 2)$y)
-  }
   else {
-    if ("msts" %in% class(x)) {
+    if ("msts" %in% class(x)) 
       K <- pmin(trunc(attributes(x)$msts/2), 20L)
-    }
-    else {
+    else 
       K <- min(trunc(freq/2), 5)
-    }
-    X <- cbind(fourier(x, K), poly(tt, degree = pmin(pmax(trunc(n/10), 
-                                                          1), 6L)))
+
+    X <- cbind(fourier(x, K), 
+               poly(tt, degree = pmin(pmax(trunc(n/10), 1), 6L)))
+
     fit <- lm(x ~ X, na.action = na.exclude)
     pred <- predict(fit, newdata = data.frame(X))
     x[missng] <- pred[missng]
@@ -2029,19 +2054,23 @@ na.interp <- function (x, lambda = NULL,
     sa <- seasadj(fit)
     sa <- approx(idx, sa[idx], 1:n, rule = 2)$y
     seas <- seasonal(fit)
-    if (NCOL(seas) > 1) {
+    
+    if (NCOL(seas) > 1) 
       seas <- rowSums(seas)
-    }
+    
     x[missng] <- sa[missng] + seas[missng]
   }
-  if (!is.null(lambda)) {
+  
+  if (!is.null(lambda)) 
     x <- InvBoxCox(x, lambda = lambda)
-  }
+  
   tsp(x) <- tspx
+  
   if (!linear & (max(x) > rangex[2L] + 0.5 * drangex | min(x) < 
                  rangex[1L] - 0.5 * drangex)) 
     return(na.interp(origx, lambda = lambda, linear = TRUE))
-  else return(x)
+  else 
+    return(x)
 }
 
 

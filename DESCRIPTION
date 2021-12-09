@@ -36,7 +36,7 @@ Imports:
 	proteoCpp, 
 	proteoQDA,
 	proxyC,
-    rlang,
+	rlang,
     MASS,
 	Matrix,
     Rcpp

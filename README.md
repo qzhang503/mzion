@@ -1,7 +1,7 @@
 proteoM
 ================
 true
-2021-11-18
+2021-11-30
 
 -   [Installation](#installation)
 -   [Database searches](#database-searches)
@@ -29,9 +29,6 @@ copy_refseq_mm("~/proteoM/dbs/fasta/refseq")
 copy_crap("~/proteoM/dbs/fasta/crap")
 
 # MGF (e.g. by Proteome Discoverer)
-# if with Thermo's `RawConverter (v1.2.0.1)`:
-#   - Experiment Tpe: Data Dependent
-#   - Options: Select monoisotopic m/z in DDA
 copy_pd_mgf("~/proteoM/examples/mgfs")
 
 # Ion searches
@@ -85,6 +82,11 @@ matchMS(
 
 -   Search against real MGFs
 
+    -   With `MSConvert`:
+        -   Options
+        -   [x] Output format: mgf
+        -   Filters
+        -   [x] peakPicking: msLevel=1-
     -   With `RawConverter (v1.2.0.1)`:
         -   Experiment Type
         -   [x] Data Dependent
@@ -93,11 +95,6 @@ matchMS(
         -   [x] Export Centroided Peaks in MS1
         -   Output Formats
         -   [x] MGF
-    -   With `MSConvert (v3.0.20287-769529fa4)`:
-        -   Options
-        -   [x] Output format: mgf
-        -   Filters
-        -   [x] peakPicking: msLevel=1-
 
 -   Data QC and informatics with
     [proteoQ](https://github.com/qzhang503/proteoQ/)

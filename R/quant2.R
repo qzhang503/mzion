@@ -12,9 +12,8 @@ calc_tmtint <- function (data = NULL,
 {
   if (quant == "none") {
     out <- data
-  } else {
-    # message("Calculating reporter-ion intensities.")
-    
+  } 
+  else {
     nms_tmt6 <- c("126", "127N", "128N", "129N", "130N", "131N")
     
     nms_tmt10 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
@@ -201,7 +200,8 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
     es <- rep(NA, len)
     names(es) <- nms
     es[names(rptr_ints)] <- rptr_ints
-  } else {
+  } 
+  else {
     es <- rptr_ints
   }
   
@@ -298,7 +298,8 @@ cut_protgrps <- function (mat, out_path = NULL)
       out[[i]] <- map_dbl(mat[i:len], ~ sum(.x & mat[[i]]))
       out[[i]] <- c(out[seq_len(i-1)] %>% map_dbl(`[[`, i), out[[i]])
     }
-  } else {
+  } 
+  else {
     out <- parDist(mat)
   }
   
@@ -341,8 +342,7 @@ parDist <- function (mat)
   n_cores <- floor(min(mem/size, detect_cores(16L)))
   
   if (n_cores <= 1L) 
-    stop("Not enough memory for parallel distance calculation.", 
-         call. = FALSE)
+    stop("Not enough memory for parallel distance calculation.")
   
   idxes <- chunksplit(seq_along(mat), 2 * n_cores, "list")
   len <- length(mat)
@@ -584,7 +584,8 @@ map_pepprot2 <- function (df, out_path = NULL)
     
     rm(list = c("x", "x0"))
     gc()
-  } else {
+  } 
+  else {
     out <- Matrix::Matrix(out, ncol = ncol, byrow = TRUE, sparse = TRUE)
     rownames(out) <- mpeps
     gc()
@@ -678,7 +679,8 @@ cut_protgrps2 <- function (mat = NULL, out_path = NULL)
     
     rm(list = c("x"))
     gc()
-  } else {
+  } 
+  else {
     dista <- (dista == 0) # sparse logical matrix
     gc()
     
@@ -709,7 +711,8 @@ cut_protgrps2 <- function (mat = NULL, out_path = NULL)
     gc()
     
     grps <- data.frame(prot_hit_num = cutree(hc, h = .9))
-  } else {
+  } 
+  else {
     hc <- NULL
     grps <- data.frame(prot_hit_num = 1L)
     rownames(grps) <- cns

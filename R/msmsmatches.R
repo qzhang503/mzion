@@ -93,10 +93,41 @@
 #'   is equivalent to \code{fdr_type = peptide} with the additional filtration
 #'   of data at \code{prot_tier == 1}. A variant is to set \code{fdr_type =
 #'   psm}, followed by a data filtration at \code{prot_tier == 1}.
-#' @param combine_tier_three Logical; if TRUE, combines all protein results to
-#'   the output of \code{psmQ.txt}. Outputs under the option TRUE are often
-#'   comparable to Mascot outputs with FDR controls at the levels of PSMs or
-#'   peptides.
+#' @param max_pepscores_co Numeric; the upper limit in the cut-offs of peptide
+#'   scores for discriminating significant and insignificant identities. The
+#'   default is \code{Inf} without any restriction. Experimenters might consider
+#'   to relax the restriction by a define threshold, i.e.,
+#'   \code{max_pepscores_co = 50}. A graphic summary of experimentally
+#'   determined cut-offs can be found at
+#'   \code{`out_path`/temp/pepscore_len.pdf}.
+#' @param max_protscores_co Numeric; the upper limit in the cut-offs of protein
+#'   scores for discriminating significant and insignificant identities. The
+#'   default is \code{Inf} without any restriction. Experimenters might consider
+#'   to relax the restriction by a define threshold, i.e.,
+#'   \code{max_protscores_co = 50}. A graphic summary of experimentally
+#'   determined cut-offs can be found at
+#'   \code{`out_path`/temp/protein_score_co.pdf}.
+#' @param combine_tier_three Logical; if TRUE, combines search results at tiers
+#'   1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
+#'   that data will be segregated into the three quality tiers according to the
+#'   choice of \code{fdr_type}. The (convenience) parameter matters since
+#'   \href{http://github.com/qzhang503/proteoQ}{proteoQ} will only look for the
+#'   inputs of \code{psmQ[...].txt}.
+#'
+#'   For instance, if the aim is to bypass the constraint by protein FDR and
+#'   focus on PSMs that have met the cut-offs specified by \code{target_fdr},
+#'   experimenters may set \code{combine_tier_three = TRUE} and hence pool all
+#'   significant peptides in \code{psmQ.txt} for downstream proteoQ.
+#'
+#'   Tier-1: both proteins and peptides with scores above significance
+#'   thresholds.
+#'
+#'   Tier-2: \eqn{\ge} 2 significant peptides but protein scores below
+#'   significance thresholds.
+#'
+#'   Tier-3: one significant peptide and protein scores below significance
+#'   thresholds.
+#'
 #' @param use_ms1_cache Logical; if TRUE, use cached precursor masses.
 #'
 #'   Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
@@ -196,16 +227,19 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      maxn_vmods_per_pep = 5L,
                      maxn_sites_per_vmod = 3L,
                      maxn_vmods_sitescombi_per_pep = 64L,
-                     min_len = 7L, max_len = 50L, max_miss = 2L,
-                     min_mass = 500L, max_mass = 6000L, min_ms2mass = 110L, 
+                     min_len = 7L, max_len = 50L, max_miss = 2L, 
+                     min_mass = 500L, max_mass = 6000L, ppm_ms1 = 20L, 
                      n_13c = 0L, 
-                     type_ms2ions = "by",
-                     topn_ms2ions = 100L,
-                     minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L,
-                     ppm_reporters = 10L,
+
+                     type_ms2ions = "by", topn_ms2ions = 100L, 
+                     min_ms2mass = 110L, minn_ms2 = 6L, 
+                     ppm_ms2 = 25L, ppm_reporters = 10L,
                      quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
+                     
                      target_fdr = 0.01,
                      fdr_type = c("psm", "peptide", "protein"),
+                     max_pepscores_co = Inf, max_protscores_co = Inf, 
+                     
                      combine_tier_three = FALSE,
                      use_ms1_cache = TRUE, 
                      .path_cache = NULL, 
@@ -215,7 +249,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   options(digits = 9L)
 
   on.exit(
-    if (exists(".savecall", envir = rlang::current_env())) {
+    if (exists(".savecall", envir = environment())) {
       if (.savecall) {
         save_call2(path = file.path(out_path, "Calls"),
                    fun = as.character(match.call()[[1]]))
@@ -243,7 +277,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      min_len, max_len, max_miss, topn_ms2ions, minn_ms2, 
                      min_mass, max_mass, min_ms2mass, n_13c, 
                      ppm_ms1, ppm_ms2, ppm_reporters, digits, 
-                     target_fdr), 
+                     target_fdr, max_pepscores_co, max_protscores_co), 
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
@@ -273,9 +307,15 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   # (b) doubles
   target_fdr <- as.double(target_fdr)
+  target_fdr <- round(target_fdr, digits = 2L)
   
-  if (target_fdr > .1) 
+  if (target_fdr > .25) 
     stop("Choose a smaller `target_fdr`.", call. = FALSE)
+  
+  max_pepscores_co <- round(max_pepscores_co, digits = 2L)
+  max_protscores_co <- round(max_protscores_co, digits = 2L)
+  
+  stopifnot(max_pepscores_co >= 0, max_protscores_co >= 0)
   
   # fdr_type
   fdr_type <- rlang::enexpr(fdr_type)
@@ -449,13 +489,12 @@ matchMS <- function (out_path = "~/proteoM/outs",
                  
                  digits = digits)
 
-  ## Don't (not yet) cache matching from this point on
-
   ## Peptide FDR 
   out <- calc_pepfdr(target_fdr = target_fdr, 
                      fdr_type = fdr_type, 
                      min_len = min_len, 
                      max_len = max_len, 
+                     max_pepscores_co = max_pepscores_co, 
                      out_path = out_path) %>% 
     post_pepfdr(out_path)
 
@@ -465,7 +504,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   ## Protein accessions, score cut-offs and optional reporter ions
   out <- add_prot_acc(out, out_path)
-  out <- calc_protfdr(out, target_fdr, out_path)
+  out <- calc_protfdr(df = out, 
+                      target_fdr = target_fdr, 
+                      max_protscores_co = max_protscores_co, 
+                      out_path = out_path)
   out <- add_rptrs(out, quant, out_path)
   gc()
 
@@ -575,8 +617,8 @@ try_ms2match <- function (mgf_path, aa_masses_all, out_path, mod_indexes,
                           maxn_fasta_seqs, maxn_vmods_setscombi, 
                           min_len, max_len, max_miss, 
                           target_fdr, fdr_type, combine_tier_three, 
-                          digits) {
-  
+                          digits) 
+{
   ans <- tryCatch(
     ms2match(mgf_path = mgf_path,
              aa_masses_all = aa_masses_all,
@@ -662,7 +704,8 @@ try_ms2match <- function (mgf_path, aa_masses_all, out_path, mod_indexes,
     close(fileConn)
     
     rstudioapi::restartSession(command = 'source("~/matchMS.R")')
-  } else {
+  } 
+  else {
     rm(list = "ans")
     gc()
   }
@@ -676,8 +719,8 @@ try_ms2match <- function (mgf_path, aa_masses_all, out_path, mod_indexes,
 #' @inheritParams psmC2Q
 #' @importFrom magrittr %>% %T>%
 try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
-                        combine_tier_three = FALSE) {
-
+                        combine_tier_three = FALSE) 
+{
   n_peps <- length(unique(out$pep_seq))
   n_prots <- length(unique(out$prot_acc))
 
@@ -687,7 +730,8 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
 
   if (n_peps > 1000000L && n_prots > 100000L) {
     out <- NA
-  } else {
+  } 
+  else {
     out <- tryCatch(
       psmC2Q(out,
              out_path = out_path,
@@ -721,7 +765,8 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
     close(fileConn)
 
     rstudioapi::restartSession(command='source("~/post_psmC.R")')
-  } else {
+  } 
+  else {
     try(rm(list = c(".path_cache", ".path_ms1masses", ".time_stamp"),
            envir = .GlobalEnv))
 
@@ -742,11 +787,10 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
 #'
 #' @inheritParams matchMS
 reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
-                         combine_tier_three = FALSE) {
-
-  if (is.null(out_path)) {
+                         combine_tier_three = FALSE) 
+{
+  if (is.null(out_path)) 
     stop("`out_path` cannot be NULL.", call. = FALSE)
-  }
 
   message("Please wait for the `Search completed` message...")
 
@@ -765,8 +809,8 @@ reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
 #' @param out A result of \code{psmC.txt}.
 #' @inheritParams matchMS
 psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
-                    combine_tier_three = FALSE) {
-
+                    combine_tier_three = FALSE) 
+{
   message("\n=================================\n",
           "prot_tier  prot_issig  prot_n_pep \n",
           "    1          [y]          \n",
@@ -799,17 +843,19 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
               "and saved peptides of tier-2 proteins to `psmT2.txt`.",
               call. = FALSE)
 
-      # dummy
       fdr_type <- "protein"
     }
 
     out2 <- dplyr::filter(out, prot_tier == 2L)
     out <- dplyr::filter(out, prot_tier == 1L)
-  } else {
+  } 
+  else {
     if (fdr_type == "protein") {
       out2 <- dplyr::filter(out, prot_tier == 2L)
       out <- dplyr::filter(out, prot_tier == 1L)
-    } else {
+    } 
+    else {
+      message("No tier-2 outputs at `fdr_type = ", fdr_type, "`.")
       out2 <- out[0, ]
       out <- out
     }
@@ -854,7 +900,23 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
       dplyr::bind_rows() %>%
       dplyr::arrange(prot_acc, pep_seq) %T>%
       readr::write_tsv(file.path(out_path, "psmQ.txt"))
-  } else {
+    
+    local({
+      file_t2 <- file.path(out_path, "psmT2.txt")
+      file_t3 <- file.path(out_path, "psmT3.txt")
+      
+      if (file.exists(file_t2)) {
+        message("Delete `psmT2.txt` at `combine_tier_three = TRUE`.")
+        unlink(file_t2)
+      }
+
+      if (file.exists(file_t3)) {
+        message("Delete `psmT3.txt` at `combine_tier_three = TRUE`.")
+        unlink(file_t3)
+      }
+    })
+  } 
+  else {
     out <- out %>%
       dplyr::arrange(prot_acc, pep_seq) %T>%
       readr::write_tsv(file.path(out_path, "psmQ.txt"))
