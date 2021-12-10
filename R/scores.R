@@ -1062,7 +1062,7 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 #'                         out_path = "~/proteoM/bi_1")
 #' }
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm", 
-                         min_len = 7L, max_len = 50L, 
+                         min_len = 7L, max_len = 50L, match_pepfdr = TRUE, 
                          max_pepscores_co = Inf, out_path) 
 {
   fct_score <- 10
@@ -1293,12 +1293,12 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   newy[newy > max_pepscores_co] <- max_pepscores_co
   prob_cos <- 10^(-newy/10)
   
-  if (TRUE) {
+  if (match_pepfdr) {
     prob_cos <- local({
       idxes <- prob_cos %>% .[. <= target_fdr]
       
       fct_homol <- if (length(idxes)) 
-        target_fdr/max(idxes, na.rm = TRUE)
+        max(target_fdr/max(idxes, na.rm = TRUE), 1)
       else 
         1L
       
@@ -1389,7 +1389,8 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
 #' @param outpath An output path.
 #' @inheritParams calc_pepfdr
 #' @inheritParams matchMS
-calc_protfdr <- function (df, target_fdr = .01, max_protscores_co, out_path) 
+calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = 50, 
+                          out_path = NULL) 
 {
   message("Calculating peptide-protein FDR.")
   
@@ -1409,14 +1410,14 @@ calc_protfdr <- function (df, target_fdr = .01, max_protscores_co, out_path)
   score_co <- td %>% 
     split(.$prot_n_pep) %>% 
     purrr::map_dbl(calc_protfdr_i, target_fdr, out_path) 
+  
+  score_co[score_co > max_protscores_co] <- max_protscores_co
 
   # fitted score cut-offs
   score_co <- score_co %>% 
     fit_protfdr(max_n_pep, out_path) %>% 
     dplyr::filter(prot_n_pep %in% all_n_peps) %>% 
-    dplyr::rename(prot_es_co = prot_score_co) %>% 
-    dplyr::mutate(prot_es_co = ifelse(prot_es_co > max_protscores_co, 
-                                      max_protscores_co, prot_es_co))
+    dplyr::rename(prot_es_co = prot_score_co)
 
   # add protein enrichment score
   prot_es <- df %>% 

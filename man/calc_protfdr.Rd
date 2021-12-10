@@ -4,7 +4,12 @@
 \alias{calc_protfdr}
 \title{Calculates the cut-offs of protein scores.}
 \usage{
-calc_protfdr(df, target_fdr = 0.01, max_protscores_co, out_path)
+calc_protfdr(
+  df = NULL,
+  target_fdr = 0.01,
+  max_protscores_co = 50,
+  out_path = NULL
+)
 }
 \arguments{
 \item{df}{An output from upstream steps.}
@@ -12,12 +17,9 @@ calc_protfdr(df, target_fdr = 0.01, max_protscores_co, out_path)
 \item{target_fdr}{Numeric; the levels of false-discovery rate (FDR).}
 
 \item{max_protscores_co}{Numeric; the upper limit in the cut-offs of protein
-scores for discriminating significant and insignificant identities. The
-default is \code{Inf} without any restriction. Experimenters might consider
-to relax the restriction by a define threshold, i.e.,
-\code{max_protscores_co = 50}. A graphic summary of experimentally
-determined cut-offs can be found at
-\code{`out_path`/temp/protein_score_co.pdf}.}
+scores for discriminating significant and insignificant identities.  For
+higher quality and data-driven thresholds, choose \code{max_protscores_co =
+Inf}.}
 
 \item{out_path}{A file path of outputs.}
 

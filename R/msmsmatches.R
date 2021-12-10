@@ -94,19 +94,17 @@
 #'   of data at \code{prot_tier == 1}. A variant is to set \code{fdr_type =
 #'   psm}, followed by a data filtration at \code{prot_tier == 1}.
 #' @param max_pepscores_co Numeric; the upper limit in the cut-offs of peptide
-#'   scores for discriminating significant and insignificant identities. The
-#'   default is \code{Inf} without any restriction. Experimenters might consider
-#'   to relax the restriction by a define threshold, i.e.,
-#'   \code{max_pepscores_co = 50}. A graphic summary of experimentally
-#'   determined cut-offs can be found at
-#'   \code{`out_path`/temp/pepscore_len.pdf}.
+#'   scores for discriminating significant and insignificant identities. For
+#'   higher quality and data-driven thresholds, choose \code{max_pepscores_co =
+#'   Inf}.
 #' @param max_protscores_co Numeric; the upper limit in the cut-offs of protein
-#'   scores for discriminating significant and insignificant identities. The
-#'   default is \code{Inf} without any restriction. Experimenters might consider
-#'   to relax the restriction by a define threshold, i.e.,
-#'   \code{max_protscores_co = 50}. A graphic summary of experimentally
-#'   determined cut-offs can be found at
-#'   \code{`out_path`/temp/protein_score_co.pdf}.
+#'   scores for discriminating significant and insignificant identities.  For
+#'   higher quality and data-driven thresholds, choose \code{max_protscores_co =
+#'   Inf}.
+#' @param match_pepfdr Logical; if TRUE, matches empirically the highest
+#'   probability (corresponding to the lowest score) cut-offs to the pre-defined
+#'   level of \code{target_fdr} for peptide data. Choose
+#'   \code{match_pepfdr = FALSE} for higher data quality.
 #' @param combine_tier_three Logical; if TRUE, combines search results at tiers
 #'   1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
 #'   that data will be segregated into the three quality tiers according to the
@@ -160,12 +158,12 @@
 #' # A hypothetical example
 #' # (see also https://github.com/qzhang503/proteoM)
 #' matchMS(
-#'   fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-#'             "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-#'             "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'   fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+#'                "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+#'                "~/proteoM/dbs/fasta/crap/crap.fasta"),
 #'   acc_type = c("refseq_acc", "refseq_acc", "other"),
 #'   max_miss = 2,
-#'   quant = "tmt10",
+#'   quant    = "tmt10",
 #'   fdr_type = "protein",
 #'   out_path = "~/proteoM/examples",
 #' )
@@ -173,36 +171,38 @@
 #' \dontrun{
 #' # Hypothetical phosphopeptides and 16-plex TMTpro
 #' matchMS(
-#'   fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-#'             "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-#'             "~/proteoM/dbs/fasta/crap/crap.fasta"),
-#'   acc_type = c("refseq_acc", "refseq_acc", "other"),
+#'   fasta     = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+#'                 "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+#'                 "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'   acc_type  = c("refseq_acc", "refseq_acc", "other"),
 #'   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
-#'   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
-#'               "Deamidated (N)", "Phospho (S)", "Phospho (T)",
-#'              "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
-#'   max_miss = 2,
-#'   maxn_vmods_sitescombi_per_pep = 32,
-#'   quant = "tmt16",
-#'   fdr_type = "protein",
-#'   out_path = "~/proteoM/examples",
+#'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
+#'                 "Deamidated (N)", "Phospho (S)", "Phospho (T)",
+#'                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
+#'   max_miss  = 2,
+#'   maxn_vmods_sitescombi_per_pep
+#'             = 32,
+#'   quant     = "tmt16",
+#'   fdr_type  = "protein",
+#'   out_path  = "~/proteoM/examples",
 #' )
 #'
 #' # Hypothetical phosphopeptides and 18-plex TMTpro
 #' matchMS(
-#'   fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-#'             "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-#'             "~/proteoM/dbs/fasta/crap/crap.fasta"),
-#'   acc_type = c("refseq_acc", "refseq_acc", "other"),
+#'   fasta     = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+#'                 "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+#'                 "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'   acc_type  = c("refseq_acc", "refseq_acc", "other"),
 #'   fixedmods = c("TMTpro18 (N-term)", "TMTpro18 (K)", "Carbamidomethyl (C)"),
-#'   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
-#'               "Deamidated (N)", "Phospho (S)", "Phospho (T)",
-#'              "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
-#'   max_miss = 2,
-#'   maxn_vmods_sitescombi_per_pep = 32,
-#'   quant = "tmt18",
-#'   fdr_type = "protein",
-#'   out_path = "~/proteoM/examples",
+#'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
+#'                 "Deamidated (N)", "Phospho (S)", "Phospho (T)",
+#'                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
+#'   max_miss  = 2,
+#'   maxn_vmods_sitescombi_per_pep
+#'             = 32,
+#'   quant     = "tmt18",
+#'   fdr_type  = "protein",
+#'   out_path  = "~/proteoM/examples",
 #' )
 #' }
 #'
@@ -239,6 +239,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      target_fdr = 0.01,
                      fdr_type = c("psm", "peptide", "protein"),
                      max_pepscores_co = Inf, max_protscores_co = Inf, 
+                     match_pepfdr = TRUE, 
                      
                      combine_tier_three = FALSE,
                      use_ms1_cache = TRUE, 
@@ -271,6 +272,11 @@ matchMS <- function (out_path = "~/proteoM/outs",
   if ((!is.null(acc_pattern)) && acc_pattern == "") 
     acc_pattern <- NULL
   
+  # logical types 
+  stopifnot(vapply(c(include_insource_nl, exclude_phospho_nl, match_pepfdr, 
+                     combine_tier_three, use_ms1_cache), 
+                   is.logical, logical(1L)))
+
   # numeric types 
   stopifnot(vapply(c(maxn_fasta_seqs, maxn_vmods_setscombi, maxn_vmods_per_pep, 
                      maxn_sites_per_vmod, maxn_vmods_sitescombi_per_pep, 
@@ -495,6 +501,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      min_len = min_len, 
                      max_len = max_len, 
                      max_pepscores_co = max_pepscores_co, 
+                     match_pepfdr = match_pepfdr, 
                      out_path = out_path) %>% 
     post_pepfdr(out_path)
 

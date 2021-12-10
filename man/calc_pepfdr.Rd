@@ -9,6 +9,7 @@ calc_pepfdr(
   fdr_type = "psm",
   min_len = 7L,
   max_len = 50L,
+  match_pepfdr = TRUE,
   max_pepscores_co = Inf,
   out_path
 )
@@ -24,13 +25,15 @@ peptides will be excluded.}
 \item{max_len}{A positive integer; the maximum length of peptides. Longer
 peptides will be excluded.}
 
+\item{match_pepfdr}{Logical; if TRUE, matches empirically the highest
+probability (corresponding to the lowest score) cut-offs to the pre-defined
+level of \code{target_fdr} for peptide data. Choose
+\code{match_pepfdr = FALSE} for higher data quality.}
+
 \item{max_pepscores_co}{Numeric; the upper limit in the cut-offs of peptide
-scores for discriminating significant and insignificant identities. The
-default is \code{Inf} without any restriction. Experimenters might consider
-to relax the restriction by a define threshold, i.e.,
-\code{max_pepscores_co = 50}. A graphic summary of experimentally
-determined cut-offs can be found at
-\code{`out_path`/temp/pepscore_len.pdf}.}
+scores for discriminating significant and insignificant identities. For
+higher quality and data-driven thresholds, choose \code{max_pepscores_co =
+Inf}.}
 
 \item{out_path}{A file path of outputs.}
 
