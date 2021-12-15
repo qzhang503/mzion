@@ -265,8 +265,10 @@ recur_flatten <- function (x)
 #' @param data Input data.
 #' @param n_chunks The number of chunks.
 #' @param type The type of data for splitting.
-chunksplit <- function (data, n_chunks = 5L, type = "list") 
+chunksplit <- function (data, n_chunks = 5L, type = c("list", "row") )
 {
+  type <- match.arg(type)
+
   stopifnot(type %in% c("list", "row"))
   
   if (n_chunks <= 1L) 

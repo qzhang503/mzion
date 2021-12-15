@@ -4,7 +4,7 @@
 \alias{chunksplit}
 \title{Splits data into chunks by length.}
 \usage{
-chunksplit(data, n_chunks = 5L, type = "list")
+chunksplit(data, n_chunks = 5L, type = c("list", "row"))
 }
 \arguments{
 \item{data}{Input data.}

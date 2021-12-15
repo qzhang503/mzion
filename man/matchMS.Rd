@@ -42,6 +42,7 @@ matchMS(
   max_protscores_co = Inf,
   match_pepfdr = TRUE,
   combine_tier_three = FALSE,
+  max_n_prots = 40000L,
   use_ms1_cache = TRUE,
   .path_cache = NULL,
   .path_fasta = NULL,
@@ -183,8 +184,8 @@ Inf}.}
 
 \item{match_pepfdr}{Logical; if TRUE, matches empirically the highest
 probability (corresponding to the lowest score) cut-offs to the pre-defined
-level of \code{target_fdr} for peptide data. Choose
-\code{match_pepfdr = FALSE} for higher data quality.}
+level of \code{target_fdr} for peptide data. Choose \code{match_pepfdr =
+FALSE} for higher data quality.}
 
 \item{combine_tier_three}{Logical; if TRUE, combines search results at tiers
   1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
@@ -206,6 +207,18 @@ level of \code{target_fdr} for peptide data. Choose
 
   Tier-3: one significant peptide and protein scores below significance
   thresholds.}
+
+\item{max_n_prots}{Positive integer to threshold the maximum number of
+  protein entries before coercing \code{fdr_type} from \code{psm} or
+  \code{peptide} to \code{protein}. The argument has no effect if
+  \code{fdr_type} is already \code{protein}. In general, there is no need to
+  change the default.
+
+  Note that for memory efficiency proteins at tiers 1, 2 and 3 are grouped
+  separately. Further note that there is no tier-2 proteins at
+  \code{fdr_type} of \code{psm} or \code{peptide}. For very large data sets,
+  a lower value of \code{max_n_prots} can be used to reduce the chance of
+  memory exhaustion by setting aside some protein entries from tier 1 to 2.}
 
 \item{use_ms1_cache}{Logical; if TRUE, use cached precursor masses.
 

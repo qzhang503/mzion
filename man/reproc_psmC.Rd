@@ -4,7 +4,12 @@
 \alias{reproc_psmC}
 \title{Reprocessing of \code{psmC.txt}.}
 \usage{
-reproc_psmC(out_path = NULL, fdr_type = "protein", combine_tier_three = FALSE)
+reproc_psmC(
+  out_path = NULL,
+  fdr_type = "protein",
+  combine_tier_three = FALSE,
+  max_n_prots = 40000L
+)
 }
 \arguments{
 \item{out_path}{A file path of outputs.}
@@ -35,6 +40,18 @@ psm}, followed by a data filtration at \code{prot_tier == 1}.}
 
   Tier-3: one significant peptide and protein scores below significance
   thresholds.}
+
+\item{max_n_prots}{Positive integer to threshold the maximum number of
+  protein entries before coercing \code{fdr_type} from \code{psm} or
+  \code{peptide} to \code{protein}. The argument has no effect if
+  \code{fdr_type} is already \code{protein}. In general, there is no need to
+  change the default.
+
+  Note that for memory efficiency proteins at tiers 1, 2 and 3 are grouped
+  separately. Further note that there is no tier-2 proteins at
+  \code{fdr_type} of \code{psm} or \code{peptide}. For very large data sets,
+  a lower value of \code{max_n_prots} can be used to reduce the chance of
+  memory exhaustion by setting aside some protein entries from tier 1 to 2.}
 }
 \description{
 Protein grouping from \code{psmC.txt} to \code{psmQ.txt}.

@@ -287,20 +287,20 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs")
 cut_protgrps <- function (mat, out_path = NULL) 
 {
   cns <- colnames(mat)
-  
-  mat <- as.list(mat)
-  len <- length(mat)
+  vecs <- as.list(mat)
+  rm(list = c("mat"))
+  len <- length(vecs)
   
   if (len <= 200L) {
     out <- vector("list", len)
     
     for (i in seq_len(len)) {
-      out[[i]] <- map_dbl(mat[i:len], ~ sum(.x & mat[[i]]))
+      out[[i]] <- map_dbl(vecs[i:len], ~ sum(.x & vecs[[i]]))
       out[[i]] <- c(out[seq_len(i-1)] %>% map_dbl(`[[`, i), out[[i]])
     }
   } 
   else {
-    out <- parDist(mat)
+    out <- parDist(vecs)
   }
   
   out <- do.call(rbind, out)
@@ -377,7 +377,7 @@ grp_prots <- function (out, out_path = NULL)
 {
   dir.create(file.path(out_path), recursive = TRUE, showWarnings = FALSE)
   
-  out <- dplyr::arrange(out, pep_seq)
+  out <- out[with(out, order(pep_seq)), ]
   
   # essential entries
   rows <- (out$pep_issig & (!out$pep_isdecoy) & (out$pep_rank <= 3L))
@@ -504,10 +504,11 @@ groupProts2 <- function (df, out_path = NULL)
 #' }
 map_pepprot2 <- function (df, out_path = NULL) 
 {
-  df <- df[, c("prot_acc", "pep_seq")] 
-  df <- unique(df)
+  if (!identical(names(df), c("prot_acc", "pep_seq")))
+    stop("Column names of `df` need to be \"prot_acc\" and \"pep_seq\".")
   
-  gc()
+  df <- df[!duplicated.data.frame(df), ]
+  df <- df[with(df, order(pep_seq, prot_acc)), ]
 
   peps <- df$pep_seq
   
@@ -520,80 +521,63 @@ map_pepprot2 <- function (df, out_path = NULL)
   }
 
   mat <- Matrix::sparse.model.matrix(~ -1 + prot_acc, df)
-  colnames(mat) <- gsub("prot_acc", "", colnames(mat))
+  colnames(mat) <- 
+    stringi::stri_replace_first_fixed(colnames(mat), "prot_acc", "")
   mat <- mat == 1L
   rownames(mat) <- peps
   gc()
   
-  # ---
-  dpeps <- peps[duplicated(peps)]
-  drows <- (rownames(mat) %in% dpeps)
+  dpeps <- peps[duplicated.default(peps)]
+  drows <- peps %in% dpeps
   mat0 <- mat[!drows, ]
-  mat <- mat[drows, ]
-  
-  # ---
-  mpeps <- unique(rownames(mat))
-  
-  len <- as.numeric(length(mpeps))
-  ncol <- as.numeric(ncol(mat))
-  len2 <- len * ncol
-  out <- rep(0L, len2)
-  
-  start <- 1
-  end <- ncol
+  mat1 <- mat[drows, ]
 
-  if (len) {
-    for (i in seq_len(len)) {
-      pep <- rownames(mat)[[1]]
-      rows <- rownames(mat) == pep
-      
-      mati <- mat[rows, ]
-      out[start:end] <- Matrix::colSums(mati)
-      
-      mat <- mat[!rows, ]
-      
-      start <- start + ncol
-      end <- end + ncol
-      
-      if (i %% 100 == 0) gc()
-    }
-    
-    rm(list = c("mat", "mati"))
-  } else {
-    rm(list = c("mat"))
-  }
-  
+  rm(list = c("dpeps", "drows", "mat", "peps"))
   gc()
   
-  # ---
-  if (object.size(out)/1024^3 > 5) {
-    size <- 10000
-    n_chunks <- ceiling(len/size)
+  ## (a) Prepares a vector for sparse matrix
+  ncol <- as.numeric(ncol(mat1))
+  peps1 <- rownames(mat1)
+  vec <- pcollapse_sortpeps(mat1, ncol, peps1)
+  rm(list = c("mat1"))
+  gc()
+
+  ## (b) Wraps the vector to sparse matrix
+  # (to avoid copying large vector, do not use function)
+  upeps <- unique(peps1)
+  n_upeps <- as.numeric(length(upeps))
+  llen <- n_upeps * ncol
+  
+  if (object.size(vec)/1024^3 > 5) {
+    chunk_rows <- 10000
+    n_chunks <- ceiling(n_upeps/chunk_rows)
     
-    x0 <- NULL
+    out <- NULL
     
     for (i in 1:n_chunks) {
-      x <- out[(ncol*(size*(i-1))+1):min(len2, (ncol*(size*i)))]
+      x <- vec[(ncol*(chunk_rows*(i-1))+1):min(llen, (ncol*(chunk_rows*i)))]
       x <- Matrix::Matrix(x, ncol = ncol, byrow = TRUE, sparse = TRUE)
       gc()
-      x0 <- rbind2(x0, x)
+      out <- rbind2(out, x)
     }
     
-    rownames(x0) <- mpeps
-    out <- x0
-    
-    rm(list = c("x", "x0"))
-    gc()
+    rm(list = c("chunk_rows", "n_chunks", "x"))
   } 
   else {
-    out <- Matrix::Matrix(out, ncol = ncol, byrow = TRUE, sparse = TRUE)
-    rownames(out) <- mpeps
-    gc()
+    out <- Matrix::Matrix(vec, ncol = ncol, byrow = TRUE, sparse = TRUE)
   }
+  
+  rm(list = c("vec"))
+  gc()
 
+  rownames(out) <- upeps
+  gc()
+
+  # To logical sparse matrix
   out <- out == 1L
   gc()
   
+  # --- m1 & m0 ---
   out <- rbind2(out, mat0)
   gc()
   
@@ -628,6 +612,175 @@ map_pepprot2 <- function (df, out_path = NULL)
 }
 
 
+#' Helper of \link{map_pepprot2}.
+#'
+#' Collapses the counts the number of peptide sequences under proteins.
+#'
+#' The row names in the input matrix need to be \emph{sorted}. The output is a
+#' vector and will be later wrapped into a sparse matrix.
+#'
+#' @param mat A dgCMatrix object. Column names are SORTED protein accessions.
+#'   Rownames are SORTED peptide sequences.
+#' @param ncol The number of columns in \code{mat}.
+#' @param peps Peptide sequences as the row names of \code{mat}.
+collapse_sortpeps <- function (mat, ncol = NULL, peps = NULL) 
+{
+  if (is.null(peps)) 
+    peps <- rownames(mat)
+  
+  if (is.null(ncol))
+    ncol <- as.numeric(ncol(mat))
+
+  # !!! Assume `peps` are SORTED !!!
+
+  cts <- cumsum(table(peps))
+  llen <- as.numeric(length(cts)) * ncol
+
+  out <- rep.int(0L, llen)
+  
+  start <- 1
+  end <- ncol
+  
+  r1 <- 1
+  r2 <- 0
+  
+  for (i in seq_along(cts)) {
+    r1 <- r2 + 1
+    r2 <- cts[i]
+    
+    out[start:end] <- Matrix::colSums(mat[r1:r2, ])
+    
+    start <- start + ncol
+    end <- end + ncol
+    
+    # if (i %% 100 == 0) gc()
+  }
+  
+  rm(list = c("mat"))
+  # gc()
+  
+  invisible(out)
+}
+
+
+#' Helper of \link{map_pepprot2}.
+#' 
+#' Parallel version of \link{collapse_sortpeps}.
+#' 
+#' @param n_cores The number of CPU cores.
+#' @inheritParams collapse_sortpeps
+pcollapse_sortpeps <- function (mat, ncol = NULL, peps = NULL, n_cores = NULL) 
+{
+  if (is.null(peps)) 
+    peps <- rownames(mat)
+  
+  if (is.null(ncol))
+    ncol <- as.numeric(ncol(mat))
+  
+  if (is.null(n_cores))
+    n_cores <- detect_cores(16L)
+
+  # !!! Assume `peps` are SORTED !!!
+  
+  size <- local({
+    dim <- dim(mat)
+    as.numeric(dim[1]) * as.numeric(dim[2])
+  })
+
+  if (size <= 100000000 || n_cores <= 1L) {
+    vec <- collapse_sortpeps(mat, ncol, peps)
+  }
+  else {
+    mats <- chunksplit_spmat(mat, peps, n_cores)
+    rm(list = "mat")
+    gc()
+    
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    parallel::clusterEvalQ(cl, library(Matrix))
+    vecs <- parallel::clusterApply(cl, mats, collapse_sortpeps)
+    parallel::stopCluster(cl)
+
+    vec <- NULL
+    for (i in seq_along(vecs)) {
+      vec <- c(vec, vecs[[i]])
+      vecs[i] <- list(NULL)
+      gc()
+    }
+  }
+  
+  invisible(vec)
+}
+
+
+#' Splits sparse matrix by chunks.
+#'
+#' The same peptide sequence spans multiple consecutive rows will stay in the
+#' same chunk.
+#' 
+#' @param mat A sparse matrix.
+#' @param peps The names of peptide sequences.
+#' @param n_chunks The number of chunks.
+chunksplit_spmat <- function (mat, peps = NULL, n_chunks = 4L) 
+{
+  if (is.null(peps))
+    peps <- rownames(mat)
+
+  breaks <- find_group_breaks(peps, n_chunks)
+  breaks <- c(unname(breaks), length(peps))
+  
+  mats <- vector("list", n_chunks)
+  
+  start <- 1L
+  
+  for (i in seq_along(mats)) {
+    end <- breaks[i]
+    mats[[i]] <- mat[start:end, ]
+    start <- end + 1
+  }
+  
+  mats
+}
+
+
+#' Chunksplits by groups.
+#' 
+#' @param vec A sorted vector.
+#' @param n_chunks The number of chunks
+#' @examples 
+#' \donttest{
+#' vec <- rep(LETTERS[1:5], 1:5)
+#' vec <- sort(vec)
+#' 
+#' find_group_breaks(vec, 3)
+#' }
+find_group_breaks <- function (vec, n_chunks = 5L) 
+{
+  # !!! Assumed sorted vec !!!
+
+  if (n_chunks <= 1L)
+    return (vec)
+  
+  tv <- table(vec)
+  
+  if (n_chunks >= length(tv)) 
+    return(split(vec, vec))
+  
+  len <- length(vec)
+  clens <- cumsum(tv)
+  labs <- levels(cut(1:len, n_chunks))
+  
+  x <- cbind(lower = floor(as.numeric( sub("\\((.+),.*", "\\1", labs))),
+             upper = ceiling(as.numeric( sub("[^,]*,([^]]*)\\]", "\\1", labs))))
+  
+  x1 <- x[, 1]
+  
+  inds <- lapply(x1[2:length(x1)], function (x) max(which(clens <= x)))
+  inds <- unlist(inds)
+  
+  clens[inds] 
+}
+
+
 #' Cuts proteins into groups.
 #'
 #' By the number of shared peptides.
@@ -650,7 +803,7 @@ cut_protgrps2 <- function (mat = NULL, out_path = NULL)
   gc()
   
   # ---
-  ncol <- ncol(dista)
+  ncol <- length(cns)
   cols <- 1:ncol
 
   if (ncol > 10000) {

@@ -103,8 +103,8 @@
 #'   Inf}.
 #' @param match_pepfdr Logical; if TRUE, matches empirically the highest
 #'   probability (corresponding to the lowest score) cut-offs to the pre-defined
-#'   level of \code{target_fdr} for peptide data. Choose
-#'   \code{match_pepfdr = FALSE} for higher data quality.
+#'   level of \code{target_fdr} for peptide data. Choose \code{match_pepfdr =
+#'   FALSE} for higher data quality.
 #' @param combine_tier_three Logical; if TRUE, combines search results at tiers
 #'   1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
 #'   that data will be segregated into the three quality tiers according to the
@@ -126,6 +126,17 @@
 #'   Tier-3: one significant peptide and protein scores below significance
 #'   thresholds.
 #'
+#' @param max_n_prots Positive integer to threshold the maximum number of
+#'   protein entries before coercing \code{fdr_type} from \code{psm} or
+#'   \code{peptide} to \code{protein}. The argument has no effect if
+#'   \code{fdr_type} is already \code{protein}. In general, there is no need to
+#'   change the default.
+#'
+#'   Note that for memory efficiency proteins at tiers 1, 2 and 3 are grouped
+#'   separately. Further note that there is no tier-2 proteins at
+#'   \code{fdr_type} of \code{psm} or \code{peptide}. For very large data sets,
+#'   a lower value of \code{max_n_prots} can be used to reduce the chance of
+#'   memory exhaustion by setting aside some protein entries from tier 1 to 2.
 #' @param use_ms1_cache Logical; if TRUE, use cached precursor masses.
 #'
 #'   Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
@@ -242,6 +253,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      match_pepfdr = TRUE, 
                      
                      combine_tier_three = FALSE,
+                     max_n_prots = 40000L, 
                      use_ms1_cache = TRUE, 
                      .path_cache = NULL, 
                      .path_fasta = NULL,
@@ -261,7 +273,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   ## Tentative; not for users
   if (include_insource_nl) 
-    stop("Currently only supports `include_insource_nl = TRUE`.")
+    stop("Currently only supports `include_insource_nl = FALSE`.")
   
   ## Preparation
   # modifications
@@ -269,7 +281,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   varmods <- sort(varmods)
   
   # accession pattern
-  if ((!is.null(acc_pattern)) && acc_pattern == "") 
+  if ((!is.null(acc_pattern)) && (acc_pattern == "")) 
     acc_pattern <- NULL
   
   # logical types 
@@ -282,7 +294,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      maxn_sites_per_vmod, maxn_vmods_sitescombi_per_pep, 
                      min_len, max_len, max_miss, topn_ms2ions, minn_ms2, 
                      min_mass, max_mass, min_ms2mass, n_13c, 
-                     ppm_ms1, ppm_ms2, ppm_reporters, digits, 
+                     ppm_ms1, ppm_ms2, ppm_reporters, max_n_prots, digits, 
                      target_fdr, max_pepscores_co, max_protscores_co), 
                    is.numeric, logical(1L)))
 
@@ -304,12 +316,14 @@ matchMS <- function (out_path = "~/proteoM/outs",
   ppm_ms1 <- as.integer(ppm_ms1)
   ppm_ms2 <- as.integer(ppm_ms2)
   ppm_reporters <- as.integer(ppm_reporters)
+  max_n_prots <- as.integer(max_n_prots)
   digits <- as.integer(digits)
   
   stopifnot(min_len >= 0L, max_len >= min_len, max_miss <= 10L, 
             min_mass >= 0L, max_mass >= min_mass, min_ms2mass >= 0L, 
             n_13c >= 0L, 
-            maxn_vmods_per_pep >= maxn_sites_per_vmod)
+            maxn_vmods_per_pep >= maxn_sites_per_vmod, 
+            max_n_prots > 1000L)
 
   # (b) doubles
   target_fdr <- as.double(target_fdr)
@@ -560,8 +574,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   ## psmC to psmQ
   out <- try_psmC2Q(out, out_path = out_path,
-                    fdr_type = fdr_type,
-                    combine_tier_three = combine_tier_three)
+                    fdr_type = fdr_type, 
+                    combine_tier_three = combine_tier_three, 
+                    max_n_prots = max_n_prots)
 
   .savecall <- TRUE
 
@@ -726,7 +741,7 @@ try_ms2match <- function (mgf_path, aa_masses_all, out_path, mod_indexes,
 #' @inheritParams psmC2Q
 #' @importFrom magrittr %>% %T>%
 try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
-                        combine_tier_three = FALSE) 
+                        combine_tier_three = FALSE, max_n_prots = 40000L) 
 {
   n_peps <- length(unique(out$pep_seq))
   n_prots <- length(unique(out$prot_acc))
@@ -743,7 +758,8 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
       psmC2Q(out,
              out_path = out_path,
              fdr_type = fdr_type,
-             combine_tier_three = combine_tier_three),
+             combine_tier_three = combine_tier_three, 
+             max_n_prots = max_n_prots),
       error = function(e) NA
     )
   }
@@ -764,6 +780,7 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
       paste0("  out_path = \"", out_path, "\","),
       paste0("  fdr_type = \"", fdr_type, "\","),
       paste0("  combine_tier_three = ", combine_tier_three),
+      paste0("  max_n_prots = ", max_n_prots),
       ")\n",
       "unlink(\"~/post_psmC.R\")"
     )
@@ -794,7 +811,7 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
 #'
 #' @inheritParams matchMS
 reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
-                         combine_tier_three = FALSE) 
+                         combine_tier_three = FALSE, max_n_prots = 40000L) 
 {
   if (is.null(out_path)) 
     stop("`out_path` cannot be NULL.", call. = FALSE)
@@ -805,7 +822,8 @@ reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
                   show_col_types = FALSE) %>%
     psmC2Q(out_path = out_path,
            fdr_type = fdr_type,
-           combine_tier_three = combine_tier_three)
+           combine_tier_three = combine_tier_three, 
+           max_n_prots = max_n_prots)
 
   message("Done.")
 }
@@ -816,8 +834,10 @@ reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
 #' @param out A result of \code{psmC.txt}.
 #' @inheritParams matchMS
 psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
-                    combine_tier_three = FALSE) 
+                    combine_tier_three = FALSE, max_n_prots = 40000L) 
 {
+  options(warn = 1L)
+  
   message("\n=================================\n",
           "prot_tier  prot_issig  prot_n_pep \n",
           "    1          [y]          \n",
@@ -843,15 +863,16 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
 
   # Protein groups
   message("Building protein-peptide maps.")
+  
+  len_prots <- length(unique(out$prot_acc))
 
-  if (length(unique(out$prot_acc)) > 35000L) {
-    if (fdr_type != "protein") {
-      warning("Coerce to `fdr_type = protein` ",
-              "and saved peptides of tier-2 proteins to `psmT2.txt`.",
-              call. = FALSE)
-
-      fdr_type <- "protein"
-    }
+  if (len_prots > max_n_prots && fdr_type != "protein") {
+    warning("Large number of proteins at ", len_prots, ".\n", 
+            "Coerce to `fdr_type = protein` ",
+            "and save peptide results of tier-2 proteins in `psmT2.txt`.",
+            call. = FALSE)
+    
+    fdr_type <- "protein"
 
     out2 <- dplyr::filter(out, prot_tier == 2L)
     out <- dplyr::filter(out, prot_tier == 1L)
@@ -863,6 +884,13 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
     } 
     else {
       message("No tier-2 outputs at `fdr_type = ", fdr_type, "`.")
+      
+      if (len_prots > max_n_prots) {
+        warning("The number of proteins is ", len_prots, ".\n", 
+                "Consider `fdr_type = protein`.",
+                call. = FALSE)
+      }
+
       out2 <- out[0, ]
       out <- out
     }
@@ -894,12 +922,10 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
   # Three-tier combines
   max <- max(out$prot_hit_num, na.rm = TRUE)
 
-  if (fdr_type == "protein") {
-    if (combine_tier_three) {
-      warning("Coerce to `combine_tier_three = FALSE` at `fdr_type = protein`.",
-              call. = FALSE)
-      combine_tier_three <- FALSE
-    }
+  if (fdr_type == "protein" && combine_tier_three) {
+    warning("Coerce to `combine_tier_three = FALSE` at `fdr_type = protein`.",
+            call. = FALSE)
+    combine_tier_three <- FALSE
   }
 
   if (combine_tier_three) {

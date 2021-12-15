@@ -1291,18 +1291,18 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   
   ## Outputs
   newy[newy > max_pepscores_co] <- max_pepscores_co
-  prob_cos <- 10^(-newy/10)
+  prob_cos <- 10^(-newy/fct_score)
   
   if (match_pepfdr) {
     prob_cos <- local({
-      idxes <- prob_cos %>% .[. <= target_fdr]
+      idxes <- prob_cos[prob_cos <= target_fdr]
       
       fct_homol <- if (length(idxes)) 
         max(target_fdr/max(idxes, na.rm = TRUE), 1)
       else 
         1L
       
-      prob_cos <- prob_cos * fct_homol
+      prob_cos * fct_homol
     })
   }
   

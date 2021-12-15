@@ -27,8 +27,8 @@ peptides will be excluded.}
 
 \item{match_pepfdr}{Logical; if TRUE, matches empirically the highest
 probability (corresponding to the lowest score) cut-offs to the pre-defined
-level of \code{target_fdr} for peptide data. Choose
-\code{match_pepfdr = FALSE} for higher data quality.}
+level of \code{target_fdr} for peptide data. Choose \code{match_pepfdr =
+FALSE} for higher data quality.}
 
 \item{max_pepscores_co}{Numeric; the upper limit in the cut-offs of peptide
 scores for discriminating significant and insignificant identities. For
