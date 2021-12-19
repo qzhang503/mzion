@@ -266,9 +266,13 @@
 #   fit_protfdr
 
 ## grp_prots (quant2.R)
-#   groupProts2
-#     map_pepprot2
-#     cut_protgrps2
+#   groupProts
+#     map_pepprot
+#       pcollapse_sortpeps
+#         collapse_sortpeps
+#         chunksplit_spmat
+#           find_group_breaks
+#     cut_proteinGroups
 #       as_lgldist
 #         proteoCpp::to_lgldistC
 #     greedysetcover3

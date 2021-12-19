@@ -769,7 +769,8 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
             "proteoM:::reproc_psmC(\n",
             "  out_path = \"", out_path, "\",\n",
             "  fdr_type = \"", fdr_type, "\",\n",
-            "  combine_tier_three  = ", combine_tier_three, "\n",
+            "  combine_tier_three  = ", combine_tier_three, ",\n",
+            "  max_n_prots  = ", max_n_prots, "\n",
             ")")
 
     fileConn <- file(file.path("~/post_psmC.R"))
@@ -779,7 +780,7 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
       "proteoM:::reproc_psmC(",
       paste0("  out_path = \"", out_path, "\","),
       paste0("  fdr_type = \"", fdr_type, "\","),
-      paste0("  combine_tier_three = ", combine_tier_three),
+      paste0("  combine_tier_three = ", combine_tier_three, ","),
       paste0("  max_n_prots = ", max_n_prots),
       ")\n",
       "unlink(\"~/post_psmC.R\")"
@@ -816,14 +817,14 @@ reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
   if (is.null(out_path)) 
     stop("`out_path` cannot be NULL.", call. = FALSE)
 
-  message("Please wait for the `Search completed` message...")
-
-  readr::read_tsv(file.path(out_path, "psmC.txt"),
-                  show_col_types = FALSE) %>%
-    psmC2Q(out_path = out_path,
-           fdr_type = fdr_type,
-           combine_tier_three = combine_tier_three, 
-           max_n_prots = max_n_prots)
+  message("Leave the session open and wait for the `Search completed` message.")
+  
+  df <- readr::read_tsv(file.path(out_path, "psmC.txt"), show_col_types = FALSE)
+  
+  psmC2Q(df, out_path = out_path,
+         fdr_type = fdr_type,
+         combine_tier_three = combine_tier_three, 
+         max_n_prots = max_n_prots)
 
   message("Done.")
 }

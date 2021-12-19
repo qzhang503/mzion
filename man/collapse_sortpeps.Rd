@@ -2,7 +2,7 @@
 % Please edit documentation in R/quant2.R
 \name{collapse_sortpeps}
 \alias{collapse_sortpeps}
-\title{Helper of \link{map_pepprot2}.}
+\title{Helper of \link{map_pepprot}.}
 \usage{
 collapse_sortpeps(mat, ncol = NULL, peps = NULL)
 }
