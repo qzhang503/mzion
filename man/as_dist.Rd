@@ -20,5 +20,5 @@ as_dist(m, diag = FALSE, upper = FALSE)
     distance matrix should be printed by \code{print.dist}.}
 }
 \description{
-Assumed the input is already a symmetric matrix (not yet being used).
+Not yet used; assumed the input is already a symmetric matrix.
 }

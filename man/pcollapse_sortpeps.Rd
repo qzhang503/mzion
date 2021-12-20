@@ -4,12 +4,9 @@
 \alias{pcollapse_sortpeps}
 \title{Helper of \link{map_pepprot}.}
 \usage{
-pcollapse_sortpeps(mat, ncol = NULL, peps = NULL, n_cores = NULL)
+pcollapse_sortpeps(Mat, ncol = NULL, peps = NULL, n_cores = NULL)
 }
 \arguments{
-\item{mat}{A dgCMatrix object. Column names are SORTED protein accessions.
-Rownames are SORTED peptide sequences.}
-
 \item{ncol}{The number of columns in \code{mat}.}
 
 \item{peps}{Peptide sequences as the row names of \code{mat}.}

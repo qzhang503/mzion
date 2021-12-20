@@ -285,13 +285,13 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs")
 grp_prots <- function (out, out_path = NULL) 
 {
   if (!nrow(out))
-    stop("Zero row of data for grouping by proteins.")
+    stop("Zero row of data for protein groupings.")
   
   dir.create(file.path(out_path), recursive = TRUE, showWarnings = FALSE)
   
   out <- out[with(out, order(pep_seq)), ]
   
-  # Primary and secondary entries
+  # Significant (df1) and trivial (df0) entries
   rows <- (out$pep_issig & (!out$pep_isdecoy) & (out$pep_rank <= 3L))
   
   df1 <- out[rows, ]
@@ -299,34 +299,41 @@ grp_prots <- function (out, out_path = NULL)
   rm(list = c("out"))
   gc()
   
+  # (passes the whole `df1` to avoid expensive left_join)
   if (nrow(df1) > 1L) 
     df1 <- groupProts(df1, out_path)
   else 
-    df1 <- dplyr::mutate(df1, prot_isess = TRUE,
+    df1 <- dplyr::mutate(df1, 
+                         prot_isess = TRUE,
                          prot_hit_num = 1L,
-                         prot_family_member = 1L)
+                         prot_family_member = 1L, 
+                         pep_literal_unique = TRUE, 
+                         pep_razor_unique = TRUE)
 
+  # Trivial entries
   ess_prots <- df1 %>%
     dplyr::filter(!duplicated(prot_acc), prot_isess) %>%
     `[[`("prot_acc")
-  
-  # Secondary
-  df1_sub <- df1[, c("prot_acc", "prot_hit_num", "prot_family_member")] %>%
+
+  hits_n_fams <- df1[, c("prot_acc", "prot_hit_num", "prot_family_member")] %>%
     dplyr::filter(!duplicated(prot_acc))
   
   df2 <- df0 %>%
     dplyr::filter(!duplicated(prot_acc)) %>%
     dplyr::select(prot_acc) %>%
     dplyr::mutate(prot_isess = ifelse(prot_acc %in% ess_prots, TRUE, FALSE)) %>%
-    dplyr::left_join(df1_sub, by = "prot_acc")
+    dplyr::left_join(hits_n_fams, by = "prot_acc")
 
   df2 <- df2 %>%
     dplyr::right_join(df0, by = "prot_acc") %>%
     dplyr::mutate(pep_literal_unique = NA, pep_razor_unique = NA) %>%
     dplyr::select(names(df1))
   
-  dplyr::bind_rows(df1, df2) %>%
-    dplyr::select(-which(names(.) %in% c("prot_n_psm", "prot_n_pep")))
+  if (nrow(df2))
+    df1 <- dplyr::bind_rows(df1, df2)
+  
+  df1 %>% 
+    dplyr::select(., -which(names(.) %in% c("prot_n_psm", "prot_n_pep")))
 }
 
 
@@ -386,9 +393,9 @@ groupProts <- function (df, out_path = NULL)
   #   * row names: unique peptides (as in `Mat_lwr_left`)
 
   ## (2) establishes protein groups
+  # each row in cbind(Mat_lwr_left, Mat_lwr_right) has only one "1"
+  #   -> Mat_lwr_left does not affect logical distance of 0/1
   prot_grps <- local({
-    # each row in cbind(Mat_lwr_left, Mat_lwr_right) has only one "1"
-    #   -> Mat_lwr_left does not affect logical distance of 0/1
     grps_1 <- cut_proteinGroups(Mat_upr_left, out_path)
     gc()
     
@@ -427,6 +434,7 @@ groupProts <- function (df, out_path = NULL)
   df <- dplyr::mutate(df, prot_isess = prot_acc %in% ess_prots)
   df0 <- dplyr::filter(df, !prot_isess)
   df <- dplyr::filter(df, prot_isess)
+  gc()
   
   # combines four quadrants
   M4 <- rbind(
@@ -452,6 +460,9 @@ groupProts <- function (df, out_path = NULL)
       dplyr::mutate(pep_literal_unique = (rsums == 1L)) %>%
       dplyr::mutate(pep_razor_unique = (rsums2 == 1L))
   })
+  
+  rm(list = c("M4", "M4_ess"))
+  gc()
   
   df0 <- df0 %>%
     dplyr::mutate(prot_hit_num = NA, prot_family_member = NA)
@@ -502,7 +513,6 @@ map_pepprot <- function (df, out_path = NULL)
     return(out)
   }
 
-  
   ## Separates into Mat0 and Mat1
   Mat <- Matrix::sparse.model.matrix(~ -1 + prot_acc, df)
   prots <- stringi::stri_replace_first_fixed(colnames(Mat), "prot_acc", "")
@@ -668,13 +678,13 @@ collapse_sortpeps <- function (mat, ncol = NULL, peps = NULL)
 #' 
 #' @param n_cores The number of CPU cores.
 #' @inheritParams collapse_sortpeps
-pcollapse_sortpeps <- function (mat, ncol = NULL, peps = NULL, n_cores = NULL) 
+pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, n_cores = NULL) 
 {
   if (is.null(peps)) 
-    peps <- rownames(mat)
+    peps <- rownames(Mat)
   
   if (is.null(ncol))
-    ncol <- as.numeric(ncol(mat))
+    ncol <- as.numeric(ncol(Mat))
   
   if (is.null(n_cores))
     n_cores <- detect_cores(16L)
@@ -682,21 +692,21 @@ pcollapse_sortpeps <- function (mat, ncol = NULL, peps = NULL, n_cores = NULL)
   # !!! `peps` must be SORTED !!!
   
   size <- local({
-    dim <- dim(mat)
+    dim <- dim(Mat)
     as.numeric(dim[1]) * as.numeric(dim[2])
   })
 
   if (size <= 100000000 || n_cores <= 1L) {
-    vec <- collapse_sortpeps(mat, ncol, peps)
+    vec <- collapse_sortpeps(Mat, ncol, peps)
   }
   else {
-    mats <- chunksplit_spmat(mat, peps, n_cores)
-    rm(list = "mat")
+    Mats <- chunksplit_spmat(Mat, peps, n_cores)
+    rm(list = "Mat")
     gc()
     
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     parallel::clusterEvalQ(cl, library(Matrix))
-    vecs <- parallel::clusterApply(cl, mats, collapse_sortpeps)
+    vecs <- parallel::clusterApply(cl, Mats, collapse_sortpeps)
     parallel::stopCluster(cl)
 
     vec <- NULL
@@ -717,28 +727,28 @@ pcollapse_sortpeps <- function (mat, ncol = NULL, peps = NULL, n_cores = NULL)
 #' The same peptide sequence spans multiple consecutive rows will stay in the
 #' same chunk.
 #' 
-#' @param mat A sparse matrix.
+#' @param Mat A sparse matrix.
 #' @param peps The names of peptide sequences.
 #' @param n_chunks The number of chunks.
-chunksplit_spmat <- function (mat, peps = NULL, n_chunks = 4L) 
+chunksplit_spmat <- function (Mat, peps = NULL, n_chunks = 4L) 
 {
   if (is.null(peps))
-    peps <- rownames(mat)
+    peps <- rownames(Mat)
 
   breaks <- find_group_breaks(peps, n_chunks)
   breaks <- c(unname(breaks), length(peps))
   
-  mats <- vector("list", n_chunks)
+  Mats <- vector("list", n_chunks)
   
   start <- 1L
   
-  for (i in seq_along(mats)) {
+  for (i in seq_along(Mats)) {
     end <- breaks[i]
-    mats[[i]] <- mat[start:end, ]
+    Mats[[i]] <- Mat[start:end, ]
     start <- end + 1
   }
   
-  mats
+  Mats
 }
 
 
@@ -785,8 +795,8 @@ find_group_breaks <- function (vec, n_chunks = 5L)
 #'
 #' By the number of shared peptides.
 #'
-#' @param mat A logical matrix; peptides in rows and proteins in columns.
-#' @param out_path A file pth to outputs.
+#' @param M A logical matrix; peptides in rows and proteins in columns.
+#' @param out_path A file path to outputs.
 cut_proteinGroups <- function (M = NULL, out_path = NULL) 
 {
   prots <- colnames(M)
@@ -803,15 +813,14 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
   rm(list = c("M"))
   gc()
   
-  # ---
   if (n_prots > 10000) {
     dm <- matrix(nrow = n_prots, ncol = n_prots)
     colnames(dm) <- prots
     rownames(dm) <- prots
     gc()
     
-    # better to find memory first
-    max_chunksize <- 2500 * 40000 # 50000 out of memory
+    # max_chunksize <- find_free_mem() * 3600000 / 1024
+    max_chunksize <- 2500 * 40000
     nrows_per_chunk <- ceiling(max_chunksize/n_prots)
     n_chunks <- ceiling(n_prots/nrows_per_chunk)
     
@@ -891,27 +900,27 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
 #'
 #' Not yet used.
 #' 
-#' @param m_ul The upper-left matrix.
+#' @param M_ul The upper-left matrix.
 #' @param ncols_ur The number of columns for the matrix block on the upper
 #'   right.
 #' @examples 
 #' m <- sparseD_fourquad(ul, 6)
-sparseD_fourquad <- function (m_ul, ncols_ur = 0) 
+sparseD_fourquad <- function (M_ul, ncols_ur = 0) 
 {
-  nrows_ul <- ncols_ul <- ncol(m_ul)
+  nrows_ul <- ncols_ul <- ncol(M_ul)
   nrows_l <- ncols_ur
   ncols <- ncols_ul + ncols_ur
   
-  m_ur <- sparseMatrix(dims = c(nrows_ul, ncols_ur), i={}, j={})
+  M_ur <- sparseMatrix(dims = c(nrows_ul, ncols_ur), i={}, j={})
   m_lwr <- sparseMatrix(i = 1:nrows_l, j = (ncols_ul+1):ncols, x = 1)
   
-  list(upr = cbind2(m_ul, m_ur), lwr = m_lwr)
+  list(upr = cbind2(M_ul, M_ur), lwr = m_lwr)
 }
 
 
 #' Simplified \link[stats]{as.dist} for memory efficiency.
 #' 
-#' Assumed the input is already a symmetric matrix (not yet being used).
+#' Not yet used; assumed the input is already a symmetric matrix.
 #' 
 #' @inheritParams stats::as.dist
 as_dist <- function (m, diag = FALSE, upper = FALSE) 

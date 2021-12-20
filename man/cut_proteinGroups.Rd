@@ -7,9 +7,9 @@
 cut_proteinGroups(M = NULL, out_path = NULL)
 }
 \arguments{
-\item{out_path}{A file pth to outputs.}
+\item{M}{A logical matrix; peptides in rows and proteins in columns.}
 
-\item{mat}{A logical matrix; peptides in rows and proteins in columns.}
+\item{out_path}{A file path to outputs.}
 }
 \description{
 By the number of shared peptides.

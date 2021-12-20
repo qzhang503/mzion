@@ -4,10 +4,10 @@
 \alias{sparseD_fourquad}
 \title{Builds manually distance sparse matrix.}
 \usage{
-sparseD_fourquad(m_ul, ncols_ur = 0)
+sparseD_fourquad(M_ul, ncols_ur = 0)
 }
 \arguments{
-\item{m_ul}{The upper-left matrix.}
+\item{M_ul}{The upper-left matrix.}
 
 \item{ncols_ur}{The number of columns for the matrix block on the upper
 right.}

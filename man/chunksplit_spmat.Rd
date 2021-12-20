@@ -4,10 +4,10 @@
 \alias{chunksplit_spmat}
 \title{Splits sparse matrix by chunks.}
 \usage{
-chunksplit_spmat(mat, peps = NULL, n_chunks = 4L)
+chunksplit_spmat(Mat, peps = NULL, n_chunks = 4L)
 }
 \arguments{
-\item{mat}{A sparse matrix.}
+\item{Mat}{A sparse matrix.}
 
 \item{peps}{The names of peptide sequences.}
 
