@@ -17,8 +17,8 @@ calcpepsc(
 \arguments{
 \item{file}{A file name of \code{ion_matches_}.}
 
-\item{topn_ms2ions}{A non-negative integer; the top-n species for uses in MS2
-ion searches. The default is to use the top-100 ions in an MS2 event.}
+\item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
+searches. The default is to use the top-100 ions in an MS2 event.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
@@ -28,11 +28,13 @@ and y-ions.}
 \item{penalize_sions}{Logical; if TRUE, penalizes secondary ions of b0, y0
 etc. with lower weights in peptide scoring.}
 
-\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
+default is 25.}
 
 \item{out_path}{A file path of outputs.}
 
-\item{digits}{Integer; the number of decimal places to be used.}
+\item{digits}{A non-negative integer; the number of decimal places to be
+used. The default is 4.}
 }
 \description{
 Helper of \link{calc_pepscores}.

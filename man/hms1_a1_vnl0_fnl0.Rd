@@ -29,24 +29,30 @@ acid residues.}
 
 \item{fmods_nl}{The attribute of \code{fmods_nl} from an \code{aa_masses}.}
 
-\item{include_insource_nl}{Logical Logical; if TRUE, includes MS1 precursor
-masses with the losses of neutral species prior to MS2 fragmentation. The
-default is FALSE. The setting at TRUE remains experimenting by allowing
-additional masses in the universe of MS1 precursors. The offsets in NLs (by
-adding back precursor masses) have not yet taken into account in MS2 ion
-searches. A more systemically approach such as \code{open} MS1 masses might
-be developed in the future.}
+\item{include_insource_nl}{Not yet used. Logical; if TRUE, includes MS1
+precursor masses with the losses of neutral species prior to MS2
+fragmentation. The default is FALSE. The setting at TRUE remains
+experimenting by allowing additional masses in the universe of MS1
+precursors.}
 
-\item{maxn_vmods_per_pep}{The maximum number of \code{Anywhere}
-(non-terminal) variable modifications per peptide.}
+\item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
+\code{Anywhere} (non-terminal) variable modifications per peptide. The
+default is 5.}
 
-\item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
-\code{Anywhere} (non-terminal) variable modifications per site in a per
-peptide sequence.}
+\item{maxn_sites_per_vmod}{A non-negative integer; the maximum number of
+  combinatorial \code{Anywhere} (non-terminal) variable modifications per
+  site in a peptide sequence. The default is 3.
+
+  For instance, variable modifications of \code{Carbamyl (M)} and
+  \code{Oxidation (M)} both have site \code{M}. In order to have a
+  combination of two \code{Carbamyl (M)} and two \code{Oxidation (M)} being
+  considered, the value of \code{maxn_sites_per_vmod} needs to be four or
+  greater.}
 
 \item{ms1vmods}{The set of all possible MS1 vmod labels at a given aa_masses.}
 
-\item{digits}{Integer; the number of decimal places to be used.}
+\item{digits}{A non-negative integer; the number of decimal places to be
+used. The default is 4.}
 }
 \description{
 Needs additional unlist if \code{include_insource_nl = TRUE}.

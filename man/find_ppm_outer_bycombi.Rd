@@ -11,7 +11,8 @@ find_ppm_outer_bycombi(theos, expts, ppm_ms2 = 25L)
 
 \item{expts}{Numeric vector; one series experimental MS2s.}
 
-\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
+default is 25.}
 }
 \description{
 A theoretical peptide at a given position permutation.

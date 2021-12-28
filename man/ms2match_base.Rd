@@ -147,9 +147,15 @@ permutation in a row for each matrix.}
 \item{mod_indexes}{Integer; the indexes of fixed and/or variable
 modifications.}
 
-\item{mgf_path}{The file path to a list of MGF files. The experimenters need
-to supply the files. Note that the supported MGFs are from MSConvert or
-Proteome Discoverer.}
+\item{mgf_path}{A file path to a list of MGF files. The experimenter needs
+  to supply the files.
+
+  The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
+  from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
+  Proteome Discoverer or (3) Bruker's DataAnalysis.
+
+  With MSConvert, the default \code{titleMaker} is required (don't think it
+  can be altered by users, but just in case).}
 
 \item{out_path}{A file path of outputs.}
 
@@ -158,29 +164,38 @@ Proteome Discoverer.}
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
 
-\item{maxn_vmods_per_pep}{The maximum number of \code{Anywhere}
-(non-terminal) variable modifications per peptide.}
+\item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
+\code{Anywhere} (non-terminal) variable modifications per peptide. The
+default is 5.}
 
-\item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
-\code{Anywhere} (non-terminal) variable modifications per site in a per
-peptide sequence.}
+\item{maxn_sites_per_vmod}{A non-negative integer; the maximum number of
+  combinatorial \code{Anywhere} (non-terminal) variable modifications per
+  site in a peptide sequence. The default is 3.
 
-\item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
-combinatorial variable modifications per peptide sequence. The default is
-64. May consider a smaller value, i.e. 32, when searching against
-phosphopeptide data.}
+  For instance, variable modifications of \code{Carbamyl (M)} and
+  \code{Oxidation (M)} both have site \code{M}. In order to have a
+  combination of two \code{Carbamyl (M)} and two \code{Oxidation (M)} being
+  considered, the value of \code{maxn_sites_per_vmod} needs to be four or
+  greater.}
 
-\item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
-a hit.}
+\item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
+number of combinatorial variable modifications per peptide sequence. The
+default is 64.}
 
-\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
+\item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
+for consideration as a hit. The default is 6.}
 
-\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
+default is 20.}
 
-\item{min_ms2mass}{A non-negative integer; the minimum MS2 mass for
-interrogation.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
+default is 25.}
 
-\item{digits}{Integer; the number of decimal places to be used.}
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
+
+\item{digits}{A non-negative integer; the number of decimal places to be
+used. The default is 4.}
 
 \item{amods}{The attribute of \code{amods} from an \code{aa_masses}.}
 

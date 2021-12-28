@@ -802,7 +802,7 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
   prots <- colnames(M)
   n_prots <- length(prots)
   
-  if (nrow(M) == 1L) {
+  if (ncol(M) == 1L) {
     D <- matrix(1.0)
     colnames(D) <- prots
     rownames(D) <- prots

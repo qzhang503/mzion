@@ -20,11 +20,18 @@ theoretical peptides.}
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
 
-\item{mgf_path}{The file path to a list of MGF files. The experimenters need
-to supply the files. Note that the supported MGFs are from MSConvert or
-Proteome Discoverer.}
+\item{mgf_path}{A file path to a list of MGF files. The experimenter needs
+  to supply the files.
 
-\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
+  The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
+  from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
+  Proteome Discoverer or (3) Bruker's DataAnalysis.
+
+  With MSConvert, the default \code{titleMaker} is required (don't think it
+  can be altered by users, but just in case).}
+
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
+default is 20.}
 
 \item{fmods_nl}{The attribute of \code{fmods_nl} from an \code{aa_masses}.}
 }

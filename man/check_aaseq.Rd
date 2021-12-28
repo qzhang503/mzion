@@ -13,12 +13,18 @@ representation of amino acids.}
 
 \item{aa_masses_all}{All the amino acid lookup tables.}
 
-\item{fixedmods}{A character vector of fixed modifications. See also
-\link{parse_unimod} for grammars.}
+\item{fixedmods}{Character string(s) of fixed modifications.}
 
-\item{varmods}{A character vector of variable modifications. Multiple
-modifications to the same residue are allowed, for example, both a less
-common \code{Carbamyl (M)} and a common \code{Oxidation (M)}.}
+\item{varmods}{Character string(s) of variable modifications. Multiple
+  modifications to the same residue are allowed, for example, both
+  \code{Carbamyl (M)} and \code{Oxidation (M)}.
+
+  For both \code{fixedmods} and \code{varmods}, the modification title,
+  \code{TMT6plex}, applies to all of TMT-6, TMT-10, TMT-11. It is also
+  possible to use aliased: (1) \code{TMT10plex} for TMT-10 and
+  \code{TMT11plex} for TMT-11, (2) \code{TMT16plex} for TMTpro and (3)
+  \code{TMT18plex} for TMTpro18. See also \link{parse_unimod} for grammars of
+  modification \code{title}, \code{position} and \code{site}.}
 }
 \description{
 A sequence may be invalide at a given set of fixedmods and varmods. For

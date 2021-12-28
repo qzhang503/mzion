@@ -13,8 +13,8 @@ find_ms2_bypep(theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
 
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
 
-\item{min_ms2mass}{A non-negative integer; the minimum MS2 mass for
-interrogation.}
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
 }
 \description{
 Run time about 45 us.

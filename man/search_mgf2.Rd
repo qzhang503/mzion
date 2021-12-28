@@ -42,15 +42,17 @@ frame.}
 \item{theos_af_ms2}{Numeric vector; the theoretical MS2 m/z's at the
 following \code{+1} frame.}
 
-\item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
-a hit.}
+\item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
+for consideration as a hit. The default is 6.}
 
-\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
+default is 20.}
 
-\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
+default is 25.}
 
-\item{min_ms2mass}{A non-negative integer; the minimum MS2 mass for
-interrogation.}
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
 }
 \description{
 Matches by indexes

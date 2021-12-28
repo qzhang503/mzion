@@ -13,7 +13,7 @@ find_reporters_ppm(theos, expts, ppm_reporters = 10, len, nms)
 reporter ions).}
 
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
-ions.}
+ions. The default is 10.}
 
 \item{len}{The length of reporter-ion plexes.}
 

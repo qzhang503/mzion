@@ -11,6 +11,12 @@ load_mgfs(
   max_mass = 6000L,
   min_ms2mass = 110L,
   topn_ms2ions = 100L,
+  min_ms1_charge = 2L,
+  max_ms1_charge = 6L,
+  min_scan_num = 1L,
+  max_scan_num = .Machine$integer.max,
+  min_ret_time = 0,
+  max_ret_time = Inf,
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
   index_ms2 = FALSE,
@@ -21,9 +27,15 @@ load_mgfs(
 \arguments{
 \item{out_path}{A file path of outputs.}
 
-\item{mgf_path}{The file path to a list of MGF files. The experimenters need
-to supply the files. Note that the supported MGFs are from MSConvert or
-Proteome Discoverer.}
+\item{mgf_path}{A file path to a list of MGF files. The experimenter needs
+  to supply the files.
+
+  The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
+  from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
+  Proteome Discoverer or (3) Bruker's DataAnalysis.
+
+  With MSConvert, the default \code{titleMaker} is required (don't think it
+  can be altered by users, but just in case).}
 
 \item{min_mass}{A minimum mass of precursors for considerations.}
 
@@ -31,12 +43,34 @@ Proteome Discoverer.}
 
 \item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
 
-\item{topn_ms2ions}{A non-negative integer; the top-n species for uses in MS2
-ion searches. The default is to use the top-100 ions in an MS2 event.}
+\item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
+searches. The default is to use the top-100 ions in an MS2 event.}
 
-\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
+\item{min_ms1_charge}{A positive integer; the minimum MS1 charge state for
+considerations. The default is 2.}
 
-\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
+\item{max_ms1_charge}{A positive integer; the maximum MS1 charge state for
+considerations. The default is 6.}
+
+\item{min_scan_num}{A positive integer; the minimum scan number for
+considerations. The default is 1. The setting only applies to MGFs with
+numeric scan numbers.}
+
+\item{max_scan_num}{A positive integer; the maximum scan number for
+considerations. The default is the maximum machine integer. The setting
+only applies to MGFs with numeric scan numbers.}
+
+\item{min_ret_time}{A non-negative numeric; the minimum retention time in
+seconds for considerations. The default is 0.}
+
+\item{max_ret_time}{A non-negative numeric; the maximum retention time in
+seconds for considerations. The default is \code{Inf}.}
+
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
+default is 20.}
+
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
+default is 25.}
 
 \item{index_ms2}{Logical; if TRUE, converts MS2 m/z values to indices.}
 
@@ -47,6 +81,5 @@ preceeding, current and following.}
 preceeding, current and following.}
 }
 \description{
-Currently, \code{index_ms2} is always FALSE. Argument \code{ppm_ms2} is only
-effective at \code{index_ms2 = TRUE}.
+Currently, \code{index_ms2} is always FALSE.
 }

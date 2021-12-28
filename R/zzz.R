@@ -2,11 +2,11 @@
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage("Welcome to proteoM!\n\n",
                         "=======================================================================================\n",
-                        # "NEW features (v1.0.3.2):\n",
-                        "[x] A search engine for mass spectrometry-based proteomics data.\n",
-                        "[x] Utility 'parse_unimods_all' for the summary of Unimods.\n",
-                        "[x] See also package `proteoQ` for downstream data QA and informatics.\n", 
-                        "\n",
+                        "NEW features (v1.0.4.2):\n",
+                        "[x] Supports of Bruker's PASEF MGFs.\n",
+                        # "[x] A search engine for mass spectrometry-based proteomics data.\n",
+                        # "[x] See also package `proteoQ` for downstream data QA and informatics.\n", 
+                        # "\n",
                         
                         # "Notes:\n",
                         "[x] Suggested configuration for large datasets: 32GB RAM and 8 (dual)-cores.\n",

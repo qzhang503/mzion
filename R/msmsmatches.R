@@ -3,11 +3,17 @@
 #' Database searches of MSMS data.
 #'
 #' @param out_path A file path of outputs.
-#' @param mgf_path The file path to a list of MGF files. The experimenters need
-#'   to supply the files. Note that the supported MGFs are from MSConvert or
-#'   Proteome Discoverer.
+#' @param mgf_path A file path to a list of MGF files. The experimenter needs
+#'   to supply the files.
+#'
+#'   The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
+#'   from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
+#'   Proteome Discoverer or (3) Bruker's DataAnalysis.
+#'
+#'   With MSConvert, the default \code{titleMaker} is required (don't think it
+#'   can be altered by users, but just in case).
 #' @param fasta Character string(s) to the name(s) of fasta file(s) with
-#'   prepended directory path. The experimenters need to supply the files.
+#'   prepended directory path. The experimenter needs to supply the files.
 #' @param acc_type Character string(s); the types of protein accessions in one
 #'   of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
 #'   the corresponding regular expressions need to be supplied via argument
@@ -17,94 +23,126 @@
 #'   will be automated when \code{acc_type} are among c("uniprot_acc",
 #'   "uniprot_id", "refseq_acc", "other"). See also \link{load_fasta2} for
 #'   custom examples.
-#' @param fixedmods A character vector of fixed modifications. See also
-#'   \link{parse_unimod} for grammars.
-#' @param varmods A character vector of variable modifications. Multiple
-#'   modifications to the same residue are allowed, for example, both a less
-#'   common \code{Carbamyl (M)} and a common \code{Oxidation (M)}.
-#' @param exclude_phospho_nl If TRUE, excludes neutral losses in the MS2 ion
-#'   searches against variable modifications of phospho sites. May toggle it to
-#'   \code{FALSE} if search speed against phospho data is not a primary concern.
-#' @param include_insource_nl Logical Logical; if TRUE, includes MS1 precursor
-#'   masses with the losses of neutral species prior to MS2 fragmentation. The
-#'   default is FALSE. The setting at TRUE remains experimenting by allowing
-#'   additional masses in the universe of MS1 precursors. The offsets in NLs (by
-#'   adding back precursor masses) have not yet taken into account in MS2 ion
-#'   searches. A more systemically approach such as \code{open} MS1 masses might
-#'   be developed in the future.
+#' @param fixedmods Character string(s) of fixed modifications.
+#'
+#' @param varmods Character string(s) of variable modifications. Multiple
+#'   modifications to the same residue are allowed, for example, both
+#'   \code{Carbamyl (M)} and \code{Oxidation (M)}.
+#'
+#'   For both \code{fixedmods} and \code{varmods}, the modification title,
+#'   \code{TMT6plex}, applies to all of TMT-6, TMT-10, TMT-11. It is also
+#'   possible to use aliased: (1) \code{TMT10plex} for TMT-10 and
+#'   \code{TMT11plex} for TMT-11, (2) \code{TMT16plex} for TMTpro and (3)
+#'   \code{TMT18plex} for TMTpro18. See also \link{parse_unimod} for grammars of
+#'   modification \code{title}, \code{position} and \code{site}.
+#' @param exclude_phospho_nl Logical; if TRUE, excludes neutral losses in the
+#'   MS2 ion searches against variable modifications of phospho sites. The
+#'   default if TRUE. May toggle it to \code{FALSE} if search speed against
+#'   phospho data is not a primary concern.
+#' @param include_insource_nl Not yet used. Logical; if TRUE, includes MS1
+#'   precursor masses with the losses of neutral species prior to MS2
+#'   fragmentation. The default is FALSE. The setting at TRUE remains
+#'   experimenting by allowing additional masses in the universe of MS1
+#'   precursors.
 #' @param enzyme A character string; the proteolytic specificity of the assumed
 #'   enzyme will be used to generate peptide sequences from proteins. The enzyme
 #'   is currently \code{trypsin}.
-#' @param maxn_fasta_seqs Integer; the maximum number of protein sequences in
-#'   fasta files.
-#' @param maxn_vmods_setscombi Integer; the maximum number of combinatorial
-#'   variable modifications and neutral losses.
-#' @param maxn_vmods_per_pep The maximum number of \code{Anywhere}
-#'   (non-terminal) variable modifications per peptide.
-#' @param maxn_sites_per_vmod Integer; the maximum number of combinatorial
-#'   \code{Anywhere} (non-terminal) variable modifications per site in a per
-#'   peptide sequence.
-#' @param maxn_vmods_sitescombi_per_pep Integer; the maximum number of
-#'   combinatorial variable modifications per peptide sequence. The default is
-#'   64. May consider a smaller value, i.e. 32, when searching against
-#'   phosphopeptide data.
-#' @param min_len A positive integer; the minimum length of peptides. Shorter
-#'   peptides will be excluded.
-#' @param max_len A positive integer; the maximum length of peptides. Longer
-#'   peptides will be excluded.
+#' @param maxn_fasta_seqs A positive integer; the maximum number of protein
+#'   sequences in fasta files. The default is 200000.
+#' @param maxn_vmods_setscombi A non-negative integer; the maximum number of
+#'   sets of combinatorial variable modifications. The default is 64.
+#' @param maxn_vmods_per_pep A non-negative integer; the maximum number of
+#'   \code{Anywhere} (non-terminal) variable modifications per peptide. The
+#'   default is 5.
+#' @param maxn_sites_per_vmod A non-negative integer; the maximum number of
+#'   combinatorial \code{Anywhere} (non-terminal) variable modifications per
+#'   site in a peptide sequence. The default is 3.
+#'
+#'   For instance, variable modifications of \code{Carbamyl (M)} and
+#'   \code{Oxidation (M)} both have site \code{M}. In order to have a
+#'   combination of two \code{Carbamyl (M)} and two \code{Oxidation (M)} being
+#'   considered, the value of \code{maxn_sites_per_vmod} needs to be four or
+#'   greater.
+#' @param maxn_vmods_sitescombi_per_pep A non-negative integer; the maximum
+#'   number of combinatorial variable modifications per peptide sequence. The
+#'   default is 64.
+#' @param min_len A positive integer; the minimum length of peptide sequences
+#'   for considerations. Shorter peptides will be excluded. The default is 7.
+#' @param max_len A positive integer; the maximum length of peptide sequences
+#'   for considerations. Longer peptides will be excluded. The default is 50.
 #' @param max_miss A non-negative integer; the maximum number of mis-cleavages
-#'   per peptide sequence.
-#' @param min_mass A non-negative integer; the minimum precursor mass for
-#'   interrogation.
-#' @param max_mass A non-negative integer; the maximum precursor mass for
-#'   interrogation.
-#' @param min_ms2mass A non-negative integer; the minimum MS2 mass for
-#'   interrogation.
+#'   per peptide sequence for considerations. The default is 2.
+#' @param min_mass A positive integer; the minimum precursor mass for
+#'   interrogation. The default is 500.
+#' @param max_mass A positive integer; the maximum precursor mass for
+#'   interrogation. The default is 6000.
+#' @param min_ms2mass A positive integer; the minimum MS2 mass for
+#'   interrogation. The default is 110.
 #' @param n_13c A non-negative integer; the maximum number of 13C off-sets for
 #'   consideration in MS1 masses. The default is 0 with no off-sets.
 #'   Peak-pickings by various MGF conversion tools may have attempted to adjust
 #'   precursor masses to the corresponding mono-isotopic masses in isotope
-#'   envelopes. Nevertheless, by setting \code{n_13c = 1}, another 1% increase
-#'   in the number of PSM may be readily achieved at a relatively small cost of
-#'   search time.
+#'   envelopes. Nevertheless, by setting \code{n_13c = 1}, some increases in the
+#'   number of PSMs may be readily achieved at a relatively small cost of search
+#'   time.
 #' @param type_ms2ions Character; the type of
 #'   \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 #'   ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 #'   and y-ions.
-#' @param topn_ms2ions A non-negative integer; the top-n species for uses in MS2
-#'   ion searches. The default is to use the top-100 ions in an MS2 event.
-#' @param minn_ms2 Integer; the minimum number of MS2 ions for consideration as
-#'   a hit.
-#' @param ppm_ms1 A positive integer; the mass tolerance of MS1 species.
-#' @param ppm_ms2 A positive integer; the mass tolerance of MS2 species.
+#' @param topn_ms2ions A positive integer; the top-n species for uses in MS2 ion
+#'   searches. The default is to use the top-100 ions in an MS2 event.
+#' @param minn_ms2 A positive integer; the minimum number of matched MS2 ions
+#'   for consideration as a hit. The default is 6.
+#' @param min_ms1_charge A positive integer; the minimum MS1 charge state for
+#'   considerations. The default is 2.
+#' @param max_ms1_charge A positive integer; the maximum MS1 charge state for
+#'   considerations. The default is 6.
+#' @param min_scan_num A positive integer; the minimum scan number for
+#'   considerations. The default is 1. The setting only applies to MGFs with
+#'   numeric scan numbers.
+#' @param max_scan_num A positive integer; the maximum scan number for
+#'   considerations. The default is the maximum machine integer. The setting
+#'   only applies to MGFs with numeric scan numbers.
+#' @param min_ret_time A non-negative numeric; the minimum retention time in
+#'   seconds for considerations. The default is 0.
+#' @param max_ret_time A non-negative numeric; the maximum retention time in
+#'   seconds for considerations. The default is \code{Inf}.
+#' @param ppm_ms1 A positive integer; the mass tolerance of MS1 species. The
+#'   default is 20.
+#' @param ppm_ms2 A positive integer; the mass tolerance of MS2 species. The
+#'   default is 25.
 #' @param ppm_reporters A positive integer; the mass tolerance of MS2 reporter
-#'   ions.
-#' @param quant A quantitation method. The default is "none". Additional choices
-#'   include \code{tmt6, tmt10, tmt11, tmt16 and tmt18}. For other
-#'   multiplicities of \code{tmt}, use the compatible higher plexes. For
-#'   example, apply \code{tmt16} for \code{tmt12} provided a set of 12-plexes
-#'   being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It is also
-#'   possible that an experimenter may construct a \code{tmt12} from a 18-plex
-#'   TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is suitable.
-#' @param target_fdr Numeric; a targeted false-discovery rate (FDR) at the
-#'   levels of PSM, peptide or protein. See also argument \code{fdr_type}.
-#' @param fdr_type Character string; the type of FDR control. The value is in
-#'   one of c("psm", "peptide", "protein"). Note that \code{fdr_type = protein}
-#'   is equivalent to \code{fdr_type = peptide} with the additional filtration
-#'   of data at \code{prot_tier == 1}. A variant is to set \code{fdr_type =
-#'   psm}, followed by a data filtration at \code{prot_tier == 1}.
-#' @param max_pepscores_co Numeric; the upper limit in the cut-offs of peptide
-#'   scores for discriminating significant and insignificant identities. For
-#'   higher quality and data-driven thresholds, choose \code{max_pepscores_co =
-#'   Inf}.
-#' @param max_protscores_co Numeric; the upper limit in the cut-offs of protein
-#'   scores for discriminating significant and insignificant identities.  For
-#'   higher quality and data-driven thresholds, choose \code{max_protscores_co =
-#'   Inf}.
-#' @param match_pepfdr Logical; if TRUE, matches empirically the highest
+#'   ions. The default is 10.
+#' @param quant A character string; the quantitation method. The default is
+#'   "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+#'   tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+#'   plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+#'   12-plexes being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It
+#'   is also possible that an experimenter may construct a \code{tmt12} from a
+#'   18-plex TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is
+#'   suitable.
+#' @param target_fdr A numeric; the targeted false-discovery rate (FDR) at the
+#'   levels of PSM, peptide or protein. The default is 0.01. See also argument
+#'   \code{fdr_type}.
+#' @param fdr_type A character string; the type of FDR control. The value is in
+#'   one of c("psm", "peptide", "protein"). The current default is \code{psm}.
+#'
+#'   Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
+#'   peptide} with the additional filtration of data at \code{prot_tier == 1}. A
+#'   variant is to set \code{fdr_type = psm}, followed by a data filtration at
+#'   \code{prot_tier == 1}.
+#' @param max_pepscores_co A positive numeric; the upper limit in the cut-offs
+#'   of peptide scores for discriminating significant and insignificant
+#'   identities. For higher quality and data-driven thresholds, choose the
+#'   default \code{max_pepscores_co = Inf}.
+#' @param max_protscores_co A positive numeric; the upper limit in the cut-offs
+#'   of protein scores for discriminating significant and insignificant
+#'   identities.  For higher quality and data-driven thresholds, choose the
+#'   default \code{max_protscores_co = Inf}.
+#' @param match_pepfdr Logical; if TRUE, matches empirically the highest peptide
 #'   probability (corresponding to the lowest score) cut-offs to the pre-defined
-#'   level of \code{target_fdr} for peptide data. Choose \code{match_pepfdr =
-#'   FALSE} for higher data quality.
+#'   level of \code{target_fdr}. The default if TRUE. Choose \code{match_pepfdr
+#'   = FALSE} for higher data quality (at a price of fewer hits).
 #' @param combine_tier_three Logical; if TRUE, combines search results at tiers
 #'   1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
 #'   that data will be segregated into the three quality tiers according to the
@@ -113,8 +151,8 @@
 #'   inputs of \code{psmQ[...].txt}.
 #'
 #'   For instance, if the aim is to bypass the constraint by protein FDR and
-#'   focus on PSMs that have met the cut-offs specified by \code{target_fdr},
-#'   experimenters may set \code{combine_tier_three = TRUE} and hence pool all
+#'   focus on PSMs that have met the cut-offs specified by \code{target_fdr}, an
+#'   experimenter may set \code{combine_tier_three = TRUE} and hence pool all
 #'   significant peptides in \code{psmQ.txt} for downstream proteoQ.
 #'
 #'   Tier-1: both proteins and peptides with scores above significance
@@ -123,10 +161,10 @@
 #'   Tier-2: \eqn{\ge} 2 significant peptides but protein scores below
 #'   significance thresholds.
 #'
-#'   Tier-3: one significant peptide and protein scores below significance
-#'   thresholds.
+#'   Tier-3: one significant peptide per protein and protein scores below
+#'   significance thresholds.
 #'
-#' @param max_n_prots Positive integer to threshold the maximum number of
+#' @param max_n_prots A positive integer to threshold the maximum number of
 #'   protein entries before coercing \code{fdr_type} from \code{psm} or
 #'   \code{peptide} to \code{protein}. The argument has no effect if
 #'   \code{fdr_type} is already \code{protein}. In general, there is no need to
@@ -137,31 +175,35 @@
 #'   \code{fdr_type} of \code{psm} or \code{peptide}. For very large data sets,
 #'   a lower value of \code{max_n_prots} can be used to reduce the chance of
 #'   memory exhaustion by setting aside some protein entries from tier 1 to 2.
-#' @param use_ms1_cache Logical; if TRUE, use cached precursor masses.
+#' @param use_ms1_cache Logical; at the TRUE default, use cached precursor
+#'   masses.
 #'
 #'   Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
 #'   \code{fdr_type = psm} to \code{fdr_type = protein}.
 #' @param .path_cache The file path of cached search parameters. At the NULL
 #'   default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
-#'   parameter is for users' awareness of the structure of file folders and the
-#'   default is suggested. Occasionally experimenters may remove the file folder
-#'   for disk space or (hopefully not) in events of (improper) structural change
-#'   incurred by the developer.
+#'   parameter is for the users' awareness of the underlying structure of file
+#'   folders and the use of default is suggested. Occasionally experimenters may
+#'   remove the file folder for disk space or under infrequent events of
+#'   modified framework incurred by the developer.
 #' @param .path_fasta The parent file path to the theoretical masses of MS1
 #'   precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
-#'   "\\1", get("fasta", envir = environment())[1])}. The parameter is for
-#'   users' awareness of the structure of file folders and the default is
+#'   "\\1", get("fasta", envir = environment())[1])}. The parameter is for the
+#'   users' awareness of the structure of file folders and the use of default is
 #'   suggested. Occasionally experimenters may remove the file folder for disk
-#'   space or (hopefully) in rare events of structural change incurred by the
+#'   space or under infrequent events of modified framework incurred by the
 #'   developer.
-#' @param digits Integer; the number of decimal places to be used.
+#' @param digits A non-negative integer; the number of decimal places to be
+#'   used. The default is 4.
 #' @seealso \link{load_fasta2} for setting the values of \code{acc_type} and
-#'   \code{acc_pattern}. \cr \link{table_unimods} summarizes
-#'   \href{https://www.unimod.org/}{Unimod} into a table format. \cr
+#'   \code{acc_pattern}. \cr\cr \link{table_unimods} summarizes
+#'   \href{https://www.unimod.org/}{Unimod} into a table format. \cr\cr
 #'   \link{parse_unimod} for the grammar of Unimod.
 #'   \href{https://proteoq.netlify.app/post/mixing-data-at-different-tmt-plexes/}{For
 #'    example}, the name tag of "TMT6plex" is common among TMT-6, -10 and -11
-#'   while "TMTpro" is specific to TMT-16.
+#'   while "TMTpro" is for TMT-16 and "TMTpro18" for TMT-18. May use aliases of
+#'   "TMT10plex", "TMT11plex", "TMT16plex" and "TMT18plex". \cr\cr
+#'   \link{mapMS2ions} for the visualization of MS2 ion ladders.
 #' @return A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in
 #'   \code{psmQ.txt}.
 #' @examples
@@ -215,6 +257,22 @@
 #'   fdr_type  = "protein",
 #'   out_path  = "~/proteoM/examples",
 #' )
+#'
+#' # Hypothetical Bruker's PASEF
+#' matchMS(
+#'   fasta     = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+#'                 "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+#'                 "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'   acc_type  = c("refseq_acc", "refseq_acc", "other"),
+#'   fixedmods = c("Carbamidomethyl (C)"),
+#'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
+#'                 "Deamidated (N)"),
+#'   ppm_ms1   = 25,
+#'   ppm_ms2   = 40,
+#'   quant     = "none",
+#'   fdr_type  = "protein",
+#'   out_path  = "~/proteoM/examples_pasef",
+#' )
 #' }
 #'
 #' }
@@ -239,12 +297,16 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      maxn_sites_per_vmod = 3L,
                      maxn_vmods_sitescombi_per_pep = 64L,
                      min_len = 7L, max_len = 50L, max_miss = 2L, 
-                     min_mass = 500L, max_mass = 6000L, ppm_ms1 = 20L, 
+                     min_mass = 500L, max_mass = 6000L, 
+                     ppm_ms1 = 20L, 
                      n_13c = 0L, 
 
-                     type_ms2ions = "by", topn_ms2ions = 100L, 
-                     min_ms2mass = 110L, minn_ms2 = 6L, 
-                     ppm_ms2 = 25L, ppm_reporters = 10L,
+                     type_ms2ions = "by", 
+                     min_ms2mass = 110L, 
+                     minn_ms2 = 6L, 
+                     ppm_ms2 = 25L, 
+                     
+                     ppm_reporters = 10L,
                      quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
                      
                      target_fdr = 0.01,
@@ -257,6 +319,12 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      use_ms1_cache = TRUE, 
                      .path_cache = NULL, 
                      .path_fasta = NULL,
+                     
+                     topn_ms2ions = 100L, 
+                     min_ms1_charge = 2L, max_ms1_charge = 6L, 
+                     min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
+                     min_ret_time = 0, max_ret_time = Inf, 
+
                      digits = 4L) 
 {
   options(digits = 9L)
@@ -317,13 +385,19 @@ matchMS <- function (out_path = "~/proteoM/outs",
   ppm_ms2 <- as.integer(ppm_ms2)
   ppm_reporters <- as.integer(ppm_reporters)
   max_n_prots <- as.integer(max_n_prots)
+  min_ms1_charge <- as.integer(min_ms1_charge)
+  max_ms1_charge <- as.integer(max_ms1_charge)
+  min_scan_num <- as.integer(min_scan_num)
+  max_scan_num <- as.integer(max_scan_num)
   digits <- as.integer(digits)
   
   stopifnot(min_len >= 0L, max_len >= min_len, max_miss <= 10L, 
             min_mass >= 0L, max_mass >= min_mass, min_ms2mass >= 0L, 
             n_13c >= 0L, 
-            maxn_vmods_per_pep >= maxn_sites_per_vmod, 
-            max_n_prots > 1000L)
+            maxn_vmods_per_pep >= maxn_sites_per_vmod, max_n_prots > 1000L, 
+            min_ms1_charge >= 1L, max_ms1_charge >= min_ms1_charge, 
+            min_scan_num >= 1L, max_scan_num >= min_scan_num)
+            
 
   # (b) doubles
   target_fdr <- as.double(target_fdr)
@@ -332,35 +406,45 @@ matchMS <- function (out_path = "~/proteoM/outs",
   if (target_fdr > .25) 
     stop("Choose a smaller `target_fdr`.", call. = FALSE)
   
+  min_ret_time <- round(min_ret_time, digits = 2L)
+  max_ret_time <- round(max_ret_time, digits = 2L)
   max_pepscores_co <- round(max_pepscores_co, digits = 2L)
   max_protscores_co <- round(max_protscores_co, digits = 2L)
-  
-  stopifnot(max_pepscores_co >= 0, max_protscores_co >= 0)
+
+  stopifnot(max_pepscores_co >= 0, max_protscores_co >= 0, 
+            min_ret_time >= 0, max_ret_time >= min_ret_time)
   
   # fdr_type
-  fdr_type <- rlang::enexpr(fdr_type)
   oks <- eval(formals()[["fdr_type"]])
-
-  if (length(fdr_type) > 1L) 
-    fdr_type <- oks[[1]]
-  else 
-    fdr_type <- rlang::as_string(fdr_type)
-
-  stopifnot(fdr_type %in% oks)
+  fdr_type <- substitute(fdr_type)
+  
+  if (length(fdr_type) > 1L)
+    fdr_type <- oks[1]
+  else {
+    fdr_type <- as.character(fdr_type) 
+    
+    if (!fdr_type %in% oks)
+      stop("Incorrect `fdr_type`.")
+  }
+  
   rm(list = c("oks"))
 
   # Quantitation method
-  quant <- rlang::enexpr(quant)
   oks <- eval(formals()[["quant"]])
-
-  quant <- if (length(quant) > 1L) 
-    oks[[1]]
-  else 
-    rlang::as_string(quant)
-
-  stopifnot(quant %in% oks, length(quant) == 1L)
-  rm(list = c("oks"))
+  quant <- substitute(quant)
   
+  if (length(quant) > 1L)
+    quant <- oks[1]
+  else {
+    quant <- as.character(quant) 
+    
+    if (!quant %in% oks)
+      stop("Incorrect `quant`.")
+  }
+  
+  rm(list = c("oks"))
+
+  # TMT
   check_tmt_pars(fixedmods, varmods, quant) 
 
   # Output path
@@ -437,6 +521,12 @@ matchMS <- function (out_path = "~/proteoM/outs",
             max_mass = max_mass, 
             min_ms2mass = min_ms2mass,
             topn_ms2ions = topn_ms2ions,
+            min_ms1_charge = min_ms1_charge, 
+            max_ms1_charge = max_ms1_charge, 
+            min_scan_num = min_scan_num, 
+            max_scan_num = max_scan_num, 
+            min_ret_time = min_ret_time,
+            max_ret_time = max_ret_time, 
             ppm_ms1 = ppm_ms1,
             ppm_ms2 = ppm_ms2,
             index_ms2 = FALSE)
@@ -1019,21 +1109,21 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
     possibles <- fvmods[grepl("^TMT", fvmods)]
     
     if (quant == "tmt18") {
-      ok <- all(grepl("TMTpro18 ", possibles))
+      ok <- all(grepl("TMTpro18 |TMT18plex ", possibles))
       
       if (!ok) 
         stop("All TMT modifications need to be `TMTpro18` at `", quant, "`.\n", 
              tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
              call. = FALSE)
     } else if (quant == "tmt16") {
-      ok <- all(grepl("TMTpro ", possibles))
+      ok <- all(grepl("TMTpro |TMT16plex ", possibles))
       
       if (!ok) 
         stop("All TMT modifications need to be `TMTpro` at `", quant, "`.\n", 
              tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
              call. = FALSE)
     } else {
-      ok <- all(grepl("TMT6plex", possibles))
+      ok <- all(grepl("TMT6plex |TMT10plex |TMT11plex ", possibles))
       
       if (!ok) 
         stop("All TMT modifications need to be `TMT6plex` at `", quant, "`.\n", 

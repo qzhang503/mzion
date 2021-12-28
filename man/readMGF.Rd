@@ -5,11 +5,13 @@
 \title{Reads MGF files in chunks.}
 \usage{
 readMGF(
-  filepath = "~/proteoM/mgfs",
+  filepath = "~/proteoM/mgf",
   min_mass = 500L,
   max_mass = 6000L,
   min_ms2mass = 110L,
   topn_ms2ions = 100L,
+  ms1_charge_range = c(2L, 6L),
+  ms1_scan_range = c(1L, .Machine$integer.max),
   ret_range = c(0, Inf),
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
@@ -30,11 +32,17 @@ match the one in  \link{binTheoSeqs}.}
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
 MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 
+\item{ms1_charge_range}{The range of MS1 charge states.}
+
+\item{ms1_scan_range}{The range of MS1 scan numbers.}
+
 \item{ret_range}{The range of retention time in seconds.}
 
-\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
+default is 20.}
 
-\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
+default is 25.}
 
 \item{index_ms2}{Logical; if TRUE, converts MS2 m/z values to indices.}
 

@@ -8,7 +8,7 @@ load_fasta2(fasta = NULL, acc_type = NULL, acc_pattern = NULL)
 }
 \arguments{
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
-prepended directory path. The experimenters need to supply the files.}
+prepended directory path. The experimenter needs to supply the files.}
 
 \item{acc_type}{Character string(s); the types of protein accessions in one
 of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,

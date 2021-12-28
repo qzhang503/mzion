@@ -1008,7 +1008,7 @@ find_optlens <- function (all_lens, counts, min_count = 128L)
   if (length(idxes)) 
     return(all_lens[idxes])
   else 
-    find_optlens(all_lens, min_count/2L)
+    find_optlens(all_lens, counts, min_count/2L)
 }
 
 
@@ -1140,18 +1140,28 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   if (length(prob_cos) == 1L && !is.na(prob_cos)) {
     return(data.frame(pep_len = all_lens, pep_prob_co = prob_cos))
   }
-  
-  if (all(is.na(prob_cos))) {
+  else if (all(is.na(prob_cos))) {
     seqs <- min_len:max_len
     prob_cos <- rep(target_fdr, length(seqs))
     
     return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
-  }
-  
+  } 
+
   counts <- as.numeric(names(prob_cos))
   names(counts) <- all_lens
   names(prob_cos) <- all_lens
   prob_cos <- prob_cos[!is.na(prob_cos)]
+  
+  if (length(prob_cos) == 1L) {
+    seqs <- min_len:max_len
+    prob_cos <- rep(prob_cos, length(seqs))
+    
+    return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
+  }
+  
+  ###
+  # (At least two non-trivial prob_cos)
+  ###
   
   lens <- find_optlens(all_lens, counts, 128L)
   
@@ -1187,78 +1197,94 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   df_left <- df[df$x <= valley, ]
   rank_left <- 4L # often results in: originals == fitted <-> no fitting
   
-  fit_left <- if (nrow(df_left) <= rank_left) {
-    lm(y ~ x, df_left)
-  } 
-  else {
-    local({
-      fit_ns <- tryCatch(
-        lm(y ~ splines::ns(x, rank_left), df_left),
-        error = function(e) NA
-      )
-      
-      fit_bs <- tryCatch(
-        lm(y ~ splines::bs(x, rank_left), df_left),
-        error = function(e) NA
-      )
-      
-      res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
-      res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
-      
-      if (res1 <= res2) fit_ns else fit_bs
-    })
+  nrow_left <- nrow(df_left)
+  
+  if (nrow_left == 1L) {
+    newx_left <- df_left$x[1]
+    newy_left <- df_left$y[1]
   }
-  
-  newx_left <- min(df_left$x, na.rm = TRUE):max(df_left$x, na.rm = TRUE)
-  newy_left <- predict(fit_left, data.frame(x = newx_left))
-  names(newy_left) <- newx_left
-  
+  else {
+    fit_left <- if (nrow_left <= rank_left) {
+      lm(y ~ x, df_left)
+    } 
+    else {
+      local({
+        fit_ns <- tryCatch(
+          lm(y ~ splines::ns(x, rank_left), df_left),
+          error = function(e) NA
+        )
+        
+        fit_bs <- tryCatch(
+          lm(y ~ splines::bs(x, rank_left), df_left),
+          error = function(e) NA
+        )
+        
+        res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
+        res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
+        
+        if (res1 <= res2) fit_ns else fit_bs
+      })
+    }
+    
+    newx_left <- min(df_left$x, na.rm = TRUE):max(df_left$x, na.rm = TRUE)
+    newy_left <- predict(fit_left, data.frame(x = newx_left))
+    names(newy_left) <- newx_left
+  }
+
   # valley right (small rank to down-weight wiggly high `pep_len` points)
   df_right <- df[df$x > valley, ]
   rank_right <- 3L # changed from 2 to 3
   
-  if (nrow(df_right) > rank_right) {
-    fit_right <- local({
-      fit_ns <- tryCatch(
-        lm(y ~ splines::ns(x, rank_right), df_right),
-        error = function(e) NA
-      )
-      
-      fit_bs <- tryCatch(
-        lm(y ~ splines::bs(x, rank_right), df_right),
-        error = function(e) NA
-      )
-      
-      res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
-      res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
-      
-      if (res1 <= res2) fit_ns else fit_bs
-    })
-    
-    newx_right <- min(df_right$x, na.rm = TRUE):max(df_right$x, na.rm = TRUE)
-    newy_right <- predict(fit_right, data.frame(x = newx_right))
-    names(newy_right) <- newx_right
+  nrow_right <- nrow(df_right)
+  
+  if (nrow_right <= 1L) {
+    newx_right <- NULL
+    newy_right <- NULL
   } 
   else {
-    fit_right <- tryCatch(
-      lm(y ~ x, df_right),
-      error = function(e) NA
-    )
-    
-    slope <- if (class(fit_right) == "lm") 
-      unname(coef(fit_right)[2])
-    else 
-      .25
-
-    newx_right <- valley:max(df_right$x, na.rm = TRUE)
-    newy_right <- best_co + slope * (newx_right - valley)
-    names(newy_right) <- newx_right
-    
-    # excludes the `valley` itself (already in left fitting)
-    newx_right <- newx_right[-1]
-    newy_right <- newy_right[-1]
+    if (nrow_right > rank_right) {
+      fit_right <- local({
+        fit_ns <- tryCatch(
+          lm(y ~ splines::ns(x, rank_right), df_right),
+          error = function(e) NA
+        )
+        
+        fit_bs <- tryCatch(
+          lm(y ~ splines::bs(x, rank_right), df_right),
+          error = function(e) NA
+        )
+        
+        res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
+        res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
+        
+        if (res1 <= res2) fit_ns else fit_bs
+      })
+      
+      newx_right <- min(df_right$x, na.rm = TRUE):max(df_right$x, na.rm = TRUE)
+      newy_right <- predict(fit_right, data.frame(x = newx_right))
+      names(newy_right) <- newx_right
+    } 
+    else {
+      fit_right <- tryCatch(
+        lm(y ~ x, df_right),
+        error = function(e) NA
+      )
+      
+      slope <- if (class(fit_right) == "lm") 
+        unname(coef(fit_right)[2])
+      else 
+        .25
+      
+      newx_right <- valley:max(df_right$x, na.rm = TRUE)
+      newy_right <- best_co + slope * (newx_right - valley)
+      names(newy_right) <- newx_right
+      
+      # excludes the `valley` itself (already in left fitting)
+      newx_right <- newx_right[-1]
+      newy_right <- newy_right[-1]
+    }
   }
-  
+    
   # left + right
   newx <- c(newx_left, newx_right)
   newy <- c(newy_left, newy_right)
@@ -1291,8 +1317,15 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   
   ## Outputs
   newy[newy > max_pepscores_co] <- max_pepscores_co
-  prob_cos <- 10^(-newy/fct_score)
   
+  prob_cos <- local({
+    nms <- names(prob_cos)
+    prob_cos <- 10^(-newy/fct_score)
+    names(prob_cos) <- nms
+    
+    prob_cos
+  })
+
   if (match_pepfdr) {
     prob_cos <- local({
       idxes <- prob_cos[prob_cos <= target_fdr]

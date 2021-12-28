@@ -19,21 +19,21 @@ calc_pepfdr(
 
 \item{fdr_type}{Character string; the type of FDR for controlling.}
 
-\item{min_len}{A positive integer; the minimum length of peptides. Shorter
-peptides will be excluded.}
+\item{min_len}{A positive integer; the minimum length of peptide sequences
+for considerations. Shorter peptides will be excluded. The default is 7.}
 
-\item{max_len}{A positive integer; the maximum length of peptides. Longer
-peptides will be excluded.}
+\item{max_len}{A positive integer; the maximum length of peptide sequences
+for considerations. Longer peptides will be excluded. The default is 50.}
 
-\item{match_pepfdr}{Logical; if TRUE, matches empirically the highest
+\item{match_pepfdr}{Logical; if TRUE, matches empirically the highest peptide
 probability (corresponding to the lowest score) cut-offs to the pre-defined
-level of \code{target_fdr} for peptide data. Choose \code{match_pepfdr =
-FALSE} for higher data quality.}
+level of \code{target_fdr}. The default if TRUE. Choose \code{match_pepfdr
+= FALSE} for higher data quality (at a price of fewer hits).}
 
-\item{max_pepscores_co}{Numeric; the upper limit in the cut-offs of peptide
-scores for discriminating significant and insignificant identities. For
-higher quality and data-driven thresholds, choose \code{max_pepscores_co =
-Inf}.}
+\item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
+of peptide scores for discriminating significant and insignificant
+identities. For higher quality and data-driven thresholds, choose the
+default \code{max_pepscores_co = Inf}.}
 
 \item{out_path}{A file path of outputs.}
 

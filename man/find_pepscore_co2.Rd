@@ -9,8 +9,9 @@ find_pepscore_co2(td, target_fdr)
 \arguments{
 \item{td}{A data frame of target-decoy results at a given peptide length.}
 
-\item{target_fdr}{Numeric; a targeted false-discovery rate (FDR) at the
-levels of PSM, peptide or protein. See also argument \code{fdr_type}.}
+\item{target_fdr}{A numeric; the targeted false-discovery rate (FDR) at the
+levels of PSM, peptide or protein. The default is 0.01. See also argument
+\code{fdr_type}.}
 }
 \description{
 Assume log-normal for decoy scores.

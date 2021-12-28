@@ -33,7 +33,7 @@ calc_pepmasses2(
 }
 \arguments{
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
-prepended directory path. The experimenters need to supply the files.}
+prepended directory path. The experimenter needs to supply the files.}
 
 \item{acc_type}{Character string(s); the types of protein accessions in one
 of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
@@ -59,9 +59,10 @@ adding back precursor masses) have not yet taken into account in MS2 ion
 searches. A more systemically approach such as \code{open} MS1 masses might
 be developed in the future.}
 
-\item{exclude_phospho_nl}{If TRUE, excludes neutral losses in the MS2 ion
-searches against variable modifications of phospho sites. May toggle it to
-\code{FALSE} if search speed against phospho data is not a primary concern.}
+\item{exclude_phospho_nl}{Logical; if TRUE, excludes neutral losses in the
+MS2 ion searches against variable modifications of phospho sites. The
+default if TRUE. May toggle it to \code{FALSE} if search speed against
+phospho data is not a primary concern.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from proteins. The enzyme
@@ -91,32 +92,33 @@ be excluded.}
 consideration in MS1 masses. The default is 0 with no off-sets.
 Peak-pickings by various MGF conversion tools may have attempted to adjust
 precursor masses to the corresponding mono-isotopic masses in isotope
-envelopes. Nevertheless, by setting \code{n_13c = 1}, another 1% increase
-in the number of PSM may be readily achieved at a relatively small cost of
-search time.}
+envelopes. Nevertheless, by setting \code{n_13c = 1}, some increases in the
+number of PSMs may be readily achieved at a relatively small cost of search
+time.}
 
 \item{out_path}{An output path.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 
-\item{use_ms1_cache}{Logical; if TRUE, use cached precursor masses.
+\item{use_ms1_cache}{Logical; at the TRUE default, use cached precursor
+  masses.
 
   Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
   \code{fdr_type = psm} to \code{fdr_type = protein}.}
 
 \item{.path_cache}{The file path of cached search parameters. At the NULL
 default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
-parameter is for users' awareness of the structure of file folders and the
-default is suggested. Occasionally experimenters may remove the file folder
-for disk space or (hopefully not) in events of (improper) structural change
-incurred by the developer.}
+parameter is for the users' awareness of the underlying structure of file
+folders and the use of default is suggested. Occasionally experimenters may
+remove the file folder for disk space or under infrequent events of
+modified framework incurred by the developer.}
 
 \item{.path_fasta}{The parent file path to the theoretical masses of MS1
 precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
-"\\1", get("fasta", envir = environment())[1])}. The parameter is for
-users' awareness of the structure of file folders and the default is
+"\\1", get("fasta", envir = environment())[1])}. The parameter is for the
+users' awareness of the structure of file folders and the use of default is
 suggested. Occasionally experimenters may remove the file folder for disk
-space or (hopefully) in rare events of structural change incurred by the
+space or under infrequent events of modified framework incurred by the
 developer.}
 
 \item{.path_ms1masses}{The file path to the theoretical masses of MS1

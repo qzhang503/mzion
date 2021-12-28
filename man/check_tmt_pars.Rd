@@ -7,20 +7,27 @@
 check_tmt_pars(fixedmods, varmods, quant)
 }
 \arguments{
-\item{fixedmods}{A character vector of fixed modifications. See also
-\link{parse_unimod} for grammars.}
+\item{fixedmods}{Character string(s) of fixed modifications.}
 
-\item{varmods}{A character vector of variable modifications. Multiple
-modifications to the same residue are allowed, for example, both a less
-common \code{Carbamyl (M)} and a common \code{Oxidation (M)}.}
+\item{varmods}{Character string(s) of variable modifications. Multiple
+  modifications to the same residue are allowed, for example, both
+  \code{Carbamyl (M)} and \code{Oxidation (M)}.
 
-\item{quant}{A quantitation method. The default is "none". Additional choices
-include \code{tmt6, tmt10, tmt11, tmt16 and tmt18}. For other
-multiplicities of \code{tmt}, use the compatible higher plexes. For
-example, apply \code{tmt16} for \code{tmt12} provided a set of 12-plexes
-being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It is also
-possible that an experimenter may construct a \code{tmt12} from a 18-plex
-TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is suitable.}
+  For both \code{fixedmods} and \code{varmods}, the modification title,
+  \code{TMT6plex}, applies to all of TMT-6, TMT-10, TMT-11. It is also
+  possible to use aliased: (1) \code{TMT10plex} for TMT-10 and
+  \code{TMT11plex} for TMT-11, (2) \code{TMT16plex} for TMTpro and (3)
+  \code{TMT18plex} for TMTpro18. See also \link{parse_unimod} for grammars of
+  modification \code{title}, \code{position} and \code{site}.}
+
+\item{quant}{A character string; the quantitation method. The default is
+"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+12-plexes being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It
+is also possible that an experimenter may construct a \code{tmt12} from a
+18-plex TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is
+suitable.}
 }
 \description{
 Checks the compatibility of TMT names and plexes.

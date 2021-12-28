@@ -33,7 +33,8 @@ acid residues.}
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
 
-\item{digits}{Integer; the number of decimal places to be used.}
+\item{digits}{A non-negative integer; the number of decimal places to be
+used. The default is 4.}
 }
 \description{
 Helper for the calculation of MS2 ion series.

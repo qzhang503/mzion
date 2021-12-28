@@ -39,9 +39,15 @@ try_ms2match(
 )
 }
 \arguments{
-\item{mgf_path}{The file path to a list of MGF files. The experimenters need
-to supply the files. Note that the supported MGFs are from MSConvert or
-Proteome Discoverer.}
+\item{mgf_path}{A file path to a list of MGF files. The experimenter needs
+  to supply the files.
+
+  The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
+  from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
+  Proteome Discoverer or (3) Bruker's DataAnalysis.
+
+  With MSConvert, the default \code{titleMaker} is required (don't think it
+  can be altered by users, but just in case).}
 
 \item{aa_masses_all}{All the amino acid lookup tables.}
 
@@ -52,41 +58,50 @@ Proteome Discoverer.}
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
 
-\item{maxn_vmods_per_pep}{The maximum number of \code{Anywhere}
-(non-terminal) variable modifications per peptide.}
+\item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
+\code{Anywhere} (non-terminal) variable modifications per peptide. The
+default is 5.}
 
-\item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
-\code{Anywhere} (non-terminal) variable modifications per site in a per
-peptide sequence.}
+\item{maxn_sites_per_vmod}{A non-negative integer; the maximum number of
+  combinatorial \code{Anywhere} (non-terminal) variable modifications per
+  site in a peptide sequence. The default is 3.
 
-\item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
-combinatorial variable modifications per peptide sequence. The default is
-64. May consider a smaller value, i.e. 32, when searching against
-phosphopeptide data.}
+  For instance, variable modifications of \code{Carbamyl (M)} and
+  \code{Oxidation (M)} both have site \code{M}. In order to have a
+  combination of two \code{Carbamyl (M)} and two \code{Oxidation (M)} being
+  considered, the value of \code{maxn_sites_per_vmod} needs to be four or
+  greater.}
 
-\item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
-a hit.}
+\item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
+number of combinatorial variable modifications per peptide sequence. The
+default is 64.}
 
-\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
+\item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
+for consideration as a hit. The default is 6.}
 
-\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
+default is 20.}
 
-\item{min_ms2mass}{A non-negative integer; the minimum MS2 mass for
-interrogation.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
+default is 25.}
 
-\item{quant}{A quantitation method. The default is "none". Additional choices
-include \code{tmt6, tmt10, tmt11, tmt16 and tmt18}. For other
-multiplicities of \code{tmt}, use the compatible higher plexes. For
-example, apply \code{tmt16} for \code{tmt12} provided a set of 12-plexes
-being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It is also
-possible that an experimenter may construct a \code{tmt12} from a 18-plex
-TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is suitable.}
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
+
+\item{quant}{A character string; the quantitation method. The default is
+"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+12-plexes being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It
+is also possible that an experimenter may construct a \code{tmt12} from a
+18-plex TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is
+suitable.}
 
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
-ions.}
+ions. The default is 10.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
-prepended directory path. The experimenters need to supply the files.}
+prepended directory path. The experimenter needs to supply the files.}
 
 \item{acc_type}{Character string(s); the types of protein accessions in one
 of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
@@ -99,51 +114,58 @@ will be automated when \code{acc_type} are among c("uniprot_acc",
 "uniprot_id", "refseq_acc", "other"). See also \link{load_fasta2} for
 custom examples.}
 
-\item{topn_ms2ions}{A non-negative integer; the top-n species for uses in MS2
-ion searches. The default is to use the top-100 ions in an MS2 event.}
+\item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
+searches. The default is to use the top-100 ions in an MS2 event.}
 
-\item{fixedmods}{A character vector of fixed modifications. See also
-\link{parse_unimod} for grammars.}
+\item{fixedmods}{Character string(s) of fixed modifications.}
 
-\item{varmods}{A character vector of variable modifications. Multiple
-modifications to the same residue are allowed, for example, both a less
-common \code{Carbamyl (M)} and a common \code{Oxidation (M)}.}
+\item{varmods}{Character string(s) of variable modifications. Multiple
+  modifications to the same residue are allowed, for example, both
+  \code{Carbamyl (M)} and \code{Oxidation (M)}.
 
-\item{include_insource_nl}{Logical Logical; if TRUE, includes MS1 precursor
-masses with the losses of neutral species prior to MS2 fragmentation. The
-default is FALSE. The setting at TRUE remains experimenting by allowing
-additional masses in the universe of MS1 precursors. The offsets in NLs (by
-adding back precursor masses) have not yet taken into account in MS2 ion
-searches. A more systemically approach such as \code{open} MS1 masses might
-be developed in the future.}
+  For both \code{fixedmods} and \code{varmods}, the modification title,
+  \code{TMT6plex}, applies to all of TMT-6, TMT-10, TMT-11. It is also
+  possible to use aliased: (1) \code{TMT10plex} for TMT-10 and
+  \code{TMT11plex} for TMT-11, (2) \code{TMT16plex} for TMTpro and (3)
+  \code{TMT18plex} for TMTpro18. See also \link{parse_unimod} for grammars of
+  modification \code{title}, \code{position} and \code{site}.}
+
+\item{include_insource_nl}{Not yet used. Logical; if TRUE, includes MS1
+precursor masses with the losses of neutral species prior to MS2
+fragmentation. The default is FALSE. The setting at TRUE remains
+experimenting by allowing additional masses in the universe of MS1
+precursors.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from proteins. The enzyme
 is currently \code{trypsin}.}
 
-\item{maxn_fasta_seqs}{Integer; the maximum number of protein sequences in
-fasta files.}
+\item{maxn_fasta_seqs}{A positive integer; the maximum number of protein
+sequences in fasta files. The default is 200000.}
 
-\item{maxn_vmods_setscombi}{Integer; the maximum number of combinatorial
-variable modifications and neutral losses.}
+\item{maxn_vmods_setscombi}{A non-negative integer; the maximum number of
+sets of combinatorial variable modifications. The default is 64.}
 
-\item{min_len}{A positive integer; the minimum length of peptides. Shorter
-peptides will be excluded.}
+\item{min_len}{A positive integer; the minimum length of peptide sequences
+for considerations. Shorter peptides will be excluded. The default is 7.}
 
-\item{max_len}{A positive integer; the maximum length of peptides. Longer
-peptides will be excluded.}
+\item{max_len}{A positive integer; the maximum length of peptide sequences
+for considerations. Longer peptides will be excluded. The default is 50.}
 
 \item{max_miss}{A non-negative integer; the maximum number of mis-cleavages
-per peptide sequence.}
+per peptide sequence for considerations. The default is 2.}
 
-\item{target_fdr}{Numeric; a targeted false-discovery rate (FDR) at the
-levels of PSM, peptide or protein. See also argument \code{fdr_type}.}
+\item{target_fdr}{A numeric; the targeted false-discovery rate (FDR) at the
+levels of PSM, peptide or protein. The default is 0.01. See also argument
+\code{fdr_type}.}
 
-\item{fdr_type}{Character string; the type of FDR control. The value is in
-one of c("psm", "peptide", "protein"). Note that \code{fdr_type = protein}
-is equivalent to \code{fdr_type = peptide} with the additional filtration
-of data at \code{prot_tier == 1}. A variant is to set \code{fdr_type =
-psm}, followed by a data filtration at \code{prot_tier == 1}.}
+\item{fdr_type}{A character string; the type of FDR control. The value is in
+  one of c("psm", "peptide", "protein"). The current default is \code{psm}.
+
+  Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
+  peptide} with the additional filtration of data at \code{prot_tier == 1}. A
+  variant is to set \code{fdr_type = psm}, followed by a data filtration at
+  \code{prot_tier == 1}.}
 
 \item{combine_tier_three}{Logical; if TRUE, combines search results at tiers
   1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
@@ -153,8 +175,8 @@ psm}, followed by a data filtration at \code{prot_tier == 1}.}
   inputs of \code{psmQ[...].txt}.
 
   For instance, if the aim is to bypass the constraint by protein FDR and
-  focus on PSMs that have met the cut-offs specified by \code{target_fdr},
-  experimenters may set \code{combine_tier_three = TRUE} and hence pool all
+  focus on PSMs that have met the cut-offs specified by \code{target_fdr}, an
+  experimenter may set \code{combine_tier_three = TRUE} and hence pool all
   significant peptides in \code{psmQ.txt} for downstream proteoQ.
 
   Tier-1: both proteins and peptides with scores above significance
@@ -163,10 +185,11 @@ psm}, followed by a data filtration at \code{prot_tier == 1}.}
   Tier-2: \eqn{\ge} 2 significant peptides but protein scores below
   significance thresholds.
 
-  Tier-3: one significant peptide and protein scores below significance
-  thresholds.}
+  Tier-3: one significant peptide per protein and protein scores below
+  significance thresholds.}
 
-\item{digits}{Integer; the number of decimal places to be used.}
+\item{digits}{A non-negative integer; the number of decimal places to be
+used. The default is 4.}
 }
 \description{
 Not yet used.

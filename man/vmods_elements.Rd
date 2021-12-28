@@ -29,14 +29,22 @@ calculations).}
 \item{ctmod}{The attribute \code{ctmod} from a \code{aa_masses} (for MS1
 calculations).}
 
-\item{maxn_vmods_per_pep}{The maximum number of \code{Anywhere}
-(non-terminal) variable modifications per peptide.}
+\item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
+\code{Anywhere} (non-terminal) variable modifications per peptide. The
+default is 5.}
 
-\item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
-\code{Anywhere} (non-terminal) variable modifications per site in a per
-peptide sequence.}
+\item{maxn_sites_per_vmod}{A non-negative integer; the maximum number of
+  combinatorial \code{Anywhere} (non-terminal) variable modifications per
+  site in a peptide sequence. The default is 3.
 
-\item{digits}{Integer; the number of decimal places to be used.}
+  For instance, variable modifications of \code{Carbamyl (M)} and
+  \code{Oxidation (M)} both have site \code{M}. In order to have a
+  combination of two \code{Carbamyl (M)} and two \code{Oxidation (M)} being
+  considered, the value of \code{maxn_sites_per_vmod} needs to be four or
+  greater.}
+
+\item{digits}{A non-negative integer; the number of decimal places to be
+used. The default is 4.}
 }
 \description{
 The same residue, e.g. M, at different modifications, c("Carbamyl (M",

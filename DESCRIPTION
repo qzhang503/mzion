@@ -1,7 +1,7 @@
 Package: proteoM
 Type: Package
 Title: Database Searches of Proteomic Mass-spectrometrirc Data
-Version: 1.0.4.0
+Version: 1.0.4.2
 Authors@R: 
     person(given = "Qiang",
            family = "Zhang",
@@ -16,6 +16,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Suggests: 
+	ggplot2,
     knitr,
     rmarkdown,
 	testthat

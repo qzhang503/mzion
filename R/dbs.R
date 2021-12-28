@@ -304,7 +304,6 @@ find_acc_type <- function (acc_pattern)
 }
 
 
-
 #' Parse the name of a Unimod
 #'
 #' The general format: \code{parse_unimod("title (position = site)")}.
@@ -581,26 +580,46 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)")
 #' @param file A file path to a Unimod ".xml".
 #' @param out_nm A name to outputs.
 #' @seealso \link{find_unimod}, \link{parse_unimod}.
-#' @export
 #' @examples
 #' \donttest{
 #' ans <- table_unimods()
 #' 
-#' # TMT-16
+#' ## TMT-6, -10 and -11 plexes 
+#' # share the same Unimod entry at title "TMT6plex"
+#' # (the same chemistry at tag mass 229.162932 Da)
+#' ans[with(ans, title == "TMT6plex"), ]
+#' this_mod1 <- parse_unimod("TMT6plex (Anywhere = K)")
+#' 
+#' # Convenience title, "TMT10plex", alias to "TMT6plex"
+#' this_mod2 <- parse_unimod("TMT10plex (Anywhere = K)")
+#' 
+#' # Title "TMT11plex" alias to "TMT6plex"
+#' this_mod3 <- parse_unimod("TMT11plex (Anywhere = K)")
+#' 
+#' ## TMT-16
 #' ans[with(ans, title == "TMTpro"), ]
-#' this_mod <- parse_unimod("TMTpro (Anywhere = K)")
+#' this_mod1 <- parse_unimod("TMTpro (Anywhere = K)")
 #' 
-#' # "TMTpro16" the same as "TMTpro"
-#' ans[with(ans, title == "TMTpro16"), ]
-#' this_mod <- parse_unimod("TMTpro16 (Anywhere = K)")
+#' # Both "TMTpro16" and "TMT16plex" alias to "TMTpro"
+#' this_mod2 <- parse_unimod("TMTpro16 (Anywhere = K)")
+#' this_mod3 <- parse_unimod("TMT16plex (Anywhere = K)")
 #' 
-#' # TMT-18
+#' ## TMT-18
 #' ans[with(ans, title == "TMTpro18"), ]
-#' this_mod <- parse_unimod("TMTpro18 (Anywhere = K)")
+#' this_mod1 <- parse_unimod("TMTpro18 (Anywhere = K)")
+#' this_mod2 <- parse_unimod("TMTpro18 (Anywhere = K)")
+#' this_mod3 <- parse_unimod("TMT18plex (Anywhere = K)")
 #' 
+#' ## Summary of TMT entries and alias
+#' ans[with(ans, grepl("^TMT", title)), ]
+#' 
+#' 
+#' ## Special characters in the title (e.g., "->")
 #' ans[with(ans, grepl("^Gln->pyro", title)), ]
 #' this_mod <- parse_unimod("Gln->pryo-Glu (N-term = Q)")
+#' 
 #' }
+#' @export
 table_unimods <- function (file = system.file("extdata", "master.xml", 
                                               package = "proteoM"), 
                            out_nm = "~/proteoM/unimods.txt") 

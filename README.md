@@ -1,11 +1,13 @@
 proteoM
 ================
 true
-2021-11-30
+2021-12-23
 
 -   [Installation](#installation)
+-   [FASTAs and MGFs](#fastas-and-mgfs)
 -   [Database searches](#database-searches)
--   [Possible Next steps](#possible-next-steps)
+-   [Next steps?](#next-steps)
+-   [Other utilities](#other-utilities)
 
 ## Installation
 
@@ -17,21 +19,29 @@ if (!requireNamespace("devtools", quietly = TRUE))
 devtools::install_github("qzhang503/proteoM")
 ```
 
+## FASTAs and MGFs
+
+``` r
+## (Optional: exemplary FASTAs and MGFs)
+devtools::install_github("qzhang503/proteoQDA")
+
+# Fasta databases
+library(proteoQDA)
+
+copy_refseq_hs("~/proteoM/dbs/fasta/refseq")
+copy_refseq_mm("~/proteoM/dbs/fasta/refseq")
+copy_uniprot_hsmm("~/proteoM/dbs/fasta/uniprot")
+copy_crap("~/proteoM/dbs/fasta/crap")
+
+# MGF (by Proteome Discoverer or free MSConvert)
+copy_pd_mgf("~/proteoM/examples/mgfs")
+copy_msconv_mgf("~/proteoM/examples_p/mgfs")
+```
+
 ## Database searches
 
 ``` r
-## An example of TMT-10plex
-library(proteoQDA)
-
-# Fasta databases 
-copy_refseq_hs("~/proteoM/dbs/fasta/refseq")
-copy_refseq_mm("~/proteoM/dbs/fasta/refseq")
-copy_crap("~/proteoM/dbs/fasta/crap")
-
-# MGF (e.g. by Proteome Discoverer)
-copy_pd_mgf("~/proteoM/examples/mgfs")
-
-# Ion searches
+## Global, TMT-10plex
 library(proteoM)
 
 matchMS(
@@ -40,31 +50,29 @@ matchMS(
   fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta", 
             "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta", 
             "~/proteoM/dbs/fasta/crap/crap.fasta"), 
+  
+  # (see also ?load_fasta2)
   acc_type = c("refseq_acc", "refseq_acc", "other"), 
+  
+  # "TMT6plex" at mass 229.162932 Da for TMT-6, -10 and -11 
+  # (see also ?table_unimods)
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
-             "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
+              "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
   max_miss = 4, 
   quant = "tmt10", 
   fdr_type = "protein", 
 )
 
 
-## An example of phospho TMT
-library(proteoQDA)
-
-# Try a different fasta database
-copy_uniprot_hsmm("~/proteoM/dbs/fasta/uniprot")
-
-# Try MGFs, e.g., by MSConvert
-copy_msconv_mgf("~/proteoM/examples_p/mgfs")
-
-# Ion searches
+## Phospho, TMT
 library(proteoM)
 
 matchMS(
   out_path = "~/proteoM/examples_p", 
   mgf_path = "~/proteoM/examples_p/mgfs",
+  
+  # (try a different FASTA)
   fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hsmm_2020_03.fasta", 
             "~/proteoM/dbs/fasta/crap/crap.fasta"), 
   acc_type = c("uniprot_acc", "other"), 
@@ -78,23 +86,23 @@ matchMS(
 )
 ```
 
-## Possible Next steps
+## Next steps?
 
--   Search against real MGFs
+-   Search against full-length MGFs
 
     -   With `MSConvert`:
-        -   Options
+        -   Options (required)
         -   [x] Output format: mgf
-        -   Filters
-        -   [x] peakPicking: msLevel=1-
-    -   With `RawConverter (v1.2.0.1)`:
-        -   Experiment Type
-        -   [x] Data Dependent
-        -   Options
-        -   [x] Select monoisotopic m/z in DDA
-        -   [x] Export Centroided Peaks in MS1
-        -   Output Formats
-        -   [x] MGF
+        -   [x] titleMaker: Default
+        -   Filters/Subset (suggested)
+        -   [x] msLevel=1-
+        -   [x] Charge states=2-
 
--   Data QC and informatics with
+-   Data QC and mining with
     [proteoQ](https://github.com/qzhang503/proteoQ/)
+
+## Other utilities
+
+-   proteoM::mapMS2ions
+
+    -   Visualizations of matched MS2 ions

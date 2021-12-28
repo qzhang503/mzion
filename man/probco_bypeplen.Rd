@@ -11,14 +11,17 @@ probco_bypeplen(len, td, fdr_type, target_fdr, out_path)
 
 \item{td}{A target-decoy pair.}
 
-\item{fdr_type}{Character string; the type of FDR control. The value is in
-one of c("psm", "peptide", "protein"). Note that \code{fdr_type = protein}
-is equivalent to \code{fdr_type = peptide} with the additional filtration
-of data at \code{prot_tier == 1}. A variant is to set \code{fdr_type =
-psm}, followed by a data filtration at \code{prot_tier == 1}.}
+\item{fdr_type}{A character string; the type of FDR control. The value is in
+  one of c("psm", "peptide", "protein"). The current default is \code{psm}.
 
-\item{target_fdr}{Numeric; a targeted false-discovery rate (FDR) at the
-levels of PSM, peptide or protein. See also argument \code{fdr_type}.}
+  Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
+  peptide} with the additional filtration of data at \code{prot_tier == 1}. A
+  variant is to set \code{fdr_type = psm}, followed by a data filtration at
+  \code{prot_tier == 1}.}
+
+\item{target_fdr}{A numeric; the targeted false-discovery rate (FDR) at the
+levels of PSM, peptide or protein. The default is 0.01. See also argument
+\code{fdr_type}.}
 
 \item{out_path}{A file path of outputs.}
 }

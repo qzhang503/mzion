@@ -16,10 +16,10 @@ calc_protfdr(
 
 \item{target_fdr}{Numeric; the levels of false-discovery rate (FDR).}
 
-\item{max_protscores_co}{Numeric; the upper limit in the cut-offs of protein
-scores for discriminating significant and insignificant identities.  For
-higher quality and data-driven thresholds, choose \code{max_protscores_co =
-Inf}.}
+\item{max_protscores_co}{A positive numeric; the upper limit in the cut-offs
+of protein scores for discriminating significant and insignificant
+identities.  For higher quality and data-driven thresholds, choose the
+default \code{max_protscores_co = Inf}.}
 
 \item{out_path}{A file path of outputs.}
 

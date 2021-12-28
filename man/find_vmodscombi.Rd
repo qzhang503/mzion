@@ -17,10 +17,9 @@ find_vmodscombi(
 
   lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods)).}
 
-\item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
-combinatorial variable modifications per peptide sequence. The default is
-64. May consider a smaller value, i.e. 32, when searching against
-phosphopeptide data.}
+\item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
+number of combinatorial variable modifications per peptide sequence. The
+default is 64.}
 }
 \description{
 Finds the combinatorial MS2 variable modifications.

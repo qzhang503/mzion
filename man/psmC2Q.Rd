@@ -17,11 +17,13 @@ psmC2Q(
 
 \item{out_path}{A file path of outputs.}
 
-\item{fdr_type}{Character string; the type of FDR control. The value is in
-one of c("psm", "peptide", "protein"). Note that \code{fdr_type = protein}
-is equivalent to \code{fdr_type = peptide} with the additional filtration
-of data at \code{prot_tier == 1}. A variant is to set \code{fdr_type =
-psm}, followed by a data filtration at \code{prot_tier == 1}.}
+\item{fdr_type}{A character string; the type of FDR control. The value is in
+  one of c("psm", "peptide", "protein"). The current default is \code{psm}.
+
+  Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
+  peptide} with the additional filtration of data at \code{prot_tier == 1}. A
+  variant is to set \code{fdr_type = psm}, followed by a data filtration at
+  \code{prot_tier == 1}.}
 
 \item{combine_tier_three}{Logical; if TRUE, combines search results at tiers
   1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
@@ -31,8 +33,8 @@ psm}, followed by a data filtration at \code{prot_tier == 1}.}
   inputs of \code{psmQ[...].txt}.
 
   For instance, if the aim is to bypass the constraint by protein FDR and
-  focus on PSMs that have met the cut-offs specified by \code{target_fdr},
-  experimenters may set \code{combine_tier_three = TRUE} and hence pool all
+  focus on PSMs that have met the cut-offs specified by \code{target_fdr}, an
+  experimenter may set \code{combine_tier_three = TRUE} and hence pool all
   significant peptides in \code{psmQ.txt} for downstream proteoQ.
 
   Tier-1: both proteins and peptides with scores above significance
@@ -41,10 +43,10 @@ psm}, followed by a data filtration at \code{prot_tier == 1}.}
   Tier-2: \eqn{\ge} 2 significant peptides but protein scores below
   significance thresholds.
 
-  Tier-3: one significant peptide and protein scores below significance
-  thresholds.}
+  Tier-3: one significant peptide per protein and protein scores below
+  significance thresholds.}
 
-\item{max_n_prots}{Positive integer to threshold the maximum number of
+\item{max_n_prots}{A positive integer to threshold the maximum number of
   protein entries before coercing \code{fdr_type} from \code{psm} or
   \code{peptide} to \code{protein}. The argument has no effect if
   \code{fdr_type} is already \code{protein}. In general, there is no need to

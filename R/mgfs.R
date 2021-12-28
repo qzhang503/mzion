@@ -1,7 +1,6 @@
 #' Helper in loading MGFs.
 #'
-#' Currently, \code{index_ms2} is always FALSE. Argument \code{ppm_ms2} is only
-#' effective at \code{index_ms2 = TRUE}.
+#' Currently, \code{index_ms2} is always FALSE.
 #' 
 #' @param min_mass A minimum mass of precursors for considerations.
 #' @param max_mass A maximum mass of precursors for considerations.
@@ -14,6 +13,9 @@
 #' @inheritParams matchMS
 load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L, 
                        min_ms2mass = 110L, topn_ms2ions = 100L, 
+                       min_ms1_charge = 2L, max_ms1_charge = 6L, 
+                       min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
+                       min_ret_time = 0, max_ret_time = Inf, 
                        ppm_ms1 = 20L, ppm_ms2 = 25L, index_ms2 = FALSE, 
                        is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE) 
 {
@@ -42,15 +44,17 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
     fun = paste0(fun, ".rda"), 
     args = names(formals(fun)) %>% 
       .[! . %in% args_except]
-  ) %>% 
-    .[sort(names(.))]
+  ) 
+  
+  cache_pars <- cache_pars[sort(names(cache_pars))]
   
   call_pars <- mget(
     names(formals()) %>% .[! . %in% args_except], 
     envir = fun_env, 
     inherits = FALSE
-  ) %>% 
-    .[sort(names(.))]
+  ) 
+  
+  call_pars <- call_pars[sort(names(call_pars))]
 
   ok_pars <- identical(call_pars, cache_pars)
 
@@ -59,7 +63,8 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
   if (ok_pars && file.exists(rds)) {
     message("Found cached MGFs: `", rds, "`.")
     .savecall <- FALSE
-  } else {
+  } 
+  else {
     message("Processing raw MGFs.")
     
     ppm_ms1_new <- if (is_ms1_three_frame) 
@@ -84,7 +89,9 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
             max_mass = max_mass, 
             min_ms2mass = min_ms2mass,
             topn_ms2ions = topn_ms2ions,
-            ret_range = c(0, Inf),
+            ms1_charge_range = c(min_ms1_charge, max_ms1_charge), 
+            ms1_scan_range = c(min_scan_num, max_scan_num), 
+            ret_range = c(min_ret_time, max_ret_time),
             ppm_ms1 = ppm_ms1_new,
             ppm_ms2 = ppm_ms2_new,
             index_ms2 = index_ms2,
@@ -104,6 +111,8 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
 #'   match the one in  \link{binTheoSeqs}.
 #' @param topn_ms2ions A non-negative integer; the top-n species for uses in
 #'   MS2 ion searches. The default is to use the top-100 ions in an MS2 event.
+#' @param ms1_charge_range The range of MS1 charge states.
+#' @param ms1_scan_range The range of MS1 scan numbers.
 #' @param ret_range The range of retention time in seconds.
 #' @param out_path An output path.
 #' @inheritParams load_mgfs
@@ -116,9 +125,11 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
 #' \donttest{
 #' mgf_queries <- proteoM:::readMGF()
 #' }
-readMGF <- function (filepath = "~/proteoM/mgfs",
+readMGF <- function (filepath = "~/proteoM/mgf",
                      min_mass = 500L, max_mass = 6000L, min_ms2mass = 110L, 
-                     topn_ms2ions = 100L, ret_range = c(0, Inf), 
+                     topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
+                     ms1_scan_range = c(1L, .Machine$integer.max), 
+                     ret_range = c(0, Inf), 
                      ppm_ms1 = 20L, ppm_ms2 = 25L, index_ms2 = FALSE,
                      out_path = file.path(filepath, "mgf_queries.rds")) 
 {
@@ -135,15 +146,20 @@ readMGF <- function (filepath = "~/proteoM/mgfs",
 
   pat_mgf <- find_mgf_type(file.path(filepath, filelist[[1]]))
 
-  pat_file = pat_mgf$pat_file
-  pat_scan = pat_mgf$pat_scan
-  n_spacer = pat_mgf$n_spacer
-  n_hdr = pat_mgf$n_hdr
-  n_to_pepmass = pat_mgf$n_to_pepmass
-  n_to_title = pat_mgf$n_to_title
-  n_to_scan = pat_mgf$n_to_scan
-  n_to_rt = pat_mgf$n_to_rt
-  n_to_charge = pat_mgf$n_to_charge
+  type_mgf <- pat_mgf$type
+  n_bf_begin <- pat_mgf$n_bf_begin
+  n_spacer <- pat_mgf$n_spacer
+  n_hdr <- pat_mgf$n_hdr
+  n_to_pepmass <- pat_mgf$n_to_pepmass
+  n_to_title <- pat_mgf$n_to_title
+  n_to_scan <- pat_mgf$n_to_scan
+  n_to_rt <- pat_mgf$n_to_rt
+  n_to_charge <- pat_mgf$n_to_charge
+  sep_ms2s <- pat_mgf$sep_ms2s
+  nfields_ms2s <- pat_mgf$nfields_ms2s
+  sep_pepmass <- pat_mgf$sep_pepmass
+  nfields_pepmass <- pat_mgf$nfields_pepmass
+  raw_file <- pat_mgf$raw_file
 
   rm(list = c("pat_mgf"))
 
@@ -167,22 +183,40 @@ readMGF <- function (filepath = "~/proteoM/mgfs",
     readr::read_lines_chunked(file = file.path(filepath, filelist[i]),
                               callback = SideEffectChunkCallback$new(f),
                               chunk_size = 1000000L)
+    
+    # for "default_pasef" format
+    if (!is.null(raw_file)) {
+      raw_file <- local({
+        file <- file.path(filepath, "temp", "chunk_1.mgf")
+        hdr <- readLines(file, 50L)
+        pat <- "^COM="
+        line_file <- hdr[grepl(pat, hdr)]
+        gsub(pat, "", line_file)
+      })
+    }
 
     out[[i]] <- read_mgf_chunks(filepath = temp_dir,
                                 topn_ms2ions = topn_ms2ions,
+                                ms1_charge_range = ms1_charge_range, 
+                                ms1_scan_range = ms1_scan_range, 
                                 ret_range = ret_range,
                                 ppm_ms2 = ppm_ms2,
                                 min_ms2mass = min_ms2mass,
                                 index_ms2 = index_ms2,
-                                pat_file = pat_file,
-                                pat_scan = pat_scan,
+                                type_mgf = type_mgf, 
+                                n_bf_begin = n_bf_begin, 
                                 n_spacer = n_spacer,
                                 n_hdr = n_hdr,
                                 n_to_pepmass = n_to_pepmass,
                                 n_to_title = n_to_title,
                                 n_to_scan = n_to_scan,
                                 n_to_rt = n_to_rt,
-                                n_to_charge = n_to_charge)
+                                n_to_charge = n_to_charge, 
+                                sep_ms2s = sep_ms2s, 
+                                nfields_ms2s = nfields_ms2s, 
+                                sep_pepmass = sep_pepmass, 
+                                nfields_pepmass = nfields_pepmass, 
+                                raw_file = raw_file)
 
     local({
       dir2 <- file.path(filepath, gsub("\\.[^.]*$", "", filelist[i]))
@@ -232,8 +266,9 @@ readMGF <- function (filepath = "~/proteoM/mgfs",
 
 #' Reads mgfs in chunks.
 #'
-#' @param pat_file The pattern for parsing the \code{File} field in MGF.
-#' @param pat_scan  The pattern for parsing the \code{scan} field in MGF.
+#' @param type_mgf The type of MGF format.
+#' @param n_bf_begin The number of lines before \code{BEGIN IONS}. Zero for PD
+#'   and MSConvert.
 #' @param n_spacer The number of spacer lines between the preceding line END
 #'   IONS and the following line BEGIN IONS. The value is 1 for Proteome
 #'   Discoverer and 0 for MSConvert.
@@ -246,13 +281,27 @@ readMGF <- function (filepath = "~/proteoM/mgfs",
 #'   PD.
 #' @param n_to_rt The number of lines from BEGIN to RTINSECONDS.
 #' @param n_to_charge The number of lines from BEGIN to CHARGE.
+#' @param sep_ms2s The separation character between MS2 m/z and intensity
+#'   values.
+#' @param nfields_ms2s The number of fields in MS2 entries. Mostely two and can
+#'   be three for some Bruker MGFs.
+#' @param sep_pepmass The separation character between MS1 m/z and intensity
+#'   values.
+#' @param nfields_pepmass The number of fields in \code{PEPMASS}.
+#' @param raw_file The raw file name. Is NULL for PD and MSConvert.
 #' @inheritParams readMGF
 #' @inheritParams matchMS
-read_mgf_chunks <- function (filepath = "~/proteoM/mgfs",
-                             topn_ms2ions = 100L, ret_range = c(0L, Inf),
+read_mgf_chunks <- function (filepath = "~/proteoM/mgf",
+                             topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
+                             ms1_scan_range = c(1L, .Machine$integer.max), 
+                             ret_range = c(0, Inf), 
                              ppm_ms2 = 25L, min_ms2mass = 110L, index_ms2 = FALSE,
-                             pat_file, pat_scan, n_spacer, n_hdr, n_to_pepmass,
-                             n_to_title, n_to_scan, n_to_rt, n_to_charge) 
+                             type_mgf = "msconv_thermo", n_bf_begin = 0L, 
+                             n_spacer = 0L, n_hdr = 5L, n_to_pepmass = 3L, 
+                             n_to_title = 1L, n_to_scan = 0L, n_to_rt = 2L, 
+                             n_to_charge = 4L, sep_ms2s = " ", nfields_ms2s = 2L, 
+                             sep_pepmass = " ", nfields_pepmass = 2L, 
+                             raw_file = NULL) 
 {
   filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
 
@@ -275,31 +324,37 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgfs",
 
   parallel::clusterExport(
     cl,
-    c("proc_mgf_chunks_i", 
-      "proc_mgf_chunks", 
+    c("proc_mgf_chunks", 
       "proc_mgfs", 
       "which_topx2", 
       "find_ms1_interval"), 
     envir = environment(proteoM:::proc_mgf_chunks)
   )
-  
+
   out <- parallel::clusterApply(cl, file.path(filepath, filelist),
-                                proc_mgf_chunks_i,
+                                proc_mgf_chunks,
                                 topn_ms2ions = topn_ms2ions,
+                                ms1_charge_range = ms1_charge_range, 
+                                ms1_scan_range = ms1_scan_range, 
                                 ret_range = ret_range,
                                 ppm_ms2 = ppm_ms2,
                                 min_ms2mass = min_ms2mass,
                                 index_ms2 = index_ms2,
-                                pat_file = pat_file,
-                                pat_scan = pat_scan,
+                                type_mgf = type_mgf,
+                                n_bf_begin = n_bf_begin, 
                                 n_spacer = n_spacer,
                                 n_hdr = n_hdr,
                                 n_to_pepmass = n_to_pepmass,
                                 n_to_title = n_to_title,
                                 n_to_scan = n_to_scan,
                                 n_to_rt = n_to_rt,
-                                n_to_charge = n_to_charge)
-
+                                n_to_charge = n_to_charge, 
+                                sep_ms2s = sep_ms2s, 
+                                nfields_ms2s = nfields_ms2s, 
+                                sep_pepmass = sep_pepmass, 
+                                nfields_pepmass = nfields_pepmass, 
+                                raw_file = raw_file)
+  
   parallel::stopCluster(cl)
   gc()
 
@@ -333,8 +388,8 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgfs",
   # stopifnot(length(afs) == length(bfs))
 
   gaps <- purrr::map2(afs, bfs, function (x, y) {
-    af <- stri_read_lines(file.path(filepath, x))
-    bf <- stri_read_lines(file.path(filepath, y))
+    af <- stringi::stri_read_lines(file.path(filepath, x))
+    bf <- stringi::stri_read_lines(file.path(filepath, y))
     append(af, bf)
   }) %>%
     unlist(use.names = FALSE) %T>%
@@ -352,68 +407,60 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgfs",
       out,
       proc_mgfs(gaps,
                 topn_ms2ions = topn_ms2ions,
+                ms1_charge_range = ms1_charge_range, 
+                ms1_scan_range = ms1_scan_range, 
                 ret_range = ret_range,
                 ppm_ms2 = ppm_ms2,
                 min_ms2mass = min_ms2mass,
                 index_ms2 = index_ms2,
-                pat_file = pat_file,
-                pat_scan = pat_scan,
+                type_mgf = type_mgf, 
+                n_bf_begin = n_bf_begin, 
                 n_spacer = n_spacer,
                 n_hdr = n_hdr,
                 n_to_pepmass = n_to_pepmass,
                 n_to_title = n_to_title,
                 n_to_scan = n_to_scan,
                 n_to_rt = n_to_rt,
-                n_to_charge = n_to_charge)
+                n_to_charge = n_to_charge, 
+                sep_ms2s = sep_ms2s, 
+                nfields_ms2s = nfields_ms2s, 
+                sep_pepmass = sep_pepmass, 
+                nfields_pepmass = nfields_pepmass, 
+                raw_file = raw_file)
     )
   }
+
+  if (type_mgf == "default_pasef") {
+    out <- out %>% 
+      dplyr::mutate(scan_id = as.character(scan_num), 
+                    scan_num = row_number())
+  } 
 
   invisible(out)
 }
 
 
-#' Helper of \link{proc_mgf_chunks}.
-#'
-#' @param file A mgf chunk (chunk_1.mgf etc.) with prepending file path.
-#' @inheritParams read_mgf_chunks
-proc_mgf_chunks_i <- function (file, topn_ms2ions = 100L, ret_range = c(0L, Inf),
-                               ppm_ms2 = 25L, min_ms2mass = 110L, index_ms2 = FALSE,
-                               pat_file, pat_scan, n_spacer, n_hdr, n_to_pepmass,
-                               n_to_title, n_to_scan, n_to_rt, n_to_charge) 
-{
-  message("Parsing '", file, "'.")
-
-  x <- proc_mgf_chunks(lines = stringi::stri_read_lines(file), 
-                       topn_ms2ions = topn_ms2ions,
-                       ret_range = ret_range,
-                       ppm_ms2 = ppm_ms2,
-                       min_ms2mass = min_ms2mass,
-                       index_ms2 = index_ms2,
-                       filepath = file,
-                       pat_file = pat_file,
-                       pat_scan = pat_scan,
-                       n_spacer = n_spacer,
-                       n_hdr = n_hdr,
-                       n_to_pepmass = n_to_pepmass,
-                       n_to_title = n_to_title,
-                       n_to_scan = n_to_scan,
-                       n_to_rt = n_to_rt,
-                       n_to_charge = n_to_charge)
-}
-
-
 #' Processes MGF entries in chunks.
 #'
-#' @param lines MGF lines.
+#' @param file A chunk of MGF (chunk_1.mgf etc.) with a prepending file path.
 #' @inheritParams readMGF
 #' @inheritParams read_mgf_chunks
-proc_mgf_chunks <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
+proc_mgf_chunks <- function (file, topn_ms2ions = 100L, 
+                             ms1_charge_range = c(2L, 6L), 
+                             ms1_scan_range = c(1L, .Machine$integer.max), 
+                             ret_range = c(0, Inf), 
                              ppm_ms2 = 25L, min_ms2mass = 110L, index_ms2 = FALSE,
-                             filepath = file.path("~/proteoM/mgfs/temp"),
-                             pat_file, pat_scan, n_spacer, n_hdr, n_to_pepmass,
-                             n_to_title, n_to_scan, n_to_rt, n_to_charge) 
+                             type_mgf = "msconv_thermo", n_bf_begin = 0L, 
+                             n_spacer = 0L, n_hdr = 5L, n_to_pepmass = 3L, 
+                             n_to_title = 1L, n_to_scan = 0L, n_to_rt = 2L, 
+                             n_to_charge = 4L, sep_ms2s = " ", nfields_ms2s = 2L, 
+                             sep_pepmass = " ", nfields_pepmass = 2L, 
+                             raw_file = NULL) 
 {
-  basename <- gsub("\\.[^.]*$", "", filepath)
+  message("Parsing '", file, "'.")
+  lines <- stringi::stri_read_lines(file)
+
+  basename <- gsub("\\.[^.]*$", "", file)
 
   begins <- which(stringi::stri_startswith_fixed(lines, "BEGIN IONS"))
   ends <- which(stringi::stri_endswith_fixed(lines, "END IONS"))
@@ -447,38 +494,49 @@ proc_mgf_chunks <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
   })
 
   if (!is.null(af)) 
-    lines <- lines[1:(begins[length(begins)] - 1L)]
+    lines <- lines[1:(begins[length(begins)] - n_bf_begin- 1L)]
 
   if (!is.null(bf)) 
     lines <- lines[-c(1:(ends[1] + n_spacer))]
 
-  out <- proc_mgfs(lines,
+  out <- proc_mgfs(lines = lines,
                    topn_ms2ions = topn_ms2ions,
+                   ms1_charge_range = ms1_charge_range, 
+                   ms1_scan_range = ms1_scan_range, 
                    ret_range = ret_range,
                    ppm_ms2 = ppm_ms2,
                    min_ms2mass = min_ms2mass,
                    index_ms2 = index_ms2,
-                   pat_file = pat_file,
-                   pat_scan = pat_scan,
+                   type_mgf = type_mgf, 
+                   n_bf_begin = n_bf_begin,
                    n_spacer = n_spacer,
                    n_hdr = n_hdr,
                    n_to_pepmass = n_to_pepmass,
                    n_to_title = n_to_title,
                    n_to_scan = n_to_scan,
                    n_to_rt = n_to_rt,
-                   n_to_charge = n_to_charge)
+                   n_to_charge = n_to_charge, 
+                   sep_ms2s = sep_ms2s, 
+                   nfields_ms2s = nfields_ms2s, 
+                   sep_pepmass = sep_pepmass, 
+                   nfields_pepmass = nfields_pepmass, 
+                   raw_file = raw_file)
 }
 
 
 #' Helper in processing MGF entries in chunks.
 #'
 #' @inheritParams proc_mgf_chunks
-proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
+proc_mgfs <- function (lines, topn_ms2ions = 100L, 
+                       ms1_charge_range = c(2L, 6L), 
+                       ms1_scan_range = c(1L, .Machine$integer.max), 
+                       ret_range = c(0, Inf), 
                        ppm_ms2 = 25L, min_ms2mass = 110L, index_ms2 = FALSE,
-                       pat_file, pat_scan,
-                       n_spacer = 1L, n_hdr = 6L, n_to_pepmass = 2L,
-                       n_to_title = 1L, n_to_scan = 5L, n_to_rt = 4L,
-                       n_to_charge = 3L) 
+                       type_mgf = "msconv_thermo", n_bf_begin = 0L, 
+                       n_spacer = 0L, n_hdr = 5L, n_to_pepmass = 3L,
+                       n_to_title = 1L, n_to_scan = 0L, n_to_rt = 2L,
+                       n_to_charge = 4L, sep_ms2s = " ", nfields_ms2s = 2L, 
+                       sep_pepmass = " ", nfields_pepmass = 2L, raw_file = NULL) 
 {
   options(digits = 9L)
 
@@ -488,10 +546,9 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
 
   # (-1L: one line above "END IONS")
   ms2s <- mapply(function (x, y) lines[(x + n_hdr) : (y - 1L)], 
-                 begins, ends, 
-                 SIMPLIFY = FALSE, 
-                 USE.NAMES = FALSE)
-  ms2s <- lapply(ms2s, stringi::stri_split_fixed, " ", n = 2, simplify = TRUE)
+                 begins, ends, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  ms2s <- lapply(ms2s, stringi::stri_split_fixed, pattern = sep_ms2s, 
+                 n = nfields_ms2s, simplify = TRUE)
 
   ms2_moverzs <- lapply(ms2s, function (x) as.numeric(x[, 1]))
 
@@ -526,12 +583,13 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
   # MS1 ions
   ms1s <- stringi::stri_replace_first_fixed(lines[begins + n_to_pepmass], 
                                             "PEPMASS=", "")
-  ms1s <- lapply(ms1s, stringi::stri_split_fixed, " ", n = 2, simplify = TRUE)
+  ms1s <- lapply(ms1s, stringi::stri_split_fixed, pattern = sep_pepmass, 
+                 n = nfields_pepmass, simplify = TRUE)
 
   ms1_moverzs <- lapply(ms1s, function (x) round(as.numeric(x[, 1]), digits = 5L))
   ms1_moverzs <- .Internal(unlist(ms1_moverzs, recursive = FALSE, use.names = FALSE))
 
-  # may be NA's if no MS1 intensities available
+  # NA's if no MS1 intensities available
   ms1_ints <- lapply(ms1s, function (x) round(as.numeric(x[, 2]), digits = 0L))
   ms1_ints <- .Internal(unlist(ms1_ints, recursive = FALSE, use.names = FALSE))
 
@@ -541,30 +599,30 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
   # Others
   scan_titles <- 
     stringi::stri_replace_first_fixed(lines[begins + n_to_title], "TITLE=", "")
-
-  if (pat_file == "^TITLE=(.*)$") {
-    raw_files <- gsub(pat_file, "\\1", scan_titles)
+  
+  if (type_mgf %in% c("msconv_thermo", "msconv_pasef")) {
+    raw_files <- 
+      stringi::stri_replace_first_regex(scan_titles, "^.* File:\"([^\"]+)\".*", "$1")
+    scan_nums <- as.integer(
+      stringi::stri_replace_first_regex(scan_titles, 
+                                        "^.*\\.(\\d+)\\.\\d+\\.\\d+ File:\".*", 
+                                        "$1"))
+  } 
+  else if (type_mgf == "pd") {
+    raw_files <- gsub("^.*File: \"([^\"]+)\".*", "\\1", scan_titles)
     raw_files <- gsub("\\\\", "/", raw_files)
     raw_files <- gsub("^.*/(.*)", "\\1", raw_files)
-  } else if (pat_file == "^.* File:\"([^\"]+)\".*") {
-    raw_files <- gsub(pat_file, "\\1", scan_titles)
-    raw_files <- gsub("\\\\", "/", raw_files)
-  } else if (pat_file == "^.*File: \"([^\"]+)\".*") {
-    raw_files <- gsub(pat_file, "\\1", scan_titles)
-    raw_files <- gsub("\\\\", "/", raw_files)
-    raw_files <- gsub("^.*/(.*)", "\\1", raw_files)
-  } else {
+    scan_nums <- as.integer(gsub("^.* scans: \"([0-9]+)\"$", "\\1", scan_titles))
+  } 
+  else if (type_mgf == "default_pasef") {
+    raw_files <- rep(raw_file, length(lens))
+    scan_nums <- 
+      stringi::stri_replace_first_fixed(lines[begins + n_to_scan], "RAWSCANS=", "")
+  } 
+  else {
     stop("Unknown MGF format.", call. = FALSE)
   }
 
-  if (is.null(pat_scan)) {
-    scan_nums <- 
-      stringi::stri_replace_first_fixed(lines[begins + n_to_scan], "SCANS=", "")
-    scan_nums <- as.integer(scan_nums)
-  } else {
-    scan_nums <- as.integer(gsub(pat_scan, "\\1", scan_titles))
-  }
-  
   ret_times <- 
     stringi::stri_replace_first_fixed(lines[begins + n_to_rt], "RTINSECONDS=", "")
   ret_times <- as.numeric(ret_times)
@@ -585,7 +643,14 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
   ms1_masses <- round(ms1_masses, digits = 5L)
 
   # Subsetting
-  rows <- (ret_times >= ret_range[1] & ret_times <= ret_range[2])
+  # (no `scan_num` subsetting for PASEF)
+  if (type_mgf == "default_pasef") 
+    rows <- (charges >= ms1_charge_range[1] & charges <= ms1_charge_range[2] & 
+               ret_times >= ret_range[1] & ret_times <= ret_range[2])
+  else 
+    rows <- (charges >= ms1_charge_range[1] & charges <= ms1_charge_range[2] & 
+               scan_nums >= ms1_scan_range[1] & scan_nums <= ms1_scan_range[2] &
+               ret_times >= ret_range[1] & ret_times <= ret_range[2])
 
   scan_titles <- scan_titles[rows]
   raw_files <- raw_files[rows]
@@ -597,6 +662,7 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ret_range = c(0L, Inf),
   scan_nums <- scan_nums[rows]
   ms2_moverzs <- ms2_moverzs[rows]
   ms2_ints <- ms2_ints[rows]
+  lens <- lens[rows]
 
   if (index_ms2) 
     ms2_moverzs <- lapply(ms2_moverzs,
@@ -637,50 +703,6 @@ find_ms1_interval <- function (mass = 1800.0, from = 350L, ppm = 20L)
 }
 
 
-#' Add the MS file name to timsTOF mgf files.
-#'
-#' @param path The file path to mgf files.
-#' @param n Integer; the first \code{n} lines for quick checks of the MS file
-#'   name.
-#' @export
-proc_mgf_timstof <- function (path, n = 1000L) 
-{
-  filelist <- list.files(path = file.path(path),
-                         pattern = "^.*\\.mgf$")
-
-  if (!length(filelist)) 
-    stop("No mgf files under ", path, call. = FALSE)
-
-  purrr::walk(filelist, ~ {
-    lines <- readLines(file.path(path, .x))
-
-    hdr <- lines[1:n]
-
-    fn <- hdr %>%
-      .[grepl("^COM\\=.*\\.d$", .)] %>%
-      gsub("^COM\\=(.*)$", "\\1", .) %>%
-      paste0("File:~", ., "~,")
-
-    stopifnot(length(fn) == 1L)
-
-    lntit <- hdr %>%
-      .[grepl("^TITLE", .)] %>%
-      `[`(1)
-
-    if (grepl("File:~", lntit)) {
-      warning("MS file names already in ", .x, call. = FALSE)
-    } else {
-      rows <- grepl("^TITLE", lines)
-
-      lines[rows] <- lines[rows]  %>%
-        gsub("(Cmpd \\d+,)", paste("\\1", fn, sep =" "), .)
-
-      writeLines(lines, file.path(path, .x))
-    }
-  })
-}
-
-
 #' Finds the type of MGF.
 #'
 #' @param file The path to an MGF file.
@@ -696,34 +718,24 @@ find_mgf_type <- function (file)
   # if (!length(ends))
   #   stop("The tag of `END IONS` not found in MGF.", call. = FALSE)
 
-  type <- local({
-    ln_tit <- hdr %>%
-      .[grepl("^TITLE", .)] %>%
-      `[`(1)
-    
-    file_msconvert <- "File:\""
-    file_pd <- "File: \""
-    
-    scan_msonvert <- "scan=\\d+"
-    scan_pd <- "scans: \"\\d+\""
-    
-    if (grepl(file_msconvert, ln_tit) && grepl(scan_msonvert, ln_tit)) 
-      "msconvert"
-    else if (grepl(file_pd, ln_tit) && grepl(scan_pd, ln_tit)) 
-      "pd"
-    else if (!grepl("File|scan", ln_tit))
-      "rawconvert"
-    else 
-      stop("Unkown format of MGFs.")
-  })
-
-  ## MSConvert
+  
+  ## MSConvert (Thermo)
+  # <RunId>.<ScanNumber><ScanNumber><ChargeState> File:"<SourcePath>", NativID:"<Id>"
+  # 
   # BEGIN IONS
   # TITLE=rawname.179.179.3 File:"rawname.raw", NativeID:"controllerType=0 controllerNumber=1 scan=179"
   # RTINSECONDS=63.4689
   # PEPMASS=482.224129434954 280125.927246099978
   # CHARGE=3+
   
+  ## MSconvert (timsTOF)
+  # BEGIN IONS
+  # "TITLE=rawname.2.2.1 File:\"rawname.d\", 
+  #   NativeID:\"merged=1 frame=2 scanStart=200 scanEnd=224\", IonMobility:\"1.3990913467070001\""
+  # RTINSECONDS=2.950849933
+  # PEPMASS=1221.991350361787
+  # CHARGE=1+
+
   ## Proteome Discoverer
   # MASS=Monoisotopic
   # BEGIN IONS
@@ -741,34 +753,58 @@ find_mgf_type <- function (file)
   # CHARGE=3+
   # PEPMASS=482.2242
   
-  n_spacer <- if (length(begins) >= 2L && length(ends)) {
-    begins[2] - ends[1] - 1L
-  } else {
-    if (type == "msconvert") 
-      0L
-    else if (type %in% c("rawconvert", "pd"))
-      1L
+  # ###FS:    #m/z: 454.22925 #charge 2+
+  # ###MS: 1
+  # ###MSMS: 7, 9-11
+  # ###Mobility: 0.7810
+  # BEGIN IONS
+  # TITLE=Cmpd 18, +MS2(454.2292), 27.7eV, 0.0min, 1/K0=0.781, #7-11
+  # RTINSECONDS=1.04678
+  # RAWSCANS=1,7,9-11
+  # PEPMASS=454.22925	70295
+  # CHARGE=2+
+  #   221.10530	104	
+  #   ...
+  # END IONS
+  # 
+  # ###FS:    #m/z: 665.07643 #charge 1+
+  # ###MS: 8
+  # ###MSMS: 23
+  # ###Mobility: 1.0572
+  # BEGIN IONS
+  # TITLE=Cmpd 49, +MS2(665.0764), 39.6eV, 0.1min, 1/K0=1.057, #23
+
+  type <- local({
+    ln_tit <- hdr[grepl("TITLE", hdr)][1]
+
+    file_msconvert_pasef <- file_msconvert_thermo <- "File:\""
+    file_pd <- "File: \""
+    file_default_pasef <- "Cmpd "
+
+    scan_msconv_thermo <- "scan=\\d+"
+    scan_msconv_pasef <- "scanStart=\\d+"
+    scan_pd <- "scans: \"\\d+\""
+    scan_default_pasef <- NULL
+
+    if (grepl(file_msconvert_thermo, ln_tit) && grepl(scan_msconv_thermo, ln_tit)) 
+      "msconv_thermo"
+    else if (grepl(file_msconvert_pasef, ln_tit) && grepl(scan_msconv_pasef, ln_tit))
+      "msconv_pasef"
+    else if (grepl(file_pd, ln_tit) && grepl(scan_pd, ln_tit)) 
+      "pd"
+    else if (grepl(file_default_pasef, ln_tit) && is.null(scan_default_pasef))
+      "default_pasef"
     else 
       stop("Unkown format of MGFs.")
-  }
+  })
   
-  if (type == "rawconvert") {
-    n_hdr <- 6L
-    hdr <- hdr[1:n_hdr]
-    
-    pat_file <- "^TITLE=(.*)$"
-    pat_scan <- NULL
-
-    n_to_pepmass <- which(stringi::stri_startswith_fixed(hdr, "PEPMASS")) - 1L
-    n_to_title <- which(stringi::stri_startswith_fixed(hdr, "TITLE")) - 1L
-    n_to_scan <- which(stringi::stri_startswith_fixed(hdr, "SCANS")) - 1L
-    n_to_rt <- which(stringi::stri_startswith_fixed(hdr, "RTINSECONDS")) - 1L
-    n_to_charge <- which(stringi::stri_startswith_fixed(hdr, "CHARGE")) - 1L
-  } else if (type == "msconvert") {
-    pat_file <- "^.* File:\"([^\"]+)\".*"
-    pat_scan <- "^.* scan=([0-9]+)\"$"
-
-    # may change later
+  # n_bf_begin: the number of lines before `BEGIN IONS`
+  # n_spacer: the number of white-space lines between two adjacent blocks
+  # n_hdr: the number of hear lines from (including) `BEGIN IONS`
+  # raw_file: if ".", an indicator to find RAW file names from the header
+  
+  if (type == "msconv_thermo") {
+    n_bf_begin <- 0L
     n_spacer <- 0L
     n_hdr <- 5L
     n_to_pepmass <- 3L
@@ -776,11 +812,31 @@ find_mgf_type <- function (file)
     n_to_scan <- 0L
     n_to_rt <- 2L
     n_to_charge <- 4L
-  } else if (type == "pd") {
-    pat_file <- "^.*File: \"([^\"]+)\".*"
-    pat_scan <- "^.* scans: \"([0-9]+)\"$"
-
-    # may change later
+    
+    sep_ms2s <- " "
+    nfields_ms2s <- 2L
+    sep_pepmass <- " "
+    nfields_pepmass <- 2L
+    raw_file <- NULL
+  } 
+  else if (type == "msconv_pasef") {
+    n_bf_begin <- 0L
+    n_spacer <- 0L
+    n_hdr <- 5L
+    n_to_pepmass <- 3L
+    n_to_title <- 1L
+    n_to_scan <- 0L
+    n_to_rt <- 2L
+    n_to_charge <- 4L
+    
+    sep_ms2s <- " "
+    nfields_ms2s <- 2L
+    sep_pepmass <- " " # as of 2021-12-27, missing MS1 intensity
+    nfields_pepmass <- 2L # "NA" MS1 intensities after parsing
+    raw_file <- NULL
+  } 
+  else if (type == "pd") {
+    n_bf_begin <- 0L
     n_spacer <- 1L
     n_hdr <- 6L
     n_to_pepmass <- 2L
@@ -788,22 +844,46 @@ find_mgf_type <- function (file)
     n_to_scan <- 5L
     n_to_rt <- 4L
     n_to_charge <- 3L
-  } else {
-    stop("The `File` lines in MGF needs to be in the format of ",
-         "File:\"my.raw\" or File: \"my.raw\".\n",
-         "The `scan` lines in MGF needs to be in the format of ",
-         "scan=123 or scans: \"123\".")
+    
+    sep_ms2s <- " "
+    nfields_ms2s <- 2L
+    sep_pepmass <- " "
+    nfields_pepmass <- 2L
+    raw_file <- NULL
+  } 
+  else if (type == "default_pasef") {
+    n_bf_begin <- 4L
+    n_spacer <- 1L
+    n_hdr <- 6L
+    n_to_pepmass <- 4L
+    n_to_title <- 1L
+    n_to_scan <- 3L
+    n_to_rt <- 2L
+    n_to_charge <- 5L
+    
+    sep_ms2s <- "\t"
+    nfields_ms2s <- 3L
+    sep_pepmass <- "\t"
+    nfields_pepmass <- 2L
+    raw_file <- "."
+  }
+  else {
+    stop("Unkown format of MGFs.")
   }
 
-  invisible(list(pat_file = pat_file,
-                 pat_scan = pat_scan,
+  invisible(list(type = type, 
+                 n_bf_begin = n_bf_begin, 
                  n_spacer = n_spacer,
                  n_hdr = n_hdr,
                  n_to_pepmass = n_to_pepmass,
                  n_to_title = n_to_title,
                  n_to_scan = n_to_scan,
                  n_to_rt = n_to_rt,
-                 n_to_charge = n_to_charge))
+                 n_to_charge = n_to_charge, 
+                 sep_ms2s = sep_ms2s, 
+                 nfields_ms2s = nfields_ms2s, 
+                 sep_pepmass = sep_pepmass, 
+                 nfields_pepmass = nfields_pepmass, 
+                 raw_file = raw_file))
 }
-
 

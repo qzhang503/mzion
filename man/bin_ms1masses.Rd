@@ -22,19 +22,21 @@ bin_ms1masses(
 
 \item{max_mass}{A maximum mass of precursors.}
 
-\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species.}
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
+default is 20.}
 
-\item{use_ms1_cache}{Logical; if TRUE, use cached precursor masses.
+\item{use_ms1_cache}{Logical; at the TRUE default, use cached precursor
+  masses.
 
   Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
   \code{fdr_type = psm} to \code{fdr_type = protein}.}
 
 \item{.path_cache}{The file path of cached search parameters. At the NULL
 default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
-parameter is for users' awareness of the structure of file folders and the
-default is suggested. Occasionally experimenters may remove the file folder
-for disk space or (hopefully not) in events of (improper) structural change
-incurred by the developer.}
+parameter is for the users' awareness of the underlying structure of file
+folders and the use of default is suggested. Occasionally experimenters may
+remove the file folder for disk space or under infrequent events of
+modified framework incurred by the developer.}
 
 \item{.path_ms1masses}{The file path to the theoretical masses of MS1
 precursors.}

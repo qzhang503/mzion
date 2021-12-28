@@ -446,11 +446,19 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
   
   # --- back-compatibility
   call_pars <- local({
-    new_arg <- "n_13c"
+    new_args <- c(n_13c = 0L, min_ms1_charge = 2L, max_ms1_charge = 6L, 
+                  min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
+                  min_ret_time = 0L, max_ret_time = .Machine$integer.max)
     
-    if ((new_arg %in% args) && (! new_arg %in% names(call_pars)))
-      call_pars[[new_arg]] <- 0L
-
+    for (i in seq_along(new_args)) {
+      x <- new_args[i]
+      nm <- names(x)
+      val <- unname(x)
+      
+      if ((nm %in% args) && (! nm %in% names(call_pars)))
+        call_pars[[nm]] <- val
+    }
+    
     call_pars
   })
   
@@ -458,7 +466,10 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
   
   if (length(nots)) 
     stop("Arguments '", paste(args[nots], collapse = ", "),
-         "' not found in the latest call to ", fun, call. = FALSE)
+         "' not found in the latest call to `", fun, "`.\n", 
+         "This is probably due to new argument implementation in `matchMS`.\n", 
+         "Delete `", file.path(path, fun), "`", " and try again.", 
+         call. = FALSE)
 
   call_pars[args]
 }

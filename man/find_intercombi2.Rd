@@ -9,8 +9,9 @@ find_intercombi2(vmodsets = NULL, maxn_vmods_per_pep = 5L)
 \arguments{
 \item{vmodsets}{The results from \link{make_ms1_vmodsets}.}
 
-\item{maxn_vmods_per_pep}{The maximum number of \code{Anywhere}
-(non-terminal) variable modifications per peptide.}
+\item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
+\code{Anywhere} (non-terminal) variable modifications per peptide. The
+default is 5.}
 }
 \description{
 Used after \link{make_ms1_vmodsets} across residues.

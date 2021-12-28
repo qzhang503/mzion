@@ -7,38 +7,49 @@
 proc_mgfs(
   lines,
   topn_ms2ions = 100L,
-  ret_range = c(0L, Inf),
+  ms1_charge_range = c(2L, 6L),
+  ms1_scan_range = c(1L, .Machine$integer.max),
+  ret_range = c(0, Inf),
   ppm_ms2 = 25L,
   min_ms2mass = 110L,
   index_ms2 = FALSE,
-  pat_file,
-  pat_scan,
-  n_spacer = 1L,
-  n_hdr = 6L,
-  n_to_pepmass = 2L,
+  type_mgf = "msconv_thermo",
+  n_bf_begin = 0L,
+  n_spacer = 0L,
+  n_hdr = 5L,
+  n_to_pepmass = 3L,
   n_to_title = 1L,
-  n_to_scan = 5L,
-  n_to_rt = 4L,
-  n_to_charge = 3L
+  n_to_scan = 0L,
+  n_to_rt = 2L,
+  n_to_charge = 4L,
+  sep_ms2s = " ",
+  nfields_ms2s = 2L,
+  sep_pepmass = " ",
+  nfields_pepmass = 2L,
+  raw_file = NULL
 )
 }
 \arguments{
-\item{lines}{MGF lines.}
-
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
 MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 
+\item{ms1_charge_range}{The range of MS1 charge states.}
+
+\item{ms1_scan_range}{The range of MS1 scan numbers.}
+
 \item{ret_range}{The range of retention time in seconds.}
 
-\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species.}
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
+default is 25.}
 
 \item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
 
 \item{index_ms2}{Logical; if TRUE, converts MS2 m/z values to indices.}
 
-\item{pat_file}{The pattern for parsing the \code{File} field in MGF.}
+\item{type_mgf}{The type of MGF format.}
 
-\item{pat_scan}{The pattern for parsing the \code{scan} field in MGF.}
+\item{n_bf_begin}{The number of lines before \code{BEGIN IONS}. Zero for PD
+and MSConvert.}
 
 \item{n_spacer}{The number of spacer lines between the preceding line END
 IONS and the following line BEGIN IONS. The value is 1 for Proteome
@@ -58,6 +69,19 @@ PD.}
 \item{n_to_rt}{The number of lines from BEGIN to RTINSECONDS.}
 
 \item{n_to_charge}{The number of lines from BEGIN to CHARGE.}
+
+\item{sep_ms2s}{The separation character between MS2 m/z and intensity
+values.}
+
+\item{nfields_ms2s}{The number of fields in MS2 entries. Mostely two and can
+be three for some Bruker MGFs.}
+
+\item{sep_pepmass}{The separation character between MS1 m/z and intensity
+values.}
+
+\item{nfields_pepmass}{The number of fields in \code{PEPMASS}.}
+
+\item{raw_file}{The raw file name. Is NULL for PD and MSConvert.}
 }
 \description{
 Helper in processing MGF entries in chunks.

@@ -16,7 +16,8 @@ corresponds to the combination without NLs (all zeros).}
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
 
-\item{digits}{Integer; the number of decimal places to be used.}
+\item{digits}{A non-negative integer; the number of decimal places to be
+used. The default is 4.}
 }
 \description{
 Helper of \link{ms1_a0_vnl0_fnl1}.
