@@ -20,8 +20,8 @@ theoretical peptides.}
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
 
-\item{mgf_path}{A file path to a list of MGF files. The experimenter needs
-  to supply the files.
+\item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
+  supply the files.
 
   The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
   from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's

@@ -4,7 +4,7 @@
 #' @param ... Arguments for \link[stats]{dist}
 my_dist <- function (...) 
 {
-  dots <- rlang::enexprs(...)
+  dots <- as.list(substitute(...()))
   
   dummies <- c("p")
   
@@ -21,8 +21,7 @@ my_dist <- function (...)
     } 
   })
   
-  rlang::expr(stats::dist(!!!dots)) %>% 
-    rlang::eval_bare(env = caller_env())
+  do.call(stats::dist, dots)
 }
 
 

@@ -70,7 +70,7 @@
 #         - add_fixvar_masses
 #         - parse_aamasses
 #     - split_fastaseqs
-#       - load_fasta2 (dbs.R)
+#       - load_fasta2 (fastas.R)
 #       - chunksplit (msmsmatches.R)
 #         - make_fastapeps0 (-> export)
 #           - keep_n_misses (-> export; ms1_precursors.R)
@@ -118,7 +118,7 @@
 #   ms2match_base 
 #     purge_search_space (utils_engine.R)
 #       subset_theoframes (msmsmatches.R)
-#     hms2_base (helper)
+#     
 #       frames_adv (frame-advancing)
 #         gen_ms2ions_base (for specific pep_seq)
 #           ms2ions_by_type (ion_ladder.R)
@@ -133,7 +133,7 @@
 # ms2_a0_vnl0_fnl1.R: (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
 #   ms2match_a0_vnl0_fnl1 
 #     purge_search_space (utils_engine.R)
-#     hms2_a0_vnl0_fnl1
+#     
 #       frames_adv (ms2_base.R)
 #         gen_ms2ions_a0_vnl0_fnl1
 #           // early return
@@ -154,7 +154,7 @@
 #   "ms2match_a1_vnl0_fnl0"
 #     "purge_search_space" (utils_engine.R)
 #     // START parallel
-#     "hms2_a1_vnl0_fnl0"
+#     
 #       "frames_adv" (ms2_base.R)
 #         "gen_ms2ions_a1_vnl0_fnl0" (ms2_a1_vnl0_fnl0.R)
 #           "match_mvmods" (vmods_ms1_labels.R)
@@ -189,7 +189,7 @@
 #   "ms2match_a1_vnl1_fnl0" 
 #     "purge_search_space" (utils_engine.R)
 #     // START parallel
-#     "hms2_a1_vnl1_fnl0"
+#     
 #       "frames_adv" (ms2_base.R)
 #         "gen_ms2ions_a1_vnl1_fnl0"
 #           "match_mvmods" (vmods_ms1_labels.R)
@@ -224,7 +224,7 @@
 # ms2_a1_vnl0_fnl1.R: (11, 12) "amods+ tmod+ vnl- fnl+", "amods+ tmod- vnl- fnl+"
 #   ms2match_a1_vnl0_fnl1 
 #     purge_search_space (utils_engine.R)
-#     hms2_a1_vnl0_fnl1
+#     
 #       frames_adv (ms2_base.R)
 #         gen_ms2ions_a1_vnl0_fnl1
 #           - match_mvmods (vmods_ms1_labels.R)
@@ -350,8 +350,22 @@
 
 
 #################################
-# dbs.R
+# fastas.R
 #################################
+# read_fasta
+# write_fasta
+# load_fasta
+# load_fasta2
+# find_acc_type
+#################################
+
+
+
+#################################
+# unimods.R
+#################################
+# parse_unimod
+# find_unimod
 # table_unimods
 #################################
 

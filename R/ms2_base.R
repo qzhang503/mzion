@@ -49,8 +49,7 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
 
   parallel::clusterExport(
     cl,
-    c("hms2_base", 
-      "frames_adv", 
+    c("frames_adv", 
       "gen_ms2ions_base", 
       "ms2ions_by_type", 
       "byions", "czions", "axions", 
@@ -66,68 +65,18 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
   )
 
   out <- parallel::clusterMap(
-    cl, hms2_base, 
+    cl, frames_adv, 
     mgf_frames, theopeps, 
     MoreArgs = list(aa_masses = aa_masses, 
                     ms1vmods = ms1vmods, 
                     ms2vmods = ms2vmods, 
+                    ntmod = NULL, 
+                    ctmod = NULL, 
                     ntmass = ntmass, 
                     ctmass = ctmass, 
-                    mod_indexes = mod_indexes, 
-                    type_ms2ions = type_ms2ions, 
-                    maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                    maxn_sites_per_vmod = maxn_sites_per_vmod, 
-                    maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-                    minn_ms2 = minn_ms2, 
-                    ppm_ms1 = ppm_ms1, 
-                    ppm_ms2 = ppm_ms2, 
-                    min_ms2mass = min_ms2mass, 
-                    digits = digits), 
-    .scheduling = "dynamic") %>% 
-    dplyr::bind_rows()
-  
-  parallel::stopCluster(cl)
-  
-  out <- post_ms2match(out, i, aa_masses, out_path)
-
-  rm(list = c("mgf_frames", "theopeps"))
-  gc()
-  
-  invisible(out)
-}
-
-
-#' Searches MGF frames.
-#'
-#' (1) "amods- tmod- vnl- fnl-", (2) "amods- tmod+ vnl- fnl-".
-#'
-#' `res[[i]]` contains results for multiple mgfs within a frame (the number of
-#' entries equals to the number of mgf frames).
-#'
-#' @param mgf_frames A group of mgf frames. Each frame contains one to multiple
-#'   mgf queries with the same frame number.
-#' @param theopeps Binned theoretical peptides corresponding to an i-th
-#'   \code{aa_masses}.
-#' @inheritParams matchMS
-#' @inheritParams ms2match
-#' @inheritParams ms2match_base
-hms2_base <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmods, 
-                       ntmass, ctmass, 
-                       mod_indexes, type_ms2ions = "by", 
-                       maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
-                       maxn_vmods_sitescombi_per_pep = 32L, 
-                       minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                       min_ms2mass = 110L, digits = 4L) 
-{
-  res <- frames_adv(mgf_frames = mgf_frames, 
-                    theopeps = theopeps, 
-                    aa_masses = aa_masses, 
-                    ms1vmods = ms1vmods, 
-                    ms2vmods = ms2vmods, 
-                    ntmod = NULL, ctmod = NULL, 
-                    ntmass = ntmass, 
-                    ctmass = ctmass, 
-                    amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
+                    amods = NULL, 
+                    vmods_nl = NULL, 
+                    fmods_nl = NULL, 
                     mod_indexes = mod_indexes, 
                     type_ms2ions = type_ms2ions, 
                     maxn_vmods_per_pep = maxn_vmods_per_pep, 
@@ -138,22 +87,25 @@ hms2_base <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmods,
                     ppm_ms2 = ppm_ms2, 
                     min_ms2mass = min_ms2mass, 
                     digits = digits, 
-                    FUN = gen_ms2ions_base)
-  
-  res <- post_frame_adv(res, mgf_frames)
+                    FUN = gen_ms2ions_base), 
+    .scheduling = "dynamic")
 
-  rm(list = "mgf_frames", "theopeps")
+  parallel::stopCluster(cl)
   
-  invisible(res)
+  out <- dplyr::bind_rows(out)
+  
+  out <- post_ms2match(out, i, aa_masses, out_path)
 }
 
 
 #' Frames advancement.
-#' 
+#'
 #' (1) "amods- tmod- vnl- fnl-", (2) "amods- tmod+ vnl- fnl-"
-#' 
-#' @param mgf_frames MGFs in frames. Each frame contains one to multiple MGFs
-#'   whose MS1 masses are in the same interval.
+#'
+#' @param mgf_frames A group of mgf frames. Each frame contains one to multiple
+#'   MGFs whose MS1 masses are in the same interval.
+#' @param theopeps Binned theoretical peptides corresponding to an i-th
+#'   \code{aa_masses}.
 #' @param minn_ms2 Integer; the minimum number of MS2 ions for consideration as
 #'   a hit.
 #' @param ppm_ms1 The mass tolerance of MS1 species.
@@ -162,7 +114,6 @@ hms2_base <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmods,
 #' @inheritParams matchMS
 #' @inheritParams ms2match
 #' @inheritParams ms2match_base
-#' @inheritParams hms2_base
 #' @return Matches to each MGF as a list elements. The length of the output is
 #'   equal to the number of MGFs in the given frame.
 frames_adv <- function (mgf_frames = NULL, theopeps = NULL, 
@@ -185,13 +136,13 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
   mgfs_cr <- mgf_frames[[1]]
   frame <- mgfs_cr$frame[1]
   
-  bf_chr <- as.character(frame-1)
-  theos_bf_ms1 <- theopeps[[bf_chr]]
+  bf_idx <- 1L # guaranteed?
+  theos_bf_ms1 <- theopeps[[bf_idx]] 
   theopeps_bf_ms1 <- theos_bf_ms1$pep_seq
   theomasses_bf_ms1 <- theos_bf_ms1$mass
   
-  cr_chr <- as.character(frame)
-  theos_cr_ms1 <- theopeps[[cr_chr]]
+  cr_idx <- bf_idx + 1L
+  theos_cr_ms1 <- theopeps[[cr_idx]]
   theopeps_cr_ms1 <- theos_cr_ms1$pep_seq
   theomasses_cr_ms1 <- theos_cr_ms1$mass
   
@@ -249,8 +200,9 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
     exptmasses_ms1 <- mgfs_cr$ms1_mass
     exptmoverzs_ms2 <- mgfs_cr$ms2_moverz
     
-    af_chr <- as.character(frame+1)
-    theos_af_ms1 <- theopeps[[af_chr]]
+    af_idx <- cr_idx + 1L
+    
+    theos_af_ms1 <- theopeps[[af_idx]]
     theopeps_af_ms1 <- theos_af_ms1$pep_seq
     theomasses_af_ms1 <- theos_af_ms1$mass
     
@@ -281,20 +233,6 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
     
     # each `out` for the results of multiple mgfs in one frame
     
-    # Browse[4]> exptmasses_ms1
-    # [[1]]
-    # [1] 748.426367
-    
-    # [[2]]
-    # [1] 748.427407
-    
-    # Browse[4]> out[[i]]
-    # [[1]]
-    # named list()
-    
-    # [[2]]
-    # named list()
-    
     out[[i]] <- mapply(
       search_mgf2, 
       expt_mass_ms1 = exptmasses_ms1, 
@@ -315,32 +253,30 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       USE.NAMES = FALSE
     )
     
-    # advance to the next frame
-    if (i == len) {
-      break
-    }
+    if (i == len) break
     
+    # advance to the next frame
     mgfs_cr <- mgf_frames[[i+1]]
     new_frame <- mgfs_cr$frame[1]
     
-    if (isTRUE(new_frame == (frame+1))) {
+    if (isTRUE(new_frame == (frame + 1L))) {
+      cr_idx <- cr_idx + 1L
+      
       theos_bf_ms1 <- theos_cr_ms1
-      # theopeps_bf_ms1 <- theopeps_cr_ms1 
       theomasses_bf_ms1 <- theomasses_cr_ms1
       theos_bf_ms2 <- theos_cr_ms2
       
       theos_cr_ms1 <- theos_af_ms1
-      # theopeps_cr_ms1 <- theopeps_af_ms1 
       theomasses_cr_ms1 <- theomasses_af_ms1
       theos_cr_ms2 <- theos_af_ms2
-    } else if (isTRUE(new_frame == (frame+2))) {
+    } else if (isTRUE(new_frame == (frame + 2L))) {
+      cr_idx <- cr_idx + 2L
+      
       theos_bf_ms1 <- theos_af_ms1
-      # theopeps_bf_ms1 <- theopeps_af_ms1 
       theomasses_bf_ms1 <- theomasses_af_ms1
       theos_bf_ms2 <- theos_af_ms2
       
-      cr_chr <- as.character(new_frame)
-      theos_cr_ms1 <- theopeps[[cr_chr]]
+      theos_cr_ms1 <- theopeps[[cr_idx]]
       theopeps_cr_ms1 <- theos_cr_ms1$pep_seq
       theomasses_cr_ms1 <- theos_cr_ms1$mass
       
@@ -369,13 +305,14 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       )
       names(theos_cr_ms2) <- theopeps_cr_ms1
     } else {
-      bf_chr <- as.character(new_frame-1)
-      theos_bf_ms1 <- theopeps[[bf_chr]]
+      cr_idx <- cr_idx + 3L
+      bf_idx <- cr_idx - 1L
+      
+      theos_bf_ms1 <- theopeps[[bf_idx]]
       theopeps_bf_ms1 <- theos_bf_ms1$pep_seq
       theomasses_bf_ms1 <- theos_bf_ms1$mass
       
-      cr_chr <- as.character(new_frame)
-      theos_cr_ms1 <- theopeps[[cr_chr]]
+      theos_cr_ms1 <- theopeps[[cr_idx]]
       theopeps_cr_ms1 <- theos_cr_ms1$pep_seq
       theomasses_cr_ms1 <- theos_cr_ms1$mass
       
@@ -440,7 +377,9 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
   #             "theos_af_ms2", "exptmasses_ms1", "exptmoverzs_ms2", 
   #             "mgfs_cr", "new_frame", "frame"))
   
-  invisible(out)
+  out <- post_frame_adv(out, mgf_frames)
+  
+  # invisible(out)
 }
 
 

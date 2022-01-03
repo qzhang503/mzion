@@ -322,7 +322,8 @@ subset_neuloss_peps <- function (pattern, theopeps)
 
 #' Finds MS2 N-terminal mass.
 #'
-#' @inheritParams hms2_base
+#' @param aa_masses A named list containing the (mono-isotopic) masses of amino
+#'   acid residues.
 find_nterm_mass <- function (aa_masses) 
 {
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
@@ -336,7 +337,8 @@ find_nterm_mass <- function (aa_masses)
 
 #' Finds MS2 C-terminal mass.
 #'
-#' @inheritParams hms2_base
+#' @param aa_masses A named list containing the (mono-isotopic) masses of amino
+#'   acid residues.
 find_cterm_mass <- function (aa_masses) 
 {
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)

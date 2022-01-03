@@ -147,8 +147,8 @@ permutation in a row for each matrix.}
 \item{mod_indexes}{Integer; the indexes of fixed and/or variable
 modifications.}
 
-\item{mgf_path}{A file path to a list of MGF files. The experimenter needs
-  to supply the files.
+\item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
+  supply the files.
 
   The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
   from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's

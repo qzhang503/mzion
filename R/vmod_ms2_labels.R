@@ -162,7 +162,7 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
 
 
 
-#' Helper of \link{combi_vmodsMat} (by each rows of labels).
+#' Helper of combinatorial vmods (by each rows of labels).
 #'
 #' One-to-one correspondence between Names and Sites. Finds the positions of
 #' residues (sites) from a given amino acid sequence (aas).
@@ -233,7 +233,7 @@ find_vmodposU <- function (vec, ps, aas)
 }
 
 
-#' Helper of \link{combi_vmodsMat} (by each rows of labels).
+#' Helper of combinatorial vmods (by each rows of labels).
 #'
 #' Multiple Names to the same Site. Finds the positions of
 #' residues (sites) from a given amino acid sequence (aas).

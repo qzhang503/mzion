@@ -31,8 +31,8 @@ frames_adv(
 )
 }
 \arguments{
-\item{mgf_frames}{MGFs in frames. Each frame contains one to multiple MGFs
-whose MS1 masses are in the same interval.}
+\item{mgf_frames}{A group of mgf frames. Each frame contains one to multiple
+MGFs whose MS1 masses are in the same interval.}
 
 \item{theopeps}{Binned theoretical peptides corresponding to an i-th
 \code{aa_masses}.}

@@ -3,8 +3,8 @@
 #' Database searches of MSMS data.
 #'
 #' @param out_path A file path of outputs.
-#' @param mgf_path A file path to a list of MGF files. The experimenter needs
-#'   to supply the files.
+#' @param mgf_path A file path to a list of MGF files. The experimenter needs to
+#'   supply the files.
 #'
 #'   The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
 #'   from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
@@ -198,12 +198,18 @@
 #' @seealso \link{load_fasta2} for setting the values of \code{acc_type} and
 #'   \code{acc_pattern}. \cr\cr \link{table_unimods} summarizes
 #'   \href{https://www.unimod.org/}{Unimod} into a table format. \cr\cr
-#'   \link{parse_unimod} for the grammar of Unimod.
+#'   \link{find_unimod} finds the mono-isotopic mass, position, site and neutral
+#'   losses of a modification \cr\cr \link{parse_unimod} for the grammar of
+#'   Unimod.
 #'   \href{https://proteoq.netlify.app/post/mixing-data-at-different-tmt-plexes/}{For
 #'    example}, the name tag of "TMT6plex" is common among TMT-6, -10 and -11
-#'   while "TMTpro" is for TMT-16 and "TMTpro18" for TMT-18. May use aliases of
-#'   "TMT10plex", "TMT11plex", "TMT16plex" and "TMT18plex". \cr\cr
-#'   \link{mapMS2ions} for the visualization of MS2 ion ladders.
+#'   while "TMTpro" is for TMT-16 and "TMTpro18" for TMT-18. Experimenters may
+#'   use aliases of "TMT10plex", "TMT11plex", "TMT16plex" and "TMT18plex".
+#'   \cr\cr \link{add_unimod} creates or modifies an entry of Unimod. The
+#'   utility can be particularly useful for making a modification with additive
+#'   effects. \cr \cr \link{rm_unimod} removes an entry from Unimod (by title
+#'   for now). \cr \cr \link{mapMS2ions} for the visualization of MS2 ion
+#'   ladders.
 #' @return A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in
 #'   \code{psmQ.txt}.
 #' @examples
@@ -273,8 +279,34 @@
 #'   fdr_type  = "protein",
 #'   out_path  = "~/proteoM/examples_pasef",
 #' )
+#' 
+#' # An exemplary custom Unimod (Oxi+Carbamidomethyl)
+#' add_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
+#'            full_name   = "Oxidation and iodoacetamide derivative"),
+#'            specificity = c(site        = "M",
+#'                            position    = "Anywhere"),
+#'            delta       = c(mono_mass   = "73.016379",
+#'                            avge_mass   = "73.0507",
+#'                            composition = "H(3) C(2) N O(2)"),
+#'            neuloss     = c(mono_mass   = "63.998285",
+#'                            avge_mass   = "64.1069",
+#'                            composition = "H(4) C O S"))
+#' 
+#' matchMS(
+#'   fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+#'                "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+#'                "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'   acc_type = c("refseq_acc", "refseq_acc", "other"),
+#'   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
+#'   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+#'               "Oxi+Carbamidomethyl (M)"),
+#'   max_miss = 2,
+#'   quant    = "tmt10",
+#'   fdr_type = "protein",
+#'   out_path = "~/proteoM/examples",
+#' )
+#' 
 #' }
-#'
 #' }
 #' @export
 matchMS <- function (out_path = "~/proteoM/outs",
@@ -1109,21 +1141,21 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
     possibles <- fvmods[grepl("^TMT", fvmods)]
     
     if (quant == "tmt18") {
-      ok <- all(grepl("TMTpro18 |TMT18plex ", possibles))
+      ok <- all(grepl("TMTpro18.* |TMT18plex.* ", possibles))
       
       if (!ok) 
         stop("All TMT modifications need to be `TMTpro18` at `", quant, "`.\n", 
              tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
              call. = FALSE)
     } else if (quant == "tmt16") {
-      ok <- all(grepl("TMTpro |TMT16plex ", possibles))
+      ok <- all(grepl("TMTpro.* |TMT16plex.* ", possibles))
       
       if (!ok) 
         stop("All TMT modifications need to be `TMTpro` at `", quant, "`.\n", 
              tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
              call. = FALSE)
     } else {
-      ok <- all(grepl("TMT6plex |TMT10plex |TMT11plex ", possibles))
+      ok <- all(grepl("TMT6plex.* |TMT10plex.* |TMT11plex.* ", possibles))
       
       if (!ok) 
         stop("All TMT modifications need to be `TMT6plex` at `", quant, "`.\n", 

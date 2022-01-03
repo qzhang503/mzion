@@ -9,7 +9,7 @@
 #'   modifications.
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
-#' @inheritParams hms2_base
+#' @inheritParams frames_adv
 #' @inheritParams add_fixvar_masses
 #' @import parallel
 ms2match <- function (mgf_path, aa_masses_all, out_path, 

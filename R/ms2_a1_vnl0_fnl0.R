@@ -35,8 +35,7 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
                           
   parallel::clusterExport(
     cl,
-    c("hms2_a1_vnl0_fnl0", 
-      "frames_adv", 
+    c("frames_adv", 
       "gen_ms2ions_a1_vnl0_fnl0", 
       "match_mvmods", 
       "expand_grid_rows", 
@@ -65,7 +64,7 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
   )
 
   out <- parallel::clusterMap(
-    cl, hms2_a1_vnl0_fnl0, 
+    cl, frames_adv, 
     mgf_frames, theopeps, 
     MoreArgs = list(aa_masses = aa_masses, 
                     ms1vmods = ms1vmods, 
@@ -75,6 +74,8 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
                     ntmass = ntmass, 
                     ctmass = ctmass, 
                     amods = amods, 
+                    vmods_nl = NULL, 
+                    fmods_nl = NULL, 
                     mod_indexes = mod_indexes, 
                     type_ms2ions = type_ms2ions, 
                     maxn_vmods_per_pep = 
@@ -87,65 +88,15 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
                     ppm_ms1 = ppm_ms1, 
                     ppm_ms2 = ppm_ms2, 
                     min_ms2mass = min_ms2mass, 
-                    digits = digits), 
-    .scheduling = "dynamic") %>% 
-    dplyr::bind_rows() %>% 
-    post_ms2match(i, aa_masses, out_path)
+                    digits = digits, 
+                    FUN = gen_ms2ions_a1_vnl0_fnl0), 
+    .scheduling = "dynamic")
   
   parallel::stopCluster(cl)
   
-  rm(list = c("mgf_frames", "theopeps"))
-  gc()
+  out <- dplyr::bind_rows(out)
   
-  invisible(out)
-}
-
-
-#' Searches MGF frames.
-#'
-#' (7) "amods+ tmod- vnl- fnl-", (8) "amods+ tmod+ vnl- fnl-"
-#' 
-#' @inheritParams ms2match_a1_vnl0_fnl0
-#' @rdname hms2_base
-hms2_a1_vnl0_fnl0 <- function (mgf_frames, theopeps, aa_masses, ms1vmods, ms2vmods, 
-                               ntmod = NULL, ctmod = NULL, ntmass, ctmass, 
-                               amods, mod_indexes, type_ms2ions = "by", 
-                               maxn_vmods_per_pep = 5L, 
-                               maxn_sites_per_vmod = 3L, 
-                               maxn_vmods_sitescombi_per_pep = 32L, 
-                               minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                               min_ms2mass = 110L, digits = 4L) 
-{
-  # `res[[i]]` contains results for multiple mgfs within a frame
-  # (the number of entries equals to the number of mgf frames)
-  res <- frames_adv(mgf_frames = mgf_frames, 
-                    theopeps = theopeps, 
-                    aa_masses = aa_masses, 
-                    ms1vmods = ms1vmods, 
-                    ms2vmods = ms2vmods, 
-                    ntmod = ntmod, 
-                    ctmod = ctmod, 
-                    ntmass = ntmass, 
-                    ctmass = ctmass, 
-                    amods = amods, 
-                    vmods_nl = NULL, fmods_nl = NULL, 
-                    mod_indexes = mod_indexes, 
-                    type_ms2ions = type_ms2ions, 
-                    maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                    maxn_sites_per_vmod = maxn_sites_per_vmod, 
-                    maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-                    minn_ms2 = minn_ms2, 
-                    ppm_ms1 = ppm_ms1, 
-                    ppm_ms2 = ppm_ms2, 
-                    min_ms2mass = min_ms2mass, 
-                    digits = digits, 
-                    FUN = gen_ms2ions_a1_vnl0_fnl0)
-
-  res <- post_frame_adv(res, mgf_frames)
-
-  rm(list = "mgf_frames", "theopeps")
-  
-  invisible(res)
+  out <- post_ms2match(out, i, aa_masses, out_path)
 }
 
 

@@ -525,36 +525,44 @@ match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
 #' Deletes files under a directory.
 #'
 #' The directory will be kept.
+#' 
 #' @param path A file path.
 #' @param ignores The file extensions to be ignored.
 delete_files <- function (path, ignores = NULL, ...) 
 {
-  dots <- rlang::enexprs(...)
+  
+  # Hadley Ch.19 Quasiquotation, note 97
+  dots <- as.list(substitute(...()))
   recursive <- dots[["recursive"]]
+  dots$recursive <- NULL
   
-  if (is.null(recursive)) recursive <- TRUE
+  if (is.null(recursive)) 
+    recursive <- TRUE
   
-  stopifnot(is.logical(recursive))
+  if (!is.logical(recursive)) 
+    stop("Not logical `recursive`.")
+
+  args <- c(list(path = file.path(path), recursive = recursive,
+                 full.names = TRUE), dots)
   
-  nms <- list.files(path = file.path(path), recursive = recursive,
-                    full.names = TRUE, ...)
+  nms <- do.call(list.files, args)
   
   if (!is.null(ignores)) {
     nms <- local({
-      dirs <- list.dirs(path, full.names = FALSE, recursive = recursive) %>%
-        .[! . == ""]
-      
-      idxes_kept <- dirs %>% purrr::map_lgl(~ any(grepl(.x, ignores)))
+      dirs <- list.dirs(path, full.names = FALSE, recursive = recursive)
+      dirs <- dirs[! dirs == ""]
+
+      idxes_kept <- purrr::map_lgl(dirs, function (x) any(grepl(x, ignores)))
       
       nms_kept <- list.files(path = file.path(path, dirs[idxes_kept]),
                              recursive = TRUE, full.names = TRUE)
       
-      nms %>% .[! . %in% nms_kept]
+      nms[! nms %in% nms_kept]
     })
     
     nms <- local({
-      exts <- nms %>% gsub("^.*(\\.[^.]*)$", "\\1", .)
-      idxes_kept <- map_lgl(exts, ~ any(grepl(.x, ignores)))
+      exts <- gsub("^.*(\\.[^.]*)$", "\\1", nms)
+      idxes_kept <- purrr::map_lgl(exts, function (x) any(grepl(x, ignores)))
       
       nms[!idxes_kept]
     })

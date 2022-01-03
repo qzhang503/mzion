@@ -2,7 +2,7 @@
 % Please edit documentation in R/vmod_ms2_labels.R
 \name{combi_namesiteM}
 \alias{combi_namesiteM}
-\title{Helper of \link{combi_vmodsMat} (by each rows of labels).}
+\title{Helper of combinatorial vmods (by each rows of labels).}
 \usage{
 combi_namesiteM(M, aas, nrows)
 }

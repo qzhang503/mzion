@@ -4,7 +4,7 @@
                         "=======================================================================================\n",
                         "NEW features (v1.0.4.2):\n",
                         "[x] Supports of Bruker's PASEF MGFs.\n",
-                        # "[x] A search engine for mass spectrometry-based proteomics data.\n",
+                        "[x] Utility `add_unimod` for custom entries of Unimod.\n",
                         # "[x] See also package `proteoQ` for downstream data QA and informatics.\n", 
                         # "\n",
                         
