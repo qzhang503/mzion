@@ -195,20 +195,21 @@
 #'   developer.
 #' @param digits A non-negative integer; the number of decimal places to be
 #'   used. The default is 4.
-#' @seealso \link{load_fasta2} for setting the values of \code{acc_type} and
-#'   \code{acc_pattern}. \cr\cr \link{table_unimods} summarizes
+#' @section \code{FASTA}: \link{load_fasta2} sets the values of \code{acc_type}
+#'   and \code{acc_pattern}. \cr
+#' @section \code{Unimod}: \link{table_unimods} summarizes
 #'   \href{https://www.unimod.org/}{Unimod} into a table format. \cr\cr
 #'   \link{find_unimod} finds the mono-isotopic mass, position, site and neutral
-#'   losses of a modification \cr\cr \link{parse_unimod} for the grammar of
-#'   Unimod.
+#'   losses of a modification \cr\cr \link{parse_unimod} parses a Unimod.
 #'   \href{https://proteoq.netlify.app/post/mixing-data-at-different-tmt-plexes/}{For
 #'    example}, the name tag of "TMT6plex" is common among TMT-6, -10 and -11
 #'   while "TMTpro" is for TMT-16 and "TMTpro18" for TMT-18. Experimenters may
-#'   use aliases of "TMT10plex", "TMT11plex", "TMT16plex" and "TMT18plex".
-#'   \cr\cr \link{add_unimod} creates or modifies an entry of Unimod. The
-#'   utility can be particularly useful for making a modification with additive
-#'   effects. \cr \cr \link{rm_unimod} removes an entry from Unimod (by title
-#'   for now). \cr \cr \link{mapMS2ions} for the visualization of MS2 ion
+#'   use aliases of "TMT10plex", "TMT11plex", "TMT16plex" and "TMT18plex".\cr\cr
+#'   \link{calc_unimod_compmass} calculates the composition masses of a Unimod
+#'   \cr\cr \link{add_unimod} adds a Unimod entry. \cr\cr \link{remove_unimod}
+#'   removes a Unimod entry \cr\cr \link{remove_unimod_title} removes a Unimod
+#'   entry by title.
+#' @section \code{Visualization}: \link{mapMS2ions} visualizes the MS2 ion
 #'   ladders.
 #' @return A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in
 #'   \code{psmQ.txt}.
@@ -279,7 +280,7 @@
 #'   fdr_type  = "protein",
 #'   out_path  = "~/proteoM/examples_pasef",
 #' )
-#' 
+#'
 #' # An exemplary custom Unimod (Oxi+Carbamidomethyl)
 #' add_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
 #'            full_name   = "Oxidation and iodoacetamide derivative"),
@@ -291,7 +292,7 @@
 #'            neuloss     = c(mono_mass   = "63.998285",
 #'                            avge_mass   = "64.1069",
 #'                            composition = "H(4) C O S"))
-#' 
+#'
 #' matchMS(
 #'   fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
 #'                "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
@@ -305,7 +306,7 @@
 #'   fdr_type = "protein",
 #'   out_path = "~/proteoM/examples",
 #' )
-#' 
+#'
 #' }
 #' }
 #' @export

@@ -12,7 +12,8 @@ find_unimod(
 \arguments{
 \item{unimod}{The name of a \href{https://www.unimod.org/}{Unimod} modification.}
 
-\item{xml_file}{A file path to a Unimod ".xml".}
+\item{xml_file}{Name(s) of Unimod ".xml" files. The file path is a system
+setting of \code{system.file("extdata", xml_file, package = "proteoM")}.}
 }
 \description{
 Finds the mono-isotopic mass, position, site and neutral losses of a

@@ -4,11 +4,92 @@
 \alias{remove_unimod}
 \title{Removes an existing modification.}
 \usage{
-remove_unimod(title = NULL)
+remove_unimod(
+  header = c(title = "Foo", full_name = "Foo bar"),
+  specificity = c(site = "C", position = "Anywhere"),
+  delta = c(mono_mass = "42.010565", avge_mass = "42.0367", composition =
+    "H(2) C(2) O"),
+  neuloss = c(mono_mass = "0", avge_mass = "0", composition = "0")
+)
 }
 \arguments{
-\item{title}{The title of a modification.}
+\item{header}{The header of a \href{https://www.unimod.org/}{Unimod}. The
+fields of \code{title} and \code{full_name} are required. No spaces are
+allowed in \code{title}.}
+
+\item{specificity}{The specificity of \code{site} and \code{position} of a
+  modification. The value of \code{site} is an upper-case, one-letter
+  representation of an amino-acid residue, or "N-term" or "C-term". The value
+  of \code{position} is one of "Anywhere", "Protein N-term", "Protein
+  C-term", "Any N-term" or "Any C-term".
+
+  See also \link{remove_unimod} for a wildcard approach of \code{site = "."}
+  and \code{position = "."} to remove all sites and positions under a title.}
+
+\item{delta}{The mass and composition difference of a modification:
+  \code{mono_mass}, the difference in mono-isotopic mass; \code{avge_mass},
+  the difference in average mass; \code{composition}, the difference in
+  chemical composition.
+
+  The precision of \code{mono_mass} is typically set with a decimal place of
+  \eqn{\ge 5}.}
+
+\item{neuloss}{The mass and composition \emph{loss} of a neutral species atop
+  of the \code{delta}. Like many other search engines, \code{proteoM} adapts
+  the common convention where the losses of masses and compositions are
+  expressed in \emph{positive} forms for both the masses and the
+  compositions.
+
+  See also \link{remove_unimod} for a wildcard approach of \code{neuloss =
+  c(mono_mass = ".", ...)} to remove all neutral losses under a site and a
+  position for a given title.}
 }
 \description{
 Removes an existing modification.
+}
+\examples{
+\donttest{
+# site `C`: Oxiation + Carbamidomethyl
+# (without neutral losses)
+x <- remove_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
+                                   full_name   = "Oxidation and iodoacetamide derivative"),
+                   specificity = c(site        = "C",
+                                   position    = "Anywhere"),
+                   delta       = c(mono_mass   = "73.016379",
+                                   avge_mass   = "73.0507",
+                                   composition = "H(3) C(2) N O(2)"),
+                   neuloss     = c(mono_mass   = "0",
+                                   avge_mass   = "0",
+                                   composition = "0"))
+
+# site `M`: Oxiation + Carbamidomethyl
+# (with neutral losses)
+x <- remove_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
+                                   full_name   = "Oxidation and iodoacetamide derivative"),
+                   specificity = c(site        = "M",
+                                   position    = "Anywhere"),
+                   delta       = c(mono_mass   = "73.016379",
+                                   avge_mass   = "73.0507",
+                                   composition = "H(3) C(2) N O(2)"),
+                   neuloss     = c(mono_mass   = "63.998285",
+                                   avge_mass   = "64.1069",
+                                   composition = "H(4) C O S"))
+
+x <- remove_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
+                                   full_name   = "Oxidation and iodoacetamide derivative"),
+                   specificity = c(site        = "M",
+                                   position    = "Anywhere"),
+                   delta       = c(mono_mass   = "73.016379",
+                                   avge_mass   = "73.0507",
+                                   composition = "H(3) C(2) N O(2)"),
+                   neuloss     = c(mono_mass   = ".",
+                                   avge_mass   = ".",
+                                   composition = "."))
+
+x <- remove_unimod_title("TMT10plexNterm+Gln->pyro-Glu")
+x <- remove_unimod_title("Oxi+Carbamidomethyl")
+}
+}
+\seealso{
+remove_unimod_title
 }

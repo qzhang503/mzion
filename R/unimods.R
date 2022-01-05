@@ -142,8 +142,9 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
 #'
 #' In the field of \code{position_site}, \code{position} is the name and
 #' \code{site} is the value.
-#' 
-#' @param xml_file A file path to a Unimod ".xml".
+#'
+#' @param xml_file Name(s) of Unimod ".xml" files. The file path is a system
+#'   setting of \code{system.file("extdata", xml_file, package = "proteoM")}.
 #' @inheritParams parse_unimod
 #' @seealso \link{table_unimods}, \link{parse_unimod}.
 #' @examples
@@ -364,6 +365,9 @@ htable_unimods <- function (file)
 #'   representation of an amino-acid residue, or "N-term" or "C-term". The value
 #'   of \code{position} is one of "Anywhere", "Protein N-term", "Protein
 #'   C-term", "Any N-term" or "Any C-term".
+#'
+#'   See also \link{remove_unimod} for a wildcard approach of \code{site = "."}
+#'   and \code{position = "."} to remove all sites and positions under a title.
 #' @param delta The mass and composition difference of a modification:
 #'   \code{mono_mass}, the difference in mono-isotopic mass; \code{avge_mass},
 #'   the difference in average mass; \code{composition}, the difference in
@@ -376,6 +380,10 @@ htable_unimods <- function (file)
 #'   the common convention where the losses of masses and compositions are
 #'   expressed in \emph{positive} forms for both the masses and the
 #'   compositions.
+#'
+#'   See also \link{remove_unimod} for a wildcard approach of \code{neuloss =
+#'   c(mono_mass = ".", ...)} to remove all neutral losses under a site and a
+#'   position for a given title.
 #' @import xml2
 #' @seealso \link{table_unimods}, \link{parse_unimod}, \link{find_unimod}.
 #' @return An xml object.
@@ -383,15 +391,19 @@ htable_unimods <- function (file)
 #' \dontrun{
 #' library(proteoM)
 #'
-#' # To avoid unsound chemistries, proteoM prohibits 
+#' # To avoid unsound chemistries, proteoM prohibits
 #' #   additive modifications to the same site.
 #' # To enable cumulative effects, the solution is to
 #' #   devise a "merged" modification.
-#' 
+#'
 #' (system.file("extdata", "master.xml", package = "proteoM"))
 #' (system.file("extdata", "custom.xml", package = "proteoM"))
-#' 
+#'
 #' # Additive N-terminal modifications (though not chemically sound)
+#' masses <- calc_unimod_compmass("H(17) C(8) 13C(4) 15N O(2)")
+#' mono_mass <- masses$mono_mass
+#' avge_mass <- masses$avge_mass
+#' 
 #' x <- add_unimod(header      = c(title       = "TMT10plexNterm+Gln->pyro-Glu",
 #'                                 full_name   = "Additive N-term TMT10plex and Gln->pyro-Glu"),
 #'
@@ -433,12 +445,6 @@ htable_unimods <- function (file)
 #'                 neuloss     = c(mono_mass   = "63.998285",
 #'                                 avge_mass   = "64.1069",
 #'                                 composition = "H(4) C O S"))
-#'
-#'
-#' # Removals of everything under a "title"
-#' remove_unimod(title = "TMT10plexNterm+Gln->pyro-Glu")
-#' remove_unimod(title = "Oxi+Carbamidomethyl")
-#'
 #' }
 #' @export
 add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"), 
@@ -832,13 +838,8 @@ hadd_neuloss <- function (node = NULL, neuloss_mono_mass = "0",
 #' @param composition The chemical composition of a modification.
 add_comp_elements <- function (node = NULL, composition = "0") 
 {
-  df <- composition %>% 
-    stringr::str_replace_all("([:alnum:]+)$", paste0("\\1", "(1)")) %>% 
-    stringr::str_replace_all("([:alnum:]+) ", paste0("\\1", "(1) ")) %>% 
-    gsub("\\s+", "", .) %>% 
-    stringr::str_match_all("(.*?)\\((-*[0-9]+)\\)") %>% 
-    `[[`(1)
-  
+  df <- parse_unimod_composition(composition)
+
   old_elems <- xml2::xml_find_all(node, "umod:element")
   xml2::xml_remove(old_elems)
   rm(list = c("old_elems"))
@@ -851,7 +852,7 @@ add_comp_elements <- function (node = NULL, composition = "0")
   mod_elems <- xml2::xml_find_all(node, "umod:element")
   
   for (i in seqs) 
-    xml2::xml_set_attrs(mod_elems[[i]], c(symbol = df[i, 2], number = df[i, 3]))
+    xml2::xml_set_attrs(mod_elems[[i]], c(symbol = df[i, 1], number = df[i, 2]))
 
   invisible(node)
 }
@@ -859,11 +860,277 @@ add_comp_elements <- function (node = NULL, composition = "0")
 
 #' Removes an existing modification.
 #'
-#' @param title The title of a modification.
+#' @inheritParams add_unimod
+#' @seealso remove_unimod_title
+#' @examples 
+#' \donttest{
+#' # site `C`: Oxiation + Carbamidomethyl
+#' # (without neutral losses)
+#' x <- remove_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
+#'                                    full_name   = "Oxidation and iodoacetamide derivative"),
+#'                    specificity = c(site        = "C",
+#'                                    position    = "Anywhere"),
+#'                    delta       = c(mono_mass   = "73.016379",
+#'                                    avge_mass   = "73.0507",
+#'                                    composition = "H(3) C(2) N O(2)"),
+#'                    neuloss     = c(mono_mass   = "0",
+#'                                    avge_mass   = "0",
+#'                                    composition = "0"))
+#' 
+#' # site `M`: Oxiation + Carbamidomethyl
+#' # (with neutral losses)
+#' x <- remove_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
+#'                                    full_name   = "Oxidation and iodoacetamide derivative"),
+#'                    specificity = c(site        = "M",
+#'                                    position    = "Anywhere"),
+#'                    delta       = c(mono_mass   = "73.016379",
+#'                                    avge_mass   = "73.0507",
+#'                                    composition = "H(3) C(2) N O(2)"),
+#'                    neuloss     = c(mono_mass   = "63.998285",
+#'                                    avge_mass   = "64.1069",
+#'                                    composition = "H(4) C O S"))
+#' 
+#' x <- remove_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
+#'                                    full_name   = "Oxidation and iodoacetamide derivative"),
+#'                    specificity = c(site        = "M",
+#'                                    position    = "Anywhere"),
+#'                    delta       = c(mono_mass   = "73.016379",
+#'                                    avge_mass   = "73.0507",
+#'                                    composition = "H(3) C(2) N O(2)"),
+#'                    neuloss     = c(mono_mass   = ".",
+#'                                    avge_mass   = ".",
+#'                                    composition = "."))
+#' 
+#' x <- remove_unimod_title("TMT10plexNterm+Gln->pyro-Glu")
+#' x <- remove_unimod_title("Oxi+Carbamidomethyl")
+#' }
 #' @export
-remove_unimod <- function (title = NULL) 
+remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"), 
+                           specificity = c(site  = "C", position = "Anywhere"), 
+                           delta = c(mono_mass = "42.010565", 
+                                     avge_mass = "42.0367", 
+                                     composition = "H(2) C(2) O"), 
+                           neuloss = c(mono_mass = "0", 
+                                       avge_mass = "0", 
+                                       composition = "0")) 
 {
-  if (is.null(title))
+  options(digits = 9L)
+  
+  title <- header[["title"]]
+  full_name <- header[["full_name"]]
+  site <- specificity[["site"]]
+  position <- specificity[["position"]]
+  mod_mono_mass <- delta[["mono_mass"]]
+  mod_avge_mass <- delta[["avge_mass"]]
+  mod_composition <- delta[["composition"]]
+  neuloss_mono_mass <- neuloss[["mono_mass"]]
+  neuloss_avge_mass <- neuloss[["avge_mass"]]
+  neuloss_composition <- neuloss[["composition"]]
+  
+  xml_file <- system.file("extdata", "custom.xml", package = "proteoM")
+  xml_root <- xml2::read_xml(xml_file)
+  nodes_lev1_four <- xml2::xml_children(xml_root)
+  node_modif <- xml2::xml_find_all(nodes_lev1_four, "//umod:modifications")
+  
+  if (!length(node_modif)) 
+    stop("Node `umod:modifications` not found and nothing to remove from.", 
+         call. = FALSE)
+  
+  site <- standardize_unimod_ps(x = c(site = site))
+  position <- standardize_unimod_ps(x = c(position = position))
+  
+  if (site == "." && position == ".")
+    return(remove_unimod_title(title = title))
+  
+  if (site == "." || position == ".")
+    stop("Specify both `site` and `position`.", call. = FALSE)
+  
+  if (is.numeric(mod_mono_mass)) 
+    mod_mono_mass <- as.character(mod_mono_mass)
+  
+  if (is.numeric(mod_avge_mass)) 
+    mod_avge_mass <- as.character(mod_avge_mass)
+  
+  if (is.numeric(neuloss_mono_mass)) 
+    neuloss_mono_mass <- as.character(neuloss_mono_mass)
+  
+  if (is.numeric(neuloss_avge_mass)) 
+    neuloss_avge_mass <- as.character(neuloss_avge_mass)
+  
+  # individual nodes of modifications
+  modifications <- xml2::xml_children(node_modif)
+  
+  # title
+  idx_title <- which(xml2::xml_attr(modifications, "title") == title)
+  
+  local({
+    len_title <- length(idx_title)
+    
+    if (len_title > 1L)
+      stop("Multiple matches to `", title, "`.\n", 
+           "Fix the redundancy from ", xml_file, ".")
+    else if (!len_title) 
+      stop("Entry `", title, "` not found.")
+  })
+  
+  # `site` and `position`
+  this_mod <- modifications[[idx_title]]
+  
+  local({
+    this_full_name <- xml2::xml_attr(this_mod, "full_name")
+    
+    if (this_full_name != full_name)
+      warning("Ignored the difference between the original `full_name = ", 
+              this_full_name, "` \nand the current ", 
+              "`full_name = ", full_name, "`.", 
+              call. = FALSE)
+  })
+  
+  # (children can be `specification`, `delta` etc.)
+  nodes_mod_ch <- xml2::xml_children(this_mod)
+  attrs_mod_ch <- xml2::xml_attrs(nodes_mod_ch)
+  
+  sites <- unlist(lapply(attrs_mod_ch, `[`, c("site")))
+  positions <- unlist(lapply(attrs_mod_ch, `[`, c("position")))
+  ok_sitepos <- which((sites == site) & (positions == position))
+  
+  local({
+    len_sitepos <- length(ok_sitepos)
+    
+    if (!len_sitepos)
+      stop("No matches to `site = ", site, "` and ", 
+           "`position = ", position, "` at ", 
+           "`title = ", title, "`.\n", 
+           call. = FALSE)
+    else if (len_sitepos > 1L)
+      stop("Multiple matches to `site = ", site, "` and ", 
+           "`position = ", position, "` at ", 
+           "`title = ", title, "`.\n", 
+           "Fix the redundancy from ", xml_file, ".", 
+           call. = FALSE)
+  })
+
+  this_spec <- nodes_mod_ch[ok_sitepos]
+  
+  # After "complete" removals of `specificity`, 
+  # a modification may have `delta` without `specificity`.
+  # This seems innocuous for now or simply `remove_unimod_title`.
+
+  if (neuloss_mono_mass == "0") {
+    xml2::xml_remove(this_spec)
+    nodes_mod_ch <- xml2::xml_children(this_mod)
+    xml2::write_xml(xml_root, xml_file)
+    
+    message("Entry `site = ", site, "` and `position = ", position, 
+            "` removed from `title = ", title, "`.")
+  }
+  else if (neuloss_mono_mass == ".") {
+    nodes_neuloss <- xml2::xml_find_all(this_spec, "umod:NeutralLoss")
+    xml2::xml_remove(nodes_neuloss[seq_along(nodes_neuloss)])
+    nodes_neuloss <- xml2::xml_children(this_spec)
+    
+    if (length(nodes_neuloss))
+      stop("No NeutralLoss nodes expected; contact the developer for bugs.",
+           call. = FALSE)
+    
+    xml2::write_xml(xml_root, xml_file)
+    
+    message("All NeutralLoss under ", 
+            "`site = ", site, "` and `position = ", position, 
+            "` removed from `title = ", title, "`.")
+  }
+  else {
+    nodes_neuloss <- xml2::xml_find_all(this_spec, "umod:NeutralLoss")
+    attrs_neuloss <- xml2::xml_attrs(nodes_neuloss)
+    
+    neuloss_mono_masses <- unlist(lapply(attrs_neuloss, `[`, c("mono_mass")))
+    idx_neuloss <- which((neuloss_mono_masses == neuloss_mono_mass))
+    
+    local({
+      len_neuloss <- length(idx_neuloss)
+      
+      if (len_neuloss > 1L)
+        stop("Multiple matches to the `mono_mass` in `neuloss`.", call. = FALSE)
+      else if (!len_neuloss) 
+        stop("No matches to the `mono_mass` in `neuloss`.", call. = FALSE)
+    })
+    
+    this_neuloss <- nodes_neuloss[idx_neuloss]
+    xml2::xml_remove(this_neuloss)
+    nodes_neuloss <- xml2::xml_children(this_spec)
+    
+    # only the "0" NeutralLoss
+    if (length(nodes_neuloss) == 1L) {
+      this_neuloss_0 <- nodes_neuloss[1]
+      xml2::xml_remove(this_neuloss_0)
+      nodes_neuloss <- xml2::xml_children(this_spec)
+      
+      if (length(nodes_neuloss))
+        stop("No NeutralLoss nodes expected; contact the developer for bugs.",
+             call. = FALSE)
+    }
+    
+    xml2::write_xml(xml_root, xml_file)
+    
+    message("NeutralLoss at `mono_mass = ", neuloss_mono_mass, "`, ", 
+            "`site = ", site, "` and `position = ", position, 
+            "` removed from `title = ", title, "`.")
+  }
+  
+  invisible(xml_root)
+}
+
+
+#' Standardizes the site and position of a modification.
+#' 
+#' @param x A name string. Note that \code{x} is either a site or a position.
+standardize_unimod_ps <- function (x) 
+{
+  nm <- names(x)
+  x <- unname(x)
+  
+  if (isFALSE(x)) 
+    x <- "."
+  
+  if (length(x) != 1L) 
+    stop("The length of `", nm, "` is not exactly one.", call. = FALSE)
+  
+  if (nchar(x) == 0L) 
+    x <- "."
+  
+  if (nm == "site") {
+    ok_sites <- c("A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", 
+                  "P", "Q", "R", "S", "T", "U", "V", "W", "Y", 
+                  "N-term", "C-term", ".")
+    
+    # site may later include "X", "Z" etc.
+    if (! x %in% c(LETTERS, "N-term", "C-term", "."))
+      stop("Invalid site = ", x, call. = FALSE)
+  }
+  
+  if (nm == "position") {
+    ok_positions <- c("Anywhere", "Protein N-term", "Protein C-term", 
+                      "Any N-term", "Any C-term", ".")
+    
+    if (! x %in% ok_positions)
+      stop("Invalid position = ", x, call. = FALSE)
+  }
+  
+  invisible(x)
+}
+
+
+#' Removes an existing modification.
+#'
+#' @param title The title of a modification.
+#' @examples 
+#' \donttest{
+#' x <- remove_unimod_title("Oxi+Carbamidomethyl")
+#' }
+#' @export
+remove_unimod_title <- function (title = NULL) 
+{
+  if (isFALSE(title) || nchar(title) == 0L)
     stop("Provide a `title`.", call. = FALSE)
   
   xml_file <- system.file("extdata", "custom.xml", package = "proteoM")
@@ -874,20 +1141,79 @@ remove_unimod <- function (title = NULL)
   modifications <- xml2::xml_children(node_modif)
   
   idx <- which(xml2::xml_attr(modifications, "title") == title)
+  
   len <- length(idx)
   
-  if (len > 1L) {
+  if (len > 1L)
     stop("Multiple matches to `", title, "`.\n", 
          "Fix the redundancy from ", xml_file, ".")
-  }
-  else if (len) {
-    xml2::xml_remove(modifications[idx])
-    modifications <- xml2::xml_children(node_modif)
-    xml2::write_xml(xml_root, xml_file)
-    message("Entry `", title, "` removed from ", xml_file, ".")
-  }
-  else 
+  else if (!len)
     stop("Entry `", title, "` not found.")
+  
+  xml2::xml_remove(modifications[idx])
+  modifications <- xml2::xml_children(node_modif)
+  xml2::write_xml(xml_root, xml_file)
+  message("Entry `", title, "` removed from ", xml_file, ".")
+  
+  invisible(xml_root)
 }
 
 
+#' Calculates the masses of a chemical formula.
+#'
+#' @param composition A chemical composition.
+#' @param digits A non-negative integer; the number of decimal places to be
+#'   used.
+#' @export
+calc_unimod_compmass <- function (composition = "H(4) C O S", digits = 6L) 
+{
+  options(digits = 9L)
+  
+  nm <- system.file("extdata", "elem_masses.txt", package = "proteoM")
+  
+  if (file.exists(nm))
+    lookup <- read.delim(file = nm, sep = "\t")
+  else
+    stop("Not found: ", nm, call. = FALSE)
+  
+  df <- parse_unimod_composition(composition)
+  df$number <- as.numeric(df$number)
+  
+  df <- dplyr::left_join(df, lookup, by = "symbol")
+  
+  rows <- is.na(df$mono_mass)
+  
+  if (any(rows)) 
+    stop("Unknown element(s): ", paste(df$symbol[rows], collapse = ", "), 
+         call. = FALSE)
+  
+  nums <- df$number
+  avges <- df$avge_mass
+  monos <- df$mono_mass
+  
+  avge_mass <- round(sum(avges * nums), digits)
+  mono_mass <- round(sum(monos * nums), digits)
+  
+  list(mono_mass = mono_mass, avge_mass = avge_mass)
+}
+
+
+#' Parses A unimod position.
+#' 
+#' @param composition A chemical composition.
+parse_unimod_composition <- function (composition = "H(4) C O S") 
+{
+  options(digits = 9L)
+  
+  df <- composition %>% 
+    stringr::str_replace_all("([:alnum:]+)$", paste0("\\1", "(1)")) %>% 
+    stringr::str_replace_all("([:alnum:]+) ", paste0("\\1", "(1) ")) %>% 
+    gsub("\\s+", "", .) %>% 
+    stringr::str_match_all("(.*?)\\((-*[0-9]+)\\)") %>% 
+    `[[`(1)
+  
+  df <- df[, -1]
+  colnames(df) <- c("symbol", "number")
+  
+  data.frame(df)
+}

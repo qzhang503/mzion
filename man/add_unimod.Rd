@@ -18,10 +18,13 @@ fields of \code{title} and \code{full_name} are required. No spaces are
 allowed in \code{title}.}
 
 \item{specificity}{The specificity of \code{site} and \code{position} of a
-modification. The value of \code{site} is an upper-case, one-letter
-representation of an amino-acid residue, or "N-term" or "C-term". The value
-of \code{position} is one of "Anywhere", "Protein N-term", "Protein
-C-term", "Any N-term" or "Any C-term".}
+  modification. The value of \code{site} is an upper-case, one-letter
+  representation of an amino-acid residue, or "N-term" or "C-term". The value
+  of \code{position} is one of "Anywhere", "Protein N-term", "Protein
+  C-term", "Any N-term" or "Any C-term".
+
+  See also \link{remove_unimod} for a wildcard approach of \code{site = "."}
+  and \code{position = "."} to remove all sites and positions under a title.}
 
 \item{delta}{The mass and composition difference of a modification:
   \code{mono_mass}, the difference in mono-isotopic mass; \code{avge_mass},
@@ -32,10 +35,14 @@ C-term", "Any N-term" or "Any C-term".}
   \eqn{\ge 5}.}
 
 \item{neuloss}{The mass and composition \emph{loss} of a neutral species atop
-of the \code{delta}. Like many other search engines, \code{proteoM} adapts
-the common convention where the losses of masses and compositions are
-expressed in \emph{positive} forms for both the masses and the
-compositions.}
+  of the \code{delta}. Like many other search engines, \code{proteoM} adapts
+  the common convention where the losses of masses and compositions are
+  expressed in \emph{positive} forms for both the masses and the
+  compositions.
+
+  See also \link{remove_unimod} for a wildcard approach of \code{neuloss =
+  c(mono_mass = ".", ...)} to remove all neutral losses under a site and a
+  position for a given title.}
 }
 \value{
 An xml object.
@@ -47,7 +54,7 @@ Changes are made to system files.
 \dontrun{
 library(proteoM)
 
-# To avoid unsound chemistries, proteoM prohibits 
+# To avoid unsound chemistries, proteoM prohibits
 #   additive modifications to the same site.
 # To enable cumulative effects, the solution is to
 #   devise a "merged" modification.
@@ -56,6 +63,10 @@ library(proteoM)
 (system.file("extdata", "custom.xml", package = "proteoM"))
 
 # Additive N-terminal modifications (though not chemically sound)
+masses <- calc_unimod_compmass("H(17) C(8) 13C(4) 15N O(2)")
+mono_mass <- masses$mono_mass
+avge_mass <- masses$avge_mass
+
 x <- add_unimod(header      = c(title       = "TMT10plexNterm+Gln->pyro-Glu",
                                 full_name   = "Additive N-term TMT10plex and Gln->pyro-Glu"),
 
@@ -97,12 +108,6 @@ x <- add_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
                 neuloss     = c(mono_mass   = "63.998285",
                                 avge_mass   = "64.1069",
                                 composition = "H(4) C O S"))
-
-
-# Removals of everything under a "title"
-remove_unimod(title = "TMT10plexNterm+Gln->pyro-Glu")
-remove_unimod(title = "Oxi+Carbamidomethyl")
-
 }
 }
 \seealso{
