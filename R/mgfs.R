@@ -145,7 +145,7 @@ readMGF <- function (filepath = "~/proteoM/mgf",
     stop("No '.mgf' files under ", filepath, call. = FALSE)
 
   pat_mgf <- find_mgf_type(file.path(filepath, filelist[[1]]))
-
+  
   type_mgf <- pat_mgf$type
   n_bf_begin <- pat_mgf$n_bf_begin
   n_spacer <- pat_mgf$n_spacer
@@ -161,6 +161,28 @@ readMGF <- function (filepath = "~/proteoM/mgf",
   nfields_pepmass <- pat_mgf$nfields_pepmass
   raw_file <- pat_mgf$raw_file
 
+  local({
+    if (type_mgf == "msconv_thermo") {
+      data_format <- "Thermo-RAW"
+      mgf_format <- "MSconvert"
+    }
+    else if (type_mgf == "pd") {
+      data_format <- "Thermo-RAW"
+      mgf_format <- "Thermo-ProteomeDiscoverer"
+    }
+    else if (type_mgf == "msconv_pasef") {
+      data_format <- "Bruker-D"
+      mgf_format <- "MSconvert"
+    }
+    else if (type_mgf == "default_pasef") {
+      data_format <- "Bruker-D"
+      mgf_format <- "Bruker-DataAnalysis"
+    }
+    
+    ans <- list(data_format = data_format, mgf_format = mgf_format)
+    saveRDS(ans, file.path(filepath, "info_format.rds"))
+  })
+  
   rm(list = c("pat_mgf"))
 
   # chunks by mgf files

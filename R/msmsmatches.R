@@ -2,6 +2,10 @@
 #'
 #' Database searches of MSMS data.
 #'
+#' The annotation of protein attributes, including percent coverages, will be
+#' performed with \link[proteoQ]{normPSM} given that values will be affected
+#' with the combination of multiple PSM tables.
+#'
 #' @param out_path A file path of outputs.
 #' @param mgf_path A file path to a list of MGF files. The experimenter needs to
 #'   supply the files.
@@ -46,7 +50,7 @@
 #'   precursors.
 #' @param enzyme A character string; the proteolytic specificity of the assumed
 #'   enzyme will be used to generate peptide sequences from proteins. The enzyme
-#'   is currently \code{trypsin}.
+#'   is currently \code{trypsin_p}.
 #' @param maxn_fasta_seqs A positive integer; the maximum number of protein
 #'   sequences in fasta files. The default is 200000.
 #' @param maxn_vmods_setscombi A non-negative integer; the maximum number of
@@ -211,6 +215,8 @@
 #'   entry by title.
 #' @section \code{Visualization}: \link{mapMS2ions} visualizes the MS2 ion
 #'   ladders.
+#' @section \code{mzTab}: \link{make_mztab} converts outputs from the proteoM ->
+#'   proteoQ pipeline to mzTab files.
 #' @return A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in
 #'   \code{psmQ.txt}.
 #' @examples
@@ -323,7 +329,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                                  "Gln->pyro-Glu (N-term = Q)"),
                      include_insource_nl = FALSE,
                      exclude_phospho_nl = TRUE, 
-                     enzyme = c("trypsin"),
+                     enzyme = c("trypsin_p"),
                      maxn_fasta_seqs = 200000L,
                      maxn_vmods_setscombi = 64L,
                      maxn_vmods_per_pep = 5L,
@@ -683,7 +689,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                   pep_scan_num = scan_num,
                   pep_ms2_n = ms2_n,
                   pep_frame = frame)
-
+  
   out <- dplyr::bind_cols(
     out %>% .[grepl("^prot_", names(.))],
     out %>% .[grepl("^pep_", names(.))],
@@ -700,6 +706,11 @@ matchMS <- function (out_path = "~/proteoM/outs",
                     fdr_type = fdr_type, 
                     combine_tier_three = combine_tier_three, 
                     max_n_prots = max_n_prots)
+
+  local({
+    session_info <- sessionInfo()
+    save(session_info, file = file.path(out_path, "Calls", "proteoM.rda"))
+  })
 
   .savecall <- TRUE
 

@@ -14,7 +14,7 @@ calc_pepmasses2(
     "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
   exclude_phospho_nl = TRUE,
-  enzyme = c("trypsin"),
+  enzyme = c("trypsin_p"),
   maxn_fasta_seqs = 50000L,
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,

@@ -65,7 +65,7 @@ calc_pepmasses2 <- function (
               "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
   exclude_phospho_nl = TRUE,
-  enzyme = c("trypsin"),
+  enzyme = c("trypsin_p"),
   maxn_fasta_seqs = 50000L,
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
@@ -1054,10 +1054,21 @@ add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE,
   res <- mods %>%
     lapply(find_unimod) %>%
     `names<-`(mods)
+  
+  local({
+    x <- res[[1]]
+    
+    nm_seqs <- c("title", "monomass", "position_site", "nl")
+    ok <- identical(names(x), nm_seqs)
+    
+    if (!ok)
+      stop("The structures from `find_unimod` is not in the order of: ", 
+           paste(nm_seqs, collapse = ", "))
+  })
 
-  mod_masses <- lapply(res, `[[`, 1)
-  positions_sites <- lapply(res, `[[`, 2)
-  neulosses <- lapply(res, `[[`, 3)
+  mod_masses <- lapply(res, `[[`, "monomass")
+  positions_sites <- lapply(res, `[[`, "position_site")
+  neulosses <- lapply(res, `[[`, "nl")
   rm(res)
 
   neulosses <- local({

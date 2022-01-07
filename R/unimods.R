@@ -225,7 +225,8 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)",
   else 
     neulosses <- 0
   
-  invisible(list(monomass = monomass,
+  invisible(list(title = title, 
+                 monomass = monomass,
                  position_site = sites,
                  nl = neulosses))
 }
@@ -334,20 +335,26 @@ htable_unimods <- function (file)
   
   titles <- xml2::xml_attr(modifications, "title")
 
-  nodes_specs <- lapply(modifications, function (this_mod) {
-    xml2::xml_find_all(this_mod, "umod:specificity")
-  })
-  
+  nodes_specs <- lapply(modifications, function (this_mod) 
+    xml2::xml_find_all(this_mod, "umod:specificity"))
+
   sites <- lapply(nodes_specs, xml2::xml_attr, "site")
   positions <- lapply(nodes_specs, xml2::xml_attr, "position")
   
+  nodes_delta <- lapply(modifications, function (this_mod) 
+    xml2::xml_find_all(this_mod, "umod:delta"))
+  
+  mono_masses <- lapply(nodes_delta, xml2::xml_attr, "mono_mass")
+  
   lens_specs <- lapply(nodes_specs, length)
   titles <- mapply(function (x, y) rep(x, y), titles, lens_specs)
+  mono_masses <- mapply(function (x, y) rep(x, y), mono_masses, lens_specs)
   
   if (length(titles))
-    data.frame(title = unlist(titles), 
+    data.frame(title = unname(unlist(titles)), 
                site = unlist(sites), 
-               position = unlist(positions))
+               position = unlist(positions), 
+               mono_masses = unlist(mono_masses))
   else
     NULL
 }
