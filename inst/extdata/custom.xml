@@ -19,5 +19,23 @@
         </umod:NeutralLoss>
       </umod:specificity>
     </umod:mod>
+    <umod:mod title="K8" full_name="Heavy lysine 13C(6) 15N(2)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-01-07 17:31:01" date_time_modified="2022-01-07 17:31:01" approved="0" record_id="3">
+      <umod:specificity hidden="0" site="K" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="8.0142" avge_mass="7.94272" composition="13C(6) C(-6) 15N(2) N(-2)">
+        <umod:element symbol="13C" number="6"/>
+        <umod:element symbol="C" number="-6"/>
+        <umod:element symbol="15N" number="2"/>
+        <umod:element symbol="N" number="-2"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="R10" full_name="Heavy arginine 13C(6) 15N(4)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-01-07 17:31:09" date_time_modified="2022-01-07 17:31:09" approved="0" record_id="4">
+      <umod:specificity hidden="0" site="R" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="10.00827" avge_mass="9.92954" composition="13C(6) C(-6) 15N(4) N(-4)">
+        <umod:element symbol="13C" number="6"/>
+        <umod:element symbol="C" number="-6"/>
+        <umod:element symbol="15N" number="4"/>
+        <umod:element symbol="N" number="-4"/>
+      </umod:delta>
+    </umod:mod>
   </umod:modifications>
 </umod:unimod>

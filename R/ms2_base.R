@@ -136,7 +136,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
   mgfs_cr <- mgf_frames[[1]]
   frame <- mgfs_cr$frame[1]
   
-  bf_idx <- 1L # guaranteed?
+  bf_idx <- 1L
   theos_bf_ms1 <- theopeps[[bf_idx]] 
   theopeps_bf_ms1 <- theos_bf_ms1$pep_seq
   theomasses_bf_ms1 <- theos_bf_ms1$mass
@@ -269,7 +269,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       theos_cr_ms1 <- theos_af_ms1
       theomasses_cr_ms1 <- theomasses_af_ms1
       theos_cr_ms2 <- theos_af_ms2
-    } else if (isTRUE(new_frame == (frame + 2L))) {
+    } 
+    else if (isTRUE(new_frame == (frame + 2L))) {
       cr_idx <- cr_idx + 2L
       
       theos_bf_ms1 <- theos_af_ms1
@@ -304,7 +305,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
         USE.NAMES = FALSE
       )
       names(theos_cr_ms2) <- theopeps_cr_ms1
-    } else {
+    } 
+    else {
       cr_idx <- cr_idx + 3L
       bf_idx <- cr_idx - 1L
       
@@ -370,16 +372,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
     frame <- new_frame
   }
   
-  # rm(list = c("mgf_frames", "theopeps", "theos_bf_ms1", "theos_cr_ms1", 
-  #             "theos_af_ms1", "theomasses_bf_ms1", "theomasses_cr_ms1", 
-  #             "theomasses_af_ms1", "theopeps_bf_ms1", "theopeps_cr_ms1", 
-  #             "theopeps_af_ms1", "theos_bf_ms2", "theos_cr_ms2", 
-  #             "theos_af_ms2", "exptmasses_ms1", "exptmoverzs_ms2", 
-  #             "mgfs_cr", "new_frame", "frame"))
-  
   out <- post_frame_adv(out, mgf_frames)
-  
-  # invisible(out)
 }
 
 

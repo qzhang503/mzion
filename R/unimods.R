@@ -453,6 +453,42 @@ htable_unimods <- function (file)
 #'                                 avge_mass   = "64.1069",
 #'                                 composition = "H(4) C O S"))
 #' }
+#' 
+#' ## Heavy isotopes
+#' # Lysine
+#' K8 <- calc_unimod_compmass("13C(6) C(-6) 15N(2) N(-2)")
+#' 
+#' mono_mass <- K8$mono_mass
+#' avge_mass <- K8$avge_mass
+#' 
+#' x <- add_unimod(header      = c(title       = "K8",
+#'                                 full_name   = "Heavy lysine 13C(6) 15N(2)"),
+#'                 specificity = c(site        = "K",
+#'                                 position    = "Anywhere"),
+#'                 delta       = c(mono_mass   = "8.0142",
+#'                                 avge_mass   = "7.94272",
+#'                                 composition = "13C(6) C(-6) 15N(2) N(-2)"),
+#'                 neuloss     = c(mono_mass   = "0",
+#'                                 avge_mass   = "0",
+#'                                 composition = "0"))
+#' 
+#' # Arginine
+#' R10 <- calc_unimod_compmass("13C(6) C(-6) 15N(4) N(-4)")
+#' 
+#' mono_mass <- R10$mono_mass
+#' avge_mass <- R10$avge_mass
+#' 
+#' x <- add_unimod(header      = c(title       = "R10",
+#'                                 full_name   = "Heavy arginine 13C(6) 15N(4)"),
+#'                 specificity = c(site        = "R",
+#'                                 position    = "Anywhere"),
+#'                 delta       = c(mono_mass   = "10.00827",
+#'                                 avge_mass   = "9.92954",
+#'                                 composition = "13C(6) C(-6) 15N(4) N(-4)"),
+#'                 neuloss     = c(mono_mass   = "0",
+#'                                 avge_mass   = "0",
+#'                                 composition = "0"))
+#' 
 #' @export
 add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"), 
                         specificity = c(site  = "C", position = "Anywhere"), 

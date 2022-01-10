@@ -1137,9 +1137,8 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
                      out_path = out_path)
   prob_cos <- unlist(prob_cos)
   
-  if (length(prob_cos) == 1L && !is.na(prob_cos)) {
+  if (length(prob_cos) == 1L && !is.na(prob_cos))
     return(data.frame(pep_len = all_lens, pep_prob_co = prob_cos))
-  }
   else if (all(is.na(prob_cos))) {
     seqs <- min_len:max_len
     prob_cos <- rep(target_fdr, length(seqs))
@@ -1167,10 +1166,12 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   
   # no fittings
   if (length(lens) <= 3L) {
+    prob_cos <- prob_cos[!is.na(names(prob_cos))]
+    
     return(data.frame(pep_len = as.numeric(names(prob_cos)), 
                       pep_prob_co = prob_cos))
   }
-  
+
   # quality ones for fittings
   prob_cos <- prob_cos %>% .[names(.) %in% lens]
   counts <- counts %>% .[names(.) %in% lens]
@@ -1323,7 +1324,8 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     prob_cos <- 10^(-newy/fct_score)
     names(prob_cos) <- nms
     
-    prob_cos
+    # with `find_optlens`, some length in newy may not be in prob_cos
+    prob_cos[!is.na(names(prob_cos))]
   })
 
   if (match_pepfdr) {

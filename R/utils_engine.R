@@ -230,18 +230,18 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
   #     preceding and following frames: (o)|range of mgf_frames[[1]]|(o)
   frames_mgf <- lapply(mgf_frames, function (x) as.integer(names(x)))
   
-  mins <- purrr::map_dbl(frames_mgf, ~ {
-    if (!length(.x)) 
+  mins <- purrr::map_dbl(frames_mgf, function (x) {
+    if (!length(x)) 
       0 
     else 
-      min(.x, na.rm = TRUE)
+      min(x, na.rm = TRUE)
   })
   
-  maxs <- purrr::map_dbl(frames_mgf, ~ {
-    if (!length(.x)) 
+  maxs <- purrr::map_dbl(frames_mgf, function (x) {
+    if (!length(x)) 
       0 
     else 
-      max(.x, na.rm = TRUE)
+      max(x, na.rm = TRUE)
   })
   
   frames_theo <- as.integer(names(theopeps))
@@ -748,6 +748,42 @@ combi_mat <- function (nb = 5L, ns = 3L)
     m[, i] <- cumsum(m[, i-1])
   
   m
+}
+
+
+#' Hash table of binned MS1.
+#' 
+#' @param data Input data.
+#' @param r Hash ratio.
+hash_frame_nums <- function (data, r = 1.5) 
+{
+  vals <- names(data)
+  len <- length(vals)
+  n_bucks <- ceiling(r * len)
+  keys <- unlist(lapply(vals, digest::digest2int), 
+                 recursive = FALSE, use.names = FALSE)
+  coll_ids <- keys %% n_bucks + 1L
+  
+  ans <- vector("list", n_bucks)
+  
+  coll_data <- split(data, coll_ids) 
+  uniq_ids <- as.integer(names(coll_data)) 
+  
+  for (i in seq_along(coll_data))
+    ans[[uniq_ids[i]]] <- coll_data[[i]]
+  
+  # attr(ans, "n_bucks") <- n_bucks
+  
+  invisible(ans)
+  
+  # val <- "248492"
+  # key <- digest::digest2int(val)
+  # n_bucks <- length(ans) # faster than `attr`
+  # coll_id <- key %% n_bucks + 1L
+  # x <- ans[[coll_id]]
+  # x[[val]]
+  # 
+  # bench::mark(x[[val]], out[[val]])
 }
 
 
