@@ -12,7 +12,8 @@ fuzzy_match_one2(x, y)
 \item{y}{A vector to be matched against.}
 }
 \description{
-Not used but called the codes inside directly.
+No multiple dipping of \code{y} matches. A \code{y} value will be removed (or
+became 0) if matched,
 }
 \examples{
 ans1 <- fuzzy_match_one2(c(74953, 74955), rep(74954, 2))

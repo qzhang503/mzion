@@ -60,8 +60,8 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
       "add_hexcodes_vnl2", 
       "search_mgf2", 
       "find_ms2_bypep", 
-      # "fuzzy_match_one", 
-      # "fuzzy_match_one2", 
+      "fuzzy_match_one", 
+      "fuzzy_match_one2", 
       "post_frame_adv"), 
     envir = environment(proteoM:::frames_adv)
   )

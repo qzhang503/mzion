@@ -56,8 +56,8 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
       "aions_base", "xions_base", 
       "search_mgf2", 
       "find_ms2_bypep", 
-      # "fuzzy_match_one", 
-      # "fuzzy_match_one2", 
+      "fuzzy_match_one", 
+      "fuzzy_match_one2", 
       "post_frame_adv"), 
     envir = environment(proteoM:::frames_adv)
   )
@@ -948,12 +948,16 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
     theos_i <- theos[[i]]
     th_i <- ceiling(log(theos_i/min_ms2mass)/log(1+d))
     
+    # forward matches
     mi <- th_i %fin% ex
     bf <- (th_i - 1L) %fin% ex
     af <- (th_i + 1L) %fin% ex
     ps <- mi | bf | af
     
-    if(sum(ps) > 0L) {
+    n_ps <- sum(ps)
+    
+    # backward matches
+    if(n_ps > 0L) {
       
       # (i) place held by theoretical values to indicate matches
       # (ii) replaced the matches by experimental values
@@ -966,21 +970,33 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
       mid <- lth/2L
       
       x <- ex
-      y <- th_i[1:mid]
-      mi <- x %fin% y
-      bf <- (x - 1L) %fin% y
-      af <- (x + 1L) %fin% y
-      bps <- mi | bf | af
+      x_bf <- x - 1L
+      x_af <- x + 1L
       
-      y <- th_i[(mid+1L):lth]
-      mi <- x %fin% y
-      bf <- (x - 1L) %fin% y
-      af <- (x + 1L) %fin% y
-      yps <- mi | bf | af
+      y_1 <- th_i[1:mid]
+      mi_1 <- x %fin% y_1
+      bf_1 <- x_bf %fin% y_1
+      af_1 <- x_af %fin% y_1
+      ps_1 <- mi_1 | bf_1 | af_1
       
-      es[ps] <- c(expts[bps], expts[yps])
+      y_2 <- th_i[(mid+1L):lth]
+      mi_2 <- x %fin% y_2
+      bf_2 <- x_bf %fin% y_2
+      af_2 <- x_af %fin% y_2
+      ps_2 <- mi_2 | bf_2 | af_2
+      
+      expt_12 <- c(expts[ps_1], expts[ps_2])
+      
+      if (n_ps != length(expt_12)) {
+        ps_12 <- fuzzy_match_one2(ex, th_i)
+        expt_12 <- expts[ps_12]
+      }
+
+      es[ps] <- expt_12
+
       out[[i]] <- list(theo = theos_i, expt = es)
-    } else {
+    } 
+    else {
       es <- rep(NA, length(theos_i))
       out[[i]] <- list(theo = theos_i, expt = es)
     }
@@ -1007,37 +1023,38 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
 #' stopifnot(ans1 == c(TRUE, TRUE))
 fuzzy_match_one <- function (x, y) 
 {
-  mi <- x %fin% y # 1.1 us
-  bf <- (x - 1L) %fin% y # 1.7 us
-  af <- (x + 1L) %fin% y # 1.6 us
+  mi <- x %fin% y
+  bf <- (x - 1L) %fin% y
+  af <- (x + 1L) %fin% y
   
-  ps <- mi | bf | af # .5 us
+  ps <- mi | bf | af
 }
 
 
 #' Fuzzy matches with a +/-1 window.
-#' 
-#' Not used but called the codes inside directly.
-#' 
+#'
+#' No multiple dipping of \code{y} matches. A \code{y} value will be removed (or
+#' became 0) if matched,
+#'
 #' @param x A vector to be matched.
 #' @param y A vector to be matched against.
-#' @importFrom fastmatch fmatch %fin% 
-#' @examples 
+#' @importFrom fastmatch fmatch %fin%
+#' @examples
 #' ans1 <- fuzzy_match_one2(c(74953, 74955), rep(74954, 2))
 #' ans2 <- fuzzy_match_one2(c(74953, 74955), 74954)
-#' 
+#'
 #' stopifnot(identical(ans1, ans2))
 #' stopifnot(ans1 == c(FALSE, TRUE))
-#' 
+#'
 #' ans3 <- fuzzy_match_one2(c(74953, 74955, 80000), c(74955, 80000))
 fuzzy_match_one2 <- function (x, y) 
 {
   mi <- x %fin% y
-  # if (any(mi)) y[y %fin% x[mi]] <- 0L
+  if (any(mi)) y[y %fin% x[mi]] <- 0L
   
   x2 <- x - 1L
   bf <- x2 %fin% y
-  # if (any(bf)) y[y %fin% x2[bf]] <- 0L
+  if (any(bf)) y[y %fin% x2[bf]] <- 0L
 
   af <- (x + 1L) %fin% y
   
