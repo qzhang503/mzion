@@ -16,6 +16,7 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
   theopeps <- tempdata$theopeps
+  theopeps2 <- tempdata$theopeps2
   rm(list = c("tempdata"))
   gc()
   
@@ -33,6 +34,7 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
   parallel::clusterExport(
     cl,
     c("frames_adv", 
+      "frames_adv2", 
       "gen_ms2ions_a0_vnl0_fnl1", 
       "expand_grid_rows", 
       "gen_ms2ions_base", 
@@ -43,38 +45,68 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
       "aions_base", "xions_base", 
       "search_mgf2", 
       "find_ms2_bypep", 
-      "fuzzy_match_one", 
-      "fuzzy_match_one2", 
+      # "fuzzy_match_one", 
+      # "fuzzy_match_one2", 
       "post_frame_adv"), 
     envir = environment(proteoM:::frames_adv)
   )
 
-  out <- parallel::clusterMap(
-    cl, frames_adv, 
-    mgf_frames, theopeps, 
-    MoreArgs = list(aa_masses = aa_masses, 
-                    ms1vmods = ms1vmods, 
-                    ms2vmods = ms2vmods, 
-                    ntmod = NULL, 
-                    ctmod = NULL, 
-                    ntmass = ntmass, 
-                    ctmass = ctmass, 
-                    amods = NULL, vmods_nl = NULL, fmods_nl = fmods_nl, 
-                    mod_indexes = mod_indexes, 
-                    type_ms2ions = type_ms2ions, 
-                    maxn_vmods_per_pep = 
-                      maxn_vmods_per_pep, 
-                    maxn_sites_per_vmod = 
-                      maxn_sites_per_vmod, 
-                    maxn_vmods_sitescombi_per_pep = 
-                      maxn_vmods_sitescombi_per_pep, 
-                    minn_ms2 = minn_ms2, 
-                    ppm_ms1 = ppm_ms1, 
-                    ppm_ms2 = ppm_ms2, 
-                    min_ms2mass = min_ms2mass, 
-                    digits = digits, 
-                    FUN = gen_ms2ions_a0_vnl0_fnl1), 
-    .scheduling = "dynamic")
+  if (is.null(theopeps2)) {
+    out <- parallel::clusterMap(
+      cl, frames_adv, 
+      mgf_frames, theopeps, 
+      MoreArgs = list(aa_masses = aa_masses, 
+                      ms1vmods = ms1vmods, 
+                      ms2vmods = ms2vmods, 
+                      ntmod = NULL, 
+                      ctmod = NULL, 
+                      ntmass = ntmass, 
+                      ctmass = ctmass, 
+                      amods = NULL, vmods_nl = NULL, fmods_nl = fmods_nl, 
+                      mod_indexes = mod_indexes, 
+                      type_ms2ions = type_ms2ions, 
+                      maxn_vmods_per_pep = 
+                        maxn_vmods_per_pep, 
+                      maxn_sites_per_vmod = 
+                        maxn_sites_per_vmod, 
+                      maxn_vmods_sitescombi_per_pep = 
+                        maxn_vmods_sitescombi_per_pep, 
+                      minn_ms2 = minn_ms2, 
+                      ppm_ms1 = ppm_ms1, 
+                      ppm_ms2 = ppm_ms2, 
+                      min_ms2mass = min_ms2mass, 
+                      digits = digits, 
+                      FUN = gen_ms2ions_a0_vnl0_fnl1), 
+      .scheduling = "dynamic")
+  }
+  else {
+    out <- parallel::clusterMap(
+      cl, frames_adv2, 
+      mgf_frames, theopeps, theopeps2, 
+      MoreArgs = list(aa_masses = aa_masses, 
+                      ms1vmods = ms1vmods, 
+                      ms2vmods = ms2vmods, 
+                      ntmod = NULL, 
+                      ctmod = NULL, 
+                      ntmass = ntmass, 
+                      ctmass = ctmass, 
+                      amods = NULL, vmods_nl = NULL, fmods_nl = fmods_nl, 
+                      mod_indexes = mod_indexes, 
+                      type_ms2ions = type_ms2ions, 
+                      maxn_vmods_per_pep = 
+                        maxn_vmods_per_pep, 
+                      maxn_sites_per_vmod = 
+                        maxn_sites_per_vmod, 
+                      maxn_vmods_sitescombi_per_pep = 
+                        maxn_vmods_sitescombi_per_pep, 
+                      minn_ms2 = minn_ms2, 
+                      ppm_ms1 = ppm_ms1, 
+                      ppm_ms2 = ppm_ms2, 
+                      min_ms2mass = min_ms2mass, 
+                      digits = digits), 
+      .scheduling = "dynamic")
+  }
+  
 
   parallel::stopCluster(cl)
   

@@ -2,15 +2,15 @@
 % Please edit documentation in R/utils_engine.R
 \name{hash_frame_nums}
 \alias{hash_frame_nums}
-\title{Hash table of binned MS1.}
+\title{Makes hash table.}
 \usage{
 hash_frame_nums(data, r = 1.5)
 }
 \arguments{
-\item{data}{Input data.}
+\item{data}{A named vector or list.}
 
-\item{r}{Hash ratio.}
+\item{r}{Numeric; bucket-to-key ratio.}
 }
 \description{
-Hash table of binned MS1.
+Not yet used.
 }

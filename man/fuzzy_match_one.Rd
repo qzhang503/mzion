@@ -12,7 +12,7 @@ fuzzy_match_one(x, y)
 \item{y}{A vector to be matched against.}
 }
 \description{
-Fuzzy matches with a +/-1 window.
+Not used but called the codes inside directly.
 }
 \examples{
 ans1 <- fuzzy_match_one(c(74953, 74955), rep(74954, 2))

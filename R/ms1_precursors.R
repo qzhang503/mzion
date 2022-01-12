@@ -1489,8 +1489,6 @@ make_fastapeps0 <- function (fasta_db, max_miss = 2L)
                          SIMPLIFY = FALSE)
   peps[-inds_m] <- lapply(peps[-inds_m], function (x) list(NA, x))
 
-  # rm(list = c("inds_m", "fasta_db", "fasta_dbm", "peps_m"))
-
   invisible(peps)
 }
 
@@ -2021,11 +2019,14 @@ roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE)
     })
     
     res2 <- .Internal(unlist(res2, recursive = FALSE, use.names = TRUE))
+    ans <- c(res, res2)
   } else {
-    res2 <- NULL
+    # res2 <- NULL
+    ans <- res
   }
   
-  c(res, res2)
+  # c(res, res2)
+  invisible(ans)
 }
 
 

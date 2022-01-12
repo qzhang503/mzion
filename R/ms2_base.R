@@ -29,15 +29,12 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
   theopeps <- tempdata$theopeps
+  theopeps2 <- tempdata$theopeps2
   rm(list = c("tempdata"))
   gc()
   
-  if (!length(mgf_frames) || !length(theopeps)) return(NULL)
-  
-  # 16L: 2.24817038 mins
-  # 32L: 1.72830058 mins
-  # 48L: 1.76265123 mins
-  # 64L: 1.97044995 mins
+  if (!length(mgf_frames) || !length(theopeps)) 
+    return(NULL)
   
   n_cores <- detect_cores(32L)
 
@@ -50,6 +47,7 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
   parallel::clusterExport(
     cl,
     c("frames_adv", 
+      "frames_adv2", 
       "gen_ms2ions_base", 
       "ms2ions_by_type", 
       "byions", "czions", "axions", 
@@ -58,37 +56,65 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
       "aions_base", "xions_base", 
       "search_mgf2", 
       "find_ms2_bypep", 
-      "fuzzy_match_one", 
-      "fuzzy_match_one2", 
+      # "fuzzy_match_one", 
+      # "fuzzy_match_one2", 
       "post_frame_adv"), 
     envir = environment(proteoM:::frames_adv)
   )
 
-  out <- parallel::clusterMap(
-    cl, frames_adv, 
-    mgf_frames, theopeps, 
-    MoreArgs = list(aa_masses = aa_masses, 
-                    ms1vmods = ms1vmods, 
-                    ms2vmods = ms2vmods, 
-                    ntmod = NULL, 
-                    ctmod = NULL, 
-                    ntmass = ntmass, 
-                    ctmass = ctmass, 
-                    amods = NULL, 
-                    vmods_nl = NULL, 
-                    fmods_nl = NULL, 
-                    mod_indexes = mod_indexes, 
-                    type_ms2ions = type_ms2ions, 
-                    maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                    maxn_sites_per_vmod = maxn_sites_per_vmod, 
-                    maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-                    minn_ms2 = minn_ms2, 
-                    ppm_ms1 = ppm_ms1, 
-                    ppm_ms2 = ppm_ms2, 
-                    min_ms2mass = min_ms2mass, 
-                    digits = digits, 
-                    FUN = gen_ms2ions_base), 
-    .scheduling = "dynamic")
+  if (is.null(theopeps2)) {
+    out <- parallel::clusterMap(
+      cl, frames_adv, 
+      mgf_frames, theopeps, 
+      MoreArgs = list(aa_masses = aa_masses, 
+                      ms1vmods = ms1vmods, 
+                      ms2vmods = ms2vmods, 
+                      ntmod = NULL, 
+                      ctmod = NULL, 
+                      ntmass = ntmass, 
+                      ctmass = ctmass, 
+                      amods = NULL, 
+                      vmods_nl = NULL, 
+                      fmods_nl = NULL, 
+                      mod_indexes = mod_indexes, 
+                      type_ms2ions = type_ms2ions, 
+                      maxn_vmods_per_pep = maxn_vmods_per_pep, 
+                      maxn_sites_per_vmod = maxn_sites_per_vmod, 
+                      maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+                      minn_ms2 = minn_ms2, 
+                      ppm_ms1 = ppm_ms1, 
+                      ppm_ms2 = ppm_ms2, 
+                      min_ms2mass = min_ms2mass, 
+                      digits = digits, 
+                      FUN = gen_ms2ions_base), 
+      .scheduling = "dynamic")
+  }
+  else {
+    out <- parallel::clusterMap(
+      cl, frames_adv2, 
+      mgf_frames, theopeps, theopeps2, 
+      MoreArgs = list(aa_masses = aa_masses, 
+                      ms1vmods = ms1vmods, 
+                      ms2vmods = ms2vmods, 
+                      ntmod = NULL, 
+                      ctmod = NULL, 
+                      ntmass = ntmass, 
+                      ctmass = ctmass, 
+                      amods = NULL, 
+                      vmods_nl = NULL, 
+                      fmods_nl = NULL, 
+                      mod_indexes = mod_indexes, 
+                      type_ms2ions = type_ms2ions, 
+                      maxn_vmods_per_pep = maxn_vmods_per_pep, 
+                      maxn_sites_per_vmod = maxn_sites_per_vmod, 
+                      maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+                      minn_ms2 = minn_ms2, 
+                      ppm_ms1 = ppm_ms1, 
+                      ppm_ms2 = ppm_ms2, 
+                      min_ms2mass = min_ms2mass, 
+                      digits = digits), 
+      .scheduling = "dynamic")
+  }
 
   parallel::stopCluster(cl)
   
@@ -367,6 +393,150 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
         USE.NAMES = FALSE
       )
       names(theos_cr_ms2) <- theopeps_cr_ms1
+    }
+    
+    frame <- new_frame
+  }
+  
+  out <- post_frame_adv(out, mgf_frames)
+}
+
+
+#' Frames advancement (with cached \code{ms2masses}.
+#'
+#' Not yet used. readRDS takes about 30 secs and clusterApply(cl, x, readRDS)
+#' takes about 16 seconds for one module and couple minutes for all twelve
+#' modules. For small data sets, the gain in using pre-calcucated ms2masses did
+#' not outweigh the loss in the loading of the large files. Needs a faster
+#' parallel readRDS.
+#'
+#' @param mgf_frames A group of mgf frames. Each frame contains one to multiple
+#'   MGFs whose MS1 masses are in the same interval.
+#' @param theopeps Binned theoretical peptides corresponding to an i-th
+#'   \code{aa_masses}.
+#' @param theopeps2 Binned theoretical MS2 ions corresponding to an i-th
+#'   \code{aa_masses}.
+#' @param minn_ms2 Integer; the minimum number of MS2 ions for consideration as
+#'   a hit.
+#' @param ppm_ms1 The mass tolerance of MS1 species.
+#' @param ppm_ms2 The mass tolerance of MS2 species.
+#' @inheritParams matchMS
+#' @inheritParams ms2match
+#' @inheritParams ms2match_base
+#' @return Matches to each MGF as a list elements. The length of the output is
+#'   equal to the number of MGFs in the given frame.
+frames_adv2 <- function (mgf_frames = NULL, theopeps = NULL, theopeps2 = NULL,
+                         aa_masses = NULL, ms1vmods = NULL, ms2vmods = NULL, 
+                         ntmod = NULL, ctmod = NULL, 
+                         ntmass = NULL, ctmass = NULL, 
+                         amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
+                         mod_indexes = NULL, 
+                         type_ms2ions = "by", 
+                         maxn_vmods_per_pep = 5L, 
+                         maxn_sites_per_vmod = 3L, 
+                         maxn_vmods_sitescombi_per_pep = 32L, 
+                         minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                         min_ms2mass = 110L, digits = 4L) 
+{
+  len <- length(mgf_frames)
+  out <- vector("list", len) 
+  
+  ## --- initiation ---
+  mgfs_cr <- mgf_frames[[1]]
+  frame <- mgfs_cr$frame[1]
+
+  bf_idx <- 1L
+  theos_bf_ms1 <- theopeps[[bf_idx]] 
+  theopeps_bf_ms1 <- theos_bf_ms1$pep_seq
+  theomasses_bf_ms1 <- theos_bf_ms1$mass
+  
+  cr_idx <- bf_idx + 1L
+  theos_cr_ms1 <- theopeps[[cr_idx]]
+  theopeps_cr_ms1 <- theos_cr_ms1$pep_seq
+  theomasses_cr_ms1 <- theos_cr_ms1$mass
+  
+  # name order are different
+  theos_bf_ms2 <- theopeps2[[as.character(frame - 1L)]]
+  theos_cr_ms2 <- theopeps2[[as.character(frame)]]
+
+  ## --- iteration ---
+  for (i in seq_len(len)) {
+    exptmasses_ms1 <- mgfs_cr$ms1_mass
+    exptmoverzs_ms2 <- mgfs_cr$ms2_moverz
+    
+    af_idx <- cr_idx + 1L
+    frame_af <- frame + 1L
+    
+    theos_af_ms1 <- theopeps[[af_idx]]
+    theopeps_af_ms1 <- theos_af_ms1$pep_seq
+    theomasses_af_ms1 <- theos_af_ms1$mass
+    
+    theos_af_ms2 <- theopeps2[[as.character(frame_af)]]
+
+    out[[i]] <- mapply(
+      search_mgf2, 
+      expt_mass_ms1 = exptmasses_ms1, 
+      expt_moverz_ms2 = exptmoverzs_ms2, 
+      MoreArgs = list(
+        theomasses_bf_ms1 = theomasses_bf_ms1, 
+        theomasses_cr_ms1 = theomasses_cr_ms1, 
+        theomasses_af_ms1 = theomasses_af_ms1, 
+        theos_bf_ms2 = theos_bf_ms2, 
+        theos_cr_ms2 = theos_cr_ms2, 
+        theos_af_ms2 = theos_af_ms2, 
+        minn_ms2 = minn_ms2, 
+        ppm_ms1 = ppm_ms1, 
+        ppm_ms2 = ppm_ms2, 
+        min_ms2mass = min_ms2mass
+      ), 
+      SIMPLIFY = FALSE,
+      USE.NAMES = FALSE
+    )
+    
+    if (i == len) break
+    
+    # advance to the next frame
+    mgfs_cr <- mgf_frames[[i+1]]
+    new_frame <- mgfs_cr$frame[1]
+
+    if (isTRUE(new_frame == (frame + 1L))) {
+      cr_idx <- cr_idx + 1L
+      
+      theos_bf_ms1 <- theos_cr_ms1
+      theomasses_bf_ms1 <- theomasses_cr_ms1
+      theos_bf_ms2 <- theos_cr_ms2
+      
+      theos_cr_ms1 <- theos_af_ms1
+      theomasses_cr_ms1 <- theomasses_af_ms1
+      theos_cr_ms2 <- theos_af_ms2
+    } 
+    else if (isTRUE(new_frame == (frame + 2L))) {
+      cr_idx <- cr_idx + 2L
+      
+      theos_bf_ms1 <- theos_af_ms1
+      theomasses_bf_ms1 <- theomasses_af_ms1
+      theos_bf_ms2 <- theos_af_ms2
+      
+      theos_cr_ms1 <- theopeps[[cr_idx]]
+      theopeps_cr_ms1 <- theos_cr_ms1$pep_seq
+      theomasses_cr_ms1 <- theos_cr_ms1$mass
+      
+      theos_cr_ms2 <- theopeps2[[as.character(new_frame)]]
+    } 
+    else {
+      cr_idx <- cr_idx + 3L
+      bf_idx <- cr_idx - 1L
+      
+      theos_bf_ms1 <- theopeps[[bf_idx]]
+      theopeps_bf_ms1 <- theos_bf_ms1$pep_seq
+      theomasses_bf_ms1 <- theos_bf_ms1$mass
+      
+      theos_cr_ms1 <- theopeps[[cr_idx]]
+      theopeps_cr_ms1 <- theos_cr_ms1$pep_seq
+      theomasses_cr_ms1 <- theos_cr_ms1$mass
+      
+      theos_bf_ms2 <- theopeps2[[as.character(new_frame - 1L)]]
+      theos_cr_ms2 <- theopeps2[[as.character(new_frame)]]
     }
     
     frame <- new_frame
@@ -688,6 +858,7 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
 #'            627.3249,783.4260,175.1190,322.1874,379.2088,
 #'            480.2565,551.2936,688.3525,801.4366)
 #' 
+#' pep <- "ABCDEFG"
 #' nms <- unlist(stringr::str_split(pep, ""))
 #' 
 #' names(theos) <- c(nms, rev(nms))
@@ -761,44 +932,52 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
   #   match(1:4, c(1, 2, 2, 5))
   #   (so no worry about th_i duplication)
   ##############################################################################
-
+  
   len <- length(theos)
   
-  if (!len) return(list(theo = NULL, expt = NULL))
-  
-  if (!is.list(theos)) theos <- list(theos)
+  if (!len) 
+    return(list(theo = NULL, expt = NULL))
   
   d <- ppm_ms2/1e6
+  ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
   
-  fex <- .Internal(unlist(expts, recursive = FALSE, use.names = FALSE))
-  ex <- ceiling(log(fex/min_ms2mass)/log(1+d))
-
   # ---
   out <- vector("list", len)
   
   for (i in 1:len) {
     theos_i <- theos[[i]]
+    th_i <- ceiling(log(theos_i/min_ms2mass)/log(1+d))
     
-    fth <- .Internal(unlist(theos_i, recursive = FALSE, use.names = FALSE))
-    th_i <- ceiling(log(fth/min_ms2mass)/log(1+d))
-
-    ps <- fuzzy_match_one(th_i, ex)
+    mi <- th_i %fin% ex
+    bf <- (th_i - 1L) %fin% ex
+    af <- (th_i + 1L) %fin% ex
+    ps <- mi | bf | af
     
-    if(sum(ps) > 0) {
+    if(sum(ps) > 0L) {
       
-      # (i) place holed by theoretical values to indicate matches
+      # (i) place held by theoretical values to indicate matches
       # (ii) replaced the matches by experimental values
-
-      es <- theos_i # .1 us
-      es[!ps] <- NA # .9 us
-
+      
+      es <- theos_i
+      es[!ps] <- NA
+      
       # separated b and y matches (to handled double-dipping between b and y)
       lth <- length(ps)
       mid <- lth/2L
-
-      bps <- fuzzy_match_one2(ex, th_i[1:mid])
-      yps <- fuzzy_match_one2(ex, th_i[(mid+1L):lth])
-
+      
+      x <- ex
+      y <- th_i[1:mid]
+      mi <- x %fin% y
+      bf <- (x - 1L) %fin% y
+      af <- (x + 1L) %fin% y
+      bps <- mi | bf | af
+      
+      y <- th_i[(mid+1L):lth]
+      mi <- x %fin% y
+      bf <- (x - 1L) %fin% y
+      af <- (x + 1L) %fin% y
+      yps <- mi | bf | af
+      
       es[ps] <- c(expts[bps], expts[yps])
       out[[i]] <- list(theo = theos_i, expt = es)
     } else {
@@ -814,6 +993,8 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
 
 
 #' Fuzzy matches with a +/-1 window.
+#' 
+#' Not used but called the codes inside directly.
 #' 
 #' @param x A vector to be matched.
 #' @param y A vector to be matched against.
@@ -836,6 +1017,8 @@ fuzzy_match_one <- function (x, y)
 
 #' Fuzzy matches with a +/-1 window.
 #' 
+#' Not used but called the codes inside directly.
+#' 
 #' @param x A vector to be matched.
 #' @param y A vector to be matched against.
 #' @importFrom fastmatch fmatch %fin% 
@@ -850,11 +1033,11 @@ fuzzy_match_one <- function (x, y)
 fuzzy_match_one2 <- function (x, y) 
 {
   mi <- x %fin% y
-  if (any(mi)) y[y %fin% x[mi]] <- 0L
+  # if (any(mi)) y[y %fin% x[mi]] <- 0L
   
   x2 <- x - 1L
   bf <- x2 %fin% y
-  if (any(bf)) y[y %fin% (x2[bf])] <- 0L
+  # if (any(bf)) y[y %fin% x2[bf]] <- 0L
 
   af <- (x + 1L) %fin% y
   

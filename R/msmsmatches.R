@@ -6,6 +6,20 @@
 #' performed with \link[proteoQ]{normPSM} given that values will be affected
 #' with the combination of multiple PSM tables.
 #'
+#' The search engine does not assume that variable peptides are descendants of
+#' fixed peptides. In other words, each combination of variable and fixed
+#' modifications is a set of \emph{realization} and applied freshly for searches
+#' against all possible candidate sequences. Cares in search space were taken by
+#' restricting only possible candidates at a given realization.
+#'
+#' The search is a two-way match: (a) a forward matching of theoretical values
+#' to experiment ones and (b) a backward matching of the experimental values to
+#' the theoretical ones. This allows the establishment of one-to-one
+#' correspondences between experiments and theoreticals. The correspondences are
+#' made available to users in files of \code{ion_matches_1.rds} etc., and, e.g.,
+#' are used in \link{mapMS2ions} for rapid retrievals and visualizations of MS2
+#' ion ladders.
+#'
 #' @param out_path A file path of outputs.
 #' @param mgf_path A file path to a list of MGF files. The experimenter needs to
 #'   supply the files.

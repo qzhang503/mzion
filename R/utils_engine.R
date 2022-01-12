@@ -153,7 +153,10 @@ post_frame_adv <- function (res, mgf_frames)
 {
   res <- unlist(res, recursive = FALSE)
 
-  empties <- purrr::map_lgl(res, purrr::is_empty)
+  # empties <- purrr::map_lgl(res, purrr::is_empty)
+  lens <- lapply(res, length)
+  lens <- unlist(lens, recursive = FALSE, use.names = FALSE)
+  empties <- !lens
 
   out <- do.call(rbind, mgf_frames)
   out <- dplyr::mutate(out, matches = res)
@@ -174,10 +177,10 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
   mgf_frames <- readRDS(file.path(mgf_path, "mgf_queries.rds")) %>%
     dplyr::group_by(frame) %>%
     dplyr::group_split() %>%
-    setNames(purrr::map_dbl(., ~ .x$frame[1]))
+    setNames(purrr::map_dbl(., function (x) x$frame[1]))
 
   mgf_frames <- local({
-    ranges <- 1:length(mgf_frames)
+    ranges <- seq_along(mgf_frames)
     labs <- levels(cut(ranges, n_cores^2))
     lower = floor(as.numeric( sub("\\((.+),.*", "\\1", labs)))
 
@@ -201,16 +204,6 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 
   theopeps <- readRDS(file.path(.path_bin, paste0("binned_theopeps_", i, ".rds")))
   theopeps <- lapply(theopeps, function (x) x[, c("pep_seq", "mass")])
-
-  # purged by neuloss residues
-  # (not used)
-  if (!is.null(fmods_nl)) {
-    sites <- names(fmods_nl)
-    pattern <- paste(sites, collapse = "|")
-    theopeps <- subset_neuloss_peps(pattern, theopeps)
-
-    rm(list = c("sites", "pattern"))
-  }
 
   # (1) for a given aa_masses_all[[i]], some mgf_frames[[i]]
   #     may not be found in theopeps[[i]]
@@ -268,15 +261,40 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 
   mgf_frames <- mgf_frames[oks]
   theopeps <- theopeps[oks]
-  
-  # (5) reverses the order (longer/heavier peptides towards the beginning)
+
+  # (6) reverses the order (longer/heavier peptides towards the beginning)
   #     do the difficult ones first when paralleling with LB
   seqs <- rev(seq_along(theopeps))
   mgf_frames <- mgf_frames[seqs]
   theopeps <- theopeps[seqs]
   
+  if (FALSE) {
+    theopeps2 <- local({
+      .path_bin2 <- gsub("ms1masses/", "ms2masses/", .path_bin)
+      file <- file.path(.path_bin2, paste0("binned_ms2_", i, ".rds"))
+      
+      if (!file.exists(file))
+        return(NULL)
+      
+      tps2 <- readRDS(file)
+      
+      frames <- lapply(theopeps, names)
+      frames <- lapply(frames, function (x) x[!is.na(x)])
+      
+      tps2 <- tps2[names(tps2) %in% unlist(frames)]
+      
+      # split by frames in accordance with theopeps
+      tps2 <- lapply(frames, function (x) tps2[names(tps2) %in% x])
+      
+      # lapply(tps2, hash_frame_nums)
+    })
+  }
+  else 
+    theopeps2 <- NULL
+
   invisible(list(mgf_frames = mgf_frames, 
-                 theopeps = theopeps))
+                 theopeps = theopeps, 
+                 theopeps2 = theopeps2))
 }
 
 
@@ -751,17 +769,21 @@ combi_mat <- function (nb = 5L, ns = 3L)
 }
 
 
-#' Hash table of binned MS1.
+#' Makes hash table.
 #' 
-#' @param data Input data.
-#' @param r Hash ratio.
+#' Not yet used.
+#' 
+#' @param data A named vector or list.
+#' @param r Numeric; bucket-to-key ratio.
 hash_frame_nums <- function (data, r = 1.5) 
 {
   vals <- names(data)
-  len <- length(vals)
-  n_bucks <- ceiling(r * len)
-  keys <- unlist(lapply(vals, digest::digest2int), 
-                 recursive = FALSE, use.names = FALSE)
+  
+  if (is.null(vals))
+    stop("Data need names.")
+  
+  n_bucks <- ceiling(r * length(vals))
+  keys <- unlist(lapply(vals, digest::digest2int), recursive = FALSE, use.names = FALSE)
   coll_ids <- keys %% n_bucks + 1L
   
   ans <- vector("list", n_bucks)
@@ -771,19 +793,26 @@ hash_frame_nums <- function (data, r = 1.5)
   
   for (i in seq_along(coll_data))
     ans[[uniq_ids[i]]] <- coll_data[[i]]
-  
-  # attr(ans, "n_bucks") <- n_bucks
-  
+
   invisible(ans)
+}
+
+
+#' Finds a value through a hash table.
+#' 
+#' Not yet used.
+#' 
+#' @param ht A hash table.
+#' @param val A value.
+#' @param n_bucks The number of buckets in \code{ht}.
+#' @param offset An offset. Not yet used.
+find_from_hash <- function (ht, val, n_bucks = length(ht), offset = 0L) 
+{
+  key <- digest::digest2int(val)
+  coll_id <- key %% n_bucks + 1L
+  x <- ht[[coll_id]]
   
-  # val <- "248492"
-  # key <- digest::digest2int(val)
-  # n_bucks <- length(ans) # faster than `attr`
-  # coll_id <- key %% n_bucks + 1L
-  # x <- ans[[coll_id]]
-  # x[[val]]
-  # 
-  # bench::mark(x[[val]], out[[val]])
+  x[[val]]
 }
 
 
