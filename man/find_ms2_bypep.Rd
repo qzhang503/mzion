@@ -4,7 +4,13 @@
 \alias{find_ms2_bypep}
 \title{Helper: matches between theoretical and experimental MS2 ions.}
 \usage{
-find_ms2_bypep(theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
+find_ms2_bypep(
+  theos = NULL,
+  expts = NULL,
+  ppm_ms2 = 25L,
+  min_ms2mass = 110L,
+  minn_ms2 = 6L
+)
 }
 \arguments{
 \item{theos}{Numeric vector; one to multiple series of theoretical MS2s.}
@@ -15,6 +21,9 @@ find_ms2_bypep(theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
+
+\item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
+a hit.}
 }
 \description{
 Run time about 45 us.

@@ -444,8 +444,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
   max_scan_num <- as.integer(max_scan_num)
   digits <- as.integer(digits)
   
-  stopifnot(min_len >= 0L, max_len >= min_len, max_miss <= 10L, 
-            min_mass >= 0L, max_mass >= min_mass, min_ms2mass >= 0L, 
+  stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 10L, minn_ms2 >= 1L, 
+            min_mass >= 1L, max_mass >= min_mass, min_ms2mass >= 1L, 
             n_13c >= 0L, 
             maxn_vmods_per_pep >= maxn_sites_per_vmod, max_n_prots > 1000L, 
             min_ms1_charge >= 1L, max_ms1_charge >= min_ms1_charge, 

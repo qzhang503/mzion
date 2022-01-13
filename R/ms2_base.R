@@ -724,44 +724,56 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
   
   # --- find MS2 matches ---
   ans_bf <- if (length(theos_bf_ms2)) 
-    lapply(theos_bf_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, min_ms2mass)
+    lapply(theos_bf_ms2, find_ms2_bypep, 
+           expts = expt_moverz_ms2, 
+           ppm_ms2 = ppm_ms2, 
+           min_ms2mass = min_ms2mass, 
+           minn_ms2 = minn_ms2)
   else 
     theos_bf_ms2
   
   ans_cr <- if (length(theos_cr_ms2)) 
-    lapply(theos_cr_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, min_ms2mass)
+    lapply(theos_cr_ms2, find_ms2_bypep, 
+           expts = expt_moverz_ms2, 
+           ppm_ms2 = ppm_ms2, 
+           min_ms2mass = min_ms2mass, 
+           minn_ms2 = minn_ms2)
   else 
     theos_cr_ms2
   
   ans_af <- if (length(theos_af_ms2)) 
-    lapply(theos_af_ms2, find_ms2_bypep, expt_moverz_ms2, ppm_ms2, min_ms2mass)
+    lapply(theos_af_ms2, find_ms2_bypep, 
+           expts = expt_moverz_ms2, 
+           ppm_ms2 = ppm_ms2, 
+           min_ms2mass = min_ms2mass, 
+           minn_ms2 = minn_ms2)
   else 
     theos_af_ms2
   
   ans <- c(ans_bf, ans_cr, ans_af)
   
   ## cleans up
-  rows <- lapply(ans, function (this) {
-    res <- lapply(this, function (x) sum(!is.na(x[["expt"]])) >= minn_ms2)
-    .Internal(unlist(res, recursive = FALSE, use.names = FALSE))
+  oks <- lapply(ans, function (this) {
+    oks <- lapply(this, function (x) !is.null(x$theo))
+    .Internal(unlist(oks, recursive = FALSE, use.names = FALSE))
   })
   
   # USE.NAMES = TRUE 
   # (lapply loses names by `[[` whereas map2 reserves names when available)
-  ans <- mapply(function (x, y) x[y], ans, rows, 
+  ans <- mapply(function (x, y) x[y], ans, oks, 
                 SIMPLIFY = FALSE, USE.NAMES = TRUE)
-
+  
   empties <- lapply(ans, function(x) length(x) == 0L)
   empties <- .Internal(unlist(empties, recursive = FALSE, use.names = FALSE))
   
   ans <- ans[!empties]
   
-  # ---
   theomasses_ms1 <- c(theomasses_bf_ms1, 
                       theomasses_cr_ms1, 
                       theomasses_af_ms1)
   theomasses_ms1 <- theomasses_ms1[!empties]
-  
+
+  # ---
   ans <- mapply(
     function (x, y) {
       attr(x, "theo_ms1") <- y
@@ -904,7 +916,8 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
 #' 
 #' x <- find_ms2_bypep(theos, expts)
 #' }
-find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L) 
+find_ms2_bypep <- function (theos = NULL, expts = NULL, ppm_ms2 = 25L, 
+                            min_ms2mass = 110L, minn_ms2 = 6L) 
 {
   ##############################################################################
   # `theos` may be empty: 
@@ -957,7 +970,7 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
     # backward matches
     n_ps <- sum(ps)
     
-    if(n_ps > 0L) {
+    if(n_ps >= minn_ms2) {
       
       # (i) place held by theoretical values to indicate matches
       # (ii) replaced the matches by experimental values
@@ -989,7 +1002,7 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
       
       expt_12 <- c(expts[ps_1], expts[ps_2])
       
-      # (occur rarely; ok to toss the previous `expt_12`)
+      # (occur rarely; ok to recalculate refreshly `expt_12`)
       if (n_ps != length(expt_12)) {
         ps_12 <- fuzzy_match_one2(ex, th_i)
         expt_12 <- expts[ps_12]
@@ -1000,11 +1013,12 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
       out[[i]] <- list(theo = theos_i, expt = es)
     } 
     else {
-      es <- rep(NA, length(theos_i))
-      out[[i]] <- list(theo = theos_i, expt = es)
+      # es <- rep(NA, length(theos_i))
+      # out[[i]] <- list(theo = theos_i, expt = es)
+      out[[i]] <- list(theo = NULL, expt = NULL)
     }
   }
-  
+
   names(out) <- names(theos)
   
   out
