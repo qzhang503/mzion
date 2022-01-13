@@ -953,10 +953,10 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
     bf <- (th_i - 1L) %fin% ex
     af <- (th_i + 1L) %fin% ex
     ps <- mi | bf | af
-    
+
+    # backward matches
     n_ps <- sum(ps)
     
-    # backward matches
     if(n_ps > 0L) {
       
       # (i) place held by theoretical values to indicate matches
@@ -966,34 +966,37 @@ find_ms2_bypep <- function (theos, expts, ppm_ms2 = 25L, min_ms2mass = 110L)
       es[!ps] <- NA
       
       # separated b and y matches (to handled double-dipping between b and y)
+      
+      ## bps <- fuzzy_match_one2(ex, th_i[1:mid])
       lth <- length(ps)
       mid <- lth/2L
       
-      x <- ex
-      x_bf <- x - 1L
-      x_af <- x + 1L
+      ex_bf <- ex - 1L
+      ex_af <- ex + 1L
       
       y_1 <- th_i[1:mid]
-      mi_1 <- x %fin% y_1
-      bf_1 <- x_bf %fin% y_1
-      af_1 <- x_af %fin% y_1
+      mi_1 <- ex %fin% y_1
+      bf_1 <- ex_bf %fin% y_1
+      af_1 <- ex_af %fin% y_1
       ps_1 <- mi_1 | bf_1 | af_1
       
+      ## yps <- fuzzy_match_one2(ex, th_i[(mid+1L):lth])
       y_2 <- th_i[(mid+1L):lth]
-      mi_2 <- x %fin% y_2
-      bf_2 <- x_bf %fin% y_2
-      af_2 <- x_af %fin% y_2
+      mi_2 <- ex %fin% y_2
+      bf_2 <- ex_bf %fin% y_2
+      af_2 <- ex_af %fin% y_2
       ps_2 <- mi_2 | bf_2 | af_2
       
       expt_12 <- c(expts[ps_1], expts[ps_2])
       
+      # (occur rarely; ok to toss the previous `expt_12`)
       if (n_ps != length(expt_12)) {
         ps_12 <- fuzzy_match_one2(ex, th_i)
         expt_12 <- expts[ps_12]
       }
-
+      
       es[ps] <- expt_12
-
+      
       out[[i]] <- list(theo = theos_i, expt = es)
     } 
     else {
