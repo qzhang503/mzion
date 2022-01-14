@@ -22,6 +22,8 @@ calc_pepmasses2(
   min_len = 7L,
   max_len = 50L,
   max_miss = 2L,
+  min_mass = 700L,
+  max_mass = 5500L,
   n_13c = 0L,
   out_path = NULL,
   digits = 4L,
@@ -87,6 +89,12 @@ be excluded.}
 be excluded.}
 
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
+
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is 700.}
+
+\item{max_mass}{A positive integer; the maximum precursor mass for
+interrogation. The default is 4500.}
 
 \item{n_13c}{A non-negative integer; the maximum number of 13C off-sets for
 consideration in MS1 masses. The default is 0 with no off-sets.

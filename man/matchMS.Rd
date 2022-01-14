@@ -23,10 +23,10 @@ matchMS(
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
   min_len = 7L,
-  max_len = 50L,
+  max_len = 40L,
   max_miss = 2L,
-  min_mass = 500L,
-  max_mass = 6000L,
+  min_mass = 700L,
+  max_mass = 4500L,
   ppm_ms1 = 20L,
   n_13c = 0L,
   type_ms2ions = "by",
@@ -65,8 +65,11 @@ matchMS(
   from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
   Proteome Discoverer or (3) Bruker's DataAnalysis.
 
-  With MSConvert, the default \code{titleMaker} is required (don't think it
-  can be altered by users, but just in case).}
+  With MSConvert, the default \code{titleMaker} is required for correct
+  parsing (don't think it can be altered by users, but just in case).
+
+  Individuality in MGF files are slightly preferred to take advantage of
+  parallel reading of the files.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}
@@ -138,16 +141,16 @@ default is 64.}
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded. The default is 50.}
+for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{max_miss}{A non-negative integer; the maximum number of mis-cleavages
 per peptide sequence for considerations. The default is 2.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
-interrogation. The default is 500.}
+interrogation. The default is 700.}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
-interrogation. The default is 6000.}
+interrogation. The default is 4500.}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}

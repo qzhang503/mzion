@@ -60,7 +60,7 @@ levels of PSM, peptide or protein. The default is 0.01. See also argument
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded. The default is 50.}
+for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{penalize_sions}{Logical; if TRUE, penalizes secondary ions of b0, y0
 etc. with lower weights in peptide scoring.}
@@ -77,8 +77,11 @@ default is 25.}
   from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
   Proteome Discoverer or (3) Bruker's DataAnalysis.
 
-  With MSConvert, the default \code{titleMaker} is required (don't think it
-  can be altered by users, but just in case).}
+  With MSConvert, the default \code{titleMaker} is required for correct
+  parsing (don't think it can be altered by users, but just in case).
+
+  Individuality in MGF files are slightly preferred to take advantage of
+  parallel reading of the files.}
 
 \item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
 \code{Anywhere} (non-terminal) variable modifications per peptide. The

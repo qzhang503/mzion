@@ -2,7 +2,7 @@
 % Please edit documentation in R/ms1_precursors.R
 \name{keep_n_misses}
 \alias{keep_n_misses}
-\title{Find mis-cleavages in a vector.}
+\title{Finds mis-cleavages in a vector.}
 \usage{
 keep_n_misses(x, n)
 }

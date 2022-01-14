@@ -4,7 +4,7 @@
 \alias{distri_peps}
 \title{Distributes peptides by variable modifications.}
 \usage{
-distri_peps(prps, aa_masses_all, max_miss)
+distri_peps(prps, aa_masses_all, max_miss = 2L)
 }
 \arguments{
 \item{prps}{Lists of peptide sequences with a one-letter representation

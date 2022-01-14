@@ -12,5 +12,5 @@ make_fastapeps0(fasta_db, max_miss = 2L)
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
 }
 \description{
-Not yet concatenating peptides by the number of mis-cleavages.
+A step before concatenating peptides by the number of mis-cleavages.
 }

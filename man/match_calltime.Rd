@@ -8,7 +8,8 @@ match_calltime(
   path = "~/proteoM/.MSearches/Cache/Calls",
   fun = "calc_pepmasses2",
   nms = c("parallel", "out_path"),
-  type = c(TRUE, FALSE)
+  type = c(TRUE, FALSE),
+  new_args = NULL
 )
 }
 \arguments{
@@ -20,6 +21,8 @@ match_calltime(
 
 \item{type}{Logical; if TRUE, includes all arguments in \code{nms}. At FALSE,
 excludes all \code{nms}.}
+
+\item{new_args}{Named vector; new arguments that are not in earlier versions.}
 }
 \value{
 An empty object if no matches.

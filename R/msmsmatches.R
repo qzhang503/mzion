@@ -28,8 +28,11 @@
 #'   from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
 #'   Proteome Discoverer or (3) Bruker's DataAnalysis.
 #'
-#'   With MSConvert, the default \code{titleMaker} is required (don't think it
-#'   can be altered by users, but just in case).
+#'   With MSConvert, the default \code{titleMaker} is required for correct
+#'   parsing (don't think it can be altered by users, but just in case).
+#'
+#'   Individuality in MGF files are slightly preferred to take advantage of
+#'   parallel reading of the files. 
 #' @param fasta Character string(s) to the name(s) of fasta file(s) with
 #'   prepended directory path. The experimenter needs to supply the files.
 #' @param acc_type Character string(s); the types of protein accessions in one
@@ -87,13 +90,13 @@
 #' @param min_len A positive integer; the minimum length of peptide sequences
 #'   for considerations. Shorter peptides will be excluded. The default is 7.
 #' @param max_len A positive integer; the maximum length of peptide sequences
-#'   for considerations. Longer peptides will be excluded. The default is 50.
+#'   for considerations. Longer peptides will be excluded. The default is 40.
 #' @param max_miss A non-negative integer; the maximum number of mis-cleavages
 #'   per peptide sequence for considerations. The default is 2.
 #' @param min_mass A positive integer; the minimum precursor mass for
-#'   interrogation. The default is 500.
+#'   interrogation. The default is 700.
 #' @param max_mass A positive integer; the maximum precursor mass for
-#'   interrogation. The default is 6000.
+#'   interrogation. The default is 4500.
 #' @param min_ms2mass A positive integer; the minimum MS2 mass for
 #'   interrogation. The default is 110.
 #' @param n_13c A non-negative integer; the maximum number of 13C off-sets for
@@ -349,8 +352,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      maxn_vmods_per_pep = 5L,
                      maxn_sites_per_vmod = 3L,
                      maxn_vmods_sitescombi_per_pep = 64L,
-                     min_len = 7L, max_len = 50L, max_miss = 2L, 
-                     min_mass = 500L, max_mass = 6000L, 
+                     min_len = 7L, max_len = 40L, max_miss = 2L, 
+                     min_mass = 700L, max_mass = 4500L, 
                      ppm_ms1 = 20L, 
                      n_13c = 0L, 
 
@@ -546,6 +549,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
     min_len = min_len,
     max_len = max_len,
     max_miss = max_miss,
+    min_mass = min_mass, 
+    max_mass = max_mass, 
     n_13c = n_13c,
     out_path = out_path,
     digits = digits,
@@ -1173,14 +1178,16 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
         stop("All TMT modifications need to be `TMTpro18` at `", quant, "`.\n", 
              tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
              call. = FALSE)
-    } else if (quant == "tmt16") {
+    } 
+    else if (quant == "tmt16") {
       ok <- all(grepl("TMTpro.* |TMT16plex.* ", possibles))
       
       if (!ok) 
         stop("All TMT modifications need to be `TMTpro` at `", quant, "`.\n", 
              tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
              call. = FALSE)
-    } else {
+    } 
+    else {
       ok <- all(grepl("TMT6plex.* |TMT10plex.* |TMT11plex.* ", possibles))
       
       if (!ok) 

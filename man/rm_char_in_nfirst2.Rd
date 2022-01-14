@@ -2,17 +2,18 @@
 % Please edit documentation in R/ms1_precursors.R
 \name{rm_char_in_nfirst2}
 \alias{rm_char_in_nfirst2}
-\title{Remove a starting character from the first \code{n} entries.}
+\title{Removes a starting character from the first \code{n} entries.}
 \usage{
 rm_char_in_nfirst2(x, char = "^-", n = (max_miss + 1L) * 2L)
 }
 \arguments{
-\item{x}{A list of character strings.}
+\item{x}{A list of character strings. Peptide sequences in names and masses
+in values.}
 
 \item{char}{A starting character to be removed.}
 
 \item{n}{The number of beginning entries to be considered.}
 }
 \description{
-Remove a starting character from the first \code{n} entries.
+Removes a starting character from the first \code{n} entries.
 }

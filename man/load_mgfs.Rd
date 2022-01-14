@@ -7,8 +7,8 @@
 load_mgfs(
   out_path,
   mgf_path,
-  min_mass = 500L,
-  max_mass = 6000L,
+  min_mass = 700L,
+  max_mass = 4500L,
   min_ms2mass = 110L,
   topn_ms2ions = 100L,
   min_ms1_charge = 2L,
@@ -34,8 +34,11 @@ load_mgfs(
   from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
   Proteome Discoverer or (3) Bruker's DataAnalysis.
 
-  With MSConvert, the default \code{titleMaker} is required (don't think it
-  can be altered by users, but just in case).}
+  With MSConvert, the default \code{titleMaker} is required for correct
+  parsing (don't think it can be altered by users, but just in case).
+
+  Individuality in MGF files are slightly preferred to take advantage of
+  parallel reading of the files.}
 
 \item{min_mass}{A minimum mass of precursors for considerations.}
 

@@ -11,7 +11,7 @@
 #' @param is_ms2_three_frame Logical; is the searches by the three frames of
 #'   preceeding, current and following.
 #' @inheritParams matchMS
-load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L, 
+load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L, 
                        min_ms2mass = 110L, topn_ms2ions = 100L, 
                        min_ms1_charge = 2L, max_ms1_charge = 6L, 
                        min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
@@ -83,7 +83,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
                   "\\.xls$", "\\.csv$", "\\.txt$", 
                   "^mgf$", "^mgfs$", "Calls")
     )
-
+    
     readMGF(filepath = mgf_path,
             min_mass = min_mass,
             max_mass = max_mass, 
@@ -126,24 +126,19 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 500L, max_mass = 6000L,
 #' mgf_queries <- proteoM:::readMGF()
 #' }
 readMGF <- function (filepath = "~/proteoM/mgf",
-                     min_mass = 500L, max_mass = 6000L, min_ms2mass = 110L, 
+                     min_mass = 700L, max_mass = 4500L, min_ms2mass = 110L, 
                      topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                      ms1_scan_range = c(1L, .Machine$integer.max), 
                      ret_range = c(0, Inf), 
                      ppm_ms1 = 20L, ppm_ms2 = 25L, index_ms2 = FALSE,
                      out_path = file.path(filepath, "mgf_queries.rds")) 
 {
-  f <- function(x, pos) {
-    nm <- file.path(filepath, "temp", paste0("chunk", "_", pos, ".mgf"))
-    writeLines(x, nm)
-  }
-
-  # parsing rules
+  ## Parsing rules
   filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
-
+  
   if (!length(filelist)) 
-    stop("No '.mgf' files under ", filepath, call. = FALSE)
-
+    stop("No '.mgf' files under ", filepath)
+  
   pat_mgf <- find_mgf_type(file.path(filepath, filelist[[1]]))
   
   type_mgf <- pat_mgf$type
@@ -160,7 +155,7 @@ readMGF <- function (filepath = "~/proteoM/mgf",
   sep_pepmass <- pat_mgf$sep_pepmass
   nfields_pepmass <- pat_mgf$nfields_pepmass
   raw_file <- pat_mgf$raw_file
-
+  
   local({
     if (type_mgf == "msconv_thermo") {
       data_format <- "Thermo-RAW"
@@ -182,41 +177,35 @@ readMGF <- function (filepath = "~/proteoM/mgf",
     ans <- list(data_format = data_format, mgf_format = mgf_format)
     saveRDS(ans, file.path(filepath, "info_format.rds"))
   })
+
+  ## Reads MGF into chunks
+  # separate parallel process: 
+  # (1) one large MGF file and parallel chunks
+  # (2) parallel five MGF files and parallel chunks in each
+  len <- length(filelist)
+  n_cores <- min(len, detect_cores(32L))
   
-  rm(list = c("pat_mgf"))
+  if (n_cores == 1L)
+    raw_files <- readlineMGFs(1, filelist, filepath, raw_file)
+  else {
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    raw_files <- parallel::clusterMap(cl, readlineMGFs, 
+                                      1:len, filelist, 
+                                      MoreArgs = list(filepath = filepath, 
+                                                      raw_file = raw_file), 
+                                      SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    parallel::stopCluster(cl)
+  }
 
-  # chunks by mgf files
-  out <- vector("list", length(filelist))
-
+  ## Reads from chunks
+  out <- vector("list", len)
+  
   for (i in seq_along(filelist)) {
-    message("Loading '", filelist[i], "'.")
-
-    # refresh at every `i`
-    temp_dir <- local({
-      dir <- find_dir(file.path(filepath, "temp"))
-
-      if (!is.null(dir)) 
-        fs::file_delete(dir)
-
-      dir.create(file.path(filepath, "temp"), showWarnings = FALSE)
-      find_dir(file.path(filepath, "temp"))
-    })
-
-    readr::read_lines_chunked(file = file.path(filepath, filelist[i]),
-                              callback = SideEffectChunkCallback$new(f),
-                              chunk_size = 1000000L)
+    file <- filelist[i]
+    temp_dir <- file.path(filepath, paste0("temp_", i))
     
-    # for "default_pasef" format
-    if (!is.null(raw_file)) {
-      raw_file <- local({
-        file <- file.path(filepath, "temp", "chunk_1.mgf")
-        hdr <- readLines(file, 50L)
-        pat <- "^COM="
-        line_file <- hdr[grepl(pat, hdr)]
-        gsub(pat, "", line_file)
-      })
-    }
-
+    message("Loading '", file, "'.")
+    
     out[[i]] <- read_mgf_chunks(filepath = temp_dir,
                                 topn_ms2ions = topn_ms2ions,
                                 ms1_charge_range = ms1_charge_range, 
@@ -238,20 +227,21 @@ readMGF <- function (filepath = "~/proteoM/mgf",
                                 nfields_ms2s = nfields_ms2s, 
                                 sep_pepmass = sep_pepmass, 
                                 nfields_pepmass = nfields_pepmass, 
-                                raw_file = raw_file)
-
+                                raw_file = raw_files[[i]])
+    
     local({
-      dir2 <- file.path(filepath, gsub("\\.[^.]*$", "", filelist[i]))
+      dir2 <- file.path(filepath, gsub("\\.[^.]*$", "", file))
       dir.create(dir2, showWarnings = FALSE)
       dir2 <- find_dir(dir2)
-
+      
       if (fs::file_exists(dir2)) 
         fs::file_delete(dir2)
-
+      
       fs::file_move(temp_dir, dir2)
     })
   }
-
+  
+  ## Clean up
   out <- out %>%
     dplyr::bind_rows() %>%
     dplyr::arrange(ms1_mass) %>%
@@ -279,10 +269,57 @@ readMGF <- function (filepath = "~/proteoM/mgf",
   
   saveRDS(out, out_path)
 
-  rm(list = c("out"))
-  gc()
-
   invisible(NULL)
+}
+
+
+#' Helper of \link{readMGF}.
+#'
+#' @param i An index of the i-th file.
+#' @param file An MGF file name.
+#' @inheritParams readMGF
+#' @inheritParams read_mgf_chunks
+#' @return Updated raw_file (for Bruker's timsTOF). Otherwise, raw_file remains
+#'   NULL.
+readlineMGFs <- function (i, file, filepath, raw_file) 
+{
+  f <- function(x, pos) {
+    nm <- file.path(filepath, temp_i, paste0("chunk", "_", pos, ".mgf"))
+    writeLines(x, nm)
+  }
+  
+  message("Loading '", file, "'.")
+  
+  temp_i <- paste0("temp_", i)
+  
+  # refresh at every `i`
+  temp_dir <- local({
+    path <- file.path(filepath, temp_i)
+    ok <- find_dir(path)
+    
+    if (!is.null(ok)) 
+      fs::file_delete(ok)
+    
+    dir.create(path, showWarnings = FALSE)
+    find_dir(path)
+  })
+  
+  readr::read_lines_chunked(file = file.path(filepath, file),
+                            callback = SideEffectChunkCallback$new(f),
+                            chunk_size = 1000000L)
+  
+  # for "default_pasef" format
+  if (!is.null(raw_file)) {
+    raw_file <- local({
+      file <- file.path(temp_dir, "chunk_1.mgf")
+      hdr <- readLines(file, 50L)
+      pat <- "^COM="
+      line_file <- hdr[grepl(pat, hdr)]
+      gsub(pat, "", line_file)
+    })
+  }
+  
+  invisible(raw_file)
 }
 
 
@@ -453,9 +490,8 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf",
   }
 
   if (type_mgf == "default_pasef") {
-    out <- out %>% 
-      dplyr::mutate(scan_id = as.character(scan_num), 
-                    scan_num = row_number())
+    out <- dplyr::mutate(out, scan_id = as.character(scan_num), 
+                         scan_num = row_number())
   } 
 
   invisible(out)

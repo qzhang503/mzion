@@ -6,8 +6,8 @@
 \usage{
 readMGF(
   filepath = "~/proteoM/mgf",
-  min_mass = 500L,
-  max_mass = 6000L,
+  min_mass = 700L,
+  max_mass = 4500L,
   min_ms2mass = 110L,
   topn_ms2ions = 100L,
   ms1_charge_range = c(2L, 6L),

@@ -23,7 +23,7 @@ calc_pepfdr(
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded. The default is 50.}
+for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{match_pepfdr}{Logical; if TRUE, matches empirically the highest peptide
 probability (corresponding to the lowest score) cut-offs to the pre-defined

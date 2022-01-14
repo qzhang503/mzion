@@ -4,7 +4,13 @@
 \alias{find_callarg_vals}
 \title{Finds the values of a list of arguments.}
 \usage{
-find_callarg_vals(time = NULL, path = NULL, fun = NULL, args = NULL)
+find_callarg_vals(
+  time = NULL,
+  path = NULL,
+  fun = NULL,
+  args = NULL,
+  new_args = NULL
+)
 }
 \arguments{
 \item{time}{The time stamp.}
@@ -14,6 +20,8 @@ find_callarg_vals(time = NULL, path = NULL, fun = NULL, args = NULL)
 \item{fun}{The name of function being saved.}
 
 \item{args}{Arguments to be matched.}
+
+\item{new_args}{Named vector; new arguments that are not in earlier versions.}
 }
 \value{
 The time stamp of a matched cache results.

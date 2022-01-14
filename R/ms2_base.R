@@ -753,6 +753,8 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
   ans <- c(ans_bf, ans_cr, ans_af)
   
   ## cleans up
+  # (1) within a list: removes vmods+ positions that are NULL (< minn_ms2)
+  # (no effects on vmods-; need `type` info if to limit to vmods+)
   oks <- lapply(ans, function (this) {
     oks <- lapply(this, function (x) !is.null(x$theo))
     .Internal(unlist(oks, recursive = FALSE, use.names = FALSE))
@@ -763,15 +765,16 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
   ans <- mapply(function (x, y) x[y], ans, oks, 
                 SIMPLIFY = FALSE, USE.NAMES = TRUE)
   
-  empties <- lapply(ans, function(x) length(x) == 0L)
-  empties <- .Internal(unlist(empties, recursive = FALSE, use.names = FALSE))
-  
-  ans <- ans[!empties]
+  # (2)  removes empty lists
+  oks2 <- lapply(ans, function(x) length(x) > 0L)
+  oks2 <- .Internal(unlist(oks2, recursive = FALSE, use.names = FALSE))
+  ans <- ans[oks2]
   
   theomasses_ms1 <- c(theomasses_bf_ms1, 
                       theomasses_cr_ms1, 
                       theomasses_af_ms1)
-  theomasses_ms1 <- theomasses_ms1[!empties]
+  
+  theomasses_ms1 <- theomasses_ms1[oks2]
 
   # ---
   ans <- mapply(
@@ -781,9 +784,8 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
     }, 
     ans, theomasses_ms1, 
     SIMPLIFY = FALSE,
-    USE.NAMES = TRUE
-  )
-  
+    USE.NAMES = TRUE)
+
   # ---
   # `length(ans) == N(theos_peps)` within the ppm window
   # 
@@ -947,7 +949,7 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ppm_ms2 = 25L,
   ##############################################################################
   
   len <- length(theos)
-  
+
   if (!len) 
     return(list(theo = NULL, expt = NULL))
   
@@ -1002,7 +1004,7 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ppm_ms2 = 25L,
       
       expt_12 <- c(expts[ps_1], expts[ps_2])
       
-      # (occur rarely; ok to recalculate refreshly `expt_12`)
+      # (occur rarely; OK to recalculate freshly `expt_12`)
       if (n_ps != length(expt_12)) {
         ps_12 <- fuzzy_match_one2(ex, th_i)
         expt_12 <- expts[ps_12]
@@ -1012,11 +1014,8 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ppm_ms2 = 25L,
       
       out[[i]] <- list(theo = theos_i, expt = es)
     } 
-    else {
-      # es <- rep(NA, length(theos_i))
-      # out[[i]] <- list(theo = theos_i, expt = es)
+    else
       out[[i]] <- list(theo = NULL, expt = NULL)
-    }
   }
 
   names(out) <- names(theos)

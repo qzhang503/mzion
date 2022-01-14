@@ -46,8 +46,11 @@ try_ms2match(
   from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
   Proteome Discoverer or (3) Bruker's DataAnalysis.
 
-  With MSConvert, the default \code{titleMaker} is required (don't think it
-  can be altered by users, but just in case).}
+  With MSConvert, the default \code{titleMaker} is required for correct
+  parsing (don't think it can be altered by users, but just in case).
+
+  Individuality in MGF files are slightly preferred to take advantage of
+  parallel reading of the files.}
 
 \item{aa_masses_all}{All the amino acid lookup tables.}
 
@@ -150,7 +153,7 @@ sets of combinatorial variable modifications. The default is 64.}
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded. The default is 50.}
+for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{max_miss}{A non-negative integer; the maximum number of mis-cleavages
 per peptide sequence for considerations. The default is 2.}

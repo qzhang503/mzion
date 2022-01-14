@@ -2,7 +2,7 @@
 % Please edit documentation in R/ms1_precursors.R
 \name{exclude_n_misses}
 \alias{exclude_n_misses}
-\title{Exclude mis-cleavages in a vector.}
+\title{Excludes mis-cleavages in a vector.}
 \usage{
 exclude_n_misses(x, n)
 }
@@ -12,7 +12,7 @@ exclude_n_misses(x, n)
 \item{n}{Integer. The number of mis-cleavages.}
 }
 \description{
-Exclude mis-cleavages in a vector.
+Excludes mis-cleavages in a vector.
 }
 \seealso{
 keep_n_misses

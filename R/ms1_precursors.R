@@ -71,6 +71,7 @@ calc_pepmasses2 <- function (
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   min_len = 7L, max_len = 50L, max_miss = 2L,
+  min_mass = 700L, max_mass = 5500L, 
   n_13c = 0L,
   out_path = NULL,
   digits = 4L,
@@ -99,12 +100,16 @@ calc_pepmasses2 <- function (
   .time_stamp <- match_calltime(
     path = .path_cache,
     fun = fun,
+    # must be matched to retrieve cache
     nms = c("fasta", "acc_type", "acc_pattern",
             "fixedmods", "varmods",
             "include_insource_nl", "enzyme",
             "maxn_fasta_seqs", "maxn_vmods_setscombi",
             "maxn_vmods_per_pep", "maxn_sites_per_vmod",
-            "min_len", "max_len", "max_miss", "n_13c"))
+            "min_len", "max_len", "max_miss", 
+            "min_mass", "max_mass", "n_13c"), 
+    # new arguments need matched but not defined in earlier versions
+    new_args = unlist(formals(matchMS)[c("min_mass", "max_mass")]))
 
   # ---
   len_ts <- length(.time_stamp)
@@ -140,7 +145,8 @@ calc_pepmasses2 <- function (
     rev_peps <- NULL
 
     .savecall <- FALSE
-  } else {
+  } 
+  else {
     # `mgf_quries.rds` kept 
     # (which only affected by min_mass, max_mass and ppm_ms1)
     delete_files(out_path, 
@@ -213,6 +219,8 @@ calc_pepmasses2 <- function (
                                max_miss = max_miss,
                                min_len = min_len,
                                max_len = max_len,
+                               min_mass = min_mass, 
+                               max_mass = max_mass, 
                                maxn_vmods_per_pep = maxn_vmods_per_pep,
                                maxn_sites_per_vmod = maxn_sites_per_vmod,
                                is_fixed_protnt = is_fixed_protnt,
@@ -1454,7 +1462,7 @@ split_fastaseqs <- function (fasta, acc_type, acc_pattern, maxn_fasta_seqs,
 
 #' Make peptide sequences from FASTA databases.
 #'
-#' Not yet concatenating peptides by the number of mis-cleavages.
+#' A step before concatenating peptides by the number of mis-cleavages.
 #'
 #' @param fasta_db Fasta database(s).
 #' @inheritParams calc_pepmasses2
@@ -1493,7 +1501,7 @@ make_fastapeps0 <- function (fasta_db, max_miss = 2L)
 }
 
 
-#' Find mis-cleavages in a vector.
+#' Finds mis-cleavages in a vector.
 #'
 #' A convenience utility may be used to extract the first \eqn{n+1} peptides
 #' from 0 to n mis-cleavages. It also assumes that the data were already sorted
@@ -1515,7 +1523,7 @@ keep_n_misses <- function (x, n)
 }
 
 
-#' Exclude mis-cleavages in a vector.
+#' Excludes mis-cleavages in a vector.
 #'
 #' @inheritParams keep_n_misses
 #' @seealso keep_n_misses
@@ -1544,9 +1552,10 @@ str_exclude_count <- function (x, char = "-")
 }
 
 
-#' Remove a starting character from the first \code{n} entries.
+#' Removes a starting character from the first \code{n} entries.
 #'
-#' @param x A list of character strings.
+#' @param x A list of character strings. Peptide sequences in names and masses
+#'   in values.
 #' @param char A starting character to be removed.
 #' @param n The number of beginning entries to be considered.
 rm_char_in_nfirst2 <- function (x, char = "^-", n = (max_miss + 1L) * 2L) 
@@ -1565,7 +1574,7 @@ rm_char_in_nfirst2 <- function (x, char = "^-", n = (max_miss + 1L) * 2L)
 }
 
 
-#' Remove a trailing character from the last \code{n} entries.
+#' Removes a trailing character from the last \code{n} entries.
 #'
 #' @param char A trailing character to be removed.
 #' @inheritParams rm_char_in_nfirst2
@@ -1620,28 +1629,27 @@ add_term_mass2 <- function (aa_masses, peps)
 #' @inheritParams distri_fpeps
 ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
                             max_miss = 2L, min_len = 7L, max_len = 50L,
+                            min_mass = 600L, max_mass = 6000L, 
                             maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
                             is_fixed_protnt = FALSE, is_fixed_protct = FALSE, 
                             digits = 4L) 
 {
   # (1) before rolling sum (not yet terminal H2O)
   # (1.1) without N-term methionine
-  data_1 <- seqs %>%
-    lapply(`[[`, 1) %>%
-    ms1masses_noterm(aa_masses = aa_masses,
-                     maxn_vmods_per_pep = maxn_vmods_per_pep,
-                     maxn_sites_per_vmod = maxn_sites_per_vmod,
-                     digits = digits) %>%
-    attr("data")
+  data_1 <- lapply(seqs, `[[`, 1)
+  data_1 <- ms1masses_noterm(data_1, aa_masses = aa_masses,
+                             maxn_vmods_per_pep = maxn_vmods_per_pep,
+                             maxn_sites_per_vmod = maxn_sites_per_vmod,
+                             digits = digits)
+  data_1 <- attr(data_1, "data")
 
   # (1.2) with N-term methionine
-  data_2 <- seqs %>%
-    lapply(`[[`, 2) %>%
-    ms1masses_noterm(aa_masses = aa_masses,
-                     maxn_vmods_per_pep = maxn_vmods_per_pep,
-                     maxn_sites_per_vmod = maxn_sites_per_vmod,
-                     digits = digits) %>%
-    attr("data")
+  data_2 <- lapply(seqs, `[[`, 2)
+  data_2 <- ms1masses_noterm(data_2, aa_masses = aa_masses,
+                             maxn_vmods_per_pep = maxn_vmods_per_pep,
+                             maxn_sites_per_vmod = maxn_sites_per_vmod,
+                             digits = digits)
+  data_2 <- attr(data_2, "data")
 
   # (2) rolling sum (not yet terminal H2O)
   n_cores <- detect_cores(16L)
@@ -1660,6 +1668,8 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
     include_cts = FALSE
   ) %>% 
     purrr::flatten()
+  
+  ms_1 <- lapply(ms_1, function (x) x[x >= min_mass & x <= max_mass])
 
   if (is_fixed_protnt) {
     ms_2 <- parallel::clusterApply(
@@ -1682,7 +1692,7 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
     ) %>% 
       purrr::flatten()
   }
-
+  
   parallel::stopCluster(cl)
 
   # (3) putting together (+ terminal H2O)
@@ -1700,10 +1710,9 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
   lens <- unlist(lapply(ms, length), recursive = FALSE, use.names = FALSE)
 
   # adding H2O or fixed N/C-term masses
-  ms <- ms %>%
-    .[lens > 0L] %>%
-    lapply(function (x) x[!duplicated.default(names(x))]) %>%
-    lapply(function (x) x + ftmass) # 18.010565
+  ms <- ms[lens > 0L]
+  ms <- lapply(ms, function (x) x[!duplicated.default(names(x))] + ftmass) # +18.010565
+  ms <- lapply(ms, function (x) x[x >= min_mass & x <= max_mass])
 
   invisible(ms)
 }
@@ -1844,7 +1853,7 @@ calcms1mass_noterm_bypep <- function (aa_seq, aa_masses, maxn_vmods_per_pep = 5L
 #'   of amino acid residues. Each list is named by protein accession.
 #' @param aa_masses_all All the amino acid look-up tables.
 #' @inheritParams calc_pepmasses2
-distri_peps <- function (prps, aa_masses_all, max_miss) 
+distri_peps <- function (prps, aa_masses_all, max_miss = 2L) 
 {
   nms <- lapply(prps, names)
 
@@ -1864,11 +1873,8 @@ distri_peps <- function (prps, aa_masses_all, max_miss)
   # ZN207_HUMAN: MGRKKKK (no N-term pep_seq at 2 misses and min_len >= 7L)
   
   out <- lapply(out, function(xs) {
-    len <- .Internal(unlist(lapply(xs, length), recursive = FALSE, 
-                            use.names = FALSE))
-    
+    len <- .Internal(unlist(lapply(xs, length), recursive = FALSE, use.names = FALSE))
     xs <- xs[len > 0L]
-    
     xs <- lapply(xs, rm_char_in_nfirst2, char = "^-", n = n1)
     xs <- lapply(xs, rm_char_in_nlast2, char = "-$", n = n2)
   })
@@ -1891,9 +1897,9 @@ ct_counts <- function (max_miss = 2L)
       j <- i + 1L
       ct[j] <- ct[i] + j
     }
-  } else {
+  } 
+  else
     return(1L)
-  }
 
   ct[max_miss]
 }
@@ -2020,12 +2026,10 @@ roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE)
     
     res2 <- .Internal(unlist(res2, recursive = FALSE, use.names = TRUE))
     ans <- c(res, res2)
-  } else {
-    # res2 <- NULL
+  } 
+  else
     ans <- res
-  }
   
-  # c(res, res2)
   invisible(ans)
 }
 

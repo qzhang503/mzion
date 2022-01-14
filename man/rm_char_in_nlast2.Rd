@@ -2,17 +2,18 @@
 % Please edit documentation in R/ms1_precursors.R
 \name{rm_char_in_nlast2}
 \alias{rm_char_in_nlast2}
-\title{Remove a trailing character from the last \code{n} entries.}
+\title{Removes a trailing character from the last \code{n} entries.}
 \usage{
 rm_char_in_nlast2(x, char = "-$", n = (max_miss + 1L) * 2L)
 }
 \arguments{
-\item{x}{A list of character strings.}
+\item{x}{A list of character strings. Peptide sequences in names and masses
+in values.}
 
 \item{char}{A trailing character to be removed.}
 
 \item{n}{The number of beginning entries to be considered.}
 }
 \description{
-Remove a trailing character from the last \code{n} entries.
+Removes a trailing character from the last \code{n} entries.
 }

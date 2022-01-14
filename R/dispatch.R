@@ -701,7 +701,7 @@ subpeps_by_vmods <- function(aa_masses, prps)
   
   if (is.list(vmods)) {
     vmods <- unname(vmods)
-    vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
+    vmods <- .Internal(unlist(vmods, recursive = FALSE, use.names = TRUE))
   }
   
   if (is_same) 

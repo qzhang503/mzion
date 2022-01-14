@@ -11,6 +11,8 @@ ms1masses_bare(
   max_miss = 2L,
   min_len = 7L,
   max_len = 50L,
+  min_mass = 600L,
+  max_mass = 6000L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   is_fixed_protnt = FALSE,
@@ -36,6 +38,12 @@ be excluded.}
 
 \item{max_len}{Integer; the maximum length of peptides. Longer peptides will
 be excluded.}
+
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is 700.}
+
+\item{max_mass}{A positive integer; the maximum precursor mass for
+interrogation. The default is 4500.}
 
 \item{maxn_vmods_per_pep}{The maximum number of variable modifications per
 peptide.}

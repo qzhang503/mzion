@@ -423,12 +423,13 @@ save_call2 <- function(path, fun, time = NULL)
 #' Finds the values of a list of arguments.
 #'
 #' @param args Arguments to be matched.
+#' @param new_args Named vector; new arguments that are not in earlier versions.
 #' @inheritParams save_call2
 #' @import dplyr purrr
 #' @importFrom magrittr %>% %T>% %$%
 #' @return The time stamp of a matched cache results.
 find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
-                               args = NULL) 
+                               args = NULL, new_args = NULL) 
 {
   stopifnot(length(path) == 1L, length(fun) == 1L)
   
@@ -445,16 +446,21 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
   load(file = file)
   
   # --- back-compatibility
+  if (!is.null(new_args) && is.null(names(new_args))) 
+    stop("Named vector for `new_args`.")
+  
   call_pars <- local({
     new_args <- c(n_13c = 0L, min_ms1_charge = 2L, max_ms1_charge = 6L, 
                   min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
-                  min_ret_time = 0L, max_ret_time = .Machine$integer.max)
+                  min_ret_time = 0L, max_ret_time = .Machine$integer.max, 
+                  new_args)
     
     for (i in seq_along(new_args)) {
       x <- new_args[i]
       nm <- names(x)
       val <- unname(x)
       
+      # nm in "must-matched" args but not in earlier "call_pars"
       if ((nm %in% args) && (! nm %in% names(call_pars)))
         call_pars[[nm]] <- val
     }
@@ -480,12 +486,14 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
 #' @param nms Names of arguments to be included in or excluded from matching.
 #' @param type Logical; if TRUE, includes all arguments in \code{nms}. At FALSE,
 #'   excludes all \code{nms}.
+#' @param new_args Named vector; new arguments that are not in earlier versions.
 #' @inheritParams find_callarg_vals
 #' @return An empty object if no matches.
 match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
                             fun = "calc_pepmasses2",
                             nms = c("parallel", "out_path"),
-                            type = c(TRUE, FALSE)) 
+                            type = c(TRUE, FALSE), 
+                            new_args = NULL) 
 {
   stopifnot(length(path) == 1L, length(fun) == 1L)
   
@@ -510,7 +518,7 @@ match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
   
   # cached
   cached <- lapply(times, find_callarg_vals, path = path, fun = fun,
-                   args = names(args))
+                   args = names(args), new_args = new_args)
   
   cached <- lapply(cached, function (x) lapply(x, sort))
   
