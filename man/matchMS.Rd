@@ -16,7 +16,11 @@ matchMS(
     "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
   exclude_phospho_nl = TRUE,
-  enzyme = c("trypsin_p"),
+  enzyme = c("Trypsin_P", "Trypsin", "LysC", "LysN", "ArgC", "LysC_P", "Chymotrypsin",
+    "GluC", "GluN", "AspC", "AspN", "SemiTrypsin_P", "SemiTrypsin", "SemiLysC",
+    "SemiLysN", "SemiArgC", "SemiLysC_P", "SemiChymotrypsin", "SemiGluC", "SemiGluN",
+    "SemiAspC", "SemiAspN", "Noenzyme"),
+  custom_enzyme = c(Cterm = NULL, Nterm = NULL),
   maxn_fasta_seqs = 200000L,
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
@@ -110,8 +114,32 @@ default if TRUE. May toggle it to \code{FALSE} if search speed against
 phospho data is not a primary concern.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
-enzyme will be used to generate peptide sequences from proteins. The enzyme
-is currently \code{trypsin_p}.}
+  enzyme will be used to generate peptide sequences from proteins. The
+  default is \code{Trypsin_P}.
+
+  Warning: be aware of RAM exhaustion at \code{noenzyme}. May consider a
+  smaller \code{max_len}, e.g., \code{max_len = 25}; or separate searches of
+  (1) min_len = 7, max_len = 20 and (2) min_len = 21, max_len = 30 etc.
+  Automation of the multi-step process may be available in a later version.}
+
+\item{custom_enzyme}{Regular expression(s) for custom enzyme specificity. The
+  default is NULL. Uses of custom enzyme specificity is probably rather
+  infrequent. Should there be such need, the argument \code{enzyme} will be
+  ignored and the following may be applied:
+
+  \cr ## Examples \cr \cr # Equivalent to Trypsin \cr # at the Cterm of K or
+  R but not followed by P \cr # (the quantifiers "\{1\}" can be skipped at a
+  small cost of speed) \cr custom_enzyme = c(Cterm =
+  "([KR]\{1\})([^P]\{1\})")
+
+  \cr # GluN again \cr custom_enzyme = c(Nterm = "([E]\{1\})")
+
+  \cr # Trypsin_P + GluN \cr custom_enzyme = c(Cterm = "([KR]\{1\})", Nterm =
+  "([E]\{1\})")
+
+  \cr # Faked: Trypsin, proline not allowed on neither Nterm or Cterm \cr
+  custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
+  "([^P]\{1\})([KR]\{1\})")}
 
 \item{maxn_fasta_seqs}{A positive integer; the maximum number of protein
 sequences in fasta files. The default is 200000.}

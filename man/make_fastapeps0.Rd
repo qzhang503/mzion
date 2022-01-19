@@ -2,15 +2,47 @@
 % Please edit documentation in R/ms1_precursors.R
 \name{make_fastapeps0}
 \alias{make_fastapeps0}
-\title{Make peptide sequences from FASTA databases.}
+\title{Makes peptide sequences from FASTA databases.}
 \usage{
-make_fastapeps0(fasta_db, max_miss = 2L)
+make_fastapeps0(
+  fasta_db,
+  enzyme = "trypsin_p",
+  custom_enzyme = NULL,
+  max_miss = 2L
+)
 }
 \arguments{
 \item{fasta_db}{Fasta database(s).}
+
+\item{enzyme}{A character string; the proteolytic specificity of the assumed
+enzyme will be used to generate peptide sequences from proteins. The enzyme
+is currently \code{trypsin}.}
+
+\item{custom_enzyme}{Regular expression(s) for custom enzyme specificity. The
+  default is NULL. Uses of custom enzyme specificity is probably rather
+  infrequent. Should there be such need, the argument \code{enzyme} will be
+  ignored and the following may be applied:
+
+  \cr ## Examples \cr \cr # Equivalent to Trypsin \cr # at the Cterm of K or
+  R but not followed by P \cr # (the quantifiers "\{1\}" can be skipped at a
+  small cost of speed) \cr custom_enzyme = c(Cterm =
+  "([KR]\{1\})([^P]\{1\})")
+
+  \cr # GluN again \cr custom_enzyme = c(Nterm = "([E]\{1\})")
+
+  \cr # Trypsin_P + GluN \cr custom_enzyme = c(Cterm = "([KR]\{1\})", Nterm =
+  "([E]\{1\})")
+
+  \cr # Faked: Trypsin, proline not allowed on neither Nterm or Cterm \cr
+  custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
+  "([^P]\{1\})([KR]\{1\})")}
 
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
 }
 \description{
 A step before concatenating peptides by the number of mis-cleavages.
+}
+\details{
+The uses of "@" tags is faster than lookahead and lookbehind
+(https://www.r-bloggers.com/2018/04/strsplit-but-keeping-the-delimiter/).
 }

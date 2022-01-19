@@ -58,8 +58,6 @@ developer.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
-
-\item{types}{The types of modification, e.g., "amods- tmod+ vnl- fnl-" etc.}
 }
 \description{
 For a given time stamp.

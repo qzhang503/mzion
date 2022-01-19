@@ -28,8 +28,8 @@ subset_anyctsite(prps, site = "Q")
 subset_anyctany(peps)
 }
 \arguments{
-\item{prps}{Lists of peptide sequences with a one-letter representation
-of amino acid residues. Each list is named by protein accession.}
+\item{prps}{Lists of peptide sequences with a one-letter representation of
+amino acid residues. Each list is named by protein accession.}
 
 \item{site}{A site. No need to specify "any terminal" sites.}
 

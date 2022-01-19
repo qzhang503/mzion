@@ -12,7 +12,7 @@ find_unimod(
 \arguments{
 \item{unimod}{The name of a \href{https://www.unimod.org/}{Unimod} modification.}
 
-\item{xml_file}{Name(s) of Unimod ".xml" files. The file path is a system
+\item{xml_files}{Name(s) of Unimod ".xml" files. The file path is a system
 setting of \code{system.file("extdata", xml_file, package = "proteoM")}.}
 }
 \description{

@@ -28,6 +28,7 @@ ms2match_a0_vnl0_fnl1(
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
   min_ms2mass = 110L,
+  df0 = NULL,
   digits = 4L
 )
 
@@ -52,6 +53,7 @@ ms2match_a1_vnl0_fnl0(
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
   min_ms2mass = 110L,
+  df0 = NULL,
   digits = 4L
 )
 
@@ -77,6 +79,7 @@ ms2match_a1_vnl0_fnl1(
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
   min_ms2mass = 110L,
+  df0 = NULL,
   digits = 4L
 )
 
@@ -102,6 +105,7 @@ ms2match_a1_vnl1_fnl0(
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
   min_ms2mass = 110L,
+  df0 = NULL,
   digits = 4L
 )
 
@@ -123,6 +127,7 @@ ms2match_base(
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
   min_ms2mass = 110L,
+  df0 = NULL,
   digits = 4L
 )
 }
@@ -197,8 +202,17 @@ default is 25.}
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
 
+\item{df0}{A zero-row data frame that holds column names.}
+
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
+
+\item{ntmod}{The attribute \code{ntmod} from a \code{aa_masses} (for MS1
+calculations).}
+
+\item{ctmod}{The attribute \code{ctmod} from a \code{aa_masses} (for MS1
+ calculations).
+@rdname gen_ms2ions_base}
 
 \item{amods}{The attribute of \code{amods} from an \code{aa_masses}.}
 

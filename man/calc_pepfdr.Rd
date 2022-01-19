@@ -36,10 +36,6 @@ identities. For higher quality and data-driven thresholds, choose the
 default \code{max_pepscores_co = Inf}.}
 
 \item{out_path}{A file path of outputs.}
-
-\item{out}{The output from \link{calc_pepscores}.}
-
-\item{nms}{The name(s) of \code{out} that correspond(s) to decoy results.}
 }
 \description{
 Needs \code{min_len} and \code{max_len} since the target-decoy pair may not

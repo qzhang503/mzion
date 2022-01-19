@@ -32,7 +32,7 @@
 #'   parsing (don't think it can be altered by users, but just in case).
 #'
 #'   Individuality in MGF files are slightly preferred to take advantage of
-#'   parallel reading of the files. 
+#'   parallel reading of the files.
 #' @param fasta Character string(s) to the name(s) of fasta file(s) with
 #'   prepended directory path. The experimenter needs to supply the files.
 #' @param acc_type Character string(s); the types of protein accessions in one
@@ -66,8 +66,33 @@
 #'   experimenting by allowing additional masses in the universe of MS1
 #'   precursors.
 #' @param enzyme A character string; the proteolytic specificity of the assumed
-#'   enzyme will be used to generate peptide sequences from proteins. The enzyme
-#'   is currently \code{trypsin_p}.
+#'   enzyme will be used to generate peptide sequences from proteins. The
+#'   default is \code{Trypsin_P}.
+#'
+#'   Warning: be aware of RAM exhaustion at \code{noenzyme}. May consider a
+#'   smaller \code{max_len}, e.g., \code{max_len = 25}; or separate searches of
+#'   (1) min_len = 7, max_len = 20 and (2) min_len = 21, max_len = 30 etc.
+#'   Automation of the multi-step process may be available in a later version.
+#'
+#' @param custom_enzyme Regular expression(s) for custom enzyme specificity. The
+#'   default is NULL. Uses of custom enzyme specificity is probably rather
+#'   infrequent. Should there be such need, the argument \code{enzyme} will be
+#'   ignored and the following may be applied:
+#'
+#'   \cr ## Examples \cr \cr # Equivalent to Trypsin \cr # at the Cterm of K or
+#'   R but not followed by P \cr # (the quantifiers "\{1\}" can be skipped at a
+#'   small cost of speed) \cr custom_enzyme = c(Cterm =
+#'   "([KR]\{1\})([^P]\{1\})")
+#'
+#'   \cr # GluN again \cr custom_enzyme = c(Nterm = "([E]\{1\})")
+#'
+#'   \cr # Trypsin_P + GluN \cr custom_enzyme = c(Cterm = "([KR]\{1\})", Nterm =
+#'   "([E]\{1\})")
+#'
+#'   \cr # Faked: Trypsin, proline not allowed on neither Nterm or Cterm \cr
+#'   custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
+#'   "([^P]\{1\})([KR]\{1\})")
+#'
 #' @param maxn_fasta_seqs A positive integer; the maximum number of protein
 #'   sequences in fasta files. The default is 200000.
 #' @param maxn_vmods_setscombi A non-negative integer; the maximum number of
@@ -346,7 +371,13 @@ matchMS <- function (out_path = "~/proteoM/outs",
                                  "Gln->pyro-Glu (N-term = Q)"),
                      include_insource_nl = FALSE,
                      exclude_phospho_nl = TRUE, 
-                     enzyme = c("trypsin_p"),
+                     enzyme = c("Trypsin_P", "Trypsin", "LysC", "LysN", "ArgC", 
+                                "LysC_P", "Chymotrypsin", "GluC", "GluN", 
+                                "AspC", "AspN", "SemiTrypsin_P", "SemiTrypsin", 
+                                "SemiLysC", "SemiLysN", "SemiArgC", 
+                                "SemiLysC_P", "SemiChymotrypsin", "SemiGluC", 
+                                "SemiGluN", "SemiAspC", "SemiAspN", "Noenzyme"),
+                     custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
                      maxn_fasta_seqs = 200000L,
                      maxn_vmods_setscombi = 64L,
                      maxn_vmods_per_pep = 5L,
@@ -470,6 +501,35 @@ matchMS <- function (out_path = "~/proteoM/outs",
   stopifnot(max_pepscores_co >= 0, max_protscores_co >= 0, 
             min_ret_time >= 0, max_ret_time >= min_ret_time)
   
+  # enzyme
+  oks <- eval(formals()[["enzyme"]])
+  oks_lwr <- tolower(oks)
+  enzyme <- substitute(enzyme)
+  
+  if (length(enzyme) > 1L) {
+    enzyme <- oks[1]
+    enzyme_lwr <- tolower(enzyme)
+  }
+  else {
+    enzyme <- as.character(enzyme)
+    enzyme_lwr <- tolower(enzyme)
+    
+    if ((!enzyme_lwr %in% oks_lwr) && is.null(custom_enzyme)) 
+      stop("Incorrect `enzyme = ", enzyme, "`.")
+  }
+  
+  if (!is.null(custom_enzyme)) {
+    warning("Overrule `enzyme` with `custom_enzyme`.", call. = FALSE)
+    enzyme <- NULL
+  }
+  else
+    enzyme <- enzyme_lwr
+  
+  if ((!is.null(enzyme)) && (enzyme == "noenzyme"))
+    max_miss <- 0L
+    
+  rm(list = c("oks", "oks_lwr", "enzyme_lwr"))
+  
   # fdr_type
   oks <- eval(formals()[["fdr_type"]])
   fdr_type <- substitute(fdr_type)
@@ -542,6 +602,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
     include_insource_nl = include_insource_nl,
     exclude_phospho_nl = exclude_phospho_nl, 
     enzyme = enzyme,
+    custom_enzyme = custom_enzyme, 
     maxn_fasta_seqs = maxn_fasta_seqs,
     maxn_vmods_setscombi = maxn_vmods_setscombi,
     maxn_vmods_per_pep = maxn_vmods_per_pep,
@@ -744,6 +805,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 #' @param aa_masses_all All the amino acid lookup tables.
 #' 
 #' @inheritParams matchMS
+#' @inheritParams ms2match
 #' @inheritParams calc_aamasses
 #' @inheritParams load_mgfs
 #' @examples

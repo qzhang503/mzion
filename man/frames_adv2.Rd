@@ -48,6 +48,10 @@ acid residues.}
 \item{ms2vmods}{Matrices of labels of variable modifications. Each
 permutation in a row for each matrix.}
 
+\item{ntmod}{The attribute \code{ntmod} from a \code{aa_masses}.}
+
+\item{ctmod}{The attribute \code{ctmod} from a \code{aa_masses}.}
+
 \item{ntmass}{The mass of N-terminal.}
 
 \item{ctmass}{The mass of C-terminal.}

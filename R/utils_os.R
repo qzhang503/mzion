@@ -536,6 +536,7 @@ match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
 #' 
 #' @param path A file path.
 #' @param ignores The file extensions to be ignored.
+#' @param ... Arguments for file.remove.
 delete_files <- function (path, ignores = NULL, ...) 
 {
   

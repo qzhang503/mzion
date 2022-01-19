@@ -7,8 +7,8 @@
 find_nmodtree(prps, min_n_res, vmods, posns, len)
 }
 \arguments{
-\item{prps}{Lists of peptide sequences with a one-letter representation
-of amino acid residues. Each list is named by protein accession.}
+\item{prps}{Lists of peptide sequences with a one-letter representation of
+amino acid residues. Each list is named by protein accession.}
 
 \item{min_n_res}{The minimum numbers of residues for a given set of sites.}
 

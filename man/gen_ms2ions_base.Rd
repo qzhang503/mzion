@@ -120,9 +120,6 @@ representation of amino acids.}
 
 \item{ms1_mass}{The mass of a theoretical MS1 (for subsetting).}
 
-\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
-acid residues.}
-
 \item{ms1vmods}{The set of all possible MS1 vmod labels at a given aa_masses.}
 
 \item{ms2vmods}{Matrices of labels of variable modifications. Each

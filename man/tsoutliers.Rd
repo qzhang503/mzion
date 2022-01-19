@@ -9,12 +9,12 @@ tsoutliers(x, iterate = 2, lambda = NULL)
 \arguments{
 \item{x}{Time series}
 
+\item{iterate}{The number of iterations.}
+
 \item{lambda}{Box-Cox transformation parameter. If lambda="auto", then a
 transformation is automatically selected using BoxCox.lambda. The
 transformation is ignored if NULL. Otherwise, data transformed before model
 is estimated.}
-
-\item{linear}{Should a linear interpolation be used.}
 }
 \description{
 From \code{forecast}.

@@ -45,6 +45,10 @@ default is 5.}
   considered, the value of \code{maxn_sites_per_vmod} needs to be four or
   greater.}
 
+\item{.ms1_vmodsets}{Not used.}
+
+\item{.base_ent}{Not used.}
+
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
 }

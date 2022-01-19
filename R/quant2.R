@@ -59,8 +59,17 @@ calc_tmtint <- function (data = NULL,
                        ppm_reporters = ppm_reporters,
                        len = length(theos),
                        nms = names(theos)) %>%
-      dplyr::bind_rows() %>%
-      dplyr::bind_cols(data, .)
+      dplyr::bind_rows() 
+    
+    if (!nrow(out)) {
+      out <- data.frame(matrix(ncol = length(theos), nrow = 0L))
+      colnames(out) <- theos
+      
+      for (i in seq_along(out)) 
+        out[[i]] <- as.numeric(out[[i]])
+    }
+
+    out <- dplyr::bind_cols(data, out)
   }
   
   names(out)[grep("^([0-9]{3}[NC]{0,1})", names(out))] <-
@@ -280,35 +289,35 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs")
 
 #' Helper of \link{groupProts}.
 #'
-#' @param out The data frame from upstream steps.
+#' @param df A data frame contains proteins and peptides.
 #' @param out_path The output path.
-grp_prots <- function (out, out_path = NULL) 
+grp_prots <- function (df, out_path = NULL) 
 {
-  if (!nrow(out))
+  if (!nrow(df))
     stop("Zero row of data for protein groupings.")
   
   dir.create(file.path(out_path), recursive = TRUE, showWarnings = FALSE)
   
-  out <- out[with(out, order(pep_seq)), ]
-  
   # Significant (df1) and trivial (df0) entries
-  rows <- (out$pep_issig & (!out$pep_isdecoy) & (out$pep_rank <= 3L))
+  df <- df[with(df, order(pep_seq)), ]
+  rows <- (df$pep_issig & (!df$pep_isdecoy) & (df$pep_rank <= 3L))
   
-  df1 <- out[rows, ]
-  df0 <- out[!rows, ]
-  rm(list = c("out"))
+  df1 <- df[rows, ]
+  df0 <- df[!rows, ]
+  rm(list = c("df"))
   gc()
   
   # (passes the whole `df1` to avoid expensive left_join)
   if (nrow(df1) > 1L) 
     df1 <- groupProts(df1, out_path)
-  else 
+  else {
     df1 <- dplyr::mutate(df1, 
                          prot_isess = TRUE,
                          prot_hit_num = 1L,
                          prot_family_member = 1L, 
                          pep_literal_unique = TRUE, 
                          pep_razor_unique = TRUE)
+  }
 
   # Trivial entries
   ess_prots <- df1 %>%
@@ -319,8 +328,8 @@ grp_prots <- function (out, out_path = NULL)
     dplyr::filter(!duplicated(prot_acc))
   
   df2 <- df0 %>%
-    dplyr::filter(!duplicated(prot_acc)) %>%
     dplyr::select(prot_acc) %>%
+    dplyr::filter(!duplicated(prot_acc)) %>%
     dplyr::mutate(prot_isess = ifelse(prot_acc %in% ess_prots, TRUE, FALSE)) %>%
     dplyr::left_join(hits_n_fams, by = "prot_acc")
 
@@ -333,7 +342,7 @@ grp_prots <- function (out, out_path = NULL)
     df1 <- dplyr::bind_rows(df1, df2)
   
   df1 %>% 
-    dplyr::select(., -which(names(.) %in% c("prot_n_psm", "prot_n_pep")))
+    dplyr::select(-which(names(.) %in% c("prot_n_psm", "prot_n_pep")))
 }
 
 
@@ -344,6 +353,32 @@ grp_prots <- function (out, out_path = NULL)
 #'
 #' @param df Interim results from \link{matchMS}.
 #' @param out_path The output path.
+#' 
+#' @examples
+#' \donttest{
+#' df <- data.frame(prot_acc = character(2000), pep_seq = character(2000))
+#' set.seed(100)
+#' df$prot_acc <- sample(LETTERS[1:20], 2000, replace = TRUE)
+#' df$pep_seq <- sample(letters[1:26], 20, replace = TRUE)
+#' df <- df[!duplicated(df), ]
+#'
+#' out <- proteoM:::groupProts(df)
+#'
+#' # One peptide, multiple proteins
+#' df <- data.frame(prot_acc = LETTERS[1:3], pep_seq = rep("X", 3))
+#' out <- proteoM:::groupProts(df)
+#' stopifnot(nrow(out) == 3L)
+#'
+#' # One peptide, one proteins
+#' df <- data.frame(prot_acc = "A", pep_seq = "X")
+#' out <- proteoM:::groupProts(df)
+#' stopifnot(nrow(out) == 1L)
+#'
+#' # One proteins
+#' df <- data.frame(prot_acc = rep("A", 3), pep_seq = LETTERS[24:26])
+#' out <- proteoM:::groupProts(df)
+#' stopifnot(nrow(out) == 3L)
+#' }
 groupProts <- function (df, out_path = NULL) 
 {
   # `pep_seq` in `df` are all from target and significant;
@@ -365,12 +400,19 @@ groupProts <- function (df, out_path = NULL)
   prots_upr_right <- colnames(Mat_lwr_right)
   # peps_unique <- rownames(Mat_lwr_left)
   
-  Mat_upr_right <- Matrix::sparseMatrix(
-    dims = c(nrow(Mat_upr_left), ncol(Mat_lwr_right)), 
-    i={}, j={}
-  )
-  colnames(Mat_upr_right) <- prots_upr_right
-  rownames(Mat_upr_right) <- peps_shared
+  if (is.null(Mat_lwr_right))
+    Mat_upr_right <- NULL
+  else {
+    # works for zero-column matrix
+    Mat_upr_right <- Matrix::sparseMatrix(
+      dims = c(nrow(Mat_upr_left), ncol(Mat_lwr_right)), 
+      i={}, j={}
+    )
+    colnames(Mat_upr_right) <- prots_upr_right
+    rownames(Mat_upr_right) <- peps_shared
+  }
+  
+  # Empty `Mat_upr_left` is a zero-row data.frame, not NULL
 
   rm(list = c("Mats"))
   gc()
@@ -395,32 +437,48 @@ groupProts <- function (df, out_path = NULL)
   ## (2) establishes protein groups
   # each row in cbind(Mat_lwr_left, Mat_lwr_right) has only one "1"
   #   -> Mat_lwr_left does not affect logical distance of 0/1
-  prot_grps <- local({
-    grps_1 <- cut_proteinGroups(Mat_upr_left, out_path)
-    gc()
-    
-    max <- max(grps_1$prot_hit_num, na.rm = TRUE)
-    idxes <- seq_along(prots_upr_right) + max
-    
-    grps_2 <- data.frame(prot_acc = prots_upr_right, 
-                         prot_hit_num = idxes, 
-                         prot_family_member = 1L)
-    
-    rbind2(grps_1, grps_2)
-  })
+  
+  if (nrow(Mat_upr_left)) {
+    prot_grps <- local({
+      grps_1 <- cut_proteinGroups(Mat_upr_left, out_path)
+      gc()
+      
+      max <- max(grps_1$prot_hit_num, na.rm = TRUE)
+      idxes <- seq_along(prots_upr_right) + max
+      
+      if (is.null(prots_upr_right) || !length(prots_upr_right))
+        grps_2 <- NULL
+      else 
+        grps_2 <- data.frame(prot_acc = prots_upr_right, 
+                             prot_hit_num = idxes, 
+                             prot_family_member = 1L)
+
+      rbind2(grps_1, grps_2)
+    })
+  }
+  else {
+    # no shared peptides
+    prot_grps <- data.frame(prot_acc = prots_upr_right, 
+                            prot_hit_num = seq_along(prots_upr_right), 
+                            prot_family_member = 1L)
+  }
 
   ## (3) finds essential protein entries
   ess_prots <- local({
-    rows_lwr_left_is_one <- Matrix::rowSums(Mat_lwr_left) > 0
-    Mat_lwr_left_is_one <- Mat_lwr_left[rows_lwr_left_is_one, , drop = FALSE]
-    df_shared <- greedysetcover3(rbind(Mat_upr_left, Mat_lwr_left_is_one))
-    gc()
-    
+    if (is.null(Mat_lwr_left))
+      df_shared <- greedysetcover3(Mat_upr_left)
+    else {
+      rows_lwr_left_is_one <- Matrix::rowSums(Mat_lwr_left) > 0
+      Mat_lwr_left_is_one <- Mat_lwr_left[rows_lwr_left_is_one, , drop = FALSE]
+      df_shared <- greedysetcover3(rbind(Mat_upr_left, Mat_lwr_left_is_one))
+      gc()
+    }
+
     df_uniq <- df[, c("prot_acc", "pep_seq")]
     df_uniq <- df_uniq[df_uniq$prot_acc %in% prots_upr_right, , drop = FALSE]
     df_uniq <- df_uniq[!duplicated.data.frame(df_uniq), , drop = FALSE]
     df_uniq <- df_uniq[with(df_uniq, order(prot_acc, pep_seq)), , drop = FALSE]
-
+    
     sets <- rbind2(df_shared, df_uniq)
     
     if (!is.null(out_path)) 
@@ -449,7 +507,7 @@ groupProts <- function (df, out_path = NULL)
   M4_ess <- if (nrow(M4) == 1L) 
     M4
   else 
-    M4[, colnames(M4) %in% ess_prots]
+    M4[, colnames(M4) %in% ess_prots, drop = FALSE]
   
   # literal or razor
   peps_uniq <- local({
@@ -480,23 +538,61 @@ groupProts <- function (df, out_path = NULL)
 #'
 #' Builds the logical map between peptide (in rows) and proteins (in columns).
 #'
+#' The \code{lwr_left} and \code{lwr_right} can be NULL with early exit or
+#' "empty" sparse matrix with end return. Maybe uniform later to "empty" matrix.
+#'
 #' @param df The data frame from upstream steps. It must contains the two
 #'   columns of \code{prot_acc} and \code{pep_seq}.
 #' @param out_path An output path.
-#' @examples 
+#' @examples
 #' \donttest{
 #' df <- data.frame(prot_acc = character(2000), pep_seq = character(2000))
 #' set.seed(100)
 #' df$prot_acc <- sample(LETTERS[1:20], 2000, replace = TRUE)
 #' df$pep_seq <- sample(letters[1:26], 20, replace = TRUE)
-#' df <- df[!duplicated(df), ] 
-#' 
+#' df <- df[!duplicated(df), ]
+#'
 #' out <- proteoM:::map_pepprot(df)
+#'
+#' # One peptide, multiple proteins
+#' df <- data.frame(prot_acc = LETTERS[1:3], pep_seq = rep("X", 3))
+#' out <- proteoM:::map_pepprot(df)
+#' stopifnot(rownames(out[[1]]) == "X", colnames(out[[1]]) == LETTERS[1:3])
+#'
+#' # One peptide, one proteins
+#' df <- data.frame(prot_acc = "A", pep_seq = "X")
+#' out <- proteoM:::map_pepprot(df)
+#' stopifnot(rownames(out[[1]]) == "X", colnames(out[[1]]) == "A")
+#'
+#' # One proteins
+#' df <- data.frame(prot_acc = rep("A", 3), pep_seq = LETTERS[24:26])
+#' out <- proteoM:::map_pepprot(df)
+#' stopifnot(rownames(out[[1]]) == LETTERS[24:26], colnames(out[[1]]) == "A")
 #' }
 map_pepprot <- function (df, out_path = NULL) 
 {
+  # collapse rows of the same pep_seq
+  #
+  #      pep_seq prot_acc
+  # 1       A        X
+  # 2       A        Y
+  # 3       B        X
+  # 4       C        Y
+  #
+  #   X Y
+  # 1 1 0
+  # 2 0 1
+  # 3 1 0
+  # 4 0 1
+  #
+  # pep_seq   X     Y
+  # 1 A       TRUE  TRUE
+  # 2 B       TRUE  FALSE
+  # 3 C       FALSE TRUE
+  
   if (!identical(names(df), c("prot_acc", "pep_seq")))
-    stop("Column names of `df` need to be \"prot_acc\" and \"pep_seq\".")
+    stop("The two columns of `df` need to be in the order of ", "
+         \"prot_acc\" and \"pep_seq\".")
   
   # FIRST ordered by `pep_seq`, SECOND by `prot_acc` 
   # (for continuity of the same `pep_seq`)
@@ -505,15 +601,28 @@ map_pepprot <- function (df, out_path = NULL)
 
   peps <- df$pep_seq
 
+  # (one peptide, ONE protein)
   if (length(peps) == 1L) {
     out <- matrix(1)
     colnames(out) <- df$prot_acc
     rownames(out) <- peps
+    Mat <- Matrix::Matrix(out, sparse = TRUE)
     
-    return(out)
+    return(list(upr_left = Mat, lwr_left = NULL, lwr_right = NULL))
   }
 
   ## Separates into Mat0 and Mat1
+  uniq_prots <- unique(df$prot_acc)
+  
+  # (One protein, multiple peptides)
+  if (length(uniq_prots) == 1L) {
+    Mat <- Matrix::Matrix(matrix(rep(1L, length(peps))), sparse = TRUE)
+    colnames(Mat) <- uniq_prots
+    rownames(Mat) <- peps
+    
+    return(list(upr_left = Mat, lwr_left = NULL, lwr_right = NULL))
+  }
+  
   Mat <- Matrix::sparse.model.matrix(~ -1 + prot_acc, df)
   prots <- stringi::stri_replace_first_fixed(colnames(Mat), "prot_acc", "")
   colnames(Mat) <- prots
@@ -578,28 +687,7 @@ map_pepprot <- function (df, out_path = NULL)
   ## To logical sparse matrix
   out <- out == 1L
   gc()
-  
-  # collapse rows of the same pep_seq
-  #
-  #      pep_seq prot_acc
-  # 1       A        X
-  # 2       A        Y
-  # 3       B        X
-  # 4       C        Y
-  #
-  #   X Y
-  # 1 1 0
-  # 2 0 1
-  # 3 1 0
-  # 4 0 1
-  #
-  # A tibble: 3 x 3
-  # pep_seq X     Y
-  # <chr>   <lgl> <lgl>
-  # 1 A       TRUE  TRUE
-  # 2 B       TRUE  FALSE
-  # 3 C       FALSE TRUE
-  
+
   if (FALSE) {
     # grp_prots -> groupProts -> map_pepprot called multiple times
     # need additional "tier" information to prevent overwrites
@@ -677,6 +765,7 @@ collapse_sortpeps <- function (mat, ncol = NULL, peps = NULL)
 #' Parallel version of \link{collapse_sortpeps}.
 #' 
 #' @param n_cores The number of CPU cores.
+#' @param Mat A sparse matrix.
 #' @inheritParams collapse_sortpeps
 pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, n_cores = NULL) 
 {
@@ -988,9 +1077,9 @@ greedysetcover3 <- function (mat)
     gc()
   }
   
-  if (nrow(mat) == 1L) 
+  if (nrow(mat) == 1L || ncol(mat) == 1L) 
     return(data.frame(prot_acc = colnames(mat), pep_seq = rownames(mat)))
-  
+
   prot_acc <- NULL
   pep_seq <- NULL
   

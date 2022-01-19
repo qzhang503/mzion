@@ -10,8 +10,8 @@ subpeps_by_vmods(aa_masses, prps)
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
 
-\item{prps}{Lists of peptide sequences with a one-letter representation
-of amino acid residues. Each list is named by protein accession.}
+\item{prps}{Lists of peptide sequences with a one-letter representation of
+amino acid residues. Each list is named by protein accession.}
 }
 \description{
 From N-term to C-term.

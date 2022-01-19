@@ -4,6 +4,7 @@
 #'
 #' @param x A numeric vector.
 #' @param n The number of top entries to keep.
+#' @param ... Additional arguments for base function sort.
 #' @return The indexes of the top-n entries.
 #' @examples
 #' \donttest{
@@ -29,8 +30,7 @@ which_topx <- function(x, n = 50L, ...)
 
 #' Finds the indexes of top-n entries without re-ordering.
 #'
-#' @param x A numeric vector.
-#' @param n The number of top entries to keep.
+#' @inheritParams which_topx
 #' @return The indexes of the top-n entries.
 which_topx2 <- function(x, n = 50L, ...) 
 {
@@ -114,11 +114,16 @@ find_mass_error_range <- function (x = 500L, ppm = 20L)
 
 #' Post processing after ms2match.
 #'
-#' @param out An output from various ms2match(es).
+#' @param df An output from various ms2match(es).
 #' @inheritParams ms2match_base
-post_ms2match <- function (out, i, aa_masses, out_path) 
+post_ms2match <- function (df, i, aa_masses, out_path) 
 {
   create_dir(file.path(out_path, "temp"))
+  
+  if (is.null(df)) {
+    saveRDS(df, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
+    return(NULL)
+  }
 
   nm_fmods <- attr(aa_masses, "fmods", exact = TRUE)
   nm_vmods <- attr(aa_masses, "vmods", exact = TRUE)
@@ -128,14 +133,14 @@ post_ms2match <- function (out, i, aa_masses, out_path)
   else 
     is_decoy <- FALSE
 
-  out <- out %>%
+  df <- df %>%
     dplyr::mutate(pep_fmod = nm_fmods,
                   pep_vmod = nm_vmods,
                   pep_mod_group = as.character(i)) %>%
     { if (is_decoy) dplyr::mutate(., pep_isdecoy = TRUE) else
       dplyr::mutate(., pep_isdecoy = FALSE) }
 
-  out <- out %>%
+  df %>%
     reloc_col_after("raw_file", "scan_num") %>%
     reloc_col_after("pep_mod_group", "raw_file") %T>%
     saveRDS(file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
@@ -167,6 +172,7 @@ post_frame_adv <- function (res, mgf_frames)
 
 #' Subsets the search space.
 #' 
+#' @param n_cores The number of CPU cores.
 #' @inheritParams ms2match
 #' @inheritParams ms2match_base
 #' @inheritParams post_ms2match
@@ -203,6 +209,13 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
   .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
 
   theopeps <- readRDS(file.path(.path_bin, paste0("binned_theopeps_", i, ".rds")))
+  
+  if (is.null(theopeps)) {
+    return(list(mgf_frames = mgf_frames, 
+                theopeps = NULL, 
+                theopeps2 = NULL))
+  }
+  
   theopeps <- lapply(theopeps, function (x) x[, c("pep_seq", "mass")])
 
   # (1) for a given aa_masses_all[[i]], some mgf_frames[[i]]
@@ -523,8 +536,8 @@ is_equal_sets <- function(x, y) all(x %in% y) && all(y %in% x)
 #' 
 #' Decoy sequences may be present in targets and thus removed.
 #' 
-#' @param A target data frame with column \code{pep_seq}.
-#' @param A decoy data frame with column \code{pep_seq}.
+#' @param target A target data frame with column \code{pep_seq}.
+#' @param decoy A decoy data frame with column \code{pep_seq}.
 purge_decoys <- function (target, decoy) {
   
   ## found in both forward and reverse fastas
@@ -557,6 +570,7 @@ purge_decoys <- function (target, decoy) {
 #' subsetting from a data.frame.
 #'
 #' @param use.names Logical; uses names or not.
+#' @param ... Lists of data.
 #' @examples
 #' x <- list(`Oxidation (M)` = c(0.000000, 63.998285),
 #'           `Carbamidomethyl (M)` = c(0.000000, 105.024835),
@@ -721,7 +735,9 @@ split_vec <- function (vec)
 #' 
 #' @param x A vector of character strings.
 #' @param f A function.
+#' 
 #' @examples 
+#' \donttest{
 #' x <- c("aa", "bb", "cc")
 #' accumulate_char(x, paste0)
 #' 
@@ -730,6 +746,10 @@ split_vec <- function (vec)
 #' 
 #' x <- "-EDEIQDXI-"
 #' accumulate_char(x, paste0)
+#' 
+#' }
+#' 
+#' @export
 accumulate_char <- function(x, f) 
 {
   len <- length(x)

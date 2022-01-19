@@ -465,6 +465,7 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
 
 #' Calculates the scores of peptides at an \code{aa_masses}.
 #' 
+#' @param res Resulted data from ion matches.
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by", 
@@ -1048,8 +1049,6 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 #' Needs \code{min_len} and \code{max_len} since the target-decoy pair may not
 #' cover all \code{pep_len} values.
 #'
-#' @param out The output from \link{calc_pepscores}.
-#' @param nms The name(s) of \code{out} that correspond(s) to decoy results.
 #' @param target_fdr Numeric; the levels of false-discovery rate (FDR).
 #' @param fdr_type Character string; the type of FDR for controlling.
 #' @inheritParams matchMS
@@ -1200,7 +1199,11 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   
   nrow_left <- nrow(df_left)
   
-  if (nrow_left == 1L) {
+  if (nrow_left == 0L) {
+    newx_left <- NULL
+    newy_left <- NULL
+  }
+  else if (nrow_left == 1L) {
     newx_left <- df_left$x[1]
     newy_left <- df_left$y[1]
   }
@@ -1238,9 +1241,13 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   
   nrow_right <- nrow(df_right)
   
-  if (nrow_right <= 1L) {
+  if (nrow_right == 0L) {
     newx_right <- NULL
     newy_right <- NULL
+  } 
+  else if (nrow_right == 1L) {
+    newx_right <- df_right$x
+    newy_right <- df_right$y
   } 
   else {
     if (nrow_right > rank_right) {
@@ -1421,7 +1428,7 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
 #' Calculates the cut-offs of protein scores.
 #'
 #' @param df An output from upstream steps.
-#' @param outpath An output path.
+#' @param out_path An output path.
 #' @inheritParams calc_pepfdr
 #' @inheritParams matchMS
 calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = 50, 
@@ -2131,7 +2138,7 @@ is.constant <- function (x)
 #'   transformation is automatically selected using BoxCox.lambda. The
 #'   transformation is ignored if NULL. Otherwise, data transformed before model
 #'   is estimated.
-#' @param linear Should a linear interpolation be used.
+#' @param iterate The number of iterations.
 tsoutliers <- function (x, iterate = 2, lambda = NULL) 
 {
   n <- length(x)

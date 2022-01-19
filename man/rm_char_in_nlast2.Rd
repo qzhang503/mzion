@@ -15,5 +15,5 @@ in values.}
 \item{n}{The number of beginning entries to be considered.}
 }
 \description{
-Removes a trailing character from the last \code{n} entries.
+The default value of \code{n} is for full-enzymatic peptides.
 }

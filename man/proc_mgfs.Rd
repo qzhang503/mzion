@@ -30,6 +30,8 @@ proc_mgfs(
 )
 }
 \arguments{
+\item{lines}{Lines of MGF.}
+
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
 MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 

@@ -21,9 +21,7 @@ of protein scores for discriminating significant and insignificant
 identities.  For higher quality and data-driven thresholds, choose the
 default \code{max_protscores_co = Inf}.}
 
-\item{out_path}{A file path of outputs.}
-
-\item{outpath}{An output path.}
+\item{out_path}{An output path.}
 }
 \description{
 Calculates the cut-offs of protein scores.

@@ -10,5 +10,5 @@ ct_counts(max_miss = 2L)
 \item{max_miss}{The maximum number of cleavages.}
 }
 \description{
-n(i+1) = n(i) + (i+1)
+For full-enzymes: n(i+1) = n(i) + (i+1). Not applicable for semi-enzymes.
 }

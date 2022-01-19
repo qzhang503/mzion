@@ -10,6 +10,8 @@ delete_files(path, ignores = NULL, ...)
 \item{path}{A file path.}
 
 \item{ignores}{The file extensions to be ignored.}
+
+\item{...}{Arguments for file.remove.}
 }
 \description{
 The directory will be kept.

@@ -143,7 +143,7 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
 #' In the field of \code{position_site}, \code{position} is the name and
 #' \code{site} is the value.
 #'
-#' @param xml_file Name(s) of Unimod ".xml" files. The file path is a system
+#' @param xml_files Name(s) of Unimod ".xml" files. The file path is a system
 #'   setting of \code{system.file("extdata", xml_file, package = "proteoM")}.
 #' @inheritParams parse_unimod
 #' @seealso \link{table_unimods}, \link{parse_unimod}.
@@ -323,7 +323,7 @@ table_unimods <- function (out_nm = "~/proteoM/unimods.txt")
 }
 
 
-#' Helper of \link{table_unimod}.
+#' Helper of \link{table_unimods}.
 #' 
 #' @param file A file path to a Unimod ".xml".
 htable_unimods <- function (file) 

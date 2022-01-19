@@ -4,7 +4,12 @@
 \alias{distri_fpeps}
 \title{Distributes peptides by fixed modifications.}
 \usage{
-distri_fpeps(data, max_miss, is_fixed_protnt, is_fixed_protct)
+distri_fpeps(
+  data = NULL,
+  max_miss = 2L,
+  is_fixed_protnt = FALSE,
+  is_fixed_protct = FALSE
+)
 }
 \arguments{
 \item{data}{Lists of peptides by prot_accs.}

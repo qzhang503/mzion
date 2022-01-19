@@ -65,13 +65,14 @@ calc_pepmasses2 <- function (
               "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
   exclude_phospho_nl = TRUE,
-  enzyme = c("trypsin_p"),
+  enzyme = c("Trypsin_P"),
+  custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
   maxn_fasta_seqs = 50000L,
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   min_len = 7L, max_len = 50L, max_miss = 2L,
-  min_mass = 700L, max_mass = 5500L, 
+  min_mass = 700L, max_mass = 4500L, 
   n_13c = 0L,
   out_path = NULL,
   digits = 4L,
@@ -80,6 +81,37 @@ calc_pepmasses2 <- function (
   .path_fasta = NULL, 
   .path_ms1masses = NULL) 
 {
+  ## Enzymatic and Semi-enzymatic
+  # (1) split_fastaseqs: 
+  #     splits FASTA sequences by full-enzyme specificity
+  # (2) ms1masses_bare: 
+  # (2.1) ms1masses_noterm: 
+  #     calculates the bare masses of (1) without terminal masses (e.g. H2O) 
+  # (2.2) roll_sum
+  #     concatenates sequences and masses according to the value of `max_miss`
+  # (2.3) Adds FIXED terminal mass: 
+  #     H2O 18.010565, FIXED N-term TMT modification 230.170757 + 17.002740 ...
+  #     (which are reflected on aa_masses["N-term"] and aa_masses["C-term"])
+  # 
+  # Note:
+  # For "historical" reasons, terminal "tmods+" refers to "VARIABLE tmods+". 
+  # Thus, if N-term modification is FIXED, all the types of `aa_masses` must be 
+  #   "tmods-". The same is true for anywhere "amods+/-". 
+  # 
+  # (3) distri_peps:
+  #     distributes peptides by modifications;
+  #     removes terminal tags of "-"
+  # (4) hsemipeps_byprots:
+  #     semi-enzyme only
+  # (5) tbl_prots_peps:
+  #     records/sets aside the peptide-and-protein associations
+  # (6) flat_pepseqs:
+  #     removes the information of protein
+  # (7) Twelve types of VARIABLE modifications/masses:
+  #     adds variable terminal masses (tmod+), variable anywhere masses (vmods+) 
+  #     neutral losses (fnl+) etc.
+  
+  
   old_opts <- options()
   options(warn = 1L)
   on.exit(options(old_opts), add = TRUE)
@@ -100,7 +132,7 @@ calc_pepmasses2 <- function (
   .time_stamp <- match_calltime(
     path = .path_cache,
     fun = fun,
-    # must be matched to retrieve cache
+    # must be matched in order to retrieve cached results
     nms = c("fasta", "acc_type", "acc_pattern",
             "fixedmods", "varmods",
             "include_insource_nl", "enzyme",
@@ -109,7 +141,7 @@ calc_pepmasses2 <- function (
             "min_len", "max_len", "max_miss", 
             "min_mass", "max_mass", "n_13c"), 
     # new arguments need matched but not defined in earlier versions
-    new_args = unlist(formals(matchMS)[c("min_mass", "max_mass")]))
+    new_args = unlist(formals(matchMS)[c("min_mass", "max_mass", "custom_enzyme")]))
 
   # ---
   len_ts <- length(.time_stamp)
@@ -157,8 +189,7 @@ calc_pepmasses2 <- function (
     .time_stamp <- format(Sys.time(), ".%Y-%m-%d_%H%M%S")
 
     aa_masses_all <- find_aa_masses(
-      out_path = file.path(.path_fasta, "ms1masses", 
-                           .time_stamp),
+      out_path = file.path(.path_fasta, "ms1masses", .time_stamp),
       fixedmods = fixedmods,
       varmods = varmods,
       maxn_vmods_setscombi = maxn_vmods_setscombi, 
@@ -171,73 +202,141 @@ calc_pepmasses2 <- function (
     len <- length(aa_masses_all)
     types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
 
-    # just the first one; nothing special
-    # used for base masses; not involve terminal and anywhere masses
+    # By design, variable modifications, including variable [NC]-term, 
+    # are appended in parallel to unmodified residues in `aa_masses`, e.g., 
+    # "M", "Oxidation (M)" are two separate entries in `aa_masses`
+    # 
+    # (1) `aa_masses_1` is for base-mass calculations (without variable masses):
+    #   aas <- strsplit("PEPTIDE")); mass <- aa_masses_1[aas]
+    # (2) "N-term" and "C-term" masses are identical across `aa_masses_all`,
+    #     e.g. 18 or 247 etc.
+    # Thus, `aa_masses_1` can be any `aa_masses_all[[i]]` 
+    # but uses `1` for tidiness
+    
     aa_masses_1 <- aa_masses_all[[1]]
     gc()
 
-    # --- Forward and reversed sequences  ---
-    # (not yet concatenation by the number of missed cleavages)
-    seqs_0 <- split_fastaseqs(fasta = fasta,
-                              acc_type = acc_type,
-                              acc_pattern = acc_pattern,
-                              maxn_fasta_seqs = maxn_fasta_seqs,
-                              max_miss = max_miss)
+    # --- Forward sequences  ---
+    if (enzyme == "noenzyme") {
+      if (max_len > 25) 
+        warning("May be out of RAM at `max_len = ", max_len, "`.\n",
+                "Consider a smaller value, e.g., `max_len = 25`")
+
+      is_fixed_protnt <- any(grepl("Protein N-term", fixedmods))
+      is_fixed_protct <- any(grepl("Protein C-term", fixedmods))
+
+      if (any(is_fixed_protnt, is_fixed_protct))
+        stop("Not yet support FIXED protein terminal modifications for ", 
+             "noenzyme searches.\n", 
+             "Change to VARIABLE protein terminal modifications.")
+
+      seqs_0 <- NULL
+      
+      ftmass <- unname(aa_masses_1["N-term"] + aa_masses_1["C-term"])
+      
+      fwd_peps <- split_fastaseqs_noenz(fasta = fasta, 
+                                        acc_type = acc_type,
+                                        acc_pattern = acc_pattern,
+                                        maxn_fasta_seqs = maxn_fasta_seqs, 
+                                        min_len = min_len, 
+                                        max_len = max_len, 
+                                        aa_masses = aa_masses_1, 
+                                        ftmass = ftmass, 
+                                        digits = digits)
+      
+      gc()
+    }
+    else {
+      # (not yet concatenation by the number of missed cleavages)
+      seqs_0 <- split_fastaseqs(fasta = fasta,
+                                enzyme = enzyme, 
+                                custom_enzyme = custom_enzyme, 
+                                acc_type = acc_type,
+                                acc_pattern = acc_pattern,
+                                maxn_fasta_seqs = maxn_fasta_seqs,
+                                max_miss = max_miss)
+      
+      ### Special case of FIXED Protein [NC]-term modification(s) ---
+      # 
+      # (i) Dispatches `pep_seq`s by `fixedmod`s
+      # (only incur at the rare case of Protein terminals being `fixedmods`)
+      # (`fixed Protein [NC]-term` -> no `variable Protein [NC]-term`)
+      # 
+      # (ii) Calculates terminal mass (after `distri_fpeps`)
+      # (otherwise, fixed "Protein N|C-terminal" masses in aa_masses["N|C-term"]
+      #   will be applied to both "N|C-term" and "Protein N|C term")
+      #
+      # if `ftmass` is other than 18.010565 -> FIXED [NC]-term 
+      #   -> NO variable "Protein N-term" etc.
+      # (ftmass will be 18.010565 or plus fixed [NC] terminal modifications)
+      #   aa_masses["N-term"] = 1.007825, aa_masses["C-term"] = 17.002740
+      
+      is_fixed_protnt <- any(grepl("Protein N-term", fixedmods))
+      is_fixed_protct <- any(grepl("Protein C-term", fixedmods))
+      seqs_0 <- distri_fpeps(data = seqs_0, max_miss = max_miss, 
+                             is_fixed_protnt = is_fixed_protnt, 
+                             is_fixed_protct = is_fixed_protct)
+
+      # --- Masses of sequences: fixed mods + terminals ---
+      message("Calculating bare peptide masses...")
+      
+      ftmass <- unname(aa_masses_1["N-term"] + aa_masses_1["C-term"])
+      
+      fwd_peps <- ms1masses_bare(seqs = seqs_0,
+                                 aa_masses = aa_masses_1,
+                                 ftmass = ftmass,
+                                 max_miss = max_miss,
+                                 min_len = min_len,
+                                 max_len = max_len,
+                                 min_mass = min_mass, 
+                                 max_mass = max_mass, 
+                                 maxn_vmods_per_pep = maxn_vmods_per_pep,
+                                 maxn_sites_per_vmod = maxn_sites_per_vmod,
+                                 is_fixed_protnt = is_fixed_protnt,
+                                 is_fixed_protct = is_fixed_protct,
+                                 digits = digits)
+
+      message("\tCompleted bare peptide masses.")
+    }
+
     
-    
-    ### Special case of FIXED Protein [NC]-term modification(s) ---
-    # 
-    # (i) Dispatches `pep_seq`s by `fixedmod`s
-    # (only incur at the rare case of Protein terminals being `fixedmods`)
-    # (`fixed Protein [NC]-term` -> no `variable Protein [NC]-term`)
-    
-    is_fixed_protnt <- any(grepl("Protein N-term", fixedmods))
-    is_fixed_protct <- any(grepl("Protein C-term", fixedmods))
-    seqs_0 <- distri_fpeps(seqs_0, max_miss, is_fixed_protnt, is_fixed_protct)
-    
-    # (ii) Calculates terminal mass (after `distri_fpeps`)
-    # (otherwise, fixed "Protein N|C-terminal" masses in aa_masses["N|C-term"]
-    #   will be applied to both "N|C-term" and "Protein N|C term")
-    #
-    # if `ftmass` is other than 18.010565 -> NO variable "Protein N-term" etc.
-    # (mostly ftmass will be 18.010565 unless fixed [NC] terminal modifications)
-    
-    ftmass <- unname(aa_masses_1["N-term"] + aa_masses_1["C-term"])
-    
-    ### End of the special case
-    
-    
-    # --- Masses of sequences: fixed mods + terminals ---
-    message("Calculating bare peptide masses...")
-    
-    # most often ftmass == 18.010565, unless fixed [NC] terminal modifications 
-    #   and is typically equivalent to fixedmods = NULL, varmods = NULL
-    
-    fwd_peps <- ms1masses_bare(seqs = seqs_0,
-                               aa_masses = aa_masses_1,
-                               ftmass = ftmass,
-                               max_miss = max_miss,
-                               min_len = min_len,
-                               max_len = max_len,
-                               min_mass = min_mass, 
-                               max_mass = max_mass, 
-                               maxn_vmods_per_pep = maxn_vmods_per_pep,
-                               maxn_sites_per_vmod = maxn_sites_per_vmod,
-                               is_fixed_protnt = is_fixed_protnt,
-                               is_fixed_protct = is_fixed_protct,
-                               digits = digits)
-    
-    message("\tCompleted bare peptide masses.")
-    
-    
-    # --- Distribution ---
-    message("Distributing peptides by variable modifications.")
-    
+    # --- Semi-enzymatic and distribution ---
     # Note 1-to-n expansion: 
-    #   `length(fw_peps) == length(aa_masses_all)` after the step.
+    #   `length(fwd_peps) == length(aa_masses_all)` after the step.
     n_cores <- detect_cores(16L)
     
+    if (enzyme == "noenzyme") 
+      n_cores <- ceiling(n_cores/2L)
+
     fwd_peps <- chunksplit(fwd_peps, n_cores, "list")
+    
+    # (a) Optional semi-enzymatic peptides
+    if (grepl("^semi", enzyme)) {
+      message("Generating semi-enzymatic peptides.")
+      
+      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+      
+      parallel::clusterExport(
+        cl,
+        c("hsemipeps_byprots", 
+          "semipeps_byprots", 
+          "calc_semipepmasses"), 
+        envir = environment(proteoM:::calc_semipepmasses)
+      )
+      
+      fwd_peps <- parallel::clusterApply(
+        cl, 
+        fwd_peps, 
+        hsemipeps_byprots, 
+        min_len = min_len , 
+        aa_masses = aa_masses_1
+      )
+      
+      parallel::stopCluster(cl)
+    }
+    
+    # (b) Distribution
+    message("Distributing peptides by variable modifications.")
     
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     
@@ -249,32 +348,32 @@ calc_pepmasses2 <- function (
         "rm_char_in_nlast2"), 
       envir = environment(proteoM:::distri_peps)
     )
-    
+
     fwd_peps <- parallel::clusterApply(
       cl, 
       fwd_peps, 
       distri_peps, 
       aa_masses_all = aa_masses_all, 
-      max_miss = max_miss
+      max_miss = max_miss, 
+      enzyme = enzyme
     )
+    
+    parallel::stopCluster(cl)
     
     fwd_peps <- lapply(seq_len(len), function (i) {
       fwd_peps_i <- lapply(fwd_peps, `[[`, i)
       purrr::flatten(fwd_peps_i)
     })
-    
-    parallel::stopCluster(cl)
-    
+
     message("\tCompleted bare peptides distributions.")
     
     rm(list = c("seqs_0"))
     gc()
-    
-    
-    # Protein-peptide associations
+
+    # (c) Protein-peptide associations
     tbl_prots_peps(fwd_peps[[1]], file.path(.path_ms1masses, .time_stamp))
     
-    # Flattened peptide lists (ripping off prot_acc's)
+    # (d) Flattened peptide lists (ripping off prot_acc's)
     fwd_peps <- lapply(fwd_peps, flat_pepseqs)
 
 
@@ -338,6 +437,10 @@ calc_pepmasses2 <- function (
           ctmod_i <- attr(aa_masses_i, "ctmod", exact = TRUE)
 
           fwd_peps_i <- fwd_peps[[i]]
+          
+          if (!length(fwd_peps_i))
+            next
+          
           fnl_combi_i <- expand_grid_rows(fmods_nl_i, use.names = TRUE)
           
           cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
@@ -405,6 +508,9 @@ calc_pepmasses2 <- function (
         ms1vmods_i <- ms1vmods_all[[i]]
 
         fwd_peps_i <- fwd_peps[[i]]
+        
+        if (!length(fwd_peps_i))
+          next
 
         vmods_nl_i = vmods_nl[[i]]
         fmods_nl_i = fmods_nl[[i]]
@@ -448,8 +554,11 @@ calc_pepmasses2 <- function (
       }
     }
 
-    rm(list = c("amods_i", "fmods_nl", "fmods_ps", "fwd_peps_i", 
-                "vmods_nl_i", "aa_masses_1", "aa_masses_i"))
+    suppressWarnings(
+      rm(list = c("amods_i", "fmods_nl", "fmods_ps", "fwd_peps_i", 
+                  "vmods_nl_i", "aa_masses_1", "aa_masses_i"))
+    )
+    
     gc()
 
     fwd_peps <- lapply(fwd_peps, add_ms1_13c, n_13c)
@@ -518,11 +627,12 @@ find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
 #' 
 #' @param seqs Results from \link{distri_peps}.
 #' @param path A file path.
+#' @param enzyme Not used.
 #' @examples
 #' \donttest{
-#' tbl_prots_peps(out[[1]])
+#' tbl_prots_peps(fwd_peps[[1]])
 #' }
-tbl_prots_peps <- function (seqs, path) 
+tbl_prots_peps <- function (seqs, path, enzyme = "trypsin_p") 
 {
   create_dir(path)
   
@@ -534,15 +644,17 @@ tbl_prots_peps <- function (seqs, path)
   
   nms <- mapply(function (x, y) rep(x, y), 
                 names(seqs), lens,
-                SIMPLIFY = FALSE, USE.NAMES = FALSE
-  ) 
-  
+                SIMPLIFY = FALSE, USE.NAMES = FALSE) 
+
   nms <- unlist(nms, recursive = FALSE, use.names = FALSE)
 
   # pep_seqs
   seqs <- unlist(seqs, recursive = FALSE, use.names = FALSE)
   ans <- data.frame(pep_seq = seqs, prot_acc = nms)
   
+  ## Should be all clean after `distri_peps`
+  # if (enzyme == "noenzyme") ans$pep_seq <- with(ans, gsub("-", "", pep_seq))
+
   saveRDS(ans, file.path(path, "prot_pep_annots.rds"))
   saveRDS(reverse_peps_in_frame(ans), file.path(path, "prot_pep_annots_rev.rds"))
   
@@ -588,6 +700,7 @@ find_aa_site <- function (pos_site)
 #' @param out_path An output path.
 #' @inheritParams parse_aamasses
 #' @inheritParams add_fixvar_masses
+#' @inheritParams matchMS
 #' @examples
 #' \donttest{
 #' library(purrr)
@@ -1046,6 +1159,7 @@ check_anywhere_fmods_coercion <- function (site, aa_masses_all, vmods_ps)
 #'   base mass for variable modifications. The argument at TRUE is for
 #'   compatibility for MS1 precursor mass calculations before the approach of
 #'   "rolling sum + fallthrough".
+#' @inheritParams matchMS
 #' @return Lists of of amino-acid residues with modified mono-isotopic masses
 #'   being incorporated.
 add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE, 
@@ -1422,8 +1536,12 @@ parse_aamasses <- function (aa_masses, add_nlmasses = TRUE)
 #' @importFrom stringi stri_reverse
 #' @return Two named list of "fwds" and "revs". List "fwds" contains peptide
 #'   sequences split from forward fasta and "revs" from reversed fasta.
-split_fastaseqs <- function (fasta, acc_type, acc_pattern, maxn_fasta_seqs,
-                             max_miss = 2L) 
+#' @examples 
+#' x <- split_fastaseqs("~/proteoM/dbs/fasta/uniprot/uniprot_mm_2020_11.fasta")
+split_fastaseqs <- function (fasta = NULL, enzyme = "trypsin_p", 
+                             custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
+                             acc_type = "uniprot_acc", acc_pattern = NULL, 
+                             maxn_fasta_seqs = 200000L, max_miss = 2L) 
 {
   message("Loading fasta databases.")
 
@@ -1448,7 +1566,8 @@ split_fastaseqs <- function (fasta, acc_type, acc_pattern, maxn_fasta_seqs,
   message("Splitting fasta sequences.")
 
   peps <- parallel::clusterApply(cl, chunksplit(fasta_db, n_cores), 
-                                 make_fastapeps0, max_miss) %>%
+                                 make_fastapeps0, 
+                                 enzyme, custom_enzyme, max_miss) %>%
     purrr::flatten()
 
   parallel::stopCluster(cl)
@@ -1460,32 +1579,161 @@ split_fastaseqs <- function (fasta, acc_type, acc_pattern, maxn_fasta_seqs,
 }
 
 
-#' Make peptide sequences from FASTA databases.
+#' Makes peptide sequences from FASTA databases.
 #'
 #' A step before concatenating peptides by the number of mis-cleavages.
 #'
+#' The uses of "@" tags is faster than lookahead and lookbehind
+#' (https://www.r-bloggers.com/2018/04/strsplit-but-keeping-the-delimiter/).
+#'
 #' @param fasta_db Fasta database(s).
 #' @inheritParams calc_pepmasses2
-make_fastapeps0 <- function (fasta_db, max_miss = 2L) 
+make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NULL, 
+                             max_miss = 2L) 
 {
   inds_m <- grep("^M", fasta_db)
-  
-  fasta_db <- lapply(fasta_db, function (x) 
-    paste0("-", gsub("([KR]{1})", paste0("\\1", "@"), x), "-"))
-  
+
+  if (is.null(enzyme)) {
+    patc <- custom_enzyme[["Cterm"]]
+    patn <- custom_enzyme[["Nterm"]]
+    
+    if (!is.null(patc)) {
+      if (grepl("\\^", patc)) {
+        fasta_db <- lapply(fasta_db, function (x) 
+          .Internal(gsub(patc, paste0("\\1", "@", "\\2"), x, 
+                         ignore.case = FALSE, perl = FALSE, 
+                         fixed = FALSE, useBytes = FALSE)))
+      }
+      else {
+        fasta_db <- lapply(fasta_db, function (x) 
+          .Internal(gsub(patc, paste0("\\1", "@"), x, 
+                         ignore.case = FALSE, perl = FALSE, 
+                         fixed = FALSE, useBytes = FALSE)))
+      }
+    }
+    
+    if (!is.null(patn)) {
+      if (grepl("\\^", patn)) {
+        fasta_db <- lapply(fasta_db, function (x) 
+          .Internal(gsub(patn, paste0("\\1", "@", "\\2"), x, 
+                         ignore.case = FALSE, perl = FALSE, 
+                         fixed = FALSE, useBytes = FALSE)))
+      }
+      else {
+        fasta_db <- lapply(fasta_db, function (x) 
+          .Internal(gsub(patn, paste0("@", "\\1"), x, 
+                         ignore.case = FALSE, perl = FALSE, 
+                         fixed = FALSE, useBytes = FALSE)))
+      }
+    }
+    
+    fasta_db <- lapply(fasta_db, function (x) gsub("@+", "@", x))
+    
+    fasta_db <- lapply(fasta_db, function (x) paste0("-", x, "-"))
+  }
+  else if (enzyme == "trypsin_p" || enzyme == "semitrypsin_p") {
+    fasta_db <- lapply(fasta_db, function (x) 
+      paste0("-", 
+             .Internal(gsub("([KR]{1})", paste0("\\1", "@"), x, 
+                            ignore.case = FALSE, perl = FALSE, 
+                            fixed = FALSE, useBytes = FALSE)), 
+             "-"))
+  }
+  else if (enzyme == "trypsin" || enzyme == "semitrypsin") {
+    fasta_db <- lapply(fasta_db, function (x) 
+      paste0("-", 
+             .Internal(gsub("([KR]{1})([^P]{1})", paste0("\\1", "@", "\\2"), x, 
+                            ignore.case = FALSE, perl = FALSE, 
+                            fixed = FALSE, useBytes = FALSE)), 
+             "-"))
+  }
+  else if (enzyme == "lysc" || enzyme == "semilysc") {
+    fasta_db <- lapply(fasta_db, function (x) 
+      paste0("-", 
+             .Internal(gsub("([K]{1})", paste0("\\1", "@"), x, 
+                            ignore.case = FALSE, perl = FALSE, 
+                            fixed = FALSE, useBytes = FALSE)), 
+             "-"))
+  }
+  else if (enzyme == "lysn" || enzyme == "semilysn") {
+    fasta_db <- lapply(fasta_db, function (x) 
+      paste0("-", 
+             .Internal(gsub("([K]{1})", paste0("@", "\\1"), x, 
+                            ignore.case = FALSE, perl = FALSE, 
+                            fixed = FALSE, useBytes = FALSE)), 
+             "-"))
+  }
+  else if (enzyme == "argc"|| enzyme == "semiargc") {
+    fasta_db <- lapply(fasta_db, function (x) 
+      paste0("-", 
+             .Internal(gsub("([R]{1})", paste0("\\1", "@"), x, 
+                            ignore.case = FALSE, perl = FALSE, 
+                            fixed = FALSE, useBytes = FALSE)), 
+             "-"))
+  }
+  else if (enzyme == "lysc_p"|| enzyme == "semilysc_p") {
+    fasta_db <- lapply(fasta_db, function (x) 
+      paste0("-", 
+             .Internal(gsub("([K]{1})([^P]{1})", paste0("\\1", "@", "\\2"), x, 
+                            ignore.case = FALSE, perl = FALSE, 
+                            fixed = FALSE, useBytes = FALSE)), 
+             "-"))
+  }
+  else if (enzyme == "chymotrypsin"|| enzyme == "semichymotrypsin") {
+    fasta_db <- lapply(fasta_db, function (x) 
+      paste0("-", 
+             .Internal(gsub("([FWY]{1})", paste0("\\1", "@"), x, 
+                            ignore.case = FALSE, perl = FALSE, 
+                            fixed = FALSE, useBytes = FALSE)), 
+             "-"))
+  }
+  else if (enzyme == "gluc"|| enzyme == "semigluc") {
+    fasta_db <- lapply(fasta_db, function (x) 
+      paste0("-", 
+             .Internal(gsub("([E]{1})", paste0("\\1", "@"), x, 
+                            ignore.case = FALSE, perl = FALSE, 
+                            fixed = FALSE, useBytes = FALSE)), 
+             "-"))
+  }
+  else if (enzyme == "glun"|| enzyme == "semiglun") {
+    fasta_db <- lapply(fasta_db, function (x) 
+      paste0("-", 
+             .Internal(gsub("([E]{1})", paste0("@", "\\1"), x, 
+                            ignore.case = FALSE, perl = FALSE, 
+                            fixed = FALSE, useBytes = FALSE)), 
+             "-"))
+  }
+  else if (enzyme == "aspc"|| enzyme == "semiaspc") {
+    fasta_db <- lapply(fasta_db, function (x) 
+      paste0("-", 
+             .Internal(gsub("([D]{1})", paste0("\\1", "@"), x, 
+                            ignore.case = FALSE, perl = FALSE, 
+                            fixed = FALSE, useBytes = FALSE)), 
+             "-"))
+  }
+  else if (enzyme == "aspn"|| enzyme == "semiaspn") {
+    fasta_db <- lapply(fasta_db, function (x) 
+      paste0("-", 
+             .Internal(gsub("([D]{1})", paste0("@", "\\1"), x, 
+                            ignore.case = FALSE, perl = FALSE, 
+                            fixed = FALSE, useBytes = FALSE)), 
+             "-"))
+  }
+  else {
+    stop("Unknown enzyme.")
+  }
+
   fasta_dbm <- lapply(fasta_db[inds_m], function (x) gsub("^-M", "-", x))
   
   # --- with protein N-term (initiator) methionine ---
   peps <- lapply(fasta_db, function (x) {
-    s <- .Internal(strsplit(x, "@", fixed = FALSE, perl = FALSE, 
-                            useBytes = FALSE))
+    s <- .Internal(strsplit(x, "@", fixed = FALSE, perl = FALSE, useBytes = FALSE))
     s <- .Internal(unlist(s, recursive = FALSE, use.names = FALSE))
   })
   
   # --- without protein N-term (initiator) methionine ---
   peps_m <- lapply(fasta_dbm, function (x) {
-    s <- .Internal(strsplit(x, "@", fixed = FALSE, perl = FALSE, 
-                            useBytes = FALSE))
+    s <- .Internal(strsplit(x, "@", fixed = FALSE, perl = FALSE, useBytes = FALSE))
     s <- .Internal(unlist(s, recursive = FALSE, use.names = FALSE))
     
     keep_n_misses(s, max_miss)
@@ -1498,6 +1746,242 @@ make_fastapeps0 <- function (fasta_db, max_miss = 2L)
   peps[-inds_m] <- lapply(peps[-inds_m], function (x) list(NA, x))
 
   invisible(peps)
+}
+
+
+#' Splits fasta sequences by proteins.
+#' 
+#' For \code{no enzyme} searches.
+#' 
+#' @param aa_masses A lookup table of the masses of amino-acid residues.
+#' @param ftmass The sum of masses of \code{fixed} N-term and C-term
+#'   modifications.
+#' @inheritParams calc_pepmasses2
+split_fastaseqs_noenz <- function (fasta = NULL, acc_type = "uniprot_acc", 
+                                   acc_pattern = NULL, maxn_fasta_seqs = 200000L, 
+                                   min_len = 7L, max_len = 40L, aa_masses = NULL, 
+                                   ftmass = 18.010565, digits = 5L) 
+{
+  message("Loading fasta databases.")
+  
+  fasta_db <- load_fasta2(fasta, acc_type, acc_pattern)
+  
+  if (length(fasta_db) > maxn_fasta_seqs) 
+    stop("More than `", maxn_fasta_seqs, "` sequences in fasta files.\n",
+         "  May consider a higher `maxn_fasta_seqs`.",
+         call. = FALSE)
+
+  n_cores <- detect_cores(16L)
+  
+  cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+  
+  parallel::clusterExport(
+    cl,
+    c("make_noenzpeps", 
+      "mmake_noenzpeps", 
+      "hmake_noenzpeps", 
+      "ms1masses_bare_noenz"), 
+    envir = environment(proteoM:::make_noenzpeps))
+  
+  message("Splitting fasta sequences.")
+  
+  peps <- parallel::clusterApply(cl, chunksplit(fasta_db, n_cores^2), 
+                                 mmake_noenzpeps, 
+                                 min_len = min_len, 
+                                 max_len = max_len, 
+                                 aa_masses = aa_masses, 
+                                 ftmass = ftmass, 
+                                 digits = digits) %>%
+    purrr::flatten()
+  
+  parallel::stopCluster(cl)
+  
+  invisible(peps)
+}
+
+
+#' Helper: multiple applications of \link{make_noenzpeps}.
+#' 
+#' For \code{no enzyme} searches.
+#' 
+#' @param fasta_db Fasta database(s).
+#' @param aa_masses A lookup table of the masses of amino-acid residues.
+#' @param ftmass The sum of masses of \code{fixed} N-term and C-term
+#'   modifications.
+#' @inheritParams calc_pepmasses2
+mmake_noenzpeps <- function (fasta_db = NULL, min_len = 7L, max_len = 40L, 
+                             aa_masses = NULL, ftmass = 18.010565, digits = 5L) 
+{
+  lapply(fasta_db, make_noenzpeps, min_len = min_len, max_len = max_len, 
+         aa_masses = aa_masses, ftmass = ftmass, digits = digits)
+}
+
+
+#' Makes peptides and masses for a protein.
+#'
+#' For \code{no enzyme} searches.
+#'
+#' @param prot A FASTA entry of protein.
+#' @param aa_masses A lookup table of the masses of amino-acid residues.
+#' @param ftmass The sum of masses of \code{fixed} N-term and C-term
+#'   modifications.
+#' @inheritParams calc_pepmasses2
+#' @examples 
+#' \donttest{
+#' prot <- paste0(
+#'   "MSSKQHCVKLNDGHLIPALGFGTYKPKEVPKSKSLEAACLA", 
+#'   "LDVGYRHVDTAYAYQVEEEIGQAIQSKIKAGVVKREDLFIT", 
+#'   "TKLWCTCFRPELVKPALEKSLKKLQLDYVDLYIMHYPVPMK", 
+#'   "SGDNDFPVNEQGKSLLDTVDFCDTWERLEECKDAGLVKSIG", 
+#'   "VSNFNHRQLERILNKPGLKYKPVCNQVECHLYLNQRKLLDY",
+#'   "CESKDIVLVAYGALGTQRYKEWVDQNSPVLLNDPVLCDVAK", 
+#'   "KNKRSPALIALRYLIQRGIVPLAQSFKENEMRENLQVFGFQ", 
+#'   "LSPEDMKTLDGLNKNFRYLPAEFLVDHPEYPFVEEY")
+#' 
+#' fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
+#'               "Carbamidomethyl (C)")
+#' 
+#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
+#'             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
+#' 
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
+#' aa_masses <- aa_masses_all[[1]]
+#' 
+#' ans <- make_noenzpeps(prot, 7, 40, aa_masses)
+#' 
+#' # short FASTA (both N-term and C-term on a sequence)
+#' prot <- substring(prot, 1, 10)
+#' ans <- make_noenzpeps(prot, 7, 40, aa_masses)
+#' }
+make_noenzpeps <- function (prot = NULL, min_len = 7L, max_len = 40L, 
+                            aa_masses = NULL, ftmass = 18.010565, digits = 5L) 
+{
+  len <- nchar(prot)
+  
+  if (len < min_len)
+    return(NULL)
+  
+  if (len == min_len)
+    return(prot[[1]])
+  
+  max_len <- min(max_len, len)
+  starts <- 1:(len - min_len + 1L)
+  
+  # (1) Finds sub-sequence with a `start` value
+  # (2) Calculates masses
+  # (3) Adds C-term tag "-" after (2); no effect on masses
+  ans <- lapply(starts, hmake_noenzpeps, prot, min_len, max_len, len, 
+                aa_masses, ftmass, digits)
+
+  # N-term peptides
+  nms_1 <- names(ans[[1]])
+  names(ans[[1]]) <- paste0("-", nms_1)
+
+  if (grepl("^M", nms_1[[1]]))
+    names(ans[[2]]) <- paste0("-", names(ans[[2]]))
+  
+  .Internal(unlist(ans, recursive = FALSE, use.names = TRUE))
+}
+
+
+#' Helper of \link{make_noenzpeps} (one start positions).
+#'
+#' For \code{no enzyme} searches.
+#' 
+#' C-term tagged with "-" after the mass calculations (but not yet N-term).
+#'
+#' @param prot A FASTA entry of protein.
+#' @param start The staring position of an amino-acid in a \code{prot}.
+#' @param len The number of amino-acid residues in a \code{prot}.
+#' @param aa_masses A lookup table of the masses of amino-acid residues.
+#' @param ftmass The sum of masses of \code{fixed} N-term and C-term
+#'   modifications.
+#' @inheritParams calc_pepmasses2
+#' 
+#' @examples 
+#' \donttest{
+#' fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
+#'               "Carbamidomethyl (C)")
+#' 
+#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
+#'             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
+#' 
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
+#' aa_masses <- aa_masses_all[[1]]
+#' 
+#' aas <- LETTERS[LETTERS %in% names(aa_masses)]
+#' prot <- paste0(aas, collapse = "")
+#' len <- nchar(prot)
+#' masses <- hmake_noenzpeps(1, prot, 7, 40, len, aa_masses)
+#' }
+hmake_noenzpeps <- function (start = 1L, prot = NULL, min_len = 7L, max_len = 40L, 
+                             len = NULL, aa_masses = NULL, ftmass = 18.010565, 
+                             digits = 5L) 
+{
+  end_fi <- min_len + start  - 1L
+  end_la <- min(max_len + start - 1L, len)
+  ends <- end_fi:end_la
+  
+  peps <- substring(prot, start, ends)
+  masses <- ms1masses_bare_noenz(peps, aa_masses, ftmass, digits)
+
+  if (end_la == len) {
+    len_a <- length(peps)
+    names(masses)[len_a] <- paste0(peps[len_a], "-")
+  }
+  
+  masses
+}
+
+
+#' Calculates masses of peptides.
+#' 
+#' For no enzyme workflow.
+#' 
+#' @param x A vector of peptide sequences.
+#' @param aa_masses A lookup table of the masses of amino-acid residues.
+#' @param ftmass The sum of masses of \code{fixed} N-term and C-term
+#'   modifications.
+#' @param digits The number of decimal places.
+#' @examples
+#' \donttest{
+#' fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
+#'               "Carbamidomethyl (C)")
+#' 
+#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
+#'             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
+#' 
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
+#' aa_masses <- aa_masses_all[[1]]
+#' 
+#' x <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL")
+#' masses1 <- ms1masses_bare_noenz(x, aa_masses)
+#' 
+#' x <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL-")
+#' masses2 <- ms1masses_bare_noenz(x, aa_masses)
+#' 
+#' stopifnot(identical(unname(masses1), unname(masses2)))
+#' }
+ms1masses_bare_noenz <- function (x, aa_masses, ftmass = 18.010565, digits = 5L) 
+{
+  len <- length(x)
+  aas <- .Internal(strsplit(x[len], "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
+  
+  len_a <- length(aas)
+  
+  # No need: paste of N-term "-" after `hmake_noenzpeps`
+  # if (aas[1] == "-") aas <- aas[2:len_a]
+  
+  ## No need: paste of C-term "-" after `ms1masses_bare_noenz`
+  # if (aas[len_a] == "-") aas <- aas[1:(len_a - 1L)]
+  
+  masses <- cumsum(aa_masses[aas])
+  masses <- tail(masses, len) + ftmass
+  
+  names(masses) <- x
+  
+  masses
 }
 
 
@@ -1553,7 +2037,7 @@ str_exclude_count <- function (x, char = "-")
 
 
 #' Removes a starting character from the first \code{n} entries.
-#'
+#' 
 #' @param x A list of character strings. Peptide sequences in names and masses
 #'   in values.
 #' @param char A starting character to be removed.
@@ -1575,7 +2059,9 @@ rm_char_in_nfirst2 <- function (x, char = "^-", n = (max_miss + 1L) * 2L)
 
 
 #' Removes a trailing character from the last \code{n} entries.
-#'
+#' 
+#' The default value of \code{n} is for full-enzymatic peptides.
+#' 
 #' @param char A trailing character to be removed.
 #' @inheritParams rm_char_in_nfirst2
 rm_char_in_nlast2 <- function (x, char = "-$", n = (max_miss + 1L) * 2L) 
@@ -1598,6 +2084,7 @@ rm_char_in_nlast2 <- function (x, char = "-$", n = (max_miss + 1L) * 2L)
 #'
 #' (2) "amods- tmod+ vnl- fnl-".
 #' 
+#' @param peps A list of peptide sequences.
 #' @inheritParams add_fixvar_masses
 #' @inheritParams distri_peps
 add_term_mass2 <- function (aa_masses, peps) 
@@ -1681,7 +2168,8 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
       include_cts = FALSE
     ) %>% 
       purrr::flatten()
-  } else {
+  } 
+  else {
     ms_2 <- parallel::clusterApply(
       cl = cl, 
       x = chunksplit(data_2, n_cores, "list"), 
@@ -1849,11 +2337,13 @@ calcms1mass_noterm_bypep <- function (aa_seq, aa_masses, maxn_vmods_per_pep = 5L
 
 #' Distributes peptides by variable modifications.
 #'
-#' @param prps Lists of peptide sequences with a one-letter representation
-#'   of amino acid residues. Each list is named by protein accession.
+#' @param prps Lists of peptide sequences with a one-letter representation of
+#'   amino acid residues. Each list is named by protein accession.
 #' @param aa_masses_all All the amino acid look-up tables.
 #' @inheritParams calc_pepmasses2
-distri_peps <- function (prps, aa_masses_all, max_miss = 2L) 
+#' @param enzyme A character string of enzyme. The information is used for
+#'   faster replacement of "-" in peptide sequences from protein C-terminals.
+distri_peps <- function (prps, aa_masses_all, max_miss = 2L, enzyme = "trypsin_p") 
 {
   nms <- lapply(prps, names)
 
@@ -1867,9 +2357,19 @@ distri_peps <- function (prps, aa_masses_all, max_miss = 2L)
            SIMPLIFY = FALSE, USE.NAMES = TRUE)
   })
   
-  n2 <- ct_counts(max_miss)
-  n1 <- (max_miss + 1L) * 2L
-  
+  # semi enzymes: don't know the maximum number of 
+  # C-term peptides that can end with "-"
+  # (N-term remains the same)
+  if (enzyme == "noenzyme")
+    n1 <- Inf
+  else 
+    n1 <- (max_miss + 1L) * 2L
+
+  n2 <- if (grepl("^semi", enzyme) || enzyme == "noenzyme")
+    Inf
+  else
+    ct_counts(max_miss)
+
   # ZN207_HUMAN: MGRKKKK (no N-term pep_seq at 2 misses and min_len >= 7L)
   
   out <- lapply(out, function(xs) {
@@ -1883,7 +2383,7 @@ distri_peps <- function (prps, aa_masses_all, max_miss = 2L)
 
 #' Counts the number of trailing residues from C-term for the replacment of "-".
 #'
-#' n(i+1) = n(i) + (i+1)
+#' For full-enzymes: n(i+1) = n(i) + (i+1). Not applicable for semi-enzymes.
 #'
 #' @param max_miss The maximum number of cleavages.
 ct_counts <- function (max_miss = 2L) 
@@ -1908,10 +2408,12 @@ ct_counts <- function (max_miss = 2L)
 #' Distributes peptides by fixed modifications.
 #'
 #' @inheritParams calc_pepmasses2
+#' @inheritParams matchMS
 #' @param is_fixed_protnt Logical; is protein N-terminal modification fixed.
 #' @param is_fixed_protct Logical; is protein C-terminal modification fixed.
 #' @param data Lists of peptides by prot_accs.
-distri_fpeps <- function (data, max_miss, is_fixed_protnt, is_fixed_protct) 
+distri_fpeps <- function (data = NULL, max_miss = 2L, is_fixed_protnt = FALSE, 
+                          is_fixed_protct = FALSE) 
 {
   if (is_fixed_protnt) {
     warning("At fixed `Protein N-term`, ",
@@ -1978,14 +2480,17 @@ distri_fpeps <- function (data, max_miss, is_fixed_protnt, is_fixed_protct)
 #' \donttest{
 #' peps <- 1:26
 #' names(peps) <- LETTERS
-#' res <- roll_sum(peps, 2)
+#' res1 <- roll_sum(peps, 2)
+#' res2 <- roll_sum(peps, 2, FALSE)
 #' 
 #' # length shorter than n
 #' peps <- c(a = 1)
-#' res <- roll_sum(peps, 2)
+#' res1 <- roll_sum(peps, 2)
+#' res2 <- roll_sum(peps, 2, FALSE)
 #' 
 #' peps <- c(a = 1, b = 2, c = 3)
-#' res <- roll_sum(peps, 4)
+#' res1 <- roll_sum(peps, 4)
+#' res2 <- roll_sum(peps, 4, FALSE)
 #' }
 roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE) 
 {
@@ -1997,13 +2502,11 @@ roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE)
   if (n >= len) 
     n <- len - 1L
   
-  res <- lapply(seq_len((len - n)), function (x) {
-    ranges <- x:(x + n)
-    
-    psub <- peps[ranges]
-    nms <- accumulate_char(names(psub), paste0)
+  res <- lapply(seq_len(len - n), function (x) {
+    psub <- peps[x:(x + n)]
     
     vals <- cumsum(psub)
+    nms <- accumulate_char(names(psub), paste0)
     names(vals) <- nms
     
     vals
@@ -2015,10 +2518,10 @@ roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE)
     ends <- peps[(len - n + 1L):len]
     
     res2 <- lapply(n:1L, function (x) {
-      y <- tail(ends, x)
-      nms <- accumulate_char(names(y), paste0)
+      psub <- tail(ends, x)
       
-      vals <- cumsum(y)
+      vals <- cumsum(psub)
+      nms <- accumulate_char(names(psub), paste0)
       names(vals)  <- nms
       
       vals
@@ -2029,6 +2532,123 @@ roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE)
   } 
   else
     ans <- res
+  
+  invisible(ans)
+}
+
+
+#' Helper of \link{semipeps_byprots}.
+#'
+#' @param prots Lists of proteins with full-enzymatic sequences. For each entry
+#'   under a protein, the value is a mass and the name is a peptide sequence.
+#' @param min_len The minimum length of peptide sequences for consideration.
+#' @inheritParams add_fixvar_masses
+hsemipeps_byprots <- function (prots, min_len = 7L, aa_masses = NULL) 
+{
+  lapply(prots, semipeps_byprots, min_len, aa_masses)
+}
+
+
+#' Finds the semi-enzymatic peptides for a proteins.
+#'
+#' Redundancy such as peptides from N-term methionine cleavage or semi-tryptic
+#' ladders are handled.
+#'
+#' @param vals A list of full-enzymatic peptides under a protein.
+#' @inheritParams matchMS
+#' @inheritParams add_fixvar_masses
+#' @return A vector of full- and semi-enzymatic peptides. Sequences in names and
+#'   masses in values.
+semipeps_byprots <- function (vals, min_len = 7L, aa_masses = NULL) 
+{
+  peps <- names(vals)
+  peps <- gsub("^-", "", peps)
+  len <- length(peps)
+  
+  cts <- grepl("-$", peps)
+  ots <- !cts
+  peps_ct <- peps[cts]
+  peps_ot <- peps[ots]
+  vals_ct <- vals[cts]
+  vals_ot <- vals[ots]
+  
+  semis_ot <- mapply(calc_semipepmasses, vals_ot, peps_ot, 
+                     MoreArgs = list(min_len = min_len, 
+                                     aa_masses = aa_masses, 
+                                     ct_offset = 0L), 
+                     SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  semis_ot <- .Internal(unlist(semis_ot, recursive = FALSE, use.names = TRUE))
+  
+  semis_ct <- mapply(calc_semipepmasses, vals_ct, peps_ct, 
+                     MoreArgs = list(min_len = min_len, 
+                                     aa_masses = aa_masses, 
+                                     ct_offset = 1L), 
+                     SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  semis_ct <- .Internal(unlist(semis_ct, recursive = FALSE, use.names = TRUE))
+  
+  ans <- c(vals, semis_ot, semis_ct)
+  ans <- ans[!duplicated.default(ans)]
+  
+  invisible(ans)
+}
+
+
+#' Finds and calculates the masses of semi-enzymatic sequences.
+#'
+#' Semi-enzymatic sequences are built on full-enzymatic where the N-term
+#' residues are removed sequentially.
+#'
+#' N-term "-" has no effect on the semi-enzymatic generation since
+#' semi-enzymatic sequences are always NONE N-term (original enzymatic sequences
+#' keep separately and concatenated later). Thus, the N-term tag of "-" was
+#' removed from \code{pep} in \link{semipeps_byprots}, before calling this
+#' function.
+#'
+#' @param val A mass of a peptide.
+#' @param pep A character string of peptide.
+#' @param ct_offset Zero or one to account for the "-" in the C-term of pep.
+#' @inheritParams matchMS
+#' @examples
+#' \donttest{
+#' fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)",
+#'               "Carbamidomethyl (C)")
+#'
+#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
+#'             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
+#'
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
+#' aa_masses <- aa_masses_all[[1]]
+#'
+#' val <- 4237.89756
+#' pep <- "ALELNQSAEYYYEENEMNYTHDYSQYEVICIK"
+#' ans <- calc_semipepmasses(val, pep, 7, aa_masses)
+#'
+#' val <- 2423.1017
+#' pep <- "QNVEEIPFDSEGPTEPTSSFTI-"
+#' ans <- calc_semipepmasses(val, pep, 7, aa_masses, 1L)
+#' }
+calc_semipepmasses <- function (val, pep, min_len = 7L, aa_masses = NULL, 
+                                ct_offset = 0L) 
+{
+  options(digits = 9L)
+  
+  len <- nchar(pep)
+  len2 <- len - ct_offset
+  
+  if (len2 <= min_len) 
+    return(NULL)
+  
+  span <- len2 - min_len
+  
+  semipeps <- substring(pep, 2:(span + 1L), len)
+  aas <- .Internal(strsplit(pep, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
+  aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
+  aas <- aas[1:span]
+  aas2 <- aa_masses[aas]
+  delta <- cumsum(aas2)
+  
+  ans <- val - delta
+  names(ans) <- semipeps
   
   invisible(ans)
 }

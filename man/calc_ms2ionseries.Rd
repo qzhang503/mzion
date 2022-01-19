@@ -110,7 +110,6 @@ x <- calc_ms2ionseries("MAKEMASSPECFUN",
                       
 x$mass[[8]]
 x$vmods_ps[[8]]
-}
 
 # (6) A lot of S
 x <- calc_ms2ionseries("MAKEMASSSSSSPECFUNSS", 
@@ -129,4 +128,6 @@ x <- calc_ms2ionseries("MAKEMASSSSSSPECFUNSSYYYYYYY",
                                    "Deamidated (N)", 
                                    "Phospho (S)", "Phospho (T)", "Phospho (Y)", 
                                    "Gln->pyro-Glu (N-term = Q)"))
+}
+
 }

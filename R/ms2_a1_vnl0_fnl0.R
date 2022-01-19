@@ -15,7 +15,7 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    maxn_sites_per_vmod = 3L, 
                                    maxn_vmods_sitescombi_per_pep = 32L, 
                                    minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                                   min_ms2mass = 110L, digits = 4L) 
+                                   min_ms2mass = 110L, df0 = NULL, digits = 4L) 
 {
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
@@ -23,8 +23,10 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
   theopeps2 <- tempdata$theopeps2
   rm(list = c("tempdata"))
   
-  if (!length(mgf_frames) || !length(theopeps)) 
-    return(NULL)
+  if (!length(mgf_frames) || !length(theopeps)) {
+    saveRDS(df0, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
+    return(df0)
+  }
   
   n_cores <- detect_cores(32L)
   
@@ -395,10 +397,12 @@ check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod,
 #' 
 #' To indicate the variable modifications of an amino acid sequence.
 #' 
+#' @param vmods_combi Lists of variable modifications.
 #' @param ms2ions A series of MS2 ions with masses.
 #' @param len The number of amino acid residues for the sequence indicated in
 #'   \code{ms2ions}.
 #' @inheritParams calc_aamasses
+#' @inheritParams ms2match
 add_hexcodes <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) 
 {
   hex_mods = rep("0", len)

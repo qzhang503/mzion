@@ -7,6 +7,8 @@
 pcollapse_sortpeps(Mat, ncol = NULL, peps = NULL, n_cores = NULL)
 }
 \arguments{
+\item{Mat}{A sparse matrix.}
+
 \item{ncol}{The number of columns in \code{mat}.}
 
 \item{peps}{Peptide sequences as the row names of \code{mat}.}

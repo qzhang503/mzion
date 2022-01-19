@@ -17,7 +17,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    maxn_sites_per_vmod = 3L, 
                                    maxn_vmods_sitescombi_per_pep = 32L, 
                                    minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                                   min_ms2mass = 110L, digits = 4L) 
+                                   min_ms2mass = 110L, df0 = NULL, digits = 4L) 
 {
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
@@ -25,8 +25,10 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
   theopeps2 <- tempdata$theopeps2
   rm(list = c("tempdata"))
   
-  if (!length(mgf_frames) || !length(theopeps)) 
-    return(NULL)
+  if (!length(mgf_frames) || !length(theopeps)) {
+    saveRDS(df0, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
+    return(df0)
+  }
   
   n_cores <- detect_cores(32L)
   
@@ -408,6 +410,7 @@ calc_ms2ions_a1_vnl1_fnl0 <- function (vmods_combi, vnl_combi, aas2, aa_masses,
 #' 
 #' @param vmods_combi Lists of variable modifications.
 #' @inheritParams add_hexcodes
+#' @inheritParams ms2match
 add_hexcodes_vnl2 <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) 
 {
   idxes <- .Internal(unlist(vmods_combi, recursive = FALSE, use.names = FALSE))

@@ -4,15 +4,18 @@
 \alias{distri_peps}
 \title{Distributes peptides by variable modifications.}
 \usage{
-distri_peps(prps, aa_masses_all, max_miss = 2L)
+distri_peps(prps, aa_masses_all, max_miss = 2L, enzyme = "trypsin_p")
 }
 \arguments{
-\item{prps}{Lists of peptide sequences with a one-letter representation
-of amino acid residues. Each list is named by protein accession.}
+\item{prps}{Lists of peptide sequences with a one-letter representation of
+amino acid residues. Each list is named by protein accession.}
 
 \item{aa_masses_all}{All the amino acid look-up tables.}
 
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
+
+\item{enzyme}{A character string of enzyme. The information is used for
+faster replacement of "-" in peptide sequences from protein C-terminals.}
 }
 \description{
 Distributes peptides by variable modifications.

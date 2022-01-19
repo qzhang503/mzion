@@ -4,10 +4,10 @@
 \alias{post_ms2match}
 \title{Post processing after ms2match.}
 \usage{
-post_ms2match(out, i, aa_masses, out_path)
+post_ms2match(df, i, aa_masses, out_path)
 }
 \arguments{
-\item{out}{An output from various ms2match(es).}
+\item{df}{An output from various ms2match(es).}
 
 \item{i}{Integer; the index for a set of corresponding aa_masses and
 theoretical peptides.}

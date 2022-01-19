@@ -7,7 +7,9 @@
 purge_decoys(target, decoy)
 }
 \arguments{
-\item{A}{decoy data frame with column \code{pep_seq}.}
+\item{target}{A target data frame with column \code{pep_seq}.}
+
+\item{decoy}{A decoy data frame with column \code{pep_seq}.}
 }
 \description{
 Decoy sequences may be present in targets and thus removed.

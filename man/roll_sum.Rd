@@ -26,13 +26,16 @@ Concatenates adjacent peptides in a list (with mass).
 \donttest{
 peps <- 1:26
 names(peps) <- LETTERS
-res <- roll_sum(peps, 2)
+res1 <- roll_sum(peps, 2)
+res2 <- roll_sum(peps, 2, FALSE)
 
 # length shorter than n
 peps <- c(a = 1)
-res <- roll_sum(peps, 2)
+res1 <- roll_sum(peps, 2)
+res2 <- roll_sum(peps, 2, FALSE)
 
 peps <- c(a = 1, b = 2, c = 3)
-res <- roll_sum(peps, 4)
+res1 <- roll_sum(peps, 4)
+res2 <- roll_sum(peps, 4, FALSE)
 }
 }

@@ -17,8 +17,6 @@ na.interp(
 transformation is automatically selected using BoxCox.lambda. The
 transformation is ignored if NULL. Otherwise, data transformed before model
 is estimated.}
-
-\item{linear}{Should a linear interpolation be used.}
 }
 \description{
 From \code{forecast}.

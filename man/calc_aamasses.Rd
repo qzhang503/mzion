@@ -32,6 +32,11 @@ compatibility for MS1 precursor mass calculations before the approach of
 \item{add_nlmasses}{Logical; if TRUE, add an original mass to the
 corresponding (negative) neutral-loss mass.}
 
+\item{exclude_phospho_nl}{Logical; if TRUE, excludes neutral losses in the
+MS2 ion searches against variable modifications of phospho sites. The
+default if TRUE. May toggle it to \code{FALSE} if search speed against
+phospho data is not a primary concern.}
+
 \item{out_path}{An output path.}
 }
 \description{

@@ -224,6 +224,14 @@ binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 500L,
 bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 500L, 
                           max_mass = 6000L, ppm_ms1 = 20L) 
 {
+  if (!length(peps)) {
+    # out <- data.frame(pep_seq = character(), mass = numeric(), frame = integer(), row.names = NULL)
+    out <- NULL                
+    saveRDS(out, out_nm)
+    
+    return(NULL)
+  }
+
   ps <- find_ms1_cutpoints(min_mass, max_mass, ppm_ms1)
   frames <- findInterval(peps, ps)
   

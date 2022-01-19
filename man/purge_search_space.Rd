@@ -33,6 +33,8 @@ acid residues.}
   Individuality in MGF files are slightly preferred to take advantage of
   parallel reading of the files.}
 
+\item{n_cores}{The number of CPU cores.}
+
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}
 

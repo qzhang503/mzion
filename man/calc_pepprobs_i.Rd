@@ -15,6 +15,8 @@ calc_pepprobs_i(
 )
 }
 \arguments{
+\item{res}{Resulted data from ion matches.}
+
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches. The default is to use the top-100 ions in an MS2 event.}
 

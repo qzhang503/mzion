@@ -584,6 +584,7 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
 
 #' Helper in processing MGF entries in chunks.
 #'
+#' @param lines Lines of MGF.
 #' @inheritParams proc_mgf_chunks
 proc_mgfs <- function (lines, topn_ms2ions = 100L, 
                        ms1_charge_range = c(2L, 6L), 

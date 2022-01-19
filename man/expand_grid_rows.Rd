@@ -7,6 +7,8 @@
 expand_grid_rows(..., use.names = TRUE)
 }
 \arguments{
+\item{...}{Lists of data.}
+
 \item{use.names}{Logical; uses names or not.}
 }
 \description{

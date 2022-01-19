@@ -330,7 +330,6 @@ check_aaseq <- function (aa_seq, aa_masses_all, fixedmods, varmods)
 #'                       
 #' x$mass[[8]]
 #' x$vmods_ps[[8]]
-#' }
 #' 
 #' # (6) A lot of S
 #' x <- calc_ms2ionseries("MAKEMASSSSSSPECFUNSS", 
@@ -349,6 +348,8 @@ check_aaseq <- function (aa_seq, aa_masses_all, fixedmods, varmods)
 #'                                    "Deamidated (N)", 
 #'                                    "Phospho (S)", "Phospho (T)", "Phospho (Y)", 
 #'                                    "Gln->pyro-Glu (N-term = Q)"))
+#' }
+#' 
 #' @export
 calc_ms2ionseries <- function (aa_seq, fixedmods, varmods, 
                                type_ms2ions = "by", ms1_mass = NULL, 
@@ -409,6 +410,7 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
 #'   and y-ions.
 #' @inheritParams calc_monopep
 #' @inheritParams calc_aamasses
+#' @inheritParams ms2match
 #' @import purrr
 #'
 #' @examples
@@ -643,6 +645,8 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
 #' @param ctmod The attribute \code{ctmod} from a \code{aa_masses} (for MS1
 #'   calculations).
 #' @param aas \code{aa_seq} split in a sequence of LETTERS.
+#' @param .ms1_vmodsets Not used.
+#' @param .base_ent Not used.
 #' @inheritParams matchMS
 #' @inheritParams add_fixvar_masses
 #' @import purrr
@@ -811,7 +815,7 @@ vmods_elements <- function (aas,
     
     x <- x[rows]
   } else {
-    x <- extract_vmodsets(.ms1_vmodsets, .base_ent, len_p, ns)
+    # x <- extract_vmodsets(.ms1_vmodsets, .base_ent, len_p, ns)
   }
   
   invisible(x)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/unimods.R
 \name{htable_unimods}
 \alias{htable_unimods}
-\title{Helper of \link{table_unimod}.}
+\title{Helper of \link{table_unimods}.}
 \usage{
 htable_unimods(file)
 }
@@ -10,5 +10,5 @@ htable_unimods(file)
 \item{file}{A file path to a Unimod ".xml".}
 }
 \description{
-Helper of \link{table_unimod}.
+Helper of \link{table_unimods}.
 }

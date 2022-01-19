@@ -15,14 +15,33 @@ columns of \code{prot_acc} and \code{pep_seq}.}
 \description{
 Builds the logical map between peptide (in rows) and proteins (in columns).
 }
+\details{
+The \code{lwr_left} and \code{lwr_right} can be NULL with early exit or
+"empty" sparse matrix with end return. Maybe uniform later to "empty" matrix.
+}
 \examples{
 \donttest{
 df <- data.frame(prot_acc = character(2000), pep_seq = character(2000))
 set.seed(100)
 df$prot_acc <- sample(LETTERS[1:20], 2000, replace = TRUE)
 df$pep_seq <- sample(letters[1:26], 20, replace = TRUE)
-df <- df[!duplicated(df), ] 
+df <- df[!duplicated(df), ]
 
 out <- proteoM:::map_pepprot(df)
+
+# One peptide, multiple proteins
+df <- data.frame(prot_acc = LETTERS[1:3], pep_seq = rep("X", 3))
+out <- proteoM:::map_pepprot(df)
+stopifnot(rownames(out[[1]]) == "X", colnames(out[[1]]) == LETTERS[1:3])
+
+# One peptide, one proteins
+df <- data.frame(prot_acc = "A", pep_seq = "X")
+out <- proteoM:::map_pepprot(df)
+stopifnot(rownames(out[[1]]) == "X", colnames(out[[1]]) == "A")
+
+# One proteins
+df <- data.frame(prot_acc = rep("A", 3), pep_seq = LETTERS[24:26])
+out <- proteoM:::map_pepprot(df)
+stopifnot(rownames(out[[1]]) == LETTERS[24:26], colnames(out[[1]]) == "A")
 }
 }

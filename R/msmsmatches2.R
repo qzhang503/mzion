@@ -87,6 +87,18 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                                      "\\.xls$", "\\.csv$", "\\.txt$", 
                                      "^mgf$", "^mgfs$", "Calls"))
   
+  out0 <- tibble::tibble(scan_title = integer(), ms1_moverz = numeric(), 
+                         ms1_mass = numeric(), ms1_int = numeric(), 
+                         ms1_charge = character(), ret_time = numeric(), 
+                         scan_num = integer(), raw_file = integer(), 
+                         pep_mod_group = character(), 
+                         ms2_moverz = list(list()), 
+                         ms2_int = list(list()), 
+                         ms2_n = integer(), frame  = numeric(), 
+                         matches = list(list()), 
+                         pep_fmod = character(), pep_vmod = character(), 
+                         pep_isdecoy = logical())
+  
   # For three-frame searches
   # (matches of secondary ions using `outer` and no adjustments)
   is_ms2_three_frame <- is_ms1_three_frame <- TRUE
@@ -165,8 +177,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         ppm_ms1 = ppm_ms1_new, 
         ppm_ms2 = ppm_ms2_new, 
         min_ms2mass = min_ms2mass, 
+        df0 = out0, 
         digits = digits)
       
+      # if (is.null(out)) out <- out0
       obj_sizes[i] <- object.size(out)
       
       if (grepl("^tmt[0-9]+$", quant)) {
@@ -234,8 +248,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         ppm_ms1 = ppm_ms1_new, 
         ppm_ms2 = ppm_ms2_new, 
         min_ms2mass = min_ms2mass, 
+        df0 = out0, 
         digits = digits)
       
+      # if (is.null(out)) out <- out0
       obj_sizes[i] <- object.size(out)
       
       if (grepl("^tmt[0-9]+$", quant)) {
@@ -303,8 +319,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         ppm_ms1 = ppm_ms1_new, 
         ppm_ms2 = ppm_ms2_new, 
         min_ms2mass = min_ms2mass, 
+        df0 = out0, 
         digits = digits)
       
+      # if (is.null(out)) out <- out0
       obj_sizes[i] <- object.size(out)
       
       if (grepl("^tmt[0-9]+$", quant)) {
@@ -375,8 +393,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         ppm_ms1 = ppm_ms1_new, 
         ppm_ms2 = ppm_ms2_new, 
         min_ms2mass = min_ms2mass, 
+        df0 = out0, 
         digits = digits)
       
+      # if (is.null(out)) out <- out0
       obj_sizes[i] <- object.size(out)
       
       if (grepl("^tmt[0-9]+$", quant)) {
@@ -447,8 +467,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         ppm_ms1 = ppm_ms1_new, 
         ppm_ms2 = ppm_ms2_new, 
         min_ms2mass = min_ms2mass, 
+        df0 = out0, 
         digits = digits)
       
+      # if (is.null(out)) out <- out0
       obj_sizes[i] <- object.size(out)
       
       if (grepl("^tmt[0-9]+$", quant)) {
@@ -528,6 +550,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ppm_ms1 = ppm_ms1_new, 
       ppm_ms2 = ppm_ms2_new, 
       min_ms2mass = min_ms2mass, 
+      df0 = out0, 
       digits = digits)
   } else { # (1, 2)
     out <- ms2match_base(
@@ -548,9 +571,11 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ppm_ms1 = ppm_ms1_new, 
       ppm_ms2 = ppm_ms2_new, 
       min_ms2mass = min_ms2mass, 
+      df0 = out0, 
       digits = digits)
   }
   
+  # if (is.null(out)) out <- out0
   saveRDS(out, file.path(out_path, "temp", paste0("ion_matches_", i_max2, ".rds"))) 
   
   rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 

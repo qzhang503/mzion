@@ -26,6 +26,11 @@ acid residues.}
 base mass for variable modifications. The argument at TRUE is for
 compatibility for MS1 precursor mass calculations before the approach of
 "rolling sum + fallthrough".}
+
+\item{exclude_phospho_nl}{Logical; if TRUE, excludes neutral losses in the
+MS2 ion searches against variable modifications of phospho sites. The
+default if TRUE. May toggle it to \code{FALSE} if search speed against
+phospho data is not a primary concern.}
 }
 \value{
 Lists of of amino-acid residues with modified mono-isotopic masses

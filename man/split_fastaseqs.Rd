@@ -4,11 +4,42 @@
 \alias{split_fastaseqs}
 \title{Helper of \link{calc_pepmasses2}.}
 \usage{
-split_fastaseqs(fasta, acc_type, acc_pattern, maxn_fasta_seqs, max_miss = 2L)
+split_fastaseqs(
+  fasta = NULL,
+  enzyme = "trypsin_p",
+  custom_enzyme = c(Cterm = NULL, Nterm = NULL),
+  acc_type = "uniprot_acc",
+  acc_pattern = NULL,
+  maxn_fasta_seqs = 200000L,
+  max_miss = 2L
+)
 }
 \arguments{
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}
+
+\item{enzyme}{A character string; the proteolytic specificity of the assumed
+enzyme will be used to generate peptide sequences from proteins. The enzyme
+is currently \code{trypsin}.}
+
+\item{custom_enzyme}{Regular expression(s) for custom enzyme specificity. The
+  default is NULL. Uses of custom enzyme specificity is probably rather
+  infrequent. Should there be such need, the argument \code{enzyme} will be
+  ignored and the following may be applied:
+
+  \cr ## Examples \cr \cr # Equivalent to Trypsin \cr # at the Cterm of K or
+  R but not followed by P \cr # (the quantifiers "\{1\}" can be skipped at a
+  small cost of speed) \cr custom_enzyme = c(Cterm =
+  "([KR]\{1\})([^P]\{1\})")
+
+  \cr # GluN again \cr custom_enzyme = c(Nterm = "([E]\{1\})")
+
+  \cr # Trypsin_P + GluN \cr custom_enzyme = c(Cterm = "([KR]\{1\})", Nterm =
+  "([E]\{1\})")
+
+  \cr # Faked: Trypsin, proline not allowed on neither Nterm or Cterm \cr
+  custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
+  "([^P]\{1\})([KR]\{1\})")}
 
 \item{acc_type}{Character string(s); the types of protein accessions in one
 of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
@@ -33,4 +64,7 @@ Two named list of "fwds" and "revs". List "fwds" contains peptide
 \description{
 Prior to the calculation of peptide masses; for the base with fixed
 modification only.
+}
+\examples{
+x <- split_fastaseqs("~/proteoM/dbs/fasta/uniprot/uniprot_mm_2020_11.fasta")
 }

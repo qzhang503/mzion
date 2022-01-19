@@ -10,6 +10,8 @@ which_topx(x, n = 50L, ...)
 \item{x}{A numeric vector.}
 
 \item{n}{The number of top entries to keep.}
+
+\item{...}{Additional arguments for base function sort.}
 }
 \value{
 The indexes of the top-n entries.

@@ -13,6 +13,7 @@
 #'   \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 #'   ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 #'   and y-ions.
+#' @param df0 A zero-row data frame that holds column names.
 #' @inheritParams matchMS
 #' @inheritParams ms2match
 #' @inheritParams add_fixvar_masses
@@ -23,7 +24,7 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
                            maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                            maxn_vmods_sitescombi_per_pep = 32L, 
                            minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                           min_ms2mass = 110L, digits = 4L) 
+                           min_ms2mass = 110L, df0 = NULL, digits = 4L) 
 {
   # note: split into 16^2 lists
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
@@ -33,9 +34,11 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
   rm(list = c("tempdata"))
   gc()
   
-  if (!length(mgf_frames) || !length(theopeps)) 
-    return(NULL)
-  
+  if (!length(mgf_frames) || !length(theopeps)) {
+    saveRDS(df0, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
+    return(df0)
+  }
+
   n_cores <- detect_cores(32L)
 
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
@@ -134,6 +137,8 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
 #'   \code{aa_masses}.
 #' @param minn_ms2 Integer; the minimum number of MS2 ions for consideration as
 #'   a hit.
+#' @param ntmod The attribute \code{ntmod} from a \code{aa_masses}.
+#' @param ctmod The attribute \code{ctmod} from a \code{aa_masses}.
 #' @param ppm_ms1 The mass tolerance of MS1 species.
 #' @param ppm_ms2 The mass tolerance of MS2 species.
 #' @param FUN A function pointer to, e.g., \link{gen_ms2ions_base}.
@@ -416,6 +421,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
 #'   \code{aa_masses}.
 #' @param theopeps2 Binned theoretical MS2 ions corresponding to an i-th
 #'   \code{aa_masses}.
+#' @param ntmod The attribute \code{ntmod} from a \code{aa_masses}.
+#' @param ctmod The attribute \code{ctmod} from a \code{aa_masses}.
 #' @param minn_ms2 Integer; the minimum number of MS2 ions for consideration as
 #'   a hit.
 #' @param ppm_ms1 The mass tolerance of MS1 species.

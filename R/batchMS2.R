@@ -85,7 +85,6 @@ batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_202
 #' pep_seq and ms1mass.
 #'
 #' @param ms1_time A cached MS1 time (directory).
-#' @param types The types of modification, e.g., "amods- tmod+ vnl- fnl-" etc.
 #' @inheritParams batch_ms2ions
 #' @inheritParams ms2match
 hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by", 

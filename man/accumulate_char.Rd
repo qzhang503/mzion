@@ -15,6 +15,7 @@ accumulate_char(x, f)
 Accumulates character strings.
 }
 \examples{
+\donttest{
 x <- c("aa", "bb", "cc")
 accumulate_char(x, paste0)
 
@@ -23,4 +24,7 @@ accumulate_char(x, paste0)
 
 x <- "-EDEIQDXI-"
 accumulate_char(x, paste0)
+
+}
+
 }
