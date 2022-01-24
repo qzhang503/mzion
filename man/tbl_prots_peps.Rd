@@ -4,14 +4,12 @@
 \alias{tbl_prots_peps}
 \title{A lookup table between prot_acc and pep_seqs.}
 \usage{
-tbl_prots_peps(seqs, path, enzyme = "trypsin_p")
+tbl_prots_peps(seqs, path)
 }
 \arguments{
 \item{seqs}{Results from \link{distri_peps}.}
 
 \item{path}{A file path.}
-
-\item{enzyme}{Digestion enzyme.}
 }
 \description{
 For both target and decoy peptides.

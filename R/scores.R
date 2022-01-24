@@ -1099,7 +1099,13 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   })
   
   if (!nrow(td[[nm_t]])) {
-    seqs <- min_len:max_len
+    stop("No target peptides found.")
+    
+    # never run
+    if (!nrow(td[[nm_d]]))
+      stop("Found nothing: empty targets and decoys.")
+    
+    seqs <- min_len:max(td[[nm_d]]$pep_len, na.rm = TRUE)
     prob_cos <- rep(.5, length(seqs))
     
     return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
@@ -1118,7 +1124,12 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   td[[nm_d]] <- purge_decoys(target = td[[nm_t]], decoy = td[[nm_d]])
   
   #  keeps the best hit for each `scan_num`
-  td <- dplyr::bind_rows(td[c(nm_t, nm_d)]) %>% 
+  if (nrow(td[[nm_d]]))
+    td <- dplyr::bind_rows(td[c(nm_t, nm_d)])
+  else
+    td <- td[[nm_t]]
+
+  td <- td %>% 
     dplyr::group_by(scan_num, raw_file) %>% 
     dplyr::arrange(pep_prob) %>% 
     dplyr::filter(row_number() == 1L) %>% 
@@ -1138,8 +1149,10 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   
   if (length(prob_cos) == 1L && !is.na(prob_cos))
     return(data.frame(pep_len = all_lens, pep_prob_co = prob_cos))
+  else if (length(prob_cos) == 1L && is.na(prob_cos))
+    return(data.frame(pep_len = all_lens, pep_prob_co = target_fdr))
   else if (all(is.na(prob_cos))) {
-    seqs <- min_len:max_len
+    seqs <- min_len:max(td$pep_len, na.rm = TRUE)
     prob_cos <- rep(target_fdr, length(seqs))
     
     return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
@@ -1157,9 +1170,9 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
   }
   
-  ###
+  #########################################
   # (At least two non-trivial prob_cos)
-  ###
+  #########################################
   
   lens <- find_optlens(all_lens, counts, 128L)
   

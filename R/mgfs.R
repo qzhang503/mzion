@@ -36,7 +36,9 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
   
-  args_except <- NULL
+  # different `out_path` at "enzyme = noenzyme"
+  # args_except <- NULL
+  args_except <- "out_path"
   
   cache_pars <- find_callarg_vals(
     time = NULL, 
@@ -45,6 +47,25 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
     args = names(formals(fun)) %>% 
       .[! . %in% args_except]
   ) 
+  
+  # at noenzyme
+  if (is.null(cache_pars)) {
+    sub_paths <- dir(out_path)
+    sub_path <- sub_paths[grepl("^sub1_", sub_paths)]
+    len_sub_path <- length(sub_path)
+
+    if (len_sub_path == 1L) {
+      cache_pars <- find_callarg_vals(
+        time = NULL, 
+        path = file.path(out_path, sub_path, "Calls"), 
+        fun = paste0(fun, ".rda"), 
+        args = names(formals(fun)) %>% 
+          .[! . %in% args_except]
+      )
+    }
+
+    rm(list = c("sub_paths", "sub_path", "len_sub_path"))
+  }
   
   cache_pars <- cache_pars[sort(names(cache_pars))]
   

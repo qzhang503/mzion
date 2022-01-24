@@ -19,8 +19,9 @@ matchMS(
   enzyme = c("Trypsin_P", "Trypsin", "LysC", "LysN", "ArgC", "LysC_P", "Chymotrypsin",
     "GluC", "GluN", "AspC", "AspN", "SemiTrypsin_P", "SemiTrypsin", "SemiLysC",
     "SemiLysN", "SemiArgC", "SemiLysC_P", "SemiChymotrypsin", "SemiGluC", "SemiGluN",
-    "SemiAspC", "SemiAspN", "Noenzyme"),
+    "SemiAspC", "SemiAspN", "Noenzyme", "Nodigest"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL),
+  noenzyme_maxn = 0L,
   maxn_fasta_seqs = 200000L,
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
@@ -34,7 +35,7 @@ matchMS(
   ppm_ms1 = 20L,
   n_13c = 0L,
   type_ms2ions = "by",
-  min_ms2mass = 110L,
+  min_ms2mass = 115L,
   minn_ms2 = 6L,
   ppm_ms2 = 25L,
   ppm_reporters = 10L,
@@ -56,7 +57,8 @@ matchMS(
   max_scan_num = .Machine$integer.max,
   min_ret_time = 0,
   max_ret_time = Inf,
-  digits = 4L
+  digits = 4L,
+  ...
 )
 }
 \arguments{
@@ -114,13 +116,8 @@ default if TRUE. May toggle it to \code{FALSE} if search speed against
 phospho data is not a primary concern.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
-  enzyme will be used to generate peptide sequences from proteins. The
-  default is \code{Trypsin_P}.
-
-  Warning: be aware of RAM exhaustion at \code{noenzyme}. May consider a
-  smaller \code{max_len}, e.g., \code{max_len = 25}; or separate searches of
-  (1) min_len = 7, max_len = 20 and (2) min_len = 21, max_len = 30 etc.
-  Automation of the multi-step process may be available in a later version.}
+enzyme will be used to generate peptide sequences from proteins. The
+default is \code{Trypsin_P}.}
 
 \item{custom_enzyme}{Regular expression(s) for custom enzyme specificity. The
   default is NULL. Uses of custom enzyme specificity is probably rather
@@ -140,6 +137,14 @@ phospho data is not a primary concern.}
   \cr # Faked: Trypsin, proline not allowed on neither Nterm or Cterm \cr
   custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
   "([^P]\{1\})([KR]\{1\})")}
+
+\item{noenzyme_maxn}{Non-negative integer; the maximum number of peptide
+lengths for sectional searches at \code{noenzyme} specificity. The argument
+may be used to guard against RAM exhaustion. At the zero default, The
+peptide lengths from \code{min_len} to \code{max_len} will be broken
+automatically into continuous sections. At value 1, searches will be
+performed against individual peptide lengths; at value 2, two lengths will
+be taken at a time, etc.}
 
 \item{maxn_fasta_seqs}{A positive integer; the maximum number of protein
 sequences in fasta files. The default is 200000.}
@@ -323,6 +328,8 @@ seconds for considerations. The default is \code{Inf}.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
+
+\item{...}{Not currently used.}
 }
 \value{
 A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in

@@ -69,11 +69,6 @@
 #'   enzyme will be used to generate peptide sequences from proteins. The
 #'   default is \code{Trypsin_P}.
 #'
-#'   Warning: be aware of RAM exhaustion at \code{noenzyme}. May consider a
-#'   smaller \code{max_len}, e.g., \code{max_len = 25}; or separate searches of
-#'   (1) min_len = 7, max_len = 20 and (2) min_len = 21, max_len = 30 etc.
-#'   Automation of the multi-step process may be available in a later version.
-#'
 #' @param custom_enzyme Regular expression(s) for custom enzyme specificity. The
 #'   default is NULL. Uses of custom enzyme specificity is probably rather
 #'   infrequent. Should there be such need, the argument \code{enzyme} will be
@@ -93,6 +88,13 @@
 #'   custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
 #'   "([^P]\{1\})([KR]\{1\})")
 #'
+#' @param noenzyme_maxn Non-negative integer; the maximum number of peptide
+#'   lengths for sectional searches at \code{noenzyme} specificity. The argument
+#'   may be used to guard against RAM exhaustion. At the zero default, The
+#'   peptide lengths from \code{min_len} to \code{max_len} will be broken
+#'   automatically into continuous sections. At value 1, searches will be
+#'   performed against individual peptide lengths; at value 2, two lengths will
+#'   be taken at a time, etc.
 #' @param maxn_fasta_seqs A positive integer; the maximum number of protein
 #'   sequences in fasta files. The default is 200000.
 #' @param maxn_vmods_setscombi A non-negative integer; the maximum number of
@@ -241,6 +243,7 @@
 #'   developer.
 #' @param digits A non-negative integer; the number of decimal places to be
 #'   used. The default is 4.
+#' @param ... Not currently used.
 #' @section \code{FASTA}: \link{load_fasta2} sets the values of \code{acc_type}
 #'   and \code{acc_pattern}. \cr
 #' @section \code{Unimod}: \link{table_unimods} summarizes
@@ -376,8 +379,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
                                 "AspC", "AspN", "SemiTrypsin_P", "SemiTrypsin", 
                                 "SemiLysC", "SemiLysN", "SemiArgC", 
                                 "SemiLysC_P", "SemiChymotrypsin", "SemiGluC", 
-                                "SemiGluN", "SemiAspC", "SemiAspN", "Noenzyme"),
+                                "SemiGluN", "SemiAspC", "SemiAspN", "Noenzyme", 
+                                "Nodigest"),
                      custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
+                     noenzyme_maxn = 0L, 
                      maxn_fasta_seqs = 200000L,
                      maxn_vmods_setscombi = 64L,
                      maxn_vmods_per_pep = 5L,
@@ -389,7 +394,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      n_13c = 0L, 
 
                      type_ms2ions = "by", 
-                     min_ms2mass = 110L, 
+                     min_ms2mass = 115L, 
                      minn_ms2 = 6L, 
                      ppm_ms2 = 25L, 
                      
@@ -412,7 +417,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                      min_ret_time = 0, max_ret_time = Inf, 
 
-                     digits = 4L) 
+                     digits = 4L, ...) 
 {
   options(digits = 9L)
 
@@ -425,6 +430,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
     },
     add = TRUE
   )
+  
+  ## Developer's dots
+  dots <- as.list(substitute(...()))
 
   ## Tentative; not for users
   if (include_insource_nl) 
@@ -454,6 +462,21 @@ matchMS <- function (out_path = "~/proteoM/outs",
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
+  max_integer <- .Machine$integer.max
+
+  if (is.infinite(max_len)) max_len <- max_integer
+  if (is.infinite(maxn_fasta_seqs)) maxn_fasta_seqs <- max_integer
+  if (is.infinite(maxn_vmods_setscombi)) maxn_vmods_setscombi <- max_integer
+  if (is.infinite(maxn_vmods_per_pep)) maxn_vmods_per_pep <- max_integer
+  if (is.infinite(maxn_sites_per_vmod)) maxn_sites_per_vmod <- max_integer
+  if (is.infinite(maxn_vmods_sitescombi_per_pep)) maxn_vmods_sitescombi_per_pep <- max_integer
+  if (is.infinite(max_miss)) max_miss <- max_integer
+  if (is.infinite(max_mass)) max_mass <- max_integer
+  if (is.infinite(max_n_prots)) max_n_prots <- max_integer
+  if (is.infinite(topn_ms2ions)) topn_ms2ions <- max_integer
+  if (is.infinite(max_scan_num)) max_scan_num <- max_integer
+  if (is.infinite(max_ret_time)) max_ret_time <- max_integer
+
   maxn_fasta_seqs <- as.integer(maxn_fasta_seqs)
   maxn_vmods_setscombi <- as.integer(maxn_vmods_setscombi)
   maxn_vmods_per_pep <- as.integer(maxn_vmods_per_pep)
@@ -468,6 +491,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   max_mass <- as.integer(max_mass)
   min_ms2mass <- as.integer(min_ms2mass)
   n_13c <- as.integer(n_13c)
+  noenzyme_maxn <- as.integer(noenzyme_maxn)
   ppm_ms1 <- as.integer(ppm_ms1)
   ppm_ms2 <- as.integer(ppm_ms2)
   ppm_reporters <- as.integer(ppm_reporters)
@@ -480,7 +504,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 10L, minn_ms2 >= 1L, 
             min_mass >= 1L, max_mass >= min_mass, min_ms2mass >= 1L, 
-            n_13c >= 0L, 
+            n_13c >= 0L, noenzyme_maxn >= 0L, 
             maxn_vmods_per_pep >= maxn_sites_per_vmod, max_n_prots > 1000L, 
             min_ms1_charge >= 1L, max_ms1_charge >= min_ms1_charge, 
             min_scan_num >= 1L, max_scan_num >= min_scan_num)
@@ -527,7 +551,12 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   if ((!is.null(enzyme)) && (enzyme == "noenzyme"))
     max_miss <- 0L
-    
+  
+  if ((!is.null(enzyme)) && (enzyme == "nodigest")) {
+    max_miss <- 0L
+    max_len <- max_integer
+  }
+
   rm(list = c("oks", "oks_lwr", "enzyme_lwr"))
   
   # fdr_type
@@ -591,7 +620,17 @@ matchMS <- function (out_path = "~/proteoM/outs",
   .path_fasta <- create_dir(.path_fasta)
   
   .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
-
+  
+  
+  ## noenzyme specificity
+  # set dots$recalled <- TRUE in `matchMS_noenzyme` and thus 
+  # bypassing when calling matchMS again from `matchMS_noenzyme`
+  recalled <- if (isTRUE(dots$recalled)) FALSE else TRUE
+  
+  if (enzyme == "noenzyme" && recalled) 
+    matchMS_noenzyme(match.call(), min_len, max_len, fasta, out_path, mgf_path, 
+                     noenzyme_maxn)
+  
   ## Theoretical MS1 masses
   res <- calc_pepmasses2(
     fasta = fasta,
@@ -965,6 +1004,13 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
   # `n_prots` about 1:1
   # `n_peps` about 1.8:1
 
+  if (n_prots == 1L) {
+    message("No protein groups with the number of of proteins = ", n_prots, ".\n",
+            "Search completed successfully.")
+    options(show.error.messages = FALSE)
+    stop()
+  }
+    
   if (n_peps > 1000000L && n_prots > 100000L) {
     out <- NA
   } 
@@ -1261,3 +1307,140 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
   
   invisible(NULL)
 }
+
+
+#' Noenzyme search.
+#' 
+#' @param this_call An expression from match.call.
+#' @inheritParams matchMS
+matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L, 
+                              fasta = NULL, out_path = NULL, mgf_path = NULL, 
+                              noenzyme_maxn = 0L) 
+{
+  message("Searches with no enzyme specificity...")
+  
+  size <- local({
+    if (noenzyme_maxn) 
+      return (noenzyme_maxn)
+
+    mouse_fasta_size <- 11 
+    fasta_size <- sum(unlist(lapply(fasta, file.size)))/1024^2
+    
+    # large RAM -> large `fct_mem`
+    fct_mem <- local({
+      mgf_files <- list.files(mgf_path, pattern = "\\.mgf$", full.names = TRUE)
+      fct_mgf <- max(1, sum(unlist(lapply(mgf_files, file.size)))/1024^3)
+      
+      ans <- tryCatch(
+        find_free_mem()/1024/fct_mgf,
+        error = function (e) NA)
+      
+      if (is.na(ans))
+        ans <- fct_mgf
+      
+      ans
+    })
+    
+    # large fasta -> large `fct_fasta` (>= 1)
+    fct_fasta <- max(1, fasta_size/mouse_fasta_size)
+    
+    # ^1.5, 0.6: 90% RAM aggressiveness with fasta human + mouse
+    max(1L, floor(fct_mem/(fct_fasta^1.5) * .5))
+    # max(1L, floor(fct_mem/(fct_fasta^1.5) * .2))
+  })
+  
+  len <- length(min_len:max_len)
+  
+  if (len > size) {
+    if (size == 1L) {
+      n_chunks <- len
+      spans <- split(min_len:max_len, 1:len)
+    }
+    else {
+      n_chunks <- ceiling(len/size)
+      spans <- chunksplit(min_len:max_len, n_chunks, rightmost.closed = TRUE)
+    }
+
+    out_paths <- vector("list", n_chunks)
+    
+    for (i in seq_len(n_chunks)) {
+      sub_call <- this_call
+      span <- spans[[i]]
+      start <- span[1]
+      end <- span[length(span)]
+      sub_nm <- paste0("sub", i, "_", start, "_", end)
+      sub_path <- out_paths[[i]] <- create_dir(file.path(out_path, sub_nm))
+      
+      ok <- file.exists(file.path(sub_path, "psmQ.txt"))
+      if (ok) next
+      
+      sub_call$min_len <- start
+      sub_call$max_len <- end
+      sub_call$out_path <- sub_path
+      sub_call$mgf_path <- mgf_path
+      sub_call$recalled <- TRUE
+
+      eval(sub_call, envir = environment())
+      gc()
+    }
+    
+    # psmC
+    df <- lapply(out_paths, function (x) {
+      file <- file.path(x, "psmC.txt")
+      
+      if (file.exists(file))
+        readr::read_tsv(file, show_col_types = FALSE)
+      else
+        NULL
+    })
+    
+    df <- dplyr::bind_rows(df)
+    readr::write_tsv(df, file.path(out_path, "psmC.txt"))
+    
+    # psmQ
+    df <- lapply(out_paths, function (x) {
+      file <- file.path(x, "psmQ.txt")
+      
+      if (file.exists(file))
+        readr::read_tsv(file, show_col_types = FALSE)
+      else
+        NULL
+    })
+    
+    df <- dplyr::bind_rows(df)
+    readr::write_tsv(df, file.path(out_path, "psmQ.txt"))
+    
+    # psmT2
+    df <- lapply(out_paths, function (x) {
+      file <- file.path(x, "psmT2.txt")
+      
+      if (file.exists(file))
+        readr::read_tsv(file, show_col_types = FALSE)
+      else
+        NULL
+    })
+    
+    df <- dplyr::bind_rows(df)
+    readr::write_tsv(df, file.path(out_path, "psmT2.txt"))
+    
+    # psmT3
+    df <- lapply(out_paths, function (x) {
+      file <- file.path(x, "psmT3.txt")
+      
+      if (file.exists(file))
+        readr::read_tsv(file, show_col_types = FALSE)
+      else
+        NULL
+    })
+    
+    df <- dplyr::bind_rows(df)
+    readr::write_tsv(df, file.path(out_path, "psmT3.txt"))
+    
+    message("Done (noenzyme search).")
+    options(show.error.messages = FALSE)
+    stop()
+  }
+  
+  invisible(NULL)
+}
+

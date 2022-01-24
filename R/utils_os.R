@@ -265,7 +265,8 @@ recur_flatten <- function (x)
 #' @param data Input data.
 #' @param n_chunks The number of chunks.
 #' @param type The type of data for splitting.
-chunksplit <- function (data, n_chunks = 5L, type = c("list", "row") )
+#' @param ... Arguments for \link{findInterval}.
+chunksplit <- function (data, n_chunks = 5L, type = c("list", "row"), ...)
 {
   type <- match.arg(type)
 
@@ -289,7 +290,7 @@ chunksplit <- function (data, n_chunks = 5L, type = c("list", "row") )
   x <- cbind(lower = floor(as.numeric( sub("\\((.+),.*", "\\1", labs))),
              upper = ceiling(as.numeric( sub("[^,]*,([^]]*)\\]", "\\1", labs))))
   
-  grps <- findInterval(1:len, x[, 1])
+  grps <- findInterval(1:len, x[, 1], ...)
   
   split(data, grps)
 }

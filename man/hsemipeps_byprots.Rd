@@ -7,8 +7,8 @@
 hsemipeps_byprots(prots, min_len = 7L, aa_masses = NULL)
 }
 \arguments{
-\item{prots}{Lists of proteins with tryptic peptides. For each entry under a
-protein, the value is mass and the name is peptide sequence.}
+\item{prots}{Lists of proteins with full-enzymatic sequences. For each entry
+under a protein, the value is a mass and the name is a peptide sequence.}
 
 \item{min_len}{The minimum length of peptide sequences for consideration.}
 

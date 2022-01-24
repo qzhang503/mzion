@@ -2,7 +2,7 @@
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage("Welcome to proteoM!\n\n",
                         "============================================================================================\n",
-                        "NEW features (v1.0.6.0):\n",
+                        "NEW features (v1.0.6.1):\n",
                         "[x] Optimization of search speed.\n", 
                         "[x] Supports of Bruker's PASEF MGFs.\n",
                         "[x] Supports of custom, semi- or non-enzymatic searches.\n",

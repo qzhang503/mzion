@@ -2,18 +2,22 @@
 % Please edit documentation in R/ms1_precursors.R
 \name{semipeps_byprots}
 \alias{semipeps_byprots}
-\title{Finds the semi-tryptic peptides for a proteins.}
+\title{Finds the semi-enzymatic peptides for a proteins.}
 \usage{
 semipeps_byprots(vals, min_len = 7L, aa_masses = NULL)
 }
 \arguments{
-\item{vals}{A list of tryptic peptides under a protein.}
+\item{vals}{A list of full-enzymatic peptides under a protein.}
 
 \item{min_len}{A positive integer; the minimum length of peptide sequences
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
+}
+\value{
+A vector of full- and semi-enzymatic peptides. Sequences in names and
+  masses in values.
 }
 \description{
 Redundancy such as peptides from N-term methionine cleavage or semi-tryptic

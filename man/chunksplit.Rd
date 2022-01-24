@@ -4,7 +4,7 @@
 \alias{chunksplit}
 \title{Splits data into chunks by length.}
 \usage{
-chunksplit(data, n_chunks = 5L, type = c("list", "row"))
+chunksplit(data, n_chunks = 5L, type = c("list", "row"), ...)
 }
 \arguments{
 \item{data}{Input data.}
@@ -12,6 +12,8 @@ chunksplit(data, n_chunks = 5L, type = c("list", "row"))
 \item{n_chunks}{The number of chunks.}
 
 \item{type}{The type of data for splitting.}
+
+\item{...}{Arguments for \link{findInterval}.}
 }
 \description{
 Splits data into chunks by length.

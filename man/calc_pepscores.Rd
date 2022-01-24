@@ -156,13 +156,8 @@ experimenting by allowing additional masses in the universe of MS1
 precursors.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
-  enzyme will be used to generate peptide sequences from proteins. The
-  default is \code{Trypsin_P}.
-
-  Warning: be aware of RAM exhaustion at \code{noenzyme}. May consider a
-  smaller \code{max_len}, e.g., \code{max_len = 25}; or separate searches of
-  (1) min_len = 7, max_len = 20 and (2) min_len = 21, max_len = 30 etc.
-  Automation of the multi-step process may be available in a later version.}
+enzyme will be used to generate peptide sequences from proteins. The
+default is \code{Trypsin_P}.}
 
 \item{maxn_fasta_seqs}{A positive integer; the maximum number of protein
 sequences in fasta files. The default is 200000.}

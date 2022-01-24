@@ -306,7 +306,7 @@ calc_pepmasses2 <- function (
     n_cores <- detect_cores(16L)
     
     if (enzyme == "noenzyme") 
-      n_cores <- ceiling(n_cores/2L)
+      n_cores <- floor(max(1L, n_cores/4L))
 
     fwd_peps <- chunksplit(fwd_peps, n_cores, "list")
     
@@ -627,13 +627,14 @@ find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
 #' 
 #' @param seqs Results from \link{distri_peps}.
 #' @param path A file path.
-#' @param enzyme Not used.
 #' @examples
 #' \donttest{
 #' tbl_prots_peps(fwd_peps[[1]])
 #' }
-tbl_prots_peps <- function (seqs, path, enzyme = "trypsin_p") 
+tbl_prots_peps <- function (seqs, path) 
 {
+  message("Tabling the association of proteins and peptides.")
+  
   create_dir(path)
   
   seqs <- lapply(seqs, names)
@@ -1551,7 +1552,7 @@ split_fastaseqs <- function (fasta = NULL, enzyme = "trypsin_p",
     stop("More than `", maxn_fasta_seqs, "` sequences in fasta files.\n",
          "  May consider a higher `maxn_fasta_seqs`.",
          call. = FALSE)
-
+  
   n_cores <- detect_cores(16L)
 
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
@@ -1719,6 +1720,9 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
   }
+  else if (enzyme == "nodigest") {
+    fasta_db <- lapply(fasta_db, function (x) paste0("-", x, "-"))
+  }
   else {
     stop("Unknown enzyme.")
   }
@@ -1741,9 +1745,13 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   
   # Note: NA sequences -> NULL during mass calculations
   # (USE.NAMEs as they are prot_acc)
-  peps[inds_m] <- mapply(list, peps_m, peps[inds_m], 
-                         SIMPLIFY = FALSE)
-  peps[-inds_m] <- lapply(peps[-inds_m], function (x) list(NA, x))
+  if (length(inds_m)) {
+    peps[inds_m] <- mapply(list, peps_m, peps[inds_m], SIMPLIFY = FALSE)
+    peps[-inds_m] <- lapply(peps[-inds_m], function (x) list(NA, x))
+  }
+  else {
+    peps <- lapply(peps, function (x) list(NA, x))
+  }
 
   invisible(peps)
 }
@@ -1785,7 +1793,7 @@ split_fastaseqs_noenz <- function (fasta = NULL, acc_type = "uniprot_acc",
   
   message("Splitting fasta sequences.")
   
-  peps <- parallel::clusterApply(cl, chunksplit(fasta_db, n_cores^2), 
+  peps <- parallel::clusterApply(cl, chunksplit(fasta_db, n_cores), 
                                  mmake_noenzpeps, 
                                  min_len = min_len, 
                                  max_len = max_len, 
