@@ -18,32 +18,32 @@ LazyData: true
 Suggests: 
     knitr,
     rmarkdown,
-	testthat
+    testthat
 VignetteBuilder: knitr
 Imports: 
     data.table,
     dplyr,
-	fastmatch,
-	ggplot2,
+    fastmatch,
+    ggplot2,
     gtools,
     purrr,
     readr,
     stringi,
     stringr,
-	tibble,
+    tibble,
     tidyr,
     fs,
     magrittr,
     parallel,
-	proteoCpp, 
-	proteoQDA,
-	proxyC,
-	xml2, 
-	Matrix,
+    proteoCpp, 
+    proteoQDA,
+    proxyC,
+    xml2, 
+    Matrix,
     Rcpp
 RoxygenNote: 7.1.2
 Remotes:
-	qzhang503/proteoCpp, 
-	qzhang503/proteoQDA
+    qzhang503/proteoCpp, 
+    qzhang503/proteoQDA
 LinkingTo: 
     Rcpp
