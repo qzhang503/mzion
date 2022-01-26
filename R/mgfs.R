@@ -36,7 +36,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
   
-  # different `out_path` at "enzyme = noenzyme"
+  # `sub out_path` at "enzyme = noenzyme"
   # args_except <- NULL
   args_except <- "out_path"
   
@@ -883,15 +883,36 @@ find_mgf_type <- function (file)
   # n_hdr: the number of hear lines from (including) `BEGIN IONS`
   # raw_file: if ".", an indicator to find RAW file names from the header
   
+  # between ends[1] and begins[2]
+  n_end <- 1L
+  n_begin <- 1L
+  
+  end <- ends[1]
+  begin2 <- begins[2]
+  lines_bf <- hdr[end:begin2]
+  
+  n_spacer <- sum(unlist(lapply(lines_bf, function (x) x == "")))
+  n_bf_begin <- begin2 - end - n_spacer - n_end
+  
+  # between begins[1] and ends[1]
+  begin <- begins[1]
+  lines <- hdr[begin:end]
+  
+  n_hdr <- grep("^[0-9]+", lines)[1] - 1L # 5
+  n_to_pepmass <- grep("^PEPMASS", lines)[1] - n_begin
+  n_to_title <- grep("^TITLE", lines)[1] - n_begin
+  n_to_rt <- grep("^RTINSECONDS", lines)[1] - n_begin
+  n_to_charge <- grep("^CHARGE", lines)[1] - n_begin
+
   if (type == "msconv_thermo") {
-    n_bf_begin <- 0L
-    n_spacer <- 0L
-    n_hdr <- 5L
-    n_to_pepmass <- 3L
-    n_to_title <- 1L
+    # n_bf_begin <- 0L
+    # n_spacer <- 0L
+    # n_hdr <- 5L
+    # n_to_pepmass <- 3L
+    # n_to_title <- 1L
+    # n_to_rt <- 2L
+    # n_to_charge <- 4L
     n_to_scan <- 0L
-    n_to_rt <- 2L
-    n_to_charge <- 4L
     
     sep_ms2s <- " "
     nfields_ms2s <- 2L
@@ -900,14 +921,16 @@ find_mgf_type <- function (file)
     raw_file <- NULL
   } 
   else if (type == "msconv_pasef") {
+    warning("Suggest MGFs of manufacturer's default")
+    
     n_bf_begin <- 0L
     n_spacer <- 0L
     n_hdr <- 5L
     n_to_pepmass <- 3L
     n_to_title <- 1L
-    n_to_scan <- 0L
     n_to_rt <- 2L
     n_to_charge <- 4L
+    n_to_scan <- 0L
     
     sep_ms2s <- " "
     nfields_ms2s <- 2L
@@ -916,14 +939,17 @@ find_mgf_type <- function (file)
     raw_file <- NULL
   } 
   else if (type == "pd") {
-    n_bf_begin <- 0L
-    n_spacer <- 1L
-    n_hdr <- 6L
-    n_to_pepmass <- 2L
-    n_to_title <- 1L
-    n_to_scan <- 5L
-    n_to_rt <- 4L
-    n_to_charge <- 3L
+    # n_bf_begin <- 0L
+    # n_spacer <- 1L
+    # n_hdr <- 6L
+    # n_to_pepmass <- 2L
+    # n_to_title <- 1L
+    # n_to_rt <- 4L
+    # n_to_charge <- 3L
+    # n_to_scan <- 5L
+    
+    n_to_scan <- grep("^SCANS", lines)[1] - n_begin
+    if (is.na(n_to_scan)) stop("`SCANS` not found.")
     
     sep_ms2s <- " "
     nfields_ms2s <- 2L
@@ -932,14 +958,17 @@ find_mgf_type <- function (file)
     raw_file <- NULL
   } 
   else if (type == "default_pasef") {
-    n_bf_begin <- 4L
-    n_spacer <- 1L
-    n_hdr <- 6L
-    n_to_pepmass <- 4L
-    n_to_title <- 1L
-    n_to_scan <- 3L
-    n_to_rt <- 2L
-    n_to_charge <- 5L
+    # n_bf_begin <- 4L
+    # n_spacer <- 1L
+    # n_hdr <- 6L
+    # n_to_pepmass <- 4L
+    # n_to_title <- 1L
+    # n_to_scan <- 3L
+    # n_to_rt <- 2L
+    # n_to_charge <- 5L
+    
+    n_to_scan <- grep("^RAWSCANS", lines)[1] - n_begin
+    if (is.na(n_to_scan)) stop("`RAWSCANS` not found.")
     
     sep_ms2s <- "\t"
     nfields_ms2s <- 3L
@@ -951,6 +980,12 @@ find_mgf_type <- function (file)
     stop("Unkown format of MGFs.")
   }
 
+  if (is.na(n_hdr)) stop("MS2 data not found.")
+  if (is.na(n_to_pepmass)) stop("`PEPMASS` not found.")
+  if (is.na(n_to_title)) stop("`TITLE` not found.")
+  if (is.na(n_to_rt)) stop("`RTINSECONDS` not found.")
+  if (is.na(n_to_charge)) stop("`CHARGE` not found.")
+  
   invisible(list(type = type, 
                  n_bf_begin = n_bf_begin, 
                  n_spacer = n_spacer,

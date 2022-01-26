@@ -622,15 +622,16 @@ matchMS <- function (out_path = "~/proteoM/outs",
   .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
   
   
-  ## noenzyme specificity
+  ## flow alteration with noenzyme specificity
   # set dots$recalled <- TRUE in `matchMS_noenzyme` and thus 
   # bypassing when calling matchMS again from `matchMS_noenzyme`
   recalled <- if (isTRUE(dots$recalled)) FALSE else TRUE
   
   if (enzyme == "noenzyme" && recalled) 
-    matchMS_noenzyme(match.call(), min_len, max_len, fasta, out_path, mgf_path, 
-                     noenzyme_maxn)
-  
+    matchMS_noenzyme(this_call = match.call(), min_len = min_len, max_len = max_len, 
+                     fasta = fasta, out_path = out_path, mgf_path = mgf_path, 
+                     noenzyme_maxn = noenzyme_maxn)
+
   ## Theoretical MS1 masses
   res <- calc_pepmasses2(
     fasta = fasta,
@@ -1240,7 +1241,7 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
 #' @inheritParams matchMS
 check_tmt_pars <- function (fixedmods, varmods, quant) 
 {
-  if (TRUE) {
+  if (FALSE) {
     # mono-isotopic
     H <- 1.007825035
     O <- 15.99491463
@@ -1283,7 +1284,8 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
       ok <- all(grepl("TMTpro18.* |TMT18plex.* ", possibles))
       
       if (!ok) 
-        stop("All TMT modifications need to be `TMTpro18` at `", quant, "`.\n", 
+        stop("All TMT modifications need to be `TMTpro18` or `TMT18plex` at `", 
+             quant, "`.\n", 
              tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
              call. = FALSE)
     } 
@@ -1291,7 +1293,8 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
       ok <- all(grepl("TMTpro.* |TMT16plex.* ", possibles))
       
       if (!ok) 
-        stop("All TMT modifications need to be `TMTpro` at `", quant, "`.\n", 
+        stop("All TMT modifications need to be `TMTpro` or `TMT16plex` at `", 
+             quant, "`.\n", 
              tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
              call. = FALSE)
     } 
@@ -1299,7 +1302,8 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
       ok <- all(grepl("TMT6plex.* |TMT10plex.* |TMT11plex.* ", possibles))
       
       if (!ok) 
-        stop("All TMT modifications need to be `TMT6plex` at `", quant, "`.\n", 
+        stop("All TMT modifications need to be `TMT6plex`, `TMT10plex` or `TMT11plex` at `", 
+             quant, "`.\n", 
              tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
              call. = FALSE)
     }

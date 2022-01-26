@@ -1,7 +1,7 @@
 proteoM
 ================
 true
-2022-01-24
+2022-01-26
 
 -   [Installation](#installation)
 -   [FASTAs and MGFs](#fastas-and-mgfs)
@@ -90,25 +90,16 @@ matchMS(
 
 -   Search against full-length MGFs
 
-    -   With `MSConvert`:
-        -   [x] Output format: mgf
-        -   [x] titleMaker: Default
-        -   [x] msLevel=1-
-        -   [x] Charge states=2-
-    -   With Burker’s `DataAnalysis`
-        -   [x] (make sure MS1 CHARGE available)
-    -   With Thermo’s Proteome Discoverer
-        -   [x] manufacturer’s default
+    -   Thermo’s MS
+        -   [x] `MSConvert`
+        -   [x] `Proteome Discoverer`
+    -   Bruker’s MS
+        -   [x] `DataAnalysis`
 
 -   Data QC and mining with
     [proteoQ](https://github.com/qzhang503/proteoQ/)
 
 ## Other utilities
 
--   proteoM::mapMS2ions
-
-    -   Visualizations of matched MS2 ions
-
--   proteoM::add\_unimod
-
-    -   Addition of a Unimod entry
+-   `mapMS2ions`: visualizations of matched MS2 ions
+-   `add_unimod`: addition of a Unimod entry
