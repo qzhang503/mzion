@@ -1100,7 +1100,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   
   if (!nrow(td[[nm_t]])) {
     stop("No target peptides found.")
-    
+
     # never run
     if (!nrow(td[[nm_d]]))
       stop("Found nothing: empty targets and decoys.")

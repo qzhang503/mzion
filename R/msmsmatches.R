@@ -621,7 +621,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
   
-  
   ## flow alteration with noenzyme specificity
   # set dots$recalled <- TRUE in `matchMS_noenzyme` and thus 
   # bypassing when calling matchMS again from `matchMS_noenzyme`
@@ -688,7 +687,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
             max_ret_time = max_ret_time, 
             ppm_ms1 = ppm_ms1,
             ppm_ms2 = ppm_ms2,
-            index_ms2 = FALSE)
+            index_ms2 = FALSE, 
+            enzyme = enzyme)
 
   ## MSMS matches
   ms2match(mgf_path = mgf_path,
@@ -1348,9 +1348,8 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
     # large fasta -> large `fct_fasta` (>= 1)
     fct_fasta <- max(1, fasta_size/mouse_fasta_size)
     
-    # ^1.5, 0.6: 90% RAM aggressiveness with fasta human + mouse
+    # ^1.5, 0.6: 90% RAM aggressiveness with uniprot fasta human + mouse
     max(1L, floor(fct_mem/(fct_fasta^1.5) * .5))
-    # max(1L, floor(fct_mem/(fct_fasta^1.5) * .2))
   })
   
   len <- length(min_len:max_len)
@@ -1366,7 +1365,7 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
     }
 
     out_paths <- vector("list", n_chunks)
-    
+
     for (i in seq_len(n_chunks)) {
       sub_call <- this_call
       span <- spans[[i]]
@@ -1374,19 +1373,39 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
       end <- span[length(span)]
       sub_nm <- paste0("sub", i, "_", start, "_", end)
       sub_path <- out_paths[[i]] <- create_dir(file.path(out_path, sub_nm))
-      
+
       ok <- file.exists(file.path(sub_path, "psmQ.txt"))
+      
       if (ok) next
       
+      if (i > 1L) {
+        mgf_call <- file.path(out_paths[[1]], "Calls", "load_mgfs.rda")
+        
+        if (file.exists(mgf_call)) {
+          sub_call_path <- create_dir(file.path(sub_path, "Calls"))
+          
+          file.copy(mgf_call, file.path(sub_call_path, "load_mgfs.rda"), 
+                    overwrite = TRUE)
+        }
+      }
+
       sub_call$min_len <- start
       sub_call$max_len <- end
       sub_call$out_path <- sub_path
       sub_call$mgf_path <- mgf_path
       sub_call$recalled <- TRUE
+      
+      ans <- tryCatch(eval(sub_call), error = function (e) NULL)
 
-      eval(sub_call, envir = environment())
+      if (is.null(ans)) {
+        message("No results from `min_len = ", start, "` to `max_len = ", end, "`.")
+        unlink(sub_path, recursive = TRUE)
+      }
+
       gc()
     }
+    
+    file.copy(file.path(out_paths[[1]], "Calls"), out_path, recursive = TRUE)
     
     # psmC
     df <- lapply(out_paths, function (x) {

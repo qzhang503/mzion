@@ -17,7 +17,8 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
                        min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                        min_ret_time = 0, max_ret_time = Inf, 
                        ppm_ms1 = 20L, ppm_ms2 = 25L, index_ms2 = FALSE, 
-                       is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE) 
+                       is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE, 
+                       enzyme = "trypsin_p") 
 {
   old_opts <- options()
   options(warn = 1L)
@@ -36,36 +37,17 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
   
-  # `sub out_path` at "enzyme = noenzyme"
   # args_except <- NULL
-  args_except <- "out_path"
+  args_except <- c("out_path")
   
   cache_pars <- find_callarg_vals(
     time = NULL, 
     path = file.path(out_path, "Calls"), 
     fun = paste0(fun, ".rda"), 
     args = names(formals(fun)) %>% 
-      .[! . %in% args_except]
+      .[! . %in% args_except], 
+    new_args = unlist(formals(load_mgfs)[c("enzyme")])
   ) 
-  
-  # at noenzyme
-  if (is.null(cache_pars)) {
-    sub_paths <- dir(out_path)
-    sub_path <- sub_paths[grepl("^sub1_", sub_paths)]
-    len_sub_path <- length(sub_path)
-
-    if (len_sub_path == 1L) {
-      cache_pars <- find_callarg_vals(
-        time = NULL, 
-        path = file.path(out_path, sub_path, "Calls"), 
-        fun = paste0(fun, ".rda"), 
-        args = names(formals(fun)) %>% 
-          .[! . %in% args_except]
-      )
-    }
-
-    rm(list = c("sub_paths", "sub_path", "len_sub_path"))
-  }
   
   cache_pars <- cache_pars[sort(names(cache_pars))]
   
@@ -78,7 +60,11 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
   call_pars <- call_pars[sort(names(call_pars))]
 
   ok_pars <- identical(call_pars, cache_pars)
-
+  
+  # suboptimal; for noenzyme
+  if ((!ok_pars) && enzyme == "noenzyme") 
+    ok_pars <- TRUE
+  
   rds <- file.path(mgf_path, "mgf_queries.rds")
   
   if (ok_pars && file.exists(rds)) {

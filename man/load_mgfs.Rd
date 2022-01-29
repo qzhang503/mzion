@@ -21,7 +21,8 @@ load_mgfs(
   ppm_ms2 = 25L,
   index_ms2 = FALSE,
   is_ms1_three_frame = TRUE,
-  is_ms2_three_frame = TRUE
+  is_ms2_three_frame = TRUE,
+  enzyme = "trypsin_p"
 )
 }
 \arguments{
@@ -82,6 +83,10 @@ preceeding, current and following.}
 
 \item{is_ms2_three_frame}{Logical; is the searches by the three frames of
 preceeding, current and following.}
+
+\item{enzyme}{A character string; the proteolytic specificity of the assumed
+enzyme will be used to generate peptide sequences from proteins. The
+default is \code{Trypsin_P}.}
 }
 \description{
 Currently, \code{index_ms2} is always FALSE.
