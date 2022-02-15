@@ -87,8 +87,8 @@
 #           ...
 #         - find_cmodtree
 #           ...
-#       - rm_char_in_nfirst2 (ms1_precursors.R)
-#       - rm_char_in_nlast2 (ms1_precursors.R)
+#       - rm_char_in_nfirst (ms1_precursors.R)
+#       - rm_char_in_nlast (ms1_precursors.R)
 #     - tbl_prots_peps
 #     - flat_pepseqs
 #     - add_term_mass2

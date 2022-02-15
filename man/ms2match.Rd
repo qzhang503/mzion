@@ -19,6 +19,7 @@ ms2match(
   min_ms2mass,
   quant,
   ppm_reporters,
+  use_first_rev = FALSE,
   fasta,
   acc_type,
   acc_pattern,
@@ -103,6 +104,9 @@ suitable.}
 
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
 ions. The default is 10.}
+
+\item{use_first_rev}{Logical; if TRUE, uses the first set of \code{aa_masses}
+for reversed searches; otherwise, uses the set with the maximum output.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}

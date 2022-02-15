@@ -2,11 +2,13 @@
 #'
 #' All files under `out_path` are removed if incur \code{calc_pepmasses} in the
 #' upstream.
-#' 
+#'
 #' @param aa_masses_all A list of amino acid lookups for all the combination of
 #'   fixed and variable modifications.
 #' @param mod_indexes Integer; the indexes of fixed and/or variable
 #'   modifications.
+#' @param use_first_rev Logical; if TRUE, uses the first set of \code{aa_masses}
+#'   for reversed searches; otherwise, uses the set with the maximum output.
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
 #' @inheritParams frames_adv
@@ -16,7 +18,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                       mod_indexes, type_ms2ions, maxn_vmods_per_pep, 
                       maxn_sites_per_vmod, maxn_vmods_sitescombi_per_pep, 
                       minn_ms2, ppm_ms1, ppm_ms2, min_ms2mass, 
-                      quant, ppm_reporters, 
+                      quant, ppm_reporters, use_first_rev = FALSE, 
 
                       # dummies
                       fasta, acc_type, acc_pattern,
@@ -42,7 +44,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
   
-  args_except <- NULL
+  # (OK as `use_first_rev` is not for users)
+  # args_except <- NULL
+  # args_except <- "use_first_rev"
+  args_except <- c("use_first_rev", "quant")
   
   cache_pars <- find_callarg_vals(time = NULL, 
                                   path = file.path(out_path, "Calls"), 
@@ -490,7 +495,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   ## Decoys
   # (1) makes binned_theopeps_rev_[i_max].rds
-  i_max <- which.max(obj_sizes)
+  i_max <- if (use_first_rev) 1L else which.max(obj_sizes)
   i_max2 <- paste0("rev_", i_max)
 
   .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
@@ -552,7 +557,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       min_ms2mass = min_ms2mass, 
       df0 = out0, 
       digits = digits)
-  } else { # (1, 2)
+  } 
+  else { # (1, 2)
     out <- ms2match_base(
       i = i_max2, 
       aa_masses = aa_masses, 

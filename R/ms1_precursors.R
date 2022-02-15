@@ -344,8 +344,8 @@ calc_pepmasses2 <- function (
       cl,
       c("distri_peps", 
         "ct_counts", 
-        "rm_char_in_nfirst2", 
-        "rm_char_in_nlast2"), 
+        "rm_char_in_nfirst", 
+        "rm_char_in_nlast"), 
       envir = environment(proteoM:::distri_peps)
     )
 
@@ -355,16 +355,20 @@ calc_pepmasses2 <- function (
       distri_peps, 
       aa_masses_all = aa_masses_all, 
       max_miss = max_miss, 
+      max_len = max_len, 
       enzyme = enzyme
     )
     
     parallel::stopCluster(cl)
     
     fwd_peps <- lapply(seq_len(len), function (i) {
+      # by i-th aa_masses from each node
       fwd_peps_i <- lapply(fwd_peps, `[[`, i)
+      
+      # combines i-th results across nodes
       purrr::flatten(fwd_peps_i)
     })
-
+    
     message("\tCompleted bare peptides distributions.")
     
     rm(list = c("seqs_0"))
@@ -635,32 +639,69 @@ tbl_prots_peps <- function (seqs, path)
 {
   message("Tabling the association of proteins and peptides.")
   
-  create_dir(path)
+  path <- create_dir(path)
+  
+  pnt_idxes <- lapply(seqs, attr, "pnt_idxes", exact = TRUE)
+  pct_idxes <- lapply(seqs, attr, "pct_idxes", exact = TRUE)
   
   seqs <- lapply(seqs, names)
-  seqs <- lapply(seqs, function (x) x[!duplicated.default(x)])
-  
-  # prot_accs
   lens <- lapply(seqs, length)
   
+  # Protein [NC]-term
+  len <- length(seqs)
+  cts <- nts <- vector("list", len)
+  
+  for (i in seq_len(len)) {
+    seq_i <- seqs[[i]]
+    pnt_i <- pnt_idxes[[i]]
+    pct_i <- pct_idxes[[i]]
+    ci <- ni <- rep(FALSE, lens[[i]])
+    ni[pnt_i] <- TRUE
+    ci[pct_i] <- TRUE
+    
+    nts[[i]] <- ni
+    cts[[i]] <- ci
+  }
+  
+  rm(list = c("seq_i", "pnt_i", "pct_i", "ni", "ci"))
+  
+  nts <- .Internal(unlist(nts, recursive = FALSE, use.names = FALSE))
+  cts <- .Internal(unlist(cts, recursive = FALSE, use.names = FALSE))
+  
+  # Duplicated sequences within proteins
+  dups <- lapply(seqs, duplicated.default)
+  dups <- .Internal(unlist(dups, recursive = FALSE, use.names = FALSE))
+
+  # prot_accs
   nms <- mapply(function (x, y) rep(x, y), 
                 names(seqs), lens,
                 SIMPLIFY = FALSE, USE.NAMES = FALSE) 
-
-  nms <- unlist(nms, recursive = FALSE, use.names = FALSE)
-
+  
+  nms <- .Internal(unlist(nms, recursive = FALSE, use.names = FALSE))
+  
   # pep_seqs
   seqs <- unlist(seqs, recursive = FALSE, use.names = FALSE)
-  ans <- data.frame(pep_seq = seqs, prot_acc = nms)
+  
+  ans <- data.frame(pep_seq = seqs, 
+                    prot_acc = nms, 
+                    is_pnt = nts, 
+                    is_pct = cts, 
+                    is_unique = !dups)
+  
+  # removals of duplicated sequences
+  ans <- ans[with(ans, is_unique), ]
+  ans$is_unique <- NULL
   
   ## Should be all clean after `distri_peps`
   # if (enzyme == "noenzyme") ans$pep_seq <- with(ans, gsub("-", "", pep_seq))
-
+  
   saveRDS(ans, file.path(path, "prot_pep_annots.rds"))
   saveRDS(reverse_peps_in_frame(ans), file.path(path, "prot_pep_annots_rev.rds"))
   
   invisible(NULL)
 }
+
+
 
 
 #' Flattens pep_seqs with the removals of prot_accs.
@@ -2050,17 +2091,31 @@ str_exclude_count <- function (x, char = "-")
 #'   in values.
 #' @param char A starting character to be removed.
 #' @param n The number of beginning entries to be considered.
-rm_char_in_nfirst2 <- function (x, char = "^-", n = (max_miss + 1L) * 2L) 
+#' @inheritParams matchMS
+rm_char_in_nfirst <- function (x, char = "-", n = (max_miss + 1L) * 2L, 
+                               max_len = 40L) 
 {
   nms <- names(x)
-  
   len <- length(nms)
   n <- min(len, n)
-  
   seqs <- seq_len(n)
   
-  nms[seqs] <- gsub(char, "", nms[seqs])
+  # the possible space
+  nms2 <- nms[seqs]
+  idxes <- which(stringi::stri_startswith_fixed(nms2, char))
+  
+  # the exact space
+  nms3 <- nms2[idxes]
+  nms3 <- substr(nms3, 2L, max_len)
+  
+  # update the possible space
+  nms2[idxes] <- nms3
+  
+  # update the full space
+  nms[seqs] <- nms2
   names(x) <- nms
+  
+  attr(x, "pnt_idxes") <- idxes
   
   x
 }
@@ -2071,18 +2126,31 @@ rm_char_in_nfirst2 <- function (x, char = "^-", n = (max_miss + 1L) * 2L)
 #' The default value of \code{n} is for full-enzymatic peptides.
 #' 
 #' @param char A trailing character to be removed.
-#' @inheritParams rm_char_in_nfirst2
-rm_char_in_nlast2 <- function (x, char = "-$", n = (max_miss + 1L) * 2L) 
+#' @inheritParams rm_char_in_nfirst
+rm_char_in_nlast <- function (x, char = "-", n = (max_miss + 1L) * 2L) 
 {
   nms <- names(x)
-  
   len <- length(nms)
   n <- min(len, n)
-  
   seqs <- (len - n + 1L):len
   
-  nms[seqs] <- gsub(char, "", nms[seqs])
+  # possible space
+  nms2 <- nms[seqs]
+  idxes <- which(stringi::stri_endswith_fixed(nms2, char))
+  
+  # exact space
+  nms3 <- nms2[idxes]
+  stops <- nchar(nms3) - 1L
+  nms3 <- substr(nms3, 1L, stops)
+  
+  # update possible space
+  nms2[idxes] <- nms3
+  
+  # update full space
+  nms[seqs] <- nms2
   names(x) <- nms
+  
+  attr(x, "pct_idxes") <- len - length(seqs) + idxes
   
   x
 }
@@ -2351,16 +2419,18 @@ calcms1mass_noterm_bypep <- function (aa_seq, aa_masses, maxn_vmods_per_pep = 5L
 #' @inheritParams calc_pepmasses2
 #' @param enzyme A character string of enzyme. The information is used for
 #'   faster replacement of "-" in peptide sequences from protein C-terminals.
-distri_peps <- function (prps, aa_masses_all, max_miss = 2L, enzyme = "trypsin_p") 
+distri_peps <- function (prps, aa_masses_all, max_miss = 2L, max_len = 40L, 
+                         enzyme = "trypsin_p") 
 {
   nms <- lapply(prps, names)
 
-  out <- lapply(aa_masses_all, subpeps_by_vmods, nms)
-  
-  # USE.NAMEs of prot_acc
-  out <- lapply(out, function (xs) {
-    idxes <- mapply(fastmatch::fmatch, xs, nms, 
+  out <- lapply(aa_masses_all, function (aa_masses) {
+    nms_sub <- subpeps_by_vmods(aa_masses, nms)
+    
+    # USE.NAMEs of prot_acc
+    idxes <- mapply(fastmatch::fmatch, nms_sub, nms, 
                     SIMPLIFY = FALSE, USE.NAMES = TRUE)
+    
     mapply(function (x, y) x[y], prps, idxes, 
            SIMPLIFY = FALSE, USE.NAMES = TRUE)
   })
@@ -2383,8 +2453,8 @@ distri_peps <- function (prps, aa_masses_all, max_miss = 2L, enzyme = "trypsin_p
   out <- lapply(out, function(xs) {
     len <- .Internal(unlist(lapply(xs, length), recursive = FALSE, use.names = FALSE))
     xs <- xs[len > 0L]
-    xs <- lapply(xs, rm_char_in_nfirst2, char = "^-", n = n1)
-    xs <- lapply(xs, rm_char_in_nlast2, char = "-$", n = n2)
+    xs <- lapply(xs, rm_char_in_nfirst, char = "-", n = n1, max_len = max_len)
+    xs <- lapply(xs, rm_char_in_nlast, char = "-", n = n2)
   })
 }
 

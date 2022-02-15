@@ -4,12 +4,14 @@
 \alias{groupProts}
 \title{Groups proteins by shared peptides.}
 \usage{
-groupProts(df, out_path = NULL)
+groupProts(df, out_path = NULL, out_name = "prot_pep_setcover.rds")
 }
 \arguments{
 \item{df}{Interim results from \link{matchMS}.}
 
 \item{out_path}{The output path.}
+
+\item{out_name}{The output filename.}
 }
 \description{
 Adds columns \code{prot_hit_num} and \code{prot_family_member} to

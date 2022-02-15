@@ -316,7 +316,7 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
                   search_engine = "proteoM", 
                   "best_search_engine_score[1]" = df_psms$pep_score, 
                   modifications = df_psms$pep_vmod, 
-                  retention_time = df_psms$pep_ret_time, 
+                  retention_time = df_psms$pep_ret_range, 
                   charge = df_psms$pep_exp_z, 
                   exp_mass_to_charge = df_psms$pep_exp_mz, 
                   calc_molecular_weight = df_psms$pep_calc_mr, 

@@ -255,10 +255,71 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs")
   rev_prps <- purge_decoys(target = fwd_prps, decoy = rev_prps)
   
   # Adds `prot_acc` (with decoys being kept)
+  rm(list = c("uniq_peps"))
+  gc()
+  
+  hadd_prot_acc(df, fwd_prps, rev_prps)
+}
+
+
+#' Adds prot_acc to a peptide table
+#'
+#' Cached results are under sub dirs.
+#' 
+#' @param out_path An output path.
+#' @param df The results after scoring.
+add_prot_acc2 <- function (df, out_path) 
+{
+  message("Adding protein accessions.")
+  
+  sub_dirs <- dir(out_path, pattern = "^sub[0-9]+_[0-9]_[0-9]+$", full.names = TRUE)
+  len_dirs <- length(sub_dirs)
+  
+  if (!len_dirs) {
+    warnning("Cached results not found for protein annotation.")
+    return (df)
+  }
+
+  uniq_peps <- unique(df$pep_seq)
+  
+  # Targets, theoretical
+  fwd_prps <- lapply(sub_dirs, function (x) {
+    file <- file.path(x, "prot_pep_annots.rds")
+    fwd <- if (file.exists(file)) readRDS(file) else NULL
+  }) %>% 
+    dplyr::bind_rows()
+  
+  fwd_prps <- fwd_prps[fwd_prps$pep_seq %in% uniq_peps, ]
+  
+  # Decoys, theoretical
+  rev_prps <- lapply(sub_dirs, function (x) {
+    file <- file.path(x, "prot_pep_annots_rev.rds")
+    fwd <- if (file.exists(file)) readRDS(file) else NULL
+  }) %>% 
+    dplyr::bind_rows()
+  
+  rev_prps <- rev_prps[rev_prps$pep_seq %in% uniq_peps, ]
+  rev_prps <- purge_decoys(target = fwd_prps, decoy = rev_prps)
+  
+  rm(list = c("uniq_peps"))
+  gc()
+  
+  hadd_prot_acc(df, fwd_prps, rev_prps)
+}
+
+
+#' Helper of \link{add_prot_acc}.
+#' 
+#' @param df A data frame.
+#' @param fwd_prps The look-ups of forward protein and peptides.
+#' @param rev_prps The look-ups of reversed protein and peptides.
+hadd_prot_acc <- function (df, fwd_prps, rev_prps) 
+{
+  # Adds `prot_acc` (with decoys being kept)
   out <- dplyr::bind_rows(fwd_prps, rev_prps) %>%
     dplyr::right_join(df, by = "pep_seq")
   
-  rm(list = c("fwd_prps", "rev_prps", "uniq_peps"))
+  rm(list = c("fwd_prps", "rev_prps"))
   gc()
   
   # Adds prot_n_psm, prot_n_pep for protein FDR
@@ -276,15 +337,34 @@ add_prot_acc <- function (df, out_path = "~/proteoM/outs")
     dplyr::group_by(prot_acc) %>%
     dplyr::summarise(prot_n_pep = n())
   
+  # inconsistent Protein[NC]-term
+  out <- local({
+    pnt_nots <- grepl("Protein N-term", out$pep_vmod) & !out$is_pnt
+    pct_nots <- grepl("Protein C-term", out$pep_vmod) & !out$is_pct
+    
+    if (sum(pnt_nots) > 0L) 
+      out <- out[!pnt_nots, ]
+    
+    if (sum(pct_nots) > 0L) 
+      out <- out[!pct_nots, ]
+    
+    # `is_pnt` and `is_pct` are not EXACT facts
+    # but prefer terminal over interiror matches
+    # so remove them to avoid misleading uses or interpretations
+    out$is_pnt <- NULL
+    out$is_pct <- NULL
+    
+    out
+  })
+
   out <- list(out, prot_n_psm, prot_n_pep) %>%
     purrr::reduce(dplyr::left_join, by = "prot_acc") %>%
     dplyr::arrange(-prot_n_pep, -prot_n_psm)
   
-  rm(list = c("x", "prot_n_psm", "prot_n_pep"))
-  gc()
-  
   invisible(out)
 }
+
+
 
 
 #' Helper of \link{groupProts}.
@@ -353,6 +433,7 @@ grp_prots <- function (df, out_path = NULL)
 #'
 #' @param df Interim results from \link{matchMS}.
 #' @param out_path The output path.
+#' @param out_name The output filename.
 #' 
 #' @examples
 #' \donttest{
@@ -379,7 +460,7 @@ grp_prots <- function (df, out_path = NULL)
 #' out <- proteoM:::groupProts(df)
 #' stopifnot(nrow(out) == 3L)
 #' }
-groupProts <- function (df, out_path = NULL) 
+groupProts <- function (df, out_path = NULL, out_name = "prot_pep_setcover.rds") 
 {
   # `pep_seq` in `df` are all from target and significant;
   # yet target `pep_seq` can be assigned to both target and decoy proteins
@@ -482,7 +563,7 @@ groupProts <- function (df, out_path = NULL)
     sets <- rbind2(df_shared, df_uniq)
     
     if (!is.null(out_path)) 
-      saveRDS(sets, file.path(out_path, "prot_pep_setcover.rds"))
+      saveRDS(sets, file.path(out_path, out_name))
     
     unique(sets$prot_acc)
   })

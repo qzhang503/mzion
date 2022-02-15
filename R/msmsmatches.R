@@ -409,7 +409,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 40000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = NULL, 
+                     .path_cache = "~/proteoM/.MSearches (1.0.6.5)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L, 
@@ -624,108 +624,140 @@ matchMS <- function (out_path = "~/proteoM/outs",
   ## flow alteration with noenzyme specificity
   # set dots$recalled <- TRUE in `matchMS_noenzyme` and thus 
   # bypassing when calling matchMS again from `matchMS_noenzyme`
+  
   recalled <- if (isTRUE(dots$recalled)) FALSE else TRUE
   
-  if (enzyme == "noenzyme" && recalled) 
+  if (enzyme == "noenzyme" && recalled) {
     matchMS_noenzyme(this_call = match.call(), min_len = min_len, max_len = max_len, 
                      fasta = fasta, out_path = out_path, mgf_path = mgf_path, 
-                     noenzyme_maxn = noenzyme_maxn)
+                     noenzyme_maxn = noenzyme_maxn, quant = quant)
+  }
 
   ## Theoretical MS1 masses
-  res <- calc_pepmasses2(
-    fasta = fasta,
-    acc_type = acc_type,
-    acc_pattern = acc_pattern,
-    fixedmods = fixedmods,
-    varmods = varmods,
-    include_insource_nl = include_insource_nl,
-    exclude_phospho_nl = exclude_phospho_nl, 
-    enzyme = enzyme,
-    custom_enzyme = custom_enzyme, 
-    maxn_fasta_seqs = maxn_fasta_seqs,
-    maxn_vmods_setscombi = maxn_vmods_setscombi,
-    maxn_vmods_per_pep = maxn_vmods_per_pep,
-    maxn_sites_per_vmod = maxn_sites_per_vmod,
-    min_len = min_len,
-    max_len = max_len,
-    max_miss = max_miss,
-    min_mass = min_mass, 
-    max_mass = max_mass, 
-    n_13c = n_13c,
-    out_path = out_path,
-    digits = digits,
-    use_ms1_cache = use_ms1_cache, 
-    .path_cache = .path_cache, 
-    .path_fasta = .path_fasta, 
-    .path_ms1masses = .path_ms1masses
-  )
+  bypass_pepmasses <- dots$bypass_pepmasses
+  if (is.null(bypass_pepmasses)) bypass_pepmasses <- FALSE
+
+  if (!bypass_pepmasses) {
+    res <- calc_pepmasses2(
+      fasta = fasta,
+      acc_type = acc_type,
+      acc_pattern = acc_pattern,
+      fixedmods = fixedmods,
+      varmods = varmods,
+      include_insource_nl = include_insource_nl,
+      exclude_phospho_nl = exclude_phospho_nl, 
+      enzyme = enzyme,
+      custom_enzyme = custom_enzyme, 
+      maxn_fasta_seqs = maxn_fasta_seqs,
+      maxn_vmods_setscombi = maxn_vmods_setscombi,
+      maxn_vmods_per_pep = maxn_vmods_per_pep,
+      maxn_sites_per_vmod = maxn_sites_per_vmod,
+      min_len = min_len,
+      max_len = max_len,
+      max_miss = max_miss,
+      min_mass = min_mass, 
+      max_mass = max_mass, 
+      n_13c = n_13c,
+      out_path = out_path,
+      digits = digits,
+      use_ms1_cache = use_ms1_cache, 
+      .path_cache = .path_cache, 
+      .path_fasta = .path_fasta, 
+      .path_ms1masses = .path_ms1masses
+    )
+  }
 
   ## Bin theoretical peptides
-  bin_ms1masses(res = res, 
-                min_mass = min_mass, 
-                max_mass = max_mass, 
-                ppm_ms1 = ppm_ms1, 
-                use_ms1_cache = use_ms1_cache, 
-                .path_cache = .path_cache, 
-                .path_ms1masses = .path_ms1masses)
+  bypass_bin_ms1 <- dots$bypass_bin_ms1
+  if (is.null(bypass_bin_ms1)) bypass_bin_ms1 <- FALSE
   
-  rm(list = c("res"))
-  gc()
+  if (!bypass_bin_ms1) {
+    bin_ms1masses(res = res, 
+                  min_mass = min_mass, 
+                  max_mass = max_mass, 
+                  ppm_ms1 = ppm_ms1, 
+                  use_ms1_cache = use_ms1_cache, 
+                  .path_cache = .path_cache, 
+                  .path_ms1masses = .path_ms1masses)
+    
+    try(rm(list = c("res")))
+    gc()
+  }
 
   ## MGFs
-  load_mgfs(out_path = out_path, 
-            mgf_path = mgf_path,
-            min_mass = min_mass,
-            max_mass = max_mass, 
-            min_ms2mass = min_ms2mass,
-            topn_ms2ions = topn_ms2ions,
-            min_ms1_charge = min_ms1_charge, 
-            max_ms1_charge = max_ms1_charge, 
-            min_scan_num = min_scan_num, 
-            max_scan_num = max_scan_num, 
-            min_ret_time = min_ret_time,
-            max_ret_time = max_ret_time, 
-            ppm_ms1 = ppm_ms1,
-            ppm_ms2 = ppm_ms2,
-            index_ms2 = FALSE, 
-            enzyme = enzyme)
+  bypass_mgf <- dots$bypass_mgf
+  if (is.null(bypass_mgf)) bypass_mgf <- FALSE
+
+  if (!bypass_mgf) {
+    load_mgfs(out_path = out_path, 
+              mgf_path = mgf_path,
+              min_mass = min_mass,
+              max_mass = max_mass, 
+              min_ms2mass = min_ms2mass,
+              topn_ms2ions = topn_ms2ions,
+              min_ms1_charge = min_ms1_charge, 
+              max_ms1_charge = max_ms1_charge, 
+              min_scan_num = min_scan_num, 
+              max_scan_num = max_scan_num, 
+              min_ret_time = min_ret_time,
+              max_ret_time = max_ret_time, 
+              ppm_ms1 = ppm_ms1,
+              ppm_ms2 = ppm_ms2,
+              index_ms2 = FALSE, 
+              enzyme = enzyme)
+  }
 
   ## MSMS matches
-  ms2match(mgf_path = mgf_path,
-           aa_masses_all = 
-             readRDS(file.path(.path_ms1masses, .time_stamp, "aa_masses_all.rds")),
-           out_path = out_path,
-           mod_indexes = 
-             find_mod_indexes(file.path(.path_ms1masses, .time_stamp, "mod_indexes.txt")),
-           type_ms2ions = type_ms2ions,
-           maxn_vmods_per_pep = maxn_vmods_per_pep,
-           maxn_sites_per_vmod = maxn_sites_per_vmod,
-           maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
-           minn_ms2 = minn_ms2,
-           ppm_ms1 = ppm_ms1,
-           ppm_ms2 = ppm_ms2,
-           min_ms2mass = min_ms2mass,
-           quant = quant,
-           ppm_reporters = ppm_reporters,
-           
-           # dummy for argument matching
-           fasta = fasta,
-           acc_type = acc_type,
-           acc_pattern = acc_pattern,
-           topn_ms2ions = topn_ms2ions,
-           fixedmods = fixedmods,
-           varmods = varmods,
-           include_insource_nl = include_insource_nl,
-           enzyme = enzyme,
-           maxn_fasta_seqs = maxn_fasta_seqs,
-           maxn_vmods_setscombi = maxn_vmods_setscombi,
-           min_len = min_len,
-           max_len = max_len,
-           max_miss = max_miss,
-           
-           digits = digits)
+  bypass_ms2match <- dots$bypass_ms2match
+  if (is.null(bypass_ms2match)) bypass_ms2match <- FALSE
+  
+  use_first_rev <- dots$use_first_rev
+  if (is.null(use_first_rev)) use_first_rev <- FALSE
+
+  if (!bypass_ms2match) {
+    ms2match(mgf_path = mgf_path,
+             aa_masses_all = 
+               readRDS(file.path(.path_ms1masses, .time_stamp, "aa_masses_all.rds")),
+             out_path = out_path,
+             mod_indexes = 
+               find_mod_indexes(file.path(.path_ms1masses, .time_stamp, "mod_indexes.txt")),
+             type_ms2ions = type_ms2ions,
+             maxn_vmods_per_pep = maxn_vmods_per_pep,
+             maxn_sites_per_vmod = maxn_sites_per_vmod,
+             maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
+             minn_ms2 = minn_ms2,
+             ppm_ms1 = ppm_ms1,
+             ppm_ms2 = ppm_ms2,
+             min_ms2mass = min_ms2mass,
+             quant = quant,
+             ppm_reporters = ppm_reporters,
+             use_first_rev = use_first_rev, 
+             
+             # dummy for argument matching
+             fasta = fasta,
+             acc_type = acc_type,
+             acc_pattern = acc_pattern,
+             topn_ms2ions = topn_ms2ions,
+             fixedmods = fixedmods,
+             varmods = varmods,
+             include_insource_nl = include_insource_nl,
+             enzyme = enzyme,
+             maxn_fasta_seqs = maxn_fasta_seqs,
+             maxn_vmods_setscombi = maxn_vmods_setscombi,
+             min_len = min_len,
+             max_len = max_len,
+             max_miss = max_miss,
+             
+             digits = digits)
+  }
 
   ## Peptide scores
+  bypass_from_pepscores <- dots$bypass_from_pepscores
+  if (is.null(bypass_from_pepscores)) bypass_from_pepscores <- FALSE
+
+  if (bypass_from_pepscores) 
+    return(NULL)
+  
   calc_pepscores(topn_ms2ions = topn_ms2ions,
                  type_ms2ions = type_ms2ions,
                  target_fdr = target_fdr,
@@ -773,7 +805,11 @@ matchMS <- function (out_path = "~/proteoM/outs",
   gc()
 
   ## Protein accessions, score cut-offs and optional reporter ions
-  out <- add_prot_acc(out, out_path)
+  if (enzyme != "noenzyme")
+    out <- add_prot_acc(out, out_path)
+  else 
+    out <- add_prot_acc2(out, out_path)
+
   out <- calc_protfdr(df = out, 
                       target_fdr = target_fdr, 
                       max_protscores_co = max_protscores_co, 
@@ -805,9 +841,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
                   pep_calc_mr = theo_ms1,
                   pep_delta = pep_ms1_delta,
                   pep_tot_int = ms1_int,
-                  pep_ret_time = ret_time,
+                  pep_ret_range = ret_time,
                   pep_scan_num = scan_num,
-                  pep_ms2_n = ms2_n,
+                  pep_n_ms2 = ms2_n,
                   pep_frame = frame)
   
   out <- dplyr::bind_cols(
@@ -1284,28 +1320,28 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
       ok <- all(grepl("TMTpro18.* |TMT18plex.* ", possibles))
       
       if (!ok) 
-        stop("All TMT modifications need to be `TMTpro18` or `TMT18plex` at `", 
-             quant, "`.\n", 
-             tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
-             call. = FALSE)
+        warning("All TMT modifications need to be `TMTpro18` or `TMT18plex` at `", 
+                quant, "`.\n", 
+                tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
+                call. = FALSE)
     } 
     else if (quant == "tmt16") {
       ok <- all(grepl("TMTpro.* |TMT16plex.* ", possibles))
       
       if (!ok) 
-        stop("All TMT modifications need to be `TMTpro` or `TMT16plex` at `", 
-             quant, "`.\n", 
-             tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
-             call. = FALSE)
+        warning("All TMT modifications need to be `TMTpro` or `TMT16plex` at `", 
+                quant, "`.\n", 
+                tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
+                call. = FALSE)
     } 
     else {
       ok <- all(grepl("TMT6plex.* |TMT10plex.* |TMT11plex.* ", possibles))
       
       if (!ok) 
-        stop("All TMT modifications need to be `TMT6plex`, `TMT10plex` or `TMT11plex` at `", 
-             quant, "`.\n", 
-             tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
-             call. = FALSE)
+        warning("All TMT modifications need to be `TMT6plex`, `TMT10plex` or `TMT11plex` at `", 
+                quant, "`.\n", 
+                tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
+                call. = FALSE)
     }
   }
   
@@ -1319,7 +1355,7 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
 #' @inheritParams matchMS
 matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L, 
                               fasta = NULL, out_path = NULL, mgf_path = NULL, 
-                              noenzyme_maxn = 0L) 
+                              noenzyme_maxn = 0L, quant = "none") 
 {
   message("Searches with no enzyme specificity...")
   
@@ -1394,74 +1430,141 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
       sub_call$out_path <- sub_path
       sub_call$mgf_path <- mgf_path
       sub_call$recalled <- TRUE
+      sub_call$bypass_from_pepscores <- TRUE
+      sub_call$use_first_rev <- TRUE
       
       ans <- tryCatch(eval(sub_call), error = function (e) NULL)
 
       if (is.null(ans)) {
         message("No results from `min_len = ", start, "` to `max_len = ", end, "`.")
-        unlink(sub_path, recursive = TRUE)
+        # unlink(sub_path, recursive = TRUE)
       }
+      
+      file.copy(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots.rds"), 
+                file.path(sub_path))
+      file.copy(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots_rev.rds"), 
+                file.path(sub_path))
 
       gc()
     }
     
     file.copy(file.path(out_paths[[1]], "Calls"), out_path, recursive = TRUE)
-    
-    # psmC
-    df <- lapply(out_paths, function (x) {
-      file <- file.path(x, "psmC.txt")
+    combine_ion_matches(out_path, out_paths, type = "ion_matches_")
+    combine_ion_matches(out_path, out_paths, type = "reporters_")
+    combine_ion_matches(out_path, out_paths, type = "ion_matches_rev_")
+
+    this_call$recalled <- TRUE
+    this_call$bypass_pepmasses <- TRUE
+    this_call$bypass_bin_ms1 <- TRUE
+    this_call$bypass_mgf <- TRUE
+    this_call$bypass_ms2match <- TRUE
+
+    ans <- tryCatch(eval(this_call), error = function (e) NULL)
+
+    if (FALSE) {
+      # psmC
+      df <- lapply(out_paths, function (x) {
+        file <- file.path(x, "psmC.txt")
+        
+        if (file.exists(file))
+          readr::read_tsv(file, show_col_types = FALSE)
+        else
+          NULL
+      })
       
-      if (file.exists(file))
-        readr::read_tsv(file, show_col_types = FALSE)
-      else
-        NULL
-    })
-    
-    df <- dplyr::bind_rows(df)
-    readr::write_tsv(df, file.path(out_path, "psmC.txt"))
-    
-    # psmQ
-    df <- lapply(out_paths, function (x) {
-      file <- file.path(x, "psmQ.txt")
+      df <- dplyr::bind_rows(df)
+      readr::write_tsv(df, file.path(out_path, "psmC.txt"))
       
-      if (file.exists(file))
-        readr::read_tsv(file, show_col_types = FALSE)
-      else
-        NULL
-    })
-    
-    df <- dplyr::bind_rows(df)
-    readr::write_tsv(df, file.path(out_path, "psmQ.txt"))
-    
-    # psmT2
-    df <- lapply(out_paths, function (x) {
-      file <- file.path(x, "psmT2.txt")
+      # psmQ
+      df <- lapply(out_paths, function (x) {
+        file <- file.path(x, "psmQ.txt")
+        
+        if (file.exists(file))
+          readr::read_tsv(file, show_col_types = FALSE)
+        else
+          NULL
+      })
       
-      if (file.exists(file))
-        readr::read_tsv(file, show_col_types = FALSE)
-      else
-        NULL
-    })
-    
-    df <- dplyr::bind_rows(df)
-    readr::write_tsv(df, file.path(out_path, "psmT2.txt"))
-    
-    # psmT3
-    df <- lapply(out_paths, function (x) {
-      file <- file.path(x, "psmT3.txt")
+      df <- dplyr::bind_rows(df)
+      readr::write_tsv(df, file.path(out_path, "psmQ.txt"))
       
-      if (file.exists(file))
-        readr::read_tsv(file, show_col_types = FALSE)
-      else
-        NULL
-    })
-    
-    df <- dplyr::bind_rows(df)
-    readr::write_tsv(df, file.path(out_path, "psmT3.txt"))
+      # psmT2
+      df <- lapply(out_paths, function (x) {
+        file <- file.path(x, "psmT2.txt")
+        
+        if (file.exists(file))
+          readr::read_tsv(file, show_col_types = FALSE)
+        else
+          NULL
+      })
+      
+      df <- dplyr::bind_rows(df)
+      readr::write_tsv(df, file.path(out_path, "psmT2.txt"))
+      
+      # psmT3
+      df <- lapply(out_paths, function (x) {
+        file <- file.path(x, "psmT3.txt")
+        
+        if (file.exists(file))
+          readr::read_tsv(file, show_col_types = FALSE)
+        else
+          NULL
+      })
+      
+      df <- dplyr::bind_rows(df)
+      readr::write_tsv(df, file.path(out_path, "psmT3.txt"))
+    }
     
     message("Done (noenzyme search).")
     options(show.error.messages = FALSE)
     stop()
+  }
+  
+  invisible(NULL)
+}
+
+
+#' Combines the results of ion matches.
+#' 
+#' @param out_path A parent output path.
+#' @param out_paths Sub output pathes.
+#' @param type The type of data for combining.
+combine_ion_matches <- function (out_path, out_paths, type = "ion_matches_") 
+{
+  out_path_temp <- create_dir(file.path(out_path, "temp"))
+  out_paths_temp <- lapply(out_paths, function(x) file.path(x, "temp"))
+  
+  pat <- paste0(type, "[0-9]+\\.rds$")
+  pat2 <- paste0(type, "([0-9]+)\\.rds$")
+  
+  files_mts <- local({
+    xs <- list.files(out_paths_temp[[1]], pattern = pat)
+    
+    if (length(xs)) {
+      idxes <- sort(as.integer(gsub(pat2, "\\1", xs)))
+      files <- paste0(type, idxes, ".rds")
+    }
+    else {
+      files <- NULL
+    }
+  })
+  
+  len_mts <- length(files_mts)
+  
+  if (!len_mts) {
+    warning("Files not found: ", type)
+    return(NULL)
+  }
+  
+  ans_mts <- vector("list", len_mts)
+  
+  for (i in seq_along(ans_mts)) {
+    ans_mts[[i]] <- lapply(out_paths_temp, function (path) {
+      readRDS(file.path(path, files_mts[i]))
+    }) %>% 
+      dplyr::bind_rows()
+    
+    saveRDS(ans_mts[[i]], file.path(out_path_temp, files_mts[i]))
   }
   
   invisible(NULL)
