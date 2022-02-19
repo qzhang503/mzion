@@ -11,7 +11,7 @@ calc_aamasses(
   maxn_vmods_setscombi = 64,
   add_varmasses = TRUE,
   add_nlmasses = TRUE,
-  exclude_phospho_nl = TRUE,
+  exclude_phospho_nl = FALSE,
   out_path = NULL
 )
 }
@@ -44,12 +44,11 @@ Calculates molecular weight of a polypeptide ([MH]+).
 }
 \examples{
 \donttest{
-library(purrr)
-
 x <- calc_aamasses()
-x_att <- map(x, attributes)
+x_att <- lapply(x, attributes)
 names(x_att[[1]])
-x_vmods <- map(x_att, `[`, c("vmods"))
+x_vmods <- lapply(x_att, `[`, c("vmods"))
+x_fmods <- lapply(x_att, `[`, c("fmods"))
 
 x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)",
                      "Carbamidomethyl (C)"), c("Acetyl (N-term)",
@@ -57,6 +56,17 @@ x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)",
 
 stopifnot(length(x) == 6L)
 
+# Fixed N-term mod (no coercion to variable mod)
+x <- calc_aamasses("TMT6plex (N-term)", NULL)
+x[[1]][["N-term"]]
+
+# Fixed N-term mod (coerced to variable mod)
+x <- calc_aamasses("TMT6plex (N-term)", "Acetyl (Protein N-term)")
+lapply(x, `[[`, "N-term")
+x[[1]][["TMT6plex (N-term)"]]
+x[[2]][["Acetyl (Protein N-term)"]]
+
+# No fixed mod
 x <- calc_aamasses(fixedmods = NULL)
 stopifnot(length(x) == 16L)
 

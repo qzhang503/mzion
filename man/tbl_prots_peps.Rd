@@ -14,6 +14,13 @@ tbl_prots_peps(seqs, path)
 \description{
 For both target and decoy peptides.
 }
+\details{
+Columns: \code{is_pnt}, is Protein N-term; \code{is_pct}, is Protein C-term.
+For example, MEYEWKPDEQGLQQILQLLK: NP_002261, pep_start 9; NP_694858:
+pep_start 1. Without the information of protein terminals, the peptide
+sequence with the modification of Acetyl Protein N-term will match to both
+protein accessions, with the match to NP_002261 being inconsistent.
+}
 \examples{
 \donttest{
 tbl_prots_peps(fwd_peps[[1]])

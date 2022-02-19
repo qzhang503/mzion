@@ -10,6 +10,7 @@ calc_monopep(
   include_insource_nl = FALSE,
   maxn_vmods_per_pep = 5,
   maxn_sites_per_vmod = 3,
+  max_mass = 4500L,
   digits = 5
 )
 }
@@ -33,6 +34,9 @@ peptide.}
 
 \item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
 variable modifications per site in a per peptide sequence.}
+
+\item{max_mass}{A positive integer; the maximum precursor mass for
+interrogation. The default is 4500.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }

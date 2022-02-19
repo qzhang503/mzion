@@ -14,6 +14,7 @@ hms1_a1_vnl0_fnl0(
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   ms1vmods = NULL,
+  max_mass = 4500L,
   digits = 4L
 )
 }
@@ -50,6 +51,9 @@ default is 5.}
   greater.}
 
 \item{ms1vmods}{The set of all possible MS1 vmod labels at a given aa_masses.}
+
+\item{max_mass}{A positive integer; the maximum precursor mass for
+interrogation. The default is 4500.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

@@ -163,21 +163,21 @@ res <- calc_pepmasses2()
 library(purrr)
 library(magrittr)
 
-res_attrs <- map(res, attributes)
-map(res_attrs, names)
-res_attrs \%>\% map(`[[`, "vmods")
-res_mods <- map(res_attrs, `[`,
-                c("fmods", "fmods_ps", "fmods_neuloss",
-                  "vmods", "vmods_ps", "vmods_neuloss"))
+res_attrs <- lapply(res, attributes)
+lapply(res_attrs, names)
+lapply(res_attrs, `[[`, "vmods")
+res_mods <- lapply(res_attrs, `[`,
+                   c("fmods", "fmods_ps", "fmods_neuloss",
+                     "vmods", "vmods_ps", "vmods_neuloss"))
 
-res_data <- map(res_attrs, `[[`, "data")
+res_data <- lapply(res_attrs, `[[`, "data")
 peps_combi_1 <- res_data[[1]]
 
 # base: fixedmods without neulosses
-unlist(res_data[[1]], use.names = FALSE) \%>\% length()
+length(unlist(res_data[[1]], use.names = FALSE))
 
 # fixedmods, fixedmods + fixedmods_neulosses, varmods, varmods_neulosses
-unlist(res_data, use.names = FALSE) \%>\% length()
+length(unlist(res_data, use.names = FALSE))
 
 }
 }

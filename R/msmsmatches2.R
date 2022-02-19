@@ -15,10 +15,11 @@
 #' @inheritParams add_fixvar_masses
 #' @import parallel
 ms2match <- function (mgf_path, aa_masses_all, out_path, 
-                      mod_indexes, type_ms2ions, maxn_vmods_per_pep, 
-                      maxn_sites_per_vmod, maxn_vmods_sitescombi_per_pep, 
-                      minn_ms2, ppm_ms1, ppm_ms2, min_ms2mass, 
-                      quant, ppm_reporters, use_first_rev = FALSE, 
+                      mod_indexes, type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
+                      maxn_sites_per_vmod = 3L, maxn_vmods_sitescombi_per_pep = 64L, 
+                      minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                      min_ms2mass = 115L, quant = "none", ppm_reporters = 10L, 
+                      use_first_rev = FALSE, 
 
                       # dummies
                       fasta, acc_type, acc_pattern,
@@ -45,8 +46,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   fun_env <- environment()
   
   # (OK as `use_first_rev` is not for users)
-  # args_except <- NULL
-  # args_except <- "use_first_rev"
   args_except <- c("use_first_rev", "quant")
   
   cache_pars <- find_callarg_vals(time = NULL, 
@@ -211,7 +210,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   inds <- which(types %in% c("amods- tmod- vnl- fnl+", 
                              "amods- tmod+ vnl- fnl+"))
-  
+
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
@@ -280,7 +279,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   inds <- which(types %in% c("amods+ tmod- vnl- fnl-", 
                              "amods+ tmod+ vnl- fnl-"))
-  
+
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]

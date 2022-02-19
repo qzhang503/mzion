@@ -496,9 +496,19 @@ match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
                             type = c(TRUE, FALSE), 
                             new_args = NULL) 
 {
-  stopifnot(length(path) == 1L, length(fun) == 1L)
+  len_path <- length(path)
   
-  if (length(type) > 1L) type <- TRUE
+  if (!len_path)
+    return(NULL)
+  
+  if (len_path > 1L)
+    stop("Multiple pathes to cache folder.")
+  
+  if (length(fun) != 1) 
+    stop("Multiple functions: ", fun)
+
+  if (length(type) > 1L) 
+    type <- TRUE
   
   # current
   args <- if (type) 

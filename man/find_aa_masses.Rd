@@ -9,7 +9,7 @@ find_aa_masses(
   fixedmods = NULL,
   varmods = NULL,
   maxn_vmods_setscombi = 64L,
-  exclude_phospho_nl = TRUE
+  exclude_phospho_nl = FALSE
 )
 }
 \arguments{

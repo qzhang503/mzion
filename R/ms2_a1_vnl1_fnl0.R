@@ -153,7 +153,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #'
 #' @examples
 #' \donttest{
-#' # (9) "amods+ tmod+ vnl+ fnl-"
+#' # (10) "amods+ tmod+ vnl+ fnl-"
 #' fixedmods <- c("TMT6plex (K)")
 #' varmods <- c("dHex (S)", "Oxidation (M)", "Deamidated (N)", 
 #'              "Acetyl (Protein N-term)")

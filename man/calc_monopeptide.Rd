@@ -12,6 +12,7 @@ calc_monopeptide(
   maxn_vmods_setscombi = 64,
   maxn_vmods_per_pep = Inf,
   maxn_sites_per_vmod = Inf,
+  max_mass = 4500L,
   digits = 4
 )
 }
@@ -40,6 +41,9 @@ peptide.}
 
 \item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
 variable modifications per site in a per peptide sequence.}
+
+\item{max_mass}{A positive integer; the maximum precursor mass for
+interrogation. The default is 4500.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }
@@ -117,13 +121,13 @@ x$vmods_ps[[2]]
 
 # (4-b)
 x <- calc_monopeptide("MAKEMASSPECFUN",
-                      c("TMT6plex (N-term)",
-                        "TMT6plex (K)",
-                        "Carbamidomethyl (C)"),
-                      c("Acetyl (N-term)",
-                        "Gln->pyro-Glu (N-term = Q)",
-                        "Oxidation (M)"),
-                        include_insource_nl = TRUE)
+                      fixedmods = c("TMT6plex (N-term)",
+                                    "TMT6plex (K)",
+                                    "Carbamidomethyl (C)"),
+                      varmods = c("Acetyl (N-term)",
+                                  "Gln->pyro-Glu (N-term = Q)",
+                                  "Oxidation (M)"),
+                      include_insource_nl = TRUE)
 
 x$mass
 }

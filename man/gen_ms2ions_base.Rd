@@ -410,7 +410,7 @@ ms1_mass <- ms1_masses$mass[[2]][2] # 1367.6996
 
 }
 \donttest{
-# (9) "amods+ tmod+ vnl+ fnl-"
+# (10) "amods+ tmod+ vnl+ fnl-"
 fixedmods <- c("TMT6plex (K)")
 varmods <- c("dHex (S)", "Oxidation (M)", "Deamidated (N)", 
              "Acetyl (Protein N-term)")

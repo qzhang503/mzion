@@ -236,16 +236,16 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
   #     preceding and following frames: (o)|range of mgf_frames[[1]]|(o)
   frames_mgf <- lapply(mgf_frames, function (x) as.integer(names(x)))
   
-  mins <- purrr::map_dbl(frames_mgf, function (x) {
+  mins <- purrr::map_int(frames_mgf, function (x) {
     if (!length(x)) 
-      0 
+      0L 
     else 
       min(x, na.rm = TRUE)
   })
   
-  maxs <- purrr::map_dbl(frames_mgf, function (x) {
+  maxs <- purrr::map_int(frames_mgf, function (x) {
     if (!length(x)) 
-      0 
+      0L 
     else 
       max(x, na.rm = TRUE)
   })

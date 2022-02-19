@@ -18,8 +18,8 @@ mapMS2ions(
 \item{out_path}{A file path where outputs of \link{matchMS} can be
 identified.}
 
-\item{scan}{Positive integer; a scan number that can be found from the
-  outputs.
+\item{scan}{A scan number that can be found from the outputs. Positive
+  integer, Thermo's Orbitrap data; character string, Bruker's timsTOF data.
 
   The searches of scan number will proceed automatically through
   \code{psmQ.txt},  \code{psmT2.txt}, \code{psmT3.txt} and/or
@@ -40,7 +40,8 @@ and y-ions.}
 \item{filename}{An output file name for saving the the plot of MS2 ions.}
 }
 \description{
-Visualization of matched MS2 ions.
+Secondary ions of b0, y0 etc. were also used in ion matches though not
+directly documented.
 }
 \examples{
 \donttest{
@@ -56,19 +57,19 @@ library(ggplot2)
 mgf <- ans$mgf
 duo <- ans$duo
 
-ggplot() + 
-geom_segment(mgf, mapping = aes(x = ms2_moverz, y = ms2_int, 
-                                         xend = ms2_moverz, yend = 0), 
-                      color = "gray", size = .1) + 
-  geom_segment(duo, mapping = aes(x = ms2_moverz, y = ms2_int, 
-                                           xend = ms2_moverz, yend = 0, 
-                                           color = type), 
-                        size = .4, show.legend = FALSE) + 
-  geom_text(duo, mapping = aes(x = ms2_moverz, y = ms2_int, 
+ggplot() +
+geom_segment(mgf, mapping = aes(x = ms2_moverz, y = ms2_int,
+                                         xend = ms2_moverz, yend = 0),
+                      color = "gray", size = .1) +
+  geom_segment(duo, mapping = aes(x = ms2_moverz, y = ms2_int,
+                                           xend = ms2_moverz, yend = 0,
+                                           color = type),
+                        size = .4, show.legend = FALSE) +
+  geom_text(duo, mapping = aes(x = ms2_moverz, y = ms2_int,
                                         label = label, color = type),
-                     size = 3, alpha = .5, hjust = 0, angle = 90, vjust = 0, 
-                     nudge_x = 0.05, nudge_y = 0.05, na.rm = TRUE, 
-                     show.legend = FALSE) + 
+                     size = 3, alpha = .5, hjust = 0, angle = 90, vjust = 0,
+                     nudge_x = 0.05, nudge_y = 0.05, na.rm = TRUE,
+                     show.legend = FALSE) +
   labs(x = "m/z", y = "Intensity")
 }
 }

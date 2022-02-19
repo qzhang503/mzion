@@ -237,7 +237,7 @@ find_reporters_ppm <- function (theos, expts, ppm_reporters = 10, len, nms)
 #'
 #' @param out_path An output path.
 #' @param df The results after scoring.
-add_prot_acc <- function (df, out_path = "~/proteoM/outs") 
+add_prot_acc <- function (df, out_path = NULL) 
 {
   message("Adding protein accessions.")
   
@@ -348,8 +348,8 @@ hadd_prot_acc <- function (df, fwd_prps, rev_prps)
     if (sum(pct_nots) > 0L) 
       out <- out[!pct_nots, ]
     
-    # `is_pnt` and `is_pct` are not EXACT facts
-    # but prefer terminal over interiror matches
+    # peptide `is_pnt` and `is_pct` are not EXACT facts
+    # but preference of terminal over interior matches
     # so remove them to avoid misleading uses or interpretations
     out$is_pnt <- NULL
     out$is_pct <- NULL
@@ -401,7 +401,7 @@ grp_prots <- function (df, out_path = NULL)
 
   # Trivial entries
   ess_prots <- df1 %>%
-    dplyr::filter(!duplicated(prot_acc), prot_isess) %>%
+    dplyr::filter(prot_isess, !duplicated(prot_acc)) %>%
     `[[`("prot_acc")
 
   hits_n_fams <- df1[, c("prot_acc", "prot_hit_num", "prot_family_member")] %>%
@@ -549,12 +549,16 @@ groupProts <- function (df, out_path = NULL, out_name = "prot_pep_setcover.rds")
     if (is.null(Mat_lwr_left))
       df_shared <- greedysetcover3(Mat_upr_left)
     else {
+      # unique peptides of proteins with shared peptides
       rows_lwr_left_is_one <- Matrix::rowSums(Mat_lwr_left) > 0
       Mat_lwr_left_is_one <- Mat_lwr_left[rows_lwr_left_is_one, , drop = FALSE]
-      df_shared <- greedysetcover3(rbind(Mat_upr_left, Mat_lwr_left_is_one))
+      
+      # set covers of shared + unique peptides under shared proteins
+      df_shared <- greedysetcover3(rbind2(Mat_upr_left, Mat_lwr_left_is_one))
       gc()
     }
 
+    # proteins with exclusive unique peptides
     df_uniq <- df[, c("prot_acc", "pep_seq")]
     df_uniq <- df_uniq[df_uniq$prot_acc %in% prots_upr_right, , drop = FALSE]
     df_uniq <- df_uniq[!duplicated.data.frame(df_uniq), , drop = FALSE]
@@ -576,9 +580,9 @@ groupProts <- function (df, out_path = NULL, out_name = "prot_pep_setcover.rds")
   gc()
   
   # combines four quadrants
-  M4 <- rbind(
-    cbind(Mat_upr_left, Mat_upr_right), 
-    cbind(Mat_lwr_left, Mat_lwr_right)
+  M4 <- rbind2(
+    cbind2(Mat_upr_left, Mat_upr_right), 
+    cbind2(Mat_lwr_left, Mat_lwr_right)
   )
   
   rm(list = c("Mat_upr_left", "Mat_upr_right", 
@@ -590,7 +594,8 @@ groupProts <- function (df, out_path = NULL, out_name = "prot_pep_setcover.rds")
   else 
     M4[, colnames(M4) %in% ess_prots, drop = FALSE]
   
-  # literal or razor
+  # literal: unique in M4
+  # razor: unique in M4_ess
   peps_uniq <- local({
     rsums <- Matrix::rowSums(M4)
     rsums2 <- Matrix::rowSums(M4_ess)

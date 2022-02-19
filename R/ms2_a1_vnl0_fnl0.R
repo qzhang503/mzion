@@ -347,8 +347,9 @@ calc_ms2ions_a1_vnl0_fnl0 <- function (vmods_combi, aas2, aa_masses,
 #' Checks the MS1 mass for proceeding with MS2 matches.
 #'
 #' Maybe missed if a "match" is beyond `maxn_vmods_sitescombi_per_pep`.
-#' 
-#' 'bare + 18.010565 + terminals + anywhere'.
+#'
+#' 'bare + fixed terminals (aa_masses["N-term"] + aa_masses["C-term"]) +
+#' variable terminals + anywhere'.
 #'
 #' @param ms1_mass The mass of a theoretical MS1 (for subsetting).
 #' @param ntmod The attribute \code{ntmod} from a \code{aa_masses} (for MS1
@@ -358,22 +359,30 @@ calc_ms2ions_a1_vnl0_fnl0 <- function (vmods_combi, aas2, aa_masses,
 #' @param tol The tolerance in mass.
 #' @inheritParams calc_ms2ions_a1_vnl0_fnl0
 #' @importFrom purrr is_empty
+#' @return A logical vector.
 check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod, 
                                    ms1_mass, tol = 1e-3) 
 {
   len <- length(vmods_combi)
   
   if (len && !is.null(ms1_mass)) {
-    bare <- sum(aas2) + 18.010565
+    # (direct addition may be faster than introducing a new argument:
+    # ftmass <- unname(aa_masses["N-term"] + aa_masses["C-term"]))
+    
+    # bare <- sum(aas2) + 18.010565
+    bare <- sum(aas2) + aa_masses["N-term"] + aa_masses["C-term"]
+    
+    len_n <- length(ntmod)
+    len_c <- length(ctmod)
     
     # No need of is_empty(ntmod) && is_empty(ctmod)
-    delta <- if (!(length(ntmod) || length(ctmod)))
+    delta <- if (!(len_n || len_c))
       0
-    else if (length(ntmod) && length(ctmod))
+    else if (len_n && len_c)
       aa_masses[names(ntmod)] + aa_masses[names(ctmod)]
-    else if (length(ntmod))
+    else if (len_n)
       aa_masses[names(ntmod)]
-    else if (length(ctmod))
+    else if (len_c)
       aa_masses[names(ctmod)]
 
     bd <- bare + delta
@@ -387,6 +396,9 @@ check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod,
 
       idxes[i] <- (abs(ms1_mass - ok_mass) <= tol)
     }
+  }
+  else {
+    idxes <- NULL
   }
 
   idxes

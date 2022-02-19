@@ -34,9 +34,13 @@ calculations).}
 
 \item{tol}{The tolerance in mass.}
 }
+\value{
+A logical vector.
+}
 \description{
 Maybe missed if a "match" is beyond `maxn_vmods_sitescombi_per_pep`.
 }
 \details{
-'bare + 18.010565 + terminals + anywhere'.
+'bare + fixed terminals (aa_masses["N-term"] + aa_masses["C-term"]) +
+variable terminals + anywhere'.
 }

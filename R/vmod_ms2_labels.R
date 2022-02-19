@@ -115,7 +115,8 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
     
     if (nrows == 1L) {
       ans <- combi_namesiteU(M = M, aas = aas)
-    } else {
+    } 
+    else {
       ans <- combi_namesiteM(M = M, aas = aas, nrows = nrows)
       ans <- .Internal(unlist(ans, recursive = FALSE, use.names = FALSE))
     }
@@ -128,7 +129,8 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
       pos[[i]] <- ans[seq_len(lags)]
       
       break
-    } else {
+    } 
+    else {
       pos[[i]] <- ans
     }
   }
@@ -262,7 +264,8 @@ combi_namesiteM <- function (M, aas, nrows)
     if (is_new) {
       ans[[i]] <- find_vmodposM(Vec = Vec, vec = vec, ps = ps, aas = aas)
       cache[[i]] <- vec
-    } else {
+    } 
+    else {
       # must have a preceding match by the way of `duplicated`
       for (j in 1:len) {
         cj <- cache[[j]]

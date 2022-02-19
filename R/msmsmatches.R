@@ -409,7 +409,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 40000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/proteoM/.MSearches (1.0.6.5)/Cache/Calls", 
+                     .path_cache = "~/proteoM/.MSearches (1.0.7.0)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L, 
@@ -1158,7 +1158,17 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
   ) %>%
     dplyr::mutate(prot_tier = ifelse(prot_issig, 1L, 2L))
 
-  gc()
+  # the same peptide can be present in all three protein tiers
+  # steps up if pep_seq(s) in tier 3 also in tiers 1, 2
+  if (FALSE) {
+    rows <- out3$pep_seq %in% out$pep_seq
+    
+    out <- dplyr::bind_rows(out, out3[rows, ])
+    out3 <- out3[!rows, ]
+    
+    rm(list = "rows")
+    gc()
+  }
 
   # Protein groups
   message("Building protein-peptide maps.")

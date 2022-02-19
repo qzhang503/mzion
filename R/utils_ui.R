@@ -76,13 +76,13 @@
 #'
 #' # (4-b)
 #' x <- calc_monopeptide("MAKEMASSPECFUN",
-#'                       c("TMT6plex (N-term)",
-#'                         "TMT6plex (K)",
-#'                         "Carbamidomethyl (C)"),
-#'                       c("Acetyl (N-term)",
-#'                         "Gln->pyro-Glu (N-term = Q)",
-#'                         "Oxidation (M)"),
-#'                         include_insource_nl = TRUE)
+#'                       fixedmods = c("TMT6plex (N-term)",
+#'                                     "TMT6plex (K)",
+#'                                     "Carbamidomethyl (C)"),
+#'                       varmods = c("Acetyl (N-term)",
+#'                                   "Gln->pyro-Glu (N-term = Q)",
+#'                                   "Oxidation (M)"),
+#'                       include_insource_nl = TRUE)
 #'
 #' x$mass
 #' }
@@ -92,6 +92,7 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
                               maxn_vmods_setscombi = 64,
                               maxn_vmods_per_pep = Inf,
                               maxn_sites_per_vmod = Inf,
+                              max_mass = 4500L, 
                               digits = 4) 
 {
   options(digits = 9L)
@@ -114,6 +115,7 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
                  include_insource_nl = include_insource_nl,
                  maxn_vmods_per_pep = maxn_vmods_per_pep,
                  maxn_sites_per_vmod = maxn_sites_per_vmod,
+                 max_mass = max_mass, 
                  digits = digits)
   })
   
@@ -141,6 +143,7 @@ calc_monopep <- function (aa_seq, aa_masses,
                           include_insource_nl = FALSE,
                           maxn_vmods_per_pep = 5,
                           maxn_sites_per_vmod = 3,
+                          max_mass = 4500L, 
                           digits = 5) 
 {
   if (is.na(aa_seq)) return(NULL)
@@ -163,7 +166,7 @@ calc_monopep <- function (aa_seq, aa_masses,
   
   # adds terminal mass
   if (grepl("tmod+", type, fixed = TRUE)) {
-    mass <- add_term_mass2(aa_masses, mass)
+    mass <- add_term_mass2(aa_masses, mass, max_mass)
   }
   
   # --- Mass of variable mods and/or NLs ---
@@ -181,7 +184,11 @@ calc_monopep <- function (aa_seq, aa_masses,
       deltas <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
       masses <- round(mass - deltas, digits = digits)
     }
-  } else {
+    else {
+      masses <- mass
+    }
+  } 
+  else {
     masses <- mass
   }
   
