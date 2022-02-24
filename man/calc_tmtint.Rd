@@ -7,7 +7,7 @@
 calc_tmtint(
   data = NULL,
   quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16"),
-  ppm_reporters = 10
+  ppm_reporters = 10L
 )
 }
 \arguments{

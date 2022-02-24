@@ -8,7 +8,7 @@ find_ms2_bypep(
   theos = NULL,
   expts = NULL,
   ppm_ms2 = 25L,
-  min_ms2mass = 110L,
+  min_ms2mass = 115L,
   minn_ms2 = 6L
 )
 }

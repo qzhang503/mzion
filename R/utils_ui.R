@@ -89,11 +89,11 @@
 #' @export
 calc_monopeptide <- function (aa_seq, fixedmods, varmods,
                               include_insource_nl = FALSE,
-                              maxn_vmods_setscombi = 64,
+                              maxn_vmods_setscombi = 64L,
                               maxn_vmods_per_pep = Inf,
                               maxn_sites_per_vmod = Inf,
                               max_mass = 4500L, 
-                              digits = 4) 
+                              digits = 4L) 
 {
   options(digits = 9L)
   
@@ -141,10 +141,10 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
 #' @importFrom stringr str_split
 calc_monopep <- function (aa_seq, aa_masses,
                           include_insource_nl = FALSE,
-                          maxn_vmods_per_pep = 5,
-                          maxn_sites_per_vmod = 3,
+                          maxn_vmods_per_pep = 5L,
+                          maxn_sites_per_vmod = 3L,
                           max_mass = 4500L, 
-                          digits = 5) 
+                          digits = 5L) 
 {
   if (is.na(aa_seq)) return(NULL)
   
@@ -440,7 +440,7 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
 calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL, 
                           type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                           maxn_sites_per_vmod = 3L, 
-                          maxn_vmods_sitescombi_per_pep = 32L, digits = 5L) 
+                          maxn_vmods_sitescombi_per_pep = 64L, digits = 5L) 
 {
   # tmt6_mass <- 229.162932
   # tmtpro_mass <- 304.207146

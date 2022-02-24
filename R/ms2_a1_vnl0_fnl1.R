@@ -15,9 +15,9 @@ ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    mod_indexes, mgf_path, out_path, 
                                    type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                                    maxn_sites_per_vmod = 3L, 
-                                   maxn_vmods_sitescombi_per_pep = 32L, 
+                                   maxn_vmods_sitescombi_per_pep = 64L, 
                                    minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                                   min_ms2mass = 110L, df0 = NULL, digits = 4L) 
+                                   min_ms2mass = 115L, df0 = NULL, digits = 4L) 
 {
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
@@ -228,7 +228,7 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
                                       mod_indexes = NULL, type_ms2ions = "by", 
                                       maxn_vmods_per_pep = 5L, 
                                       maxn_sites_per_vmod = 3L, 
-                                      maxn_vmods_sitescombi_per_pep = 32L, 
+                                      maxn_vmods_sitescombi_per_pep = 64L, 
                                       digits = 4L) 
 {
   # (7, 8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
@@ -308,7 +308,8 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
 #' @inheritParams hms1_a0_vnl0_fnl1
 calc_ms2ions_a1_vnl0_fnl1 <- function (vmods_combi, fnl_combi, fnl_idxes, 
                                        aas2, aa_masses, 
-                                       ntmass, ctmass, type_ms2ions, digits) 
+                                       ntmass, ctmass, type_ms2ions = "by", 
+                                       digits = 4L) 
 {
   # updates amod masses
   delta_amod <- aa_masses[vmods_combi]

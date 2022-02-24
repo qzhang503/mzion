@@ -9,11 +9,11 @@ calc_monopeptide(
   fixedmods,
   varmods,
   include_insource_nl = FALSE,
-  maxn_vmods_setscombi = 64,
+  maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = Inf,
   maxn_sites_per_vmod = Inf,
   max_mass = 4500L,
-  digits = 4
+  digits = 4L
 )
 }
 \arguments{

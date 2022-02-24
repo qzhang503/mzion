@@ -4,7 +4,7 @@
 \alias{find_pepscore_co1}
 \title{Finds the cut-off in peptide scores for a given \code{target_fdr}.}
 \usage{
-find_pepscore_co1(td, target_fdr)
+find_pepscore_co1(td, target_fdr = 0.01)
 }
 \arguments{
 \item{td}{A data frame of target-decoy results at a given peptide length.}

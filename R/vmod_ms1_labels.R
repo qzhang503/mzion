@@ -22,7 +22,6 @@
 #'                                maxn_vmods_setscombi = 64,
 #'                                add_varmasses = FALSE,
 #'                                add_nlmasses = FALSE,
-#'                                exclude_phospho_nl = TRUE,
 #'                                out_path = NULL)
 #'
 #' maxn_vmods_per_pep <- 5L
@@ -135,7 +134,6 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #'                                maxn_vmods_setscombi = 64,
 #'                                add_varmasses = FALSE,
 #'                                add_nlmasses = FALSE,
-#'                                exclude_phospho_nl = TRUE,
 #'                                out_path = NULL)
 #'
 #' maxn_vmods_per_pep <- 5L
@@ -167,7 +165,6 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #'                                maxn_vmods_setscombi = 64,
 #'                                add_varmasses = FALSE,
 #'                                add_nlmasses = FALSE,
-#'                                exclude_phospho_nl = TRUE,
 #'                                out_path = NULL)
 #'
 #' maxn_vmods_per_pep <- 5L
@@ -204,7 +201,6 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #'                                maxn_vmods_setscombi = 64,
 #'                                add_varmasses = FALSE,
 #'                                add_nlmasses = FALSE,
-#'                                exclude_phospho_nl = TRUE,
 #'                                out_path = NULL)
 #'
 #' maxn_vmods_per_pep <- 5L
@@ -443,7 +439,6 @@ find_unique_sets <- function (p = 5L, labs = c("A", "B", "C"))
 #'                                maxn_vmods_setscombi = 64,
 #'                                add_varmasses = FALSE,
 #'                                add_nlmasses = FALSE,
-#'                                exclude_phospho_nl = TRUE,
 #'                                out_path = NULL)
 #' 
 #' maxn_vmods_per_pep <- 5L
@@ -472,7 +467,6 @@ find_unique_sets <- function (p = 5L, labs = c("A", "B", "C"))
 #'                                maxn_vmods_setscombi = 64,
 #'                                add_varmasses = FALSE,
 #'                                add_nlmasses = FALSE,
-#'                                exclude_phospho_nl = TRUE,
 #'                                out_path = NULL)
 #' 
 #' maxn_vmods_per_pep <- 5L
@@ -500,7 +494,6 @@ find_unique_sets <- function (p = 5L, labs = c("A", "B", "C"))
 #'                                maxn_vmods_setscombi = 64,
 #'                                add_varmasses = FALSE,
 #'                                add_nlmasses = FALSE,
-#'                                exclude_phospho_nl = TRUE,
 #'                                out_path = NULL)
 #' 
 #' maxn_vmods_per_pep <- 5L

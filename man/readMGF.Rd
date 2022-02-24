@@ -8,7 +8,7 @@ readMGF(
   filepath = "~/proteoM/mgf",
   min_mass = 700L,
   max_mass = 4500L,
-  min_ms2mass = 110L,
+  min_ms2mass = 115L,
   topn_ms2ions = 100L,
   ms1_charge_range = c(2L, 6L),
   ms1_scan_range = c(1L, .Machine$integer.max),

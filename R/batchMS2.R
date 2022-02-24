@@ -12,16 +12,15 @@ batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_202
                                        "Oxidation (M)", "Deamidated (N)",
                                        "Gln->pyro-Glu (N-term = Q)"),
                            include_insource_nl = FALSE,
-                           exclude_phospho_nl = TRUE, 
                            # enzyme = c("trypsin_p"),
                            type_ms2ions = "by", 
                            maxn_vmods_setscombi = 64L,
                            maxn_vmods_per_pep = 5L, 
                            maxn_sites_per_vmod = 3L, 
-                           maxn_vmods_sitescombi_per_pep = 32L, 
+                           maxn_vmods_sitescombi_per_pep = 64L, 
                            .path_cache = NULL,
                            .path_fasta = NULL,
-                           digits = 4L) 
+                           digits = 5L) 
 {
   options(digits = 9L)
   
@@ -89,7 +88,7 @@ batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_202
 #' @inheritParams ms2match
 hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by", 
                             maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
-                            maxn_vmods_sitescombi_per_pep = 32L, 
+                            maxn_vmods_sitescombi_per_pep = 64L, 
                             .path_cache = NULL, .path_fasta = NULL, 
                             digits = 5L) 
 {

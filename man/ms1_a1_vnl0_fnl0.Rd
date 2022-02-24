@@ -133,7 +133,6 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
                                maxn_vmods_setscombi = 64,
                                add_varmasses = FALSE,
                                add_nlmasses = FALSE,
-                               exclude_phospho_nl = TRUE,
                                out_path = NULL)
 
 ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i)

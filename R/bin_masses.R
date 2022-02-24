@@ -8,7 +8,7 @@
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
 #' @inheritParams calc_pepmasses2
-bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L, 
+bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L, 
                            ppm_ms1 = 20L, use_ms1_cache = TRUE, 
                            .path_cache = NULL, .path_ms1masses = NULL, 
                            is_ms1_three_frame = TRUE) 
@@ -166,7 +166,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 500L, max_mass = 6000L,
 #' 
 #' @param in_path An input path of \code{pepmasses_}.
 #' @inheritParams binTheoSeqs2
-binTheoSeqs_i <- function (idx = 1L, min_mass = 500L,max_mass = 6000L,
+binTheoSeqs_i <- function (idx = 1L, min_mass = 700L,max_mass = 4500L,
                            ppm_ms1 = 20L, in_path = NULL, out_path = NULL) 
 {
   if (is.null(in_path)) 
@@ -191,8 +191,8 @@ binTheoSeqs_i <- function (idx = 1L, min_mass = 500L,max_mass = 6000L,
 #' @param idx An index, e.g. "1" for \code{pepmasses_1.rds} and "rev_1" for
 #'   \code{pepmasses_rev_1.rds}.
 #' @inheritParams binTheoSeqs
-binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 500L,
-                          max_mass = 6000L, ppm_ms1 = 20L, 
+binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 700L,
+                          max_mass = 4500L, ppm_ms1 = 20L, 
                           out_path = NULL) 
 {
   if (is.null(res)) 
@@ -221,8 +221,8 @@ binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 500L,
 #' @param peps A list of theoretical peptides with masses.
 #' @param out_nm A output name with prepending file path.
 #' @inheritParams binTheoSeqs
-bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 500L, 
-                          max_mass = 6000L, ppm_ms1 = 20L) 
+bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 700L, 
+                          max_mass = 4500L, ppm_ms1 = 20L) 
 {
   if (!length(peps)) {
     # out <- data.frame(pep_seq = character(), mass = numeric(), frame = integer(), row.names = NULL)
@@ -267,8 +267,8 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 500L,
 #' @return Lists of theoretical peptides binned by MS1 masses. The lists
 #'   correspond to the lists of \code{res}.
 #' @import parallel
-binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 500L,
-                         max_mass = 6000L, ppm_ms1 = 20L, out_path = NULL) 
+binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 700L,
+                         max_mass = 4500L, ppm_ms1 = 20L, out_path = NULL) 
 {
   if (is.null(res)) 
     stop("`res` cannot be NULL.")
@@ -337,7 +337,7 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 500L,
 #' @param ppm Numeric; the ppm for data binning.
 #' @return Cut points.
 #' @seealso find_ms1_interval
-find_ms1_cutpoints <- function (from = 500L, to = 10000L, ppm = 20L) 
+find_ms1_cutpoints <- function (from = 700L, to = 4500L, ppm = 20L) 
 {
   d <- ppm/1e6
   n <- ceiling(log(to/from)/log(1+d))

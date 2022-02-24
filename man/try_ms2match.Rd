@@ -9,33 +9,33 @@ try_ms2match(
   aa_masses_all,
   out_path,
   mod_indexes,
-  type_ms2ions,
-  maxn_vmods_per_pep,
-  maxn_sites_per_vmod,
-  maxn_vmods_sitescombi_per_pep,
-  minn_ms2,
-  ppm_ms1,
-  ppm_ms2,
-  min_ms2mass,
-  quant,
-  ppm_reporters,
+  type_ms2ions = "by",
+  maxn_vmods_per_pep = 5L,
+  maxn_sites_per_vmod = 3L,
+  maxn_vmods_sitescombi_per_pep = 64L,
+  minn_ms2 = 6L,
+  ppm_ms1 = 20L,
+  ppm_ms2 = 25L,
+  min_ms2mass = 115L,
+  quant = "none",
+  ppm_reporters = 10L,
   fasta,
   acc_type,
   acc_pattern,
-  topn_ms2ions,
+  topn_ms2ions = 100L,
   fixedmods,
   varmods,
-  include_insource_nl,
-  enzyme,
-  maxn_fasta_seqs,
-  maxn_vmods_setscombi,
-  min_len,
-  max_len,
-  max_miss,
-  target_fdr,
-  fdr_type,
-  combine_tier_three,
-  digits
+  include_insource_nl = FALSE,
+  enzyme = "trypsin_p",
+  maxn_fasta_seqs = 200000L,
+  maxn_vmods_setscombi = 64L,
+  min_len = 7L,
+  max_len = 50L,
+  max_miss = 2L,
+  target_fdr = 0.01,
+  fdr_type = "protein",
+  combine_tier_three = FALSE,
+  digits = 4L
 )
 }
 \arguments{
@@ -83,7 +83,8 @@ number of combinatorial variable modifications per peptide sequence. The
 default is 64.}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
-for consideration as a hit. The default is 6.}
+for consideration as a hit. The default is 6. Counts of secondary ions,
+e.g. b0, b* etc., are not part of the threshold.}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}

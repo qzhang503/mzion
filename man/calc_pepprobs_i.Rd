@@ -8,7 +8,7 @@ calc_pepprobs_i(
   res,
   topn_ms2ions = 100L,
   type_ms2ions = "by",
-  penalize_sions = FALSE,
+  penalize_sions = TRUE,
   ppm_ms2 = 25L,
   out_path = "~/proteoM/outs",
   digits = 5L

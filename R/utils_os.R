@@ -258,8 +258,6 @@ recur_flatten <- function (x)
 
 
 
-###
-
 #' Splits data into chunks by length.
 #'
 #' @param data Input data.

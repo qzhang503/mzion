@@ -8,8 +8,7 @@ find_aa_masses(
   out_path = NULL,
   fixedmods = NULL,
   varmods = NULL,
-  maxn_vmods_setscombi = 64L,
-  exclude_phospho_nl = FALSE
+  maxn_vmods_setscombi = 64L
 )
 }
 \arguments{
@@ -22,11 +21,6 @@ find_aa_masses(
 
 \item{maxn_vmods_setscombi}{Integer; the maximum number of combinatorial variable
 modifications and neutral losses.}
-
-\item{exclude_phospho_nl}{Logical; if TRUE, excludes neutral losses in the
-MS2 ion searches against variable modifications of phospho sites. The
-default if TRUE. May toggle it to \code{FALSE} if search speed against
-phospho data is not a primary concern.}
 }
 \description{
 Finds the existence of \code{aa_masses_all.rds}.

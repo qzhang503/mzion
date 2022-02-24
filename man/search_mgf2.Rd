@@ -13,10 +13,10 @@ search_mgf2(
   theos_bf_ms2,
   theos_cr_ms2,
   theos_af_ms2,
-  minn_ms2 = 7L,
+  minn_ms2 = 6L,
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
-  min_ms2mass = 110L
+  min_ms2mass = 115L
 )
 }
 \arguments{
@@ -43,7 +43,8 @@ frame.}
 following \code{+1} frame.}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
-for consideration as a hit. The default is 6.}
+for consideration as a hit. The default is 6. Counts of secondary ions,
+e.g. b0, b* etc., are not part of the threshold.}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}

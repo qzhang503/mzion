@@ -313,8 +313,8 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
 #' @importFrom purrr map2
 #' @importFrom tibble tibble
 calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, 
-                              N, type_ms2ions, topn_ms2ions, 
-                              penalize_sions, ppm_ms2, digits) 
+                              N, type_ms2ions = "by", topn_ms2ions = 100L, 
+                              penalize_sions = TRUE, ppm_ms2 = 25L, digits = 5L) 
 {
   ## for different positions: $TNLAMMR$`0000500`, $TNLAMMR$`0000050`
   #    the same `pep_seq`, `theo_ms1` for different mod positions
@@ -401,7 +401,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
 #' @inheritParams calc_pepscores
 #' @import purrr
 scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by", 
-                            penalize_sions = FALSE, ppm_ms2 = 25L, digits = 4L) 
+                            penalize_sions = TRUE, ppm_ms2 = 25L, digits = 5L) 
 {
   # only one experimental set of values and thus `[[1]]`
   expt_moverzs <- entry$ms2_moverz[[1]]
@@ -469,7 +469,7 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by", 
-                             penalize_sions = FALSE, ppm_ms2 = 25L, 
+                             penalize_sions = TRUE, ppm_ms2 = 25L, 
                              out_path = "~/proteoM/outs", digits = 5L) 
 {
   n_rows <- nrow(res)
@@ -510,17 +510,17 @@ calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @import parallel
 calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by", 
                             target_fdr = 0.01, fdr_type = "psm", 
-                            min_len = 7L, max_len = 50L, 
-                            penalize_sions = FALSE, ppm_ms2 = 25L, 
+                            min_len = 7L, max_len = 40L, 
+                            penalize_sions = TRUE, ppm_ms2 = 25L, 
                             out_path = "~/proteoM/outs", 
                             
-                            mgf_path, maxn_vmods_per_pep, maxn_sites_per_vmod,
-                            maxn_vmods_sitescombi_per_pep, minn_ms2, ppm_ms1,
-                            min_ms2mass, quant, ppm_reporters,
-                            fasta, acc_type, acc_pattern, fixedmods,
-                            varmods, include_insource_nl, enzyme,
-                            maxn_fasta_seqs, maxn_vmods_setscombi,
-
+                            mgf_path, maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
+                            maxn_vmods_sitescombi_per_pep = 64L, minn_ms2 = 6L, 
+                            ppm_ms1 = 20L, min_ms2mass = 115L, quant = "none", 
+                            ppm_reporters = 10L, fasta, acc_type, acc_pattern, 
+                            fixedmods, varmods, include_insource_nl = FALSE, 
+                            enzyme = "trypsin_p", maxn_fasta_seqs = 200000L, 
+                            maxn_vmods_setscombi = 64L, 
                             digits = 5L) 
 {
   on.exit(
@@ -657,7 +657,7 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by", 
-                       penalize_sions = FALSE, ppm_ms2 = 25L, out_path = NULL, 
+                       penalize_sions = TRUE, ppm_ms2 = 25L, out_path = NULL, 
                        digits = 4L) 
 {
   df <- readRDS(file.path(out_path, "temp", file))
@@ -682,7 +682,6 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     saveRDS(dfb, file.path(out_path, "temp", paste0("pepscores_", idx, ".rds")))
     
     return (dfb)
-    # return (NULL)
   }
   
   df$uniq_id <- paste(df$scan_num, df$raw_file, sep = "@")
@@ -802,7 +801,7 @@ post_pepscores <- function (df)
 #' 
 #' @param td A data frame of target-decoy results at a given peptide length.
 #' @inheritParams matchMS
-find_pepscore_co1 <- function (td, target_fdr) 
+find_pepscore_co1 <- function (td, target_fdr = 0.01) 
 {
   target <- dplyr::filter(td, !pep_isdecoy)
   decoy <- dplyr::filter(td, pep_isdecoy)
@@ -840,7 +839,7 @@ find_pepscore_co1 <- function (td, target_fdr)
 #' 
 #' @param td A data frame of target-decoy results at a given peptide length.
 #' @inheritParams matchMS
-find_pepscore_co2 <- function (td, target_fdr) 
+find_pepscore_co2 <- function (td, target_fdr = 0.01) 
 {
   target <- dplyr::filter(td, !pep_isdecoy)
   decoy <- dplyr::filter(td, pep_isdecoy)
@@ -880,7 +879,7 @@ find_pepscore_co2 <- function (td, target_fdr)
 #' @param td A target-decoy pair.
 #' @param len Numeric; the length of peptides.
 #' @inheritParams matchMS
-probco_bypeplen <- function (len, td, fdr_type, target_fdr, out_path) 
+probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01, out_path) 
 {
   td <- dplyr::filter(td, pep_len == len)
   
@@ -1061,7 +1060,7 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 #'                         out_path = "~/proteoM/bi_1")
 #' }
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm", 
-                         min_len = 7L, max_len = 50L, match_pepfdr = TRUE, 
+                         min_len = 7L, max_len = 40L, match_pepfdr = TRUE, 
                          max_pepscores_co = Inf, out_path) 
 {
   fct_score <- 10
@@ -1920,140 +1919,174 @@ try_calc_peploc <- function (out = NULL)
 #' c("pep_isdecoy", "scan_num", "raw_file", "pep_seq", "pep_ivmod")
 #'
 #' @param x The result from \link{calc_pepscores}.
+#' @param topn_mods_per_seq Positive integer; a threshold to discard variable
+#'   modifications under the same peptide match with scores beyond the top-n.
+#'   The default is 3.
+#'
+#'   Being the same \code{peptide match} in this context refers to matches with
+#'   identities in \code{MS scan number}, \code{MS raw file name} and
+#'   \code{peptide sequence}. Target and decoys matches are treated separately.
+#'
+#'   For a variable modification with multiple neutral losses (NL), the
+#'   best-scored NL will be used in the ranking.
+#'
+#' @param topn_seqs_per_query Positive integer; a threshold to discard peptide
+#'   matches under the same MS query with scores beyond the top-n. The default
+#'   is 3.
+#'
+#'   Being the same \code{query} in this context refers to the identity in
+#'   \code{MS scan number} and \code{MS raw file name}. Target and decoys
+#'   matches are treated separately.
 #' @rawNamespace import(data.table, except = c(last, first, between, transpose,
 #'   melt, dcast))
-calc_peploc <- function (x) 
+calc_peploc <- function (x, topn_mods_per_seq = 3L, topn_seqs_per_query = 3L) 
 {
-  ## memory inefficient
-  # x <- x %>%
-  #   dplyr::mutate(pep_score = round(pep_score, 2)) %>%
-  #   dplyr::filter(!duplicated(.[, c("pep_isdecoy", "scan_num", "raw_file",
-  #                                   "pep_seq", "pep_score")])) %>%
-  #   dplyr::group_by(pep_isdecoy, scan_num, raw_file) %>%
-  #   # does addl' row ordering by pep_isdecoy, scan_num, raw_file
-  #   dplyr::arrange(-pep_score, .by_group = TRUE) %>%
-  #   dplyr::mutate(pep_rank = row_number()) %>%
-  #   dplyr::ungroup() %>%
-  #   dplyr::filter(pep_rank <= 3L)
-  #
-  # gc()
+  # some shallow copy warnings from data.table
+  old_opts <- options()
+  options(warn = -1L)
+  on.exit(options(old_opts), add = TRUE)
   
-  ## memory more efficient
   x <- data.table::data.table(x)
   gc()
   
-  ## keeps the best for ties in each pep_seq (0000500, 0005000) -> top.3
-  ## (`pep_score` as a surrogate for tied `pep_ivmod`)
-  
-  # x[ , "pep_score" := round(pep_score, 2)]
-  # x <- x[!duplicated(x[, c("pep_isdecoy", "scan_num", "raw_file", "pep_seq", "pep_score")]), ]
-  # x[order(-pep_score), pep_rank := seq_len(.N), by = list(pep_isdecoy, scan_num, raw_file)]
-  # x <- x[x[, pep_rank <= 3L], ]
-  #
-  # gc()
-  
-  # uniq_id --- across different mod locations under the same *pep_seq*
-  # uniq_id2 --- the same *uniq_id (~ pep_seq_mod)* but different NLs
-  # uniq_id3 --- the same *query* across pep_seqs
+  # round scores before any ranking
+  x[ , "pep_score" := round(pep_score, 2)]
+
+  # For simplicity `pep_seq` uses interchangeably with `uniq_id` and 
+  # `pep_seq_mod` with `uniq_id2` where everything is on top of the same 
+  # pep_isdecoy, scan_num, raw_file.
   # 
-  # pep_rank2 --- within NLs by uniq_id + pep_ivmod2
-  # pep_rank --- across uniq_ids
-  # pep_rank at output --- the query across pep_seqs
+  # uniq_id --- can differentiate the same `pep_seq` at different mod locations & NL 
+  # uniq_id2 --- can differentiate the same `pep_seq_mod` at different NLs
+  # uniq_id3 --- can differentiate the same *query* at different `pep_seq`s
+  # 
+  # pep_rank --- `pep_seq_mod`s under the same `pep_seq`
+  #   (note that each `pep_seq_mod` is represented by its best NL)
+  # ppe_rank2 --- NLs under the same `pep_seq_mod`
+  # pep_rank at output --- `pep_seq`s under the same `query`
   
-  # separates the best score across different NLs under the same `uniq_id2`
-  # (`x0` corresponds to the best NL under each `uniq_id2`)
+  ## 1. compile `uniq_id`, `uniq_id2` and `pep_rank2`
+  x[, pep_isdecoy := as.integer(pep_isdecoy)]
   x[, uniq_id := paste(pep_isdecoy, scan_num, raw_file, pep_seq, sep = ".")]
   x[, "pep_ivmod2" := gsub(" [\\(\\[]\\d+[\\)\\[]$", "", pep_ivmod)]
   x[, uniq_id2 := paste(uniq_id, pep_ivmod2, sep = ".")]
-  x[order(-pep_score), pep_rank2 := seq_len(.N), by = list(uniq_id2)]
-  
-  x0 <- x[x$pep_rank2 == 1L, ] 
+  x[["pep_ivmod2"]] <- NULL
+  x[, pep_rank2 := data.table::frank(-pep_score, ties.method = "min"), 
+    by = list(uniq_id2)]
+
+  ## 2 separate the best NL (x0) from the rest (y0) at the same `pep_seq_mod`
+  x0 <- x[x$pep_rank2 == 1L, ]
   y0 <- x[x$pep_rank2 > 1L, ]
-  
-  x0 <- x0[, -c("pep_rank2")]
-  y0 <- y0[, -c("pep_rank2")]
-  
+  x0[["pep_rank2"]] <- NULL
+  y0[["pep_rank2"]] <- NULL
   rm(list = c("x"))
   gc()
   
-  # keep the top-3 mod LOCATIONS under each `uniq_id`
-  # (the pep_rank here if after the "collapse" of NLs;
-  # net effect: best NLs -> top-3 mod)
-  topn_mods <- 3L
-  x0[order(-pep_score), pep_rank := seq_len(.N), by = list(uniq_id)]
-  x0 <- x0[pep_rank <= topn_mods, ]
+  ## 3. keep the top-3 `pep_seq_mod`
+  # (the `pep_rank` here is after the "collapse" of NLs by only using the best);
+  # net effect: the top-3 pep_seq_mod's, each represented by its best NL)
+  x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
+     by = list(uniq_id)]
+  x0 <- x0[pep_rank <= topn_mods_per_seq, ]
   
-  # `pep_locprob`
-  x0[, "sscore" := sum(pep_score, na.rm = TRUE), by = list(uniq_id)]
-  x0[, "pep_locprob" := (pep_score/sscore)]
-  x0 <- x0[, -c("sscore")]
+  ## 3.1 `pep_locprob`
+  # (the same `pep_seq`, different `pep_seq_mod`)
+  
+  # can have ties 
+  #                                 pep_ivmod pep_rank
+  # 1: 0000040000004000000000000000000000 (2)        1
+  # 2: 0000040000004000000000000000000000 (4)        1
+  # 3: 0000040000000000000004000000000000 (2)        1
+  # 4: 0000040000000000000004000000000000 (4)        1
+  # 
+  # thus "hide" tied NL entries from `sscore` calculations 
+  ux0 <- unique(x0, by = "uniq_id2")
+  ux0[, "sscore" := sum(pep_score, na.rm = TRUE), by = list(uniq_id)]
+  ux0[, "pep_locprob" := (pep_score/sscore)]
+  ux0 <- ux0[, c("uniq_id2", "pep_locprob")]
+  
+  x0 <- dplyr::left_join(x0, ux0, by = "uniq_id2")
+  rm(list = c("ux0"))
   gc()
   
-  # `pep_locdiff`
+  ## 3.2 `pep_locdiff`
   x1 <- x0[pep_rank == 1L, ]
   x2 <- x0[pep_rank == 2L, ]
   gc()
   
-  delta <- dplyr::left_join(x1[, c("uniq_id", "pep_locprob")],
-                            x2[, c("uniq_id", "pep_locprob")],
-                            by = "uniq_id")
-  
-  delta$pep_locprob.y <- ifelse(is.na(delta$pep_locprob.y), 0, delta$pep_locprob.y)
-  
-  delta[["pep_locdiff"]] <- delta[["pep_locprob.x"]] - delta[["pep_locprob.y"]]
-  delta <- delta[, c("uniq_id", "pep_locdiff")]
-  
+  # can be duplicated by `pep_ivmod` due to TIES in
+  # `pep_rank` at different `pep_seq_mod`s and/or NLs)
+  ux1 <- unique(x1[, c("uniq_id", "pep_locprob")])
+  ux2 <- unique(x2[, c("uniq_id", "pep_locprob")])
   rm(list = c("x1", "x2"))
   gc()
   
-  # joins `delta`
-  x0 <- dplyr::left_join(x0, delta, by = "uniq_id")
+  delta <- dplyr::left_join(ux1, ux2, by = "uniq_id")
+  rm(list = c("ux1", "ux2"))
+  gc()
   
+  delta$pep_locprob.y <- ifelse(is.na(delta$pep_locprob.y), 0, delta$pep_locprob.y)
+  delta[["pep_locdiff"]] <- delta[["pep_locprob.x"]] - delta[["pep_locprob.y"]]
+  delta <- delta[, c("uniq_id", "pep_locdiff")]
+
+  x0 <- dplyr::left_join(x0, delta, by = "uniq_id")
   rm(list = c("delta"))
   gc()
   
-  # adds back `y0`
-  # 
-  # 1. some NA pep_ranks in y0 (inferior ones at ranks > 3 and no matches in x0);
-  # 2. NLs at <= pep_score under the same uniq_id2 (y0) share the same best pep_rank
-  #   (share the best pep_score across different NLs for the same pep_seq_mod);
-  # 3. the NL entries will be used for proteoQ quantitation at `exprs(pep_rank == 1)`, 
-  #   and can be excluded by `exprs(pep_rank_nl == 1)`.
-
-  y0 <- dplyr::left_join(y0, x0[, c("uniq_id2", "pep_rank", "pep_locprob", 
-                                    "pep_locdiff")], by = "uniq_id2")
-  y0 <- y0[!is.na(y0$pep_rank), ]
+  ## 4. adds back inferior NLs from `y0`
+  # (1) again `x0$pep_rank` is w.r.t. `pep_seq_mod`s in that each `pep_seq_mod` 
+  #   is collapsed/represented by using its best NL.
+  # (2) some `y0$pep_seq_mod` may not present in `x0` since only kept the top 3 
+  #   in `x0$pep_seq_mod`
+  # Thus remove those `y0` rows before joining.
+  rows <- y0$uniq_id2 %in% x0$uniq_id2
+  y0 <- y0[rows, ]
+  rm(list = "rows")
   
+  # some `x0$pep_seq_mod` may not present in `y0` if there is only one (the best) 
+  # NL, but here we only concern about joining columns from `x0` to `y0`.
+  y0 <- dplyr::left_join(y0, 
+                         unique(x0[, c("uniq_id2", "pep_rank", "pep_locprob", "pep_locdiff")]), 
+                         by = "uniq_id2")
+
   x0 <- data.table::rbindlist(list(x0, y0), use.names = FALSE)
-  x0[, pep_rank_nl := seq_len(.N), by = "uniq_id2"]
-
+  x0[, pep_rank_nl := data.table::frank(-pep_score, ties.method = "min"), 
+     by = list(uniq_id2)]
   rm(list = c("y0"))
-  
-  # assumes NLS under the same c("uniq_id2", "pep_score") contain 
-  #   no additional information and excluded
-  x0[ , "pep_score" := round(pep_score, 2)]
-  x0 <- unique(x0, by = c("uniq_id2", "pep_score"))
-  
-  # cleanups
-  x0 <- x0[, -c("uniq_id", "uniq_id2", "pep_ivmod2")]
-  x0[ , "pep_locprob" := round(pep_locprob, 2)]
-  x0[ , "pep_locdiff" := round(pep_locdiff, 2)]
-  
   gc()
   
-  # new `pep_rank`s across different `pep_seq`s
-  # (this is different to the earlier uniq_id at different LOCATIONS)
+  ## clean-ups
+  x0 <- x0[, -c("uniq_id", "uniq_id2")]
+  x0[ , "pep_locprob" := round(pep_locprob, 2L)]
+  x0[ , "pep_locdiff" := round(pep_locdiff, 2L)]
+  gc()
+  
+  ## NEW `pep_rank`s 
+  #  across different `pep_seq`s under the same `query`
+  # (this is different to the earlier `uniq_id` to differentiate LOCATIONS)
+  # 
+  # e.g., if MS evidence is equally feasible for : 
+  #   pep_seq_1: EVEEDSEDEEMSEDE[E]D[D]S[SG]EEVVIPQKK
+  #   pep_seq_2: EVEEDSEDEEMSEDE[D]D[S]S[GE]EEVVIPQKK
+  # both will be kept (at the same rank)
+
+  ## rank `pep_seq`s under the same `query`
   x0[, uniq_id3 := paste(pep_isdecoy, scan_num, raw_file, sep = ".")]
-  x0[order(-pep_score), pep_rank := seq_len(.N), by = list(uniq_id3)]
-  topn_seqs <- 3L
-  x0 <- x0[pep_rank <= topn_seqs, ]
-  x0 <- x0[, -c("uniq_id3")]
+  x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
+     by = list(uniq_id3)]
+  
+  x0 <- x0[pep_rank <= topn_seqs_per_query, ]
+  data.table::setorder(x0, uniq_id3, -pep_score)
+  x0$uniq_id3 <- NULL
+
+  # change-back to logical
+  x0 <- x0[, pep_isdecoy := as.logical(pep_isdecoy)]
 
   invisible(x0)
 }
 
 
-#' Interpolate missing values in a time series.
+#' Interpolates missing values in a time series.
 #'
 #' From \code{forecast}. 
 #' 
@@ -2142,7 +2175,7 @@ is.constant <- function (x)
 }
 
 
-#' Identify and replace outliers in a time series.
+#' Identifies and replace outliers in a time series.
 #' 
 #' From \code{forecast}.
 #' 

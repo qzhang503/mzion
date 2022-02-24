@@ -2,8 +2,8 @@
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage("Welcome to proteoM!\n\n",
                         "============================================================================================\n",
-                        # "NEW features (v1.0.6.5):\n",
-                        "[x] For examples, enter \"?matcHMS\".\n", 
+                        # "NEW features (v1.0.7.1):\n",
+                        "[x] For examples, enter \"?matchMS\".\n", 
                         # "[x] Supports of Bruker's PASEF MGFs.\n",
                         # "[x] Supports of custom, semi- or non-enzymatic searches.\n",
                         # "[x] Utility `add_unimod` for custom entries of Unimod.\n",

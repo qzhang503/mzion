@@ -23,11 +23,11 @@ ms2match_a0_vnl0_fnl1(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_vmods_sitescombi_per_pep = 32L,
+  maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
-  min_ms2mass = 110L,
+  min_ms2mass = 115L,
   df0 = NULL,
   digits = 4L
 )
@@ -48,11 +48,11 @@ ms2match_a1_vnl0_fnl0(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_vmods_sitescombi_per_pep = 32L,
+  maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
-  min_ms2mass = 110L,
+  min_ms2mass = 115L,
   df0 = NULL,
   digits = 4L
 )
@@ -74,11 +74,11 @@ ms2match_a1_vnl0_fnl1(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_vmods_sitescombi_per_pep = 32L,
+  maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
-  min_ms2mass = 110L,
+  min_ms2mass = 115L,
   df0 = NULL,
   digits = 4L
 )
@@ -100,11 +100,11 @@ ms2match_a1_vnl1_fnl0(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_vmods_sitescombi_per_pep = 32L,
+  maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
-  min_ms2mass = 110L,
+  min_ms2mass = 115L,
   df0 = NULL,
   digits = 4L
 )
@@ -122,11 +122,11 @@ ms2match_base(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_vmods_sitescombi_per_pep = 32L,
+  maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
-  min_ms2mass = 110L,
+  min_ms2mass = 115L,
   df0 = NULL,
   digits = 4L
 )
@@ -191,7 +191,8 @@ number of combinatorial variable modifications per peptide sequence. The
 default is 64.}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
-for consideration as a hit. The default is 6.}
+for consideration as a hit. The default is 6. Counts of secondary ions,
+e.g. b0, b* etc., are not part of the threshold.}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}

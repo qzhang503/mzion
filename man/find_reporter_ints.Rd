@@ -9,7 +9,7 @@ find_reporter_ints(
   ms2_ints,
   theos,
   ul,
-  ppm_reporters = 10,
+  ppm_reporters = 10L,
   len,
   nms
 )

@@ -22,9 +22,9 @@
 ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass, 
                            mod_indexes, mgf_path, out_path, type_ms2ions = "by", 
                            maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
-                           maxn_vmods_sitescombi_per_pep = 32L, 
+                           maxn_vmods_sitescombi_per_pep = 64L, 
                            minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                           min_ms2mass = 110L, df0 = NULL, digits = 4L) 
+                           min_ms2mass = 115L, df0 = NULL, digits = 4L) 
 {
   # note: split into 16^2 lists
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
@@ -156,9 +156,9 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
                         type_ms2ions = "by", 
                         maxn_vmods_per_pep = 5L, 
                         maxn_sites_per_vmod = 3L, 
-                        maxn_vmods_sitescombi_per_pep = 32L, 
-                        minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                        min_ms2mass = 110L, digits = 4L, FUN) 
+                        maxn_vmods_sitescombi_per_pep = 64L, 
+                        minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                        min_ms2mass = 115L, digits = 4L, FUN) 
 {
   len <- length(mgf_frames)
   out <- vector("list", len) 
@@ -441,9 +441,9 @@ frames_adv2 <- function (mgf_frames = NULL, theopeps = NULL, theopeps2 = NULL,
                          type_ms2ions = "by", 
                          maxn_vmods_per_pep = 5L, 
                          maxn_sites_per_vmod = 3L, 
-                         maxn_vmods_sitescombi_per_pep = 32L, 
-                         minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                         min_ms2mass = 110L, digits = 4L) 
+                         maxn_vmods_sitescombi_per_pep = 64L, 
+                         minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                         min_ms2mass = 115L, digits = 4L) 
 {
   len <- length(mgf_frames)
   out <- vector("list", len) 
@@ -651,7 +651,7 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
                               mod_indexes = NULL, 
                               type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                               maxn_sites_per_vmod = 3L, 
-                              maxn_vmods_sitescombi_per_pep = 32L, 
+                              maxn_vmods_sitescombi_per_pep = 64L, 
                               digits = 4L) 
 {
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
@@ -715,8 +715,8 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
 search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2, 
                          theomasses_bf_ms1, theomasses_cr_ms1, theomasses_af_ms1, 
                          theos_bf_ms2, theos_cr_ms2, theos_af_ms2, 
-                         minn_ms2 = 7L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                         min_ms2mass = 110L) 
+                         minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                         min_ms2mass = 115L) 
 {
   # --- subsets from the `before` and the `after` by MS1 mass tolerance 
   d <- expt_mass_ms1 * ppm_ms1/1E6
@@ -926,7 +926,7 @@ search_mgf2 <- function (expt_mass_ms1, expt_moverz_ms2,
 #' x <- find_ms2_bypep(theos, expts)
 #' }
 find_ms2_bypep <- function (theos = NULL, expts = NULL, ppm_ms2 = 25L, 
-                            min_ms2mass = 110L, minn_ms2 = 6L) 
+                            min_ms2mass = 115L, minn_ms2 = 6L) 
 {
   ##############################################################################
   # `theos` may be empty: 

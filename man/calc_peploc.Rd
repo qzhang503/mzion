@@ -4,10 +4,29 @@
 \alias{calc_peploc}
 \title{Calculates the delta scores of `pep_seq`.}
 \usage{
-calc_peploc(x)
+calc_peploc(x, topn_mods_per_seq = 3L, topn_seqs_per_query = 3L)
 }
 \arguments{
 \item{x}{The result from \link{calc_pepscores}.}
+
+\item{topn_mods_per_seq}{Positive integer; a threshold to discard variable
+  modifications under the same peptide match with scores beyond the top-n.
+  The default is 3.
+
+  Being the same \code{peptide match} in this context refers to matches with
+  identities in \code{MS scan number}, \code{MS raw file name} and
+  \code{peptide sequence}. Target and decoys matches are treated separately.
+
+  For a variable modification with multiple neutral losses (NL), the
+  best-scored NL will be used in the ranking.}
+
+\item{topn_seqs_per_query}{Positive integer; a threshold to discard peptide
+  matches under the same MS query with scores beyond the top-n. The default
+  is 3.
+
+  Being the same \code{query} in this context refers to the identity in
+  \code{MS scan number} and \code{MS raw file name}. Target and decoys
+  matches are treated separately.}
 }
 \description{
 A score delta between the best and the second best.

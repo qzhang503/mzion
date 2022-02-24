@@ -56,10 +56,6 @@
 #'   \code{TMT11plex} for TMT-11, (2) \code{TMT16plex} for TMTpro and (3)
 #'   \code{TMT18plex} for TMTpro18. See also \link{parse_unimod} for grammars of
 #'   modification \code{title}, \code{position} and \code{site}.
-#' @param exclude_phospho_nl Logical; if TRUE, excludes neutral losses in the
-#'   MS2 ion searches against variable modifications of phospho sites. The
-#'   default if TRUE. May toggle it to \code{FALSE} if search speed against
-#'   phospho data is not a primary concern.
 #' @param include_insource_nl Not yet used. Logical; if TRUE, includes MS1
 #'   precursor masses with the losses of neutral species prior to MS2
 #'   fragmentation. The default is FALSE. The setting at TRUE remains
@@ -140,7 +136,8 @@
 #' @param topn_ms2ions A positive integer; the top-n species for uses in MS2 ion
 #'   searches. The default is to use the top-100 ions in an MS2 event.
 #' @param minn_ms2 A positive integer; the minimum number of matched MS2 ions
-#'   for consideration as a hit. The default is 6.
+#'   for consideration as a hit. The default is 6. Counts of secondary ions,
+#'   e.g. b0, b* etc., are not part of the threshold.
 #' @param min_ms1_charge A positive integer; the minimum MS1 charge state for
 #'   considerations. The default is 2.
 #' @param max_ms1_charge A positive integer; the maximum MS1 charge state for
@@ -373,7 +370,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
                                  "Oxidation (M)", "Deamidated (N)",
                                  "Gln->pyro-Glu (N-term = Q)"),
                      include_insource_nl = FALSE,
-                     exclude_phospho_nl = TRUE, 
                      enzyme = c("Trypsin_P", "Trypsin", "LysC", "LysN", "ArgC", 
                                 "LysC_P", "Chymotrypsin", "GluC", "GluN", 
                                 "AspC", "AspN", "SemiTrypsin_P", "SemiTrypsin", 
@@ -448,8 +444,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
     acc_pattern <- NULL
   
   # logical types 
-  stopifnot(vapply(c(include_insource_nl, exclude_phospho_nl, match_pepfdr, 
-                     combine_tier_three, use_ms1_cache), 
+  stopifnot(vapply(c(include_insource_nl, match_pepfdr, combine_tier_three, 
+                     use_ms1_cache), 
                    is.logical, logical(1L)))
 
   # numeric types 
@@ -645,7 +641,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
       fixedmods = fixedmods,
       varmods = varmods,
       include_insource_nl = include_insource_nl,
-      exclude_phospho_nl = exclude_phospho_nl, 
       enzyme = enzyme,
       custom_enzyme = custom_enzyme, 
       maxn_fasta_seqs = maxn_fasta_seqs,
@@ -922,15 +917,17 @@ matchMS <- function (out_path = "~/proteoM/outs",
 #'
 #'   digits = digits)
 try_ms2match <- function (mgf_path, aa_masses_all, out_path, mod_indexes, 
-                          type_ms2ions, maxn_vmods_per_pep, maxn_sites_per_vmod,
-                          maxn_vmods_sitescombi_per_pep, minn_ms2, ppm_ms1, 
-                          ppm_ms2, min_ms2mass, quant, ppm_reporters,
-                          fasta, acc_type, acc_pattern, topn_ms2ions,
-                          fixedmods, varmods, include_insource_nl, enzyme, 
-                          maxn_fasta_seqs, maxn_vmods_setscombi, 
-                          min_len, max_len, max_miss, 
-                          target_fdr, fdr_type, combine_tier_three, 
-                          digits) 
+                          type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
+                          maxn_sites_per_vmod = 3L,
+                          maxn_vmods_sitescombi_per_pep = 64L, minn_ms2 = 6L, 
+                          ppm_ms1 = 20L, ppm_ms2 = 25L, min_ms2mass = 115L, 
+                          quant = "none", ppm_reporters = 10L,fasta, acc_type, 
+                          acc_pattern, topn_ms2ions = 100L, fixedmods, varmods, 
+                          include_insource_nl = FALSE, enzyme = "trypsin_p", 
+                          maxn_fasta_seqs = 200000L, maxn_vmods_setscombi = 64L, 
+                          min_len = 7L, max_len = 50L, max_miss = 2L, 
+                          target_fdr = 0.01, fdr_type = "protein", 
+                          combine_tier_three = FALSE, digits = 4L) 
 {
   ans <- tryCatch(
     ms2match(mgf_path = mgf_path,

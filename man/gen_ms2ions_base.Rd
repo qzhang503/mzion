@@ -26,7 +26,7 @@ gen_ms2ions_a0_vnl0_fnl1(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_vmods_sitescombi_per_pep = 32L,
+  maxn_vmods_sitescombi_per_pep = 64L,
   digits = 4L
 )
 
@@ -47,7 +47,7 @@ gen_ms2ions_a1_vnl0_fnl0(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_vmods_sitescombi_per_pep = 32L,
+  maxn_vmods_sitescombi_per_pep = 64L,
   digits = 4L
 )
 
@@ -68,7 +68,7 @@ gen_ms2ions_a1_vnl0_fnl1(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_vmods_sitescombi_per_pep = 32L,
+  maxn_vmods_sitescombi_per_pep = 64L,
   digits = 4L
 )
 
@@ -89,7 +89,7 @@ gen_ms2ions_a1_vnl1_fnl0(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_vmods_sitescombi_per_pep = 32L,
+  maxn_vmods_sitescombi_per_pep = 64L,
   digits = 4L
 )
 
@@ -110,7 +110,7 @@ gen_ms2ions_base(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_vmods_sitescombi_per_pep = 32L,
+  maxn_vmods_sitescombi_per_pep = 64L,
   digits = 4L
 )
 }

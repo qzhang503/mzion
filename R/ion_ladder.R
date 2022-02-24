@@ -6,7 +6,8 @@
 #' @param ntmass The mass of a fixed or variable N-term modification.
 #' @param ctmass The mass of a fixed or variable C-term modification.
 #' @inheritParams matchMS
-ms2ions_by_type <- function (aas2, ntmass, ctmass, type_ms2ions, digits) 
+ms2ions_by_type <- function (aas2, ntmass, ctmass, type_ms2ions = "by", 
+                             digits = 4L) 
 {
   switch(type_ms2ions, 
          by = byions(ntmass, ctmass, aas2, digits), 

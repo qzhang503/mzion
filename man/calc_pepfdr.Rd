@@ -8,7 +8,7 @@ calc_pepfdr(
   target_fdr = 0.01,
   fdr_type = "psm",
   min_len = 7L,
-  max_len = 50L,
+  max_len = 40L,
   match_pepfdr = TRUE,
   max_pepscores_co = Inf,
   out_path

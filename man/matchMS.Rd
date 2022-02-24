@@ -15,7 +15,6 @@ matchMS(
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
-  exclude_phospho_nl = TRUE,
   enzyme = c("Trypsin_P", "Trypsin", "LysC", "LysN", "ArgC", "LysC_P", "Chymotrypsin",
     "GluC", "GluN", "AspC", "AspN", "SemiTrypsin_P", "SemiTrypsin", "SemiLysC",
     "SemiLysN", "SemiArgC", "SemiLysC_P", "SemiChymotrypsin", "SemiGluC", "SemiGluN",
@@ -110,11 +109,6 @@ fragmentation. The default is FALSE. The setting at TRUE remains
 experimenting by allowing additional masses in the universe of MS1
 precursors.}
 
-\item{exclude_phospho_nl}{Logical; if TRUE, excludes neutral losses in the
-MS2 ion searches against variable modifications of phospho sites. The
-default if TRUE. May toggle it to \code{FALSE} if search speed against
-phospho data is not a primary concern.}
-
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from proteins. The
 default is \code{Trypsin_P}.}
@@ -205,7 +199,8 @@ and y-ions.}
 interrogation. The default is 110.}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
-for consideration as a hit. The default is 6.}
+for consideration as a hit. The default is 6. Counts of secondary ions,
+e.g. b0, b* etc., are not part of the threshold.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 25.}

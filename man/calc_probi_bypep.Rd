@@ -10,11 +10,11 @@ calc_probi_bypep(
   expt_moverzs,
   expt_ints,
   N,
-  type_ms2ions,
-  topn_ms2ions,
-  penalize_sions,
-  ppm_ms2,
-  digits
+  type_ms2ions = "by",
+  topn_ms2ions = 100L,
+  penalize_sions = TRUE,
+  ppm_ms2 = 25L,
+  digits = 5L
 )
 }
 \arguments{

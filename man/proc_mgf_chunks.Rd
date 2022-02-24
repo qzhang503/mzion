@@ -11,7 +11,7 @@ proc_mgf_chunks(
   ms1_scan_range = c(1L, .Machine$integer.max),
   ret_range = c(0, Inf),
   ppm_ms2 = 25L,
-  min_ms2mass = 110L,
+  min_ms2mass = 115L,
   index_ms2 = FALSE,
   type_mgf = "msconv_thermo",
   n_bf_begin = 0L,

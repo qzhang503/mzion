@@ -2,7 +2,7 @@
 % Please edit documentation in R/scores.R
 \name{na.interp}
 \alias{na.interp}
-\title{Interpolate missing values in a time series.}
+\title{Interpolates missing values in a time series.}
 \usage{
 na.interp(
   x,

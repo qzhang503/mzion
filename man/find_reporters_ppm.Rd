@@ -4,7 +4,7 @@
 \alias{find_reporters_ppm}
 \title{Finds the indexes of reporter ions.}
 \usage{
-find_reporters_ppm(theos, expts, ppm_reporters = 10, len, nms)
+find_reporters_ppm(theos, expts, ppm_reporters = 10L, len, nms)
 }
 \arguments{
 \item{theos}{The theoretical m-over-z of reporter ions.}

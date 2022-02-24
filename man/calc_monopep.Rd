@@ -8,10 +8,10 @@ calc_monopep(
   aa_seq,
   aa_masses,
   include_insource_nl = FALSE,
-  maxn_vmods_per_pep = 5,
-  maxn_sites_per_vmod = 3,
+  maxn_vmods_per_pep = 5L,
+  maxn_sites_per_vmod = 3L,
   max_mass = 4500L,
-  digits = 5
+  digits = 5L
 )
 }
 \arguments{

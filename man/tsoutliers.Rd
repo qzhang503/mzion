@@ -2,7 +2,7 @@
 % Please edit documentation in R/scores.R
 \name{tsoutliers}
 \alias{tsoutliers}
-\title{Identify and replace outliers in a time series.}
+\title{Identifies and replace outliers in a time series.}
 \usage{
 tsoutliers(x, iterate = 2, lambda = NULL)
 }

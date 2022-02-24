@@ -4,13 +4,7 @@
 \alias{add_fixvar_masses}
 \title{Helper to add modification masses to amino-acid residues.}
 \usage{
-add_fixvar_masses(
-  mods,
-  mod_type,
-  aa_masses,
-  add_varmasses = TRUE,
-  exclude_phospho_nl = TRUE
-)
+add_fixvar_masses(mods, mod_type, aa_masses, add_varmasses = TRUE)
 }
 \arguments{
 \item{mods}{A list of modifications.}
@@ -26,11 +20,6 @@ acid residues.}
 base mass for variable modifications. The argument at TRUE is for
 compatibility for MS1 precursor mass calculations before the approach of
 "rolling sum + fallthrough".}
-
-\item{exclude_phospho_nl}{Logical; if TRUE, excludes neutral losses in the
-MS2 ion searches against variable modifications of phospho sites. The
-default if TRUE. May toggle it to \code{FALSE} if search speed against
-phospho data is not a primary concern.}
 }
 \value{
 Lists of of amino-acid residues with modified mono-isotopic masses

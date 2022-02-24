@@ -12,8 +12,8 @@ calc_ms2ions_a1_vnl0_fnl1(
   aa_masses,
   ntmass,
   ctmass,
-  type_ms2ions,
-  digits
+  type_ms2ions = "by",
+  digits = 4L
 )
 }
 \arguments{

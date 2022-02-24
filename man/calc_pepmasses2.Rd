@@ -13,15 +13,14 @@ calc_pepmasses2(
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
-  exclude_phospho_nl = TRUE,
-  enzyme = c("Trypsin_P"),
+  enzyme = c("trypsin_p"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL),
   maxn_fasta_seqs = 50000L,
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   min_len = 7L,
-  max_len = 50L,
+  max_len = 40L,
   max_miss = 2L,
   min_mass = 700L,
   max_mass = 4500L,
@@ -61,11 +60,6 @@ additional masses in the universe of MS1 precursors. The offsets in NLs (by
 adding back precursor masses) have not yet taken into account in MS2 ion
 searches. A more systemically approach such as \code{open} MS1 masses might
 be developed in the future.}
-
-\item{exclude_phospho_nl}{Logical; if TRUE, excludes neutral losses in the
-MS2 ion searches against variable modifications of phospho sites. The
-default if TRUE. May toggle it to \code{FALSE} if search speed against
-phospho data is not a primary concern.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from proteins. The enzyme

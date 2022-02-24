@@ -4,7 +4,7 @@
 \alias{probco_bypeplen}
 \title{Helper of \link{calc_pepfdr}.}
 \usage{
-probco_bypeplen(len, td, fdr_type, target_fdr, out_path)
+probco_bypeplen(len, td, fdr_type = "psm", target_fdr = 0.01, out_path)
 }
 \arguments{
 \item{len}{Numeric; the length of peptides.}

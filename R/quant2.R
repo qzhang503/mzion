@@ -8,7 +8,7 @@
 #' @param ppm_reporters The mass tolerance of MS2 reporter ions.
 calc_tmtint <- function (data = NULL,
                          quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16"),
-                         ppm_reporters = 10) 
+                         ppm_reporters = 10L) 
 {
   if (quant == "none") {
     out <- data
@@ -167,7 +167,7 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
 #'                         len , nms)
 #' }
 find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
-                                ppm_reporters = 10, len, nms) 
+                                ppm_reporters = 10L, len, nms) 
 {
   range <- findInterval(ul, ms2_moverzs)
   
@@ -224,7 +224,7 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
 #'   reporter ions).
 #' @inheritParams find_reporter_ints
 #' @return A vector of indexes
-find_reporters_ppm <- function (theos, expts, ppm_reporters = 10, len, nms) 
+find_reporters_ppm <- function (theos, expts, ppm_reporters = 10L, len, nms) 
 {
   d <- outer(theos, expts, "find_ppm_error")
   row_cols <- which(abs(d) <= ppm_reporters, arr.ind = TRUE)
@@ -1080,7 +1080,7 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
 #'   right.
 #' @examples 
 #' m <- sparseD_fourquad(ul, 6)
-sparseD_fourquad <- function (M_ul, ncols_ur = 0) 
+sparseD_fourquad <- function (M_ul, ncols_ur = 0L) 
 {
   nrows_ul <- ncols_ul <- ncol(M_ul)
   nrows_l <- ncols_ur

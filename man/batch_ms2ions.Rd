@@ -11,15 +11,14 @@ batch_ms2ions(
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
-  exclude_phospho_nl = TRUE,
   type_ms2ions = "by",
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_vmods_sitescombi_per_pep = 32L,
+  maxn_vmods_sitescombi_per_pep = 64L,
   .path_cache = NULL,
   .path_fasta = NULL,
-  digits = 4L
+  digits = 5L
 )
 }
 \arguments{
@@ -44,11 +43,6 @@ precursor masses with the losses of neutral species prior to MS2
 fragmentation. The default is FALSE. The setting at TRUE remains
 experimenting by allowing additional masses in the universe of MS1
 precursors.}
-
-\item{exclude_phospho_nl}{Logical; if TRUE, excludes neutral losses in the
-MS2 ion searches against variable modifications of phospho sites. The
-default if TRUE. May toggle it to \code{FALSE} if search speed against
-phospho data is not a primary concern.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2

@@ -8,10 +8,9 @@ calc_aamasses(
   fixedmods = c("TMT6plex (K)", "Carbamidomethyl (. = C)"),
   varmods = c("TMT6plex (N-term)", "Acetyl (Protein N-term)", "Oxidation (M)",
     "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
-  maxn_vmods_setscombi = 64,
+  maxn_vmods_setscombi = 64L,
   add_varmasses = TRUE,
   add_nlmasses = TRUE,
-  exclude_phospho_nl = FALSE,
   out_path = NULL
 )
 }
@@ -31,11 +30,6 @@ compatibility for MS1 precursor mass calculations before the approach of
 
 \item{add_nlmasses}{Logical; if TRUE, add an original mass to the
 corresponding (negative) neutral-loss mass.}
-
-\item{exclude_phospho_nl}{Logical; if TRUE, excludes neutral losses in the
-MS2 ion searches against variable modifications of phospho sites. The
-default if TRUE. May toggle it to \code{FALSE} if search speed against
-phospho data is not a primary concern.}
 
 \item{out_path}{An output path.}
 }

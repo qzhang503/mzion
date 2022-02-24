@@ -64,14 +64,13 @@ calc_pepmasses2 <- function (
               "Deamidated (N)",
               "Gln->pyro-Glu (N-term = Q)"),
   include_insource_nl = FALSE,
-  exclude_phospho_nl = TRUE,
-  enzyme = c("Trypsin_P"),
+  enzyme = c("trypsin_p"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
   maxn_fasta_seqs = 50000L,
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  min_len = 7L, max_len = 50L, max_miss = 2L,
+  min_len = 7L, max_len = 40L, max_miss = 2L,
   min_mass = 700L, max_mass = 4500L, 
   n_13c = 0L,
   out_path = NULL,
@@ -157,8 +156,7 @@ calc_pepmasses2 <- function (
       out_path = file.path(.path_fasta, "ms1masses", .time_stamp),
       fixedmods = fixedmods,
       varmods = varmods,
-      maxn_vmods_setscombi = maxn_vmods_setscombi, 
-      exclude_phospho_nl = exclude_phospho_nl)
+      maxn_vmods_setscombi = maxn_vmods_setscombi)
 
     files <- list.files(path = file.path(.path_ms1masses, .time_stamp),
                         pattern = "pepmasses_\\d+\\.rds$")
@@ -193,8 +191,7 @@ calc_pepmasses2 <- function (
       out_path = file.path(.path_fasta, "ms1masses", .time_stamp),
       fixedmods = fixedmods,
       varmods = varmods,
-      maxn_vmods_setscombi = maxn_vmods_setscombi, 
-      exclude_phospho_nl = exclude_phospho_nl)
+      maxn_vmods_setscombi = maxn_vmods_setscombi)
 
     ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
                            maxn_vmods_per_pep = maxn_vmods_per_pep,
@@ -610,8 +607,7 @@ calc_pepmasses2 <- function (
 #'
 #' @inheritParams calc_pepmasses2
 find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
-                            maxn_vmods_setscombi = 64L, 
-                            exclude_phospho_nl = FALSE) 
+                            maxn_vmods_setscombi = 64L) 
 {
   if (!file.exists(file.path(out_path, "aa_masses_all.rds"))) {
     message("Computing the combinations of fixed and variable modifications.")
@@ -623,7 +619,6 @@ find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
                                    maxn_vmods_setscombi = maxn_vmods_setscombi,
                                    add_varmasses = FALSE,
                                    add_nlmasses = FALSE, 
-                                   exclude_phospho_nl = exclude_phospho_nl, 
                                    out_path = out_path) %T>%
       saveRDS(file.path(out_path, "aa_masses_all.rds"))
   } else {
@@ -875,10 +870,9 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
                                        "Oxidation (M)",
                                        "Deamidated (N)",
                                        "Gln->pyro-Glu (N-term = Q)"),
-                           maxn_vmods_setscombi = 64,
+                           maxn_vmods_setscombi = 64L,
                            add_varmasses = TRUE,
                            add_nlmasses = TRUE, 
-                           exclude_phospho_nl = FALSE, 
                            out_path = NULL) 
 {
   # title (position = site);
@@ -1028,9 +1022,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
   aa_masses_fi2 <- add_fixvar_masses(mods = fixedmods,
                                      mod_type = "fmods",
                                      aa_masses = aa_masses,
-                                     add_varmasses = add_varmasses, 
-                                     # changed from `FALSE`
-                                     exclude_phospho_nl = exclude_phospho_nl)
+                                     add_varmasses = add_varmasses)
 
   aa_masses_fi2 <- aa_masses_fi2 %>%
     lapply(function (x) {
@@ -1106,8 +1098,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
       add_fixvar_masses(mods = vi,
                         mod_type = "vmods",
                         aa_masses = x,
-                        add_varmasses = add_varmasses, 
-                        exclude_phospho_nl = exclude_phospho_nl)) %>%
+                        add_varmasses = add_varmasses)) %>%
       purrr::flatten()
   }) %>%
     purrr::flatten()
@@ -1242,11 +1233,9 @@ check_anywhere_fmods_coercion <- function (site, aa_masses_all, vmods_ps)
 #'   base mass for variable modifications. The argument at TRUE is for
 #'   compatibility for MS1 precursor mass calculations before the approach of
 #'   "rolling sum + fallthrough".
-#' @inheritParams matchMS
 #' @return Lists of of amino-acid residues with modified mono-isotopic masses
 #'   being incorporated.
-add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE, 
-                               exclude_phospho_nl = TRUE) 
+add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE) 
 {
   stopifnot(mod_type %in% c("fmods", "vmods"),
             length(mod_type) == 1L)
@@ -1278,18 +1267,6 @@ add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE,
   neulosses <- lapply(res, `[[`, "nl")
   rm(res)
 
-  neulosses <- local({
-    if (exclude_phospho_nl) {
-      phos <- grepl("^Phospho ", names(neulosses))
-      
-      # the first (`[[`, 1) is `0` since values were sorted during `find_unimod`
-      if (any(phos)) 
-        neulosses[phos] <- lapply(neulosses[phos], `[[`, 1)
-    }
-    
-    neulosses
-  })
-  
   # the same `site` with different fixedmods
   local({
     if (mod_type == "fmods" && length(positions_sites) > 1L) {
@@ -2238,8 +2215,8 @@ add_term_mass2 <- function (aa_masses, peps, max_mass = 4500L)
 #' @inheritParams add_fixvar_masses
 #' @inheritParams distri_fpeps
 ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
-                            max_miss = 2L, min_len = 7L, max_len = 50L,
-                            min_mass = 600L, max_mass = 6000L, 
+                            max_miss = 2L, min_len = 7L, max_len = 40L,
+                            min_mass = 700L, max_mass = 4500L, 
                             maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
                             is_fixed_protnt = FALSE, is_fixed_protct = FALSE, 
                             digits = 4L) 
@@ -2982,7 +2959,6 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #'                                maxn_vmods_setscombi = 64,
 #'                                add_varmasses = FALSE,
 #'                                add_nlmasses = FALSE,
-#'                                exclude_phospho_nl = TRUE,
 #'                                out_path = NULL)
 #'
 #' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i)

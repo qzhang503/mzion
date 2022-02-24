@@ -6,8 +6,8 @@
 \usage{
 binTheoSeqs_i(
   idx = 1L,
-  min_mass = 500L,
-  max_mass = 6000L,
+  min_mass = 700L,
+  max_mass = 4500L,
   ppm_ms1 = 20L,
   in_path = NULL,
   out_path = NULL

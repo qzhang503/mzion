@@ -22,11 +22,11 @@ frames_adv2(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_vmods_sitescombi_per_pep = 32L,
-  minn_ms2 = 7L,
+  maxn_vmods_sitescombi_per_pep = 64L,
+  minn_ms2 = 6L,
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
-  min_ms2mass = 110L,
+  min_ms2mass = 115L,
   digits = 4L
 )
 }
