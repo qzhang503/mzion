@@ -788,7 +788,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
     rm(list = c("i"))
   }
   else {
-    # (MGFs in sub-folders with group searches)
+    # (MGFs in sub-folders if group searches)
     mgf_path <- checkMGF(mgf_path, error = "warn")
     mgf_paths <- NULL
   }
@@ -995,14 +995,16 @@ matchMS <- function (out_path = "~/proteoM/outs",
   if (is.null(bypass_pepfdr)) bypass_pepfdr <- FALSE
   
   if (!bypass_pepfdr) {
-    calc_pepfdr(target_fdr = target_fdr, 
+    prob_cos <- calc_pepfdr(target_fdr = target_fdr, 
                        fdr_type = fdr_type, 
                        min_len = min_len, 
                        max_len = max_len, 
                        max_pepscores_co = max_pepscores_co, 
                        match_pepfdr = match_pepfdr, 
-                       out_path = out_path) %>% 
-      post_pepfdr(out_path)
+                       out_path = out_path)
+    
+    post_pepfdr(prob_cos, out_path)
+    rm(list = "prob_cos")
   }
 
   ## Peptide ranks and score deltas between `pep_ivmod`
@@ -1043,12 +1045,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
   gc()
 
   ## Clean-ups
-  # from_group_search
+  # (raw_file etc. already mapped if `from_group_search`)
   from_group_search <- dots$from_group_search
   if (!isTRUE(from_group_search)) df <- map_raw_n_scan(df, mgf_path)
-  # if ((!is.null(mgf_path)) && is.null(mgf_paths)) df <- map_raw_n_scan(df, mgf_path)
-    
-  
+
   df$pep_ms1_delta <- df$ms1_mass - df$theo_ms1
 
   df <- dplyr::rename(df, 
@@ -1064,12 +1064,14 @@ matchMS <- function (out_path = "~/proteoM/outs",
     pep_n_ms2 = ms2_n,
     pep_frame = frame)
 
+  nms <- names(df)
   df <- dplyr::bind_cols(
-    df[grepl("^prot_", names(df))],
-    df[grepl("^pep_", names(df))],
-    df[grepl("^psm_", names(df))],
-    df[!grepl("^prot_|^pep_|^psm_", names(df))],
+    df[grepl("^prot_", nms)],
+    df[grepl("^pep_", nms)],
+    df[grepl("^psm_", nms)],
+    df[!grepl("^prot_|^pep_|^psm_", nms)],
   )
+  rm(list = "nms")
   
   df <- reloc_col_after(df, "pep_exp_z", "pep_exp_mr")
   df <- reloc_col_after(df, "pep_calc_mr", "pep_exp_z")
@@ -1728,6 +1730,7 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
   if (!is.null(mgf_paths)) {
     for (i in seq_along(ans)) {
       ans[[i]] <- map_raw_n_scan(ans[[i]], mgf_paths[[i]])
+      ans[[i]]$pep_group <- nms[i]
     }
   }
 
@@ -1749,7 +1752,6 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
   this_call$bypass_peploc <- TRUE
   this_call$bypass_par_groups <- TRUE
   this_call$bypss_mgf_checks <- TRUE
-  
   this_call$from_group_search <- TRUE
   this_call$par_groups <- NULL
 

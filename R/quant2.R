@@ -261,23 +261,30 @@ add_prot_acc <- function (df = NULL, out_path = NULL, .path_cache = NULL,
   .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
   .time_stamp <- find_ms1_times(out_path)
   
-  # fwd_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots.rds"))
-  # fwd_prps <- fwd_prps[fwd_prps$pep_seq %in% uniq_peps, ]
-  # rev_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots_rev.rds"))
-  # rev_prps <- rev_prps[rev_prps$pep_seq %in% uniq_peps, ]
-  # rev_prps <- purge_decoys(target = fwd_prps, decoy = rev_prps)
+  if (length(.time_stamp) == 1L) {
+    fwd_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots.rds"))
+    fwd_prps <- fwd_prps[fwd_prps$pep_seq %in% uniq_peps, ]
+    
+    rev_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots_rev.rds"))
+    rev_prps <- rev_prps[rev_prps$pep_seq %in% uniq_peps, ]
+    rev_prps <- purge_decoys(target = fwd_prps, decoy = rev_prps)
+  }
+  else {
+    fwd_prps <- lapply(.time_stamp, hfwd_prps, .path_ms1masses, uniq_peps)
+    
+    rev_prps <- mapply(hrev_prps, fwd_prps, .time_stamp, 
+                       MoreArgs = list(
+                         .path_ms1masses = .path_ms1masses, 
+                         uniq_peps = uniq_peps
+                       ), SIMPLIFY = FALSE)
+    
+    fwd_prps <- dplyr::bind_rows(fwd_prps)
+    rev_prps <- dplyr::bind_rows(rev_prps)
+    
+    fwd_prps <- unique(fwd_prps)
+    rev_prps <- unique(rev_prps)
+  }
   
-  fwd_prps <- lapply(.time_stamp, hfwd_prps, .path_ms1masses, uniq_peps)
-  
-  rev_prps <- mapply(hrev_prps, fwd_prps, .time_stamp, 
-                     MoreArgs = list(
-                       .path_ms1masses = .path_ms1masses, 
-                       uniq_peps = uniq_peps
-                     ), SIMPLIFY = FALSE)
-  
-  fwd_prps <- dplyr::bind_rows(fwd_prps)
-  rev_prps <- dplyr::bind_rows(rev_prps)
-
   out <- hadd_prot_acc(df, fwd_prps, rev_prps)
   
   invisible(out)

@@ -1452,8 +1452,11 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
     dplyr::mutate(pep_score = -log10(pep_adjp) * fct_score, 
                   pep_score = ifelse(pep_score > 250, 250, pep_score), 
                   pep_score_co = -log10(pep_adjp_co) * fct_score) %>% 
-    dplyr::select(-c("pep_prob", "pep_adjp", "pep_prob_co", "pep_adjp_co")) %T>% 
-    saveRDS(file.path(out_path, "temp", "pepfdr.rds"))
+    dplyr::select(-c("pep_prob", "pep_adjp", "pep_prob_co", "pep_adjp_co"))
+
+  saveRDS(td, file.path(out_path, "temp", "pepfdr.rds"))
+  
+  invisible(td)
 }
 
 
