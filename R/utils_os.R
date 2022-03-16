@@ -364,8 +364,9 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list")
 #' @param create Logical; if TRUE create the path if not yet existed.
 find_dir <- function (path, create = FALSE) 
 {
-  stopifnot(length(path) == 1L)
-  
+  if (length(path) != 1L)
+    stop("Length of `path` is not exactly one: ", paste(path, collapse = ", "))
+
   path <- gsub("\\\\", "/", path)
   
   p1 <- fs::path_expand_r(path)
@@ -402,8 +403,12 @@ create_dir <- function (path) find_dir(path, create = TRUE)
 #' @param time The time stamp.
 save_call2 <- function(path, fun, time = NULL) 
 {
-  stopifnot(length(path) == 1L, length(fun) == 1L)
+  if (length(path) != 1L)
+    stop("Length of `path` is not exactly one: ", paste(path, collapse = ", "))
   
+  if (length(fun) != 1L)
+    stop("Length of `fun` is not exactly one: ", paste(fun, collapse = ", "))
+
   call_pars <- mget(names(formals(fun)), envir = parent.frame(), inherits = FALSE)
   call_pars[names(call_pars) == "..."] <- NULL
   
@@ -412,7 +417,9 @@ save_call2 <- function(path, fun, time = NULL)
     save(call_pars, file = file.path(p2, paste0(fun, ".rda")))
   } 
   else {
-    stopifnot(length(time) == 1L)
+    if (length(time) != 1L)
+      stop("Length of `time` is not exactly one: ", paste(time, collapse = ", "))
+
     p2 <- create_dir(file.path(path, fun))
     save(call_pars, file = file.path(p2, paste0(time, ".rda")))
   }
@@ -430,11 +437,16 @@ save_call2 <- function(path, fun, time = NULL)
 find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
                                args = NULL, new_args = NULL) 
 {
-  stopifnot(length(path) == 1L, length(fun) == 1L)
+  if (length(path) != 1L)
+    stop("Length of `path` is not exactly one: ", paste(path, collapse = ", "))
   
+  if (length(fun) != 1L)
+    stop("Length of `fun` is not exactly one: ", paste(fun, collapse = ", "))
+
   if (is.null(time)) {
     file <- file.path(path, fun)
-  } else {
+  } 
+  else {
     stopifnot(length(time) == 1L)
     file <- file.path(path, fun, time)
   }
@@ -593,3 +605,40 @@ delete_files <- function (path, ignores = NULL, ...)
 }
 
 
+#' Finds the time stamp(s) of MS1 precursors.
+#' 
+#' @param out_path An output path.
+find_ms1_times <- function (out_path) 
+{
+  if (".time_stamp" %in% ls(envir = .GlobalEnv, all.names = TRUE)) {
+    # sometime incorrect `.time_stamp` from a previous session
+    return(get(".time_stamp", envir = .GlobalEnv, inherits = FALSE))
+  }
+  
+  file <- file.path(out_path, "Calls", ".cache_info.rds")
+  
+  if (file.exists(file)) {
+    .cache_info <- readRDS(file)
+    .time_stamp <- .cache_info$.time_stamp
+    
+    if (is.null(.time_stamp))
+      stop("Cannot find `.time_stamp`.")
+    
+    return(.time_stamp)
+  }
+  
+  file2 <- file.path(out_path, "temp", "out_paths.rds")
+  
+  if (file.exists(file2)) {
+    out_paths <- readRDS(file2)
+    
+    .cache_infos <- 
+      lapply(out_paths, function (x) readRDS(file.path(x, "Calls", ".cache_info.rds")))
+    
+    # multiple time stamps
+    return(lapply(.cache_infos, function (x) x[[".time_stamp"]]))
+  }
+  else {
+    stop("Cannot find `.time_stamp`.")
+  }
+}

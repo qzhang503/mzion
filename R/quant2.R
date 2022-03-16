@@ -233,32 +233,78 @@ find_reporters_ppm <- function (theos, expts, ppm_reporters = 10L, len, nms)
 }
 
 
-#' Adds prot_acc to a peptide table
+#' Adds prot_acc to a peptide table.
+#'
+#' Decoys being kept.
 #'
 #' @param out_path An output path.
 #' @param df The results after scoring.
-add_prot_acc <- function (df, out_path = NULL) 
+#' @inheritParams matchMS
+add_prot_acc <- function (df = NULL, out_path = NULL, .path_cache = NULL, 
+                          .path_fasta = NULL) 
 {
   message("Adding protein accessions.")
   
+  if (is.null(df)) {
+    file <- file.path(out_path, "temp", "peploc.rds")
+    
+    if (file.exists(file)) 
+      df <- readRDS(file)
+    else
+      stop("File not found: ", file)
+    
+    rm(list = c("file"))
+  }
+
   uniq_peps <- unique(df$pep_seq)
   
-  # Targets, theoretical
-  .path_ms1masses <- get(".path_ms1masses", envir = .GlobalEnv, inherits = FALSE)
+  .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
+  .time_stamp <- find_ms1_times(out_path)
   
+  # fwd_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots.rds"))
+  # fwd_prps <- fwd_prps[fwd_prps$pep_seq %in% uniq_peps, ]
+  # rev_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots_rev.rds"))
+  # rev_prps <- rev_prps[rev_prps$pep_seq %in% uniq_peps, ]
+  # rev_prps <- purge_decoys(target = fwd_prps, decoy = rev_prps)
+  
+  fwd_prps <- lapply(.time_stamp, hfwd_prps, .path_ms1masses, uniq_peps)
+  
+  rev_prps <- mapply(hrev_prps, fwd_prps, .time_stamp, 
+                     MoreArgs = list(
+                       .path_ms1masses = .path_ms1masses, 
+                       uniq_peps = uniq_peps
+                     ), SIMPLIFY = FALSE)
+  
+  fwd_prps <- dplyr::bind_rows(fwd_prps)
+  rev_prps <- dplyr::bind_rows(rev_prps)
+
+  out <- hadd_prot_acc(df, fwd_prps, rev_prps)
+  
+  invisible(out)
+}
+
+
+#' Helper of finding forward protein-peptide map.
+#' 
+#' @param .time_stamp An MS1 time stamp.
+#' @param uniq_peps Unique forward peptide sequence in the lookup table.
+#' @inheritParams  calc_pepmasses2
+hfwd_prps <- function (.time_stamp, .path_ms1masses, uniq_peps) 
+{
   fwd_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots.rds"))
   fwd_prps <- fwd_prps[fwd_prps$pep_seq %in% uniq_peps, ]
-  
-  # Decoys, theoretical
+}
+
+
+#' Helper of finding reversed protein-peptide map.
+#' 
+#' @param fwd_prps A forward protein-peptide table.
+#' @inheritParams hfwd_prps
+hrev_prps <- function (fwd_prps, .time_stamp, .path_ms1masses, uniq_peps) 
+{
   rev_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots_rev.rds"))
   rev_prps <- rev_prps[rev_prps$pep_seq %in% uniq_peps, ]
   rev_prps <- purge_decoys(target = fwd_prps, decoy = rev_prps)
-  
-  # Adds `prot_acc` (with decoys being kept)
-  rm(list = c("uniq_peps"))
-  gc()
-  
-  hadd_prot_acc(df, fwd_prps, rev_prps)
 }
 
 
@@ -268,9 +314,22 @@ add_prot_acc <- function (df, out_path = NULL)
 #' 
 #' @param out_path An output path.
 #' @param df The results after scoring.
-add_prot_acc2 <- function (df, out_path) 
+#' @inheritParams matchMS
+add_prot_acc2 <- function (df = NULL, out_path = NULL, .path_cache = NULL, 
+                           .path_fasta = NULL) 
 {
   message("Adding protein accessions.")
+  
+  if (is.null(df)) {
+    file <- file.path(out_path, "temp", "peploc.rds")
+    
+    if (file.exists(file)) 
+      df <- readRDS(file)
+    else
+      stop("File not found: ", file)
+    
+    rm(list = c("file"))
+  }
   
   sub_dirs <- dir(out_path, pattern = "^sub[0-9]+_[0-9]_[0-9]+$", full.names = TRUE)
   len_dirs <- length(sub_dirs)
@@ -320,7 +379,7 @@ hadd_prot_acc <- function (df, fwd_prps, rev_prps)
     dplyr::right_join(df, by = "pep_seq")
   
   rm(list = c("fwd_prps", "rev_prps"))
-  gc()
+  # gc()
   
   # Adds prot_n_psm, prot_n_pep for protein FDR
   x <- out[out$pep_issig, ]

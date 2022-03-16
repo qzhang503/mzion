@@ -20,6 +20,13 @@
 #' are used in \link{mapMS2ions} for rapid retrievals and visualizations of MS2
 #' ion ladders.
 #'
+#' When there is no evidence to distinguish, e.g. distinct primary sequences of
+#' \code{P[EMPTY]EPTIDE} and \code{P[MTYPE]EPTIDE}, both will be reported by
+#' proteoM and further kept by proteoQ. For peptides under the same primary
+#' sequence, the redundancy in the positions and/or neutral losses of
+#' \code{Anywhere} variable modifications are also kept in the outputs of
+#' proteoM but removed with proteoQ.
+#'
 #' @param out_path A file path of outputs.
 #' @param mgf_path A file path to a list of MGF files. The experimenter needs to
 #'   supply the files.
@@ -39,11 +46,11 @@
 #'   of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
 #'   the corresponding regular expressions need to be supplied via argument
 #'   \code{acc_pattern}.
-#' @param acc_pattern Regular expression(s) describing the patterns to separate
-#'   the header lines of fasta entries. At the \code{NULL} default, the pattern
-#'   will be automated when \code{acc_type} are among c("uniprot_acc",
-#'   "uniprot_id", "refseq_acc", "other"). See also \link{load_fasta2} for
-#'   custom examples.
+#' @param acc_pattern Regular expression(s) describing the patterns in
+#'   separating the header lines of fasta entries. At the \code{NULL} default,
+#'   the pattern will be automated when \code{acc_type} are among
+#'   c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
+#'   \link{load_fasta2} for custom examples.
 #' @param fixedmods Character string(s) of fixed modifications.
 #'
 #' @param varmods Character string(s) of variable modifications. Multiple
@@ -62,8 +69,8 @@
 #'   experimenting by allowing additional masses in the universe of MS1
 #'   precursors.
 #' @param enzyme A character string; the proteolytic specificity of the assumed
-#'   enzyme will be used to generate peptide sequences from proteins. The
-#'   default is \code{Trypsin_P}.
+#'   enzyme will be used to generate peptide sequences from protein entries. The
+#'   default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.
 #'
 #' @param custom_enzyme Regular expression(s) for custom enzyme specificity. The
 #'   default is NULL. Uses of custom enzyme specificity is probably rather
@@ -89,8 +96,8 @@
 #'   may be used to guard against RAM exhaustion. At the zero default, The
 #'   peptide lengths from \code{min_len} to \code{max_len} will be broken
 #'   automatically into continuous sections. At value 1, searches will be
-#'   performed against individual peptide lengths; at value 2, two lengths will
-#'   be taken at a time, etc.
+#'   performed against individual peptide lengths; at value 2, two adjacent
+#'   lengths will be taken at a time, etc.
 #' @param maxn_fasta_seqs A positive integer; the maximum number of protein
 #'   sequences in fasta files. The default is 200000.
 #' @param maxn_vmods_setscombi A non-negative integer; the maximum number of
@@ -129,6 +136,21 @@
 #'   envelopes. Nevertheless, by setting \code{n_13c = 1}, some increases in the
 #'   number of PSMs may be readily achieved at a relatively small cost of search
 #'   time.
+#' @param par_groups Parameter(s) of \code{matchMS} multiplied by sets of values
+#'   in groups. Multiple searches will be performed separately against the
+#'   parameter groups. For instance with one set of samples in SILAC light and
+#'   the other in SILAC heavy, the experimenters may specify two arguments for
+#'   parameter \code{mgf_path} and two arguments for parameter \code{fixedmods}
+#'   that link to the respective samples. In this way, there is no need to
+#'   search against, e.g. heavy-isotope-labeled K8R10 with the light samples and
+#'   vice versa. Note that results will be combined at the end, with the group
+#'   names indicated under column \code{pep_group}. The default is NULL without
+#'   grouped searches. See the examples under SILAC and Group searches.
+#' @param silac_mix A list of labels indicating SILAC groups in samples. The
+#'   parameter is most relevant for SILAC experiments where peptides of heavy,
+#'   light etc. were \emph{mixed} into one sample. The default is NULL
+#'   indicating a none mixed-SILAC experiment. See also the examples under
+#'   SILAC.
 #' @param type_ms2ions Character; the type of
 #'   \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 #'   ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
@@ -144,7 +166,8 @@
 #'   considerations. The default is 6.
 #' @param min_scan_num A positive integer; the minimum scan number for
 #'   considerations. The default is 1. The setting only applies to MGFs with
-#'   numeric scan numbers.
+#'   numeric scan numbers. For example, it has no effects on Bruker's timsTOF
+#'   data.
 #' @param max_scan_num A positive integer; the maximum scan number for
 #'   considerations. The default is the maximum machine integer. The setting
 #'   only applies to MGFs with numeric scan numbers.
@@ -225,12 +248,11 @@
 #'
 #'   Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
 #'   \code{fdr_type = psm} to \code{fdr_type = protein}.
-#' @param .path_cache The file path of cached search parameters. At the NULL
-#'   default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
-#'   parameter is for the users' awareness of the underlying structure of file
-#'   folders and the use of default is suggested. Occasionally experimenters may
-#'   remove the file folder for disk space or under infrequent events of
-#'   modified framework incurred by the developer.
+#' @param .path_cache The file path of cached search parameters. The parameter
+#'   is for the users' awareness of the underlying structure of file folders and
+#'   the use of default is suggested. Occasionally experimenters may remove the
+#'   file folder for disk space or under infrequent events of modified framework
+#'   incurred by the developer.
 #' @param .path_fasta The parent file path to the theoretical masses of MS1
 #'   precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
 #'   "\\1", get("fasta", envir = environment())[1])}. The parameter is for the
@@ -288,10 +310,9 @@
 #'                 "Deamidated (N)", "Phospho (S)", "Phospho (T)",
 #'                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
 #'   max_miss  = 2,
-#'   maxn_vmods_sitescombi_per_pep
-#'             = 32,
 #'   quant     = "tmt16",
-#'   fdr_type  = "protein",
+#'   fdr_type  = "psm",
+#'   combine_tier_three = TRUE,
 #'   out_path  = "~/proteoM/examples",
 #' )
 #'
@@ -306,10 +327,9 @@
 #'                 "Deamidated (N)", "Phospho (S)", "Phospho (T)",
 #'                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
 #'   max_miss  = 2,
-#'   maxn_vmods_sitescombi_per_pep
-#'             = 32,
 #'   quant     = "tmt18",
-#'   fdr_type  = "protein",
+#'   fdr_type  = "psm",
+#'   combine_tier_three = TRUE,
 #'   out_path  = "~/proteoM/examples",
 #' )
 #'
@@ -355,6 +375,95 @@
 #'   out_path = "~/proteoM/examples",
 #' )
 #'
+#'
+#' #######################################
+#' # SILAC
+#' #######################################
+#'
+#' ## 1. heavy and light mixed together
+#'
+#' # unlabeled base
+#' matchMS(
+#'   silac_mix = list(base = NULL, heavy = c("K8 (K)", "R10 (R)")),
+#'   ...
+#' )
+#'
+#' # labeled base
+#' # (first add D4 Unimod if not yet present)
+#' D4 <- calc_unimod_compmass("2H(4) H(-4)")
+#' mono_mass <- D4$mono_mass
+#' avge_mass <- D4$avge_mass
+#'
+#' add_unimod(header      = c(title       = "D4",
+#'                            full_name   = "Heavy lysine 2H(4) H(-4)"),
+#'            specificity = c(site        = "K",
+#'                            position    = "Anywhere"),
+#'            delta       = c(mono_mass   = "4.025108",
+#'                            avge_mass   = "4.02464",
+#'                            composition = "2H(4) H(-4)"),
+#'            neuloss     = c(mono_mass   = "0",
+#'                            avge_mass   = "0",
+#'                            composition = "0"))
+#'
+#' matchMS(
+#'   silac_mix = list(base   = c("D4 (K)"),
+#'                    median = c("K6 (K)", "R6 (R)"),
+#'                    heavy  = c("K8 (K)", "R10 (R)")),
+#'   ...
+#' )
+#'
+#' # custom groups
+#' matchMS(
+#'   silac_mix = list(base = NULL,
+#'                    grp1 = c("K6 (K)", "R6 (R)"),
+#'                    grp2 = c("K8 (K)", "R10 (R)")),
+#'   ...
+#' )
+#'
+#' matchMS(
+#'   silac_mix = list(base = c("K6 (K)", "R6 (R)"),
+#'                    grp1 = c("K8 (K)", "R10 (R)"),
+#'   ...
+#' )
+#'
+#'
+#' ## 2. heavy and light in separate samples
+#'
+#' # MGFs of light samples under the base folder
+#' # MGFs of heavy samples under the heavy folder
+#' matchMS(
+#'   par_groups = list(
+#'     base  = list(mgf_path  = "~/proteoM/my_project/mgf/base",
+#'                  fixedmods = "Carbamidomethyl (C)"),
+#'     heavy = list(mgf_path  = "~/proteoM/my_project/mgf/heavy",
+#'                  fixedmods = c("Carbamidomethyl (C)", "K8 (K)", "R10 (R)"))
+#'   ),
+#'   ...
+#' )
+#'
+#'
+#' #######################################
+#' # Group searches (more than for SILAC)
+#' #######################################
+#'
+#' # MGFs of normal samples under the light folder
+#' # MGFs of heavy-spiked samples under the heavy folder
+#' matchMS(
+#'   par_groups = list(
+#'     light = list(mgf_path  = "~/proteoM/my_project/mgf/light",
+#'                  fixedmods = "Carbamidomethyl (C)"),
+#'     heavy = list(mgf_path  = "~/proteoM/my_project/mgf/heavy",
+#'                  fixedmods = c("Carbamidomethyl (C)", "K8 (K)", "R10 (R)"))
+#'   ),
+#'   fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hsmm_2020_03.fasta",
+#'             "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'   acc_type = c("uniprot_acc", "other"),
+#'   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)"),
+#'   max_miss = 4,
+#'   quant = "none",
+#'   fdr_type = "protein"
+#' )
+#'
 #' }
 #' }
 #' @export
@@ -388,6 +497,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      min_mass = 700L, max_mass = 4500L, 
                      ppm_ms1 = 20L, 
                      n_13c = 0L, 
+                     
+                     par_groups = NULL, 
+                     silac_mix = NULL, 
 
                      type_ms2ions = "by", 
                      min_ms2mass = 115L, 
@@ -405,7 +517,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 40000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/proteoM/.MSearches (1.0.7.0)/Cache/Calls", 
+                     .path_cache = "~/proteoM/.MSearches (1.1.0.0)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L, 
@@ -420,11 +532,21 @@ matchMS <- function (out_path = "~/proteoM/outs",
   on.exit(
     if (exists(".savecall", envir = environment())) {
       if (.savecall) {
-        save_call2(path = file.path(out_path, "Calls"),
-                   fun = as.character(match.call()[[1]]))
+        tryCatch(save_call2(path = file.path(out_path, "Calls"),
+                            fun = fun), 
+                 error = function(e) NA)
       }
     },
     add = TRUE
+  )
+  
+  this_call <- match.call()
+  fun <- as.character(this_call[1])
+  
+  suppressWarnings(
+    rm(list = c(".path_cache", ".path_fasta", ".path_ms1masses", 
+                ".time_stamp", ".time_bin", ".path_bin"), 
+       envir = .GlobalEnv)
   )
   
   ## Developer's dots
@@ -542,9 +664,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
     warning("Overrule `enzyme` with `custom_enzyme`.", call. = FALSE)
     enzyme <- NULL
   }
-  else
+  else {
     enzyme <- enzyme_lwr
-  
+  }
+
   if ((!is.null(enzyme)) && (enzyme == "noenzyme"))
     max_miss <- 0L
   
@@ -588,47 +711,124 @@ matchMS <- function (out_path = "~/proteoM/outs",
   # TMT
   check_tmt_pars(fixedmods, varmods, quant) 
 
-  # Output path
-  out_path <- create_dir(out_path)
-  
-  # MGF path
-  mgf_path <- find_dir(mgf_path)
-  
-  if (is.null(mgf_path)) 
-    stop("`mgf_path` not found.", call. = FALSE)
-
-  filelist <- list.files(path = mgf_path, pattern = "\\.mgf$")
-
-  if (!length(filelist)) 
-    stop("No `.mgf` files under ", mgf_path, call. = FALSE)
-
-  rm(list = c("filelist"))
-  
   # system paths
   if (is.null(.path_cache)) {
     .path_cache <- "~/proteoM/.MSearches/Cache/Calls/"
   }
+  
   .path_cache <- create_dir(.path_cache)
   
   if (is.null(.path_fasta)) {
     .path_fasta <- file.path(gsub("(.*)\\.[^\\.]*$", "\\1", fasta[1]))
-  } 
-  .path_fasta <- create_dir(.path_fasta)
+  }
   
+  .path_fasta <- create_dir(.path_fasta)
   .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
   
-  ## flow alteration with noenzyme specificity
-  # set dots$recalled <- TRUE in `matchMS_noenzyme` and thus 
-  # bypassing when calling matchMS again from `matchMS_noenzyme`
-  
-  recalled <- if (isTRUE(dots$recalled)) FALSE else TRUE
-  
-  if (enzyme == "noenzyme" && recalled) {
-    matchMS_noenzyme(this_call = match.call(), min_len = min_len, max_len = max_len, 
-                     fasta = fasta, out_path = out_path, mgf_path = mgf_path, 
-                     noenzyme_maxn = noenzyme_maxn, quant = quant)
+  # Output path
+  out_path <- create_dir(out_path)
+  dir.create(file.path(out_path, "Calls"), showWarnings = FALSE, recursive = FALSE)
+  dir.create(file.path(out_path, "temp"), showWarnings = FALSE, recursive = FALSE)
+
+  # grouped searches 
+  # (this step before checking mgf_path)
+  if (length(par_groups)) {
+    if ("out_path" %in% names(par_groups))
+      stop("Do not include `out_path` in `par_groups`.\n", 
+           "The same parent `out_path` is assumed.", 
+           call. = FALSE)
+    
+    if ("fasta" %in% names(par_groups))
+      stop("Do not include `fasta` in `par_groups`.\n", 
+           "The same set of `fasta` files is assumed.", 
+           call. = FALSE)
+    
+    grp_args <- local({
+      nms <- lapply(par_groups, names)
+      all_nms <- sort(unique(unlist(nms, use.names = FALSE, recursive = FALSE)))
+      nms_1 <- sort(nms[[1]])
+      
+      if (!identical(nms_1, all_nms))
+        stop("Not all names are identical to those in the first group: ", 
+             paste(nms_1, collapse = ", "), 
+             call. = FALSE)
+      
+      fargs <- formalArgs(fun)
+      bads <- nms_1[! nms_1 %in% fargs]
+      
+      if (length(bads)) 
+        stop("Arguments in `par_groups` not defined in `", fun, "`:\n  ", 
+             paste(bads, collapse = ", "), call. = FALSE)
+      
+      cargs <- names(this_call)
+      cargs <- cargs[cargs != ""]
+      dups <- nms_1[nms_1 %in% cargs]
+      
+      if (length(dups))
+        stop("Arguments in `par_groups` already in the call", ":\n  ", 
+             paste(dups, collapse = ", "), call. = FALSE)
+      
+      nms_1
+    })
+  }
+  else {
+    grp_args <- NULL
   }
 
+  # MGF path
+  if ("mgf_path" %in% grp_args) {
+    mgf_path <- NULL
+    
+    mgf_paths <- lapply(par_groups, `[[`, "mgf_path")
+    mgf_paths <- lapply(mgf_paths, checkMGF, grp_args, error = "warn")
+    
+    for (i in seq_along(mgf_paths)) 
+      par_groups[[i]][["mgf_path"]] <- mgf_paths[[i]]
+    
+    rm(list = c("i"))
+  }
+  else {
+    # (MGFs in sub-folders with group searches)
+    mgf_path <- checkMGF(mgf_path, error = "warn")
+    mgf_paths <- NULL
+  }
+  
+  ## No-enzyme searches
+  exec_noenzyme <- if (isTRUE(dots$bypass_noenzyme)) FALSE else TRUE
+  
+  if (enzyme == "noenzyme" && exec_noenzyme) {
+    matchMS_noenzyme(this_call = this_call, min_len = min_len, max_len = max_len, 
+                     fasta = fasta, out_path = out_path, mgf_path = mgf_path, 
+                     noenzyme_maxn = noenzyme_maxn, quant = quant)
+    
+    return(NULL)
+  }
+
+  ## Mixed SILAC
+  exec_silac_mix <- if (isTRUE(dots$bypass_silac_mix)) FALSE else TRUE
+  
+  if (length(silac_mix) && exec_silac_mix) {
+    matchMS_silac_mix(silac = silac_mix, 
+                      this_call = this_call, 
+                      out_path = out_path, 
+                      mgf_path = mgf_path)
+    
+    return(NULL)
+  }
+  
+  # Searches by group (separate SILACs)
+  exec_par_groups <- if (isTRUE(dots$bypass_par_groups)) FALSE else TRUE
+  
+  if (length(par_groups) && exec_par_groups) {
+    df <- matchMS_par_groups(par_groups = par_groups, 
+                             grp_args = grp_args,
+                             mgf_paths = mgf_paths, 
+                             this_call = this_call, 
+                             out_path = out_path)
+    
+    return(df)
+  }
+  
   ## Theoretical MS1 masses
   bypass_pepmasses <- dots$bypass_pepmasses
   if (is.null(bypass_pepmasses)) bypass_pepmasses <- FALSE
@@ -673,9 +873,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
                   ppm_ms1 = ppm_ms1, 
                   use_ms1_cache = use_ms1_cache, 
                   .path_cache = .path_cache, 
-                  .path_ms1masses = .path_ms1masses)
+                  .path_ms1masses = .path_ms1masses, 
+                  out_path = out_path)
     
-    try(rm(list = c("res")))
+    try(rm(list = "res"), silent = TRUE)
     gc()
   }
 
@@ -753,107 +954,130 @@ matchMS <- function (out_path = "~/proteoM/outs",
   if (bypass_from_pepscores) 
     return(NULL)
   
-  calc_pepscores(topn_ms2ions = topn_ms2ions,
-                 type_ms2ions = type_ms2ions,
-                 target_fdr = target_fdr,
-                 fdr_type = fdr_type,
-                 min_len = min_len,
-                 max_len = max_len,
-                 penalize_sions = TRUE,
-                 ppm_ms2 = ppm_ms2,
-                 out_path = out_path,
-                 
-                 # dummies
-                 mgf_path = mgf_path,
-                 maxn_vmods_per_pep = maxn_vmods_per_pep,
-                 maxn_sites_per_vmod = maxn_sites_per_vmod,
-                 maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
-                 minn_ms2 = minn_ms2,
-                 ppm_ms1 = ppm_ms1,
-                 min_ms2mass = min_ms2mass,
-                 quant = quant,
-                 ppm_reporters = ppm_reporters,
-                 fasta = fasta,
-                 acc_type = acc_type,
-                 acc_pattern = acc_pattern,
-                 fixedmods = fixedmods,
-                 varmods = varmods,
-                 include_insource_nl = include_insource_nl,
-                 enzyme = enzyme,
-                 maxn_fasta_seqs = maxn_fasta_seqs,
-                 maxn_vmods_setscombi = maxn_vmods_setscombi,
-                 
-                 digits = digits)
-
+  bypass_pepscores <- dots$bypass_pepscores
+  if (is.null(bypass_pepscores)) bypass_pepscores <- FALSE
+  
+  if (!bypass_pepscores) {
+    calc_pepscores(topn_ms2ions = topn_ms2ions,
+                   type_ms2ions = type_ms2ions,
+                   target_fdr = target_fdr,
+                   fdr_type = fdr_type,
+                   min_len = min_len,
+                   max_len = max_len,
+                   penalize_sions = TRUE,
+                   ppm_ms2 = ppm_ms2,
+                   out_path = out_path,
+                   
+                   # dummies
+                   mgf_path = mgf_path,
+                   maxn_vmods_per_pep = maxn_vmods_per_pep,
+                   maxn_sites_per_vmod = maxn_sites_per_vmod,
+                   maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
+                   minn_ms2 = minn_ms2,
+                   ppm_ms1 = ppm_ms1,
+                   min_ms2mass = min_ms2mass,
+                   quant = quant,
+                   ppm_reporters = ppm_reporters,
+                   fasta = fasta,
+                   acc_type = acc_type,
+                   acc_pattern = acc_pattern,
+                   fixedmods = fixedmods,
+                   varmods = varmods,
+                   include_insource_nl = include_insource_nl,
+                   enzyme = enzyme,
+                   maxn_fasta_seqs = maxn_fasta_seqs,
+                   maxn_vmods_setscombi = maxn_vmods_setscombi,
+                   digits = digits)
+  }
+  
   ## Peptide FDR 
-  out <- calc_pepfdr(target_fdr = target_fdr, 
-                     fdr_type = fdr_type, 
-                     min_len = min_len, 
-                     max_len = max_len, 
-                     max_pepscores_co = max_pepscores_co, 
-                     match_pepfdr = match_pepfdr, 
-                     out_path = out_path) %>% 
-    post_pepfdr(out_path)
+  bypass_pepfdr <- dots$bypass_pepfdr
+  if (is.null(bypass_pepfdr)) bypass_pepfdr <- FALSE
+  
+  if (!bypass_pepfdr) {
+    calc_pepfdr(target_fdr = target_fdr, 
+                       fdr_type = fdr_type, 
+                       min_len = min_len, 
+                       max_len = max_len, 
+                       max_pepscores_co = max_pepscores_co, 
+                       match_pepfdr = match_pepfdr, 
+                       out_path = out_path) %>% 
+      post_pepfdr(out_path)
+  }
 
   ## Peptide ranks and score deltas between `pep_ivmod`
-  out <- calc_peploc(out)
-  gc()
+  bypass_peploc <- dots$bypass_peploc
+  if (is.null(bypass_peploc)) bypass_peploc <- FALSE
+  
+  if (!bypass_peploc) {
+    calc_peploc(out_path = out_path, 
+                topn_mods_per_seq = 3L, 
+                topn_seqs_per_query = 3L)
+    gc()
+  }
 
   ## Protein accessions, score cut-offs and optional reporter ions
-  if (enzyme != "noenzyme")
-    out <- add_prot_acc(out, out_path)
-  else 
-    out <- add_prot_acc2(out, out_path)
+  bypass_from_protacc <- dots$bypass_from_protacc
+  if (is.null(bypass_from_protacc)) bypass_from_protacc <- FALSE
+  
+  if (bypass_from_protacc) 
+    return(NULL)
 
-  out <- calc_protfdr(df = out, 
-                      target_fdr = target_fdr, 
-                      max_protscores_co = max_protscores_co, 
-                      out_path = out_path)
-  out <- add_rptrs(out, quant, out_path)
+  if (enzyme != "noenzyme") {
+    df <- add_prot_acc(out_path = out_path, 
+                       .path_cache = .path_cache, 
+                       .path_fasta = .path_fasta)
+  }
+  else {
+    df <- add_prot_acc2(out_path = out_path, 
+                        .path_cache = .path_cache, 
+                        .path_fasta = .path_fasta)
+  }
+
+  df <- calc_protfdr(df = df, 
+                     target_fdr = target_fdr, 
+                     max_protscores_co = max_protscores_co, 
+                     out_path = out_path)
+  
+  df <- add_rptrs(df, quant, out_path)
   gc()
 
   ## Clean-ups
-  out <- local({
-    raws <- readRDS(file.path(mgf_path, "raw_indexes.rds"))
-    raws2 <- names(raws)
-    names(raws2) <- raws
-    out$raw_file <- unname(raws2[out$raw_file])
+  # from_group_search
+  from_group_search <- dots$from_group_search
+  if (!isTRUE(from_group_search)) df <- map_raw_n_scan(df, mgf_path)
+  # if ((!is.null(mgf_path)) && is.null(mgf_paths)) df <- map_raw_n_scan(df, mgf_path)
     
-    scans <- readRDS(file.path(mgf_path, "scan_indexes.rds"))
-    scans2 <- names(scans)
-    names(scans2) <- scans
-    out$scan_title <- unname(scans2[out$scan_title])
-    
-    out
-  })
   
-  out <- out %>%
-    dplyr::mutate(pep_ms1_delta = ms1_mass - theo_ms1) %>%
-    dplyr::rename(pep_scan_title = scan_title,
-                  pep_exp_mz = ms1_moverz,
-                  pep_exp_mr = ms1_mass,
-                  pep_exp_z = ms1_charge,
-                  pep_calc_mr = theo_ms1,
-                  pep_delta = pep_ms1_delta,
-                  pep_tot_int = ms1_int,
-                  pep_ret_range = ret_time,
-                  pep_scan_num = scan_num,
-                  pep_n_ms2 = ms2_n,
-                  pep_frame = frame)
+  df$pep_ms1_delta <- df$ms1_mass - df$theo_ms1
+
+  df <- dplyr::rename(df, 
+    pep_scan_title = scan_title,
+    pep_exp_mz = ms1_moverz,
+    pep_exp_mr = ms1_mass,
+    pep_exp_z = ms1_charge,
+    pep_calc_mr = theo_ms1,
+    pep_delta = pep_ms1_delta,
+    pep_tot_int = ms1_int,
+    pep_ret_range = ret_time,
+    pep_scan_num = scan_num,
+    pep_n_ms2 = ms2_n,
+    pep_frame = frame)
+
+  df <- dplyr::bind_cols(
+    df[grepl("^prot_", names(df))],
+    df[grepl("^pep_", names(df))],
+    df[grepl("^psm_", names(df))],
+    df[!grepl("^prot_|^pep_|^psm_", names(df))],
+  )
   
-  out <- dplyr::bind_cols(
-    out %>% .[grepl("^prot_", names(.))],
-    out %>% .[grepl("^pep_", names(.))],
-    out %>% .[grepl("^psm_", names(.))],
-    out %>% .[!grepl("^prot_|^pep_|^psm_", names(.))],
-  ) %>%
-    reloc_col_after("pep_exp_z", "pep_exp_mr") %>%
-    reloc_col_after("pep_calc_mr", "pep_exp_z") %>%
-    reloc_col_after("pep_delta", "pep_calc_mr") %T>%
-    readr::write_tsv(file.path(out_path, "psmC.txt"))
+  df <- reloc_col_after(df, "pep_exp_z", "pep_exp_mr")
+  df <- reloc_col_after(df, "pep_calc_mr", "pep_exp_z")
+  df <- reloc_col_after(df, "pep_delta", "pep_calc_mr")
+  readr::write_tsv(df, file.path(out_path, "psmC.txt"))
 
   ## psmC to psmQ
-  out <- try_psmC2Q(out, out_path = out_path,
+  df <- try_psmC2Q(df, out_path = out_path,
                     fdr_type = fdr_type, 
                     combine_tier_three = combine_tier_three, 
                     max_n_prots = max_n_prots)
@@ -865,162 +1089,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   .savecall <- TRUE
 
-  invisible(out)
-}
-
-
-#' Helper of \link{ms2match}.
-#' 
-#' Not yet used.
-#' 
-#' @param aa_masses_all All the amino acid lookup tables.
-#' 
-#' @inheritParams matchMS
-#' @inheritParams ms2match
-#' @inheritParams calc_aamasses
-#' @inheritParams load_mgfs
-#' @examples
-#' try_ms2match(mgf_path = mgf_path,
-#'   aa_masses_all = aa_masses_all,
-#'   out_path = out_path,
-#'   mod_indexes = find_mod_indexes(out_path),
-#'   type_ms2ions = type_ms2ions,
-#'   maxn_vmods_per_pep = maxn_vmods_per_pep,
-#'   maxn_sites_per_vmod = maxn_sites_per_vmod,
-#'   maxn_vmods_sitescombi_per_pep =
-#'     maxn_vmods_sitescombi_per_pep,
-#'   minn_ms2 = minn_ms2,
-#'   ppm_ms1 = ppm_ms1,
-#'   ppm_ms2 = ppm_ms2,
-#'   min_ms2mass = min_ms2mass,
-#'   quant = quant,
-#'   ppm_reporters = ppm_reporters,
-#'
-#'   # dummy for argument matching
-#'   fasta = fasta,
-#'   acc_type = acc_type,
-#'   acc_pattern = acc_pattern,
-#'   topn_ms2ions = topn_ms2ions,
-#'   fixedmods = fixedmods,
-#'   varmods = varmods,
-#'   include_insource_nl = include_insource_nl,
-#'   enzyme = enzyme,
-#'   maxn_fasta_seqs = maxn_fasta_seqs,
-#'   maxn_vmods_setscombi = maxn_vmods_setscombi,
-#'   min_len = min_len,
-#'   max_len = max_len,
-#'   max_miss = max_miss,
-#'
-#'   target_fdr = target_fdr,
-#'   fdr_type = fdr_type,
-#'   combine_tier_three = combine_tier_three,
-#'
-#'   digits = digits)
-try_ms2match <- function (mgf_path, aa_masses_all, out_path, mod_indexes, 
-                          type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
-                          maxn_sites_per_vmod = 3L,
-                          maxn_vmods_sitescombi_per_pep = 64L, minn_ms2 = 6L, 
-                          ppm_ms1 = 20L, ppm_ms2 = 25L, min_ms2mass = 115L, 
-                          quant = "none", ppm_reporters = 10L,fasta, acc_type, 
-                          acc_pattern, topn_ms2ions = 100L, fixedmods, varmods, 
-                          include_insource_nl = FALSE, enzyme = "trypsin_p", 
-                          maxn_fasta_seqs = 200000L, maxn_vmods_setscombi = 64L, 
-                          min_len = 7L, max_len = 50L, max_miss = 2L, 
-                          target_fdr = 0.01, fdr_type = "protein", 
-                          combine_tier_three = FALSE, digits = 4L) 
-{
-  ans <- tryCatch(
-    ms2match(mgf_path = mgf_path,
-             aa_masses_all = aa_masses_all,
-             out_path = out_path,
-             mod_indexes = find_mod_indexes(out_path),
-             type_ms2ions = type_ms2ions,
-             maxn_vmods_per_pep = maxn_vmods_per_pep,
-             maxn_sites_per_vmod = maxn_sites_per_vmod,
-             maxn_vmods_sitescombi_per_pep =
-               maxn_vmods_sitescombi_per_pep,
-             minn_ms2 = minn_ms2,
-             ppm_ms1 = ppm_ms1,
-             ppm_ms2 = ppm_ms2,
-             min_ms2mass = min_ms2mass,
-             quant = quant,
-             ppm_reporters = ppm_reporters,
-             
-             # dummy for argument matching
-             fasta = fasta,
-             acc_type = acc_type,
-             acc_pattern = acc_pattern,
-             topn_ms2ions = topn_ms2ions,
-             fixedmods = fixedmods,
-             varmods = varmods,
-             include_insource_nl = include_insource_nl,
-             enzyme = enzyme,
-             maxn_fasta_seqs = maxn_fasta_seqs,
-             maxn_vmods_setscombi = maxn_vmods_setscombi,
-             min_len = min_len,
-             max_len = max_len,
-             max_miss = max_miss,
-             
-             digits = digits),
-    error = function(e) NA
-  )
-  
-  if (!is.null(ans)) {
-    message(
-      "Retry `matchMS()` with a new R session...\n", 
-      "\"Error in save_call2\" at the end will not affect the research results."
-    )
-    
-    fileConn <- file(file.path("~/matchMS.R"))
-    
-    lines <- c(
-      "library(proteoM)\n",
-      "proteoM::matchMS(",
-      paste0("  out_path = \"", out_path, "\","),
-      paste0("  mgf_path = \"", mgf_path, "\","),
-      paste0("  fasta = c(\"", paste(fasta, collapse = "\", \""), "\"),"),
-      paste0("  acc_type = c(\"", paste(acc_type, collapse = "\", \""), "\"),"),
-      paste0("  acc_pattern = \"", acc_pattern, "\","),
-      paste0("  fixedmods = c(\"", paste(fixedmods, collapse = "\", \""), "\"),"),
-      paste0("  varmods = c(\"", paste(varmods, collapse = "\", \""), "\"),"),
-      paste0("  include_insource_nl = ", include_insource_nl, ","),
-      paste0("  enzyme = c(\"", paste(enzyme, collapse = "\", \""), "\"),"),
-      paste0("  maxn_fasta_seqs = ", maxn_fasta_seqs, "L,"),
-      paste0("  maxn_vmods_setscombi = ", maxn_vmods_setscombi, "L,"),
-      paste0("  maxn_vmods_per_pep = ", maxn_vmods_per_pep, "L,"),
-      paste0("  maxn_sites_per_vmod = ", maxn_sites_per_vmod, "L,"),
-      paste0("  maxn_vmods_sitescombi_per_pep = ", maxn_vmods_sitescombi_per_pep, "L,"),
-      paste0("  min_len = ", min_len, "L,"),
-      paste0("  max_len = ", max_len, "L,"),
-      paste0("  max_miss = ", max_miss, "L,"),
-      paste0("  type_ms2ions = \"", type_ms2ions, "\","),
-      paste0("  topn_ms2ions = ", topn_ms2ions, "L,"),
-      paste0("  minn_ms2 = ", minn_ms2, "L,"),
-      paste0("  ppm_ms1 = ", ppm_ms1, "L,"),
-      paste0("  ppm_ms2 = ", ppm_ms2, "L,"),
-      paste0("  ppm_reporters = ", ppm_reporters, "L,"),
-      paste0("  quant = \"", quant, "\","),
-      
-      paste0("  target_fdr = ", target_fdr, ","),
-      paste0("  fdr_type = \"", fdr_type, "\","),
-      paste0("  combine_tier_three = ", combine_tier_three, ","),
-      
-      paste0("  digits = ", digits, "L"),
-      ")\n",
-      "unlink(\"~/matchMS.R\")"
-    )
-    
-    writeLines(lines, fileConn)
-    close(fileConn)
-    
-    rstudioapi::restartSession(command = 'source("~/matchMS.R")')
-  } 
-  else {
-    rm(list = "ans")
-    gc()
-  }
-  
-  invisible(NULL)
+  invisible(df)
 }
 
 
@@ -1087,8 +1156,10 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
     rstudioapi::restartSession(command='source("~/post_psmC.R")')
   } 
   else {
-    try(rm(list = c(".path_cache", ".path_ms1masses", ".time_stamp"),
-           envir = .GlobalEnv))
+    suppressWarnings(
+      rm(list = c(".path_cache", ".path_ms1masses", ".time_stamp"),
+         envir = .GlobalEnv)
+    )
 
     message("Done.")
   }
@@ -1141,8 +1212,7 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
           "    3          [n]          = 1\n",
           "=================================\n")
 
-  out <- out %>%
-    dplyr::filter(pep_issig, !pep_isdecoy, !grepl("^-", prot_acc))
+  out <- dplyr::filter(out, pep_issig, !pep_isdecoy, !grepl("^-", prot_acc))
 
   # Set aside one-hit wonders
   out3 <- out %>%
@@ -1155,7 +1225,7 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
   ) %>%
     dplyr::mutate(prot_tier = ifelse(prot_issig, 1L, 2L))
 
-  # the same peptide can be present in all three protein tiers
+  # the same peptide can be present in all three protein tiers; 
   # steps up if pep_seq(s) in tier 3 also in tiers 1, 2
   if (FALSE) {
     rows <- out3$pep_seq %in% out$pep_seq
@@ -1436,7 +1506,7 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
       sub_call$max_len <- end
       sub_call$out_path <- sub_path
       sub_call$mgf_path <- mgf_path
-      sub_call$recalled <- TRUE
+      sub_call$bypass_noenzyme <- TRUE
       sub_call$bypass_from_pepscores <- TRUE
       sub_call$use_first_rev <- TRUE
       
@@ -1460,7 +1530,7 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
     combine_ion_matches(out_path, out_paths, type = "reporters_")
     combine_ion_matches(out_path, out_paths, type = "ion_matches_rev_")
 
-    this_call$recalled <- TRUE
+    this_call$bypass_noenzyme <- TRUE
     this_call$bypass_pepmasses <- TRUE
     this_call$bypass_bin_ms1 <- TRUE
     this_call$bypass_mgf <- TRUE
@@ -1468,66 +1538,226 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
 
     ans <- tryCatch(eval(this_call), error = function (e) NULL)
 
-    if (FALSE) {
-      # psmC
-      df <- lapply(out_paths, function (x) {
-        file <- file.path(x, "psmC.txt")
-        
-        if (file.exists(file))
-          readr::read_tsv(file, show_col_types = FALSE)
-        else
-          NULL
-      })
-      
-      df <- dplyr::bind_rows(df)
-      readr::write_tsv(df, file.path(out_path, "psmC.txt"))
-      
-      # psmQ
-      df <- lapply(out_paths, function (x) {
-        file <- file.path(x, "psmQ.txt")
-        
-        if (file.exists(file))
-          readr::read_tsv(file, show_col_types = FALSE)
-        else
-          NULL
-      })
-      
-      df <- dplyr::bind_rows(df)
-      readr::write_tsv(df, file.path(out_path, "psmQ.txt"))
-      
-      # psmT2
-      df <- lapply(out_paths, function (x) {
-        file <- file.path(x, "psmT2.txt")
-        
-        if (file.exists(file))
-          readr::read_tsv(file, show_col_types = FALSE)
-        else
-          NULL
-      })
-      
-      df <- dplyr::bind_rows(df)
-      readr::write_tsv(df, file.path(out_path, "psmT2.txt"))
-      
-      # psmT3
-      df <- lapply(out_paths, function (x) {
-        file <- file.path(x, "psmT3.txt")
-        
-        if (file.exists(file))
-          readr::read_tsv(file, show_col_types = FALSE)
-        else
-          NULL
-      })
-      
-      df <- dplyr::bind_rows(df)
-      readr::write_tsv(df, file.path(out_path, "psmT3.txt"))
-    }
-    
     message("Done (noenzyme search).")
     options(show.error.messages = FALSE)
     stop()
   }
   
   invisible(NULL)
+}
+
+
+#' SILAC
+#'
+#' Searches against mixed SILAC groups (heave and light mixed into one sample).
+#' 
+#' @param this_call An expression from match.call.
+#' @inheritParams matchMS
+matchMS_silac_mix <- function (silac_mix = list(base = NULL, 
+                                            heavy = c("K8 (K)", "R10 (R)")), 
+                               this_call, out_path, mgf_path) 
+{
+  message("Searches against SILAC groups ", 
+          "(heavy, light etc. mixed into one sample)")
+  
+  lapply(c("silac_mix", "mgf_path", "this_call", "out_path"), function (x) {
+    if (is.null(x))
+      stop("`", x, "` cannot be NULL.")
+  })
+  
+  if (!is.list(silac_mix)) {
+    stop("Supply silac_mix groups as list, e.g., \n\n", 
+         "  # unlabelled base\n", 
+         "  # (see ?add_unimod for custom silac_mix groups)\n", 
+         "  silac_mix = list(base = NULL, heavy = c(\"K8 (K)\", \"R10 (R)\"))\n\n", 
+         "  # labelled base \n", 
+         "  silac_mix = list(base   = c(\"K4 (K)\", \"R4 (R)\"), \n", 
+         "                   median = c(\"K6 (K)\", \"R6 (R)\"), \n", 
+         "                   heavy  = c(\"K8 (K)\", \"R10 (R)\"))\n\n",  
+         "# custom groups\n",
+         "# (always require base)\n", 
+         "  silac_mix = list(base    = NULL, \n", 
+         "                   my_grp1 = ...)\n\n",  
+         "  silac_mix = list(base    = c(\"K6 (K)\", \"R6 (R)\"), \n", 
+         "                   my_grp1 = ...)\n\n",  
+         call. = FALSE)
+  }
+  
+  nms <- names(silac_mix)
+  
+  if (!"base" %in% nms) {
+    warning("Required `base` group not found; assume: base = NULL")
+    nms <- c("base", nms)
+    silac_mix <- c(list(base = NULL), silac_mix)
+  }
+
+  if (all(unlist(lapply(silac_mix, is.null))))
+    stop("`silac_mix` groups cannot be all NULL.", call. = FALSE)
+  
+  len <- length(nms)
+  
+  if (len < 2L)
+    stop("Need at least two `silac_mix` groups.", call. = FALSE)
+  
+  out_paths <- vector("list", len)
+  
+  for (i in seq_len(len)) {
+    sub_call <- this_call
+    sub_nm <- nms[i]
+    sub_path <- out_paths[[i]] <- create_dir(file.path(out_path, sub_nm))
+    
+    ok <- file.exists(file.path(sub_path, "psmQ.txt"))
+    
+    if (ok) next
+    
+    if (i > 1L) {
+      mgf_call <- file.path(out_paths[[1]], "Calls", "load_mgfs.rda")
+      
+      if (file.exists(mgf_call)) {
+        sub_call_path <- create_dir(file.path(sub_path, "Calls"))
+        
+        file.copy(mgf_call, file.path(sub_call_path, "load_mgfs.rda"), 
+                  overwrite = TRUE)
+      }
+    }
+    
+    sub_call$fixedmods <- c(eval(sub_call$fixedmods), silac_mix[[sub_nm]])
+    sub_call$out_path <- sub_path
+    sub_call$mgf_path <- mgf_path
+    sub_call$bypass_silac_mix <- TRUE
+    sub_call$silac_mix <- NULL
+
+    df <- tryCatch(eval(sub_call), error = function (e) NULL)
+    
+    if (is.null(df)) {
+      warning("No results at `silac_mix = ", sub_nm, "`.")
+      # unlink(sub_path, recursive = TRUE)
+    }
+
+    rm(list = c("df"))
+    gc()
+  }
+  
+  message("Combine mixed SILAC results.")
+  comine_PSMsubs(sub_paths = out_paths, groups = nms, out_path = out_path)
+
+  gc()
+  
+  message("Done (mixed SILAC search).")
+  options(show.error.messages = FALSE)
+  stop()
+}
+
+
+#' Searches by sets of parameters.
+#'
+#' @param grp_args The names of arguments in \code{par_groups}.
+#' @param mgf_paths The paths to MGF (with group searches).
+#' @param this_call An expression from match.call.
+#' @inheritParams matchMS
+matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL, 
+                                mgf_paths = NULL, this_call = NULL, 
+                                out_path = NULL) 
+{
+  message("Multiple searches by parameter groups...")
+  
+  lapply(c("par_groups", "grp_args", "this_call", "out_path"), function (x) {
+    if (is.null(x))
+      stop("`", x, "` cannot be NULL.")
+  })
+  
+  if (!is.list(par_groups)) {
+    stop("Supply `par_groups` as list, e.g., \n\n", 
+         "par_groups = list(\n", 
+         "  list(mgf_path  = \"~/proteoM/my_proj/mgfs/grp_1\"", ",\n", 
+         "       fixedmods = c(\"Carbamidomethyl (C)\")", "),\n", 
+         "  list(mgf_path  = \"~/proteoM/my_proj/mgfs/grp_2\"", ",\n", 
+         "       fixedmods = c(\"Carbamidomethyl (C)\", \"K8 (K)\", \"R10 (R)\")", ")\n", 
+         "  )", 
+         call. = FALSE)
+  }
+  
+  nms <- names(par_groups)
+  
+  if (all(unlist(lapply(par_groups, is.null))))
+    stop("`par_groups` cannot be all NULL.")
+  
+  len <- length(nms)
+  
+  if (len < 2L)
+    stop("Need at least two `par_groups`.", call. = FALSE)
+  
+  ans <- out_paths <- vector("list", len)
+  
+  for (i in seq_len(len)) {
+    sub_call <- this_call
+    sub_nm <- nms[i]
+    sub_pars <- par_groups[[i]]
+    sub_path <- out_paths[[i]] <- create_dir(file.path(out_path, sub_nm))
+    
+    file_peploc <- file.path(sub_path, "temp", "peploc.rds")
+    
+    if (file.exists(file_peploc)) {
+      ans[[i]] <- readRDS(file_peploc)
+      next
+    }
+
+    for (arg in grp_args) 
+      sub_call[[arg]] <- sub_pars[[arg]]
+
+    sub_call$out_path <- sub_path
+    sub_call$bypass_par_groups <- TRUE
+    sub_call$bypass_from_protacc <- TRUE
+    sub_call$par_groups <- NULL
+
+    df <- tryCatch(eval(sub_call), error = function (e) NULL)
+    
+    if (!file.exists(file_peploc)) 
+      stop("File not found: ", file_peploc)
+
+    ans[[i]] <- if (is.null(df)) readRDS(file_peploc) else df
+    rm(list = "df")
+
+    if (is.null(ans[[i]])) 
+      warning("No results at `par_groups = ", sub_nm, "`.")
+
+    gc()
+  }
+  
+  # map `raw_file` and `scan_title` before data combination
+  if (!is.null(mgf_paths)) {
+    for (i in seq_along(ans)) {
+      ans[[i]] <- map_raw_n_scan(ans[[i]], mgf_paths[[i]])
+    }
+  }
+
+  out <- dplyr::bind_rows(ans)
+  rm(list = "ans")
+  dir.create(file.path(out_path, "temp"), showWarnings = FALSE, recursive = FALSE)
+  saveRDS(out, file.path(out_path, "temp", "peploc.rds"))
+  saveRDS(out_paths, file.path(out_path, "temp", "out_paths.rds"))
+  rm(list = "out")
+  
+  gc()
+  
+  this_call$bypass_pepmasses <- TRUE
+  this_call$bypass_bin_ms1 <- TRUE
+  this_call$bypass_mgf <- TRUE
+  this_call$bypass_ms2match <- TRUE
+  this_call$bypass_pepscores <- TRUE
+  this_call$bypass_pepfdr <- TRUE
+  this_call$bypass_peploc <- TRUE
+  this_call$bypass_par_groups <- TRUE
+  this_call$bypss_mgf_checks <- TRUE
+  
+  this_call$from_group_search <- TRUE
+  this_call$par_groups <- NULL
+
+  out <- tryCatch(eval(this_call), error = function (e) NULL)
+  
+  message("Done (group search).")
+  
+  invisible(out)
 }
 
 
@@ -1575,5 +1805,114 @@ combine_ion_matches <- function (out_path, out_paths, type = "ion_matches_")
   }
   
   invisible(NULL)
+}
+
+
+#' Combines PSMs from sub folders.
+#'
+#' @param sub_paths A list of sub paths.
+#' @param groups A character vector of sample groups. The group names will also
+#'   be applied to the \code{pep_group} in PSM tables.
+#' @param out_path An output path.
+comine_PSMsubs <- function (sub_paths, groups, out_path) 
+{
+  lapply(c("psmC.txt", "psmQ.txt", "psmT2.txt", "psmT3.txt"), function (file) {
+    df <- lapply(groups, function (group) {
+      fi <- file.path(out_path, group, file)
+      
+      if (file.exists(fi)) {
+        df <- readr::read_tsv(fi, show_col_types = FALSE)
+        df$pep_group <- group
+        nms <- names(df)
+        
+        df <- dplyr::bind_cols(
+          df[, grepl("^prot_", nms)], 
+          df[, grepl("^pep_", nms)], 
+          df[, !grepl("^(prot|pep)_", nms)], 
+        )
+      }
+      else {
+        df <- NULL
+      }
+    }) 
+    
+    df <- dplyr::bind_rows(df)
+    readr::write_tsv(df, file.path(out_path, file))
+    
+    invisible(NULL)
+  })
+  
+  create_dir(file.path(out_path, "Calls"))
+  file.copy(file.path(sub_paths[[1]], "Calls"), out_path, recursive = TRUE)
+  combine_ion_matches(out_path, sub_paths, type = "ion_matches_")
+  suppressWarnings(combine_ion_matches(out_path, sub_paths, type = "reporters_"))
+  combine_ion_matches(out_path, sub_paths, type = "ion_matches_rev_")
+  
+  invisible(NULL)
+}
+
+
+#' Checks the path of MGF files
+#' 
+#' @param error Character string; the level of error.
+#' @inheritParams matchMS
+#' @inheritParams matchMS_par_groups
+checkMGF <- function (mgf_path = NULL, grp_args = NULL, 
+                            error = c("stop", "warn")) 
+{
+  mgf_path <- find_dir(mgf_path)
+  error <- match.arg(error)
+  
+  if (! error %in% c("warn", "stop"))
+    stop("`error` needs to be one of \"error\" or \"stop\".")
+  
+  if (is.null(mgf_path)) 
+    stop("`mgf_path` not found.", call. = FALSE)
+  
+  filelist <- list.files(path = mgf_path, pattern = "\\.mgf$")
+  
+  if (!length(filelist)) {
+    if (error == "warn")
+      warning("No `.mgf` files immediately under ", mgf_path, call. = FALSE)
+    else
+      stop("No `.mgf` files immediately under ", mgf_path, call. = FALSE)
+  }
+
+  rm(list = c("filelist"))
+  
+  invisible(mgf_path)
+}
+
+
+#' Maps raw_file and scan_title from indexes to real values.
+#' 
+#' @param df A data frame.
+#' @inheritParams matchMS
+map_raw_n_scan <- function (df, mgf_path) 
+{
+  file_raw <- file.path(mgf_path, "raw_indexes.rds")
+  file_scan <- file.path(mgf_path, "scan_indexes.rds")
+  
+  if (file.exists(file_raw)) {
+    raws <- readRDS(file_raw)
+    raws2 <- names(raws)
+    names(raws2) <- raws
+    df$raw_file <- unname(raws2[df$raw_file])
+  }
+  else {
+    stop("File not found: ", file_raw)
+  }
+  
+  if (file.exists(file_scan)) {
+    scans <- readRDS(file_scan)
+    scans2 <- names(scans)
+    names(scans2) <- scans
+    df$scan_title <- unname(scans2[df$scan_title])
+  }
+  else {
+    stop("File not found: ", file_scan)
+  }
+  
+  invisible(df)
 }
 

@@ -158,7 +158,6 @@ post_frame_adv <- function (res, mgf_frames)
 {
   res <- unlist(res, recursive = FALSE)
 
-  # empties <- purrr::map_lgl(res, purrr::is_empty)
   lens <- lapply(res, length)
   lens <- unlist(lens, recursive = FALSE, use.names = FALSE)
   empties <- !lens

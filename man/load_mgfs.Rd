@@ -58,7 +58,8 @@ considerations. The default is 6.}
 
 \item{min_scan_num}{A positive integer; the minimum scan number for
 considerations. The default is 1. The setting only applies to MGFs with
-numeric scan numbers.}
+numeric scan numbers. For example, it has no effects on Bruker's timsTOF
+data.}
 
 \item{max_scan_num}{A positive integer; the maximum scan number for
 considerations. The default is the maximum machine integer. The setting
@@ -85,8 +86,8 @@ preceeding, current and following.}
 preceeding, current and following.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
-enzyme will be used to generate peptide sequences from proteins. The
-default is \code{Trypsin_P}.}
+enzyme will be used to generate peptide sequences from protein entries. The
+default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
 }
 \description{
 Currently, \code{index_ms2} is always FALSE.

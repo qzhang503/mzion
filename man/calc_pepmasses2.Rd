@@ -42,11 +42,11 @@ of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
 the corresponding regular expressions need to be supplied via argument
 \code{acc_pattern}.}
 
-\item{acc_pattern}{Regular expression(s) describing the patterns to separate
-the header lines of fasta entries. At the \code{NULL} default, the pattern
-will be automated when \code{acc_type} are among c("uniprot_acc",
-"uniprot_id", "refseq_acc", "other"). See also \link{load_fasta2} for
-custom examples.}
+\item{acc_pattern}{Regular expression(s) describing the patterns in
+separating the header lines of fasta entries. At the \code{NULL} default,
+the pattern will be automated when \code{acc_type} are among
+c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
+\link{load_fasta2} for custom examples.}
 
 \item{fixedmods}{A character vector of fixed modifications. See also
 \link{parse_unimod} for grammars.}
@@ -128,12 +128,11 @@ time.}
   Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
   \code{fdr_type = psm} to \code{fdr_type = protein}.}
 
-\item{.path_cache}{The file path of cached search parameters. At the NULL
-default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
-parameter is for the users' awareness of the underlying structure of file
-folders and the use of default is suggested. Occasionally experimenters may
-remove the file folder for disk space or under infrequent events of
-modified framework incurred by the developer.}
+\item{.path_cache}{The file path of cached search parameters. The parameter
+is for the users' awareness of the underlying structure of file folders and
+the use of default is suggested. Occasionally experimenters may remove the
+file folder for disk space or under infrequent events of modified framework
+incurred by the developer.}
 
 \item{.path_fasta}{The parent file path to the theoretical masses of MS1
 precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",

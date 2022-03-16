@@ -1,7 +1,7 @@
 proteoM
 ================
 true
-2022-01-26
+2022-02-25
 
 -   [Installation](#installation)
 -   [FASTAs and MGFs](#fastas-and-mgfs)
@@ -82,7 +82,9 @@ matchMS(
               "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"), 
   max_miss = 4, 
   quant = "tmt10", 
-  fdr_type = "protein", 
+  
+  fdr_type = "psm",
+  combine_tier_three = TRUE, 
 )
 ```
 

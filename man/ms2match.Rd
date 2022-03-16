@@ -117,11 +117,11 @@ of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
 the corresponding regular expressions need to be supplied via argument
 \code{acc_pattern}.}
 
-\item{acc_pattern}{Regular expression(s) describing the patterns to separate
-the header lines of fasta entries. At the \code{NULL} default, the pattern
-will be automated when \code{acc_type} are among c("uniprot_acc",
-"uniprot_id", "refseq_acc", "other"). See also \link{load_fasta2} for
-custom examples.}
+\item{acc_pattern}{Regular expression(s) describing the patterns in
+separating the header lines of fasta entries. At the \code{NULL} default,
+the pattern will be automated when \code{acc_type} are among
+c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
+\link{load_fasta2} for custom examples.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches. The default is to use the top-100 ions in an MS2 event.}
@@ -146,8 +146,8 @@ experimenting by allowing additional masses in the universe of MS1
 precursors.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
-enzyme will be used to generate peptide sequences from proteins. The
-default is \code{Trypsin_P}.}
+enzyme will be used to generate peptide sequences from protein entries. The
+default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
 
 \item{maxn_fasta_seqs}{A positive integer; the maximum number of protein
 sequences in fasta files. The default is 200000.}

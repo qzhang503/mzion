@@ -47,8 +47,8 @@ lengths for sectional searches at \code{noenzyme} specificity. The argument
 may be used to guard against RAM exhaustion. At the zero default, The
 peptide lengths from \code{min_len} to \code{max_len} will be broken
 automatically into continuous sections. At value 1, searches will be
-performed against individual peptide lengths; at value 2, two lengths will
-be taken at a time, etc.}
+performed against individual peptide lengths; at value 2, two adjacent
+lengths will be taken at a time, etc.}
 
 \item{quant}{A character string; the quantitation method. The default is
 "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and

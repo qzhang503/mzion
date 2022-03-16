@@ -474,7 +474,7 @@ calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by",
 {
   n_rows <- nrow(res)
   
-  if (n_rows) { # 3 ms
+  if (n_rows) {
     probs <- split.data.frame(res, seq_len(n_rows)) 
     
     probs <- lapply(probs, scalc_pepprobs, 
@@ -486,7 +486,7 @@ calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by",
     
     probs <- .Internal(unlist(probs, recursive = FALSE, use.names = FALSE))
     
-    probs <- dplyr::bind_rows(probs) # 276 us
+    probs <- dplyr::bind_rows(probs)
   } 
   else {
     probs <- data.frame(
@@ -661,8 +661,9 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                        digits = 4L) 
 {
   df <- readRDS(file.path(out_path, "temp", file))
+  n_rows <- nrow(df)
   
-  if (!nrow(df)) {
+  if (!n_rows) {
     idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
     
     # list tables
@@ -693,60 +694,68 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   # otherwise, chunksplit return NULL
   #   -> res[[i]] <- NULL 
   #   -> length(res) shortened by 1
-
-  n_chunks <- detect_cores(16L)^2
-
-  if (!is.null(df)) {
-    df <- suppressWarnings(chunksplit(df, n_chunks, "row"))
+  
+  if (n_rows <= 5000L) {
+    probs <- calc_pepprobs_i(
+      df,
+      topn_ms2ions = topn_ms2ions, 
+      type_ms2ions = type_ms2ions, 
+      penalize_sions = penalize_sions, 
+      ppm_ms2 = ppm_ms2,
+      out_path = out_path, 
+      digits = digits
+    )
+  }
+  else {
+    # n_chunks <- detect_cores(16L)^2
+    n_chunks <- detect_cores(16L)
+    
+    if (!is.null(df)) {
+      dfs <- suppressWarnings(chunksplit(df, n_chunks, "row"))
+      gc()
+    }
+    
+    if (length(dfs) >= n_chunks) {
+      n_cores <- detect_cores(16L)
+      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+      
+      parallel::clusterExport(cl, list("%>%"), 
+                              envir = environment(magrittr::`%>%`))
+      parallel::clusterExport(cl, list("scalc_pepprobs"), 
+                              envir = environment(proteoM:::scalc_pepprobs))
+      probs <- parallel::clusterApplyLB(cl, dfs, 
+                                        calc_pepprobs_i, 
+                                        topn_ms2ions = topn_ms2ions, 
+                                        type_ms2ions = type_ms2ions, 
+                                        penalize_sions = penalize_sions, 
+                                        ppm_ms2 = ppm_ms2,
+                                        out_path = out_path, 
+                                        digits = digits)
+      parallel::stopCluster(cl)
+      gc()
+      
+      probs <- dplyr::bind_rows(probs)
+    } 
+    else {
+      # a case that `chunksplit` did not successfully split
+      if (is.data.frame(dfs)) 
+        dfs <- list(dfs)
+      
+      probs <- lapply(dfs, calc_pepprobs_i, 
+                      topn_ms2ions = topn_ms2ions, 
+                      type_ms2ions = type_ms2ions, 
+                      penalize_sions = penalize_sions, 
+                      ppm_ms2 = ppm_ms2,
+                      out_path = out_path, 
+                      digits = digits) %>% 
+        dplyr::bind_rows()
+    }
+    
+    rm(list = "dfs")
     gc()
   }
-  
-  #  8L: 1.00 mins
-  # 16L: 57.04 secs
-  # 32L: 1.04 mins
-  
-  if (length(df) >= n_chunks) {
-    
-    n_cores <- detect_cores(16L)
-    
-    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-    
-    parallel::clusterExport(cl, list("%>%"), 
-                            envir = environment(magrittr::`%>%`))
-    
-    parallel::clusterExport(cl, list("scalc_pepprobs"), 
-                            envir = environment(proteoM:::scalc_pepprobs))
 
-    probs <- parallel::clusterApplyLB(cl, df, 
-                                      calc_pepprobs_i, 
-                                      topn_ms2ions = topn_ms2ions, 
-                                      type_ms2ions = type_ms2ions, 
-                                      penalize_sions = penalize_sions, 
-                                      ppm_ms2 = ppm_ms2,
-                                      out_path = out_path, 
-                                      digits = digits)
-    
-    parallel::stopCluster(cl)
-    gc()
-    
-    probs <- dplyr::bind_rows(probs)
-  } else {
-    if (is.data.frame(df)) df <- list(df)
-    
-    probs <- lapply(df, calc_pepprobs_i, 
-                    topn_ms2ions = topn_ms2ions, 
-                    type_ms2ions = type_ms2ions, 
-                    penalize_sions = penalize_sions, 
-                    ppm_ms2 = ppm_ms2,
-                    out_path = out_path, 
-                    digits = digits) %>% 
-      dplyr::bind_rows()
-  }
-  
-  gc()
-  
   ## Reassemble `df`
-  df <- dplyr::bind_rows(df)
   df <- df[, -which(names(df) == "matches"), drop = FALSE]
   
   df <- dplyr::bind_cols(df, df2)
@@ -1063,6 +1072,8 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
                          min_len = 7L, max_len = 40L, match_pepfdr = TRUE, 
                          max_pepscores_co = Inf, out_path) 
 {
+  message("Calculating peptide FDR.")
+  
   fct_score <- 10
   
   pat <- "^pepscores_"
@@ -1076,11 +1087,15 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   nm_t <- gsub("^rev_", "", nm_d)
   
   td <- local({
-    decoy <- readRDS(
-      file.path(out_path, "temp", file_d)
-    ) %>% 
-      list() %>% 
-      `names<-`(nm_d)
+    decoy <- readRDS(file.path(out_path, "temp", file_d))
+    decoy <- list(decoy)
+    names(decoy) <- nm_d
+    
+    # decoy <- readRDS(
+    #   file.path(out_path, "temp", file_d)
+    # ) %>% 
+    #   list() %>% 
+    #   `names<-`(nm_d)
     
     file_t <- list.files(path = file.path(out_path, "temp"), 
                          pattern = paste0(pat, nm_t, ".rds$"))
@@ -1088,11 +1103,15 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     if (!length(file_t)) 
       stop("Target scores not found.", call. = FALSE)
     
-    target <- readRDS(
-      file.path(out_path, "temp", file_t)
-    ) %>% 
-      list() %>% 
-      `names<-`(nm_t)
+    target <- readRDS(file.path(out_path, "temp", file_t))
+    target <- list(target)
+    names(target) <- nm_t
+    
+    # target <- readRDS(
+    #   file.path(out_path, "temp", file_t)
+    # ) %>% 
+    #   list() %>% 
+    #   `names<-`(nm_t)
     
     c(target, decoy)
   })
@@ -1433,7 +1452,8 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
     dplyr::mutate(pep_score = -log10(pep_adjp) * fct_score, 
                   pep_score = ifelse(pep_score > 250, 250, pep_score), 
                   pep_score_co = -log10(pep_adjp_co) * fct_score) %>% 
-    dplyr::select(-c("pep_prob", "pep_adjp", "pep_prob_co", "pep_adjp_co"))
+    dplyr::select(-c("pep_prob", "pep_adjp", "pep_prob_co", "pep_adjp_co")) %T>% 
+    saveRDS(file.path(out_path, "temp", "pepfdr.rds"))
 }
 
 
@@ -1872,45 +1892,6 @@ find_ppm_outer_bycombi <- function (theos, expts, ppm_ms2 = 25L)
 }
 
 
-#' Helper of \link{calc_peploc}.
-#'
-#' Not yet currently used.
-#'
-#' @inheritParams psmC2Q
-#' @importFrom magrittr %>% %T>%
-try_calc_peploc <- function (out = NULL) 
-{
-  out <- tryCatch(
-    calc_peploc(out),
-    error = function(e) NA
-  )
-  
-  if (is.na(out)) {
-    message("Retry with a new R session: \n\n",
-            "proteoM:::calc_peploc(\n",
-            "  out = \"", file.path(out_path, "temp", "scores.rds"), "\" \n",
-            ")")
-    
-    fileConn <- file(file.path("~/calc_peploc.R"))
-    
-    lines <- c(
-      "library(proteoM)\n",
-      "proteoM:::calc_peploc(",
-      paste0("  out = readRDS(", "\"", file.path(out_path, "temp", "scores.rds"), "\"", ")"),
-      ")\n",
-      "unlink(\"~/calc_peploc.R\")"
-    )
-    
-    writeLines(lines, fileConn)
-    close(fileConn)
-    
-    rstudioapi::restartSession(command='source("~/calc_peploc.R")')
-  }
-  
-  invisible(out)
-}
-
-
 #' Calculates the delta scores of `pep_seq`.
 #'
 #' A score delta between the best and the second best.
@@ -1930,6 +1911,7 @@ try_calc_peploc <- function (out = NULL)
 #'   For a variable modification with multiple neutral losses (NL), the
 #'   best-scored NL will be used in the ranking.
 #'
+#' @param out_path An output path.
 #' @param topn_seqs_per_query Positive integer; a threshold to discard peptide
 #'   matches under the same MS query with scores beyond the top-n. The default
 #'   is 3.
@@ -1939,12 +1921,26 @@ try_calc_peploc <- function (out = NULL)
 #'   matches are treated separately.
 #' @rawNamespace import(data.table, except = c(last, first, between, transpose,
 #'   melt, dcast))
-calc_peploc <- function (x, topn_mods_per_seq = 3L, topn_seqs_per_query = 3L) 
+calc_peploc <- function (x = NULL, out_path = NULL, topn_mods_per_seq = 3L, 
+                         topn_seqs_per_query = 3L) 
 {
+  message("Calculating peptide localization scores.")
+  
   # some shallow copy warnings from data.table
   old_opts <- options()
   options(warn = -1L)
   on.exit(options(old_opts), add = TRUE)
+  
+  if (is.null(x)) {
+    file <- file.path(out_path, "temp", "pepfdr.rds")
+    
+    if (file.exists(file)) 
+      x <- readRDS(file)
+    else
+      stop("File not found: ", file, call. = FALSE)
+    
+    rm(list = "file")
+  }
   
   x <- data.table::data.table(x)
   gc()
@@ -2081,6 +2077,7 @@ calc_peploc <- function (x, topn_mods_per_seq = 3L, topn_seqs_per_query = 3L)
 
   # change-back to logical
   x0 <- x0[, pep_isdecoy := as.logical(pep_isdecoy)]
+  saveRDS(x0, file.path(out_path, "temp", "peploc.rds"))
 
   invisible(x0)
 }

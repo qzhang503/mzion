@@ -121,7 +121,9 @@ matchMS(
               "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"), 
   max_miss = 4, 
   quant = "tmt10", 
-  fdr_type = "protein", 
+  
+  fdr_type = "psm",
+  combine_tier_three = TRUE, 
 )
 ```
 

@@ -12,7 +12,8 @@ bin_ms1masses(
   use_ms1_cache = TRUE,
   .path_cache = NULL,
   .path_ms1masses = NULL,
-  is_ms1_three_frame = TRUE
+  is_ms1_three_frame = TRUE,
+  out_path = NULL
 )
 }
 \arguments{
@@ -31,18 +32,19 @@ default is 20.}
   Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
   \code{fdr_type = psm} to \code{fdr_type = protein}.}
 
-\item{.path_cache}{The file path of cached search parameters. At the NULL
-default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
-parameter is for the users' awareness of the underlying structure of file
-folders and the use of default is suggested. Occasionally experimenters may
-remove the file folder for disk space or under infrequent events of
-modified framework incurred by the developer.}
+\item{.path_cache}{The file path of cached search parameters. The parameter
+is for the users' awareness of the underlying structure of file folders and
+the use of default is suggested. Occasionally experimenters may remove the
+file folder for disk space or under infrequent events of modified framework
+incurred by the developer.}
 
 \item{.path_ms1masses}{The file path to the theoretical masses of MS1
 precursors.}
 
 \item{is_ms1_three_frame}{Logical; is the searches by the three frames of
 preceeding, current and following.}
+
+\item{out_path}{A file path of outputs.}
 }
 \description{
 For target peptides.

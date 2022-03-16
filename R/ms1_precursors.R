@@ -598,6 +598,18 @@ calc_pepmasses2 <- function (
   assign(".path_fasta", .path_fasta, envir = .GlobalEnv)
   assign(".path_ms1masses", .path_ms1masses, envir = .GlobalEnv)
   assign(".time_stamp", .time_stamp, envir = .GlobalEnv)
+  
+  local({
+    .cache_info <- list(
+      .path_cache = .path_cache, 
+      .path_fasta = .path_fasta, 
+      .path_ms1masses = .path_ms1masses, 
+      .time_stamp = .time_stamp
+    )
+    
+    path <- create_dir(file.path(out_path, "Calls"))
+    saveRDS(.cache_info, file.path(path, ".cache_info.rds"))
+  })
 
   invisible(fwd_peps)
 }

@@ -33,6 +33,8 @@ matchMS(
   max_mass = 4500L,
   ppm_ms1 = 20L,
   n_13c = 0L,
+  par_groups = NULL,
+  silac_mix = NULL,
   type_ms2ions = "by",
   min_ms2mass = 115L,
   minn_ms2 = 6L,
@@ -47,7 +49,7 @@ matchMS(
   combine_tier_three = FALSE,
   max_n_prots = 40000L,
   use_ms1_cache = TRUE,
-  .path_cache = "~/proteoM/.MSearches (1.0.7.0)/Cache/Calls",
+  .path_cache = "~/proteoM/.MSearches (1.1.0.0)/Cache/Calls",
   .path_fasta = NULL,
   topn_ms2ions = 100L,
   min_ms1_charge = 2L,
@@ -84,11 +86,11 @@ of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
 the corresponding regular expressions need to be supplied via argument
 \code{acc_pattern}.}
 
-\item{acc_pattern}{Regular expression(s) describing the patterns to separate
-the header lines of fasta entries. At the \code{NULL} default, the pattern
-will be automated when \code{acc_type} are among c("uniprot_acc",
-"uniprot_id", "refseq_acc", "other"). See also \link{load_fasta2} for
-custom examples.}
+\item{acc_pattern}{Regular expression(s) describing the patterns in
+separating the header lines of fasta entries. At the \code{NULL} default,
+the pattern will be automated when \code{acc_type} are among
+c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
+\link{load_fasta2} for custom examples.}
 
 \item{fixedmods}{Character string(s) of fixed modifications.}
 
@@ -110,8 +112,8 @@ experimenting by allowing additional masses in the universe of MS1
 precursors.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
-enzyme will be used to generate peptide sequences from proteins. The
-default is \code{Trypsin_P}.}
+enzyme will be used to generate peptide sequences from protein entries. The
+default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
 
 \item{custom_enzyme}{Regular expression(s) for custom enzyme specificity. The
   default is NULL. Uses of custom enzyme specificity is probably rather
@@ -137,8 +139,8 @@ lengths for sectional searches at \code{noenzyme} specificity. The argument
 may be used to guard against RAM exhaustion. At the zero default, The
 peptide lengths from \code{min_len} to \code{max_len} will be broken
 automatically into continuous sections. At value 1, searches will be
-performed against individual peptide lengths; at value 2, two lengths will
-be taken at a time, etc.}
+performed against individual peptide lengths; at value 2, two adjacent
+lengths will be taken at a time, etc.}
 
 \item{maxn_fasta_seqs}{A positive integer; the maximum number of protein
 sequences in fasta files. The default is 200000.}
@@ -189,6 +191,23 @@ precursor masses to the corresponding mono-isotopic masses in isotope
 envelopes. Nevertheless, by setting \code{n_13c = 1}, some increases in the
 number of PSMs may be readily achieved at a relatively small cost of search
 time.}
+
+\item{par_groups}{Parameter(s) of \code{matchMS} multiplied by sets of values
+in groups. Multiple searches will be performed separately against the
+parameter groups. For instance with one set of samples in SILAC light and
+the other in SILAC heavy, the experimenters may specify two arguments for
+parameter \code{mgf_path} and two arguments for parameter \code{fixedmods}
+that link to the respective samples. In this way, there is no need to
+search against, e.g. heavy-isotope-labeled K8R10 with the light samples and
+vice versa. Note that results will be combined at the end, with the group
+names indicated under column \code{pep_group}. The default is NULL without
+grouped searches. See the examples under SILAC and Group searches.}
+
+\item{silac_mix}{A list of labels indicating SILAC groups in samples. The
+parameter is most relevant for SILAC experiments where peptides of heavy,
+light etc. were \emph{mixed} into one sample. The default is NULL
+indicating a none mixed-SILAC experiment. See also the examples under
+SILAC.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
@@ -283,12 +302,11 @@ level of \code{target_fdr}. The default if TRUE. Choose \code{match_pepfdr
   Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
   \code{fdr_type = psm} to \code{fdr_type = protein}.}
 
-\item{.path_cache}{The file path of cached search parameters. At the NULL
-default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
-parameter is for the users' awareness of the underlying structure of file
-folders and the use of default is suggested. Occasionally experimenters may
-remove the file folder for disk space or under infrequent events of
-modified framework incurred by the developer.}
+\item{.path_cache}{The file path of cached search parameters. The parameter
+is for the users' awareness of the underlying structure of file folders and
+the use of default is suggested. Occasionally experimenters may remove the
+file folder for disk space or under infrequent events of modified framework
+incurred by the developer.}
 
 \item{.path_fasta}{The parent file path to the theoretical masses of MS1
 precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
@@ -309,7 +327,8 @@ considerations. The default is 6.}
 
 \item{min_scan_num}{A positive integer; the minimum scan number for
 considerations. The default is 1. The setting only applies to MGFs with
-numeric scan numbers.}
+numeric scan numbers. For example, it has no effects on Bruker's timsTOF
+data.}
 
 \item{max_scan_num}{A positive integer; the maximum scan number for
 considerations. The default is the maximum machine integer. The setting
@@ -351,6 +370,13 @@ correspondences between experiments and theoreticals. The correspondences are
 made available to users in files of \code{ion_matches_1.rds} etc., and, e.g.,
 are used in \link{mapMS2ions} for rapid retrievals and visualizations of MS2
 ion ladders.
+
+When there is no evidence to distinguish, e.g. distinct primary sequences of
+\code{P[EMPTY]EPTIDE} and \code{P[MTYPE]EPTIDE}, both will be reported by
+proteoM and further kept by proteoQ. For peptides under the same primary
+sequence, the redundancy in the positions and/or neutral losses of
+\code{Anywhere} variable modifications are also kept in the outputs of
+proteoM but removed with proteoQ.
 }
 \section{\code{FASTA}}{
  \link{load_fasta2} sets the values of \code{acc_type}
@@ -409,10 +435,9 @@ matchMS(
                 "Deamidated (N)", "Phospho (S)", "Phospho (T)",
                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
   max_miss  = 2,
-  maxn_vmods_sitescombi_per_pep
-            = 32,
   quant     = "tmt16",
-  fdr_type  = "protein",
+  fdr_type  = "psm",
+  combine_tier_three = TRUE,
   out_path  = "~/proteoM/examples",
 )
 
@@ -427,10 +452,9 @@ matchMS(
                 "Deamidated (N)", "Phospho (S)", "Phospho (T)",
                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
   max_miss  = 2,
-  maxn_vmods_sitescombi_per_pep
-            = 32,
   quant     = "tmt18",
-  fdr_type  = "protein",
+  fdr_type  = "psm",
+  combine_tier_three = TRUE,
   out_path  = "~/proteoM/examples",
 )
 
@@ -474,6 +498,95 @@ matchMS(
   quant    = "tmt10",
   fdr_type = "protein",
   out_path = "~/proteoM/examples",
+)
+
+
+#######################################
+# SILAC
+#######################################
+
+## 1. heavy and light mixed together
+
+# unlabeled base
+matchMS(
+  silac_mix = list(base = NULL, heavy = c("K8 (K)", "R10 (R)")),
+  ...
+)
+
+# labeled base
+# (first add D4 Unimod if not yet present)
+D4 <- calc_unimod_compmass("2H(4) H(-4)")
+mono_mass <- D4$mono_mass
+avge_mass <- D4$avge_mass
+
+add_unimod(header      = c(title       = "D4",
+                           full_name   = "Heavy lysine 2H(4) H(-4)"),
+           specificity = c(site        = "K",
+                           position    = "Anywhere"),
+           delta       = c(mono_mass   = "4.025108",
+                           avge_mass   = "4.02464",
+                           composition = "2H(4) H(-4)"),
+           neuloss     = c(mono_mass   = "0",
+                           avge_mass   = "0",
+                           composition = "0"))
+
+matchMS(
+  silac_mix = list(base   = c("D4 (K)"),
+                   median = c("K6 (K)", "R6 (R)"),
+                   heavy  = c("K8 (K)", "R10 (R)")),
+  ...
+)
+
+# custom groups
+matchMS(
+  silac_mix = list(base = NULL,
+                   grp1 = c("K6 (K)", "R6 (R)"),
+                   grp2 = c("K8 (K)", "R10 (R)")),
+  ...
+)
+
+matchMS(
+  silac_mix = list(base = c("K6 (K)", "R6 (R)"),
+                   grp1 = c("K8 (K)", "R10 (R)"),
+  ...
+)
+
+
+## 2. heavy and light in separate samples
+
+# MGFs of light samples under the base folder
+# MGFs of heavy samples under the heavy folder
+matchMS(
+  par_groups = list(
+    base  = list(mgf_path  = "~/proteoM/my_project/mgf/base",
+                 fixedmods = "Carbamidomethyl (C)"),
+    heavy = list(mgf_path  = "~/proteoM/my_project/mgf/heavy",
+                 fixedmods = c("Carbamidomethyl (C)", "K8 (K)", "R10 (R)"))
+  ),
+  ...
+)
+
+
+#######################################
+# Group searches (more than for SILAC)
+#######################################
+
+# MGFs of normal samples under the light folder
+# MGFs of heavy-spiked samples under the heavy folder
+matchMS(
+  par_groups = list(
+    light = list(mgf_path  = "~/proteoM/my_project/mgf/light",
+                 fixedmods = "Carbamidomethyl (C)"),
+    heavy = list(mgf_path  = "~/proteoM/my_project/mgf/heavy",
+                 fixedmods = c("Carbamidomethyl (C)", "K8 (K)", "R10 (R)"))
+  ),
+  fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hsmm_2020_03.fasta",
+            "~/proteoM/dbs/fasta/crap/crap.fasta"),
+  acc_type = c("uniprot_acc", "other"),
+  varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)"),
+  max_miss = 4,
+  quant = "none",
+  fdr_type = "protein"
 )
 
 }

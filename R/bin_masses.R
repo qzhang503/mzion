@@ -11,7 +11,8 @@
 bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L, 
                            ppm_ms1 = 20L, use_ms1_cache = TRUE, 
                            .path_cache = NULL, .path_ms1masses = NULL, 
-                           is_ms1_three_frame = TRUE) 
+                           is_ms1_three_frame = TRUE, 
+                           out_path = NULL) 
 {
   old_opts <- options()
   options(warn = 1L)
@@ -158,6 +159,18 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
   assign(".time_bin", .time_bin, envir = .GlobalEnv)
   assign(".path_bin", .path_bin, envir = .GlobalEnv)
 
+  local({
+    file <- file.path(out_path, "Calls", ".cache_info.rds")
+    
+    if (file.exists(file)) 
+      .cache_info <- readRDS(file)
+    
+    .cache_info$.time_bin <- .time_bin
+    .cache_info$.path_bin <- .path_bin
+    
+    saveRDS(.cache_info, file)
+  })
+  
   invisible(NULL)
 }
 

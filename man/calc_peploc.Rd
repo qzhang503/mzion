@@ -4,10 +4,17 @@
 \alias{calc_peploc}
 \title{Calculates the delta scores of `pep_seq`.}
 \usage{
-calc_peploc(x, topn_mods_per_seq = 3L, topn_seqs_per_query = 3L)
+calc_peploc(
+  x = NULL,
+  out_path = NULL,
+  topn_mods_per_seq = 3L,
+  topn_seqs_per_query = 3L
+)
 }
 \arguments{
 \item{x}{The result from \link{calc_pepscores}.}
+
+\item{out_path}{An output path.}
 
 \item{topn_mods_per_seq}{Positive integer; a threshold to discard variable
   modifications under the same peptide match with scores beyond the top-n.

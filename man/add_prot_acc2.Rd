@@ -4,12 +4,31 @@
 \alias{add_prot_acc2}
 \title{Adds prot_acc to a peptide table}
 \usage{
-add_prot_acc2(df, out_path)
+add_prot_acc2(
+  df = NULL,
+  out_path = NULL,
+  .path_cache = NULL,
+  .path_fasta = NULL
+)
 }
 \arguments{
 \item{df}{The results after scoring.}
 
 \item{out_path}{An output path.}
+
+\item{.path_cache}{The file path of cached search parameters. The parameter
+is for the users' awareness of the underlying structure of file folders and
+the use of default is suggested. Occasionally experimenters may remove the
+file folder for disk space or under infrequent events of modified framework
+incurred by the developer.}
+
+\item{.path_fasta}{The parent file path to the theoretical masses of MS1
+precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
+"\\1", get("fasta", envir = environment())[1])}. The parameter is for the
+users' awareness of the structure of file folders and the use of default is
+suggested. Occasionally experimenters may remove the file folder for disk
+space or under infrequent events of modified framework incurred by the
+developer.}
 }
 \description{
 Cached results are under sub dirs.

@@ -22,12 +22,11 @@ developer.}
 
 \item{ms1_time}{A cached MS1 time (directory).}
 
-\item{.path_cache}{The file path of cached search parameters. At the NULL
-default, the path is \code{"~/proteoM/.MSearches/Cache/Calls/"}. The
-parameter is for the users' awareness of the underlying structure of file
-folders and the use of default is suggested. Occasionally experimenters may
-remove the file folder for disk space or under infrequent events of
-modified framework incurred by the developer.}
+\item{.path_cache}{The file path of cached search parameters. The parameter
+is for the users' awareness of the underlying structure of file folders and
+the use of default is suggested. Occasionally experimenters may remove the
+file folder for disk space or under infrequent events of modified framework
+incurred by the developer.}
 
 \item{path_bin2}{A file path to binned MS2 results.}
 }
