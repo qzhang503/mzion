@@ -505,7 +505,7 @@ matchMS(
 # SILAC
 #######################################
 
-## 1. heavy and light mixed together
+## 1. heavy and light mixed into one sample
 
 # unlabeled base
 matchMS(
@@ -552,27 +552,13 @@ matchMS(
 )
 
 
-## 2. heavy and light in separate samples
+## 2. Heavy and light in separate samples 
+#  (toy examples assessing the technical quality of SILAC)
 
-# MGFs of light samples under the base folder
-# MGFs of heavy samples under the heavy folder
-matchMS(
-  par_groups = list(
-    base  = list(mgf_path  = "~/proteoM/my_project/mgf/base",
-                 fixedmods = "Carbamidomethyl (C)"),
-    heavy = list(mgf_path  = "~/proteoM/my_project/mgf/heavy",
-                 fixedmods = c("Carbamidomethyl (C)", "K8 (K)", "R10 (R)"))
-  ),
-  ...
-)
+# MGFs of light and heavy samples under separate folders;
+# Heavy modifications being fixedmods
 
-
-#######################################
-# Group searches (more than for SILAC)
-#######################################
-
-# MGFs of normal samples under the light folder
-# MGFs of heavy-spiked samples under the heavy folder
+# (i) SILAC but low throughput since no sample mixing
 matchMS(
   par_groups = list(
     light = list(mgf_path  = "~/proteoM/my_project/mgf/light",
@@ -580,14 +566,28 @@ matchMS(
     heavy = list(mgf_path  = "~/proteoM/my_project/mgf/heavy",
                  fixedmods = c("Carbamidomethyl (C)", "K8 (K)", "R10 (R)"))
   ),
-  fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hsmm_2020_03.fasta",
-            "~/proteoM/dbs/fasta/crap/crap.fasta"),
-  acc_type = c("uniprot_acc", "other"),
-  varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)"),
-  max_miss = 4,
   quant = "none",
-  fdr_type = "protein"
+  ...
 )
+
+# The results next processed by proteoQ just like LFQ.
+# This works since "pep_seq_mod" in proteoQ dose not 
+#   contain the information of fixed modifications.
+
+# (ii) SILAC at low-throughput + TMT
+matchMS(
+  par_groups = list(
+    light = list(mgf_path  = "~/proteoM/my_project/mgf/light",
+                 fixedmods = "Carbamidomethyl (C)"),
+    heavy = list(mgf_path  = "~/proteoM/my_project/mgf/heavy",
+                 fixedmods = c("Carbamidomethyl (C)", "K8 (K)", "R10 (R)"))
+  ),
+  quant = "TMT10",
+  ...
+)
+
+# Next processed by proteoQ just like TMT
+# ...
 
 }
 }
