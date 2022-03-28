@@ -135,6 +135,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   inds <- which(types %in% c("amods- tmod- vnl- fnl-", 
                              "amods- tmod+ vnl- fnl-"))
   
+  ### 
+  # inds <- NULL
+  ###
+  
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
@@ -211,6 +215,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   inds <- which(types %in% c("amods- tmod- vnl- fnl+", 
                              "amods- tmod+ vnl- fnl+"))
 
+  ### 
+  # inds <- NULL
+  ###
+  
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
@@ -280,6 +288,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   inds <- which(types %in% c("amods+ tmod- vnl- fnl-", 
                              "amods+ tmod+ vnl- fnl-"))
 
+  ### 
+  # inds <- NULL
+  ###
+  
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]

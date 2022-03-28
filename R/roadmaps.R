@@ -123,8 +123,8 @@
 #         gen_ms2ions_base (for specific pep_seq)
 #           ms2ions_by_type (ion_ladder.R)
 #             byions, czions, axions (ion_ladder.R)
-#         search_mgf2
-#           find_ms2_bypep
+#         search_mgf
+#           find_ms2_bypep2
 #             fuzzy_match_one
 #             fuzzy_match_one2
 #       post_frame_adv (utils_engine.R)
@@ -143,8 +143,8 @@
 #           // regular return
 #           ms2ions_by_type (ion_ladder.R)
 #             byions, czions, axions (ion_ladder.R)
-#         search_mgf2 (ms2base.R)
-#           find_ms2_bypep (ms2base.R)
+#         search_mgf (ms2base.R)
+#           find_ms2_bypep2 (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
 #             fuzzy_match_one2 (ms2base.R)
 #       post_frame_adv (utils_engine.R)
@@ -177,8 +177,8 @@
 #                 "cions_base", "zions_base", 
 #                 "aions_base", "xions_base", 
 #           "add_hexcodes" (ms2_a1_vnl0_fnl0.R)
-#         "search_mgf2" (ms2base.R)
-#           "find_ms2_bypep" (ms2base.R)
+#         "search_mgf" (ms2base.R)
+#           "find_ms2_bypep2" (ms2base.R)
 #             "fuzzy_match_one" (ms2base.R)
 #             "fuzzy_match_one2" (ms2base.R)
 #       "post_frame_adv" (utils_engine.R)
@@ -213,8 +213,8 @@
 #                 "cions_base", "zions_base", 
 #                 "aions_base", "xions_base", 
 #           "add_hexcodes_vnl2"
-#         "search_mgf2" (ms2base.R)
-#           "find_ms2_bypep" (ms2base.R)
+#         "search_mgf" (ms2base.R)
+#           "find_ms2_bypep2" (ms2base.R)
 #             "fuzzy_match_one" (ms2base.R)
 #             "fuzzy_match_one2" (ms2base.R)
 #       "post_frame_adv" (utils_engine.R)
@@ -241,8 +241,8 @@
 #             ms2ions_by_type (ion_ladder.R)
 #               byions, czions, axions
 #           add_hexcodes_fnl2
-#         search_mgf2 (ms2base.R)
-#           find_ms2_bypep (ms2base.R)
+#         search_mgf (ms2base.R)
+#           find_ms2_bypep2 (ms2base.R)
 #             fuzzy_match_one (ms2base.R)
 #             fuzzy_match_one2 (ms2base.R)
 #       post_frame_adv (utils_engine.R)

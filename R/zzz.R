@@ -2,7 +2,7 @@
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage("Welcome to proteoM.\n\n",
                         "============================================================================================\n",
-                        # "NEW features (v1.1.0.1):\n",
+                        # "NEW features (v1.1.0.2):\n",
                         "[x] For examples, enter \"?matchMS\".\n\n", 
                         "[x] Supports of SILAC searches.\n",
                         "[x] Updates in utility mapMS2ions.\n",

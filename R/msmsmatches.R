@@ -1563,8 +1563,7 @@ matchMS_silac_mix <- function (silac_mix = list(base = NULL,
           "(heavy, light etc. mixed into one sample)")
   
   lapply(c("silac_mix", "mgf_path", "this_call", "out_path"), function (x) {
-    if (is.null(x))
-      stop("`", x, "` cannot be NULL.")
+    if (is.null(x)) stop("`", x, "` cannot be NULL.")
   })
   
   if (!is.list(silac_mix)) {
