@@ -21,7 +21,8 @@
 #'                   scan = 9933,
 #'                   raw_file = "a-raw-file-name.raw",
 #'                   rank = 1L,
-#'                   is_decoy = FALSE)
+#'                   is_decoy = FALSE, 
+#'                   filename = "bar.png")
 #'
 #' # Custom plots
 #' library(ggplot2)
@@ -62,14 +63,17 @@
 #' @export
 mapMS2ions <- function (out_path = "~/proteoM/outs", scan = 1234, 
                         raw_file = "foo.raw", rank = 1L, is_decoy = FALSE, 
-                        type_ms2ions = "by", filename = "bar.png") 
+                        type_ms2ions = "by", filename = NULL) 
 {
+  if (is.null(filename)) 
+    filename <- "bar.png"
+  
+  filename <- as.character(substitute(filename))
   raw_file <- as.character(substitute(raw_file))
   type_ms2ions <- as.character(substitute(type_ms2ions))
-  filename <- as.character(substitute(filename))
-  
+
   mgf_path <- match_mgf_path(out_path)
-  raw_id <- match_raw_id(mgf_path, raw_file)
+  raw_id <- match_raw_id(raw_file, mgf_path)
   scan <- as.character(scan)
 
   fileQ <- list.files(path = file.path(out_path), pattern = "^psmQ.*\\.txt$")
@@ -174,7 +178,7 @@ match_mgf_path <- function (out_path)
 #' 
 #' @param mgf_path An MGF path.
 #' @inheritParams mapMS2ions
-match_raw_id <- function (mgf_path, raw_file) 
+match_raw_id <- function (raw_file, mgf_path) 
 {
   file <- file.path(mgf_path, "raw_indexes.rds")
   
@@ -192,6 +196,26 @@ match_raw_id <- function (mgf_path, raw_file)
   }
   
   raw_id
+}
+
+
+#' Adds \code{raw_ids}.
+#'
+#' Currently only used with psmC.txt during matchMS. An inverse function of
+#' \link{match_raw_id}.
+#'
+#' @param df A PSM table.
+#' @inheritParams matchMS
+add_raw_ids <- function (df, mgf_path) 
+{
+  if (!"raw_file" %in% names(df))
+    stop("Column `raw_file` not found.")
+  
+  raw_files <- unique(df$raw_file)
+  raw_ids <- unlist(lapply(raw_files, match_raw_id, mgf_path))
+  raws_lookup <- data.frame(raw_file = raw_files, raw_id = raw_ids)
+  
+  dplyr::left_join(df, raws_lookup, by = "raw_file")
 }
 
 

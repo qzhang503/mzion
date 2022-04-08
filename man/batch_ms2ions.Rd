@@ -34,9 +34,9 @@ prepended directory path. The experimenter needs to supply the files.}
   For both \code{fixedmods} and \code{varmods}, the modification title,
   \code{TMT6plex}, applies to all of TMT-6, TMT-10, TMT-11. It is also
   possible to use aliased: (1) \code{TMT10plex} for TMT-10 and
-  \code{TMT11plex} for TMT-11, (2) \code{TMT16plex} for TMTpro and (3)
-  \code{TMT18plex} for TMTpro18. See also \link{parse_unimod} for grammars of
-  modification \code{title}, \code{position} and \code{site}.}
+  \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
+  \link{parse_unimod} for grammars of modification \code{title},
+  \code{position} and \code{site}.}
 
 \item{include_insource_nl}{Not yet used. Logical; if TRUE, includes MS1
 precursor masses with the losses of neutral species prior to MS2

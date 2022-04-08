@@ -231,6 +231,12 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
     exptmasses_ms1 <- mgfs_cr$ms1_mass
     exptmoverzs_ms2 <- mgfs_cr$ms2_moverz
     
+    ### Slower to subset + passed as argument 
+    #   compared to direct calculation at ~ 4us
+    # 
+    # exptimoverzs_ms2 <- mgfs_cr$ms2_imoverzs
+    ###
+    
     af_idx <- cr_idx + 1L
     
     theos_af_ms1 <- theopeps[[af_idx]]
@@ -268,6 +274,9 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       search_mgf, 
       expt_mass_ms1 = exptmasses_ms1, 
       expt_moverz_ms2 = exptmoverzs_ms2, 
+      ###
+      # ex = exptimoverzs_ms2, 
+      ###
       MoreArgs = list(
         theomasses_bf_ms1 = theomasses_bf_ms1, 
         theomasses_cr_ms1 = theomasses_cr_ms1, 
@@ -712,6 +721,35 @@ fuzzy_match_one <- function (x, y)
 #' stopifnot(ans1 == c(FALSE, TRUE))
 #'
 #' ans3 <- fuzzy_match_one2(c(74953, 74955, 80000), c(74955, 80000))
+#' 
+#' ## The x3 example from "find_ms2_bypep"
+#' x <- c(-9185, -3369, -1973, -626, 59, 714, 3326, 7106, 7711, 7715, 8316, 8320, 
+#'        8916, 8920, 9511, 9515, 10102, 10688, 11211, 12945, 16807, 24001, 24481, 
+#'        31480, 32350, 32805, 37050, 37875, 42986, 53028, 53377, 53711, 56940, 58542, 
+#'        59172, 61310, 62482, 70941, 73801, 77575, 78046, 78047, 84120, 85881, 89313, 
+#'        91185, 96328, 101503, 102916, 104302, 113257, 113411, 116563, 118593, 
+#'        121336, 121405, 121474, 123450, 123841, 125826, 127823, 130750, 131786, 
+#'        131842, 131903, 134568, 135267, 135956, 139090, 139200, 146310, 146801, 
+#'        146902, 149442, 152081, 152174, 153544, 153635, 160913, 160995, 161078, 
+#'        162794, 162875, 163036, 163117, 163191, 163271, 168686, 169869, 169943, 
+#'        173741, 173812, 173951, 174856, 174922, 174990, 175059, 175128, 175197, 
+#'        175266)
+#' 
+#' aas <- unlist(strsplit("SLAAEEEAAR", ""))
+#' 
+#' y <- c(317.2022, 430.2863, 501.3234, 572.3605, 701.4031, 
+#'        830.4457, 959.4883, 1030.5254, 1101.5625, 1257.6636, 
+#'        175.1190, 246.1561, 317.1932, 446.2358, 575.2784, 
+#'        704.3210, 775.3581, 846.3952, 959.4793, 1046.5113)
+#' 
+#' names(y) <- c(aas, rev(aas))
+#' 
+#' ppm_ms2 <- 13L
+#' min_ms2mass <- 115L
+#' d <- ppm_ms2/1E6
+#' y <- ceiling(log(y/min_ms2mass)/log(1+d))
+#' 
+#' ans <- fuzzy_match_one2(x, y)
 fuzzy_match_one2 <- function (x, y) 
 {
   mi <- x %fin% y
@@ -729,22 +767,18 @@ fuzzy_match_one2 <- function (x, y)
 
 #' Helper: matches between theoretical and experimental MS2 ions.
 #'
-#' Run time about 32.2 us. Conversion to MS2 m-over-z's to integers: 4.0 (expt,
-#' 100 values) + 1.6 (theo, 14 values). The time for in-situ conversion is
-#' estimated to be well below 8.0 us. The time for MS2 ion generation for
-#' sequence HQGVMNVGMGQKMNS at gen_ms2ions_base is 21.5 us and 725 us at
-#' gen_ms2ions_a1_vnl1_fnl0. For the later, the business part of adding hexcodes
-#' takes 360 us.
-#'
 #' @param expts Numeric vector; one series of experimental MS2s.
 #' @param theos Numeric vector; one to multiple series of theoretical MS2s.
+#' @param ex Converted expts as integers.
+#' @param d ppm_ms2 divided by 1E6.
 #' @inheritParams frames_adv
 #' @inheritParams load_mgfs
 #' @importFrom purrr map
 #' @importFrom fastmatch fmatch %fin%
 #' @examples
 #' \donttest{
-#' # experimental 322.18704 fit to both b- and y- ions
+#' ## Experimental 322.18704 fit to both b- and y- ions
+#' #  (one expt to multiple theos)
 #' expts <- c(101.07140,102.05540,107.04956,110.07165,111.07500,
 #'            112.08729,113.07130,115.08693,116.07092,120.08105,
 #'            121.08428,126.12794,127.12494,127.13121,128.12825,
@@ -782,9 +816,10 @@ fuzzy_match_one2 <- function (x, y)
 #' names(theos) <- c(nms, rev(nms))
 #' theos <- list(`0000000` = theos)
 #'
-#' x <- find_ms2_bypep(theos, expts, ex, d)
+#' x1 <- find_ms2_bypep(theos, expts, ex, d)
 #'
 #' ## Both expts 74953 and 74955 fit to theos 74954
+#' #  (multiple expts to one theo)
 #' pep <- "DIAVEEDLSSTPLFKDLLALMR"
 #' nms <- unlist(stringr::str_split(pep, ""))
 #'
@@ -826,7 +861,44 @@ fuzzy_match_one2 <- function (x, y)
 #' d <- ppm_ms2/1E6
 #' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 #' 
-#' x <- find_ms2_bypep(theos, expts, ex, d)
+#' x2 <- find_ms2_bypep(theos, expts, ex, d)
+#' 
+#' ## Experimental 317.20001 & 317.19315 match to theoreitcal 317.2022 & 317.1932;
+#' #  experimental 959.48468 is also multiple dipping
+#' #  (multiple to multiple)
+#' aas <- unlist(strsplit("SLAAEEEAAR", ""))
+#' theos <- c(317.2022, 430.2863, 501.3234, 572.3605, 701.4031, 
+#'            830.4457, 959.4883, 1030.5254, 1101.5625, 1257.6636, 
+#'            175.1190, 246.1561, 317.1932, 446.2358, 575.2784, 
+#'            704.3210, 775.3581, 846.3952, 959.4793, 1046.5113)
+#' names(theos) <- c(aas, rev(aas))
+#' theos <- list(`0000000000` = theos)
+#' 
+#' expts <- c(102.05550, 110.07173, 112.08743, 114.06662, 115.08708, 116.07106, 
+#'            120.08112, 126.12806, 127.12510, 127.13136, 128.12843, 128.13467, 
+#'            129.13181, 129.13805, 130.13509, 130.14134, 131.13843, 132.14159, 
+#'            133.04318, 136.07600, 143.08151, 157.10843, 158.09259, 173.14983, 
+#'            175.11917, 176.15997, 186.15306, 188.15982, 201.08725, 229.12970, 
+#'            230.17041, 231.17366, 241.08228, 246.15643, 248.18086, 255.17380, 
+#'            259.09235, 289.20801, 300.16696, 315.25952, 317.19315, 317.20001, 
+#'            343.25476, 351.20572, 367.22961, 376.27621, 402.29141, 430.28644,
+#'            438.26654, 446.23587, 501.32376, 502.32788, 523.34491, 537.33649, 
+#'            556.83990, 557.34125, 557.84283, 572.36127, 575.27863, 590.31671, 
+#'            605.84045, 629.33453, 637.86853, 638.33740, 638.83984, 661.35687, 
+#'            667.39923, 673.40417, 701.40350, 702.40936, 770.42517, 775.35840, 
+#'            776.37720, 802.44659, 830.44556, 831.44958, 846.39349, 847.39465, 
+#'            931.49158, 932.48187, 933.48218, 954.54474, 955.54791, 957.55493, 
+#'            958.55646, 959.48468, 960.48773, 1030.52563, 1046.50830, 1047.50684, 
+#'            1100.53101, 1101.54858, 1103.53040, 1116.59692, 1117.54749, 
+#'            1118.54334, 1119.54565, 1120.55347, 1121.55408, 1122.55737)
+#' 
+#' ppm_ms2 <- 13L
+#' min_ms2mass <- 115L
+#' d <- ppm_ms2/1E6
+#' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+#' 
+#' x3 <- find_ms2_bypep(theos, expts, ex, d)
+#' 
 #' }
 find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL, 
                              ppm_ms2 = 25L, min_ms2mass = 115L, minn_ms2 = 6L) 
@@ -862,9 +934,6 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
   
   if (!len) 
     return(list(theo = NULL, expt = NULL))
-  
-  # d <- ppm_ms2/1e6 # 100 ns
-  # ex <- ceiling(log(expts/min_ms2mass)/log(1+d)) # 4 us
   
   # ---
   out <- vector("list", len)
@@ -912,12 +981,25 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
       af_2 <- ex_af %fin% y_2
       ps_2 <- mi_2 | bf_2 | af_2
       
-      expt_12 <- c(expts[ps_1], expts[ps_2])
+      expt_1 <- expts[ps_1]
+      expt_2 <- expts[ps_2]
+      expt_12 <- c(expt_1, expt_2)
+      
+      len_12 <- length(expt_12)
       
       # (occur rarely; OK to recalculate freshly `expt_12`)
-      if (n_ps != length(expt_12)) {
+      if (n_ps != len_12) {
         ps_12 <- fuzzy_match_one2(ex, th_i)
         expt_12 <- expts[ps_12]
+
+        # length(expt_12) may be shorter than len_es (or n_ps)
+        # (the same expt value matched by multiple theo values in es[ps])
+        # may change from `!=` to `<`
+        if (length(expt_12) != n_ps) {
+          out[[i]] <- find_ppm_outer_bycombi(theos_i, expts, ppm_ms2)
+          names(out) <- names(theos)
+          return(out)
+        }
       }
       
       es[ps] <- expt_12
@@ -975,7 +1057,7 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
 #' c(cr, pr, af)
 #'
 #' }
-search_mgf <- function (expt_mass_ms1, expt_moverz_ms2, d, ex, 
+search_mgf <- function (expt_mass_ms1, expt_moverz_ms2, 
                         theomasses_bf_ms1, theomasses_cr_ms1, theomasses_af_ms1, 
                         theos_bf_ms2, theos_cr_ms2, theos_af_ms2, 
                         minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
@@ -993,7 +1075,7 @@ search_mgf <- function (expt_mass_ms1, expt_moverz_ms2, d, ex,
   theos_af_ms2 <- theos_af_ms2[af_allowed]
   
   # --- find MS2 matches ---
-  d2 <- ppm_ms2/1E6 # 100 ns
+  d2 <- ppm_ms2/1E6
   ex <- ceiling(log(expt_moverz_ms2/min_ms2mass)/log(1+d2)) # 4 us
   
   ans_bf <- if (length(theos_bf_ms2)) 

@@ -7,8 +7,6 @@
 search_mgf(
   expt_mass_ms1,
   expt_moverz_ms2,
-  d,
-  ex,
   theomasses_bf_ms1,
   theomasses_cr_ms1,
   theomasses_af_ms1,

@@ -171,8 +171,8 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
 {
   range <- findInterval(ul, ms2_moverzs)
   
-  ms <-ms2_moverzs[range[1]:range[2]]
-  is <-ms2_ints[range[1]:range[2]]
+  ms <- ms2_moverzs[range[1]:range[2]]
+  is <- ms2_ints[range[1]:range[2]]
   
   idxes <- find_reporters_ppm(theos, ms, ppm_reporters, len, nms)
   
@@ -255,7 +255,7 @@ add_prot_acc <- function (df = NULL, out_path = NULL, .path_cache = NULL,
     
     rm(list = c("file"))
   }
-
+  
   uniq_peps <- unique(df$pep_seq)
   
   .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))

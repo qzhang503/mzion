@@ -4,12 +4,12 @@
 \alias{match_raw_id}
 \title{Matches the id of raw_file.}
 \usage{
-match_raw_id(mgf_path, raw_file)
+match_raw_id(raw_file, mgf_path)
 }
 \arguments{
-\item{mgf_path}{An MGF path.}
-
 \item{raw_file}{Character string; a RAW file name.}
+
+\item{mgf_path}{An MGF path.}
 }
 \description{
 Matches the id of raw_file.

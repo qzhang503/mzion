@@ -295,12 +295,6 @@ hfind_unimod <- function (xml_files = c("master.xml", "custom.xml"), unimod)
 #' this_mod2 <- parse_unimod("TMTpro16 (Anywhere = K)")
 #' this_mod3 <- parse_unimod("TMT16plex (Anywhere = K)")
 #' 
-#' ## TMT-18
-#' ans[with(ans, title == "TMTpro18"), ]
-#' this_mod1 <- parse_unimod("TMTpro18 (Anywhere = K)")
-#' this_mod2 <- parse_unimod("TMTpro18 (Anywhere = K)")
-#' this_mod3 <- parse_unimod("TMT18plex (Anywhere = K)")
-#' 
 #' ## Summary of TMT entries and alias
 #' ans[with(ans, grepl("^TMT", title)), ]
 #' 
@@ -488,6 +482,19 @@ htable_unimods <- function (file)
 #'                 neuloss     = c(mono_mass   = "0",
 #'                                 avge_mass   = "0",
 #'                                 composition = "0"))
+#' 
+#' 
+#' # TMT reporter ions
+#' electron <- 0.000549
+#' 
+#' tmt11_126 <- calc_unimod_compmass("C(8) N(1) H(16)")
+#' tmt11_126 <- lapply(tmt11_126, `-`, electron)
+#' 
+#' tmt11_131n <- calc_unimod_compmass("13C(4) C(4) 15N(1) H(16)")
+#' tmt11_131n <- lapply(tmt11_131n, `-`, electron)
+#' 
+#' tmt11_131c <- calc_unimod_compmass("13C(5) C(3) N(1) H(16)")
+#' tmt11_131c <- lapply(tmt11_131c, `-`, electron)
 #' 
 #' @export
 add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"), 

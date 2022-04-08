@@ -19,6 +19,10 @@ find_ms2_bypep(
 
 \item{expts}{Numeric vector; one series of experimental MS2s.}
 
+\item{ex}{Converted expts as integers.}
+
+\item{d}{ppm_ms2 divided by 1E6.}
+
 \item{ppm_ms2}{The mass tolerance of MS2 species.}
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
@@ -28,16 +32,12 @@ interrogation. The default is 110.}
 a hit.}
 }
 \description{
-Run time about 32.2 us. Conversion to MS2 m-over-z's to integers: 4.0 (expt,
-100 values) + 1.6 (theo, 14 values). The time for in-situ conversion is
-estimated to be well below 8.0 us. The time for MS2 ion generation for
-sequence HQGVMNVGMGQKMNS at gen_ms2ions_base is 21.5 us and 725 us at
-gen_ms2ions_a1_vnl1_fnl0. For the later, the business part of adding hexcodes
-takes 360 us.
+Helper: matches between theoretical and experimental MS2 ions.
 }
 \examples{
 \donttest{
-# experimental 322.18704 fit to both b- and y- ions
+## Experimental 322.18704 fit to both b- and y- ions
+#  (one expt to multiple theos)
 expts <- c(101.07140,102.05540,107.04956,110.07165,111.07500,
            112.08729,113.07130,115.08693,116.07092,120.08105,
            121.08428,126.12794,127.12494,127.13121,128.12825,
@@ -75,9 +75,10 @@ nms <- unlist(stringr::str_split(pep, ""))
 names(theos) <- c(nms, rev(nms))
 theos <- list(`0000000` = theos)
 
-x <- find_ms2_bypep(theos, expts, ex, d)
+x1 <- find_ms2_bypep(theos, expts, ex, d)
 
 ## Both expts 74953 and 74955 fit to theos 74954
+#  (multiple expts to one theo)
 pep <- "DIAVEEDLSSTPLFKDLLALMR"
 nms <- unlist(stringr::str_split(pep, ""))
 
@@ -119,6 +120,43 @@ min_ms2mass <- 115L
 d <- ppm_ms2/1E6
 ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 
-x <- find_ms2_bypep(theos, expts, ex, d)
+x2 <- find_ms2_bypep(theos, expts, ex, d)
+
+## Experimental 317.20001 & 317.19315 match to theoreitcal 317.2022 & 317.1932;
+#  experimental 959.48468 is also multiple dipping
+#  (multiple to multiple)
+aas <- unlist(strsplit("SLAAEEEAAR", ""))
+theos <- c(317.2022, 430.2863, 501.3234, 572.3605, 701.4031, 
+           830.4457, 959.4883, 1030.5254, 1101.5625, 1257.6636, 
+           175.1190, 246.1561, 317.1932, 446.2358, 575.2784, 
+           704.3210, 775.3581, 846.3952, 959.4793, 1046.5113)
+names(theos) <- c(aas, rev(aas))
+theos <- list(`0000000000` = theos)
+
+expts <- c(102.05550, 110.07173, 112.08743, 114.06662, 115.08708, 116.07106, 
+           120.08112, 126.12806, 127.12510, 127.13136, 128.12843, 128.13467, 
+           129.13181, 129.13805, 130.13509, 130.14134, 131.13843, 132.14159, 
+           133.04318, 136.07600, 143.08151, 157.10843, 158.09259, 173.14983, 
+           175.11917, 176.15997, 186.15306, 188.15982, 201.08725, 229.12970, 
+           230.17041, 231.17366, 241.08228, 246.15643, 248.18086, 255.17380, 
+           259.09235, 289.20801, 300.16696, 315.25952, 317.19315, 317.20001, 
+           343.25476, 351.20572, 367.22961, 376.27621, 402.29141, 430.28644,
+           438.26654, 446.23587, 501.32376, 502.32788, 523.34491, 537.33649, 
+           556.83990, 557.34125, 557.84283, 572.36127, 575.27863, 590.31671, 
+           605.84045, 629.33453, 637.86853, 638.33740, 638.83984, 661.35687, 
+           667.39923, 673.40417, 701.40350, 702.40936, 770.42517, 775.35840, 
+           776.37720, 802.44659, 830.44556, 831.44958, 846.39349, 847.39465, 
+           931.49158, 932.48187, 933.48218, 954.54474, 955.54791, 957.55493, 
+           958.55646, 959.48468, 960.48773, 1030.52563, 1046.50830, 1047.50684, 
+           1100.53101, 1101.54858, 1103.53040, 1116.59692, 1117.54749, 
+           1118.54334, 1119.54565, 1120.55347, 1121.55408, 1122.55737)
+
+ppm_ms2 <- 13L
+min_ms2mass <- 115L
+d <- ppm_ms2/1E6
+ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+
+x3 <- find_ms2_bypep(theos, expts, ex, d)
+
 }
 }

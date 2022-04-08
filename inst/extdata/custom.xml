@@ -58,5 +58,23 @@
         <umod:element symbol="H" number="-4"/>
       </umod:delta>
     </umod:mod>
+    <umod:mod title="A4" full_name="Heavy alanine 13C(3) 15N(1)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-04-06 14:53:23" date_time_modified="2022-04-06 14:53:23" approved="0" record_id="8">
+      <umod:specificity hidden="0" site="A" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="4.0071" avge_mass="3.97136" composition="13C(3) C(-3) 15N(1) N(-1)">
+        <umod:element symbol="13C" number="3"/>
+        <umod:element symbol="C" number="-3"/>
+        <umod:element symbol="15N" number="1"/>
+        <umod:element symbol="N" number="-1"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="E6" full_name="Heavy glutamic acid 13C(5) 15N(1)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-04-06 14:53:23" date_time_modified="2022-04-06 14:53:23" approved="0" record_id="9">
+      <umod:specificity hidden="0" site="E" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="6.01381" avge_mass="5.95666" composition="13C(5) C(-5) 15N(1) N(-1)">
+        <umod:element symbol="13C" number="5"/>
+        <umod:element symbol="C" number="-5"/>
+        <umod:element symbol="15N" number="1"/>
+        <umod:element symbol="N" number="-1"/>
+      </umod:delta>
+    </umod:mod>
   </umod:modifications>
 </umod:unimod>

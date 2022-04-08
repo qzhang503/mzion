@@ -37,12 +37,6 @@ this_mod1 <- parse_unimod("TMTpro (Anywhere = K)")
 this_mod2 <- parse_unimod("TMTpro16 (Anywhere = K)")
 this_mod3 <- parse_unimod("TMT16plex (Anywhere = K)")
 
-## TMT-18
-ans[with(ans, title == "TMTpro18"), ]
-this_mod1 <- parse_unimod("TMTpro18 (Anywhere = K)")
-this_mod2 <- parse_unimod("TMTpro18 (Anywhere = K)")
-this_mod3 <- parse_unimod("TMT18plex (Anywhere = K)")
-
 ## Summary of TMT entries and alias
 ans[with(ans, grepl("^TMT", title)), ]
 

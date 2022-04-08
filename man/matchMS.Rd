@@ -46,6 +46,8 @@ matchMS(
   max_pepscores_co = Inf,
   max_protscores_co = Inf,
   match_pepfdr = TRUE,
+  topn_mods_per_seq = 3L,
+  topn_seqs_per_query = 3L,
   combine_tier_three = FALSE,
   max_n_prots = 40000L,
   use_ms1_cache = TRUE,
@@ -58,6 +60,7 @@ matchMS(
   max_scan_num = .Machine$integer.max,
   min_ret_time = 0,
   max_ret_time = Inf,
+  add_ms2_deltas = FALSE,
   digits = 4L,
   ...
 )
@@ -101,9 +104,9 @@ c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
   For both \code{fixedmods} and \code{varmods}, the modification title,
   \code{TMT6plex}, applies to all of TMT-6, TMT-10, TMT-11. It is also
   possible to use aliased: (1) \code{TMT10plex} for TMT-10 and
-  \code{TMT11plex} for TMT-11, (2) \code{TMT16plex} for TMTpro and (3)
-  \code{TMT18plex} for TMTpro18. See also \link{parse_unimod} for grammars of
-  modification \code{title}, \code{position} and \code{site}.}
+  \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
+  \link{parse_unimod} for grammars of modification \code{title},
+  \code{position} and \code{site}.}
 
 \item{include_insource_nl}{Not yet used. Logical; if TRUE, includes MS1
 precursor masses with the losses of neutral species prior to MS2
@@ -263,6 +266,25 @@ probability (corresponding to the lowest score) cut-offs to the pre-defined
 level of \code{target_fdr}. The default if TRUE. Choose \code{match_pepfdr
 = FALSE} for higher data quality (at a price of fewer hits).}
 
+\item{topn_mods_per_seq}{Positive integer; a threshold to discard variable
+  modifications under the same peptide match with scores beyond the top-n.
+  The default is 3.
+
+  The same \code{peptide match} refers to matches with identities in \code{MS
+  scan number}, \code{MS raw file name} and \code{peptide sequence}. Target
+  and decoys matches are treated separately.
+
+  For a variable modification with multiple neutral losses (NL), the
+  best-scored NL will be used in the ranking.}
+
+\item{topn_seqs_per_query}{Positive integer; a threshold to discard peptide
+  matches under the same MS query with scores beyond the top-n. The default
+  is 3.
+
+  The same \code{MS query} refers to the identity in \code{MS scan number}
+  and \code{MS raw file name}. Target and decoys matches are treated
+  separately.}
+
 \item{combine_tier_three}{Logical; if TRUE, combines search results at tiers
   1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
   that data will be segregated into the three quality tiers according to the
@@ -340,6 +362,11 @@ seconds for considerations. The default is 0.}
 \item{max_ret_time}{A non-negative numeric; the maximum retention time in
 seconds for considerations. The default is \code{Inf}.}
 
+\item{add_ms2_deltas}{Logical. If true, adds the quality metrics
+(\code{pep_ms2_deltas}) in mass deltas between experimental and theoretical
+MS2 m/z values (in the unit of mDA). The corresponding mean deltas are
+summarized (\code{pep_ms2_mean_delta}). The default is FALSE.}
+
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
 
@@ -390,12 +417,11 @@ proteoM but removed with proteoQ.
   losses of a modification \cr\cr \link{parse_unimod} parses a Unimod.
   \href{https://proteoq.netlify.app/post/mixing-data-at-different-tmt-plexes/}{For
    example}, the name tag of "TMT6plex" is common among TMT-6, -10 and -11
-  while "TMTpro" is for TMT-16 and "TMTpro18" for TMT-18. Experimenters may
-  use aliases of "TMT10plex", "TMT11plex", "TMT16plex" and "TMT18plex".\cr\cr
-  \link{calc_unimod_compmass} calculates the composition masses of a Unimod
-  \cr\cr \link{add_unimod} adds a Unimod entry. \cr\cr \link{remove_unimod}
-  removes a Unimod entry \cr\cr \link{remove_unimod_title} removes a Unimod
-  entry by title.
+  while "TMTpro" is for TMT-16. Experimenters may use aliases of "TMT10plex",
+  "TMT11plex" and "TMT16plex.\cr\cr \link{calc_unimod_compmass} calculates
+  the composition masses of a Unimod \cr\cr \link{add_unimod} adds a Unimod
+  entry. \cr\cr \link{remove_unimod} removes a Unimod entry \cr\cr
+  \link{remove_unimod_title} removes a Unimod entry by title.
 }
 
 \section{\code{Visualization}}{
@@ -441,22 +467,6 @@ matchMS(
   out_path  = "~/proteoM/examples",
 )
 
-# Hypothetical phosphopeptides and 18-plex TMTpro
-matchMS(
-  fasta     = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-                "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-                "~/proteoM/dbs/fasta/crap/crap.fasta"),
-  acc_type  = c("refseq_acc", "refseq_acc", "other"),
-  fixedmods = c("TMTpro18 (N-term)", "TMTpro18 (K)", "Carbamidomethyl (C)"),
-  varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
-                "Deamidated (N)", "Phospho (S)", "Phospho (T)",
-                "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
-  max_miss  = 2,
-  quant     = "tmt18",
-  fdr_type  = "psm",
-  combine_tier_three = TRUE,
-  out_path  = "~/proteoM/examples",
-)
 
 # Hypothetical Bruker's PASEF
 matchMS(
@@ -552,7 +562,7 @@ matchMS(
 )
 
 
-## 2. Heavy and light in separate samples 
+## 2. Heavy and light in separate samples
 #  (toy examples assessing the technical quality of SILAC)
 
 # MGFs of light and heavy samples under separate folders;
@@ -571,7 +581,7 @@ matchMS(
 )
 
 # The results next processed by proteoQ just like LFQ.
-# This works since "pep_seq_mod" in proteoQ dose not 
+# This works since "pep_seq_mod" in proteoQ dose not
 #   contain the information of fixed modifications.
 
 # (ii) SILAC at low-throughput + TMT

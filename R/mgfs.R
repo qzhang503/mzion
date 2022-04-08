@@ -12,7 +12,7 @@
 #'   preceeding, current and following.
 #' @inheritParams matchMS
 load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L, 
-                       min_ms2mass = 110L, topn_ms2ions = 100L, 
+                       min_ms2mass = 115L, topn_ms2ions = 100L, 
                        min_ms1_charge = 2L, max_ms1_charge = 6L, 
                        min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                        min_ret_time = 0, max_ret_time = Inf, 
@@ -357,7 +357,7 @@ readlineMGFs <- function (i, file, filepath, raw_file)
 #' @param raw_file The raw file name. Is NULL for PD and MSConvert.
 #' @inheritParams readMGF
 #' @inheritParams matchMS
-read_mgf_chunks <- function (filepath = "~/proteoM/mgf",
+read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                              topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
                              ret_range = c(0, Inf), 
@@ -370,11 +370,12 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf",
                              raw_file = NULL) 
 {
   filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
+  len <- length(filelist)
 
-  if (!length(filelist)) 
+  if (!len) 
     stop("No mgf files under ", filepath, call. = FALSE)
 
-  n_cores <- detect_cores(32L)
+  n_cores <- min(detect_cores(32L), len)
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
   parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
@@ -429,26 +430,16 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf",
   # adds back broken mgf entries
   afs <- local({
     afs <- list.files(path = file.path(filepath), pattern = "^.*\\_af.mgf$")
-
-    idxes <- afs %>%
-      gsub("^chunk_(\\d+)_af\\.mgf", "\\1", .) %>%
-      as.integer() %>%
-      sort()
-
-    paste0("chunk_", idxes, "_af.mgf") %>%
-      .[-length(.)]
+    idxes <- sort(as.integer(gsub("^chunk_(\\d+)_af\\.mgf", "\\1", afs)))
+    afs <- paste0("chunk_", idxes, "_af.mgf")
+    afs <- afs[-length(afs)]
   })
 
   bfs <- local({
     bfs <- list.files(path = file.path(filepath), pattern = "^.*\\_bf.mgf$")
-
-    idxes <- bfs %>%
-      gsub("^chunk_(\\d+)_bf\\.mgf", "\\1", .) %>%
-      as.integer() %>%
-      sort()
-
-    paste0("chunk_", idxes, "_bf.mgf") %>%
-      .[-1]
+    idxes <- sort(as.integer(gsub("^chunk_(\\d+)_bf\\.mgf", "\\1", bfs)))
+    bfs <- paste0("chunk_", idxes, "_bf.mgf")
+    bfs <- bfs[-1]
   })
 
   # stopifnot(length(afs) == length(bfs))
@@ -626,8 +617,18 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
   #  equals `topn_ms2ions` even with ties;
   # except when the length of a vector is shorter than `topn_ms2ions`)
 
+  # subsets by min_ms2mass
   ms2_ints <- lapply(ms2s, function (x) as.numeric(x[, 2]))
+  
+  oks <- lapply(ms2_moverzs, function (x) x >= min_ms2mass)
+  
+  ms2_moverzs <- mapply(function (x, y) x[y], ms2_moverzs, oks, 
+                        SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  ms2_ints <- mapply(function (x, y) x[y], ms2_ints, oks, 
+                     SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  rm(list = "oks")
 
+  # subsets by top-n
   lens <- lapply(ms2_moverzs, length)
   lens <- .Internal(unlist(lens, recursive = FALSE, use.names = FALSE))
 
@@ -730,11 +731,12 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
   ms2_ints <- ms2_ints[rows]
   lens <- lens[rows]
 
+  # Actually slower
   if (index_ms2) 
-    ms2_moverzs <- lapply(ms2_moverzs,
-                          find_ms1_interval,
-                          from = min_ms2mass,
-                          ppm = ppm_ms2)
+    ms2_imoverzs <- lapply(ms2_moverzs,
+                           find_ms1_interval,
+                           from = min_ms2mass,
+                           ppm = ppm_ms2)
 
   out <- tibble::tibble(scan_title = scan_titles,
                         raw_file = raw_files,
@@ -745,6 +747,9 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
                         ret_time = ret_times,
                         scan_num = scan_nums,
                         ms2_moverz = ms2_moverzs,
+                        ###
+                        # ms2_imoverzs = ms2_imoverzs, 
+                        ###
                         ms2_int = ms2_ints,
                         ms2_n = lens)
 }

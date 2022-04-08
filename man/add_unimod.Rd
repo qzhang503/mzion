@@ -145,6 +145,19 @@ x <- add_unimod(header      = c(title       = "R10",
                                 avge_mass   = "0",
                                 composition = "0"))
 
+
+# TMT reporter ions
+electron <- 0.000549
+
+tmt11_126 <- calc_unimod_compmass("C(8) N(1) H(16)")
+tmt11_126 <- lapply(tmt11_126, `-`, electron)
+
+tmt11_131n <- calc_unimod_compmass("13C(4) C(4) 15N(1) H(16)")
+tmt11_131n <- lapply(tmt11_131n, `-`, electron)
+
+tmt11_131c <- calc_unimod_compmass("13C(5) C(3) N(1) H(16)")
+tmt11_131c <- lapply(tmt11_131c, `-`, electron)
+
 }
 \seealso{
 \link{table_unimods}, \link{parse_unimod}, \link{find_unimod}.

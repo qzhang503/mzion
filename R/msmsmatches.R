@@ -60,9 +60,9 @@
 #'   For both \code{fixedmods} and \code{varmods}, the modification title,
 #'   \code{TMT6plex}, applies to all of TMT-6, TMT-10, TMT-11. It is also
 #'   possible to use aliased: (1) \code{TMT10plex} for TMT-10 and
-#'   \code{TMT11plex} for TMT-11, (2) \code{TMT16plex} for TMTpro and (3)
-#'   \code{TMT18plex} for TMTpro18. See also \link{parse_unimod} for grammars of
-#'   modification \code{title}, \code{position} and \code{site}.
+#'   \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
+#'   \link{parse_unimod} for grammars of modification \code{title},
+#'   \code{position} and \code{site}.
 #' @param include_insource_nl Not yet used. Logical; if TRUE, includes MS1
 #'   precursor masses with the losses of neutral species prior to MS2
 #'   fragmentation. The default is FALSE. The setting at TRUE remains
@@ -211,6 +211,23 @@
 #'   probability (corresponding to the lowest score) cut-offs to the pre-defined
 #'   level of \code{target_fdr}. The default if TRUE. Choose \code{match_pepfdr
 #'   = FALSE} for higher data quality (at a price of fewer hits).
+#' @param topn_seqs_per_query Positive integer; a threshold to discard peptide
+#'   matches under the same MS query with scores beyond the top-n. The default
+#'   is 3.
+#'
+#'   The same \code{MS query} refers to the identity in \code{MS scan number}
+#'   and \code{MS raw file name}. Target and decoys matches are treated
+#'   separately.
+#' @param topn_mods_per_seq Positive integer; a threshold to discard variable
+#'   modifications under the same peptide match with scores beyond the top-n.
+#'   The default is 3.
+#'
+#'   The same \code{peptide match} refers to matches with identities in \code{MS
+#'   scan number}, \code{MS raw file name} and \code{peptide sequence}. Target
+#'   and decoys matches are treated separately.
+#'
+#'   For a variable modification with multiple neutral losses (NL), the
+#'   best-scored NL will be used in the ranking.
 #' @param combine_tier_three Logical; if TRUE, combines search results at tiers
 #'   1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
 #'   that data will be segregated into the three quality tiers according to the
@@ -248,6 +265,10 @@
 #'
 #'   Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
 #'   \code{fdr_type = psm} to \code{fdr_type = protein}.
+#' @param add_ms2_deltas Logical. If true, adds the quality metrics
+#'   (\code{pep_ms2_deltas}) in mass deltas between experimental and theoretical
+#'   MS2 m/z values (in the unit of mDA). The corresponding mean deltas are
+#'   summarized (\code{pep_ms2_mean_delta}). The default is FALSE.
 #' @param .path_cache The file path of cached search parameters. The parameter
 #'   is for the users' awareness of the underlying structure of file folders and
 #'   the use of default is suggested. Occasionally experimenters may remove the
@@ -271,12 +292,11 @@
 #'   losses of a modification \cr\cr \link{parse_unimod} parses a Unimod.
 #'   \href{https://proteoq.netlify.app/post/mixing-data-at-different-tmt-plexes/}{For
 #'    example}, the name tag of "TMT6plex" is common among TMT-6, -10 and -11
-#'   while "TMTpro" is for TMT-16 and "TMTpro18" for TMT-18. Experimenters may
-#'   use aliases of "TMT10plex", "TMT11plex", "TMT16plex" and "TMT18plex".\cr\cr
-#'   \link{calc_unimod_compmass} calculates the composition masses of a Unimod
-#'   \cr\cr \link{add_unimod} adds a Unimod entry. \cr\cr \link{remove_unimod}
-#'   removes a Unimod entry \cr\cr \link{remove_unimod_title} removes a Unimod
-#'   entry by title.
+#'   while "TMTpro" is for TMT-16. Experimenters may use aliases of "TMT10plex",
+#'   "TMT11plex" and "TMT16plex.\cr\cr \link{calc_unimod_compmass} calculates
+#'   the composition masses of a Unimod \cr\cr \link{add_unimod} adds a Unimod
+#'   entry. \cr\cr \link{remove_unimod} removes a Unimod entry \cr\cr
+#'   \link{remove_unimod_title} removes a Unimod entry by title.
 #' @section \code{Visualization}: \link{mapMS2ions} visualizes the MS2 ion
 #'   ladders.
 #' @section \code{mzTab}: \link{make_mztab} converts outputs from the proteoM ->
@@ -316,22 +336,6 @@
 #'   out_path  = "~/proteoM/examples",
 #' )
 #'
-#' # Hypothetical phosphopeptides and 18-plex TMTpro
-#' matchMS(
-#'   fasta     = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-#'                 "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-#'                 "~/proteoM/dbs/fasta/crap/crap.fasta"),
-#'   acc_type  = c("refseq_acc", "refseq_acc", "other"),
-#'   fixedmods = c("TMTpro18 (N-term)", "TMTpro18 (K)", "Carbamidomethyl (C)"),
-#'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
-#'                 "Deamidated (N)", "Phospho (S)", "Phospho (T)",
-#'                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
-#'   max_miss  = 2,
-#'   quant     = "tmt18",
-#'   fdr_type  = "psm",
-#'   combine_tier_three = TRUE,
-#'   out_path  = "~/proteoM/examples",
-#' )
 #'
 #' # Hypothetical Bruker's PASEF
 #' matchMS(
@@ -427,12 +431,12 @@
 #' )
 #'
 #'
-#' ## 2. Heavy and light in separate samples 
+#' ## 2. Heavy and light in separate samples
 #' #  (toy examples assessing the technical quality of SILAC)
 #'
 #' # MGFs of light and heavy samples under separate folders;
 #' # Heavy modifications being fixedmods
-#' 
+#'
 #' # (i) SILAC but low throughput since no sample mixing
 #' matchMS(
 #'   par_groups = list(
@@ -444,9 +448,9 @@
 #'   quant = "none",
 #'   ...
 #' )
-#' 
+#'
 #' # The results next processed by proteoQ just like LFQ.
-#' # This works since "pep_seq_mod" in proteoQ dose not 
+#' # This works since "pep_seq_mod" in proteoQ dose not
 #' #   contain the information of fixed modifications.
 #'
 #' # (ii) SILAC at low-throughput + TMT
@@ -460,7 +464,7 @@
 #'   quant = "TMT10",
 #'   ...
 #' )
-#' 
+#'
 #' # Next processed by proteoQ just like TMT
 #' # ...
 #'
@@ -514,6 +518,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      max_pepscores_co = Inf, max_protscores_co = Inf, 
                      match_pepfdr = TRUE, 
                      
+                     topn_mods_per_seq = 3L, 
+                     topn_seqs_per_query = 3L, 
+                     
                      combine_tier_three = FALSE,
                      max_n_prots = 40000L, 
                      use_ms1_cache = TRUE, 
@@ -524,6 +531,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      min_ms1_charge = 2L, max_ms1_charge = 6L, 
                      min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                      min_ret_time = 0, max_ret_time = Inf, 
+                     
+                     add_ms2_deltas = FALSE, 
 
                      digits = 4L, ...) 
 {
@@ -576,7 +585,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      min_len, max_len, max_miss, topn_ms2ions, minn_ms2, 
                      min_mass, max_mass, min_ms2mass, n_13c, 
                      ppm_ms1, ppm_ms2, ppm_reporters, max_n_prots, digits, 
-                     target_fdr, max_pepscores_co, max_protscores_co), 
+                     target_fdr, max_pepscores_co, max_protscores_co, 
+                     topn_mods_per_seq, topn_seqs_per_query), 
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
@@ -594,6 +604,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
   if (is.infinite(topn_ms2ions)) topn_ms2ions <- max_integer
   if (is.infinite(max_scan_num)) max_scan_num <- max_integer
   if (is.infinite(max_ret_time)) max_ret_time <- max_integer
+  if (is.infinite(topn_mods_per_seq)) topn_mods_per_seq <- max_integer
+  if (is.infinite(topn_seqs_per_query)) topn_seqs_per_query <- max_integer
 
   maxn_fasta_seqs <- as.integer(maxn_fasta_seqs)
   maxn_vmods_setscombi <- as.integer(maxn_vmods_setscombi)
@@ -618,6 +630,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
   max_ms1_charge <- as.integer(max_ms1_charge)
   min_scan_num <- as.integer(min_scan_num)
   max_scan_num <- as.integer(max_scan_num)
+  topn_mods_per_seq <- as.integer(topn_mods_per_seq)
+  topn_seqs_per_query <- as.integer(topn_seqs_per_query)
   digits <- as.integer(digits)
   
   stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 10L, minn_ms2 >= 1L, 
@@ -625,8 +639,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
             n_13c >= 0L, noenzyme_maxn >= 0L, 
             maxn_vmods_per_pep >= maxn_sites_per_vmod, max_n_prots > 1000L, 
             min_ms1_charge >= 1L, max_ms1_charge >= min_ms1_charge, 
-            min_scan_num >= 1L, max_scan_num >= min_scan_num)
-            
+            min_scan_num >= 1L, max_scan_num >= min_scan_num, 
+            topn_mods_per_seq >= 1L, topn_seqs_per_query >= 1L)
 
   # (b) doubles
   target_fdr <- as.double(target_fdr)
@@ -1013,8 +1027,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   if (!bypass_peploc) {
     calc_peploc(out_path = out_path, 
-                topn_mods_per_seq = 3L, 
-                topn_seqs_per_query = 3L)
+                topn_mods_per_seq = topn_mods_per_seq, 
+                topn_seqs_per_query = topn_seqs_per_query)
     gc()
   }
 
@@ -1077,12 +1091,16 @@ matchMS <- function (out_path = "~/proteoM/outs",
   df <- reloc_col_after(df, "pep_calc_mr", "pep_exp_z")
   df <- reloc_col_after(df, "pep_delta", "pep_calc_mr")
   readr::write_tsv(df, file.path(out_path, "psmC.txt"))
+  
+  if (add_ms2_deltas) {
+    df <- padd_ion_mathces(df, out_path = out_path, mgf_path = mgf_path)
+  }
 
   ## psmC to psmQ
   df <- try_psmC2Q(df, out_path = out_path,
-                    fdr_type = fdr_type, 
-                    combine_tier_three = combine_tier_three, 
-                    max_n_prots = max_n_prots)
+                   fdr_type = fdr_type, 
+                   combine_tier_three = combine_tier_three, 
+                   max_n_prots = max_n_prots)
 
   local({
     session_info <- sessionInfo()
@@ -1916,4 +1934,171 @@ map_raw_n_scan <- function (df, mgf_path)
   
   invisible(df)
 }
+
+
+#' Adds ion matches (primary).
+#' 
+#' Currently only used with psmC.txt during matchMS.
+#' 
+#' @param df A data frame of psmC.txt.
+#' @inheritParams matchMS
+padd_ion_mathces <- function (df, out_path, mgf_path) 
+{
+  message("Adding the mass deltas of MS2 matches.")
+  
+  df <- df %>% 
+    add_raw_ids(mgf_path) %>% 
+    dplyr::mutate(pep_isdecoy. = as.integer(pep_isdecoy), 
+                  pep_scan_num = as.character(pep_scan_num)) %>% 
+    tidyr::unite(uniq_id., raw_id, pep_scan_num, pep_mod_group, pep_isdecoy., 
+                 remove = FALSE) %>% 
+    dplyr::select(-c("raw_id", "pep_isdecoy.")) %>% 
+    split(.$pep_mod_group)
+  
+  # not necessary but easier for debugging
+  df <- local({
+    nms <- names(df)
+    idx_rev <- grep("^rev_\\d+$", nms)
+    nm_rev <- nms[idx_rev]
+    nms <- nms[-idx_rev]
+    nms <- nms[order(as.integer(nms))]
+    nms <- c(nms, nm_rev)
+    
+    df[nms]
+  })
+  
+  ans <- mapply(add_ion_mathces, df, names(df), 
+                MoreArgs = list(out_path = out_path),
+                SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
+  dplyr::bind_rows(ans)
+}
+
+
+#' Helper of \link{padd_ion_mathces}.
+#' 
+#' By pep_mod_group.
+#' 
+#' @param df A data frame of psmC.txt at a given pep_mod_group.
+#' @param pep_grp A given pep_mod_group.
+#' @inheritParams matchMS
+add_ion_mathces <- function (df, pep_grp, out_path) 
+{
+  file <- file.path(out_path, "temp", paste0("ion_matches_", pep_grp, ".rds"))
+  
+  imatches <- readRDS(file) %>% 
+    dplyr::select(c("raw_file", "scan_num", "pep_mod_group", "pep_isdecoy", 
+                    "matches")) %>% 
+    dplyr::mutate(pep_isdecoy = as.integer(pep_isdecoy)) %>% 
+    tidyr::unite(uniq_id., raw_file, scan_num, pep_mod_group, pep_isdecoy)
+  
+  df <- dplyr::left_join(df, imatches, by = "uniq_id.") %>% 
+    dplyr::select(-c("uniq_id.")) %>% 
+    dplyr::mutate(pep_ms2_deltas = NA_character_, 
+                  pep_ms2_mean_delta = NA_real_)
+  
+  rm(list = c("imatches", "pep_grp"))
+  gc()
+  
+  nrows <- nrow(df)
+  
+  if (nrows > 3200L) {
+    n_chunks <- detect_cores(16L)
+    dfs <- suppressWarnings(chunksplit(df, n_chunks, "row"))
+    gc()
+    
+    n_cores <- detect_cores(16L)
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    parallel::clusterExport(cl, list("sadd_ion_mathces"), 
+                            envir = environment(proteoM:::sadd_ion_mathces))
+    dfs <- parallel::clusterApply(cl, dfs, sadd_ion_mathces)
+    parallel::stopCluster(cl)
+    gc()
+    
+    df <- dplyr::bind_rows(dfs)
+  }
+  else {
+    df <- sadd_ion_mathces(df)
+  }
+  
+  df$matches <- NULL
+  
+  df <- dplyr::bind_cols(
+    df[, grepl("^prot_|^pep_", names(df)), drop = FALSE],
+    df[, !grepl("^prot_|^pep_", names(df)), drop = FALSE]
+  )
+}
+
+
+#' Helper of a single row of \link{add_ion_mathces}.
+#' 
+#' @param df A data frame of psmC.txt subset at a given pep_grp.
+sadd_ion_mathces <- function (df) 
+{
+  nrows <- nrow(df)
+  
+  for (i in seq_len(nrows)) {
+    x <- df[i, ]
+    se <- x$pep_seq
+    iv <- x$pep_ivmod
+    ms <- x$matches[[1]] # [[1]]: unlist list table
+    ms <- ms[names(ms) == se] # subset by pep_seq, can be > 1 matches
+    
+    len <- length(ms)
+    
+    if (len == 1L) {
+      ms <- ms[[1]] # unlist
+      ms <- ms[names(ms) == iv][[1]] # subset by pep_ivmod (+ neuloss)
+    }
+    else if (len > 1L) {
+      ## (1) removed unmatched iv
+      ms <- lapply(ms, function (m) m[names(m) == iv])
+
+      ## (a) multiple entries under a peptide
+      # $PAGKDLHVKYNCDIPGAAEPVAR
+      # [1] FALSE FALSE  TRUE
+      # 
+      # $PAGKDLHVKYNCDIPGAAEPVAR
+      # [1] FALSE FALSE  TRUE
+      
+      ## (b) single entry
+      # $YFQLPPRAASAAMYVPARSGR
+      # [1] FALSE
+      
+      # $YFQLPPRAASAAMYVPARSGR
+      # [1] TRUE
+
+      ## (2) removes empty list
+      # 
+      #  ms[[i]] may be logical(0), no name, if all are FALSE under `i` 
+      # $YFQLPPRAASAAMYVPARSGR
+      # character(0)
+      # 
+      # $YFQLPPRAASAAMYVPARSGR
+      # [1] "c000000000000c000000a"
+      
+      # ok_iv <- lapply(ms, function (m) isTRUE(names(m) == iv))
+      ok_iv <- lapply(ms, function (m) length(m) > 0L)
+      ok_iv <- .Internal(unlist(ok_iv, use.names = FALSE, recursive = FALSE))
+      idx <- which(ok_iv)[1]
+      ms <- ms[[idx]][[1]]
+    }
+    else {
+      df[i, ]$pep_ms2_deltas <- NA_character_
+      df[i, ]$pep_ms2_mean_delta <- NA_real_
+      next
+    }
+    
+    ds <- round((ms$expt - ms$theo) * 1E3, digits = 2L)
+    d_str <- .Internal(paste0(list(ds), collapse = ", ", recycle0 = FALSE))
+    df[i, ]$pep_ms2_deltas <- d_str
+    
+    d_mean <- round(mean(ds, na.rm = TRUE), digits = 2L)
+    df[i, ]$pep_ms2_mean_delta <- d_mean
+    
+    if (i %% 5000L == 0L) gc()
+  }
+  
+  invisible(df)
+} 
 

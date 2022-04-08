@@ -11,7 +11,7 @@ mapMS2ions(
   rank = 1L,
   is_decoy = FALSE,
   type_ms2ions = "by",
-  filename = "bar.png"
+  filename = NULL
 )
 }
 \arguments{
@@ -48,7 +48,8 @@ ans <- mapMS2ions(out_path = "a/proteoM/output/folder",
                   scan = 9933,
                   raw_file = "a-raw-file-name.raw",
                   rank = 1L,
-                  is_decoy = FALSE)
+                  is_decoy = FALSE, 
+                  filename = "bar.png")
 
 # Custom plots
 library(ggplot2)

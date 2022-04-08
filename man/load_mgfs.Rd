@@ -9,7 +9,7 @@ load_mgfs(
   mgf_path,
   min_mass = 700L,
   max_mass = 4500L,
-  min_ms2mass = 110L,
+  min_ms2mass = 115L,
   topn_ms2ions = 100L,
   min_ms1_charge = 2L,
   max_ms1_charge = 6L,

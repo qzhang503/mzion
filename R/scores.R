@@ -788,7 +788,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @param df A results after pep_scores.
 post_pepscores <- function (df) 
 {
-  df[["scan_num"]] <- as.numeric(df[["scan_num"]])
+  df[["scan_num"]] <- as.character(df[["scan_num"]])
   df[["pep_len"]] <- stringr::str_length(df[["pep_seq"]])
   df[["scan_title"]] <- as.character(df[["scan_title"]])
   df[["ms1_moverz"]] <- as.numeric(df[["ms1_moverz"]])
@@ -1903,25 +1903,7 @@ find_ppm_outer_bycombi <- function (theos, expts, ppm_ms2 = 25L)
 #' c("pep_isdecoy", "scan_num", "raw_file", "pep_seq", "pep_ivmod")
 #'
 #' @param x The result from \link{calc_pepscores}.
-#' @param topn_mods_per_seq Positive integer; a threshold to discard variable
-#'   modifications under the same peptide match with scores beyond the top-n.
-#'   The default is 3.
-#'
-#'   Being the same \code{peptide match} in this context refers to matches with
-#'   identities in \code{MS scan number}, \code{MS raw file name} and
-#'   \code{peptide sequence}. Target and decoys matches are treated separately.
-#'
-#'   For a variable modification with multiple neutral losses (NL), the
-#'   best-scored NL will be used in the ranking.
-#'
 #' @param out_path An output path.
-#' @param topn_seqs_per_query Positive integer; a threshold to discard peptide
-#'   matches under the same MS query with scores beyond the top-n. The default
-#'   is 3.
-#'
-#'   Being the same \code{query} in this context refers to the identity in
-#'   \code{MS scan number} and \code{MS raw file name}. Target and decoys
-#'   matches are treated separately.
 #' @rawNamespace import(data.table, except = c(last, first, between, transpose,
 #'   melt, dcast))
 calc_peploc <- function (x = NULL, out_path = NULL, topn_mods_per_seq = 3L, 

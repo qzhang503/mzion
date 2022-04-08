@@ -136,7 +136,8 @@ post_ms2match <- function (df, i, aa_masses, out_path)
   df <- df %>%
     dplyr::mutate(pep_fmod = nm_fmods,
                   pep_vmod = nm_vmods,
-                  pep_mod_group = as.character(i)) %>%
+                  pep_mod_group = as.character(i), 
+                  scan_num = as.character(scan_num)) %>%
     { if (is_decoy) dplyr::mutate(., pep_isdecoy = TRUE) else
       dplyr::mutate(., pep_isdecoy = FALSE) }
 
