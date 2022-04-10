@@ -24,10 +24,10 @@ check_tmt_pars(fixedmods, varmods, quant)
 "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
 tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
 plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
-12-plexes being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It
-is also possible that an experimenter may construct a \code{tmt12} from a
-18-plex TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is
-suitable.}
+12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
+15N)}. It is also possible that an experimenter may construct a
+\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
+\code{quant = tmt18} is suitable.}
 }
 \description{
 Checks the compatibility of TMT names and plexes.

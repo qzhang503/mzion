@@ -234,10 +234,10 @@ ions. The default is 10.}
 "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
 tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
 plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
-12-plexes being constructed from a 16-plex TMTpro (7 * 13C + 2 * 15N). It
-is also possible that an experimenter may construct a \code{tmt12} from a
-18-plex TMTpro (8 *13C + 1 * 15N) and thus \code{quant = tmt18} is
-suitable.}
+12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
+15N)}. It is also possible that an experimenter may construct a
+\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
+\code{quant = tmt18} is suitable.}
 
 \item{target_fdr}{A numeric; the targeted false-discovery rate (FDR) at the
 levels of PSM, peptide or protein. The default is 0.01. See also argument
@@ -362,10 +362,13 @@ seconds for considerations. The default is 0.}
 \item{max_ret_time}{A non-negative numeric; the maximum retention time in
 seconds for considerations. The default is \code{Inf}.}
 
-\item{add_ms2_deltas}{Logical. If true, adds the quality metrics
-(\code{pep_ms2_deltas}) in mass deltas between experimental and theoretical
-MS2 m/z values (in the unit of mDA). The corresponding mean deltas are
-summarized (\code{pep_ms2_mean_delta}). The default is FALSE.}
+\item{add_ms2_deltas}{Logical. If true, adds (1) the sequence of theoretical
+MS2 m/z values (\code{pep_ms2_theos}), (2) the quality metrics in mass
+deltas between experimental and theoretical matches (\code{pep_ms2_deltas},
+in the unit of mDA) along the theoretical sequence, (3) the corresponding
+indexes of the matches (\code{pep_ms2_ideltas}) (4) the mean of mass
+deltas (\code{pep_ms2_deltas_mean}) and (5) the standard deviation of mass
+deltas (\code{pep_ms2_deltas_sd}). The default is FALSE.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
