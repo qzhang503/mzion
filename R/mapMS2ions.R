@@ -294,6 +294,19 @@ find_psm_rows1 <- function (file_t1, file_t2, file_t3, scan, raw_file,
     else 
       psms_3 <- NULL
     
+    cols_excl <- c("pep_ms2_moverzs", "pep_ms2_ints", "pep_ms2_theos", 
+                   "pep_ms2_theos2", "pep_ms2_deltas", "pep_ms2_ideltas", 
+                   "pep_ms2_deltas2", "pep_ms2_ideltas2")
+    
+    psms_1 <- psms_1 %>% 
+      dplyr::select(-which(names(.) %in% cols_excl))
+    
+    psms_2 <- psms_2 %>% 
+      dplyr::select(-which(names(.) %in% cols_excl))
+    
+    psms_3 <- psms_3 %>% 
+      dplyr::select(-which(names(.) %in% cols_excl))
+    
     # psms_1, _2 and _3 can have overlaps
     # (the same pep_seq to different prot_accs and thus different tiers)
     .psms <- dplyr::bind_rows(psms_1, psms_2, psms_3) %>% 
@@ -351,6 +364,12 @@ find_psm_rows2 <- function (file_t0, scan, raw_file, rank = 1L,
 #' @inheritParams mapMS2ions
 find_theoexpt_pair <- function (psm, out_path, scan, raw_id, is_decoy = FALSE) 
 {
+  col_nms <- names(psm)
+  
+  lapply(c("pep_seq", "pep_ivmod", "pep_mod_group"), function (x) {
+    if (! x %in% col_nms) stop("PSM column not found: ", x)
+  })
+
   pep_seq <- psm$pep_seq
   pep_ivmod <- psm$pep_ivmod
   
@@ -382,6 +401,9 @@ find_theoexpt_pair <- function (psm, out_path, scan, raw_id, is_decoy = FALSE)
     
     .list_table <- readRDS(file2) %>% 
       dplyr::mutate(scan_num = as.character(scan_num))
+    
+    if (! "pep_mod_group" %in% names(.list_table))
+      .list_table$pep_mod_group <- mod
     
     assign(nm, .ion_matches, envir = .GlobalEnv)
     assign(nm2, .list_table, envir = .GlobalEnv)

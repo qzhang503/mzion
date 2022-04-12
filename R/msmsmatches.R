@@ -16,9 +16,10 @@
 #' to experiment ones and (b) a backward matching of the experimental values to
 #' the theoretical ones. This allows the establishment of one-to-one
 #' correspondences between experiments and theoreticals. The correspondences are
-#' made available to users in files of \code{ion_matches_1.rds} etc., and, e.g.,
-#' are used in \link{mapMS2ions} for rapid retrievals and visualizations of MS2
-#' ion ladders.
+#' made available to users in files of \code{ion_matches_1.rds...} (nested form)
+#' and \code{list_table_1.rds...} etc. (flat form). A more self-contained output
+#' can be made available at the TRUE of \code{add_ms2theos},
+#' \code{add_ms2theos2}, \code{add_ms2moverzs} and \code{add_ms2ints}.
 #'
 #' When there is no evidence to distinguish, e.g. distinct primary sequences of
 #' \code{P[EMPTY]EPTIDE} and \code{P[MTYPE]EPTIDE}, both will be reported by
@@ -265,13 +266,26 @@
 #'
 #'   Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
 #'   \code{fdr_type = psm} to \code{fdr_type = protein}.
-#' @param add_ms2_deltas Logical. If true, adds (1) the sequence of theoretical
-#'   MS2 m/z values (\code{pep_ms2_theos}), (2) the quality metrics in mass
-#'   deltas between experimental and theoretical matches (\code{pep_ms2_deltas},
-#'   in the unit of mDA) along the theoretical sequence, (3) the corresponding
-#'   indexes of the matches (\code{pep_ms2_ideltas}) (4) the mean of mass
-#'   deltas (\code{pep_ms2_deltas_mean}) and (5) the standard deviation of mass
-#'   deltas (\code{pep_ms2_deltas_sd}). The default is FALSE.
+#' @param add_ms2theos Logical. If true, adds the sequence of primary
+#'   theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a
+#'   given \code{type_ms2ions} is:
+#'
+#'   \tabular{ll}{ \strong{Type}   \tab \strong{Sequence}\cr by \tab \eqn{b1,
+#'   b2..., y1, y2...} \cr ax \tab \eqn{a1, a2..., x1, x2...} \cr cz \tab
+#'   \eqn{c1, c2..., z1, z2...} \cr }
+#'
+#' @param add_ms2theos2 Logical. If true, adds the sequence of secondary
+#'   theoretical MS2 m/z values (\code{pep_ms2_theos2}). The sequence order at a
+#'   given \code{type_ms2ions} is:
+#'
+#'   \tabular{ll}{ \strong{Type}   \tab \strong{Order of sequences}\cr by \tab
+#'   \eqn{b2, b*, b*2, b0, b02, y2, y*, y*2, y0, y02} \cr ax \tab \eqn{a2, a*,
+#'   a*2, a0, a02, x2} \cr cz \tab \eqn{c2, z2} \cr }
+#'
+#' @param add_ms2moverzs Logical; if TRUE, adds the sequence of experimental
+#'   \eqn{m/z} values (\code{pep_ms2_moverzs}).
+#' @param add_ms2ints Logical; if TRUE, adds the sequence of experimental MS2
+#'   intensity values (\code{pep_ms2_ints}).
 #' @param .path_cache The file path of cached search parameters. The parameter
 #'   is for the users' awareness of the underlying structure of file folders and
 #'   the use of default is suggested. Occasionally experimenters may remove the
@@ -304,6 +318,8 @@
 #'   ladders.
 #' @section \code{mzTab}: \link{make_mztab} converts outputs from the proteoM ->
 #'   proteoQ pipeline to mzTab files.
+#' @section \code{Output columns}: system.file("extdata", "column_keys.txt",
+#'   package = "proteoM") \cr
 #' @return A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in
 #'   \code{psmQ.txt}.
 #' @examples
@@ -535,7 +551,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                      min_ret_time = 0, max_ret_time = Inf, 
                      
-                     add_ms2_deltas = FALSE, 
+                     add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
+                     add_ms2moverzs = FALSE, add_ms2ints = FALSE,
 
                      digits = 4L, ...) 
 {
@@ -579,7 +596,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   # logical types 
   stopifnot(vapply(c(include_insource_nl, match_pepfdr, combine_tier_three, 
-                     use_ms1_cache), 
+                     use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
+                     add_ms2ints), 
                    is.logical, logical(1L)))
 
   # numeric types 
@@ -1004,6 +1022,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
                    enzyme = enzyme,
                    maxn_fasta_seqs = maxn_fasta_seqs,
                    maxn_vmods_setscombi = maxn_vmods_setscombi,
+                   add_ms2theos = add_ms2theos, 
+                   add_ms2theos2 = add_ms2theos2, 
+                   add_ms2moverzs = add_ms2moverzs, 
+                   add_ms2ints = add_ms2ints,
                    digits = digits)
   }
   
@@ -1095,12 +1117,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
   df <- reloc_col_after(df, "pep_delta", "pep_calc_mr")
   readr::write_tsv(df, file.path(out_path, "psmC.txt"))
   
-  if (add_ms2_deltas) {
-    df <- padd_ion_matches(df, out_path = out_path, mgf_path = mgf_path)
-  }
-
   ## psmC to psmQ
-  df <- try_psmC2Q(df, out_path = out_path,
+  df <- try_psmC2Q(df, 
+                   out_path = out_path,
                    fdr_type = fdr_type, 
                    combine_tier_three = combine_tier_three, 
                    max_n_prots = max_n_prots)
@@ -1938,206 +1957,4 @@ map_raw_n_scan <- function (df, mgf_path)
   invisible(df)
 }
 
-
-#' Adds ion matches (primary).
-#' 
-#' Currently only used with psmC.txt during matchMS.
-#' 
-#' @param df A data frame of psmC.txt.
-#' @inheritParams matchMS
-padd_ion_matches <- function (df, out_path, mgf_path) 
-{
-  message("Adding the mass deltas of MS2 matches.")
-  
-  df <- df %>% 
-    add_raw_ids(mgf_path) %>% 
-    # dplyr::mutate(pep_scan_num = as.character(pep_scan_num)) %>% 
-    split(.$pep_isdecoy)
-  
-  is_decoy <- as.logical(names(df))
-  
-  ans <- mapply(hadd_ion_matches, df, is_decoy, 
-                MoreArgs = list(out_path = out_path, mgf_path = mgf_path), 
-                SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  
-  ans <- dplyr::bind_rows(ans)
-}
-
-
-#' Helper of \link{padd_ion_matches}.
-#'
-#' \code{pep_isdecoy} in \code{df} is either target or decoy, but not both.
-#' Otherwise, the \code{uniq_id.} will need to include \code{pep_isdecoy}.
-#'
-#' @param is_decoy Is \code{df} from decoy or not.
-#' @inheritParams padd_ion_matches
-hadd_ion_matches <- function (df, is_decoy, out_path, mgf_path) 
-{
-  df <- df %>% 
-    tidyr::unite(uniq_id., raw_id, pep_scan_num, # pep_mod_group, 
-                 remove = FALSE) %>% 
-    dplyr::select(-c("raw_id")) %>% 
-    split(.$pep_mod_group)
-  
-  # not necessary but easier for debugging
-  if (!is_decoy) {
-    nms <- names(df)
-    nms <- nms[order(as.integer(nms))]
-    df <- df[nms]
-  }
-  
-  ans <- mapply(add_ion_matches, df, names(df), 
-                MoreArgs = list(out_path = out_path),
-                SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  
-  ans <- dplyr::bind_rows(ans)
-}
-
-
-#' Helper of \link{padd_ion_matches}.
-#'
-#' By pep_mod_group. No need of pep_mod_group being part of the \code{uniq_id.}
-#' as df is already pep_mod_group specific
-#'
-#' @param df A data frame of psmC.txt at a given pep_mod_group.
-#' @param pep_grp A given pep_mod_group.
-#' @inheritParams matchMS
-add_ion_matches <- function (df, pep_grp, out_path) 
-{
-  file <- file.path(out_path, "temp", paste0("ion_matches_", pep_grp, ".rds"))
-
-  imatches <- readRDS(file) %>% 
-    dplyr::select(c("raw_file", "scan_num", "matches")) %>% 
-    tidyr::unite(uniq_id., raw_file, scan_num)
-  
-  df <- dplyr::left_join(df, imatches, by = "uniq_id.") %>% 
-    dplyr::select(-c("uniq_id.")) %>% 
-    dplyr::mutate(pep_ms2_theos = NA_character_, 
-                  pep_ms2_deltas = NA_character_, 
-                  pep_ms2_ideltas = NA_character_,
-                  pep_ms2_deltas_mean = NA_real_, 
-                  pep_ms2_deltas_sd = NA_real_)
-  
-  rm(list = c("imatches"))
-  gc()
-  
-  nrows <- nrow(df)
-  
-  if (nrows > 3200L) {
-    n_chunks <- detect_cores(16L)
-    dfs <- suppressWarnings(chunksplit(df, n_chunks, "row"))
-    gc()
-    
-    n_cores <- detect_cores(16L)
-    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-    parallel::clusterExport(cl, list("sadd_ion_matches"), 
-                            envir = environment(proteoM:::sadd_ion_matches))
-    dfs <- parallel::clusterApply(cl, dfs, sadd_ion_matches)
-    parallel::stopCluster(cl)
-    gc()
-    
-    df <- dplyr::bind_rows(dfs)
-  }
-  else {
-    df <- sadd_ion_matches(df)
-  }
-  
-  df$matches <- NULL
-  
-  df <- dplyr::bind_cols(
-    df[, grepl("^prot_|^pep_", names(df)), drop = FALSE],
-    df[, !grepl("^prot_|^pep_", names(df)), drop = FALSE]
-  )
-}
-
-
-#' Helper of a single row of \link{add_ion_matches}.
-#' 
-#' @param df A data frame of psmC.txt subset at a given pep_grp.
-sadd_ion_matches <- function (df) 
-{
-  nrows <- nrow(df)
-  
-  for (i in seq_len(nrows)) {
-    x <- df[i, ]
-    se <- x$pep_seq
-    iv <- x$pep_ivmod
-    ms <- x$matches[[1]] # [[1]]: unlist list table
-    ms <- ms[names(ms) == se] # subset by pep_seq, can be > 1 matches
-    
-    len <- length(ms)
-    
-    if (len == 1L) {
-      ms <- ms[[1]] # unlist
-      ms <- ms[names(ms) == iv][[1]] # subset by pep_ivmod (+ neuloss)
-    }
-    else if (len > 1L) {
-      ## (1) removed unmatched iv
-      ms <- lapply(ms, function (m) m[names(m) == iv])
-
-      ## (a) multiple entries under a peptide
-      # $PAGKDLHVKYNCDIPGAAEPVAR
-      # [1] FALSE FALSE  TRUE
-      # 
-      # $PAGKDLHVKYNCDIPGAAEPVAR
-      # [1] FALSE FALSE  TRUE
-      
-      ## (b) single entry
-      # $YFQLPPRAASAAMYVPARSGR
-      # [1] FALSE
-      
-      # $YFQLPPRAASAAMYVPARSGR
-      # [1] TRUE
-
-      ## (2) removes empty list
-      # 
-      #  ms[[i]] may be logical(0), no name, if all are FALSE under `i` 
-      # $YFQLPPRAASAAMYVPARSGR
-      # character(0)
-      # 
-      # $YFQLPPRAASAAMYVPARSGR
-      # [1] "c000000000000c000000a"
-      
-      # ok_iv <- lapply(ms, function (m) isTRUE(names(m) == iv))
-      ok_iv <- lapply(ms, function (m) length(m) > 0L)
-      ok_iv <- .Internal(unlist(ok_iv, use.names = FALSE, recursive = FALSE))
-      idx <- which(ok_iv)[1]
-      ms <- ms[[idx]][[1]]
-    }
-    else {
-      df[i, ]$pep_ms2_theos <- NA_character_
-      df[i, ]$pep_ms2_deltas <- NA_character_
-      df[i, ]$pep_ms2_ideltas <- NA_character_
-      df[i, ]$pep_ms2_deltas_mean <- NA_real_
-      df[i, ]$pep_ms2_deltas_sd <- NA_real_
-
-      next
-    }
-    
-    expt <- ms$expt
-    theo <- ms$theo
-
-    ps <- which(!is.na(expt))
-    ds <- (expt[ps] - theo[ps]) * 1E3
-    me <- mean(ds)
-    sd <- sd(ds)
-    ds <- round(ds, digits = 2L)
-    me <- round(me, digits = 2L)
-    sd <- round(sd, digits = 2L)
-
-    theo_str <- .Internal(paste0(list(theo), collapse = ",", recycle0 = FALSE))
-    d_str <- .Internal(paste0(list(ds), collapse = ",", recycle0 = FALSE))
-    p_str <- .Internal(paste0(list(ps), collapse = ",", recycle0 = FALSE))
-
-    df[i, ]$pep_ms2_theos <- theo_str
-    df[i, ]$pep_ms2_deltas <- d_str
-    df[i, ]$pep_ms2_ideltas <- p_str
-    df[i, ]$pep_ms2_deltas_mean <- me
-    df[i, ]$pep_ms2_deltas_sd <- sd
-
-    if (i %% 5000L == 0L) gc()
-  }
-  
-  invisible(df)
-} 
 

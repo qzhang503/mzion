@@ -1,7 +1,7 @@
 Package: proteoM
 Type: Package
 Title: Database Searches of Proteomic Mass-spectrometrirc Data
-Version: 1.1.1.1
+Version: 1.1.1.2
 Authors@R: 
     person(given = "Qiang",
            family = "Zhang",
@@ -10,7 +10,6 @@ Authors@R:
            comment = c(ORCID = "0000-0001-7046-4378"))
 Maintainer: The package maintainer <qzhang503@gmail.com>
 Description: A Database Search Engine of Mass-spectrometrirc Data 
-               Using Tandem Mass Tag or Label-free Quantification
 Depends: R (>= 4.1)
 License: MIT + file LICENSE
 Encoding: UTF-8

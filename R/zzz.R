@@ -2,10 +2,10 @@
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage("Welcome to proteoM.\n\n",
                         "============================================================================================\n",
-                        # "NEW features (v1.1.0.2):\n",
+                        # "NEW features (v1.1.1.2):\n",
                         "[x] For examples, enter \"?matchMS\".\n\n", 
-                        "[x] Supports of SILAC searches.\n",
-                        "[x] Updates in utility mapMS2ions.\n",
+                        # "[x] Supports of SILAC searches.\n",
+                        # "[x] Updates in utility mapMS2ions.\n",
                         # "[x] Supports Bruker's PASEF MGFs.\n",
                         # "[x] Supports custom, semi- or non-enzymatic searches.\n",
                         # "[x] Utility `add_unimod` for custom entries of Unimod.\n",

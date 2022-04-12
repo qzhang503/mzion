@@ -1,0 +1,48 @@
+Header	Descrption	Note
+prot_acc	Protein accession string	
+prot_issig	Protein identification is significant or not	
+prot_isess	Protein identification is essential or not	
+prot_tier	Protein tier	
+prot_hit_num	Ordinal number of the protein hit	
+prot_family_member	Ordinal number of the protein family member	
+prot_es	Protein enrichment score	
+prot_es_co	Protein enrichment score cut-off	
+pep_seq	One-letter representation of peptide sequences without variable modifications	
+pep_n_ms2	Number of entries in a peak list	
+pep_scan_title	Scan title taken from peak list	
+pep_exp_mz	Experimental m/z value	
+pep_exp_mr	Molecular mass calculated from experimental m/z value	
+pep_exp_z	Experimental charge state	
+pep_calc_mr	Molecular mass calculated from matched peptide sequence	
+pep_delta	pep_exp_mr – pep_calc_mr	
+pep_tot_int	Total MS1 intenisty of a peptide match	
+pep_ret_range	Range of LCMS retention times of a peptide match	
+pep_scan_num	MS scan number of peptide	
+pep_mod_group	Index of peptide modification group	
+pep_frame	MS1 frame number of peptide	
+pep_fmod	Fix modifications of peptide	
+pep_vmod	Variable modificaiton of peptide	
+pep_isdecoy	Is peptide identication a decoy or not	
+pep_ivmod	Variable Anywhere modificaiton of peptide as a string of hexcodes	Terminal modifications are not part of the string. Ordianl number in square brackets indicating neutral losses for fixed modifications and in round parentheses for variable modifications. 
+pep_len	Number of amino acid residues in a peptide sequence	
+pep_ms2_moverzs	Character string of experimental MS2 m/z values of peptide	
+pep_ms2_ints	Character string of experimental MS2 intensity values of peptide	
+pep_ms2_theos	Character string of theoretical MS2 m/z values of peptide (primary ions)	"E.g. at the order of b1, b2, …, y1, y2, …"
+pep_ms2_theos2	Character string of theoretical MS2 m/z values of peptide (secondary ions)	"Order of secondary sequences (1) by: b2, b*, b*2, b0, b02, y2, y*, y*2, y0, y02; (2) ax: a2, a*, a*2, a0, a02, x2; (3) cz: c2, z2"
+pep_ms2_deltas	Character string of MS2 mass deltas between experimentals and theoreticals (primary)	In the unit of mDA
+pep_ms2_ideltas	The corresponding indexes of pep_ms2_deltas along the theoretical sequence of pep_ms2_theos	"E.g. if the the first value is 3, it says that the first mass delta in pep_ms2_deltas is for ion b3."
+pep_ms2_deltas2	Character string of MS2 mass deltas between experimentals and theoreticals (secondary)	
+pep_ms2_ideltas2	The corresponding indexes of pep_ms2_deltas2	"E.g. for a `pep_seq` of `pep_len` = 7, if the first index is 8, it says that the first mass delta in `pep_ms2_deltas2` is for the first b ion along the b* sequence (see also `pep_ms2_theos2`)."
+pep_ms2_deltas_mean	Mean representation of pep_ms2_deltas	
+pep_ms2_deltas_sd	Standard deviation of pep_ms2_deltas	
+pep_issig	Is peptide identication significant or not	
+pep_score	Score of PSM	
+pep_score_co	Peptide enrichment score cut-off	
+pep_rank	Peptide sequence match (PSM) rank.	
+pep_locprob	The highest probablity from site analysis of the variable modification sites	"The second highest probablity, `pep_locprob2` is made implicit through `pep_locdiff`. Cf. `pep_var_mod_conf` from Mascot."
+pep_locdiff	pep_locprob – pep_locprob2	
+pep_rank_nl	Ordinal number of neutral loss under the same peptide including modifications	
+pep_literal_unique	Peptide sequence is unique to hit or not.	
+pep_razor_unique	Peptide sequence is unique to group or not.	
+raw_file	MS file name where peptides or proteins are identified	
+I126 etc.	Reporter-ion intensity from MS/MS ion search; I000 in LFQ	

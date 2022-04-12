@@ -60,7 +60,10 @@ matchMS(
   max_scan_num = .Machine$integer.max,
   min_ret_time = 0,
   max_ret_time = Inf,
-  add_ms2_deltas = FALSE,
+  add_ms2theos = FALSE,
+  add_ms2theos2 = FALSE,
+  add_ms2moverzs = FALSE,
+  add_ms2ints = FALSE,
   digits = 4L,
   ...
 )
@@ -362,13 +365,27 @@ seconds for considerations. The default is 0.}
 \item{max_ret_time}{A non-negative numeric; the maximum retention time in
 seconds for considerations. The default is \code{Inf}.}
 
-\item{add_ms2_deltas}{Logical. If true, adds (1) the sequence of theoretical
-MS2 m/z values (\code{pep_ms2_theos}), (2) the quality metrics in mass
-deltas between experimental and theoretical matches (\code{pep_ms2_deltas},
-in the unit of mDA) along the theoretical sequence, (3) the corresponding
-indexes of the matches (\code{pep_ms2_ideltas}) (4) the mean of mass
-deltas (\code{pep_ms2_deltas_mean}) and (5) the standard deviation of mass
-deltas (\code{pep_ms2_deltas_sd}). The default is FALSE.}
+\item{add_ms2theos}{Logical. If true, adds the sequence of primary
+  theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a
+  given \code{type_ms2ions} is:
+
+  \tabular{ll}{ \strong{Type}   \tab \strong{Sequence}\cr by \tab \eqn{b1,
+  b2..., y1, y2...} \cr ax \tab \eqn{a1, a2..., x1, x2...} \cr cz \tab
+  \eqn{c1, c2..., z1, z2...} \cr }}
+
+\item{add_ms2theos2}{Logical. If true, adds the sequence of secondary
+  theoretical MS2 m/z values (\code{pep_ms2_theos2}). The sequence order at a
+  given \code{type_ms2ions} is:
+
+  \tabular{ll}{ \strong{Type}   \tab \strong{Order of sequences}\cr by \tab
+  \eqn{b2, b*, b*2, b0, b02, y2, y*, y*2, y0, y02} \cr ax \tab \eqn{a2, a*,
+  a*2, a0, a02, x2} \cr cz \tab \eqn{c2, z2} \cr }}
+
+\item{add_ms2moverzs}{Logical; if TRUE, adds the sequence of experimental
+\eqn{m/z} values (\code{pep_ms2_moverzs}).}
+
+\item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
+intensity values (\code{pep_ms2_ints}).}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
@@ -397,9 +414,10 @@ The search is a two-way match: (a) a forward matching of theoretical values
 to experiment ones and (b) a backward matching of the experimental values to
 the theoretical ones. This allows the establishment of one-to-one
 correspondences between experiments and theoreticals. The correspondences are
-made available to users in files of \code{ion_matches_1.rds} etc., and, e.g.,
-are used in \link{mapMS2ions} for rapid retrievals and visualizations of MS2
-ion ladders.
+made available to users in files of \code{ion_matches_1.rds...} (nested form)
+and \code{list_table_1.rds...} etc. (flat form). A more self-contained output
+can be made available at the TRUE of \code{add_ms2theos},
+\code{add_ms2theos2}, \code{add_ms2moverzs} and \code{add_ms2ints}.
 
 When there is no evidence to distinguish, e.g. distinct primary sequences of
 \code{P[EMPTY]EPTIDE} and \code{P[MTYPE]EPTIDE}, both will be reported by
@@ -435,6 +453,11 @@ proteoM but removed with proteoQ.
 \section{\code{mzTab}}{
  \link{make_mztab} converts outputs from the proteoM ->
   proteoQ pipeline to mzTab files.
+}
+
+\section{\code{Output columns}}{
+ system.file("extdata", "column_keys.txt",
+  package = "proteoM") \cr
 }
 
 \examples{

@@ -293,8 +293,15 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   
   n <- max(n, topn_ms2ions + k[length(k)])
   
-  prs <- mapply(dhyper, x[-c(1:2)], m, n, k[-c(1:2)])
-  pr <- min(prs, na.rm = TRUE)
+  x_ <- x[-c(1:2)]
+  k_ <- k[-c(1:2)]
+  
+  if (length(x_)) {
+    prs <- mapply(dhyper, x_, m, n, k_)
+    pr <- min(prs, na.rm = TRUE)
+  }
+  else 
+    pr <- .5
 
   list(pep_ivmod = nms, 
        pep_prob = pr, 
@@ -521,6 +528,8 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             fixedmods, varmods, include_insource_nl = FALSE, 
                             enzyme = "trypsin_p", maxn_fasta_seqs = 200000L, 
                             maxn_vmods_setscombi = 64L, 
+                            add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
+                            add_ms2moverzs = FALSE, add_ms2ints = FALSE,
                             digits = 5L) 
 {
   on.exit(
@@ -586,25 +595,21 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     rm(list = c("args_except", "cache_pars", "call_pars"))
   }
 
-  for (i in seq_along(listi_t)) {
-    calcpepsc(file = listi_t[i], 
+  for (fi in c(listi_t, listi_d)) {
+    calcpepsc(file = fi, 
               topn_ms2ions = topn_ms2ions, 
               type_ms2ions = type_ms2ions, 
               penalize_sions = penalize_sions, 
               ppm_ms2 = ppm_ms2, 
               out_path = out_path, 
+              add_ms2theos = add_ms2theos, 
+              add_ms2theos2 = add_ms2theos2, 
+              add_ms2moverzs = add_ms2moverzs, 
+              add_ms2ints = add_ms2ints,
               digits = digits)
     
     gc()
   }
-  
-  calcpepsc(file = listi_d, 
-            topn_ms2ions = topn_ms2ions, 
-            type_ms2ions = type_ms2ions, 
-            penalize_sions = penalize_sions, 
-            ppm_ms2 = ppm_ms2, 
-            out_path = out_path, 
-            digits = digits)
 
   .savecall <- TRUE
   
@@ -658,29 +663,33 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 #' @inheritParams calc_pepscores
 calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by", 
                        penalize_sions = TRUE, ppm_ms2 = 25L, out_path = NULL, 
-                       digits = 4L) 
+                       add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
+                       add_ms2moverzs = FALSE, add_ms2ints = FALSE, digits = 4L) 
 {
+  # (can be decoy => .*, not \\d+)
+  idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
+  file_lt <- file.path(out_path, "temp", paste0("list_table_", idx, ".rds"))
+  file_sc <- file.path(out_path, "temp", paste0("pepscores_", idx, ".rds"))
+  
+  cols_a <- c("scan_num", "raw_file")
+  cols_b <- c("ms2_moverz", "ms2_int", "pri_matches", "sec_matches")
+  cols_lt <- c(cols_a, cols_b)
+  
   df <- readRDS(file.path(out_path, "temp", file))
   n_rows <- nrow(df)
-  
+
   if (!n_rows) {
-    idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
-    
-    # list tables
-    cols_lt <- c("raw_file", "pep_mod_group", "scan_num", 
-                 "ms2_moverz", "ms2_int", "pri_matches", "sec_matches")
     dfa <- data.frame(matrix(ncol = length(cols_lt), nrow = 0L))
     colnames(dfa) <- cols_lt
-    saveRDS(dfa, file.path(out_path, "temp", paste0("list_table_", idx, ".rds")))
+    saveRDS(dfa, file_lt)
 
-    # scores
-    cols_scores <- c("ms2_n", "scan_title", "ms1_moverz", "ms1_mass", 
-                     "ms1_int", "ms1_charge", "ret_time", "scan_num", "raw_file", 
-                     "pep_mod_group", "frame", "pep_fmod", "pep_vmod", "pep_isdecoy", 
-                     "pep_seq", "theo_ms1", "pep_ivmod", "pep_prob", "pep_len")
-    dfb <- data.frame(matrix(ncol = length(cols_scores), nrow = 0L))
-    colnames(dfb) <- cols_scores
-    saveRDS(dfb, file.path(out_path, "temp", paste0("pepscores_", idx, ".rds")))
+    cols_sc <- c("ms2_n", "scan_title", "ms1_moverz", "ms1_mass", 
+                 "ms1_int", "ms1_charge", "ret_time", "scan_num", "raw_file", 
+                 "pep_mod_group", "frame", "pep_fmod", "pep_vmod", "pep_isdecoy", 
+                 "pep_seq", "theo_ms1", "pep_ivmod", "pep_prob", "pep_len")
+    dfb <- data.frame(matrix(ncol = length(cols_sc), nrow = 0L))
+    colnames(dfb) <- cols_sc
+    saveRDS(dfb, file_sc)
     
     return (dfb)
   }
@@ -708,15 +717,14 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   }
   else {
     # n_chunks <- detect_cores(16L)^2
-    n_chunks <- detect_cores(16L)
-    
+    n_chunks <- n_cores <- detect_cores(16L)
+
     if (!is.null(df)) {
       dfs <- suppressWarnings(chunksplit(df, n_chunks, "row"))
       gc()
     }
     
     if (length(dfs) >= n_chunks) {
-      n_cores <- detect_cores(16L)
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
       
       parallel::clusterExport(cl, list("%>%"), 
@@ -757,7 +765,6 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
 
   ## Reassemble `df`
   df <- df[, -which(names(df) == "matches"), drop = FALSE]
-  
   df <- dplyr::bind_cols(df, df2)
   df <- quick_rightjoin(df, probs, "uniq_id")
   df <- df[, -which(names(df) == "uniq_id"), drop = FALSE]
@@ -767,19 +774,113 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   gc()
   
   ## Outputs 
-  # (can be decoy => .*, not \\d+)
-  idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
-  
-  cols_a <- c("raw_file", "pep_mod_group", "scan_num")
-  cols_b <- c("ms2_moverz", "ms2_int", "pri_matches", "sec_matches")
-  
-  saveRDS(df[, c(cols_a, cols_b), drop = FALSE], 
-          file.path(out_path, "temp", paste0("list_table_", idx, ".rds")))
+  saveRDS(df[, cols_lt, drop = FALSE], file_lt)
+
+  df <- add_primatches(df = df, 
+                       add_ms2theos = add_ms2theos, 
+                       add_ms2theos2 = add_ms2theos2, 
+                       add_ms2moverzs = add_ms2moverzs, 
+                       add_ms2ints = add_ms2ints)
   
   df <- df[, -which(names(df) %in% cols_b), drop = FALSE]
-  saveRDS(df, file.path(out_path, "temp", paste0("pepscores_", idx, ".rds")))
+  saveRDS(df, file_sc)
 
   invisible(df)
+}
+
+
+#' Adds sequences of primary and secondary matches.
+#'
+#' @param df A data frame.
+#' @inheritParams matchMS
+add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
+                            add_ms2moverzs = FALSE, add_ms2ints = FALSE) 
+{
+  df <- df %>% 
+    dplyr::mutate(pep_ms2_moverzs = NA_character_, 
+                  pep_ms2_ints = NA_character_, 
+                  
+                  pep_ms2_theos = NA_character_, 
+                  pep_ms2_theos2 = NA_character_, 
+                  
+                  pep_ms2_deltas = NA_character_, 
+                  pep_ms2_ideltas = NA_character_,
+
+                  pep_ms2_deltas2 = NA_character_, 
+                  pep_ms2_ideltas2 = NA_character_, 
+                  
+                  pep_ms2_deltas_mean = NA_real_, 
+                  pep_ms2_deltas_sd = NA_real_, )
+
+  # unlist from list table
+  pris <- lapply(df$pri_matches, `[[`, 1)
+  secs <- lapply(df$sec_matches, `[[`, 1)
+
+  len <- length(pris)
+  sd1s <- me1s <- p2s <- d2s <- p1s <- d1s <- vector("list", len)
+
+  for (i in 1:len) {
+    mt1 <- pris[[i]]
+    th1 <- mt1$theo
+    ex1 <- mt1$expt
+    mt2 <- secs[[i]]
+    th2 <- mt2$theo
+    ex2 <- mt2$expt
+
+    ps1 <- which(!is.na(ex1))
+    ps2 <- which(!is.na(ex2))
+    ds1 <- (ex1[ps1] - th1[ps1]) * 1E3
+    ds2 <- (ex2[ps2] - th2[ps2]) * 1E3
+    me1 <- mean(ds1)
+    sd1 <- sd(ds1)
+    
+    # ds <- c(ds1, ds2)
+    # me <- mean(ds)
+    # sd <- sd(ds)
+
+    # delayed rounding
+    ds1 <- round(ds1, digits = 2L)
+    ds2 <- round(ds2, digits = 2L)
+    me1 <- round(me1, digits = 2L)
+    sd1 <- round(sd1, digits = 2L)
+    
+    d1s[[i]] <- .Internal(paste0(list(ds1), collapse = ",", recycle0 = FALSE))
+    d2s[[i]] <- .Internal(paste0(list(ds2), collapse = ",", recycle0 = FALSE))
+    p1s[[i]] <- .Internal(paste0(list(ps1), collapse = ",", recycle0 = FALSE))
+    p2s[[i]] <- .Internal(paste0(list(ps2), collapse = ",", recycle0 = FALSE))
+    me1s[[i]] <- me1
+    sd1s[[i]] <- sd1
+    
+    if (i %% 5000L == 0L) gc()
+  }
+  
+  df$pep_ms2_deltas <- do.call(rbind, d1s)
+  df$pep_ms2_ideltas <- do.call(rbind, p1s)
+  df$pep_ms2_deltas2 <- do.call(rbind, d2s)
+  df$pep_ms2_ideltas2 <- do.call(rbind, p2s)
+  df$pep_ms2_deltas_mean <- do.call(rbind, me1s)
+  df$pep_ms2_deltas_sd <- do.call(rbind, sd1s)
+
+  if (add_ms2theos) df$pep_ms2_theos <- collapse_vecs(lapply(pris, `[[`, "theo"))
+  if (add_ms2theos2) df$pep_ms2_theos2 <- collapse_vecs(lapply(secs, `[[`, "theo"))
+  if (add_ms2moverzs) df$pep_ms2_moverzs <- collapse_vecs(df$ms2_moverz)
+  if (add_ms2ints) df$pep_ms2_ints <- collapse_vecs(df$ms2_int)
+  
+  invisible(df)
+}
+
+
+#' Pastes vectors to character strings.
+#'
+#' @param vecs A list of vectors.
+#' @param nm The name of sub list in \code{vecs}.
+collapse_vecs <- function (vecs, nm = "theo") 
+{
+  ans <- lapply(vecs, function (v) 
+    .Internal(paste0(list(v), collapse = ",", recycle0 = FALSE))
+  )
+  
+  do.call(rbind, ans)
 }
 
 

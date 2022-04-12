@@ -32,6 +32,10 @@ calc_pepscores(
   enzyme = "trypsin_p",
   maxn_fasta_seqs = 200000L,
   maxn_vmods_setscombi = 64L,
+  add_ms2theos = FALSE,
+  add_ms2theos2 = FALSE,
+  add_ms2moverzs = FALSE,
+  add_ms2ints = FALSE,
   digits = 5L
 )
 }
@@ -165,6 +169,28 @@ sequences in fasta files. The default is 200000.}
 
 \item{maxn_vmods_setscombi}{A non-negative integer; the maximum number of
 sets of combinatorial variable modifications. The default is 64.}
+
+\item{add_ms2theos}{Logical. If true, adds the sequence of primary
+  theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a
+  given \code{type_ms2ions} is:
+
+  \tabular{ll}{ \strong{Type}   \tab \strong{Sequence}\cr by \tab \eqn{b1,
+  b2..., y1, y2...} \cr ax \tab \eqn{a1, a2..., x1, x2...} \cr cz \tab
+  \eqn{c1, c2..., z1, z2...} \cr }}
+
+\item{add_ms2theos2}{Logical. If true, adds the sequence of secondary
+  theoretical MS2 m/z values (\code{pep_ms2_theos2}). The sequence order at a
+  given \code{type_ms2ions} is:
+
+  \tabular{ll}{ \strong{Type}   \tab \strong{Order of sequences}\cr by \tab
+  \eqn{b2, b*, b*2, b0, b02, y2, y*, y*2, y0, y02} \cr ax \tab \eqn{a2, a*,
+  a*2, a0, a02, x2} \cr cz \tab \eqn{c2, z2} \cr }}
+
+\item{add_ms2moverzs}{Logical; if TRUE, adds the sequence of experimental
+\eqn{m/z} values (\code{pep_ms2_moverzs}).}
+
+\item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
+intensity values (\code{pep_ms2_ints}).}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
