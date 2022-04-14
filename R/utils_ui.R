@@ -99,9 +99,7 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
   
   aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
                                  varmods = varmods,
-                                 maxn_vmods_setscombi = maxn_vmods_setscombi,
-                                 add_varmasses = FALSE,
-                                 add_nlmasses = FALSE)
+                                 maxn_vmods_setscombi = maxn_vmods_setscombi)
   
   peps <- check_aaseq(aa_seq, aa_masses_all, fixedmods, varmods)
 
@@ -370,9 +368,7 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
   
   aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
                                  varmods = varmods,
-                                 maxn_vmods_setscombi = maxn_vmods_setscombi,
-                                 add_varmasses = FALSE,
-                                 add_nlmasses = FALSE)
+                                 maxn_vmods_setscombi = maxn_vmods_setscombi)
   
   peps <- check_aaseq(aa_seq, aa_masses_all, fixedmods, varmods)
   
@@ -666,9 +662,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
 #' fixedmods = c("TMT6plex (K)", "dHex (S)")
 #' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", "Acetyl (Protein N-term)")
 #'
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE)
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
 #' aa_masses <- aa_masses_all[[8]]
 #'
@@ -688,9 +682,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
 #' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)",
 #'             "Deamidated (N)", "Acetyl (Protein N-term)")
 #'
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE)
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
 #' aa_masses <- aa_masses_all[[16]]
 #'

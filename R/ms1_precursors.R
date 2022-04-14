@@ -629,8 +629,6 @@ find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
     aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
                                    varmods = varmods,
                                    maxn_vmods_setscombi = maxn_vmods_setscombi,
-                                   add_varmasses = FALSE,
-                                   add_nlmasses = FALSE, 
                                    out_path = out_path) %T>%
       saveRDS(file.path(out_path, "aa_masses_all.rds"))
   } else {
@@ -722,8 +720,6 @@ tbl_prots_peps <- function (seqs, path)
   
   invisible(NULL)
 }
-
-
 
 
 #' Flattens pep_seqs with the removals of prot_accs.
@@ -883,8 +879,6 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
                                        "Deamidated (N)",
                                        "Gln->pyro-Glu (N-term = Q)"),
                            maxn_vmods_setscombi = 64L,
-                           add_varmasses = TRUE,
-                           add_nlmasses = TRUE, 
                            out_path = NULL) 
 {
   # title (position = site);
@@ -922,7 +916,8 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
 
     if (length(dup_mods)) 
       stop("Modifications cannot be simultaneously 'fixed' and 'variable': \n",
-           paste(dup_mods, collapse = ", "), 
+           paste(dup_mods, collapse = ", "), "\n", 
+           "Hint: the default \"fixedmods\" and \"varmods\" are not NULL.", 
            call. = FALSE)
   })
 
@@ -1033,8 +1028,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
   ## (1) add fixed mods + NL
   aa_masses_fi2 <- add_fixvar_masses(mods = fixedmods,
                                      mod_type = "fmods",
-                                     aa_masses = aa_masses,
-                                     add_varmasses = add_varmasses)
+                                     aa_masses = aa_masses)
 
   aa_masses_fi2 <- aa_masses_fi2 %>%
     lapply(function (x) {
@@ -1109,8 +1103,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
     lapply(aa_masses_fi2, function (x) 
       add_fixvar_masses(mods = vi,
                         mod_type = "vmods",
-                        aa_masses = x,
-                        add_varmasses = add_varmasses)) %>%
+                        aa_masses = x)) %>%
       purrr::flatten()
   }) %>%
     purrr::flatten()
@@ -1202,7 +1195,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
     rm(list = c("mod_indexes", "is_coerced", "Desc"))
   }
 
-  aa_masses_all <- lapply(aa_masses_all, parse_aamasses, add_nlmasses)
+  aa_masses_all <- lapply(aa_masses_all, parse_aamasses)
   
   invisible(aa_masses_all)
 }
@@ -1241,21 +1234,13 @@ check_anywhere_fmods_coercion <- function (site, aa_masses_all, vmods_ps)
 #'   modifications.
 #' @param aa_masses A named list containing the (mono-isotopic) masses of amino
 #'   acid residues.
-#' @param add_varmasses Logical; if TRUE, add mass delta to the corresponding
-#'   base mass for variable modifications. The argument at TRUE is for
-#'   compatibility for MS1 precursor mass calculations before the approach of
-#'   "rolling sum + fallthrough".
 #' @return Lists of of amino-acid residues with modified mono-isotopic masses
 #'   being incorporated.
-add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE) 
+add_fixvar_masses <- function (mods, mod_type, aa_masses) 
 {
-  stopifnot(mod_type %in% c("fmods", "vmods"),
-            length(mod_type) == 1L)
+  # stopifnot(mod_type %in% c("fmods", "vmods"), length(mod_type) == 1L)
 
-  if (length(mods)) 
-    all_mods <- paste(mods, collapse = ", ")
-  else 
-    all_mods <- ""
+  all_mods <- if (length(mods)) paste(mods, collapse = ", ") else ""
 
   res <- mods %>%
     lapply(find_unimod) %>%
@@ -1277,7 +1262,7 @@ add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE)
   mod_masses <- lapply(res, `[[`, "monomass")
   positions_sites <- lapply(res, `[[`, "position_site")
   neulosses <- lapply(res, `[[`, "nl")
-  rm(res)
+  rm(list = c("res"))
 
   # the same `site` with different fixedmods
   local({
@@ -1310,12 +1295,7 @@ add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE)
     #  Add mod_masses of variable mods (multiple lists)
     aas <- purrr::map2(positions_sites, mod_masses, ~ {
       site <- find_aa_site(.x)
-
-      if (add_varmasses) 
-        aa_masses[site] <- aa_masses[site] + .y
-      else 
-        aa_masses[site] <- .y
-
+      aa_masses[site] <- .y
       aa_masses
     }, aa_masses)
 
@@ -1336,6 +1316,24 @@ add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE)
   attr(aa_masses, mod_type) <- all_mods
   attr(aa_masses, paste0(mod_type, "_ps")) <- positions_sites
   attr(aa_masses, paste0(mod_type, "_mass")) <- mod_masses
+  
+  ### 
+  # Variable mods: need both the "original" and the "delta" forms
+  # whereas fixed mods only has one form.
+  # 
+  # (1) 
+  # fixedmods = c("Carbamidomethyl (C)"),
+  # varmods = c("K8 (C-term)", "TMT6plex (N-term)"),
+  # 
+  # N-term      C-term      K8 (C-term)   TMT6plex (N-term) 
+  # 1.007825    17.002740   8.014200      229.162932
+  # 
+  # (2)
+  # fixedmods = c("Carbamidomethyl (C)"),
+  # varmods = c("Oxidation (M)"), 
+  # M           Oxidation (M) 
+  # 131.040485  15.994915 
+  ### 
 
   # add mod_masses of neutral losses
   no_nls <- neulosses %>%
@@ -1354,9 +1352,7 @@ add_fixvar_masses <- function (mods, mod_type, aa_masses, add_varmasses = TRUE)
 #' Parses \code{aa_masses}.
 #'
 #' @inheritParams add_fixvar_masses
-#' @param add_nlmasses Logical; if TRUE, add an original mass to the
-#'   corresponding (negative) neutral-loss mass.
-parse_aamasses <- function (aa_masses, add_nlmasses = TRUE) 
+parse_aamasses <- function (aa_masses) 
 {
   fmods_ps <- attr(aa_masses, "fmods_ps", exact = TRUE)
   vmods_ps <- attr(aa_masses, "vmods_ps", exact = TRUE)
@@ -1368,33 +1364,16 @@ parse_aamasses <- function (aa_masses, add_nlmasses = TRUE)
       return(character())
 
     # add `0` if absent
-    no_zero <- purrr::map_lgl(neulosses, ~ !any(.x == 0)) %>%
-      which()
+    no_zero <- which(purrr::map_lgl(neulosses, ~ !any(.x == 0)))
 
-    if (length(no_zero) > 0L) 
+    if (length(no_zero)) 
       neulosses[[no_zero]] <- c(0, neulosses[[no_zero]])
 
-    ## entries with NL = 0 also kept
-    ## (beneficial when expand.grid)
-    # idx <- map_lgl(neulosses, ~ length(.x) > 1)
-    # neulosses <- neulosses[idx]
-
-    ## In fixedmods: `M` instead of `Oxidation (M)`
-    # fmods_ps <- fmods_ps[idx]
+    # Entries with NL = 0 also kept (beneficial when expand.grid).
+    # In fixedmods: `M` instead of `Oxidation (M)`.
 
     names(neulosses) <- fmods_ps
-
-    if (add_nlmasses) {
-      resids <- as.list(aa_masses)
-
-      fmods_nl <- purrr::imap(neulosses, ~ {
-        resids[[.y]] - .x
-      })
-    } else {
-      fmods_nl <- neulosses
-    }
-
-    invisible(fmods_nl)
+    fmods_nl <- neulosses
   })
 
   vmods_nl <- local({
@@ -1403,27 +1382,12 @@ parse_aamasses <- function (aa_masses, add_nlmasses = TRUE)
     if (all(neulosses == "")) 
       return(character())
 
-    # add `0` if absent
-    no_zero <- purrr::map_lgl(neulosses, ~ !any(.x == 0)) %>% which()
+    no_zero <- which(purrr::map_lgl(neulosses, ~ !any(.x == 0)))
 
     if (length(no_zero)) 
       neulosses[[no_zero]] <- c(0, neulosses[[no_zero]])
 
-    ## entries of "NL = 0" kept
-    # idx <- map_lgl(neulosses, ~ length(.x) > 1)
-    # neulosses <- neulosses[idx]
-
-    if (add_nlmasses) {
-      resids <- as.list(aa_masses)
-
-      vmods_nl <- purrr::imap(neulosses, ~ {
-        resids[[.y]] - .x
-      })
-    } else {
-      vmods_nl <- neulosses
-    }
-
-    invisible(vmods_nl)
+    vmods_nl <- neulosses
   })
 
   ## variable mods
@@ -1462,7 +1426,8 @@ parse_aamasses <- function (aa_masses, add_nlmasses = TRUE)
   if (length(tmod) <= 1L) {
     ntmod <- tmod %>% .[. == "N-term" || grepl("N-term", names(.))]
     ctmod <- tmod %>% .[. == "C-term" || grepl("C-term", names(.))]
-  } else if (length(tmod) == 2L) {
+  } 
+  else if (length(tmod) == 2L) {
     # e.g., `TMT6plex (N-term)` + `Amidated (Protein C-term)`
     ntmod <- local({
       x <- purrr::map(tmod, ~ .x %>% .[. == "N-term" || grepl("N-term", names(.))])
@@ -1475,7 +1440,8 @@ parse_aamasses <- function (aa_masses, add_nlmasses = TRUE)
       rows <- purrr::map_lgl(x, purrr::is_empty)
       x[!rows]
     })
-  } else {
+  } 
+  else {
     stop("cannot have more than two terminal modifications.",
          call. = FALSE)
   }
@@ -1489,10 +1455,13 @@ parse_aamasses <- function (aa_masses, add_nlmasses = TRUE)
 
   ftmod <- fmods_ps %>% .[! . %in% famods]
   
-  if (length(ftmod) == 0L) 
+  if (!length(ftmod)) {
     ftmod <- NULL
-  else if (ftmod == "") 
+  }
+  # length(ftmod) > 1L: `TMT6plex (N-term)` and `K8 (C-term)`
+  else if (all(ftmod == "")) {
     ftmod <- NULL
+  }
 
   # fixed N-term, C-term
   fntmod <- ftmod %>% .[. == "N-term" || grepl("N-term", names(.))]
@@ -2914,9 +2883,7 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' # (7) "amods+ tmod- vnl- fnl-"
 #' aa_masses_all <- calc_aamasses(fixedmods = c("TMT6plex (N-term)"),
 #'                                varmods = c("Deamidated (N)",
-#'                                            "Carbamidomethyl (C)"),
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE)
+#'                                            "Carbamidomethyl (C)"))
 #'
 #' pep <- c("HQGVMCNVGMGQKMNSC" = 2051.90346)
 #' amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
@@ -2934,9 +2901,7 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' aa_masses_all <- calc_aamasses(fixedmods = "TMT6plex (K)",
 #'                                varmods = c("Deamidated (N)",
 #'                                            "Carbamidomethyl (S)",
-#'                                            "Acetyl (Protein N-term)"),
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE)
+#'                                            "Acetyl (Protein N-term)"))
 #'
 #' pep <- c("HQGVMNVGMGQKSMNS" = 1932.9171) # + TMT6plex (K)
 #' amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
@@ -2969,8 +2934,6 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 #'                                varmods = varmods,
 #'                                maxn_vmods_setscombi = 64,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE,
 #'                                out_path = NULL)
 #'
 #' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i)

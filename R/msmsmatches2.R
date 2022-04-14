@@ -153,18 +153,9 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       #   or fixed N-term `TMT + hydrogen`
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      
-      ntmass <- if (length(ntmod)) 
-        aa_masses[names(ntmod)] + 1.00727647 # + proton
-      else 
-        aa_masses["N-term"] - 0.000549 # - electron
-      
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      
-      ctmass <- if (length(ctmod)) 
-        aa_masses[names(ctmod)] + 2.01510147
-      else 
-        aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
+      ntmass <- find_nterm_mass(aa_masses)
+      ctmass <- find_cterm_mass(aa_masses)
       
       # (`map` against groups of frames)
       out <- ms2match_base(
@@ -226,19 +217,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ms2vmods <- ms2vmods_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      
-      ntmass <- if (length(ntmod)) 
-        aa_masses[names(ntmod)] + 1.00727647
-      else 
-        aa_masses["N-term"] - 0.000549
-
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+      ntmass <- find_nterm_mass(aa_masses)
+      ctmass <- find_cterm_mass(aa_masses)
       
-      ctmass <- if (length(ctmod)) 
-        aa_masses[names(ctmod)] + 2.01510147
-      else 
-        aa_masses["C-term"] + 2.01510147
-
       fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
       
       out <- ms2match_a0_vnl0_fnl1(
@@ -299,18 +281,9 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ms2vmods <- ms2vmods_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      
-      ntmass <- if (length(ntmod)) 
-        aa_masses[names(ntmod)] + 1.00727647
-      else 
-        aa_masses["N-term"] - 0.000549
-
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      
-      ctmass <- if (length(ctmod)) 
-        aa_masses[names(ctmod)] + 2.01510147
-      else 
-        aa_masses["C-term"] + 2.01510147
+      ntmass <- find_nterm_mass(aa_masses)
+      ctmass <- find_cterm_mass(aa_masses)
       
       amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
       
@@ -370,20 +343,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ms2vmods <- ms2vmods_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      
-      ntmass <- if (length(ntmod)) {
-        aa_masses[names(ntmod)] + 1.00727647
-      } else {
-        aa_masses["N-term"] - 0.000549
-      }
-      
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+      ntmass <- find_nterm_mass(aa_masses)
+      ctmass <- find_cterm_mass(aa_masses)
       
-      ctmass <- if (length(ctmod)) 
-        aa_masses[names(ctmod)] + 2.01510147
-      else 
-        aa_masses["C-term"] + 2.01510147
-
       amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
       vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
       
@@ -445,18 +408,9 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ms2vmods <- ms2vmods_all[[i]]
       
       ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      
-      ntmass <- if (length(ntmod)) 
-        aa_masses[names(ntmod)] + 1.00727647
-      else 
-        aa_masses["N-term"] - 0.000549
-      
       ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-      
-      ctmass <- if (length(ctmod)) 
-        aa_masses[names(ctmod)] + 2.01510147
-      else 
-        ctmass <- aa_masses["C-term"] + 2.01510147
+      ntmass <- find_nterm_mass(aa_masses)
+      ctmass <- find_cterm_mass(aa_masses)
       
       amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
       fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
@@ -529,18 +483,9 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   ms2vmods <- ms2vmods_all[[i_max]]
 
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-  
-  ntmass <- if (length(ntmod)) 
-    aa_masses[names(ntmod)] + 1.00727647
-  else 
-    aa_masses["N-term"] - 0.000549
-
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-  
-  ctmass <- if (length(ctmod)) 
-    aa_masses[names(ctmod)] + 2.01510147
-  else 
-    aa_masses["C-term"] + 2.01510147
+  ntmass <- find_nterm_mass(aa_masses)
+  ctmass <- find_cterm_mass(aa_masses)
 
   amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
   
@@ -594,10 +539,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   # if (is.null(out)) out <- out0
   saveRDS(out, file.path(out_path, "temp", paste0("ion_matches_", i_max2, ".rds"))) 
-  
-  rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
-              "ntmod", "ntmass", "ctmod", "ctmass"))
-  gc()
   
   .savecall <- TRUE
   

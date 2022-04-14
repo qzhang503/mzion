@@ -353,16 +353,33 @@ subset_neuloss_peps <- function (pattern, theopeps)
 
 #' Finds MS2 N-terminal mass.
 #'
+#' When "length(ntmod) > 0", aa_mass["N-term"] must be H given the rule of
+#' no additive (terminal) modifications.
+#'
 #' @param aa_masses A named list containing the (mono-isotopic) masses of amino
 #'   acid residues.
 find_nterm_mass <- function (aa_masses) 
 {
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
   
-  ntmass <- if (length(ntmod)) 
-    aa_masses[names(ntmod)] + 1.00727647 # + proton
-  else 
-    aa_masses["N-term"] - 0.000549 # - electron
+  # (1) For the "if" part at "length(ntmod) > 0": 
+  # aa_mass["N-term"] must be hydrogen, provided the 
+  # rule of no additive (terminal) modifications. Thus, 
+  #   aa_masses[names(ntmod)] + aa_masses["N-term"] - e is identical to
+  #   aa_masses[names(ntmod)] + 1.00727647
+  # 
+  # (2) For the "else" part: 
+  # e.g. at fixed `TMT6plex (N-term)`
+  #   aa_masses["N-term"] = 229 + H -> 230
+  
+  # hydrogen <- 1.007825
+  # proton <- 1.00727647
+  # electr <- 0.000549
+  
+  ntmass <- if (length(ntmod))
+    aa_masses[names(ntmod)] + 1.00727647
+  else
+    aa_masses["N-term"] - 0.000549
 }
 
 
@@ -374,8 +391,14 @@ find_cterm_mass <- function (aa_masses)
 {
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
   
-  ctmass <- if (length(ctmod)) 
-    aa_masses[names(ctmod)] + 2.01510147
+  # (1) For the "if" part at "length(ctmod) > 0": 
+  # aa_mass["C-term"] must be OH, provided the 
+  # rule of no additive (terminal) modifications. Thus, 
+  #   aa_masses[names(ctmod)] + aa_masses["C-term"] + (H) + (H+) is identical to
+  #   aa_masses[names(ctmod)] + 19
+
+  ctmass <- if (length(ctmod))
+    aa_masses[names(ctmod)] + 19.0178415
   else 
     aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
 }

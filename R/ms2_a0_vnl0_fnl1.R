@@ -135,8 +135,7 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #'   as.hexmode() %>%
 #'   `names<-`(c(fixedmods, varmods))
 #'   
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods, add_varmasses = FALSE, 
-#'                                add_nlmasses = FALSE)
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #' 
 #' aa_masses <- aa_masses_all[[2]]
 #' 

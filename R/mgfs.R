@@ -783,9 +783,18 @@ find_mgf_type <- function (file)
   begins <- which(stringi::stri_startswith_fixed(hdr, "BEGIN IONS"))
   ends <- which(stringi::stri_endswith_fixed(hdr, "END IONS"))
   
-  if (!length(begins)) 
-    stop("Check corrupted files: the tag of `BEGIN IONS` not found in MGF.")
+  len_h <- length(hdr)
+  len_b <- length(begins)
   
+  if (!len_b) 
+    stop("Check corrupted files: the tag of `BEGIN IONS` not found in MGF.")
+  else if (len_b == 1L) {
+    b2 <- len_h + 1L
+    hdr[b2] <- "BEGIN IONS"
+    begins <- c(begins, b2)
+    rm(list = "b2")
+  }
+    
   # if (!length(ends))
   #   stop("The tag of `END IONS` not found in MGF.", call. = FALSE)
 

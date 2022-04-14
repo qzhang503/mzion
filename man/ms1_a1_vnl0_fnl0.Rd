@@ -76,9 +76,7 @@ stopifnot(unlist(m1$mass, use.names = FALSE) - 2051.9035 < 1e-4)
 # (7) "amods+ tmod- vnl- fnl-"
 aa_masses_all <- calc_aamasses(fixedmods = c("TMT6plex (N-term)"),
                                varmods = c("Deamidated (N)",
-                                           "Carbamidomethyl (C)"),
-                               add_varmasses = FALSE,
-                               add_nlmasses = FALSE)
+                                           "Carbamidomethyl (C)"))
 
 pep <- c("HQGVMCNVGMGQKMNSC" = 2051.90346)
 amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
@@ -96,9 +94,7 @@ stopifnot(x[[1]] - 2109.9089 < 1e-4,
 aa_masses_all <- calc_aamasses(fixedmods = "TMT6plex (K)",
                                varmods = c("Deamidated (N)",
                                            "Carbamidomethyl (S)",
-                                           "Acetyl (Protein N-term)"),
-                               add_varmasses = FALSE,
-                               add_nlmasses = FALSE)
+                                           "Acetyl (Protein N-term)"))
 
 pep <- c("HQGVMNVGMGQKSMNS" = 1932.9171) # + TMT6plex (K)
 amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
@@ -131,8 +127,6 @@ varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
 aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
                                varmods = varmods,
                                maxn_vmods_setscombi = 64,
-                               add_varmasses = FALSE,
-                               add_nlmasses = FALSE,
                                out_path = NULL)
 
 ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i)

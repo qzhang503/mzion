@@ -586,9 +586,7 @@ frames_adv2 <- function (mgf_frames = NULL, theopeps = NULL, theopeps2 = NULL,
 #'   as.hexmode() %>%
 #'   `names<-`(c(fixedmods, varmods))
 #'
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE)
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
 #' aa_masses = aa_masses_all[[2]]
 #'
@@ -623,9 +621,7 @@ frames_adv2 <- function (mgf_frames = NULL, theopeps = NULL, theopeps2 = NULL,
 #'   as.hexmode() %>%
 #'   `names<-`(c(fixedmods, varmods))
 #'
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE)
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
 #' aa_masses <- aa_masses_all[[1]]
 #'
@@ -1151,6 +1147,9 @@ search_mgf <- function (expt_mass_ms1, expt_moverz_ms2,
   
   ans <- c(ans_bf, ans_cr, ans_af)
   
+  ## Not faster
+  # if (is.null(.Internal(unlist(ans, recursive = TRUE, use.names = FALSE)))) return(list())
+
   ## cleans up
   # (1) within a list: removes vmods+ positions that are NULL (< minn_ms2)
   # (no effects on vmods-; need `type` info if to limit to vmods+)

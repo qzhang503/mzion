@@ -296,6 +296,8 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   x_ <- x[-c(1:2)]
   k_ <- k[-c(1:2)]
   
+  # `if` can be lifted if upstream filtration of min_nms2 in search_mgf
+  
   if (length(x_)) {
     prs <- mapply(dhyper, x_, m, n, k_)
     pr <- min(prs, na.rm = TRUE)
@@ -2087,6 +2089,9 @@ calc_peploc <- function (x = NULL, out_path = NULL, topn_mods_per_seq = 3L,
   ux0[, "pep_locprob" := (pep_score/sscore)]
   ux0 <- ux0[, c("uniq_id2", "pep_locprob")]
   
+  # A bug of data.table: contaminating `sscore` and `pep_locprob` at nrow(x0) == 1L
+  x0$pep_locprob <- x0$sscore <- NULL
+  
   x0 <- dplyr::left_join(x0, ux0, by = "uniq_id2")
   rm(list = c("ux0"))
   gc()
@@ -2100,6 +2105,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, topn_mods_per_seq = 3L,
   # `pep_rank` at different `pep_seq_mod`s and/or NLs)
   ux1 <- unique(x1[, c("uniq_id", "pep_locprob")])
   ux2 <- unique(x2[, c("uniq_id", "pep_locprob")])
+  names(ux1) <- c("uniq_id", "pep_locprob.x")
+  names(ux2) <- c("uniq_id", "pep_locprob.y")
   rm(list = c("x1", "x2"))
   gc()
   

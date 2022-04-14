@@ -389,18 +389,19 @@ htable_unimods <- function (file)
 #' @seealso \link{table_unimods}, \link{parse_unimod}, \link{find_unimod}.
 #' @return An xml object.
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(proteoM)
 #'
-#' # To avoid unsound chemistries, proteoM prohibits
-#' #   additive modifications to the same site.
-#' # To enable cumulative effects, the solution is to
-#' #   devise a "merged" modification.
+#' ## To avoid unsound chemistries, proteoM prohibits
+#' ##   additive modifications to the same site.
+#' ## To enable cumulative effects, the solution is to
+#' ##   devise a "merged" modification (e.g. TMT + K8).
 #'
 #' (system.file("extdata", "master.xml", package = "proteoM"))
 #' (system.file("extdata", "custom.xml", package = "proteoM"))
 #'
-#' # Additive N-terminal modifications (though not chemically sound)
+#' ## Additive N-terminal modifications 
+#' # (1) TMT + Gln->pyro-Glu (though not chemically sound)
 #' masses <- calc_unimod_compmass("H(17) C(8) 13C(4) 15N O(2)")
 #' mono_mass <- masses$mono_mass
 #' avge_mass <- masses$avge_mass
@@ -421,7 +422,7 @@ htable_unimods <- function (file)
 #' (ans <- table_unimods())
 #' (ans[with(ans, title == "TMT10plexNterm+Gln->pyro-Glu"), ])
 #'
-#' # site `C`: Oxiation + Carbamidomethyl
+#' # (2.1) Oxiation + Carbamidomethyl at "C"
 #' # (without neutral losses)
 #' x <- add_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
 #'                                 full_name   = "Oxidation and iodoacetamide derivative"),
@@ -434,7 +435,7 @@ htable_unimods <- function (file)
 #'                                 avge_mass   = "0",
 #'                                 composition = "0"))
 #'
-#' # site `M`: Oxiation + Carbamidomethyl
+#' # (2.2) Oxiation + Carbamidomethyl at "M"
 #' # (with neutral losses)
 #' x <- add_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
 #'                                 full_name   = "Oxidation and iodoacetamide derivative"),
@@ -446,45 +447,129 @@ htable_unimods <- function (file)
 #'                 neuloss     = c(mono_mass   = "63.998285",
 #'                                 avge_mass   = "64.1069",
 #'                                 composition = "H(4) C O S"))
-#' }
+#' 
+#' # (3.1) Lysine + TMT
+#' title <- "TMT+K8"
+#' comp <- "H(20) C(2) 13C(10) N(-1) 15N(3) O(2)"
+#' full_name <- "Heavy lysine 13C(6) 15N(2) with TMT6plex tag"
+#' site <- "K"
+#' 
+#' K8TMT <- calc_unimod_compmass(comp)
+#' mono_mass <- K8TMT$mono_mass
+#' avge_mass <- K8TMT$avge_mass
+#' 
+#' x <- add_unimod(header      = c(title       = title,
+#'                                 full_name   = full_name),
+#'                 specificity = c(site        = site,
+#'                                 position    = "Any C-term"),
+#'                 delta       = c(mono_mass   = as.character(mono_mass),
+#'                                 avge_mass   = as.character(avge_mass),
+#'                                 composition = comp),
+#'                 neuloss     = c(mono_mass   = "0",
+#'                                 avge_mass   = "0",
+#'                                 composition = "0"))
+#' 
+#' # (3.2) Arginine + TMT
+#' title <- "TMT+R10"
+#' comp <- "H(20) C(2) 13C(10) N(-3) 15N(5) O(2)"
+#' full_name <- "Heavy arginine 13C(6) 15N(4) with TMT6plex tag"
+#' site <- "R"
+#' 
+#' R10TMT <- calc_unimod_compmass(comp)
+#' mono_mass <- R10TMT$mono_mass
+#' avge_mass <- R10TMT$avge_mass
+#' 
+#' x <- add_unimod(header      = c(title       = title,
+#'                                 full_name   = full_name),
+#'                 specificity = c(site        = site,
+#'                                 position    = "Any C-term"),
+#'                 delta       = c(mono_mass   = as.character(mono_mass),
+#'                                 avge_mass   = as.character(avge_mass),
+#'                                 composition = comp),
+#'                 neuloss     = c(mono_mass   = "0",
+#'                                 avge_mass   = "0",
+#'                                 composition = "0"))
 #' 
 #' ## Heavy isotopes
-#' # Lysine
-#' K8 <- calc_unimod_compmass("13C(6) C(-6) 15N(2) N(-2)")
+#' # (1.1) Lysine
+#' title <- "K8"
+#' comp <- "13C(6) C(-6) 15N(2) N(-2)"
+#' full_name <- "Heavy lysine 13C(6) 15N(2)"
+#' site <- "K"
 #' 
+#' K8 <- calc_unimod_compmass(comp)
 #' mono_mass <- K8$mono_mass
 #' avge_mass <- K8$avge_mass
 #' 
-#' x <- add_unimod(header      = c(title       = "K8",
-#'                                 full_name   = "Heavy lysine 13C(6) 15N(2)"),
-#'                 specificity = c(site        = "K",
+#' a <- add_unimod(header      = c(title       = title,
+#'                                 full_name   = full_name),
+#'                 specificity = c(site        = site,
 #'                                 position    = "Anywhere"),
-#'                 delta       = c(mono_mass   = "8.0142",
-#'                                 avge_mass   = "7.94272",
-#'                                 composition = "13C(6) C(-6) 15N(2) N(-2)"),
+#'                 delta       = c(mono_mass   = as.character(mono_mass),
+#'                                 avge_mass   = as.character(avge_mass),
+#'                                 composition = comp),
 #'                 neuloss     = c(mono_mass   = "0",
 #'                                 avge_mass   = "0",
 #'                                 composition = "0"))
 #' 
-#' # Arginine
-#' R10 <- calc_unimod_compmass("13C(6) C(-6) 15N(4) N(-4)")
+#' # (typical form used in searches)
+#' b <- add_unimod(header      = c(title       = title,
+#'                                 full_name   = full_name),
+#'                 specificity = c(site        = site, 
+#'                                 position    = "Any C-term"),
+#'                 delta       = c(mono_mass   = as.character(mono_mass),
+#'                                 avge_mass   = as.character(avge_mass),
+#'                                 composition = comp),
+#'                 neuloss     = c(mono_mass   = "0",
+#'                                 avge_mass   = "0",
+#'                                 composition = "0"))
 #' 
+#' # (site = "C-term" is perhaps not what typically wanted)
+#' x <- add_unimod(header      = c(title       = title,
+#'                                 full_name   = full_name),
+#'                 specificity = c(site        = "C-term", 
+#'                                 position    = "Any C-term"),
+#'                 delta       = c(mono_mass   = as.character(mono_mass),
+#'                                 avge_mass   = as.character(avge_mass),
+#'                                 composition = comp),
+#'                 neuloss     = c(mono_mass   = "0",
+#'                                 avge_mass   = "0",
+#'                                 composition = "0"))
+#' 
+#' # (1.2) Arginine
+#' title <- "R10"
+#' comp <- "13C(6) C(-6) 15N(4) N(-4)"
+#' full_name <- "Heavy arginine 13C(6) 15N(4)"
+#' site <- "R"
+#' 
+#' R10 <- calc_unimod_compmass(comp)
 #' mono_mass <- R10$mono_mass
 #' avge_mass <- R10$avge_mass
 #' 
-#' x <- add_unimod(header      = c(title       = "R10",
-#'                                 full_name   = "Heavy arginine 13C(6) 15N(4)"),
-#'                 specificity = c(site        = "R",
+#' a <- add_unimod(header      = c(title       = title,
+#'                                 full_name   = full_name),
+#'                 specificity = c(site        = site,
 #'                                 position    = "Anywhere"),
-#'                 delta       = c(mono_mass   = "10.00827",
-#'                                 avge_mass   = "9.92954",
-#'                                 composition = "13C(6) C(-6) 15N(4) N(-4)"),
+#'                 delta       = c(mono_mass   = as.character(mono_mass),
+#'                                 avge_mass   = as.character(avge_mass),
+#'                                 composition = comp),
 #'                 neuloss     = c(mono_mass   = "0",
 #'                                 avge_mass   = "0",
 #'                                 composition = "0"))
 #' 
+#' # (typical form used in searches)
+#' b <- add_unimod(header      = c(title       = title,
+#'                                 full_name   = full_name),
+#'                 specificity = c(site        = site, 
+#'                                 position    = "Any C-term"),
+#'                 delta       = c(mono_mass   = as.character(mono_mass),
+#'                                 avge_mass   = as.character(avge_mass),
+#'                                 composition = comp),
+#'                 neuloss     = c(mono_mass   = "0",
+#'                                 avge_mass   = "0",
+#'                                 composition = "0"))
 #' 
-#' # TMT reporter ions
+#' ## Channels of TMT reporter ions
 #' electron <- 0.000549
 #' 
 #' tmt11_126 <- calc_unimod_compmass("C(8) N(1) H(16)")
@@ -495,6 +580,7 @@ htable_unimods <- function (file)
 #' 
 #' tmt11_131c <- calc_unimod_compmass("13C(5) C(3) N(1) H(16)")
 #' tmt11_131c <- lapply(tmt11_131c, `-`, electron)
+#' }
 #' 
 #' @export
 add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"), 

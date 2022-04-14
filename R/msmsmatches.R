@@ -324,8 +324,10 @@
 #'   \code{psmQ.txt}.
 #' @examples
 #' \donttest{
-#' # A hypothetical example
-#' # (see also https://github.com/qzhang503/proteoM)
+#' ## All examples are hypothetical
+#' ## (some real ones at https://github.com/qzhang503/proteoM)
+#' 
+#' # TMT10
 #' matchMS(
 #'   fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
 #'                "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
@@ -336,32 +338,21 @@
 #'   fdr_type = "protein",
 #'   out_path = "~/proteoM/examples",
 #' )
-#'
-#' \dontrun{
-#' # Hypothetical phosphopeptides and 16-plex TMTpro
+#' 
+#' # TMT16, phospho
 #' matchMS(
-#'   fasta     = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-#'                 "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-#'                 "~/proteoM/dbs/fasta/crap/crap.fasta"),
-#'   acc_type  = c("refseq_acc", "refseq_acc", "other"),
 #'   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
 #'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
 #'                 "Deamidated (N)", "Phospho (S)", "Phospho (T)",
 #'                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
-#'   max_miss  = 2,
 #'   quant     = "tmt16",
 #'   fdr_type  = "psm",
 #'   combine_tier_three = TRUE,
 #'   out_path  = "~/proteoM/examples",
 #' )
 #'
-#'
-#' # Hypothetical Bruker's PASEF
+#' # Bruker's PASEF
 #' matchMS(
-#'   fasta     = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-#'                 "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-#'                 "~/proteoM/dbs/fasta/crap/crap.fasta"),
-#'   acc_type  = c("refseq_acc", "refseq_acc", "other"),
 #'   fixedmods = c("Carbamidomethyl (C)"),
 #'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
 #'                 "Deamidated (N)"),
@@ -372,7 +363,7 @@
 #'   out_path  = "~/proteoM/examples_pasef",
 #' )
 #'
-#' # An exemplary custom Unimod (Oxi+Carbamidomethyl)
+#' # Custom Unimod (Oxi+Carbamidomethyl)
 #' add_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
 #'            full_name   = "Oxidation and iodoacetamide derivative"),
 #'            specificity = c(site        = "M",
@@ -385,25 +376,37 @@
 #'                            composition = "H(4) C O S"))
 #'
 #' matchMS(
-#'   fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-#'                "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-#'                "~/proteoM/dbs/fasta/crap/crap.fasta"),
-#'   acc_type = c("refseq_acc", "refseq_acc", "other"),
 #'   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
 #'   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
 #'               "Oxi+Carbamidomethyl (M)"),
-#'   max_miss = 2,
 #'   quant    = "tmt10",
-#'   fdr_type = "protein",
-#'   out_path = "~/proteoM/examples",
 #' )
 #'
-#'
+#' 
+#' ## Stable isotope-labeled K and R
+#' # K8, R10
+#' matchMS(
+#'   fixedmods = c("Carbamidomethyl (C)"),
+#'   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+#'               "K8 (C-term = K)", "R10 (C-term = R)"),
+#'   quant    = "none",
+#' )
+#' 
+#' # TMT+K8, TMT+R10
+#' matchMS(
+#'   fixedmods = c("Carbamidomethyl (C)"),
+#'   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+#'               "TMT+K8 (C-term = K)", "TMT+R10 (C-term = R)"),
+#'   max_miss = 2,
+#'   quant    = "tmt10",
+#' )
+#' 
+#' 
 #' #######################################
 #' # SILAC
 #' #######################################
 #'
-#' ## 1. heavy and light mixed into one sample
+#' ## 1. heavy and light mixed into one sample (typical SILAC)
 #'
 #' # unlabeled base
 #' matchMS(
@@ -412,12 +415,12 @@
 #' )
 #'
 #' # labeled base
-#' # (first add D4 Unimod if not yet present)
-#' D4 <- calc_unimod_compmass("2H(4) H(-4)")
-#' mono_mass <- D4$mono_mass
-#' avge_mass <- D4$avge_mass
+#' # (first add K4 Unimod if not yet present)
+#' K4 <- calc_unimod_compmass("2H(4) H(-4)")
+#' mono_mass <- K4$mono_mass
+#' avge_mass <- K4$avge_mass
 #'
-#' add_unimod(header      = c(title       = "D4",
+#' add_unimod(header      = c(title       = "K4",
 #'                            full_name   = "Heavy lysine 2H(4) H(-4)"),
 #'            specificity = c(site        = "K",
 #'                            position    = "Anywhere"),
@@ -429,7 +432,7 @@
 #'                            composition = "0"))
 #'
 #' matchMS(
-#'   silac_mix = list(base   = c("D4 (K)"),
+#'   silac_mix = list(base   = c("K4 (K)"),
 #'                    median = c("K6 (K)", "R6 (R)"),
 #'                    heavy  = c("K8 (K)", "R10 (R)")),
 #'   ...
@@ -469,8 +472,6 @@
 #' )
 #'
 #' # The results next processed by proteoQ just like LFQ.
-#' # This works since "pep_seq_mod" in proteoQ dose not
-#' #   contain the information of fixed modifications.
 #'
 #' # (ii) SILAC at low-throughput + TMT
 #' matchMS(
@@ -487,7 +488,6 @@
 #' # Next processed by proteoQ just like TMT
 #' # ...
 #'
-#' }
 #' }
 #' @export
 matchMS <- function (out_path = "~/proteoM/outs",
@@ -655,7 +655,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   topn_seqs_per_query <- as.integer(topn_seqs_per_query)
   digits <- as.integer(digits)
   
-  stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 10L, minn_ms2 >= 1L, 
+  stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 10L, minn_ms2 >= 2L, 
             min_mass >= 1L, max_mass >= min_mass, min_ms2mass >= 1L, 
             n_13c >= 0L, noenzyme_maxn >= 0L, 
             maxn_vmods_per_pep >= maxn_sites_per_vmod, max_n_prots > 1000L, 

@@ -11,5 +11,6 @@ find_nterm_mass(aa_masses)
 acid residues.}
 }
 \description{
-Finds MS2 N-terminal mass.
+When "length(ntmod) > 0", aa_mass["N-term"] must be H given the rule of
+no additive (terminal) modifications.
 }

@@ -20,8 +20,6 @@
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 #'                                varmods = varmods,
 #'                                maxn_vmods_setscombi = 64,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE,
 #'                                out_path = NULL)
 #'
 #' maxn_vmods_per_pep <- 5L
@@ -45,9 +43,7 @@
 #' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)",
 #'             "Deamidated (N)", "Acetyl (Protein N-term)")
 #'
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE)
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
@@ -132,8 +128,6 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 #'                                varmods = varmods,
 #'                                maxn_vmods_setscombi = 64,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE,
 #'                                out_path = NULL)
 #'
 #' maxn_vmods_per_pep <- 5L
@@ -163,8 +157,6 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 #'                                varmods = varmods,
 #'                                maxn_vmods_setscombi = 64,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE,
 #'                                out_path = NULL)
 #'
 #' maxn_vmods_per_pep <- 5L
@@ -199,8 +191,6 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 #'                                varmods = varmods,
 #'                                maxn_vmods_setscombi = 64,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE,
 #'                                out_path = NULL)
 #'
 #' maxn_vmods_per_pep <- 5L
@@ -437,8 +427,6 @@ find_unique_sets <- function (p = 5L, labs = c("A", "B", "C"))
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 #'                                varmods = varmods,
 #'                                maxn_vmods_setscombi = 64,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE,
 #'                                out_path = NULL)
 #' 
 #' maxn_vmods_per_pep <- 5L
@@ -465,8 +453,6 @@ find_unique_sets <- function (p = 5L, labs = c("A", "B", "C"))
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 #'                                varmods = varmods,
 #'                                maxn_vmods_setscombi = 64,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE,
 #'                                out_path = NULL)
 #' 
 #' maxn_vmods_per_pep <- 5L
@@ -492,8 +478,6 @@ find_unique_sets <- function (p = 5L, labs = c("A", "B", "C"))
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 #'                                varmods = varmods,
 #'                                maxn_vmods_setscombi = 64,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE,
 #'                                out_path = NULL)
 #' 
 #' maxn_vmods_per_pep <- 5L

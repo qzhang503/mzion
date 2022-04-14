@@ -160,9 +160,7 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #'   as.hexmode() %>%
 #'   `names<-`(c(fixedmods, varmods))
 #'
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE)
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #' 
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
@@ -221,9 +219,7 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #'   as.hexmode() %>%
 #'   `names<-`(c(fixedmods, varmods))
 #'
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods,
-#'                                add_varmasses = FALSE,
-#'                                add_nlmasses = FALSE)
+#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #' 
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L

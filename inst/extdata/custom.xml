@@ -18,24 +18,7 @@
           <umod:element symbol="S" number="1"/>
         </umod:NeutralLoss>
       </umod:specificity>
-    </umod:mod>
-    <umod:mod title="K8" full_name="Heavy lysine 13C(6) 15N(2)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-01-07 17:31:01" date_time_modified="2022-01-07 17:31:01" approved="0" record_id="3">
-      <umod:specificity hidden="0" site="K" position="Anywhere" classification="other" spec_group="1"/>
-      <umod:delta mono_mass="8.0142" avge_mass="7.94272" composition="13C(6) C(-6) 15N(2) N(-2)">
-        <umod:element symbol="13C" number="6"/>
-        <umod:element symbol="C" number="-6"/>
-        <umod:element symbol="15N" number="2"/>
-        <umod:element symbol="N" number="-2"/>
-      </umod:delta>
-    </umod:mod>
-    <umod:mod title="R10" full_name="Heavy arginine 13C(6) 15N(4)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-01-07 17:31:09" date_time_modified="2022-01-07 17:31:09" approved="0" record_id="4">
-      <umod:specificity hidden="0" site="R" position="Anywhere" classification="other" spec_group="1"/>
-      <umod:delta mono_mass="10.00827" avge_mass="9.92954" composition="13C(6) C(-6) 15N(4) N(-4)">
-        <umod:element symbol="13C" number="6"/>
-        <umod:element symbol="C" number="-6"/>
-        <umod:element symbol="15N" number="4"/>
-        <umod:element symbol="N" number="-4"/>
-      </umod:delta>
+      <umod:specificity hidden="0" site="C" position="Anywhere" classification="other" spec_group="2"/>
     </umod:mod>
     <umod:mod title="K6" full_name="Heavy lysine 13C(6)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-03-03 08:42:53" date_time_modified="2022-03-03 08:42:53" approved="0" record_id="5">
       <umod:specificity hidden="0" site="K" position="Anywhere" classification="other" spec_group="1"/>
@@ -74,6 +57,86 @@
         <umod:element symbol="C" number="-5"/>
         <umod:element symbol="15N" number="1"/>
         <umod:element symbol="N" number="-1"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="H9" full_name="Heavy histidine 13C(6) 15N(3)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-04-12 14:16:29" date_time_modified="2022-04-12 14:16:29" approved="0" record_id="10">
+      <umod:specificity hidden="0" site="H" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="9.011235" avge_mass="8.93613" composition="13C(6) C(-6) 15N(3) N(-3)">
+        <umod:element symbol="13C" number="6"/>
+        <umod:element symbol="C" number="-6"/>
+        <umod:element symbol="15N" number="3"/>
+        <umod:element symbol="N" number="-3"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="Y10" full_name="Heavy tyrosine 13C(9) 15N(1)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-04-12 14:32:10" date_time_modified="2022-04-12 14:32:10" approved="0" record_id="11">
+      <umod:specificity hidden="0" site="Y" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="10.02723" avge_mass="9.92726" composition="13C(9) C(-9) 15N(1) N(-1)">
+        <umod:element symbol="13C" number="9"/>
+        <umod:element symbol="C" number="-9"/>
+        <umod:element symbol="15N" number="1"/>
+        <umod:element symbol="N" number="-1"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="V5" full_name="Heavy valine 13C(4) 15N(1)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-04-12 14:39:23" date_time_modified="2022-04-12 14:39:23" approved="0" record_id="12">
+      <umod:specificity hidden="0" site="V" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="5.010455" avge_mass="4.96401" composition="13C(4) C(-4) 15N(1) N(-1)">
+        <umod:element symbol="13C" number="4"/>
+        <umod:element symbol="C" number="-4"/>
+        <umod:element symbol="15N" number="1"/>
+        <umod:element symbol="N" number="-1"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="K8" full_name="Heavy lysine 13C(6) 15N(2)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-04-13 14:49:54" date_time_modified="2022-04-13 14:49:54" approved="0" record_id="15">
+      <umod:specificity hidden="0" site="K" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="8.0142" avge_mass="7.94272" composition="13C(6) C(-6) 15N(2) N(-2)">
+        <umod:element symbol="13C" number="6"/>
+        <umod:element symbol="C" number="-6"/>
+        <umod:element symbol="15N" number="2"/>
+        <umod:element symbol="N" number="-2"/>
+      </umod:delta>
+      <umod:specificity hidden="0" site="K" position="Any C-term" classification="other" spec_group="2"/>
+      <umod:specificity hidden="0" site="C-term" position="Any C-term" classification="other" spec_group="3"/>
+    </umod:mod>
+    <umod:mod title="R10" full_name="Heavy arginine 13C(6) 15N(4)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-04-13 14:53:36" date_time_modified="2022-04-13 14:53:36" approved="0" record_id="16">
+      <umod:specificity hidden="0" site="R" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="10.00827" avge_mass="9.92954" composition="13C(6) C(-6) 15N(4) N(-4)">
+        <umod:element symbol="13C" number="6"/>
+        <umod:element symbol="C" number="-6"/>
+        <umod:element symbol="15N" number="4"/>
+        <umod:element symbol="N" number="-4"/>
+      </umod:delta>
+      <umod:specificity hidden="0" site="R" position="Any C-term" classification="other" spec_group="2"/>
+    </umod:mod>
+    <umod:mod title="TMT10plexNterm+Gln-&gt;pyro-Glu" full_name="Additive N-term TMT10plex and Gln-&gt;pyro-Glu" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-04-14 10:26:27" date_time_modified="2022-04-14 10:26:27" approved="0" record_id="17">
+      <umod:specificity hidden="0" site="Q" position="Any N-term" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="212.136383" avge_mass="212.2329" composition="H(17) C(8) 13C(4) 15N O(2)">
+        <umod:element symbol="H" number="17"/>
+        <umod:element symbol="C" number="8"/>
+        <umod:element symbol="13C" number="4"/>
+        <umod:element symbol="15N" number="1"/>
+        <umod:element symbol="O" number="2"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="TMT+K8" full_name="Heavy lysine 13C(6) 15N(2) with TMT6plex tag" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-04-14 10:27:29" date_time_modified="2022-04-14 10:27:29" approved="0" record_id="18">
+      <umod:specificity hidden="0" site="K" position="Any C-term" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="237.177133" avge_mass="237.20613" composition="H(20) C(2) 13C(10) N(-1) 15N(3) O(2)">
+        <umod:element symbol="H" number="20"/>
+        <umod:element symbol="C" number="2"/>
+        <umod:element symbol="13C" number="10"/>
+        <umod:element symbol="N" number="-1"/>
+        <umod:element symbol="15N" number="3"/>
+        <umod:element symbol="O" number="2"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="TMT+R10" full_name="Heavy arginine 13C(6) 15N(4) with TMT6plex tag" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-04-14 10:27:29" date_time_modified="2022-04-14 10:27:29" approved="0" record_id="19">
+      <umod:specificity hidden="0" site="R" position="Any C-term" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="239.171203" avge_mass="239.19295" composition="H(20) C(2) 13C(10) N(-3) 15N(5) O(2)">
+        <umod:element symbol="H" number="20"/>
+        <umod:element symbol="C" number="2"/>
+        <umod:element symbol="13C" number="10"/>
+        <umod:element symbol="N" number="-3"/>
+        <umod:element symbol="15N" number="5"/>
+        <umod:element symbol="O" number="2"/>
       </umod:delta>
     </umod:mod>
   </umod:modifications>
