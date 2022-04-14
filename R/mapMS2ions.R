@@ -282,31 +282,29 @@ find_psm_rows1 <- function (file_t1, file_t2, file_t3, scan, raw_file,
     .psms <- get(".psms", envir = .GlobalEnv)
   }
   else {
-    psms_1 <- readr::read_tsv(file_t1, show_col_types = FALSE)
+    psms_1 <- readr::read_tsv(file_t1, show_col_types = FALSE, 
+                              col_types = get_proteoM_coltypes())
     
     if (length(file_t2)) 
-      psms_2 <- readr::read_tsv(file_t2, show_col_types = FALSE)
+      psms_2 <- readr::read_tsv(file_t2, show_col_types = FALSE, 
+                                col_types = get_proteoM_coltypes())
     else 
       psms_2 <- NULL
     
     if (length(file_t3)) 
-      psms_3 <- readr::read_tsv(file_t3, show_col_types = FALSE)
+      psms_3 <- readr::read_tsv(file_t3, show_col_types = FALSE, 
+                                col_types = get_proteoM_coltypes())
     else 
       psms_3 <- NULL
     
     cols_excl <- c("pep_ms2_moverzs", "pep_ms2_ints", "pep_ms2_theos", 
-                   "pep_ms2_theos2", "pep_ms2_deltas", "pep_ms2_ideltas", 
-                   "pep_ms2_deltas2", "pep_ms2_ideltas2")
-    
-    psms_1 <- psms_1 %>% 
-      dplyr::select(-which(names(.) %in% cols_excl))
-    
-    psms_2 <- psms_2 %>% 
-      dplyr::select(-which(names(.) %in% cols_excl))
-    
-    psms_3 <- psms_3 %>% 
-      dplyr::select(-which(names(.) %in% cols_excl))
-    
+                  "pep_ms2_theos2", "pep_ms2_deltas", "pep_ms2_ideltas", 
+                  "pep_ms2_deltas2", "pep_ms2_ideltas2")
+
+    if (!is.null(psms_1)) psms_1 <- psms_1 %>% dplyr::select(-which(names(.) %in% cols_excl))
+    if (!is.null(psms_2)) psms_2 <- psms_2 %>% dplyr::select(-which(names(.) %in% cols_excl))
+    if (!is.null(psms_3)) psms_3 <- psms_3 %>% dplyr::select(-which(names(.) %in% cols_excl))
+
     # psms_1, _2 and _3 can have overlaps
     # (the same pep_seq to different prot_accs and thus different tiers)
     .psms <- dplyr::bind_rows(psms_1, psms_2, psms_3) %>% 
@@ -604,3 +602,68 @@ check_existed_psms <- function (x)
     stop("No more than one `", type, "` results.", call. = FALSE)
   }
 }
+
+
+#' Gets column types.
+#' 
+#' @import readr
+get_proteoM_coltypes <- function () 
+{
+  col_types_pq <- cols(
+    prot_acc = col_character(), 
+    prot_issig = col_logical(), 
+    prot_isess = col_logical(),
+    prot_tier = col_integer(), 
+    prot_hit_num = col_integer(), 
+    prot_family_member = col_integer(), 
+    prot_es = col_number(), 
+    prot_es_co = col_number(), 
+    pep_seq = col_character(), 
+    pep_n_ms2 = col_integer(), 
+    pep_scan_title = col_character(), 
+    pep_exp_mz = col_number(),
+    pep_exp_mr = col_number(), 
+    pep_exp_z = col_character(), 
+    pep_calc_mr = col_number(), 
+    pep_delta = col_number(),
+    pep_tot_int = col_number(), 
+    pep_ret_range = col_number(), 
+    pep_scan_num = col_character(), # timsTOF
+    pep_mod_group = col_integer(), 
+    pep_frame = col_integer(), 
+    pep_fmod = col_character(),
+    pep_vmod = col_character(),
+    pep_isdecoy = col_logical(),
+    pep_ivmod = col_character(),
+    pep_len = col_integer(), 
+    
+    pep_ms2_moverzs = col_character(),
+    pep_ms2_ints = col_character(), 
+    pep_ms2_theos = col_character(),
+    pep_ms2_theos2 = col_character(),
+    pep_ms2_deltas = col_character(),
+    pep_ms2_ideltas = col_character(),
+    pep_ms2_deltas2 = col_character(), 
+    pep_ms2_ideltas2 = col_character(),
+    pep_ms2_deltas_mean = col_double(),
+    pep_ms2_deltas_sd = col_double(),
+    
+    pep_issig = col_logical(),
+    pep_score = col_double(),
+    pep_score_co = col_double(),
+    pep_rank = col_integer(), 
+    pep_locprob = col_double(),
+    pep_locdiff = col_double(),
+    pep_rank_nl = col_integer(), 
+    pep_literal_unique = col_logical(),
+    pep_razor_unique = col_logical(),
+    raw_file = col_character(), 
+  )
+  
+  nms <- names(col_types_pq$cols)
+  
+  stopifnot(length(nms) == length(unique(nms)))
+  
+  col_types_pq
+}
+

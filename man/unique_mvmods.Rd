@@ -69,9 +69,7 @@ a given \code{aa_masses}.
 fixedmods = c("TMT6plex (K)", "dHex (S)")
 varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", "Acetyl (Protein N-term)")
 
-aa_masses_all <- calc_aamasses(fixedmods, varmods,
-                               add_varmasses = FALSE,
-                               add_nlmasses = FALSE)
+aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
 aa_masses <- aa_masses_all[[8]]
 
@@ -91,9 +89,7 @@ fixedmods = c("TMT6plex (K)", "dHex (S)")
 varmods = c("Carbamidomethyl (M)", "Carbamyl (M)",
             "Deamidated (N)", "Acetyl (Protein N-term)")
 
-aa_masses_all <- calc_aamasses(fixedmods, varmods,
-                               add_varmasses = FALSE,
-                               add_nlmasses = FALSE)
+aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
 aa_masses <- aa_masses_all[[16]]
 

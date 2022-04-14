@@ -758,9 +758,6 @@ find_aa_site <- function (pos_site)
 #' @param maxn_vmods_setscombi Integer; the maximum number of combinatorial variable
 #'   modifications and neutral losses.
 #' @param out_path An output path.
-#' @inheritParams parse_aamasses
-#' @inheritParams add_fixvar_masses
-#' @inheritParams matchMS
 #' @examples
 #' \donttest{
 #' x <- calc_aamasses()

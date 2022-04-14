@@ -192,8 +192,7 @@ mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
   as.hexmode() \%>\%
   `names<-`(c(fixedmods, varmods))
   
-aa_masses_all <- calc_aamasses(fixedmods, varmods, add_varmasses = FALSE, 
-                               add_nlmasses = FALSE)
+aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
 aa_masses <- aa_masses_all[[2]]
 
@@ -236,9 +235,7 @@ mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
   as.hexmode() \%>\%
   `names<-`(c(fixedmods, varmods))
 
-aa_masses_all <- calc_aamasses(fixedmods, varmods,
-                               add_varmasses = FALSE,
-                               add_nlmasses = FALSE)
+aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
@@ -297,9 +294,7 @@ mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
   as.hexmode() \%>\%
   `names<-`(c(fixedmods, varmods))
 
-aa_masses_all <- calc_aamasses(fixedmods, varmods,
-                               add_varmasses = FALSE,
-                               add_nlmasses = FALSE)
+aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
@@ -354,9 +349,7 @@ mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
   as.hexmode() \%>\%
   `names<-`(c(fixedmods, varmods))
 
-aa_masses_all <- calc_aamasses(fixedmods, varmods,
-                               add_varmasses = FALSE,
-                               add_nlmasses = FALSE)
+aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
@@ -419,9 +412,7 @@ mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
   as.hexmode() \%>\%
   `names<-`(c(fixedmods, varmods))
 
-aa_masses_all <- calc_aamasses(fixedmods, varmods,
-                               add_varmasses = FALSE,
-                               add_nlmasses = FALSE)
+aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
@@ -491,9 +482,7 @@ mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
   as.hexmode() \%>\%
   `names<-`(c(fixedmods, varmods))
 
-aa_masses_all <- calc_aamasses(fixedmods, varmods, 
-                               add_varmasses = FALSE, 
-                               add_nlmasses = FALSE)
+aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
@@ -551,9 +540,7 @@ mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
   as.hexmode() \%>\%
   `names<-`(c(fixedmods, varmods))
 
-aa_masses_all <- calc_aamasses(fixedmods, varmods,
-                               add_varmasses = FALSE,
-                               add_nlmasses = FALSE)
+aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
 aa_masses = aa_masses_all[[2]]
 
@@ -588,9 +575,7 @@ mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
   as.hexmode() \%>\%
   `names<-`(c(fixedmods, varmods))
 
-aa_masses_all <- calc_aamasses(fixedmods, varmods,
-                               add_varmasses = FALSE,
-                               add_nlmasses = FALSE)
+aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
 aa_masses <- aa_masses_all[[1]]
 
