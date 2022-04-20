@@ -1,8 +1,12 @@
 #' Searches for MS ions.
 #'
 #' Database searches of MSMS data.
-#'
-#' The annotation of protein attributes, including percent coverages, will be
+#' 
+#' @section \code{Output columns}: 
+#' \code{system.file("extdata", "column_keys.txt", package = "proteoM")} \cr
+#'   
+#' @section \code{Notes}: 
+#' The annotation of protein attributes, including percent coverage, will be
 #' performed with \link[proteoQ]{normPSM} given that values will be affected
 #' with the combination of multiple PSM tables.
 #'
@@ -318,8 +322,6 @@
 #'   ladders.
 #' @section \code{mzTab}: \link{make_mztab} converts outputs from the proteoM ->
 #'   proteoQ pipeline to mzTab files.
-#' @section \code{Output columns}: system.file("extdata", "column_keys.txt",
-#'   package = "proteoM") \cr
 #' @return A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in
 #'   \code{psmQ.txt}.
 #' @examples
@@ -999,7 +1001,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
                    fdr_type = fdr_type,
                    min_len = min_len,
                    max_len = max_len,
-                   penalize_sions = TRUE,
                    ppm_ms2 = ppm_ms2,
                    out_path = out_path,
                    
@@ -1750,6 +1751,11 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
     sub_call$bypass_par_groups <- TRUE
     sub_call$bypass_from_protacc <- TRUE
     sub_call$par_groups <- NULL
+    
+    local({
+      mgf_path <- eval(sub_call$mgf_path)
+      checkMGF(mgf_path, grp_args = NULL, error = "stop")
+    })
 
     df <- tryCatch(eval(sub_call), error = function (e) NULL)
     

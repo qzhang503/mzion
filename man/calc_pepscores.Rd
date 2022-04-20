@@ -11,7 +11,6 @@ calc_pepscores(
   fdr_type = "psm",
   min_len = 7L,
   max_len = 40L,
-  penalize_sions = TRUE,
   ppm_ms2 = 25L,
   out_path = "~/proteoM/outs",
   mgf_path,
@@ -65,9 +64,6 @@ for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
 for considerations. Longer peptides will be excluded. The default is 40.}
-
-\item{penalize_sions}{Logical; if TRUE, penalizes secondary ions of b0, y0
-etc. with lower weights in peptide scoring.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 25.}

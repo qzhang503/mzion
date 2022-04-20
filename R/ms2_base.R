@@ -676,8 +676,6 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
 }
 
 
-
-
 #' Fuzzy matches with a +/-1 window.
 #' 
 #' Not used but called the codes inside directly.
@@ -929,9 +927,49 @@ fuzzy_match_one2 <- function (x, y)
 #' 
 #' x4 <- find_ms2_bypep(theos, expts, ex, d)
 #' 
+#' 
+#' ## fewer matches with "find_ppm_outer_bycombi" and check minn_ms2 again
+#' #  (doesn't really return NULL since now with "ppm_ms2 * 2")
+#' pep <- "EFINSLRLYR"
+#' nms <- unlist(stringr::str_split(pep, ""))
+#' 
+#' theos <- c(359.2128,506.2812,619.3653,734.3922,821.4243,934.5083,1090.6094,
+#'            1203.6935,1366.7568,1522.8579,175.1190,338.1823,451.2663,607.3675,
+#'            720.4515,807.4835,922.5105,1035.5946,1182.6630,1311.7056)
+#' 
+#' names(theos) <- c(nms, rev(nms))
+#' theos <- list(`0005000000` = theos)
+#' 
+#' expts <- c(126.12811,127.12556,127.13139,128.12862,128.13455,129.13194,
+#'            129.13786,130.13542,130.14139,131.13852,136.07597,173.14980,
+#'            175.11916,175.15663,176.15979,186.15309,188.15987,215.13940,
+#'            227.10303,230.17044,231.17381,247.19708,248.18105,249.18443,
+#'            273.21262,316.21869,344.21350,345.19760,345.21689,353.19775,
+#'            358.22925,364.14948,376.27615,377.27942,397.20880,479.28204,
+#'            480.28650,507.27704,507.31665,508.28040,508.31964,550.31934,
+#'            578.31403,579.31818,601.33063,602.33466,620.40070,621.40363,
+#'            679.36194,680.40875,680.90851,690.32965,707.35663,708.35950,
+#'            721.44830,722.45142,736.94965,761.93817,762.43274,762.93304,
+#'            770.79028,770.94440,771.44598,786.48285,786.98523,792.44543,
+#'            820.44061,821.44318,834.53247,835.53638,877.45514,893.49561,
+#'            903.47803,904.48071,921.48846,922.49133,945.56488,963.57489,
+#'            964.57990,1006.57715,1016.55975,1017.56122,1034.60925,1035.57776,
+#'            1035.61169,1165.61340,1166.61731,1197.67346,1198.67700,1311.71948,
+#'            1312.72559,1366.73694,1368.74927,1369.74463,1382.75659,1383.75610,
+#'            1384.75915,1385.76355,1386.76611,1387.76599)
+#' 
+#' ppm_ms2 <- 13L
+#' min_ms2mass <- 115L
+#' d <- ppm_ms2/1E6
+#' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+#' 
+#' x5 <- find_ms2_bypep(theos, expts, ex, d, ppm_ms2)
+#' 
 #' }
+#' 
+#' @return Lists of (1) theo, (2) expt, (3) ith, (4) iex and (5) m.
 find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL, 
-                             ppm_ms2 = 25L, min_ms2mass = 115L, minn_ms2 = 6L) 
+                                 ppm_ms2 = 25L, min_ms2mass = 115L, minn_ms2 = 6L) 
 {
   ##############################################################################
   # `theos` may be empty: 
@@ -961,88 +999,92 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
   ##############################################################################
   
   len <- length(theos)
+  # null_out <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL)
   
   if (!len) 
-    return(list(theo = NULL, expt = NULL))
+    return(list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL))
   
   # ---
   out <- vector("list", len)
   
   for (i in 1:len) {
     theos_i <- theos[[i]]
-    th_i <- ceiling(log(theos_i/min_ms2mass)/log(1+d)) # 1.6 us
+    th_i <- ceiling(log(theos_i/min_ms2mass)/log(1+d))
     
-    # forward matches
+    ## forward matches
     mi <- th_i %fin% ex
     bf <- (th_i - 1L) %fin% ex
     af <- (th_i + 1L) %fin% ex
     ps <- mi | bf | af
+    ips <- which(ps)
     
-    # backward matches
-    n_ps <- sum(ps)
+    ## "ith = ips" in ascending order, not "iex = ips_12"
+
+    ## backward matches
+    # n_ps <- sum(ps)
+    n_ps <- length(ips)
     
     if(n_ps >= minn_ms2) {
-      
-      # (i) place held by theoretical values to indicate matches
-      # (ii) replaced the matches by experimental values
-      
-      es <- theos_i
-      es[!ps] <- NA
-      
       # separated b and y matches (to handled double-dipping between b and y)
-      
-      ## bps <- fuzzy_match_one2(ex, th_i[1:mid])
+      # (adj: bps <- fuzzy_match_one2(ex, th_i[1:mid]))
       lth <- length(ps)
       mid <- lth/2L
+      
+      # NA placeholder oftheoretical values, 
+      # and at the end replaced the matched by experimental values
+      es <- theos_i
+      es[!ps] <- NA_real_
+      # es <- rep(NA_real_, lth)
+      # es[ips] <- 1
       
       ex_bf <- ex - 1L
       ex_af <- ex + 1L
       
+      # part 1 
       y_1 <- th_i[1:mid]
       mi_1 <- ex %fin% y_1
       bf_1 <- ex_bf %fin% y_1
       af_1 <- ex_af %fin% y_1
       ps_1 <- mi_1 | bf_1 | af_1
+      ips_1 <- which(ps_1) 
       
-      ## yps <- fuzzy_match_one2(ex, th_i[(mid+1L):lth])
+      # part 2
       y_2 <- th_i[(mid+1L):lth]
       mi_2 <- ex %fin% y_2
       bf_2 <- ex_bf %fin% y_2
       af_2 <- ex_af %fin% y_2
       ps_2 <- mi_2 | bf_2 | af_2
+      ips_2 <- which(ps_2) 
       
-      expt_1 <- expts[ps_1]
-      expt_2 <- expts[ps_2]
+      # put together
+      # expt_1 <- expts[ps_1]
+      # expt_2 <- expts[ps_2]
+      expt_1 <- expts[ips_1]
+      expt_2 <- expts[ips_2]
       expt_12 <- c(expt_1, expt_2)
-      
+      ips_12 <- c(ips_1, ips_2)
       len_12 <- length(expt_12)
       
       # (occur rarely; OK to recalculate freshly `expt_12`)
       if (n_ps != len_12) {
-        out[[i]] <- find_ppm_outer_bycombi(theos_i, expts, ppm_ms2) # 49.3 us
+        # "* 2" for three-frame searches
+        # also ensure that "ith = ips" in ascending order, not "iex = ips_12"
+        out_i <- find_ppm_outer_bycombi(expts, theos_i, ppm_ms2 * 2L)
+
+        if (sum(!is.na(out_i$expt)) < minn_ms2) 
+          return(out[[i]] <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL))
+        
+        out[[i]] <- out_i
         names(out) <- names(theos)
         return(out)
-        
-        # the rest not run
-        ps_12 <- fuzzy_match_one2(ex, th_i) # 46.8 us
-        expt_12 <- expts[ps_12]
-
-        # length(expt_12) may be shorter than len_es (or n_ps)
-        # (the same expt value matched by multiple theo values in es[ps])
-        # may change from `!=` to `<`
-        if (length(expt_12) != n_ps) {
-          out[[i]] <- find_ppm_outer_bycombi(theos_i, expts, ppm_ms2)
-          names(out) <- names(theos)
-          return(out)
-        }
       }
       
       es[ps] <- expt_12
       
-      out[[i]] <- list(theo = theos_i, expt = es)
+      out[[i]] <- list(theo = theos_i, expt = es, ith = ips, iex = ips_12, m = len_12)
     } 
     else
-      out[[i]] <- list(theo = NULL, expt = NULL)
+      out[[i]] <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL)
   }
   
   names(out) <- names(theos)
@@ -1160,18 +1202,14 @@ search_mgf <- function (expt_mass_ms1, expt_moverz_ms2,
   
   # USE.NAMES = TRUE 
   # (lapply loses names by `[[` whereas map2 reserves names when available)
-  ans <- mapply(function (x, y) x[y], ans, oks, 
-                SIMPLIFY = FALSE, USE.NAMES = TRUE)
-  
+  ans <- mapply(function (x, y) x[y], ans, oks, SIMPLIFY = FALSE, USE.NAMES = TRUE)
+
   # (2)  removes empty lists
   oks2 <- lapply(ans, function(x) length(x) > 0L)
   oks2 <- .Internal(unlist(oks2, recursive = FALSE, use.names = FALSE))
   ans <- ans[oks2]
   
-  theomasses_ms1 <- c(theomasses_bf_ms1, 
-                      theomasses_cr_ms1, 
-                      theomasses_af_ms1)
-  
+  theomasses_ms1 <- c(theomasses_bf_ms1, theomasses_cr_ms1, theomasses_af_ms1)
   theomasses_ms1 <- theomasses_ms1[oks2]
   
   # ---

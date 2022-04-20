@@ -1,5 +1,5 @@
 ## Module 9
-# ms2match_a1_vnl1_fnl0 (K_001)
+# ms2match_a1_vnl1_fnl0 (Kh_001)
 i=100
 x <- frames_adv(mgf_frames[[i]][39:39], theopeps[[i]][54:56], 
                 aa_masses = aa_masses, 
@@ -77,10 +77,10 @@ x <- mapply(
 )
 
 search_mgf(expt_mass_ms1, expt_moverz_ms2, # ex, 
-                        theomasses_bf_ms1, theomasses_cr_ms1, theomasses_af_ms1, 
-                        theos_bf_ms2, theos_cr_ms2, theos_af_ms2, 
-                        minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
-                        min_ms2mass = 115L) 
+           theomasses_bf_ms1, theomasses_cr_ms1, theomasses_af_ms1, 
+           theos_bf_ms2, theos_cr_ms2, theos_af_ms2, 
+           minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
+           min_ms2mass = 115L) 
 
 # Advanced to theos_cr_ms2 
 x <- find_ms2_bypep(theos_cr_ms2[[30]], 

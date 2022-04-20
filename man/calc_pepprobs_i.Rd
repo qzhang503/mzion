@@ -5,17 +5,16 @@
 \title{Calculates the scores of peptides at an \code{aa_masses}.}
 \usage{
 calc_pepprobs_i(
-  res,
+  df,
   topn_ms2ions = 100L,
   type_ms2ions = "by",
-  penalize_sions = TRUE,
   ppm_ms2 = 25L,
   out_path = "~/proteoM/outs",
   digits = 5L
 )
 }
 \arguments{
-\item{res}{Resulted data from ion matches.}
+\item{df}{Resulted data from ion matches.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches. The default is to use the top-100 ions in an MS2 event.}
@@ -24,9 +23,6 @@ searches. The default is to use the top-100 ions in an MS2 event.}
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
-
-\item{penalize_sions}{Logical; if TRUE, penalizes secondary ions of b0, y0
-etc. with lower weights in peptide scoring.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 25.}

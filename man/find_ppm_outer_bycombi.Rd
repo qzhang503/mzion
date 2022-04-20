@@ -4,18 +4,18 @@
 \alias{find_ppm_outer_bycombi}
 \title{Finds the the outer products for a vector of MS2 ions at a given ion series.}
 \usage{
-find_ppm_outer_bycombi(theos, expts, ppm_ms2 = 25L)
+find_ppm_outer_bycombi(X, Y, ppm_ms2 = 25L)
 }
 \arguments{
-\item{theos}{Numeric vector; one series of theoretical MS2s.}
+\item{X}{Numeric vector; one series experimental MS2s.}
 
-\item{expts}{Numeric vector; one series experimental MS2s.}
+\item{Y}{Numeric vector; one series of theoretical MS2s.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 25.}
 }
 \description{
-A theoretical peptide at a given position permutation.
+\emph{Experiment} values go first and theoretical seconded.
 }
 \examples{
 \donttest{

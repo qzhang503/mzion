@@ -92,211 +92,249 @@ list_leftmatch <- function (a, b)
 #'
 #' By the positions of variable modifications.
 #' 
+#' @section Model: 
+#' N - the total number of features (white and black balls) \cr
+#' k - the number of sampled features \cr
+#' m - the numbers of theoretical features (white balls) \cr
+#' n - the number of noise (black balls) \cr
+#' 
+#' * Subtracts \code{m} and the counts of secondary b0, y0 matches etc. from noise
+#' ((N < m) -> (n < 0L); OK if n < 0L) \cr
+#' * \code{ith} and \code{ith2} in ascending order, \code{iex} and \code{iex2} in adaptive order \cr
+#' * One-to-one correspondence: \code{ith} <-> \code{iex}; \code{ith2} <-> \code{iex2} \cr
+#' 
+#' @section Check matches:
+#' \code{abs(df2$theo[df2$ith] - expt_moverzs[df2$iex]) <= ppm_ms2} \cr
+#' \code{identical(df2$int[df2$ith], expt_ints[df2$iex])}
+#' 
+#' @section y:
+#' y$expt - experimental m/z's \cr
+#' y$int  - experimental intensities (primary) \cr
+#' y$int2 - experimental intensiteis (secondary) \cr
+#' y$theo - matched theoretical m/z's \cr
+#' y$idx  - values: the indexes in theoretical sequence (df$ith)
+#'          positions: the position in expt_moverzs
+#' 
 #' @param df Two lists of \code{theo} and matched \code{expt} m-over-z.
 #' @param nms The names (character strings indicating the names and position of
 #'   variable modifications).
+#' @param burn_ins The range of burn-ins where inputs will be excluded from
+#'   probablity assessments.
 #' @inheritParams calc_probi
 #' @import dplyr
 #' @importFrom purrr map
 #' @importFrom tibble tibble
 #' @examples
 #' \donttest{
-#' df <- list(theo = c(390.2009, 550.2315, 710.2622, 809.3306, 880.3677, 
-#'                     995.3946, 1151.4957, 175.1190, 290.1459, 361.1830, 
-#'                     460.2514, 620.2821, 780.3127, 940.3434), 
-#'            expt = c(390.2008, 550.2323, 710.2624, 809.3301, 880.3662, 
-#'                     995.3970, NA, 175.1191, 290.1458, 361.1832, 
-#'                     460.2517, 620.2880, 780.3126, 940.3438))
+#' ##
+#' pep <- "YGPQYGHPPPPPPPPDYGPHADSPVLMVYGLDQSK"
+#' nms <- unlist(stringr::str_split(pep, ""))
 #' 
-#' expt_moverzs <- c(110.0717, 112.0509, 112.0873, 113.0713, 115.0869, 
-#'                   116.0167, 116.0709, 126.1280, 127.1250, 127.1313, 
-#'                   128.1284, 128.1346, 129.1317, 129.1380, 130.0978, 
-#'                   130.1350, 130.1413, 131.1384, 133.0432, 136.0619, 
-#'                   139.0504, 157.1083, 158.0563, 158.0925, 159.0763, 
-#'                   173.1498, 175.1191, 176.1223, 176.1600, 178.0646, 
-#'                   186.1531, 188.1597, 212.1031, 230.1144, 230.1702, 
-#'                   232.1115, 248.1808, 255.1082, 261.6220, 264.6251, 
-#'                   273.1193, 275.6198, 284.1326, 284.6348, 290.1458, 
-#'                   310.1302, 321.0684, 329.1280, 344.1566, 359.6652, 
-#'                   361.1832, 362.2062, 390.2008, 407.2268, 420.1369, 
-#'                   459.2220, 460.2517, 481.0993, 491.1726, 522.2371, 
-#'                   539.7526, 540.2550, 550.2323, 551.2338, 567.2598, 
-#'                   576.7457, 584.7561, 585.2570, 585.7582, 586.2587, 
-#'                   619.2524, 620.2880, 682.2661, 683.2708, 710.2624, 
-#'                   711.2637, 718.3199, 780.3126, 781.3342, 782.3379, 
-#'                   809.3301, 810.3351, 880.3662, 881.3693, 921.3688, 
-#'                   922.3726, 923.3927, 924.3849, 940.3438, 941.3491, 
-#'                   995.3970, 996.3967, 997.3690, 998.3657, 1011.3803, 
-#'                   1012.3803, 1013.3842, 1014.3911, 1015.3893, 1016.3904)
+#' theos <- c(393.2335,450.2550,547.3078,675.3663,838.4297,
+#'            895.4511,1032.5100,1129.5628,1226.6156,1323.6683,
+#'            1420.7211,1517.7739,1614.8266,1711.8794,1808.9322,
+#'            1923.9591,2087.0224,2144.0439,2241.0967,2378.1556,
+#'            2449.1927,2564.2196,2651.2517,2748.3044,2847.3728,
+#'            2960.4569,3091.4974,3190.5658,3353.6291,3410.6506,
+#'            3523.7347,3638.7616,3766.8202,3853.8522,4211.1101,
+#'            376.2757,463.3078,591.3663,706.3933,819.4773,
+#'            876.4988,1039.5621,1138.6306,1269.6710,1382.7551,
+#'            1481.8235,1578.8763,1665.9083,1780.9353,1851.9724,
+#'            1989.0313,2086.0840,2143.1055,2306.1688,2421.1958,
+#'            2518.2485,2615.3013,2712.3541,2809.4068,2906.4596,
+#'            3003.5124,3100.5651,3197.6179,3334.6768,3391.6983,
+#'            3554.7616,3682.8202,3779.8729,3836.8944,3999.9577)
 #' 
-#' expt_ints <- c(12810.80, 14142.40, 58754.70, 12451.00, 29055.70, 
-#'                45291.00, 63865.00, 250674.00, 261949.00, 179089.00, 
-#'                253049.00, 190448.00, 240766.00, 275813.00, 28354.30, 
-#'                219360.00, 189991.00, 229268.00, 60450.10, 12415.10, 
-#'                11351.30, 17766.50, 29119.50, 105925.00, 10832.10, 
-#'                15792.60, 707208.00, 29073.60, 12632.30, 18499.40, 
-#'                18826.60, 33715.50, 12418.70, 18046.80, 164112.00, 
-#'                15920.80, 13090.70, 24475.10, 14995.90, 49102.20, 
-#'                56960.70, 17143.40, 93462.60, 15536.50, 23416.20, 
-#'                15584.90, 30465.80, 12715.50, 31551.40, 12031.20, 
-#'                22367.40, 55729.80, 77277.60, 19092.70, 29280.50, 
-#'                17574.20, 21419.20, 10681.80, 8850.03, 27071.20, 
-#'                25317.90, 13518.70, 55593.70, 14856.20, 30853.00, 
-#'                11551.30, 22966.50, 515863.00, 243235.00, 11709.10, 
-#'                47070.90, 19336.10, 57334.40, 11747.80, 147943.00, 
-#'                42007.30, 18287.80, 51689.70, 62069.30, 13403.00, 
-#'                84499.10, 24180.00, 47260.80, 13985.00, 14132.90, 
-#'                10097.10, 12578.40, 13326.10, 49003.80, 12951.10, 
-#'                98873.10, 38704.30, 12971.00, 8924.51, 89986.00, 
-#'                162963.00, 119860.00, 114223.00, 125885.00, 32305.60)
+#' expts <- c(NA,NA,NA,675.36646,838.42981,895.45056,1032.51025,
+#'            NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,
+#'            NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,376.27603,463.30823,
+#'            591.36676,706.39380,819.47552,876.50018,1039.56287,
+#'            NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,
+#'            NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
 #' 
-#' calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 190)
+#' names(expts) <- names(theos) <- c(nms, rev(nms))
 #' 
-#' # 
-#' df2 <- df
-#' df2$expt[8] <- NA
-#' calc_probi_byvmods(df2, nms = "0000000", expt_moverzs, expt_ints, N = 190)
+#' ith <- c(4,5,6,7,36,37,38,39,40,41,42)
+#' iex <- c(42,57,72,93,20,26,36,44,56,65,96)
+#' ith <- as.integer(ith)
+#' iex <- as.integer(iex)
+#' m <- length(ith)
+#' 
+#' df <- list(theo = theos, expt = expts, ith = ith, iex = iex, m = m)
+#' 
+#' expt_moverzs <- c(126.05530,126.12798,127.12505,127.13139,128.12843,
+#'                   128.13475,129.13177,129.13806,130.13516,130.14140,
+#'                   131.13841,136.07588,143.11812,195.11308,221.09239,
+#'                   230.17036,235.14416,244.09303,271.12891,376.27603,
+#'                   377.28003,384.21320,400.54648,441.89435,442.22861,
+#'                   463.30823,464.31158,502.76166,503.26221,516.75928,
+#'                   517.26062,531.28296,565.28522,565.78705,574.33997,
+#'                   591.36676,592.36957,613.81238,614.31451,648.34070,
+#'                   669.80933,675.36646,696.86902,706.39380,707.39600,
+#'                   713.32672,713.82715,714.33093,761.85156,762.33771,
+#'                   762.85907,810.37610,810.88019,811.38434,811.88660,
+#'                   819.47552,838.42981,846.49664,846.99695,855.74426,
+#'                   859.91162,867.92706,868.43024,868.93225,876.50018,
+#'                   877.50354,878.75262,884.42273,884.75665,885.09052,
+#'                   885.42700,895.45056,896.45435,908.43860,908.94092,
+#'                   909.44440,916.95612,949.79688,950.13049,950.46545,
+#'                   950.79791,962.48212,964.98084,965.48273,987.49255,
+#'                   987.82599,988.16028,988.50989,1004.51562,1005.52985,
+#'                   1013.56659,1031.50378,1032.51025,1033.51355,1034.51636,
+#'                   1039.56287,1040.56641,1062.48096,1063.48511,1161.55078)
+#' 
+#' expt_ints <- c(16921,29468,36904,28121,37829,23537,39307,36194,25192,33532,
+#'                26551,91477,15182,24720,17471,50430,14282,14084,39681,99581,
+#'                13900,52774,16289,17160,14127,115919,22728,29658,16358,77851,
+#'                28386,18132,49422,32030,39155,78946,18520,25765,13728,19688,
+#'                13347,12440,14183,95484,26643,20027,14759,13589,14318,18829,
+#'                12227,19829,16826,31208,22442,18285,14859,31434,13299,16824,
+#'                12843,21389,21024,12491,69633,25811,14946,28967,55172,29773,
+#'                17955,40642,19888,35676,35222,14974,12466,46216,86923,48637,
+#'                30824,12961,26805,31218,36352,49433,40495,31233,40643,18265,
+#'                12316,25125,202241,90877,20903,40353,15008,31908,22554,13634)
+#' 
+#' calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 404)
+#' 
+#' ## 
+#' pep <- "LFEEDEREK"
+#' nms <- unlist(stringr::str_split(pep, ""))
+#' 
+#' theos <- c(343.2543,490.3227,619.3653,748.4079,863.4348,992.4774,
+#'            1148.5785,1277.6211,1634.8790,376.2757,505.3183,661.4194,
+#'            790.4620,905.4890,1034.5316,1163.5742,1310.6426,1423.7266)
+#' 
+#' expts <- c(343.25455,490.32318,619.36487,NA,863.43542,NA,NA,
+#'            NA,NA,376.27606,505.31924,NA,NA,NA,NA,NA,NA,NA)
+#' 
+#' names(expts) <- names(theos) <- c(nms, rev(nms))
+#' 
+#' ith <- c(1,2,3,5,10,11)
+#' iex <- c(39,57,73,92,41,59)
+#' ith <- as.integer(ith)
+#' iex <- as.integer(iex)
+#' m <- length(ith)
+#' 
+#' df <- list(theo = theos, expt = expts, ith = ith, iex = iex, m = m)
+#' 
+#' expt_moverzs <- c(115.08694,120.08116,126.12807,127.12512,127.13135,
+#'                   128.12845,128.13469,129.13177,129.13800,130.13510,
+#'                   130.14134,131.13840,132.14159,136.07581,158.09254,
+#'                   173.15001,175.11917,175.15672,176.15985,186.15297,
+#'                   188.15988,229.16661,230.17041,231.17406,248.18094,
+#'                   249.18439,251.11345,269.12421,273.21259,287.19257,
+#'                   291.17169,301.20755,301.24423,305.16913,315.25937,
+#'                   322.70038,331.21384,331.71515,343.25455,361.71152,
+#'                   376.27606,377.24023,377.27985,386.72955,387.22852,
+#'                   395.23312,395.73502,396.23633,406.26596,407.27014,
+#'                   433.20410,453.24899,470.30963,470.81094,472.27225,
+#'                   487.30685,490.32318,499.81451,505.31924,517.77081,
+#'                   519.27625,519.77734,551.32843,551.63458,551.82617,
+#'                   551.86658,551.96796,552.32220,552.36621,591.37250,
+#'                   592.34991,609.33093,619.36487,633.33594,634.33850,
+#'                   635.34485,636.34497,644.39349,648.31799,655.82574,
+#'                   706.39349,740.87518,741.37933,747.88177,748.39014,
+#'                   748.88788,749.38904,749.89026,750.39099,791.45404,
+#'                   819.47766,863.43542,864.43774,943.52075,944.51770,
+#'                   945.51129,946.51874,947.52203,948.52100,1342.65393)
+#' 
+#' expt_ints <- c(8508,28501,194673,190890,160012,223742,147623,260388,198943,164580,
+#'                149024,165036,7306,21035,8098,11560,35686,8953,15544,10771,
+#'                17617,7660,227328,16612,88320,10075,8968,9123,20253,7351,
+#'                49432,11202,8013,65251,21790,11174,48669,10941,40270,24887,
+#'                81536,9488,9709,28670,8442,7151,185877,54537,9754,7176,
+#'                10297,12091,42045,9021,14507,11520,27411,7991,45770,7927,
+#'                18996,9520,111456,46109,49064,59457,41824,36185,9619,9065,
+#'                8708,21105,26995,13041,8674,11169,14089,7697,9047,10710,
+#'                12763,7125,7321,7483,31612,18050,26134,31474,11331,8789,
+#'                8672,65913,25918,17819,34367,15767,15221,14225,7419,7284)
+#' 
+#' calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 434)
+#' 
 #' }
 calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, 
                                 N, type_ms2ions = "by", topn_ms2ions = 100L, 
-                                penalize_sions = TRUE, ppm_ms2 = 25L, 
-                                digits = 5L) 
+                                ppm_ms2 = 25L, 
+                                burn_ins = c(1:2), digits = 5L) 
 {
-  # N - the total number of features (white and black balls)
-  # k - the number of sampled features
-  # m - the numbers of theoretical features (white balls)
-  # n - the number of noise (black balls)
-  
   df_theo <- df$theo
-  m <- length(df$theo)
-  
-  # OK: (N < m) -> (n < 0L)
-  # if (N < m) N <- m
-  
-  ## matches additionally against secondary ions
-  df2 <- add_seions(df_theo, type_ms2ions = type_ms2ions, digits = digits)
-  df2 <- find_ppm_outer_bycombi(df2, expt_moverzs, ppm_ms2) # 132 us
-  df2$theo <- round(df2$theo, digits = digits)
-  
-  # subtracts `m` and the counts of secondary b0, y0 matches etc. from noise
-  # (OK if n < 0L)
-  
-  n <- N - m - sum(!is.na(df2$expt))
-  
-  ## step 0: the original tidyverse approach
-  # 
-  # m2 <- nrow(df2)
-  # 
-  # y2 <- df2 %>% 
-  #   left_join(expts, by = "expt") %>% 
-  #   `[[`("int") %>% 
-  #   split(rep(seq_len(m2/m), each = m)) %>% 
-  #   Reduce(`%+%`, .) %>% 
-  #   data.frame(idx = seq_len(m), int2 = .)
-  # 
-  # y <- left_join(expts, df %>% mutate(idx = row_number()), by = "expt") %>% 
-  #   dplyr::left_join(y2, by = "idx") %>% 
-  #   mutate(int = ifelse(is.na(int2), int, int + int2)) %>% 
-  #   select(-c("int2", "idx")) %>% 
-  #   arrange(-int) %>% 
-  #   mutate(k = row_number(), x = k - cumsum(is.na(theo))) %>% 
-  #   filter(!is.na(theo))
-  
-  ## step 1: compiles secondary intensities
-  
-  # (1.1)
-  len <- length(df2$expt)
-  
-  i_se <- match(df2$expt, expt_moverzs) # secondary ions (df2) in expts
-  i_s <- which(!is.na(i_se)) # indexes in df2
-  i_e <- i_se[i_s] # indexes of the matches in expts
-  
-  df2$int <- rep(NA, len) # matched intensities; .7 us
-  df2$int[i_s] <- expt_ints[i_e] # the corresponding intensities from expts
-  
-  # (1.2) collapse b0, b*, b2 etc.
-  f <- rep(seq_len(len/m), each = m)
-  int2 <- .Internal(split(df2$int, as.factor(f)))
-  int2 <- Reduce(`%+%`, int2)
+  m <- length(df_theo)
 
-  y2 <- list(idx = 1:m, int2 = int2)
+  ## df2
+  df2 <- add_seions(df_theo, type_ms2ions = type_ms2ions, digits = digits)
+  df2 <- find_ppm_outer_bycombi(expt_moverzs, df2, ppm_ms2)
+
+  ith2 <- df2[["ith"]]
+  iex2 <- df2[["iex"]]
+  n <- N - m - length(iex2)
   
-  ## step 2 (join expts and "theo", "idx" from the primary df): 
-  # (y <- left_join(expts, df %>% mutate(idx = row_number()), by = "expt"))
+  ## 1. int2 (secondary intensities)
+  len <- length(df2[["expt"]])
+  df2[["int"]] <- rep(NA_real_, len)
+  df2[["int"]][ith2] <- expt_ints[iex2]
+  
+  facs <- rep(seq_len(len/m), each = m)
+  int2 <- .Internal(split(df2[["int"]], as.factor(facs)))
+  int2 <- Reduce(`%+%`, int2)
+  
+  # df2[["int"]]:
+  # NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA
+  # NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA
+  # NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA  48669 185877  12091   7927     NA  10710     NA
+  # NA     NA   7697     NA     NA     NA     NA     NA     NA     NA     NA  11174   8442     NA     NA     NA     NA     NA
+  # NA  11520     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA  28670     NA     NA     NA     NA     NA
   # 
-  #   expts: "expt" (expt_moverzs), "int" (expt_ints)
-  #   df: "theo" (m/z), "expt" (m/z), "idx" (indexes)
-  #   -> y: "theo", "expt", "int" "idx"
+  # int2
+  #  0  11520   7697      0      0      0      0      0      0      0      0  59843 222989  12091   7927      0  10710      0
+
+
+  ## 2. y 
+  ith <- df[["ith"]]
+  iex <- df[["iex"]]
+  df[["int"]] <- rep(NA_integer_, m)
+  df[["int"]][ith] <- expt_ints[iex]
+
+  nudbl <- rep(NA_real_, topn_ms2ions)
+  nuint <- rep(NA_integer_, topn_ms2ions)
+  y <- list(expt = expt_moverzs, int = expt_ints, theo = nudbl, idx = nuint, int2 = nuint)
+  y[["theo"]][iex] <- df_theo[ith]
+  y[["idx"]][iex] <- ith
   
-  # (2.1)
-  df$idx <- 1:m
+  ## 3. join `int2` to `y`
+  y_idx <- y[["idx"]]
+  ok_iex <- which(!is.na(y_idx))
+  y_ith <- y_idx[ok_iex]
+  y[["int2"]][ok_iex] <- int2[y_ith]
   
-  i_ep <- match(expt_moverzs, df$expt) # expts in primary ions (df)
-  i_e <- which(!is.na(i_ep)) # indexes in expts
-  i_p <- i_ep[i_e] # indexes of matches in primary df
+  ## 4. collapses `int2` to `int`
+  y[["int"]] <- y[["int"]] %+% y[["int2"]]
+  y[["idx"]] <- y[["int2"]] <- NULL
+
+  ## 5. arrange by "-int"
+  ord_int <- order(y[["int"]], decreasing = TRUE, method = "radix", na.last = TRUE)
+  y_theo <- y[["theo"]][ord_int]
+  maxi <- which(!is.na(y_theo))
+  maxi <- maxi[length(maxi)]
+  y_theo <- y_theo[1:maxi]
+
+  ## 6. mutate(k = row_number(), x = k - cumsum(is.na(theo)))
+  k <- 1:maxi
+  x <- k - cumsum(is.na(y_theo))
   
-  # (2.2)
-  nu <- rep(NA, topn_ms2ions)
-  y <- list(expt = expt_moverzs, int = expt_ints)
-  
-  y$theo <- nu
-  y$idx <- nu
-  
-  y$theo[i_e] <- df$theo[i_p]
-  y$idx[i_e] <- df$idx[i_p]
-  
-  ## step 3: add `int2` from `y2`
-  #  (dplyr::left_join(y, y2, by = "idx"))
-  i_yy2 <- match(y$idx, y2$idx)
-  i_y <- which(!is.na(i_yy2))
-  i_y2 <- i_yy2[i_y]
-  
-  y$int2 <- nu
-  y$int2[i_y] <- y2$int2[i_y2]
-  
-  ## step 4: collapses `int2` to `int`
-  #  (mutate(y, int = ifelse(is.na(int2), int, int + int2)))
-  y$int <- y$int %+% y$int2
-  y$int2 <- NULL
-  y$idx <- NULL
-  
-  ## step 5: arrange(-int)
-  idx <- order(y$int, decreasing = TRUE, method = "radix", na.last = TRUE) # 16.4 us
-  y$expt <- y$expt[idx]
-  y$int <- y$int[idx]
-  y$theo <- y$theo[idx]
-  
-  ## step 6: mutate(k = row_number(), x = k - cumsum(is.na(theo)))
-  k <- 1:topn_ms2ions
-  x <- k - cumsum(is.na(y$theo))
-  
-  y$k <- k
-  y$x <- x
-  
-  ## step 7: filter(!is.na(theo))
-  idx <- !is.na(y$theo)
-  
-  y$expt <- y$expt[idx]
-  y$int <- y$int[idx]
-  y$theo <- y$theo[idx]
-  y$k <- y$k[idx]
-  y$x <- y$x[idx]
-  
-  ## Probability
+  ## 7. filter(!is.na(theo))
   # note: x <= k <= x + n
-  
-  x <- y$x
-  k <- y$k
-  
+  ok_y <- !is.na(y_theo)
+  k <- k[ok_y]
+  x <- x[ok_y]
+
+  ## 8. Probability
   # (to have sufficient counts of noise)
   # (also guaranteed n > 0L)
-  
   n <- max(n, topn_ms2ions + k[length(k)])
   
-  x_ <- x[-c(1:2)]
-  k_ <- k[-c(1:2)]
-  
-  # `if` can be lifted if upstream filtration of min_nms2 in search_mgf
+  # excludes unstable burn-in scores
+  x_ <- x[-burn_ins]
+  k_ <- k[-burn_ins]
   
   if (length(x_)) {
     prs <- mapply(dhyper, x_, m, n, k_)
@@ -304,7 +342,8 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   }
   else 
     pr <- .5
-
+  
+  ## outputs
   list(pep_ivmod = nms, 
        pep_prob = pr, 
        pri_matches = list(df), 
@@ -323,7 +362,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
 #' @importFrom tibble tibble
 calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, 
                               N, type_ms2ions = "by", topn_ms2ions = 100L, 
-                              penalize_sions = TRUE, ppm_ms2 = 25L, digits = 5L) 
+                              ppm_ms2 = 25L, digits = 5L) 
 {
   ## for different positions: $TNLAMMR$`0000500`, $TNLAMMR$`0000050`
   #    the same `pep_seq`, `theo_ms1` for different mod positions
@@ -338,8 +377,8 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
                   N = N, 
                   type_ms2ions = type_ms2ions, 
                   topn_ms2ions = topn_ms2ions, 
-                  penalize_sions = penalize_sions, 
                   ppm_ms2 = ppm_ms2, 
+                  burn_ins = c(1:2),
                   digits = digits
                 ), 
                 SIMPLIFY = FALSE,
@@ -379,7 +418,7 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
 #' @importFrom purrr map
 calc_probi <- function (mts, expt_moverzs, expt_ints, 
                         N, type_ms2ions = "by", topn_ms2ions = 100L, 
-                        penalize_sions = TRUE, ppm_ms2 = 25L, digits = 5L) 
+                        ppm_ms2 = 25L, digits = 5L) 
 {
   out <- mapply(
     calc_probi_bypep, 
@@ -390,7 +429,6 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
       N = N, 
       type_ms2ions = type_ms2ions, 
       topn_ms2ions = topn_ms2ions, 
-      penalize_sions = penalize_sions, 
       ppm_ms2 = ppm_ms2, 
       digits = digits
     ), 
@@ -410,7 +448,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
 #' @inheritParams calc_pepscores
 #' @import purrr
 scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by", 
-                            penalize_sions = TRUE, ppm_ms2 = 25L, digits = 5L) 
+                            ppm_ms2 = 25L, digits = 5L) 
 {
   # only one experimental set of values and thus `[[1]]`
   expt_moverzs <- entry$ms2_moverz[[1]]
@@ -457,7 +495,6 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
                     N = N, 
                     type_ms2ions = type_ms2ions, 
                     topn_ms2ions = topn_ms2ions, 
-                    penalize_sions = penalize_sions, 
                     ppm_ms2 = ppm_ms2, 
                     digits = digits)
 
@@ -474,31 +511,30 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
 
 #' Calculates the scores of peptides at an \code{aa_masses}.
 #' 
-#' @param res Resulted data from ion matches.
+#' @param df Resulted data from ion matches.
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
-calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by", 
-                             penalize_sions = TRUE, ppm_ms2 = 25L, 
+calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by", 
+                             ppm_ms2 = 25L, 
                              out_path = "~/proteoM/outs", digits = 5L) 
 {
-  n_rows <- nrow(res)
+  n_rows <- nrow(df)
   
   if (n_rows) {
-    probs <- split.data.frame(res, seq_len(n_rows)) 
+    df <- split.data.frame(df, seq_len(n_rows)) 
     
-    probs <- lapply(probs, scalc_pepprobs, 
-                    topn_ms2ions = topn_ms2ions, 
-                    type_ms2ions = type_ms2ions, 
-                    penalize_sions = penalize_sions, 
-                    ppm_ms2 = ppm_ms2, 
-                    digits = digits)
+    df <- lapply(df, scalc_pepprobs, 
+                 topn_ms2ions = topn_ms2ions, 
+                 type_ms2ions = type_ms2ions, 
+                 ppm_ms2 = ppm_ms2, 
+                 digits = digits)
     
-    probs <- .Internal(unlist(probs, recursive = FALSE, use.names = FALSE))
+    df <- .Internal(unlist(df, recursive = FALSE, use.names = FALSE))
     
-    probs <- dplyr::bind_rows(probs)
+    df <- dplyr::bind_rows(df)
   } 
   else {
-    probs <- data.frame(
+    df <- data.frame(
       pep_seq = as.character(), 
       pep_ivmod = as.character(), 
       pep_prob = as.numeric(), 
@@ -507,20 +543,18 @@ calc_pepprobs_i <- function (res, topn_ms2ions = 100L, type_ms2ions = "by",
       scan_num = as.integer())
   }
   
-  invisible(probs)
+  invisible(df)
 }
 
 
 #' Calculates the scores of peptides.
 #'
-#' @param penalize_sions Logical; if TRUE, penalizes secondary ions of b0, y0
-#'   etc. with lower weights in peptide scoring.
 #' @inheritParams matchMS
 #' @import parallel
 calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by", 
                             target_fdr = 0.01, fdr_type = "psm", 
                             min_len = 7L, max_len = 40L, 
-                            penalize_sions = TRUE, ppm_ms2 = 25L, 
+                            ppm_ms2 = 25L, 
                             out_path = "~/proteoM/outs", 
                             
                             mgf_path, maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
@@ -601,7 +635,6 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     calcpepsc(file = fi, 
               topn_ms2ions = topn_ms2ions, 
               type_ms2ions = type_ms2ions, 
-              penalize_sions = penalize_sions, 
               ppm_ms2 = ppm_ms2, 
               out_path = out_path, 
               add_ms2theos = add_ms2theos, 
@@ -664,7 +697,7 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by", 
-                       penalize_sions = TRUE, ppm_ms2 = 25L, out_path = NULL, 
+                       ppm_ms2 = 25L, out_path = NULL, 
                        add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                        add_ms2moverzs = FALSE, add_ms2ints = FALSE, digits = 4L) 
 {
@@ -677,18 +710,24 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   cols_b <- c("ms2_moverz", "ms2_int", "pri_matches", "sec_matches")
   cols_lt <- c(cols_a, cols_b)
   
+  cols_sc <- c("pep_seq", "ms2_n", "scan_title", "ms1_moverz", "ms1_mass", 
+               "ms1_int", "ms1_charge", "ret_time", "scan_num", "raw_file", 
+               "pep_mod_group", "frame", "pep_fmod", "pep_vmod", "pep_isdecoy", 
+               "theo_ms1", "pep_ivmod", "pep_prob", "pep_len", 
+               "pep_ms2_moverzs", "pep_ms2_ints", "pep_ms2_theos", 
+               "pep_ms2_theos2", "pep_ms2_exptints", "pep_n_matches", 
+               "pep_ms2_exptints2", "pep_n_matches2", "pep_ms2_deltas", 
+               "pep_ms2_ideltas", "pep_ms2_deltas2", "pep_ms2_ideltas2", 
+               "pep_ms2_deltas_mean", "pep_ms2_deltas_sd")
+  
   df <- readRDS(file.path(out_path, "temp", file))
   n_rows <- nrow(df)
-
+  
   if (!n_rows) {
     dfa <- data.frame(matrix(ncol = length(cols_lt), nrow = 0L))
     colnames(dfa) <- cols_lt
     saveRDS(dfa, file_lt)
-
-    cols_sc <- c("ms2_n", "scan_title", "ms1_moverz", "ms1_mass", 
-                 "ms1_int", "ms1_charge", "ret_time", "scan_num", "raw_file", 
-                 "pep_mod_group", "frame", "pep_fmod", "pep_vmod", "pep_isdecoy", 
-                 "pep_seq", "theo_ms1", "pep_ivmod", "pep_prob", "pep_len")
+    
     dfb <- data.frame(matrix(ncol = length(cols_sc), nrow = 0L))
     colnames(dfb) <- cols_sc
     saveRDS(dfb, file_sc)
@@ -711,16 +750,15 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       df,
       topn_ms2ions = topn_ms2ions, 
       type_ms2ions = type_ms2ions, 
-      penalize_sions = penalize_sions, 
       ppm_ms2 = ppm_ms2,
       out_path = out_path, 
       digits = digits
     )
   }
   else {
-    # n_chunks <- detect_cores(16L)^2
     n_chunks <- n_cores <- detect_cores(16L)
-
+    # n_chunks <- n_cores^2
+    
     if (!is.null(df)) {
       dfs <- suppressWarnings(chunksplit(df, n_chunks, "row"))
       gc()
@@ -729,18 +767,23 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     if (length(dfs) >= n_chunks) {
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
       
-      parallel::clusterExport(cl, list("%>%"), 
-                              envir = environment(magrittr::`%>%`))
-      parallel::clusterExport(cl, list("scalc_pepprobs"), 
+      parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
+      
+      parallel::clusterExport(cl, list("calc_pepprobs_i", "scalc_pepprobs", 
+                                       "calc_probi", "calc_probi_bypep", 
+                                       "calc_probi_byvmods", "add_seions", 
+                                       "find_ppm_outer_bycombi", 
+                                       "add_primatches"), 
                               envir = environment(proteoM:::scalc_pepprobs))
-      probs <- parallel::clusterApplyLB(cl, dfs, 
-                                        calc_pepprobs_i, 
-                                        topn_ms2ions = topn_ms2ions, 
-                                        type_ms2ions = type_ms2ions, 
-                                        penalize_sions = penalize_sions, 
-                                        ppm_ms2 = ppm_ms2,
-                                        out_path = out_path, 
-                                        digits = digits)
+      
+      probs <- parallel::clusterApply(cl, dfs, 
+                                      calc_pepprobs_i, 
+                                      topn_ms2ions = topn_ms2ions, 
+                                      type_ms2ions = type_ms2ions, 
+                                      ppm_ms2 = ppm_ms2,
+                                      out_path = out_path, 
+                                      digits = digits)
+      
       parallel::stopCluster(cl)
       gc()
       
@@ -754,7 +797,6 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       probs <- lapply(dfs, calc_pepprobs_i, 
                       topn_ms2ions = topn_ms2ions, 
                       type_ms2ions = type_ms2ions, 
-                      penalize_sions = penalize_sions, 
                       ppm_ms2 = ppm_ms2,
                       out_path = out_path, 
                       digits = digits) %>% 
@@ -764,7 +806,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     rm(list = "dfs")
     gc()
   }
-
+  
   ## Reassemble `df`
   df <- df[, -which(names(df) == "matches"), drop = FALSE]
   df <- dplyr::bind_cols(df, df2)
@@ -777,16 +819,38 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   
   ## Outputs 
   saveRDS(df[, cols_lt, drop = FALSE], file_lt)
+  
+  if (nrow(df) > 10000L) {
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    
+    df <- parallel::clusterApply(
+      cl, 
+      suppressWarnings(chunksplit(df, n_chunks, "row")), 
+      add_primatches, 
+      add_ms2theos = add_ms2theos, 
+      add_ms2theos2 = add_ms2theos2, 
+      add_ms2moverzs = add_ms2moverzs, 
+      add_ms2ints = add_ms2ints) %>% 
+      dplyr::bind_rows()
+    
+    parallel::stopCluster(cl)
+  }
+  else {
+    df <- add_primatches(
+      df = df, 
+      add_ms2theos = add_ms2theos, 
+      add_ms2theos2 = add_ms2theos2, 
+      add_ms2moverzs = add_ms2moverzs, 
+      add_ms2ints = add_ms2ints)
+  }
 
-  df <- add_primatches(df = df, 
-                       add_ms2theos = add_ms2theos, 
-                       add_ms2theos2 = add_ms2theos2, 
-                       add_ms2moverzs = add_ms2moverzs, 
-                       add_ms2ints = add_ms2ints)
+  if (!all(cols_sc %in% names(df)))
+    stop("Developer needs to update the columns of peptide scores.")
   
   df <- df[, -which(names(df) %in% cols_b), drop = FALSE]
+  # df <- df[, cols_sc, drop = FALSE]
   saveRDS(df, file_sc)
-
+  
   invisible(df)
 }
 
@@ -798,39 +862,47 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
 add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                             add_ms2moverzs = FALSE, add_ms2ints = FALSE) 
 {
-  df <- df %>% 
-    dplyr::mutate(pep_ms2_moverzs = NA_character_, 
-                  pep_ms2_ints = NA_character_, 
-                  
-                  pep_ms2_theos = NA_character_, 
-                  pep_ms2_theos2 = NA_character_, 
-                  
-                  pep_ms2_deltas = NA_character_, 
-                  pep_ms2_ideltas = NA_character_,
-
-                  pep_ms2_deltas2 = NA_character_, 
-                  pep_ms2_ideltas2 = NA_character_, 
-                  
-                  pep_ms2_deltas_mean = NA_real_, 
-                  pep_ms2_deltas_sd = NA_real_, )
+  df <- dplyr::mutate(df, 
+                      pep_ms2_moverzs = NA_character_, 
+                      pep_ms2_ints = NA_character_, 
+                      pep_ms2_theos = NA_character_, 
+                      pep_ms2_theos2 = NA_character_, 
+                      
+                      pep_ms2_exptints = NA_character_, 
+                      pep_n_matches = NA_integer_, 
+                      pep_ms2_exptints2 = NA_character_, 
+                      pep_n_matches2 = NA_integer_, 
+                      
+                      pep_ms2_deltas = NA_character_, 
+                      pep_ms2_ideltas = NA_character_,
+                      pep_ms2_deltas2 = NA_character_, 
+                      pep_ms2_ideltas2 = NA_character_, 
+                      
+                      pep_ms2_deltas_mean = NA_real_, 
+                      pep_ms2_deltas_sd = NA_real_)
 
   # unlist from list table
   pris <- lapply(df$pri_matches, `[[`, 1)
   secs <- lapply(df$sec_matches, `[[`, 1)
 
   len <- length(pris)
-  sd1s <- me1s <- p2s <- d2s <- p1s <- d1s <- vector("list", len)
+  m2s <- m1s <- iys2 <- iys1 <- sd1s <- me1s <- p2s <- d2s <- p1s <- d1s <- vector("list", len)
 
   for (i in 1:len) {
     mt1 <- pris[[i]]
     th1 <- mt1$theo
     ex1 <- mt1$expt
+    iy1 <- mt1$int
     mt2 <- secs[[i]]
     th2 <- mt2$theo
     ex2 <- mt2$expt
+    iy2 <- mt2$int
 
-    ps1 <- which(!is.na(ex1))
-    ps2 <- which(!is.na(ex2))
+    # ps1 <- which(!is.na(ex1))
+    # ps2 <- which(!is.na(ex2))
+    ps1 <- mt1$ith
+    ps2 <- mt2$ith
+    
     ds1 <- (ex1[ps1] - th1[ps1]) * 1E3
     ds2 <- (ex2[ps2] - th2[ps2]) * 1E3
     me1 <- mean(ds1)
@@ -852,7 +924,12 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
     p2s[[i]] <- .Internal(paste0(list(ps2), collapse = ",", recycle0 = FALSE))
     me1s[[i]] <- me1
     sd1s[[i]] <- sd1
+    iys1[[i]] <- .Internal(paste0(list(iy1[ps1]), collapse = ",", recycle0 = FALSE))
+    iys2[[i]] <- .Internal(paste0(list(iy2[ps2]), collapse = ",", recycle0 = FALSE))
     
+    m1s[[i]] <- mt1$m
+    m2s[[i]] <- mt2$m
+
     if (i %% 5000L == 0L) gc()
   }
   
@@ -862,6 +939,10 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
   df$pep_ms2_ideltas2 <- do.call(rbind, p2s)
   df$pep_ms2_deltas_mean <- do.call(rbind, me1s)
   df$pep_ms2_deltas_sd <- do.call(rbind, sd1s)
+  df$pep_ms2_exptints <- do.call(rbind, iys1)
+  df$pep_ms2_exptints2 <- do.call(rbind, iys2)
+  df$pep_n_matches <- do.call(rbind, m1s)
+  df$pep_n_matches2 <- do.call(rbind, m2s)
 
   if (add_ms2theos) df$pep_ms2_theos <- collapse_vecs(lapply(pris, `[[`, "theo"))
   if (add_ms2theos2) df$pep_ms2_theos2 <- collapse_vecs(lapply(secs, `[[`, "theo"))
@@ -1897,11 +1978,12 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
 
 #' Finds the the outer products for a vector of MS2 ions at a given ion series.
 #'
-#' A theoretical peptide at a given position permutation.
+#' \emph{Experiment} values go first and theoretical seconded.
 #'
-#' @param expts Numeric vector; one series experimental MS2s.
-#' @param theos Numeric vector; one series of theoretical MS2s.
+#' @param X Numeric vector; one series experimental MS2s.
+#' @param Y Numeric vector; one series of theoretical MS2s.
 #' @inheritParams matchMS
+#' 
 #' @examples
 #' \donttest{
 #' expts <- c(101.0714, 102.0554, 110.0717, 115.0505, 126.1279, 127.0504,
@@ -1979,24 +2061,19 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
 #' 
 #' find_ppm_outer_bycombi(theos, expts)
 #' }
-find_ppm_outer_bycombi <- function (theos, expts, ppm_ms2 = 25L) 
+find_ppm_outer_bycombi <- function (X, Y, ppm_ms2 = 25L) 
 {
-  d <- outer(theos, expts, "find_ppm_error")
+  d <- outer(X, Y, "find_ppm_error")
   row_cols <- which(abs(d) <= ppm_ms2, arr.ind = TRUE)
-  
-  e1 <- expts[row_cols[, 2]]
-  names(e1) <- row_cols[, 1]
-  
-  len <- length(theos)
-  
-  es <- rep(NA, len)
-  names(es) <- seq_len(len)
-  es[names(e1)] <- e1
-  
-  # the first half are b-ions and the second half are y-ions
-  list(theo = theos, expt = es)
-}
+  ix <- row_cols[, 1]
+  iy <- row_cols[, 2]
 
+  es <- rep(NA_real_, length(Y))
+  names(es) <- names(Y)
+  es[iy] <- X[ix]
+  
+  list(theo = Y, expt = es, ith = iy, iex = ix, m = length(ix))
+}
 
 #' Calculates the delta scores of `pep_seq`.
 #'

@@ -260,6 +260,7 @@
 #             calc_probi_byvmods
 #               add_seions
 #               find_ppm_outer_bycombi
+#       add_primatches
 
 
 ## calc_protfdr (scores.R)

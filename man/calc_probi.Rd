@@ -11,7 +11,6 @@ calc_probi(
   N,
   type_ms2ions = "by",
   topn_ms2ions = 100L,
-  penalize_sions = TRUE,
   ppm_ms2 = 25L,
   digits = 5L
 )
@@ -32,9 +31,6 @@ and y-ions.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches. The default is to use the top-100 ions in an MS2 event.}
-
-\item{penalize_sions}{Logical; if TRUE, penalizes secondary ions of b0, y0
-etc. with lower weights in peptide scoring.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 25.}

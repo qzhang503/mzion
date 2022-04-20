@@ -8,7 +8,7 @@ prot_family_member	Ordinal number of the protein family member
 prot_es	Protein enrichment score	
 prot_es_co	Protein enrichment score cut-off	
 pep_seq	One-letter representation of peptide sequences without variable modifications	
-pep_n_ms2	Number of entries in a peak list	
+pep_n_ms2	Number of MS2 entries in a peak list	
 pep_scan_title	Scan title taken from peak list	
 pep_exp_mz	Experimental m/z value	
 pep_exp_mr	Molecular mass calculated from experimental m/z value	
@@ -29,6 +29,10 @@ pep_ms2_moverzs	Character string of experimental MS2 m/z values of peptide
 pep_ms2_ints	Character string of experimental MS2 intensity values of peptide	
 pep_ms2_theos	Character string of theoretical MS2 m/z values of peptide (primary ions)	"E.g. at the order of b1, b2, …, y1, y2, …"
 pep_ms2_theos2	Character string of theoretical MS2 m/z values of peptide (secondary ions)	"Order of secondary sequences (1) by: b2, b*, b*2, b0, b02, y2, y*, y*2, y0, y02; (2) ax: a2, a*, a*2, a0, a02, x2; (3) cz: c2, z2"
+pep_ms2_exptints	Character string of experimental MS2 intensities with matches to pep_ms2_theos (primary ions)	
+pep_n_matches	Number matches between experimental and theoretical m/z values of peptide (primary)	
+pep_ms2_exptints2	Character string of experimental MS2 intensities with matches to pep_ms2_theos2 (secondary ions)	
+pep_n_matches2	Number matches between experimental and theoretical m/z values of peptide (secondary)	
 pep_ms2_deltas	Character string of MS2 mass deltas between experimentals and theoreticals (primary)	In the unit of mDA
 pep_ms2_ideltas	The corresponding indexes of pep_ms2_deltas along the theoretical sequence of pep_ms2_theos	"E.g. if the the first value is 3, it says that the first mass delta in pep_ms2_deltas is for ion b3."
 pep_ms2_deltas2	Character string of MS2 mass deltas between experimentals and theoreticals (secondary)	

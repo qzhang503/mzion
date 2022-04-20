@@ -399,8 +399,14 @@ A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in
 \description{
 Database searches of MSMS data.
 }
-\details{
-The annotation of protein attributes, including percent coverages, will be
+\section{\code{Output columns}}{
+ 
+\code{system.file("extdata", "column_keys.txt", package = "proteoM")} \cr
+}
+
+\section{\code{Notes}}{
+ 
+The annotation of protein attributes, including percent coverage, will be
 performed with \link[proteoQ]{normPSM} given that values will be affected
 with the combination of multiple PSM tables.
 
@@ -426,6 +432,7 @@ sequence, the redundancy in the positions and/or neutral losses of
 \code{Anywhere} variable modifications are also kept in the outputs of
 proteoM but removed with proteoQ.
 }
+
 \section{\code{FASTA}}{
  \link{load_fasta2} sets the values of \code{acc_type}
   and \code{acc_pattern}. \cr
@@ -453,11 +460,6 @@ proteoM but removed with proteoQ.
 \section{\code{mzTab}}{
  \link{make_mztab} converts outputs from the proteoM ->
   proteoQ pipeline to mzTab files.
-}
-
-\section{\code{Output columns}}{
- system.file("extdata", "column_keys.txt",
-  package = "proteoM") \cr
 }
 
 \examples{
