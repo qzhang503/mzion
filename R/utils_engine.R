@@ -121,7 +121,8 @@ post_ms2match <- function (df, i, aa_masses, out_path)
   create_dir(file.path(out_path, "temp"))
   
   if (is.null(df)) {
-    saveRDS(df, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
+    qs::qsave(df, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")), 
+              preset = "fast")
     return(NULL)
   }
 
@@ -144,7 +145,8 @@ post_ms2match <- function (df, i, aa_masses, out_path)
   df %>%
     reloc_col_after("raw_file", "scan_num") %>%
     reloc_col_after("pep_mod_group", "raw_file") %T>%
-    saveRDS(file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
+    qs::qsave(file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")), 
+              preset = "fast")
 }
 
 
@@ -180,7 +182,8 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
                                 fmods_nl = NULL) 
 {
   # loads freshly mgfs (as will be modified)
-  mgf_frames <- readRDS(file.path(mgf_path, "mgf_queries.rds")) %>%
+  mgf_frames <- 
+    qs::qread(file.path(mgf_path, "mgf_queries.rds")) %>% 
     dplyr::group_by(frame) %>%
     dplyr::group_split() %>%
     setNames(purrr::map_dbl(., function (x) x$frame[1]))
@@ -207,8 +210,7 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 
   # reads theoretical peptide data
   .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
-
-  theopeps <- readRDS(file.path(.path_bin, paste0("binned_theopeps_", i, ".rds")))
+  theopeps <- qs::qread(file.path(.path_bin, paste0("binned_theopeps_", i, ".rds")))
   
   if (is.null(theopeps)) {
     return(list(mgf_frames = mgf_frames, 
@@ -289,7 +291,7 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
       if (!file.exists(file))
         return(NULL)
       
-      tps2 <- readRDS(file)
+      tps2 <- qs::qread(file)
       
       frames <- lapply(theopeps, names)
       frames <- lapply(frames, function (x) x[!is.na(x)])

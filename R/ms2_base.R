@@ -35,7 +35,7 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
   gc()
   
   if (!length(mgf_frames) || !length(theopeps)) {
-    saveRDS(df0, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
+    qs::qsave(df0, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
     return(df0)
   }
 

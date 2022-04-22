@@ -26,7 +26,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
   rm(list = c("tempdata"))
   
   if (!length(mgf_frames) || !length(theopeps)) {
-    saveRDS(df0, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
+    qs::qsave(df0, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
     return(df0)
   }
   

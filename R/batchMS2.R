@@ -100,8 +100,8 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
   if (!file.exists(file_aa)) 
     stop("File not found ", file_aa, call. = FALSE)
   else
-    aa_masses_all <- readRDS(file_aa)
- 
+    aa_masses_all <- qs::qread(file_aa)
+
   if (!file.exists(file_mod))
     stop("File not found ", file_mod, call. = FALSE)
   else
@@ -135,7 +135,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
   
   if (length(inds)) {
     for (i in inds) {
-      aa_masses <- readRDS(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
+      aa_masses <- qs::qread(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
       ms1s <- attr(aa_masses, "data")
       attr(aa_masses, "data") <- NULL
       
@@ -144,8 +144,9 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
       
       ms2i <- file.path(path_ms2time, paste0("ms2masses_", i, ".rds"))
       
-      if (file.exists(ms2i))
-        ms2s <- readRDS(ms2i)
+      if (file.exists(ms2i)) {
+        ms2s <- qs::qread(ms2i, nthreads = 4L)
+      }
       else {
         ntmass <- find_nterm_mass(aa_masses)
         ctmass <- find_cterm_mass(aa_masses)
@@ -191,7 +192,8 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
         parallel::stopCluster(cl)
         
         ms2s <- purrr::flatten(ms2s)
-        saveRDS(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
+        qs::qsave(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")), 
+                  preset = "fast")
       }
       
       ms2s <- make_ms2frames(ms1_time, ms1s, ms2s, .path_cache, path_bin2, i)
@@ -206,7 +208,8 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
   
   if (length(inds)) {
     for (i in inds) {
-      aa_masses <- readRDS(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
+      aa_masses <- qs::qread(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
+      
       ms1s <- attr(aa_masses, "data")
       attr(aa_masses, "data") <- NULL
       
@@ -215,8 +218,9 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
       
       ms2i <- file.path(path_ms2time, paste0("ms2masses_", i, ".rds"))
       
-      if (file.exists(ms2i))
-        ms2s <- readRDS(ms2i)
+      if (file.exists(ms2i)) {
+        ms2s <- qs::qread(ms2i, nthreads = 4L)
+      }
       else {
         ntmass <- find_nterm_mass(aa_masses)
         ctmass <- find_cterm_mass(aa_masses)
@@ -263,7 +267,8 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
         parallel::stopCluster(cl)
         
         ms2s <- purrr::flatten(ms2s)
-        saveRDS(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
+        qs::qsave(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")), 
+                  preset = "fast")
       }
       
       ms2s <- make_ms2frames(ms1_time, ms1s, ms2s, .path_cache, path_bin2, i)
@@ -280,7 +285,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
   
   if (length(inds)) {
     for (i in inds) {
-      aa_masses <- readRDS(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
+      aa_masses <- qs::qread(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
       ms1s <- attr(aa_masses, "data")
       attr(aa_masses, "data") <- NULL
       
@@ -290,7 +295,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
       ms2i <- file.path(path_ms2time, paste0("ms2masses_", i, ".rds"))
       
       if (file.exists(ms2i))
-        ms2s <- readRDS(ms2i)
+        ms2s <- qs::qread(ms2i, nthreads = 4L)
       else {
         ntmass <- find_nterm_mass(aa_masses)
         ctmass <- find_cterm_mass(aa_masses)
@@ -341,7 +346,8 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
         parallel::stopCluster(cl)
         
         ms2s <- purrr::flatten(ms2s)
-        saveRDS(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
+        qs::qsave(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")), 
+                  preset = "fast")
       }
       
       ms2s <- make_ms2frames(ms1_time, ms1s, ms2s, .path_cache, path_bin2, i)
@@ -358,7 +364,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
   
   if (length(inds)) {
     for (i in inds) {
-      aa_masses <- readRDS(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
+      aa_masses <- qs::qread(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
       ms1s <- attr(aa_masses, "data")
       attr(aa_masses, "data") <- NULL
       
@@ -368,7 +374,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
       ms2i <- file.path(path_ms2time, paste0("ms2masses_", i, ".rds"))
       
       if (file.exists(ms2i))
-        ms2s <- readRDS(ms2i)
+        ms2s <- qs::qread(ms2i, nthreads = 4L)
       else {
         ntmass <- find_nterm_mass(aa_masses)
         ctmass <- find_cterm_mass(aa_masses)
@@ -419,7 +425,8 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
         parallel::stopCluster(cl)
         
         ms2s <- purrr::flatten(ms2s)
-        saveRDS(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
+        qs::qsave(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")), 
+                  preset = "fast")
       }
       
       ms2s <- make_ms2frames(ms1_time, ms1s, ms2s, .path_cache, path_bin2, i)
@@ -437,7 +444,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
   
   if (length(inds)) {
     for (i in inds) {
-      aa_masses <- readRDS(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
+      aa_masses <- qs::qread(file.path(path_ms1time, paste0("pepmasses_", i, ".rds")))
       ms1s <- attr(aa_masses, "data")
       attr(aa_masses, "data") <- NULL
       
@@ -447,7 +454,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
       ms2i <- file.path(path_ms2time, paste0("ms2masses_", i, ".rds"))
       
       if (file.exists(ms2i))
-        ms2s <- readRDS(ms2i)
+        ms2s <- qs::qread(ms2i, nthreads = 4L)
       else {
         ntmass <- find_nterm_mass(aa_masses)
         ctmass <- find_cterm_mass(aa_masses)
@@ -496,7 +503,8 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
         parallel::stopCluster(cl)
         
         ms2s <- purrr::flatten(ms2s)
-        saveRDS(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")))
+        qs::qsave(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")), 
+                  preset = "fast")
       }
       
       ms2s <- make_ms2frames(ms1_time, ms1s, ms2s, .path_cache, path_bin2, i)
@@ -664,7 +672,8 @@ make_ms2frames_bypars <- function (pars, ms1s, ms2s, path_bin2, i,
   # (to be consistent with bin_ms1 that is order by frame then pep_seq)
   ans <- lapply(ans, function (x) x[order(names(x))])
 
-  saveRDS(ans, file.path(out_path, paste0("binned_ms2_", i, ".rds")))
+  qs::qsave(ans, file.path(out_path, paste0("binned_ms2_", i, ".rds")), 
+            preset = "fast")
 
   invisible(NULL)
 }

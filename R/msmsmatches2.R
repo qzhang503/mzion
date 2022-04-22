@@ -188,7 +188,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
           tidyr::unite(uniq_id, raw_file, pep_mod_group, scan_num, sep = ".", 
                        remove = TRUE) %>% 
           dplyr::select(uniq_id, grep("^I[0-9]{3}[NC]{0,1}$", names(.))) %T>% 
-          saveRDS(file.path(out_path, "temp", paste0("reporters_", i, ".rds")))
+          qs::qsave(file.path(out_path, "temp", paste0("reporters_", i, ".rds")), 
+                    preset = "fast")
       }
       
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
@@ -254,7 +255,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
           tidyr::unite(uniq_id, raw_file, pep_mod_group, scan_num, sep = ".", 
                        remove = TRUE) %>% 
           dplyr::select(uniq_id, grep("^I[0-9]{3}[NC]{0,1}$", names(.))) %T>% 
-          saveRDS(file.path(out_path, "temp", paste0("reporters_", i, ".rds")))
+          qs::qsave(file.path(out_path, "temp", paste0("reporters_", i, ".rds")), 
+                    preset = "fast")
       }
       
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
@@ -320,7 +322,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
           tidyr::unite(uniq_id, raw_file, pep_mod_group, scan_num, sep = ".", 
                        remove = TRUE) %>% 
           dplyr::select(uniq_id, grep("^I[0-9]{3}[NC]{0,1}$", names(.))) %T>% 
-          saveRDS(file.path(out_path, "temp", paste0("reporters_", i, ".rds")))
+          qs::qsave(file.path(out_path, "temp", paste0("reporters_", i, ".rds")), 
+                    preset = "fast")
       }
       
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
@@ -384,7 +387,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
           tidyr::unite(uniq_id, raw_file, pep_mod_group, scan_num, sep = ".", 
                        remove = TRUE) %>% 
           dplyr::select(uniq_id, grep("^I[0-9]{3}[NC]{0,1}$", names(.))) %T>% 
-          saveRDS(file.path(out_path, "temp", paste0("reporters_", i, ".rds")))
+          qs::qsave(file.path(out_path, "temp", paste0("reporters_", i, ".rds")), 
+                    preset = "fast")
       }
       
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
@@ -449,7 +453,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
           tidyr::unite(uniq_id, raw_file, pep_mod_group, scan_num, sep = ".", 
                        remove = TRUE) %>% 
           dplyr::select(uniq_id, grep("^I[0-9]{3}[NC]{0,1}$", names(.))) %T>% 
-          saveRDS(file.path(out_path, "temp", paste0("reporters_", i, ".rds")))
+          qs::qsave(file.path(out_path, "temp", paste0("reporters_", i, ".rds")), 
+                    preset = "fast")
       }
       
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
@@ -468,10 +473,11 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   bin_file2 <- file.path(.path_bin, paste0("binned_theopeps_", i_max2, ".rds"))
   
   if (!file.exists(bin_file2)) {
-    rev_peps <- readRDS(bin_file) %>% 
+    rev_peps <- 
+      qs::qread(bin_file) %>% 
       lapply(reverse_peps_in_frame) %T>% 
-      saveRDS(bin_file2)
-    
+      qs::qsave(bin_file2, preset = "fast")
+
     rm(list = c("rev_peps"))
   }
   
@@ -538,7 +544,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   }
   
   # if (is.null(out)) out <- out0
-  saveRDS(out, file.path(out_path, "temp", paste0("ion_matches_", i_max2, ".rds"))) 
+  qs::qsave(out, file.path(out_path, "temp", paste0("ion_matches_", i_max2, ".rds")), 
+            preset = "fast") 
   
   .savecall <- TRUE
   

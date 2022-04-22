@@ -96,7 +96,8 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
     files <- files[idxes]
     
     reporters <- lapply(files, function (x) 
-      readRDS(file.path(out_path, "temp", x))) %>%
+      qs::qread(file.path(out_path, "temp", x))
+      ) %>%
       dplyr::bind_rows()
 
     rm(list = c("idxes", "files"))
@@ -248,8 +249,8 @@ add_prot_acc <- function (df = NULL, out_path = NULL, .path_cache = NULL,
   if (is.null(df)) {
     file <- file.path(out_path, "temp", "peploc.rds")
     
-    if (file.exists(file)) 
-      df <- readRDS(file)
+    if (file.exists(file))
+      df <- qs::qread(file)
     else
       stop("File not found: ", file)
     
@@ -262,10 +263,10 @@ add_prot_acc <- function (df = NULL, out_path = NULL, .path_cache = NULL,
   .time_stamp <- find_ms1_times(out_path)
   
   if (length(.time_stamp) == 1L) {
-    fwd_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots.rds"))
+    fwd_prps <- qs::qread(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots.rds"))
     fwd_prps <- fwd_prps[fwd_prps$pep_seq %in% uniq_peps, ]
     
-    rev_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots_rev.rds"))
+    rev_prps <- qs::qread(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots_rev.rds"))
     rev_prps <- rev_prps[rev_prps$pep_seq %in% uniq_peps, ]
     rev_prps <- purge_decoys(target = fwd_prps, decoy = rev_prps)
   }
@@ -298,7 +299,7 @@ add_prot_acc <- function (df = NULL, out_path = NULL, .path_cache = NULL,
 #' @inheritParams  calc_pepmasses2
 hfwd_prps <- function (.time_stamp, .path_ms1masses, uniq_peps) 
 {
-  fwd_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots.rds"))
+  fwd_prps <- qs::qread(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots.rds"))
   fwd_prps <- fwd_prps[fwd_prps$pep_seq %in% uniq_peps, ]
 }
 
@@ -309,7 +310,7 @@ hfwd_prps <- function (.time_stamp, .path_ms1masses, uniq_peps)
 #' @inheritParams hfwd_prps
 hrev_prps <- function (fwd_prps, .time_stamp, .path_ms1masses, uniq_peps) 
 {
-  rev_prps <- readRDS(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots_rev.rds"))
+  rev_prps <- qs::qread(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots_rev.rds"))
   rev_prps <- rev_prps[rev_prps$pep_seq %in% uniq_peps, ]
   rev_prps <- purge_decoys(target = fwd_prps, decoy = rev_prps)
 }
@@ -330,8 +331,8 @@ add_prot_acc2 <- function (df = NULL, out_path = NULL, .path_cache = NULL,
   if (is.null(df)) {
     file <- file.path(out_path, "temp", "peploc.rds")
     
-    if (file.exists(file)) 
-      df <- readRDS(file)
+    if (file.exists(file))
+      df <- qs::qread(file)
     else
       stop("File not found: ", file)
     
@@ -351,7 +352,7 @@ add_prot_acc2 <- function (df = NULL, out_path = NULL, .path_cache = NULL,
   # Targets, theoretical
   fwd_prps <- lapply(sub_dirs, function (x) {
     file <- file.path(x, "prot_pep_annots.rds")
-    fwd <- if (file.exists(file)) readRDS(file) else NULL
+    fwd <- if (file.exists(file)) qs::qread(file) else NULL
   }) %>% 
     dplyr::bind_rows()
   
@@ -360,7 +361,7 @@ add_prot_acc2 <- function (df = NULL, out_path = NULL, .path_cache = NULL,
   # Decoys, theoretical
   rev_prps <- lapply(sub_dirs, function (x) {
     file <- file.path(x, "prot_pep_annots_rev.rds")
-    fwd <- if (file.exists(file)) readRDS(file) else NULL
+    fwd <- if (file.exists(file)) qs::qread(file) else NULL
   }) %>% 
     dplyr::bind_rows()
   
@@ -632,9 +633,10 @@ groupProts <- function (df, out_path = NULL, out_name = "prot_pep_setcover.rds")
     
     sets <- rbind2(df_shared, df_uniq)
     
-    if (!is.null(out_path)) 
-      saveRDS(sets, file.path(out_path, out_name))
-    
+    if (!is.null(out_path)) {
+      qs::qsave(sets, file.path(out_path, out_name), preset = "fast")
+    }
+
     unique(sets$prot_acc)
   })
 
@@ -845,8 +847,8 @@ map_pepprot <- function (df, out_path = NULL)
     # need additional "tier" information to prevent overwrites
     if (!is.null(out_path)) {
       Matrix::writeMM(out, file = file.path(out_path, "prot_pep_map.mtx"))
-      saveRDS(colnames(out), file.path(out_path, "prot_pep_map_col.rds"))
-      saveRDS(rownames(out), file.path(out_path, "prot_pep_map_row.rds"))
+      qs::qsave(colnames(out), file.path(out_path, "prot_pep_map_col.rds"), preset = "fast")
+      qs::qsave(rownames(out), file.path(out_path, "prot_pep_map_row.rds"), preset = "fast")
     }
   }
 
@@ -1128,9 +1130,10 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
     dplyr::mutate(prot_family_member = dplyr::row_number()) %>%
     dplyr::ungroup()
 
-  if (!is.null(out_path)) 
-    saveRDS(grps, file.path(out_path, "prot_grps.rds"))
-  
+  if (!is.null(out_path)) {
+    qs::qsave(grps, file.path(out_path, "prot_grps.rds"), preset = "fast")
+  }
+
   # stopifnot(identical(grps$prot_acc, prots))
   
   invisible(grps)

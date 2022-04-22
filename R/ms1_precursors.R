@@ -166,8 +166,7 @@ calc_pepmasses2 <- function (
            paste0("\n", files), ".\n",
            "Remove cache file: \n", 
            file.path(.path_cache, fun, paste0(.time_stamp, ".rda")),
-           " and try again.",
-           call. = FALSE)
+           " and try again.")
 
     rm(list = c("aa_masses_all", "files"))
     gc()
@@ -584,13 +583,15 @@ calc_pepmasses2 <- function (
     names(fwd_peps) <- seq_along(aa_masses_all)
     gc()
 
-    purrr::walk2(seq_along(fwd_peps), fwd_peps, ~ 
-      saveRDS(.y, file.path(path_masses, paste0("pepmasses_", .x, ".rds"))))
+    for (i in seq_along(fwd_peps)) {
+      qs::qsave(fwd_peps[[i]], 
+                file.path(path_masses, paste0("pepmasses_", i, ".rds")), 
+                preset = "fast")
+    }
     gc()
 
     # ---
     .savecall <- TRUE
-    
     message("\n=== Completed MS1 precursor masses. ===\n")
   }
 
@@ -608,7 +609,7 @@ calc_pepmasses2 <- function (
     )
     
     path <- create_dir(file.path(out_path, "Calls"))
-    saveRDS(.cache_info, file.path(path, ".cache_info.rds"))
+    qs::qsave(.cache_info, file.path(path, ".cache_info.rds"), preset = "fast")
   })
 
   invisible(fwd_peps)
@@ -629,10 +630,11 @@ find_aa_masses  <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
     aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
                                    varmods = varmods,
                                    maxn_vmods_setscombi = maxn_vmods_setscombi,
-                                   out_path = out_path) %T>%
-      saveRDS(file.path(out_path, "aa_masses_all.rds"))
+                                   out_path = out_path) 
+    
+    qs::qsave(aa_masses_all, file.path(out_path, "aa_masses_all.rds"), preset = "fast")
   } else {
-    aa_masses_all <- readRDS(file.path(out_path, "aa_masses_all.rds"))
+    aa_masses_all <- qs::qread(file.path(out_path, "aa_masses_all.rds"))
   }
 
   invisible(aa_masses_all)
@@ -715,8 +717,10 @@ tbl_prots_peps <- function (seqs, path)
   ## Should be all clean after `distri_peps`
   # if (enzyme == "noenzyme") ans$pep_seq <- with(ans, gsub("-", "", pep_seq))
   
-  saveRDS(ans, file.path(path, "prot_pep_annots.rds"))
-  saveRDS(reverse_peps_in_frame(ans), file.path(path, "prot_pep_annots_rev.rds"))
+  qs::qsave(ans, file.path(path, "prot_pep_annots.rds"), 
+            preset = "fast")
+  qs::qsave(reverse_peps_in_frame(ans), file.path(path, "prot_pep_annots_rev.rds"), 
+            preset = "fast")
   
   invisible(NULL)
 }
@@ -1590,8 +1594,7 @@ split_fastaseqs <- function (fasta = NULL, enzyme = "trypsin_p",
 
   if (length(fasta_db) > maxn_fasta_seqs) 
     stop("More than `", maxn_fasta_seqs, "` sequences in fasta files.\n",
-         "  May consider a higher `maxn_fasta_seqs`.",
-         call. = FALSE)
+         "  May consider a higher `maxn_fasta_seqs`.")
   
   n_cores <- detect_cores(16L)
 
@@ -1816,8 +1819,7 @@ split_fastaseqs_noenz <- function (fasta = NULL, acc_type = "uniprot_acc",
   
   if (length(fasta_db) > maxn_fasta_seqs) 
     stop("More than `", maxn_fasta_seqs, "` sequences in fasta files.\n",
-         "  May consider a higher `maxn_fasta_seqs`.",
-         call. = FALSE)
+         "  May consider a higher `maxn_fasta_seqs`.")
 
   n_cores <- detect_cores(16L)
   

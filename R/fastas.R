@@ -116,12 +116,14 @@ write_fasta <- function (fasta_db, file)
 load_fasta <- function (fasta = NULL) 
 {
   if (is.null(fasta)) 
-    stop("FASTA file(s) are required.", call. = FALSE)
+    stop("FASTA file(s) are required.")
+  
+  oks <- file.exists(fasta)
 
-  if (!all(file.exists(fasta))) 
-    stop("Missing FASTA file(s): \n",
-         purrr::reduce(fasta %>% .[!file.exists(.)], paste, sep = "\n"),
-         call. = FALSE)
+  if (!all(oks)) {
+    bads <- fasta[!oks]
+    stop("Missing FASTA file(s): \n", paste(bads, collapse = "\n"))
+  }
 
   lapply(fasta, function (x) read_fasta(x)) %>%
     do.call(`c`, .) %>%
@@ -185,56 +187,58 @@ load_fasta <- function (fasta = NULL)
 load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL) 
 {
   if (is.null(fasta)) 
-    stop("FASTA file(s) are required.", call. = FALSE)
+    stop("FASTA file(s) are required.")
 
-  if (!all(file.exists(fasta))) 
-    stop("Missing FASTA file(s): \n",
-         paste(fasta %>% .[!file.exists(.)], collapse = "\n"),
-         call. = FALSE)
+  oks <- file.exists(fasta)
+  
+  if (!all(oks)) {
+    bads <- fasta[!oks]
+    stop("Missing FASTA file(s): \n", paste(bads, collapse = "\n"))
+  }
 
   len_f <- length(fasta)
   len_a <- length(acc_type)
   len_p <- length(acc_pattern)
 
   if (len_f < len_a) 
-    stop("More accession types than fasta files.",
-         call. = FALSE)
+    stop("More accession types than fasta files.")
 
   if (len_f < len_p) 
     stop("More acc_pattern types than fasta files.",
          call. = FALSE)
 
-  if (len_a && len_a < len_f) {
+  if (len_a && (len_a < len_f)) {
     warning("More fasta files than accession types; ",
-            "the first accession type will be used for all fastas.",
-            call. = FALSE)
+            "the first accession type will be used for all fastas.")
     acc_type <- rep(acc_type[1], len_f)
   }
 
-  if (len_p && len_p < len_f) {
+  if (len_p && (len_p < len_f)) {
     warning("More fasta files than acc_pattern expressions; ",
-            "the first acc_pattern expression will be used for all fastas.",
-            call. = FALSE)
+            "the first acc_pattern expression will be used for all fastas.")
     acc_pattern <- rep(acc_pattern[1], len_f)
   }
 
   if (! (is.null(acc_type) || is.null(acc_pattern))) {
     acc_type <- acc_type
     acc_pattern <- acc_pattern
-  } else if (is.null(acc_type) && is.null(acc_pattern)) {
+  } 
+  else if (is.null(acc_type) && is.null(acc_pattern)) {
     acc_type <- rep("other", len_f)
     acc_pattern <- rep("(.*)", len_f)
-  } else if (!is.null(acc_type)) {
-    acc_pattern <- map_chr(acc_type, find_acc_pattern)
-  } else {
-    acc_type <- map_chr(acc_pattern, find_acc_type)
+  } 
+  else if (!is.null(acc_type)) {
+    acc_pattern <- purrr::map_chr(acc_type, find_acc_pattern)
+  } 
+  else {
+    acc_type <- purrr::map_chr(acc_pattern, find_acc_type)
   }
 
-  stopifnot(length(acc_pattern) == len_f)
+  if (length(acc_pattern) != len_f)
+    stop("Unequal length between `acc_pattern` and `fasta`.")
   
   # Not to USE.NAMES; otherwise fasta names prefix to accession names
   # this is different to map2 where names are NULL for each fasta_db
-  
   mapply(function (x, y) read_fasta(x, y), fasta, acc_pattern, 
          SIMPLIFY = FALSE, USE.NAMES = FALSE) %>%
     do.call(`c`, .) %>%
@@ -250,21 +254,28 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL)
 #' @inheritParams load_fasta2
 find_acc_pattern <- function (acc_type) 
 {
-  stopifnot(length(acc_type) == 1L)
-  stopifnot(acc_type %in% c("uniprot_acc", "uniprot_id", "refseq_acc", "other"))
+  if (length(acc_type) != 1L)
+    stop("The length of `acc_type` is not one.")
+  
+  oks <- c("uniprot_acc", "uniprot_id", "refseq_acc", "other")
+  
+  if (!acc_type %in% oks)
+    stop("`acc_type` is not one of ", paste(oks, collapse = ", "))
 
-  if (acc_type == "uniprot_acc") {
-    acc_pattern <- "^>..\\|([^\\|]+)\\|[^\\|]+"
-  } else if (acc_type == "uniprot_id") {
-    acc_pattern <- "^>..\\|[^\\|]+\\|([^ ]+) .*"
-  } else if (acc_type == "refseq_acc") {
-    acc_pattern <- "^>([^ ]+?) .*"
-  } else if (acc_type == "other") {
-    acc_type <- "other"
-    acc_pattern <- "(.*)"
-  } else {
-    stop("Unknown `acc_type`.",
-         call. = FALSE)
+  acc_pattern <- if (acc_type == "uniprot_acc") {
+    "^>..\\|([^\\|]+)\\|[^\\|]+"
+  } 
+  else if (acc_type == "uniprot_id") {
+    "^>..\\|[^\\|]+\\|([^ ]+) .*"
+  } 
+  else if (acc_type == "refseq_acc") {
+    "^>([^ ]+?) .*"
+  } 
+  else if (acc_type == "other") {
+    "(.*)"
+  } 
+  else {
+    stop("Unknown `acc_type`.")
   }
 
   invisible(acc_pattern)
@@ -278,29 +289,35 @@ find_acc_pattern <- function (acc_type)
 #' @inheritParams load_fasta2
 find_acc_type <- function (acc_pattern) 
 {
-  stopifnot(length(acc_pattern) == 1L)
+  if (length(acc_pattern) != 1L)
+    stop("The length of `acc_pattern` is not one.")
+  
+  oks <- c("pat_upacc", "pat_upid", "pat_rsacc", "pat_other")
+  
+  if (!acc_pattern %in% oks)
+    stop("`acc_pattern` is not one of ", paste(oks, collapse = ", "))
 
   pat_upacc <- "^>..\\|([^\\|]+)\\|[^ ]+?"
   pat_upid <- "^>..\\|[^\\|]+\\|([^ ]+?)"
   pat_rsacc <- "^>([^ ]+?) "
   pat_other <- "(.*)"
 
-  stopifnot(acc_pattern %in% c("pat_upacc", "pat_upid", "pat_rsacc", "pat_other"))
-
-  if (acc_pattern == pat_upacc) {
-    acc_type <- "uniprot_acc"
-  } else if (acc_pattern == pat_upid) {
-    acc_type <- "uniprot_id"
-  } else if (acc_pattern == pat_rsacc) {
-    acc_type <- "refseq_acc"
-  } else if (acc_pattern == pat_other) {
-    acc_type <- "other"
-  } else {
-    stop("Unknown `acc_pattern`.",
-         call. = FALSE)
+  acc_type <- if (acc_pattern == pat_upacc) {
+    "uniprot_acc"
+  } 
+  else if (acc_pattern == pat_upid) {
+    "uniprot_id"
+  } 
+  else if (acc_pattern == pat_rsacc) {
+    "refseq_acc"
+  } 
+  else if (acc_pattern == pat_other) {
+    "other"
+  } 
+  else {
+    stop("Unknown `acc_pattern`.")
   }
 
   invisible(acc_type)
 }
-
 

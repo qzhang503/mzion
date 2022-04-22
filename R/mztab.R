@@ -21,15 +21,15 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
   # Instrument and MGF format
   ans_mgfs <- local({
     mgf_path <- call_pars$mgf_path
-    info_mgfs <- readRDS(file.path(mgf_path, "info_format.rds"))
+    info_mgfs <- qs::qread(file.path(mgf_path, "info_format.rds"))
     
     data_format <- info_mgfs$data_format
     val_data_format <- paste0("[MS, , ", data_format, ", ]")
     mgf_format <- info_mgfs$mgf_format
     val_mgf_format <- paste0("[MS, , ", mgf_format, ", ]")
     
-    mgf_queries <- readRDS(file.path(mgf_path, "mgf_queries.rds"))
-    raw_files <- names(readRDS(file.path(mgf_path, "raw_indexes.rds")))
+    mgf_queries <- qs::qread(file.path(mgf_path, "mgf_queries.rds"))
+    raw_files <- names(qs::qread(file.path(mgf_path, "raw_indexes.rds")))
     
     ans_mgfs <- vector("list", length(raw_files))
     

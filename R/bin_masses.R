@@ -42,9 +42,8 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
   .time_stamp <- get(".time_stamp", envir = .GlobalEnv, inherits = FALSE)
   .path_mass <- file.path(.path_ms1masses, .time_stamp)
   
-  masses <- list.files(path = .path_mass, 
-                       pattern = paste0("^pepmasses_", "\\d+\\.rds$"))
-  
+  masses <- list.files(path = .path_mass, pattern = paste0("^pepmasses_", "\\d+\\.rds$"))
+
   len_m <- length(masses)
   
   if (!len_m) 
@@ -100,7 +99,8 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
                 max_mass = max_mass,
                 ppm_ms1 = ppm_ms1_new,
                 out_path = file.path(.path_bin, "binned_theopeps.rds"))
-  } else {
+  } 
+  else {
     # (b) reload
     idxes <- local({
       idxes <- gsub("^pepmasses_(\\d+)\\.rds$", "\\1", masses)
@@ -125,6 +125,8 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
     
     if (n_cores > 1L) {
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+      
+      parallel::clusterExport(cl, list("qread", "qsave"), envir = environment(qs::qsave))
       
       parallel::clusterExport(
         cl,
@@ -162,13 +164,14 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
   local({
     file <- file.path(out_path, "Calls", ".cache_info.rds")
     
-    if (file.exists(file)) 
-      .cache_info <- readRDS(file)
-    
+    if (file.exists(file)) {
+      .cache_info <- qs::qread(file)
+    }
+
     .cache_info$.time_bin <- .time_bin
     .cache_info$.path_bin <- .path_bin
     
-    saveRDS(.cache_info, file)
+    qs::qsave(.cache_info, file, preset = "fast")
   })
   
   invisible(NULL)
@@ -238,9 +241,8 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 700L,
                           max_mass = 4500L, ppm_ms1 = 20L) 
 {
   if (!length(peps)) {
-    # out <- data.frame(pep_seq = character(), mass = numeric(), frame = integer(), row.names = NULL)
-    out <- NULL                
-    saveRDS(out, out_nm)
+    out <- NULL   
+    qs::qsave(out, out_nm, preset = "fast")
     
     return(NULL)
   }
@@ -256,8 +258,8 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 700L,
   out <- dplyr::arrange(out, frame, pep_seq)
   out <- split(out, out$frame, drop = FALSE)
   
-  saveRDS(out, out_nm)
-  
+  qs::qsave(out, out_nm, preset = "fast")
+
   invisible(NULL)
 }
 
@@ -318,11 +320,10 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 700L,
 
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
   
-  parallel::clusterExport(
-    cl,
-    c("bin_theoseqs", 
-      "find_ms1_cutpoints"), 
-    envir = environment(proteoM:::bin_theoseqs))
+  parallel::clusterExport(cl, list("qread", "qsave"), envir = environment(qs::qsave))
+  
+  parallel::clusterExport(cl, c("bin_theoseqs", "find_ms1_cutpoints"), 
+                          envir = environment(proteoM:::bin_theoseqs))
   
   out <- parallel::clusterMap(cl, bin_theoseqs, 
                               res, file.path(out_dir, out_nms), 
@@ -373,7 +374,7 @@ find_ms1_cutpoints <- function (from = 700L, to = 4500L, ppm = 20L)
 s_readRDS <- function (file, out_path) 
 {
   ans <- tryCatch(
-    readRDS(file = file.path(out_path, file)),
+    qs::qread(file = file.path(out_path, file)),
     error = function (e) NULL
   )
   

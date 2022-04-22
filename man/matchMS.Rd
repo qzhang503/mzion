@@ -51,7 +51,7 @@ matchMS(
   combine_tier_three = FALSE,
   max_n_prots = 40000L,
   use_ms1_cache = TRUE,
-  .path_cache = "~/proteoM/.MSearches (1.1.0.0)/Cache/Calls",
+  .path_cache = "~/proteoM/.MSearches (1.1.3.0)/Cache/Calls",
   .path_fasta = NULL,
   topn_ms2ions = 100L,
   min_ms1_charge = 2L,

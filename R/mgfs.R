@@ -182,7 +182,7 @@ readMGF <- function (filepath = "~/proteoM/mgf",
     }
     
     ans <- list(data_format = data_format, mgf_format = mgf_format)
-    saveRDS(ans, file.path(filepath, "info_format.rds"))
+    qs::qsave(ans, file.path(filepath, "info_format.rds"), preset = "fast")
   })
 
   ## Reads MGF into chunks
@@ -262,19 +262,19 @@ readMGF <- function (filepath = "~/proteoM/mgf",
     raws <- raws_files[!duplicated.default(raws_files)]
     inds <- seq_along(raws)
     names(inds) <- raws
-    saveRDS(inds, file.path(filepath, "raw_indexes.rds"))
+    qs::qsave(inds, file.path(filepath, "raw_indexes.rds"), preset = "fast")
     out$raw_file <- unname(inds[raws_files])
     
     scans <- out$scan_title
     inds <- seq_along(scans)
     names(inds) <- scans
-    saveRDS(inds, file.path(filepath, "scan_indexes.rds"))
+    qs::qsave(inds, file.path(filepath, "scan_indexes.rds"), preset = "fast")
     out$scan_title <- unname(inds[scans])
     
     out
   })
   
-  saveRDS(out, out_path)
+  qs::qsave(out, out_path, preset = "fast")
 
   invisible(NULL)
 }

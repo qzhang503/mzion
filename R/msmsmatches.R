@@ -545,7 +545,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 40000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/proteoM/.MSearches (1.1.0.0)/Cache/Calls", 
+                     .path_cache = "~/proteoM/.MSearches (1.1.3.0)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L, 
@@ -950,7 +950,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   if (!bypass_ms2match) {
     ms2match(mgf_path = mgf_path,
              aa_masses_all = 
-               readRDS(file.path(.path_ms1masses, .time_stamp, "aa_masses_all.rds")),
+               qs::qread(file.path(.path_ms1masses, .time_stamp, "aa_masses_all.rds")),
              out_path = out_path,
              mod_indexes = 
                find_mod_indexes(file.path(.path_ms1masses, .time_stamp, "mod_indexes.txt")),
@@ -1740,7 +1740,7 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
     file_peploc <- file.path(sub_path, "temp", "peploc.rds")
     
     if (file.exists(file_peploc)) {
-      ans[[i]] <- readRDS(file_peploc)
+      ans[[i]] <- qs::qread(file_peploc)
       next
     }
 
@@ -1762,7 +1762,7 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
     if (!file.exists(file_peploc)) 
       stop("File not found: ", file_peploc)
 
-    ans[[i]] <- if (is.null(df)) readRDS(file_peploc) else df
+    ans[[i]] <- if (is.null(df)) qs::qread(file_peploc) else df
     rm(list = "df")
 
     if (is.null(ans[[i]])) 
@@ -1782,8 +1782,8 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
   out <- dplyr::bind_rows(ans)
   rm(list = "ans")
   dir.create(file.path(out_path, "temp"), showWarnings = FALSE, recursive = FALSE)
-  saveRDS(out, file.path(out_path, "temp", "peploc.rds"))
-  saveRDS(out_paths, file.path(out_path, "temp", "out_paths.rds"))
+  qs::qsave(out, file.path(out_path, "temp", "peploc.rds"), preset = "fast")
+  qs::qsave(out_paths, file.path(out_path, "temp", "out_paths.rds"), preset = "fast")
   rm(list = "out")
   
   gc()
@@ -1844,11 +1844,11 @@ combine_ion_matches <- function (out_path, out_paths, type = "ion_matches_")
   
   for (i in seq_along(ans_mts)) {
     ans_mts[[i]] <- lapply(out_paths_temp, function (path) {
-      readRDS(file.path(path, files_mts[i]))
+      qs::qread(file.path(path, files_mts[i]))
     }) %>% 
       dplyr::bind_rows()
     
-    saveRDS(ans_mts[[i]], file.path(out_path_temp, files_mts[i]))
+    qs::qsave(ans_mts[[i]], file.path(out_path_temp, files_mts[i]), preset = "fast")
   }
   
   invisible(NULL)
@@ -1941,7 +1941,7 @@ map_raw_n_scan <- function (df, mgf_path)
   file_scan <- file.path(mgf_path, "scan_indexes.rds")
   
   if (file.exists(file_raw)) {
-    raws <- readRDS(file_raw)
+    raws <- qs::qread(file_raw)
     raws2 <- names(raws)
     names(raws2) <- raws
     df$raw_file <- unname(raws2[df$raw_file])
@@ -1951,7 +1951,7 @@ map_raw_n_scan <- function (df, mgf_path)
   }
   
   if (file.exists(file_scan)) {
-    scans <- readRDS(file_scan)
+    scans <- qs::qread(file_scan)
     scans2 <- names(scans)
     names(scans2) <- scans
     df$scan_title <- unname(scans2[df$scan_title])

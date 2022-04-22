@@ -515,8 +515,8 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by", 
-                             ppm_ms2 = 25L, 
-                             out_path = "~/proteoM/outs", digits = 5L) 
+                             ppm_ms2 = 25L, out_path = "~/proteoM/outs", 
+                             digits = 5L) 
 {
   n_rows <- nrow(df)
   
@@ -714,23 +714,24 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                "ms1_int", "ms1_charge", "ret_time", "scan_num", "raw_file", 
                "pep_mod_group", "frame", "pep_fmod", "pep_vmod", "pep_isdecoy", 
                "theo_ms1", "pep_ivmod", "pep_prob", "pep_len", 
-               "pep_ms2_moverzs", "pep_ms2_ints", "pep_ms2_theos", 
-               "pep_ms2_theos2", "pep_ms2_exptints", "pep_n_matches", 
-               "pep_ms2_exptints2", "pep_n_matches2", "pep_ms2_deltas", 
+               "pep_ms2_moverzs", "pep_ms2_ints", 
+               "pep_ms2_theos", "pep_ms2_theos2", 
+               "pep_ms2_exptints", "pep_ms2_exptints2", 
+               "pep_n_matches", "pep_n_matches2", "pep_ms2_deltas", 
                "pep_ms2_ideltas", "pep_ms2_deltas2", "pep_ms2_ideltas2", 
                "pep_ms2_deltas_mean", "pep_ms2_deltas_sd")
   
-  df <- readRDS(file.path(out_path, "temp", file))
+  df <- qs::qread(file.path(out_path, "temp", file))
   n_rows <- nrow(df)
   
   if (!n_rows) {
     dfa <- data.frame(matrix(ncol = length(cols_lt), nrow = 0L))
     colnames(dfa) <- cols_lt
-    saveRDS(dfa, file_lt)
+    qs::qsave(dfa, file_lt, preset = "fast")
     
     dfb <- data.frame(matrix(ncol = length(cols_sc), nrow = 0L))
     colnames(dfb) <- cols_sc
-    saveRDS(dfb, file_sc)
+    qs::qsave(dfb, file_sc, preset = "fast")
     
     return (dfb)
   }
@@ -756,8 +757,10 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     )
   }
   else {
-    n_chunks <- n_cores <- detect_cores(16L)
-    # n_chunks <- n_cores^2
+    n_cores <- detect_cores(16L)
+    
+    # don't change (RAM)
+    n_chunks <- n_cores^2
     
     if (!is.null(df)) {
       dfs <- suppressWarnings(chunksplit(df, n_chunks, "row"))
@@ -776,13 +779,13 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                                        "add_primatches"), 
                               envir = environment(proteoM:::scalc_pepprobs))
       
-      probs <- parallel::clusterApply(cl, dfs, 
-                                      calc_pepprobs_i, 
-                                      topn_ms2ions = topn_ms2ions, 
-                                      type_ms2ions = type_ms2ions, 
-                                      ppm_ms2 = ppm_ms2,
-                                      out_path = out_path, 
-                                      digits = digits)
+      probs <- parallel::clusterApplyLB(cl, dfs, 
+                                        calc_pepprobs_i, 
+                                        topn_ms2ions = topn_ms2ions, 
+                                        type_ms2ions = type_ms2ions, 
+                                        ppm_ms2 = ppm_ms2,
+                                        out_path = out_path, 
+                                        digits = digits)
       
       parallel::stopCluster(cl)
       gc()
@@ -818,7 +821,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   gc()
   
   ## Outputs 
-  saveRDS(df[, cols_lt, drop = FALSE], file_lt)
+  qs::qsave(df[, cols_lt, drop = FALSE], file_lt, preset = "fast")
   
   if (nrow(df) > 10000L) {
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
@@ -847,9 +850,10 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   if (!all(cols_sc %in% names(df)))
     stop("Developer needs to update the columns of peptide scores.")
   
-  df <- df[, -which(names(df) %in% cols_b), drop = FALSE]
-  # df <- df[, cols_sc, drop = FALSE]
-  saveRDS(df, file_sc)
+  # df <- df[, -which(names(df) %in% cols_b), drop = FALSE]
+  df <- df[, cols_sc, drop = FALSE]
+
+  qs::qsave(df, file_sc, preset = "fast")
   
   invisible(df)
 }
@@ -869,8 +873,9 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
                       pep_ms2_theos2 = NA_character_, 
                       
                       pep_ms2_exptints = NA_character_, 
-                      pep_n_matches = NA_integer_, 
                       pep_ms2_exptints2 = NA_character_, 
+                      
+                      pep_n_matches = NA_integer_, 
                       pep_n_matches2 = NA_integer_, 
                       
                       pep_ms2_deltas = NA_character_, 
@@ -939,10 +944,10 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
   df$pep_ms2_ideltas2 <- do.call(rbind, p2s)
   df$pep_ms2_deltas_mean <- do.call(rbind, me1s)
   df$pep_ms2_deltas_sd <- do.call(rbind, sd1s)
-  df$pep_ms2_exptints <- do.call(rbind, iys1)
-  df$pep_ms2_exptints2 <- do.call(rbind, iys2)
   df$pep_n_matches <- do.call(rbind, m1s)
   df$pep_n_matches2 <- do.call(rbind, m2s)
+  df$pep_ms2_exptints <- do.call(rbind, iys1)
+  df$pep_ms2_exptints2 <- do.call(rbind, iys2)
 
   if (add_ms2theos) df$pep_ms2_theos <- collapse_vecs(lapply(pris, `[[`, "theo"))
   if (add_ms2theos2) df$pep_ms2_theos2 <- collapse_vecs(lapply(secs, `[[`, "theo"))
@@ -1271,15 +1276,9 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   nm_t <- gsub("^rev_", "", nm_d)
   
   td <- local({
-    decoy <- readRDS(file.path(out_path, "temp", file_d))
+    decoy <- qs::qread(file.path(out_path, "temp", file_d))
     decoy <- list(decoy)
     names(decoy) <- nm_d
-    
-    # decoy <- readRDS(
-    #   file.path(out_path, "temp", file_d)
-    # ) %>% 
-    #   list() %>% 
-    #   `names<-`(nm_d)
     
     file_t <- list.files(path = file.path(out_path, "temp"), 
                          pattern = paste0(pat, nm_t, ".rds$"))
@@ -1287,15 +1286,9 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     if (!length(file_t)) 
       stop("Target scores not found.", call. = FALSE)
     
-    target <- readRDS(file.path(out_path, "temp", file_t))
+    target <- qs::qread(file.path(out_path, "temp", file_t))
     target <- list(target)
     names(target) <- nm_t
-    
-    # target <- readRDS(
-    #   file.path(out_path, "temp", file_t)
-    # ) %>% 
-    #   list() %>% 
-    #   `names<-`(nm_t)
     
     c(target, decoy)
   })
@@ -1565,7 +1558,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   
   prob_cos <- data.frame(pep_len = as.numeric(names(prob_cos)), 
                          pep_prob_co = prob_cos) %T>% 
-    saveRDS(file.path(out_path, "temp", "pep_probco.rds"))
+    qs::qsave(file.path(out_path, "temp", "pep_probco.rds"), preset = "fast")
 }
 
 
@@ -1578,8 +1571,8 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
   if (is.null(prob_cos)) {
     file_prob <- file.path(out_path, "temp", "pep_probco.rds")
     
-    if (file.exists(file_prob)) 
-      prob_cos <- readRDS(file_prob)
+    if (file.exists(file_prob))
+      prob_cos <- qs::qread(file_prob)
     else 
       stop("File not found: ", file_prob)
   }
@@ -1595,7 +1588,7 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
     
     if (!length(list_t)) stop("No target results with pattern '", pat, "'.")
 
-    targets <- lapply(list_t, function (x) readRDS(file.path(out_path, "temp", x)))
+    targets <- lapply(list_t, function (x) qs::qread(file.path(out_path, "temp", x)))
     names(targets) <- nms_t
     
     # decoy
@@ -1604,7 +1597,7 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
     nm_d <- ok_decoy$idxes
     if (!length(list_d)) stop("No decoy results with pattern '", pat, "'.")
 
-    decoy <- readRDS(file.path(out_path, "temp", list_d)) %>% 
+    decoy <- qs::qread(file.path(out_path, "temp", list_d)) %>% 
       list() %>% 
       `names<-`(nm_d)
     
@@ -1638,7 +1631,7 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
                   pep_score_co = -log10(pep_adjp_co) * fct_score) %>% 
     dplyr::select(-c("pep_prob", "pep_adjp", "pep_prob_co", "pep_adjp_co"))
 
-  saveRDS(td, file.path(out_path, "temp", "pepfdr.rds"))
+  qs::qsave(td, file.path(out_path, "temp", "pepfdr.rds"), preset = "fast")
   
   invisible(td)
 }
@@ -2099,8 +2092,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, topn_mods_per_seq = 3L,
   if (is.null(x)) {
     file <- file.path(out_path, "temp", "pepfdr.rds")
     
-    if (file.exists(file)) 
-      x <- readRDS(file)
+    if (file.exists(file))
+      x <- qs::qread(file)
     else
       stop("File not found: ", file, call. = FALSE)
     
@@ -2247,7 +2240,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, topn_mods_per_seq = 3L,
 
   # change-back to logical
   x0 <- x0[, pep_isdecoy := as.logical(pep_isdecoy)]
-  saveRDS(x0, file.path(out_path, "temp", "peploc.rds"))
+  qs::qsave(x0, file.path(out_path, "temp", "peploc.rds"), preset = "fast")
 
   invisible(x0)
 }

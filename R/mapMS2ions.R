@@ -185,7 +185,7 @@ match_raw_id <- function (raw_file, mgf_path)
   if (!file.exists(file))
     stop("File not found ", file)
   
-  raw_lookup <- readRDS(file)
+  raw_lookup <- qs::qread(file)
   raw_id <- unname(raw_lookup[raw_file])
   
   if (is.na(raw_id)) {
@@ -394,10 +394,12 @@ find_theoexpt_pair <- function (psm, out_path, scan, raw_id, is_decoy = FALSE)
     if (!file.exists(file2))
       stop("Secondary ion matches not found: ", file, call. = FALSE)
     
-    .ion_matches <- readRDS(file) %>% 
+    .ion_matches <- 
+      qs::qread(file) %>% 
       dplyr::mutate(scan_num = as.character(scan_num))
     
-    .list_table <- readRDS(file2) %>% 
+    .list_table <- 
+      qs::qread(file2) %>%
       dplyr::mutate(scan_num = as.character(scan_num))
     
     if (! "pep_mod_group" %in% names(.list_table))
@@ -507,7 +509,7 @@ find_mgf_query <- function (mgf_path, raw_id, scan)
       stop("No parsed `mgf_queries.rds` under ", mgf_path, call. = FALSE)
     
     .mgf_queries <- 
-      lapply(files, function (x) readRDS(file.path(mgf_path, x))) %>% 
+      lapply(files, function (x) qs::qread(file.path(mgf_path, x))) %>% 
       do.call(rbind, .) %>% 
       dplyr::mutate(scan_num = as.character(scan_num))
     
