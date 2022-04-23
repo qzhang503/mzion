@@ -632,6 +632,8 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   }
 
   for (fi in c(listi_t, listi_d)) {
+    message("Module: ", fi)
+    
     calcpepsc(file = fi, 
               topn_ms2ions = topn_ms2ions, 
               type_ms2ions = type_ms2ions, 
@@ -746,6 +748,11 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   #   -> res[[i]] <- NULL 
   #   -> length(res) shortened by 1
   
+  n_cores <- detect_cores(16L)
+  
+  # don't change (RAM)
+  n_chunks <- n_cores^2
+  
   if (n_rows <= 5000L) {
     probs <- calc_pepprobs_i(
       df,
@@ -757,11 +764,6 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     )
   }
   else {
-    n_cores <- detect_cores(16L)
-    
-    # don't change (RAM)
-    n_chunks <- n_cores^2
-    
     if (!is.null(df)) {
       dfs <- suppressWarnings(chunksplit(df, n_chunks, "row"))
       gc()
@@ -847,12 +849,12 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       add_ms2ints = add_ms2ints)
   }
 
+  # all(c(cols_b, cols_sc) %in% names(df))
   if (!all(cols_sc %in% names(df)))
     stop("Developer needs to update the columns of peptide scores.")
-  
+
   # df <- df[, -which(names(df) %in% cols_b), drop = FALSE]
   df <- df[, cols_sc, drop = FALSE]
-
   qs::qsave(df, file_sc, preset = "fast")
   
   invisible(df)

@@ -59,5 +59,7 @@ try_psmC2Q(
   memory exhaustion by setting aside some protein entries from tier 1 to 2.}
 }
 \description{
-Helper of \link{psmC2Q}.
+"n_peps" and "n_prots" including both targets and decoys: \cr
+"n_prots" about 1:1 \cr
+"n_peps" about 1.8:1
 }

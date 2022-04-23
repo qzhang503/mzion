@@ -1137,7 +1137,11 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
 
 #' Helper of \link{psmC2Q}.
-#'
+#' 
+#' "n_peps" and "n_prots" including both targets and decoys: \cr
+#' "n_prots" about 1:1 \cr
+#' "n_peps" about 1.8:1
+#' 
 #' @inheritParams psmC2Q
 #' @importFrom magrittr %>% %T>%
 try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
@@ -1146,12 +1150,8 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
   n_peps <- length(unique(out$pep_seq))
   n_prots <- length(unique(out$prot_acc))
 
-  # `n_peps` and `n_prots` including both targets and decoys:
-  # `n_prots` about 1:1
-  # `n_peps` about 1.8:1
-
   if (n_prots == 1L) {
-    message("No protein groups with the number of of proteins = ", n_prots, ".\n",
+    message("No grouping with the number of of proteins = ", n_prots, ".\n",
             "Search completed successfully.")
     options(show.error.messages = FALSE)
     stop()
