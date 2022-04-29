@@ -2,7 +2,7 @@
 % Please edit documentation in R/scores.R
 \name{list_leftmatch}
 \alias{list_leftmatch}
-\title{Matches two lists.}
+\title{Matches two lists without making a data frame..}
 \usage{
 list_leftmatch(a, b)
 }
@@ -12,7 +12,7 @@ list_leftmatch(a, b)
 \item{b}{The right vector.}
 }
 \description{
-Not currently used. Without making a data frame.
+Not currently used.
 }
 \examples{
 \donttest{

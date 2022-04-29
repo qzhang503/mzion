@@ -64,6 +64,7 @@ matchMS(
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
   add_ms2ints = FALSE,
+  sys_ram = 24L,
   digits = 4L,
   ...
 )
@@ -386,6 +387,8 @@ seconds for considerations. The default is \code{Inf}.}
 
 \item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
 intensity values (\code{pep_ms2_ints}).}
+
+\item{sys_ram}{For Mac OS or Linux. The amount of system RAM in GB.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

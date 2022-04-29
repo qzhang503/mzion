@@ -61,10 +61,13 @@
 #' 
 #' }
 #' @export
-mapMS2ions <- function (out_path = "~/proteoM/outs", scan = 1234, 
+mapMS2ions <- function (out_path = NULL, scan = 1234, 
                         raw_file = "foo.raw", rank = 1L, is_decoy = FALSE, 
                         type_ms2ions = "by", filename = NULL) 
 {
+  if (is.null(out_path))
+    stop("\"out_path\" cannot be NULL.", call. = FALSE)
+  
   if (is.null(filename)) 
     filename <- "bar.png"
   
@@ -643,6 +646,11 @@ get_proteoM_coltypes <- function ()
     pep_ms2_ints = col_character(), 
     pep_ms2_theos = col_character(),
     pep_ms2_theos2 = col_character(),
+    pep_ms2_exptints = col_character(),
+    pep_ms2_exptints2 = col_character(),
+    
+    pep_n_matches = col_integer(), 
+    pep_n_matches2 = col_integer(),
     pep_ms2_deltas = col_character(),
     pep_ms2_ideltas = col_character(),
     pep_ms2_deltas2 = col_character(), 

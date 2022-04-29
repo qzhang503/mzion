@@ -4,8 +4,11 @@
 \alias{find_free_mem}
 \title{Finds the amount of free system memory.}
 \usage{
-find_free_mem()
+find_free_mem(sys_ram = 32L)
+}
+\arguments{
+\item{sys_ram}{The amount of system RAM; only for uses with Linux or Mas OS.}
 }
 \description{
-In the unit of MB.
+Outputs of free RAM in the unit of MB.
 }

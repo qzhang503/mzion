@@ -61,9 +61,9 @@ add_seions <- function (ms2s, type_ms2ions = "by", digits = 5L)
 }
 
 
-#' Matches two lists.
+#' Matches two lists without making a data frame..
 #' 
-#' Not currently used. Without making a data frame.
+#' Not currently used. 
 #' 
 #' @param a The left vector.
 #' @param b The right vector.
@@ -566,7 +566,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             maxn_vmods_setscombi = 64L, 
                             add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                             add_ms2moverzs = FALSE, add_ms2ints = FALSE,
-                            digits = 5L) 
+                            sys_ram = 32L, digits = 5L) 
 {
   on.exit(
     if (exists(".savecall", envir = fun_env)) {
@@ -596,7 +596,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
   
-  args_except <- NULL
+  args_except <- "sys_ram"
   
   cache_pars <- find_callarg_vals(time = NULL, 
                                   path = file.path(out_path, "Calls"), 
@@ -632,7 +632,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   }
 
   for (fi in c(listi_t, listi_d)) {
-    message("Module: ", fi)
+    message("\tModule: ", fi)
     
     calcpepsc(file = fi, 
               topn_ms2ions = topn_ms2ions, 
@@ -643,6 +643,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
               add_ms2theos2 = add_ms2theos2, 
               add_ms2moverzs = add_ms2moverzs, 
               add_ms2ints = add_ms2ints,
+              sys_ram = sys_ram, 
               digits = digits)
     
     gc()
@@ -701,7 +702,8 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by", 
                        ppm_ms2 = 25L, out_path = NULL, 
                        add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
-                       add_ms2moverzs = FALSE, add_ms2ints = FALSE, digits = 4L) 
+                       add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
+                       sys_ram = 32L, digits = 4L) 
 {
   # (can be decoy => .*, not \\d+)
   idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
@@ -721,7 +723,10 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                "pep_ms2_exptints", "pep_ms2_exptints2", 
                "pep_n_matches", "pep_n_matches2", "pep_ms2_deltas", 
                "pep_ms2_ideltas", "pep_ms2_deltas2", "pep_ms2_ideltas2", 
-               "pep_ms2_deltas_mean", "pep_ms2_deltas_sd")
+               "pep_ms2_deltas_mean", "pep_ms2_deltas_sd", 
+               
+               # for localization scores
+               "pep_ms2_ideltas.")
   
   df <- qs::qread(file.path(out_path, "temp", file))
   n_rows <- nrow(df)
@@ -750,8 +755,21 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   
   n_cores <- detect_cores(16L)
   
-  # don't change (RAM)
-  n_chunks <- n_cores^2
+  n_chunks <- local({
+    free_mem <- find_free_mem(sys_ram)/2
+    
+    fct <- 10/.25 # 10G free RAM -> .25G chunk_size
+    max_chunk_size <- free_mem/fct
+    obj_size <- object.size(df)/1024^2
+    n_chunks <- ceiling((obj_size/max_chunk_size) * n_cores)
+    
+    n_chunks <- ceiling(n_chunks/n_cores) * n_cores
+    n_chunks <- min(n_chunks, n_cores^2)
+    n_chunks <- max(n_chunks, n_cores)
+  })
+  
+  ## don't change (RAM)
+  # n_chunks <- n_cores^2
   
   if (n_rows <= 5000L) {
     probs <- calc_pepprobs_i(
@@ -760,8 +778,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       type_ms2ions = type_ms2ions, 
       ppm_ms2 = ppm_ms2,
       out_path = out_path, 
-      digits = digits
-    )
+      digits = digits)
   }
   else {
     if (!is.null(df)) {
@@ -853,7 +870,6 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   if (!all(cols_sc %in% names(df)))
     stop("Developer needs to update the columns of peptide scores.")
 
-  # df <- df[, -which(names(df) %in% cols_b), drop = FALSE]
   df <- df[, cols_sc, drop = FALSE]
   qs::qsave(df, file_sc, preset = "fast")
   
@@ -886,71 +902,72 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
                       pep_ms2_ideltas2 = NA_character_, 
                       
                       pep_ms2_deltas_mean = NA_real_, 
-                      pep_ms2_deltas_sd = NA_real_)
+                      pep_ms2_deltas_sd = NA_real_, 
+                      
+                      pep_ms2_ideltas. = NA_integer_)
 
   # unlist from list table
   pris <- lapply(df$pri_matches, `[[`, 1)
   secs <- lapply(df$sec_matches, `[[`, 1)
 
   len <- length(pris)
-  m2s <- m1s <- iys2 <- iys1 <- sd1s <- me1s <- p2s <- d2s <- p1s <- d1s <- vector("list", len)
+  p1s. <- m2s <- m1s <- iys2 <- iys1 <- sd1s <- me1s <- p2s <- d2s <- p1s <- d1s <- 
+    vector("list", len)
 
   for (i in 1:len) {
     mt1 <- pris[[i]]
-    th1 <- mt1$theo
-    ex1 <- mt1$expt
-    iy1 <- mt1$int
+    th1 <- mt1[["theo"]]
+    ex1 <- mt1[["expt"]]
+    iy1 <- mt1[["int"]]
     mt2 <- secs[[i]]
-    th2 <- mt2$theo
-    ex2 <- mt2$expt
-    iy2 <- mt2$int
+    th2 <- mt2[["theo"]]
+    ex2 <- mt2[["expt"]]
+    iy2 <- mt2[["int"]]
 
-    # ps1 <- which(!is.na(ex1))
-    # ps2 <- which(!is.na(ex2))
-    ps1 <- mt1$ith
-    ps2 <- mt2$ith
+    ps1 <- mt1[["ith"]]
+    ps2 <- mt2[["ith"]]
     
     ds1 <- (ex1[ps1] - th1[ps1]) * 1E3
     ds2 <- (ex2[ps2] - th2[ps2]) * 1E3
     me1 <- mean(ds1)
     sd1 <- sd(ds1)
     
-    # ds <- c(ds1, ds2)
-    # me <- mean(ds)
-    # sd <- sd(ds)
-
     # delayed rounding
     ds1 <- round(ds1, digits = 2L)
     ds2 <- round(ds2, digits = 2L)
     me1 <- round(me1, digits = 2L)
     sd1 <- round(sd1, digits = 2L)
     
-    d1s[[i]] <- .Internal(paste0(list(ds1), collapse = ",", recycle0 = FALSE))
-    d2s[[i]] <- .Internal(paste0(list(ds2), collapse = ",", recycle0 = FALSE))
-    p1s[[i]] <- .Internal(paste0(list(ps1), collapse = ",", recycle0 = FALSE))
-    p2s[[i]] <- .Internal(paste0(list(ps2), collapse = ",", recycle0 = FALSE))
+    d1s[[i]] <- .Internal(paste0(list(ds1), collapse = ";", recycle0 = FALSE))
+    d2s[[i]] <- .Internal(paste0(list(ds2), collapse = ";", recycle0 = FALSE))
+    p1s[[i]] <- .Internal(paste0(list(ps1), collapse = ";", recycle0 = FALSE))
+    p2s[[i]] <- .Internal(paste0(list(ps2), collapse = ";", recycle0 = FALSE))
+    iys1[[i]] <- .Internal(paste0(list(iy1[ps1]), collapse = ";", recycle0 = FALSE))
+    iys2[[i]] <- .Internal(paste0(list(iy2[ps2]), collapse = ";", recycle0 = FALSE))
+    
     me1s[[i]] <- me1
     sd1s[[i]] <- sd1
-    iys1[[i]] <- .Internal(paste0(list(iy1[ps1]), collapse = ",", recycle0 = FALSE))
-    iys2[[i]] <- .Internal(paste0(list(iy2[ps2]), collapse = ",", recycle0 = FALSE))
-    
     m1s[[i]] <- mt1$m
     m2s[[i]] <- mt2$m
+    
+    p1s.[[i]] <- ps1
 
     if (i %% 5000L == 0L) gc()
   }
   
-  df$pep_ms2_deltas <- do.call(rbind, d1s)
-  df$pep_ms2_ideltas <- do.call(rbind, p1s)
-  df$pep_ms2_deltas2 <- do.call(rbind, d2s)
-  df$pep_ms2_ideltas2 <- do.call(rbind, p2s)
-  df$pep_ms2_deltas_mean <- do.call(rbind, me1s)
-  df$pep_ms2_deltas_sd <- do.call(rbind, sd1s)
-  df$pep_n_matches <- do.call(rbind, m1s)
-  df$pep_n_matches2 <- do.call(rbind, m2s)
-  df$pep_ms2_exptints <- do.call(rbind, iys1)
-  df$pep_ms2_exptints2 <- do.call(rbind, iys2)
-
+  df[["pep_ms2_deltas"]] <- do.call(rbind, d1s)
+  df[["pep_ms2_ideltas"]] <- do.call(rbind, p1s)
+  df[["pep_ms2_deltas2"]] <- do.call(rbind, d2s)
+  df[["pep_ms2_ideltas2"]] <- do.call(rbind, p2s)
+  df[["pep_ms2_deltas_mean"]] <- do.call(rbind, me1s)
+  df[["pep_ms2_deltas_sd"]] <- do.call(rbind, sd1s)
+  df[["pep_n_matches"]] <- do.call(rbind, m1s)
+  df[["pep_n_matches2"]] <- do.call(rbind, m2s)
+  df[["pep_ms2_exptints"]] <- do.call(rbind, iys1)
+  df[["pep_ms2_exptints2"]] <- do.call(rbind, iys2)
+  
+  df[["pep_ms2_ideltas."]] <- p1s.
+  
   if (add_ms2theos) df$pep_ms2_theos <- collapse_vecs(lapply(pris, `[[`, "theo"))
   if (add_ms2theos2) df$pep_ms2_theos2 <- collapse_vecs(lapply(secs, `[[`, "theo"))
   if (add_ms2moverzs) df$pep_ms2_moverzs <- collapse_vecs(df$ms2_moverz)
@@ -964,10 +981,11 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
 #'
 #' @param vecs A list of vectors.
 #' @param nm The name of sub list in \code{vecs}.
-collapse_vecs <- function (vecs, nm = "theo") 
+#' @param sep A separator.
+collapse_vecs <- function (vecs, nm = "theo", sep = ";") 
 {
   ans <- lapply(vecs, function (v) 
-    .Internal(paste0(list(v), collapse = ",", recycle0 = FALSE))
+    .Internal(paste0(list(v), collapse = sep, recycle0 = FALSE))
   )
   
   do.call(rbind, ans)
@@ -2081,8 +2099,8 @@ find_ppm_outer_bycombi <- function (X, Y, ppm_ms2 = 25L)
 #' @param out_path An output path.
 #' @rawNamespace import(data.table, except = c(last, first, between, transpose,
 #'   melt, dcast))
-calc_peploc <- function (x = NULL, out_path = NULL, topn_mods_per_seq = 3L, 
-                         topn_seqs_per_query = 3L) 
+calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL, 
+                         topn_mods_per_seq = 3L, topn_seqs_per_query = 3L) 
 {
   message("Calculating peptide localization scores.")
   
@@ -2105,9 +2123,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, topn_mods_per_seq = 3L,
   x <- data.table::data.table(x)
   gc()
   
-  # round scores before any ranking
-  x[ , "pep_score" := round(pep_score, 2)]
-
+  # x[ , "pep_score" := round(pep_score, 2L)]
+  
   # For simplicity `pep_seq` uses interchangeably with `uniq_id` and 
   # `pep_seq_mod` with `uniq_id2` where everything is on top of the same 
   # pep_isdecoy, scan_num, raw_file.
@@ -2121,109 +2138,132 @@ calc_peploc <- function (x = NULL, out_path = NULL, topn_mods_per_seq = 3L,
   # ppe_rank2 --- NLs under the same `pep_seq_mod`
   # pep_rank at output --- `pep_seq`s under the same `query`
   
+  
   ## 1. compile `uniq_id`, `uniq_id2` and `pep_rank2`
+  message("\tRank peptides by neutral losses.")
+  
   x[, pep_isdecoy := as.integer(pep_isdecoy)]
   x[, uniq_id := paste(pep_isdecoy, scan_num, raw_file, pep_seq, sep = ".")]
   x[, "pep_ivmod2" := gsub(" [\\(\\[]\\d+[\\)\\[]$", "", pep_ivmod)]
   x[, uniq_id2 := paste(uniq_id, pep_ivmod2, sep = ".")]
-  x[["pep_ivmod2"]] <- NULL
   x[, pep_rank2 := data.table::frank(-pep_score, ties.method = "min"), 
     by = list(uniq_id2)]
 
-  ## 2 separate the best NL (x0) from the rest (y0) at the same `pep_seq_mod`
-  x0 <- x[x$pep_rank2 == 1L, ]
-  y0 <- x[x$pep_rank2 > 1L, ]
+  
+  ## 2 separate the best NL (x0) from the rest (y0, z0) at the same `pep_seq_mod`
+  # 
+  # the same pep_seq_mod only differ by NLs:
+  # 
+  # uniq_id2                                            pep_rank      pep_ivmod
+  # 0.14332.1.ENGGTEDMFVMYLGNKDASK.00000007007000500000    1   00000007007000500000 (1)
+  # 0.14332.1.ENGGTEDMFVMYLGNKDASK.00000007007000500000    1   00000007007000500000 (2)
+  # 0.14332.1.ENGGTEDMFVMYLGNKDASK.00000007007000500000    1   00000007007000500000 (3)
+  # 0.14332.1.ENGGTEDMFVMYLGNKDASK.00000007007000500000    1   00000007007000500000 (4)
+  # one pep_seq_mod at different NLs can results in multiple rows in x0 
+  # 
+  # x0 --- best NL at a pep_seq_mod and only the first one if with ties in NLs
+  # y0 --- not the best NL at a pep_seq_mod
+  # z0 --- still the best NL at a pep_seq_mod but tied with the first one
+
+  x[, nl_id := seq_len(.N), by = uniq_id2] # 232209
+  x0 <- x[x$pep_rank2 == 1L & x$nl_id == 1L, ] # 50783
+  y0 <- x[x$pep_rank2 > 1L, ] # 112739
+  z0 <- x[pep_rank2 == 1L & x$nl_id > 1L, ]
   x0[["pep_rank2"]] <- NULL
   y0[["pep_rank2"]] <- NULL
+  z0[["pep_rank2"]] <- NULL
+  x0[["nl_id"]] <- NULL
+  y0[["nl_id"]] <- NULL
+  z0[["nl_id"]] <- NULL
   rm(list = c("x"))
   gc()
   
+  
   ## 3. keep the top-3 `pep_seq_mod`
-  # (the `pep_rank` here is after the "collapse" of NLs by only using the best);
-  # net effect: the top-3 pep_seq_mod's, each represented by its best NL)
+  # the `pep_rank` here is after the "collapse" of NLs by only using the best;
+  # net effect: the top-3 pep_seq_mod's, each represented by its best NL;
+  # nevertheless, there can be ties in NL.
+  message("\tSubset peptides by modifications: \"topn_mods_per_seq <= ", 
+          topn_mods_per_seq, "\".")
+
   x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
      by = list(uniq_id)]
   x0 <- x0[pep_rank <= topn_mods_per_seq, ]
-  
-  ## 3.1 `pep_locprob`
-  # (the same `pep_seq`, different `pep_seq_mod`)
-  
-  # can have ties 
-  #                                 pep_ivmod pep_rank
-  # 1: 0000040000004000000000000000000000 (2)        1
-  # 2: 0000040000004000000000000000000000 (4)        1
-  # 3: 0000040000000000000004000000000000 (2)        1
-  # 4: 0000040000000000000004000000000000 (4)        1
-  # 
-  # thus "hide" tied NL entries from `sscore` calculations 
-  ux0 <- unique(x0, by = "uniq_id2")
-  ux0[, "sscore" := sum(pep_score, na.rm = TRUE), by = list(uniq_id)]
-  ux0[, "pep_locprob" := (pep_score/sscore)]
-  ux0 <- ux0[, c("uniq_id2", "pep_locprob")]
-  
-  # A bug of data.table: contaminating `sscore` and `pep_locprob` at nrow(x0) == 1L
-  x0$pep_locprob <- x0$sscore <- NULL
-  
-  x0 <- dplyr::left_join(x0, ux0, by = "uniq_id2")
-  rm(list = c("ux0"))
+  x0[["pep_rank"]] <- NULL
   gc()
-  
-  ## 3.2 `pep_locdiff`
-  x1 <- x0[pep_rank == 1L, ]
-  x2 <- x0[pep_rank == 2L, ]
-  gc()
-  
-  # can be duplicated by `pep_ivmod` due to TIES in
-  # `pep_rank` at different `pep_seq_mod`s and/or NLs)
-  ux1 <- unique(x1[, c("uniq_id", "pep_locprob")])
-  ux2 <- unique(x2[, c("uniq_id", "pep_locprob")])
-  names(ux1) <- c("uniq_id", "pep_locprob.x")
-  names(ux2) <- c("uniq_id", "pep_locprob.y")
-  rm(list = c("x1", "x2"))
-  gc()
-  
-  delta <- dplyr::left_join(ux1, ux2, by = "uniq_id")
-  rm(list = c("ux1", "ux2"))
-  gc()
-  
-  delta$pep_locprob.y <- ifelse(is.na(delta$pep_locprob.y), 0, delta$pep_locprob.y)
-  delta[["pep_locdiff"]] <- delta[["pep_locprob.x"]] - delta[["pep_locprob.y"]]
-  delta <- delta[, c("uniq_id", "pep_locdiff")]
 
-  x0 <- dplyr::left_join(x0, delta, by = "uniq_id")
-  rm(list = c("delta"))
+  
+  ## 4 `pep_locprob` (the same `pep_seq`, different `pep_seq_mod`)
+  # 4.1 separations into ambiguous x0 and non-ambiguous x1
+  x0 <- x0[ , n_pep_seq_mod := .N, by = .(uniq_id)]
+  x1 <- x0[n_pep_seq_mod == 1L, ] # single pep_seq_mod, no location ambiguity
+  x0 <- x0[n_pep_seq_mod > 1L, ]
+  x0[["n_pep_seq_mod"]] <- NULL
+  x1[["n_pep_seq_mod"]] <- NULL
+  
+  # 4.2 probability and delta
+  us <- split(x0[, c("pep_ivmod2", "pep_ms2_ideltas.")], x0$uniq_id)
   gc()
-  
-  ## 4. adds back inferior NLs from `y0`
-  # (1) again `x0$pep_rank` is w.r.t. `pep_seq_mod`s in that each `pep_seq_mod` 
-  #   is collapsed/represented by using its best NL.
-  # (2) some `y0$pep_seq_mod` may not present in `x0` since only kept the top 3 
-  #   in `x0$pep_seq_mod`
-  # Thus remove those `y0` rows before joining.
-  rows <- y0$uniq_id2 %in% x0$uniq_id2
-  y0 <- y0[rows, ]
-  rm(list = "rows")
-  
-  # some `x0$pep_seq_mod` may not present in `y0` if there is only one (the best) 
-  # NL, but here we only concern about joining columns from `x0` to `y0`.
-  y0 <- dplyr::left_join(y0, 
-                         unique(x0[, c("uniq_id2", "pep_rank", "pep_locprob", "pep_locdiff")]), 
-                         by = "uniq_id2")
 
-  x0 <- data.table::rbindlist(list(x0, y0), use.names = FALSE)
-  x0[, pep_rank_nl := data.table::frank(-pep_score, ties.method = "min"), 
-     by = list(uniq_id2)]
-  rm(list = c("y0"))
-  gc()
+  phosmods <- unname(mod_indexes[grepl("^Phospho ", names(mod_indexes))])
   
-  ## clean-ups
+  if (length(phosmods)) 
+    message("\tCalculates peptide localization scores.")
+  
+  probs <- lapply(us, findLocFracsDF, phosmods = phosmods)
+
+  deltas <- lapply(probs, function (x) {
+    oks <- x[which_topx3(x, 2L)]
+    abs(oks[1] - oks[2])
+  })
+  deltas <- unlist(deltas, recursive = FALSE, use.names = TRUE)
+  deltas <- data.frame(uniq_id = names(deltas), pep_locdiff = deltas)
+  rownames(deltas) <- NULL
+  
+  probs <- unlist(probs, recursive = FALSE, use.names = FALSE)
+  
+  if (is.null(probs)) {
+    col_nms <- c(names(x0), "pep_locprob", "pep_locdiff")
+    x0 <- data.table::data.table(matrix(ncol = length(col_nms), nrow = 0L))
+    colnames(x0) <- col_nms
+    rm(list = "col_nms")
+  }
+  else {
+    x0[["pep_locprob"]] <- probs
+    x0 <- quick_leftjoin(x0, deltas, by = "uniq_id")
+  }
+  rm(list = c("probs"))
+  
+  # 4.3 adds back x1
+  if (nrow(x1)) {
+    x1[["pep_locprob"]] <- 1.0
+    x1[["pep_locdiff"]] <- 1.0
+    x0 <- data.table::rbindlist(list(x0, x1), use.names = FALSE)
+  }
+  rm(list = c("x1"))
+  
+  # 4.4 adds back z0
+  z0 <- quick_leftjoin(z0, x0[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
+                       by = "uniq_id2")
+  x0 <- data.table::rbindlist(list(x0, z0), use.names = FALSE) # 108642
+  rm(list = "z0")
+
+  # 4.5 adds back y0
+  if (nrow(y0)) {
+    y0[["pep_locprob"]] <- NA_real_
+    y0[["pep_locdiff"]] <- NA_real_
+    x0 <- data.table::rbindlist(list(x0, y0), use.names = FALSE) # 221381
+  }
+  rm(list = "y0")
+
+  ## 5. clean-ups
   x0 <- x0[, -c("uniq_id", "uniq_id2")]
+  x0[ , "pep_score" := round(pep_score, 2L)]
   x0[ , "pep_locprob" := round(pep_locprob, 2L)]
   x0[ , "pep_locdiff" := round(pep_locdiff, 2L)]
   gc()
   
-  ## NEW `pep_rank`s 
-  #  across different `pep_seq`s under the same `query`
+  # 5.1 NEW `pep_rank`s across different `pep_seq`s under the same `query`
   # (this is different to the earlier `uniq_id` to differentiate LOCATIONS)
   # 
   # e.g., if MS evidence is equally feasible for : 
@@ -2231,7 +2271,9 @@ calc_peploc <- function (x = NULL, out_path = NULL, topn_mods_per_seq = 3L,
   #   pep_seq_2: EVEEDSEDEEMSEDE[D]D[S]S[GE]EEVVIPQKK
   # both will be kept (at the same rank)
 
-  ## rank `pep_seq`s under the same `query`
+  message("\tSubset by peptide sequences: \"topn_seqs_per_query <= ", 
+          topn_seqs_per_query, "\".")
+
   x0[, uniq_id3 := paste(pep_isdecoy, scan_num, raw_file, sep = ".")]
   x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
      by = list(uniq_id3)]
@@ -2240,11 +2282,163 @@ calc_peploc <- function (x = NULL, out_path = NULL, topn_mods_per_seq = 3L,
   data.table::setorder(x0, uniq_id3, -pep_score)
   x0$uniq_id3 <- NULL
 
-  # change-back to logical
   x0 <- x0[, pep_isdecoy := as.logical(pep_isdecoy)]
+  x0[["pep_ms2_ideltas."]] <- NULL
+  x0[["pep_ivmod2"]] <- NULL
   qs::qsave(x0, file.path(out_path, "temp", "peploc.rds"), preset = "fast")
 
   invisible(x0)
+}
+
+
+#' Finds the indexes of top-n entries without re-ordering.
+#'
+#' Only used with \link{calc_peploc}: \link{which_topx2} with additional
+#' handling of NA.
+#'
+#' For speed, codes duplicated from \link{which_topx2} except for the anyNA
+#' checks.
+#'
+#' @inheritParams which_topx
+#' @return The indexes of the top-n entries.
+which_topx3 <- function(x, n = 50L, ...) 
+{
+  if (anyNA(x))
+    return(rep(NA_real_, n))
+  
+  len <- length(x)
+  p <- len - n
+  
+  if (p  <= 0L) 
+    return(seq_along(x))
+  
+  xp <- sort(x, partial = p, ...)[p]
+  
+  ans <- which(x > xp)
+  d <- n - length(ans)
+  
+  if (d > 0L) {
+    ans2 <- which(x == xp)
+    ans <- c(ans2[1:d], ans)
+    ans <- sort(ans)
+  }
+  
+  invisible(ans)
+}
+
+
+#' Finds the localization fractions of STY.
+#'
+#' Counting statistics.
+#'
+#' @param df A data frame containing columns \code{pep_ivmod2} and
+#'   \code{pep_ms2_ideltas.}.
+#' @param phosmods A vector to the modification indexes of phosphorylations.
+findLocFracsDF <- function (df, phosmods = NULL) 
+{
+  ivms <- df[["pep_ivmod2"]]
+  seqs <- df[["pep_ms2_ideltas."]]
+  
+  ivms <- .Internal(strsplit(ivms, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
+  lenv <- length(ivms[[1]])
+  
+  if (is.null(phosmods))
+    ps <- lapply(ivms, function (x) which(x != "0"))
+  else
+    ps <- lapply(ivms, function (x) which(x %in% phosmods))
+  
+  lenp <- length(ps)
+  
+  # eg. No STY sites in a sequence
+  len1 <- length(ps[[1]])
+  
+  if (!len1)
+    return(rep(NA_real_, lenp))
+  
+  if (lenp == 1L) 
+    return(1.00)
+  
+  len <- lenp - 1L
+  ncr <- nnx <- vector("integer", len)
+  
+  for (i in 1:len) {
+    pcr <- ps[[i]] # all(pcr <= lenv)
+    pnx <- ps[[i+1L]]
+    seqcr <- seqs[[i]]
+    seqnx <- seqs[[i+1L]]
+    bmin <- min(pcr[[1]], pnx[[1]])
+    bmax <- max(pcr[[len1]], pnx[[len1]]) # bmax <= lenv
+    
+    # b-ions
+    bcr <- seqcr <= lenv
+    bnx <- seqnx <= lenv
+    bseqcr <- seqcr[bcr]
+    bseqnx <- seqnx[bnx]
+    
+    # y-ions
+    yseqcr <- seqcr[!bcr] - lenv
+    yseqnx <- seqnx[!bnx] - lenv
+    ymax <- lenv - bmin
+    ymin <- lenv - bmax
+    
+    # b & y
+    ncr[[i]] <- sum(bseqcr >= bmin & bseqcr < bmax) + sum(yseqcr > ymin & yseqcr <= ymax)
+    nnx[[i]] <- sum(bseqnx >= bmin & bseqnx < bmax) + sum(yseqnx > ymin & yseqnx <= ymax)
+  }
+  
+  ans <- concatFracs(ncr, nnx)
+}
+
+
+#' Concatenates localization fractions.
+#'
+#' The probability of the second localization with \eqn{y} in \eqn{x = 0; y = 6}
+#' is not any more probable than that in \eqn{x = 0; y = 1}. This is different
+#' to the binomial model in A-score, which will lead to the finding that the
+#' probability of localization 2 at \eqn{x = 0; y = 6} is much more probable.
+#'
+#' @param x A vector of counts of MS2 matches between two adjacent STY sites
+#'   (for a preceding match: pep_ivmod).
+#' @param y A vector of counts of MS2 matches between two adjacent STY sites
+#'   (for a next match: pep_ivmod).
+#' @param d A small positive number to handle value \eqn{0}.
+#'
+#' @examples
+#' concatFracs(c(3, 3, 5), c(2, 1, 3))
+#' concatFracs(c(0, 6), c(1, 3))
+#' concatFracs(c(0, 6), c(0, 3))
+#' concatFracs(c(0, 2), c(0, 2))
+#' concatFracs(c(1, 2), c(1, 2))
+#' 
+#' concatFracs(c(1, 2), c(1, 4))
+#' concatFracs(c(0, 2), c(0, 4))
+#' concatFracs(c(1, 2), c(0, 4)) # near 1 0 0 
+#' 
+#' concatFracs(0, 2)
+#' concatFracs(2, 0)
+#' concatFracs(0, 0) # should not occur
+concatFracs <- function (x, y, d = .001) 
+{
+  len <- length(x)
+  
+  if (identical(x, y))
+    return(rep(1/(len + 1L), (len + 1L)))
+  
+  x <- x + d
+  y <- y + d
+  
+  if (len <= 1L)
+    return(c(x, y)/sum(x, y))
+  
+  for (i in 2:len) {
+    fct <- y[i-1]/x[i]
+    x[i] <- x[i] * fct
+    y[i] <- y[i] * fct
+  }
+  
+  ans <- c(x[1], y)
+  
+  ans/sum(ans)
 }
 
 
@@ -2396,4 +2590,5 @@ tsoutliers <- function (x, iterate = 2, lambda = NULL)
   
   invisible(list(index = outliers, replacements = x[outliers]))
 }
+
 

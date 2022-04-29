@@ -262,10 +262,14 @@
 #               find_ppm_outer_bycombi
 #       add_primatches
 
-
 ## calc_protfdr (scores.R)
 #   calc_protfdr_i
 #   fit_protfdr
+
+## calc_peploc (scores.R)
+#   which_topx3
+#   findLocFracsDF
+#   concatFracs
 
 ## grp_prots (quant2.R)
 #   groupProts
@@ -280,6 +284,22 @@
 #     greedysetcover3
 #     
 
+#################################
+# mapMS2ions.R
+#################################
+# mapMS2ions
+# match_mgf_path
+# match_raw_id
+# add_raw_ids
+# find_secion_types
+# find_psm_rows
+# find_psm_rows1
+# find_psm_rows2
+# find_theoexpt_pair
+# find_mgf_query
+# combine_prisec_matches
+# check_existed_psms
+# get_proteoM_coltypes
 
 # batch_ms2ions
 #   hbatch_ms2ions

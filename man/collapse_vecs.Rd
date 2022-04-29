@@ -4,12 +4,14 @@
 \alias{collapse_vecs}
 \title{Pastes vectors to character strings.}
 \usage{
-collapse_vecs(vecs, nm = "theo")
+collapse_vecs(vecs, nm = "theo", sep = ";")
 }
 \arguments{
 \item{vecs}{A list of vectors.}
 
 \item{nm}{The name of sub list in \code{vecs}.}
+
+\item{sep}{A separator.}
 }
 \description{
 Pastes vectors to character strings.

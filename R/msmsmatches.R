@@ -302,6 +302,7 @@
 #'   suggested. Occasionally experimenters may remove the file folder for disk
 #'   space or under infrequent events of modified framework incurred by the
 #'   developer.
+#' @param sys_ram For Mac OS or Linux. The amount of system RAM in GB.
 #' @param digits A non-negative integer; the number of decimal places to be
 #'   used. The default is 4.
 #' @param ... Not currently used.
@@ -555,7 +556,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      
                      add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                      add_ms2moverzs = FALSE, add_ms2ints = FALSE,
-
+                     
+                     sys_ram = 24L, 
                      digits = 4L, ...) 
 {
   options(digits = 9L)
@@ -836,7 +838,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
   if (enzyme == "noenzyme" && exec_noenzyme) {
     matchMS_noenzyme(this_call = this_call, min_len = min_len, max_len = max_len, 
                      fasta = fasta, out_path = out_path, mgf_path = mgf_path, 
-                     noenzyme_maxn = noenzyme_maxn, quant = quant)
+                     noenzyme_maxn = noenzyme_maxn, quant = quant, 
+                     sys_ram = sys_ram)
     
     return(NULL)
   }
@@ -911,7 +914,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                   use_ms1_cache = use_ms1_cache, 
                   .path_cache = .path_cache, 
                   .path_ms1masses = .path_ms1masses, 
-                  out_path = out_path)
+                  out_path = out_path, 
+                  sys_ram = sys_ram)
     
     try(rm(list = "res"), silent = TRUE)
     gc()
@@ -946,14 +950,18 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   use_first_rev <- dots$use_first_rev
   if (is.null(use_first_rev)) use_first_rev <- FALSE
+  
+  aa_masses_all <- 
+    qs::qread(file.path(.path_ms1masses, .time_stamp, "aa_masses_all.rds"))
+  
+  mod_indexes <- 
+    find_mod_indexes(file.path(.path_ms1masses, .time_stamp, "mod_indexes.txt"))
 
   if (!bypass_ms2match) {
     ms2match(mgf_path = mgf_path,
-             aa_masses_all = 
-               qs::qread(file.path(.path_ms1masses, .time_stamp, "aa_masses_all.rds")),
+             aa_masses_all = aa_masses_all,
              out_path = out_path,
-             mod_indexes = 
-               find_mod_indexes(file.path(.path_ms1masses, .time_stamp, "mod_indexes.txt")),
+             mod_indexes = mod_indexes,
              type_ms2ions = type_ms2ions,
              maxn_vmods_per_pep = maxn_vmods_per_pep,
              maxn_sites_per_vmod = maxn_sites_per_vmod,
@@ -1027,6 +1035,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                    add_ms2theos2 = add_ms2theos2, 
                    add_ms2moverzs = add_ms2moverzs, 
                    add_ms2ints = add_ms2ints,
+                   sys_ram = sys_ram, 
                    digits = digits)
   }
   
@@ -1036,12 +1045,12 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   if (!bypass_pepfdr) {
     prob_cos <- calc_pepfdr(target_fdr = target_fdr, 
-                       fdr_type = fdr_type, 
-                       min_len = min_len, 
-                       max_len = max_len, 
-                       max_pepscores_co = max_pepscores_co, 
-                       match_pepfdr = match_pepfdr, 
-                       out_path = out_path)
+                            fdr_type = fdr_type, 
+                            min_len = min_len, 
+                            max_len = max_len, 
+                            max_pepscores_co = max_pepscores_co, 
+                            match_pepfdr = match_pepfdr, 
+                            out_path = out_path)
     
     post_pepfdr(prob_cos, out_path)
     rm(list = "prob_cos")
@@ -1053,6 +1062,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   if (!bypass_peploc) {
     calc_peploc(out_path = out_path, 
+                mod_indexes = mod_indexes, 
                 topn_mods_per_seq = topn_mods_per_seq, 
                 topn_seqs_per_query = topn_seqs_per_query)
     gc()
@@ -1315,7 +1325,8 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
     }
   }
 
-  out <- grp_prots(out, file.path(out_path, "temp1"))
+  if (nrow(out))
+    out <- grp_prots(out, file.path(out_path, "temp1"))
 
   if (nrow(out2)) 
     out2 <- grp_prots(out2, file.path(out_path, "temp2"))
@@ -1475,7 +1486,8 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
 #' @inheritParams matchMS
 matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L, 
                               fasta = NULL, out_path = NULL, mgf_path = NULL, 
-                              noenzyme_maxn = 0L, quant = "none") 
+                              noenzyme_maxn = 0L, quant = "none", 
+                              sys_ram = 32L) 
 {
   message("Searches with no enzyme specificity...")
   
@@ -1492,7 +1504,7 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
       fct_mgf <- max(1, sum(unlist(lapply(mgf_files, file.size)))/1024^3)
       
       ans <- tryCatch(
-        find_free_mem()/1024/fct_mgf,
+        find_free_mem(sys_ram)/1024/fct_mgf,
         error = function (e) NA)
       
       if (is.na(ans))

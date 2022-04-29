@@ -5,7 +5,7 @@
 \title{Visualization of matched MS2 ions.}
 \usage{
 mapMS2ions(
-  out_path = "~/proteoM/outs",
+  out_path = NULL,
   scan = 1234,
   raw_file = "foo.raw",
   rank = 1L,

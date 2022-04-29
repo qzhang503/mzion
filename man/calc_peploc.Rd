@@ -7,6 +7,7 @@
 calc_peploc(
   x = NULL,
   out_path = NULL,
+  mod_indexes = NULL,
   topn_mods_per_seq = 3L,
   topn_seqs_per_query = 3L
 )

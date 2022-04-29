@@ -29,7 +29,9 @@ which_topx <- function(x, n = 50L, ...)
 
 
 #' Finds the indexes of top-n entries without re-ordering.
-#'
+#' 
+#' Handles ties.
+#' 
 #' @inheritParams which_topx
 #' @return The indexes of the top-n entries.
 which_topx2 <- function(x, n = 50L, ...) 
@@ -512,25 +514,32 @@ detect_cores <- function (max_n_cores = NULL)
 
 #' Finds the amount of free system memory.
 #' 
-#' In the unit of MB.
-find_free_mem <- function () 
+#' Outputs of free RAM in the unit of MB.
+#' 
+#' @param sys_ram The amount of system RAM; only for uses with Linux or Mas OS.
+find_free_mem <- function (sys_ram = 32L) 
 {
   nm_os <- Sys.info()['sysname']
   
   gc()
   
-  free_mem <- if (nm_os == "Windows") {
-    system('wmic OS get FreePhysicalMemory /Value', intern=TRUE)[3] %>% 
-      gsub("^FreePhysicalMemory=(\\d+)\\r", "\\1", .) %>% 
-      as.numeric() %>% 
-      `/`(1024)
-    # tot_ram <- free_mem + memory.size(max = TRUE)
-  } else {
+  if (nm_os == "Windows") {
+    free_mem <- system('wmic OS get FreePhysicalMemory /Value', intern=TRUE)[3]
+    free_mem <- gsub("^FreePhysicalMemory=(\\d+)\\r", "\\1", free_mem)
+    free_mem <- as.numeric(free_mem)/1024
+  } 
+  else {
     # not yet tested for "Linux", "Darwin"
     # inaccurate e.g. if physical RAM is 32000 but in .RProfile 
     # `invisible(utils::memory.limit(64000))`
-    memory.limit() - memory.size(max = TRUE)
+    # memory.limit() - memory.size(max = TRUE)
+    
+    warning("Cannot determine the amount of RAM with Linux or MAC OS.\n", 
+            "To specify, use parameter \"sys_ram\".")
+    free_mem <- sys_ram * .75
   }
+  
+  free_mem
 }
 
 
@@ -561,22 +570,23 @@ is_equal_sets <- function(x, y) all(x %in% y) && all(y %in% x)
 #' 
 #' Decoy sequences may be present in targets and thus removed.
 #' 
+#' @examples 
+#' ## found in both forward and reverse fastas
+#' # pep_seq  prot_acc
+#' # RQEEELR NP_064522
+#' # RQEEELR NP_997555
+#' # RQEEELR NP_997553
+#' # 
+#' # pep_seq      prot_acc
+#' # RQEEELR -NP_001073379
+#' # RQEEELR -NP_001157031
+#' # RQEEELR    -NP_796085
+#' # RQEEELR    -NP_083410
+#' 
 #' @param target A target data frame with column \code{pep_seq}.
 #' @param decoy A decoy data frame with column \code{pep_seq}.
-purge_decoys <- function (target, decoy) {
-  
-  ## found in both forward and reverse fastas
-  # pep_seq  prot_acc
-  # RQEEELR NP_064522
-  # RQEEELR NP_997555
-  # RQEEELR NP_997553
-  # 
-  # pep_seq      prot_acc
-  # RQEEELR -NP_001073379
-  # RQEEELR -NP_001157031
-  # RQEEELR    -NP_796085
-  # RQEEELR    -NP_083410
-  
+purge_decoys <- function (target, decoy) 
+{
   tpeps <- unique(target$pep_seq)
   dpeps <- unique(decoy$pep_seq)
   

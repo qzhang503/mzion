@@ -2,9 +2,9 @@
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage("Welcome to proteoM.\n\n",
                         "============================================================================================\n",
-                        # "NEW features (v1.1.3.0):\n",
+                        # "NEW features (v1.1.4.0):\n",
                         "[x] For examples, enter \"?matchMS\".\n\n", 
-                        # "[x] Supports of SILAC searches.\n",
+                        "[x] Updates in phosphopeptide localization scores.\n",
                         # "[x] Updates in utility mapMS2ions.\n",
                         # "[x] Supports Bruker's PASEF MGFs.\n",
                         # "[x] Supports custom, semi- or non-enzymatic searches.\n",

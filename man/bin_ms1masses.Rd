@@ -13,7 +13,8 @@ bin_ms1masses(
   .path_cache = NULL,
   .path_ms1masses = NULL,
   is_ms1_three_frame = TRUE,
-  out_path = NULL
+  out_path = NULL,
+  sys_ram = 32L
 )
 }
 \arguments{
@@ -45,6 +46,8 @@ precursors.}
 preceeding, current and following.}
 
 \item{out_path}{A file path of outputs.}
+
+\item{sys_ram}{For Mac OS or Linux. The amount of system RAM in GB.}
 }
 \description{
 For target peptides.

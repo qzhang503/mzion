@@ -12,7 +12,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
                            ppm_ms1 = 20L, use_ms1_cache = TRUE, 
                            .path_cache = NULL, .path_ms1masses = NULL, 
                            is_ms1_three_frame = TRUE, 
-                           out_path = NULL) 
+                           out_path = NULL, sys_ram = 32L) 
 {
   old_opts <- options()
   options(warn = 1L)
@@ -110,7 +110,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
     
     n_cores <- local({
       fct <- 20 
-      free_mem <- find_free_mem()
+      free_mem <- find_free_mem(sys_ram)
       max_sz <- max(file.size(file.path(.path_mass, masses)))/1024^2
       
       n_cores <- min(floor(free_mem/max_sz/fct), detect_cores(8L))

@@ -14,3 +14,17 @@ purge_decoys(target, decoy)
 \description{
 Decoy sequences may be present in targets and thus removed.
 }
+\examples{
+## found in both forward and reverse fastas
+# pep_seq  prot_acc
+# RQEEELR NP_064522
+# RQEEELR NP_997555
+# RQEEELR NP_997553
+# 
+# pep_seq      prot_acc
+# RQEEELR -NP_001073379
+# RQEEELR -NP_001157031
+# RQEEELR    -NP_796085
+# RQEEELR    -NP_083410
+
+}
