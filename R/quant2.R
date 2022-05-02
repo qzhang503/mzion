@@ -432,8 +432,6 @@ hadd_prot_acc <- function (df, fwd_prps, rev_prps)
 }
 
 
-
-
 #' Helper of \link{groupProts}.
 #'
 #' @param df A data frame contains proteins and peptides.
@@ -943,7 +941,7 @@ pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, n_cores = NULL)
     vec <- collapse_sortpeps(Mat, ncol, peps)
   }
   else {
-    Mats <- chunksplit_spmat(Mat, peps, n_cores)
+    Mats <- chunksplit_spmat(Mat, peps, n_cores * 2L)
     rm(list = "Mat")
     gc()
     
@@ -1049,14 +1047,15 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
     D <- matrix(1.0)
     colnames(D) <- prots
     rownames(D) <- prots
-  } else {
+  } 
+  else {
     D <- proxyC::simil(M, margin = 2) # dsTMatrix
   }
   
   rm(list = c("M"))
   gc()
   
-  if (n_prots > 10000) {
+  if (n_prots > 10000L) {
     dm <- matrix(nrow = n_prots, ncol = n_prots)
     colnames(dm) <- prots
     rownames(dm) <- prots

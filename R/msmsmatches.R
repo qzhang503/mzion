@@ -1266,6 +1266,7 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
           "=================================\n")
 
   out <- dplyr::filter(out, pep_issig, !pep_isdecoy, !grepl("^-", prot_acc))
+  gc()
 
   # Set aside one-hit wonders
   out3 <- out %>%
