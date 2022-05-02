@@ -52,6 +52,9 @@ To install this package, start R (latest version) and enter:
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 devtools::install_github("qzhang503/proteoM")
+
+# Optional data package
+devtools::install_github("qzhang503/proteoQDA")
 ```
 
 

@@ -1,7 +1,7 @@
 proteoM
 ================
 true
-2022-02-25
+2022-05-02
 
 -   [Installation](#installation)
 -   [FASTAs and MGFs](#fastas-and-mgfs)
@@ -17,6 +17,9 @@ To install this package, start R (latest version) and enter:
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 devtools::install_github("qzhang503/proteoM")
+
+# Optional data package
+devtools::install_github("qzhang503/proteoQDA")
 ```
 
 ## FASTAs and MGFs
