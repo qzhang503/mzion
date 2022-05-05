@@ -626,25 +626,44 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
                         SIMPLIFY = FALSE, USE.NAMES = FALSE)
   ms2_ints <- mapply(function (x, y) x[y], ms2_ints, oks, 
                      SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  rm(list = "oks")
+  rm(list = "oks", "ms2s")
 
   # subsets by top-n
   lens <- lapply(ms2_moverzs, length)
   lens <- .Internal(unlist(lens, recursive = FALSE, use.names = FALSE))
 
   if (topn_ms2ions < Inf) {
-    rows <- lapply(ms2_ints, which_topx2, topn_ms2ions)
+    # rows <- lapply(ms2_ints, which_topx2, topn_ms2ions)
 
-    # OK to round `ms2_ints` now
-    ms2_ints <- mapply(function (x, y) round(x[y], digits = 0L), 
-                       ms2_ints, rows, 
-                       SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    ## OK to round `ms2_ints` now
+    # ms2_ints <- mapply(function (x, y) round(x[y], digits = 0L), 
+    #                    ms2_ints, rows, 
+    #                    SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    # 
+    # ms2_moverzs <- mapply(function (x, y) round(x[y], digits = 5L), 
+    #                       ms2_moverzs, rows, 
+    #                       SIMPLIFY = FALSE, USE.NAMES = FALSE)
     
-    ms2_moverzs <- mapply(function (x, y) round(x[y], digits = 5L), 
-                          ms2_moverzs, rows, 
-                          SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    is_long <- lens > topn_ms2ions
+    rows <- lapply(ms2_ints[is_long], which_topx2, topn_ms2ions)
     
-    rm(list = c("rows", "ms2s"))
+    # rows <- mapply(function (x, y) {
+    #   oks <- x <= 1200
+    #   a <- which_topx2(y[oks], topn_ms2ions - 5L)
+    #   b <- which_topx2(y[!oks], 5L) + sum(oks)
+    #   c(a, b)
+    # }, ms2_moverzs[is_long], ms2_ints[is_long], 
+    # SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    
+    ms2_ints[is_long] <- mapply(function (x, y) round(x[y], digits = 0L), 
+                                ms2_ints[is_long], rows, 
+                                SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    
+    ms2_moverzs[is_long] <- mapply(function (x, y) round(x[y], digits = 5L), 
+                                   ms2_moverzs[is_long], rows, 
+                                   SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    
+    rm(list = c("rows", "is_long"))
   }
 
   # MS1 ions

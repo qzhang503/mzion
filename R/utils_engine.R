@@ -34,6 +34,13 @@ which_topx <- function(x, n = 50L, ...)
 #' 
 #' @inheritParams which_topx
 #' @return The indexes of the top-n entries.
+#' @examples 
+#' p <- 100
+#' set.seed(1)
+#' x <- sample(1:150, replace = T)
+#' 
+#' # 103, not 100
+#' xp <- sort(x, partial = p)[p]
 which_topx2 <- function(x, n = 50L, ...) 
 {
   len <- length(x)
@@ -55,7 +62,7 @@ which_topx2 <- function(x, n = 50L, ...)
   
   d <- n - length(ans)
   
-  if (d > 0L) {
+  if (d) {
     ans2 <- which(x == xp)
     ans <- c(ans2[1:d], ans)
     ans <- sort(ans)

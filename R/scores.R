@@ -2165,9 +2165,11 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   # y0 --- not the best NL at a pep_seq_mod
   # z0 --- still the best NL at a pep_seq_mod but tied with the first one
 
-  x[, nl_id := seq_len(.N), by = uniq_id2] # 232209
-  x0 <- x[x$pep_rank2 == 1L & x$nl_id == 1L, ] # 50783
-  y0 <- x[x$pep_rank2 > 1L, ] # 112739
+  # need to order after ranking (better NLs first)
+  x <- x[order(-pep_score), by = list(uniq_id2)] 
+  x[, nl_id := seq_len(.N), by = uniq_id2]
+  x0 <- x[x$pep_rank2 == 1L & x$nl_id == 1L, ]
+  y0 <- x[x$pep_rank2 > 1L, ]
   z0 <- x[pep_rank2 == 1L & x$nl_id > 1L, ]
   x0[["pep_rank2"]] <- NULL
   y0[["pep_rank2"]] <- NULL
@@ -2202,38 +2204,44 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x1[["n_pep_seq_mod"]] <- NULL
   
   # 4.2 probability and delta
-  us <- split(x0[, c("pep_ivmod2", "pep_ms2_ideltas.")], x0$uniq_id)
-  gc()
-
   phosmods <- unname(mod_indexes[grepl("^Phospho ", names(mod_indexes))])
   
   if (length(phosmods)) 
     message("\tCalculates peptide localization scores.")
   
-  probs <- lapply(us, findLocFracsDF, phosmods = phosmods)
-
-  deltas <- lapply(probs, function (x) {
-    oks <- x[which_topx3(x, 2L)]
-    abs(oks[1] - oks[2])
-  })
-  deltas <- unlist(deltas, recursive = FALSE, use.names = TRUE)
-  deltas <- data.frame(uniq_id = names(deltas), pep_locdiff = deltas)
-  rownames(deltas) <- NULL
-  
-  probs <- unlist(probs, recursive = FALSE, use.names = FALSE)
-  
-  if (is.null(probs)) {
+  if (nrow(x0)) {
+    us <- split(x0[, c("uniq_id2", "pep_ivmod2", "pep_ms2_ideltas.")], x0$uniq_id)
+    gc()
+    
+    probs <- lapply(us, findLocFracsDF, phosmods = phosmods)
+    
+    deltas <- lapply(probs, function (x) {
+      oks <- x[which_topx3(x, 2L)]
+      abs(oks[1] - oks[2])
+    })
+    
+    us <- mapply(function (x, y, z) {
+      x[["pep_locprob"]] <- y
+      x[["pep_locdiff"]] <- z
+      x
+    }, us, probs, deltas, 
+    SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    
+    us <- data.table::rbindlist(us)
+    
+    x0 <- quick_leftjoin(x0, us[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
+                         by = "uniq_id2")
+    
+    rm(list = c("probs", "deltas", "us"))
+    gc()
+  }
+  else {
     col_nms <- c(names(x0), "pep_locprob", "pep_locdiff")
     x0 <- data.table::data.table(matrix(ncol = length(col_nms), nrow = 0L))
     colnames(x0) <- col_nms
     rm(list = "col_nms")
   }
-  else {
-    x0[["pep_locprob"]] <- probs
-    x0 <- quick_leftjoin(x0, deltas, by = "uniq_id")
-  }
-  rm(list = c("probs"))
-  
+
   # 4.3 adds back x1
   if (nrow(x1)) {
     x1[["pep_locprob"]] <- 1.0
@@ -2245,14 +2253,14 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   # 4.4 adds back z0
   z0 <- quick_leftjoin(z0, x0[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
                        by = "uniq_id2")
-  x0 <- data.table::rbindlist(list(x0, z0), use.names = FALSE) # 108642
+  x0 <- data.table::rbindlist(list(x0, z0), use.names = FALSE)
   rm(list = "z0")
 
   # 4.5 adds back y0
   if (nrow(y0)) {
     y0[["pep_locprob"]] <- NA_real_
     y0[["pep_locdiff"]] <- NA_real_
-    x0 <- data.table::rbindlist(list(x0, y0), use.names = FALSE) # 221381
+    x0 <- data.table::rbindlist(list(x0, y0), use.names = FALSE)
   }
   rm(list = "y0")
 
@@ -2334,6 +2342,12 @@ which_topx3 <- function(x, n = 50L, ...)
 #' @param df A data frame containing columns \code{pep_ivmod2} and
 #'   \code{pep_ms2_ideltas.}.
 #' @param phosmods A vector to the modification indexes of phosphorylations.
+#' 
+#' @examples 
+#' phosmods <- c("8", "9", "a")
+#' df <- data.frame(pep_ivmod2 = c("0080000", "0009000"), pep_ms2_ideltas. = NA)
+#' df$pep_ms2_ideltas.[1] <- list(c(1,2,3,4,5,6,8,9,10,11,12,13,14))
+#' df$pep_ms2_ideltas.[2] <- list(c(1,2,3,4,5,6,8,9,10,12,13,14))
 findLocFracsDF <- function (df, phosmods = NULL) 
 {
   ivms <- df[["pep_ivmod2"]]

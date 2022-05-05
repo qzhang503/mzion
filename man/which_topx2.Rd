@@ -19,3 +19,11 @@ The indexes of the top-n entries.
 \description{
 Handles ties.
 }
+\examples{
+p <- 100
+set.seed(1)
+x <- sample(1:150, replace = T)
+
+# 103, not 100
+xp <- sort(x, partial = p)[p]
+}

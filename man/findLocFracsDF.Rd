@@ -15,3 +15,9 @@ findLocFracsDF(df, phosmods = NULL)
 \description{
 Counting statistics.
 }
+\examples{
+phosmods <- c("8", "9", "a")
+df <- data.frame(pep_ivmod2 = c("0080000", "0009000"), pep_ms2_ideltas. = NA)
+df$pep_ms2_ideltas.[1] <- list(c(1,2,3,4,5,6,8,9,10,11,12,13,14))
+df$pep_ms2_ideltas.[2] <- list(c(1,2,3,4,5,6,8,9,10,12,13,14))
+}
