@@ -15,6 +15,8 @@ readMGF(
   ret_range = c(0, Inf),
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
+  mgf_cutmzs = numeric(),
+  mgf_cutpercs = numeric(),
   index_ms2 = FALSE,
   out_path = file.path(filepath, "mgf_queries.rds")
 )

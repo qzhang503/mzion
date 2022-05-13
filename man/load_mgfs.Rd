@@ -19,10 +19,12 @@ load_mgfs(
   max_ret_time = Inf,
   ppm_ms1 = 20L,
   ppm_ms2 = 25L,
-  index_ms2 = FALSE,
   is_ms1_three_frame = TRUE,
   is_ms2_three_frame = TRUE,
-  enzyme = "trypsin_p"
+  mgf_cutmzs = numeric(),
+  mgf_cutpercs = numeric(),
+  enzyme = "trypsin_p",
+  index_ms2 = FALSE
 )
 }
 \arguments{
@@ -77,8 +79,6 @@ default is 20.}
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 25.}
 
-\item{index_ms2}{Logical; if TRUE, converts MS2 m/z values to indices.}
-
 \item{is_ms1_three_frame}{Logical; is the searches by the three frames of
 preceeding, current and following.}
 
@@ -88,6 +88,8 @@ preceeding, current and following.}
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from protein entries. The
 default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
+
+\item{index_ms2}{Logical; if TRUE, converts MS2 m/z values to indices.}
 }
 \description{
 Currently, \code{index_ms2} is always FALSE.

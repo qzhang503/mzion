@@ -15,6 +15,7 @@ export(parse_unimod)
 export(read_fasta)
 export(remove_unimod)
 export(remove_unimod_title)
+export(reproc_psmC)
 export(table_unimods)
 import(data.table, except = c(last, first, between, transpose,
   melt, dcast))

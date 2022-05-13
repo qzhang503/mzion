@@ -37,6 +37,7 @@ matchMS(
   silac_mix = NULL,
   type_ms2ions = "by",
   min_ms2mass = 115L,
+  max_ms2mass = 4500L,
   minn_ms2 = 6L,
   ppm_ms2 = 25L,
   ppm_reporters = 10L,
@@ -51,9 +52,10 @@ matchMS(
   combine_tier_three = FALSE,
   max_n_prots = 40000L,
   use_ms1_cache = TRUE,
-  .path_cache = "~/proteoM/.MSearches (1.1.3.0)/Cache/Calls",
+  .path_cache = "~/proteoM/.MSearches (1.1.5.0)/Cache/Calls",
   .path_fasta = NULL,
   topn_ms2ions = 100L,
+  topn_ms2ion_cuts = NA,
   min_ms1_charge = 2L,
   max_ms1_charge = 6L,
   min_scan_num = 1L,
@@ -224,6 +226,9 @@ and y-ions.}
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
 
+\item{max_ms2mass}{Not currently used. A positive integer; the maximum MS2
+mass for interrogation. The default is 4500.}
+
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
 for consideration as a hit. The default is 6. Counts of secondary ions,
 e.g. b0, b* etc., are not part of the threshold.}
@@ -272,7 +277,6 @@ level of \code{target_fdr}. The default if TRUE. Choose \code{match_pepfdr
 
 \item{topn_mods_per_seq}{Positive integer; a threshold to discard variable
   modifications under the same peptide match with scores beyond the top-n.
-  The default is 3.
 
   The same \code{peptide match} refers to matches with identities in \code{MS
   scan number}, \code{MS raw file name} and \code{peptide sequence}. Target
@@ -282,8 +286,7 @@ level of \code{target_fdr}. The default if TRUE. Choose \code{match_pepfdr
   best-scored NL will be used in the ranking.}
 
 \item{topn_seqs_per_query}{Positive integer; a threshold to discard peptide
-  matches under the same MS query with scores beyond the top-n. The default
-  is 3.
+  matches under the same MS query with scores beyond the top-n.
 
   The same \code{MS query} refers to the identity in \code{MS scan number}
   and \code{MS raw file name}. Target and decoys matches are treated
@@ -345,6 +348,23 @@ developer.}
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches. The default is to use the top-100 ions in an MS2 event.}
 
+\item{topn_ms2ion_cuts}{Advanced feature. Either \code{NA} or a named vector.
+  For instance, at \code{topn_ms2ions = 100} and \code{topn_ms2ion_cuts =
+  c(`1000` = 90, `1100` = 5, `4500` = 5)}, the maximum number of MS2 peaks
+  that can be used is \eqn{90} at \eqn{m/z \le 1000}, \eqn{5} at \eqn{1000 <
+  m/z < 1100} and \code{5} at \eqn{m/z > 1100}. The trailing \code{`4500` =
+  5} can be skipped.
+
+  To exclude MS2 features such as at \eqn{m/z > 4500}: \code{topn_ms2ion_cuts
+  = c(`4500` = 100)}.
+
+  It is also possible to make a zone of voids. For instance, features at
+  \eqn{1200 < m/z < 1250} can be excluded at \code{topn_ms2ion_cuts =
+  c(`1000` = 90, `1200` = 5, `1250` = 0)}.
+
+  The default is \code{NA} where \code{topn_ms2ions} are picked uniformly
+  across the entire m/z range.}
+
 \item{min_ms1_charge}{A positive integer; the minimum MS1 charge state for
 considerations. The default is 2.}
 
@@ -403,37 +423,37 @@ A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in
 Database searches of MSMS data.
 }
 \section{\code{Output columns}}{
- 
-\code{system.file("extdata", "column_keys.txt", package = "proteoM")} \cr
+ \code{system.file("extdata",
+  "column_keys.txt", package = "proteoM")} \cr
 }
 
 \section{\code{Notes}}{
- 
-The annotation of protein attributes, including percent coverage, will be
-performed with \link[proteoQ]{normPSM} given that values will be affected
-with the combination of multiple PSM tables.
+ The annotation of protein attributes, including
+  percent coverage, will be performed with \link[proteoQ]{normPSM} given that
+  values will be affected with the combination of multiple PSM tables.
 
-The search engine does not assume that variable peptides are descendants of
-fixed peptides. In other words, each combination of variable and fixed
-modifications is a set of \emph{realization} and applied freshly for searches
-against all possible candidate sequences. Cares in search space were taken by
-restricting only possible candidates at a given realization.
+  The search engine does not assume that variable peptides are descendants of
+  fixed peptides. In other words, each combination of variable and fixed
+  modifications is a set of \emph{realization} and applied freshly for
+  searches against all possible candidate sequences. Cares in search space
+  were taken by restricting only possible candidates at a given realization.
 
-The search is a two-way match: (a) a forward matching of theoretical values
-to experiment ones and (b) a backward matching of the experimental values to
-the theoretical ones. This allows the establishment of one-to-one
-correspondences between experiments and theoreticals. The correspondences are
-made available to users in files of \code{ion_matches_1.rds...} (nested form)
-and \code{list_table_1.rds...} etc. (flat form). A more self-contained output
-can be made available at the TRUE of \code{add_ms2theos},
-\code{add_ms2theos2}, \code{add_ms2moverzs} and \code{add_ms2ints}.
+  The search is a two-way match: (a) a forward matching of theoretical values
+  to experiment ones and (b) a backward matching of the experimental values
+  to the theoretical ones. This allows the establishment of one-to-one
+  correspondences between experiments and theoreticals. The correspondences
+  are made available to users in files of \code{ion_matches_1.rds...} (nested
+  form) and \code{list_table_1.rds...} etc. (flat form). A more
+  self-contained output can be made available at the TRUE of
+  \code{add_ms2theos}, \code{add_ms2theos2}, \code{add_ms2moverzs} and
+  \code{add_ms2ints}.
 
-When there is no evidence to distinguish, e.g. distinct primary sequences of
-\code{P[EMPTY]EPTIDE} and \code{P[MTYPE]EPTIDE}, both will be reported by
-proteoM and further kept by proteoQ. For peptides under the same primary
-sequence, the redundancy in the positions and/or neutral losses of
-\code{Anywhere} variable modifications are also kept in the outputs of
-proteoM but removed with proteoQ.
+  When there is no evidence to distinguish, e.g. distinct primary sequences
+  of \code{P[EMPTY]EPTIDE} and \code{P[MTYPE]EPTIDE}, both will be reported
+  by proteoM and further kept by proteoQ. For peptides under the same primary
+  sequence, the redundancy in the positions and/or neutral losses of
+  \code{Anywhere} variable modifications are also kept in the outputs of
+  proteoM but removed with proteoQ.
 }
 
 \section{\code{FASTA}}{

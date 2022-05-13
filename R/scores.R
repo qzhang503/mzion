@@ -2216,10 +2216,15 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
     probs <- lapply(us, findLocFracsDF, phosmods = phosmods)
     
     deltas <- lapply(probs, function (x) {
-      oks <- x[which_topx3(x, 2L)]
-      abs(oks[1] - oks[2])
+      # the same as allNA
+      if (anyNA(x))
+        NA_real_
+      else {
+        topx <- x[which_topx2(x, 2L)]
+        abs(topx[1] - topx[2])
+      }
     })
-    
+
     us <- mapply(function (x, y, z) {
       x[["pep_locprob"]] <- y
       x[["pep_locdiff"]] <- z
@@ -2279,7 +2284,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   #   pep_seq_2: EVEEDSEDEEMSEDE[D]D[S]S[GE]EEVVIPQKK
   # both will be kept (at the same rank)
 
-  message("\tSubset by peptide sequences: \"topn_seqs_per_query <= ", 
+  message("\tSubset peptide sequences by query: \"topn_seqs_per_query <= ", 
           topn_seqs_per_query, "\".")
 
   x0[, uniq_id3 := paste(pep_isdecoy, scan_num, raw_file, sep = ".")]
@@ -2296,42 +2301,6 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   qs::qsave(x0, file.path(out_path, "temp", "peploc.rds"), preset = "fast")
 
   invisible(x0)
-}
-
-
-#' Finds the indexes of top-n entries without re-ordering.
-#'
-#' Only used with \link{calc_peploc}: \link{which_topx2} with additional
-#' handling of NA.
-#'
-#' For speed, codes duplicated from \link{which_topx2} except for the anyNA
-#' checks.
-#'
-#' @inheritParams which_topx
-#' @return The indexes of the top-n entries.
-which_topx3 <- function(x, n = 50L, ...) 
-{
-  if (anyNA(x))
-    return(rep(NA_real_, n))
-  
-  len <- length(x)
-  p <- len - n
-  
-  if (p  <= 0L) 
-    return(seq_along(x))
-  
-  xp <- sort(x, partial = p, ...)[p]
-  
-  ans <- which(x > xp)
-  d <- n - length(ans)
-  
-  if (d > 0L) {
-    ans2 <- which(x == xp)
-    ans <- c(ans2[1:d], ans)
-    ans <- sort(ans)
-  }
-  
-  invisible(ans)
 }
 
 

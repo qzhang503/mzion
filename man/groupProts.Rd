@@ -4,18 +4,27 @@
 \alias{groupProts}
 \title{Groups proteins by shared peptides.}
 \usage{
-groupProts(df, out_path = NULL, out_name = "prot_pep_setcover.rds")
+groupProts(df, out_path = NULL, fct = 4L, out_name = "prot_pep_setcover.rds")
 }
 \arguments{
-\item{df}{Interim results from \link{matchMS}.}
+\item{df}{A two-column data frame contains \code{prot_acc} and
+\code{pep_seq}.}
 
 \item{out_path}{The output path.}
+
+\item{fct}{A factor for data splitting into chunks.}
 
 \item{out_name}{The output filename.}
 }
 \description{
-Adds columns \code{prot_hit_num} and \code{prot_family_member} to
-\code{psm.txt}.
+Adds columns \code{prot_hit_num} and \code{prot_family_member} etc. to
+\code{psmQ.txt}.
+}
+\details{
+In general, non-significant and decoy peptides should have been removed from
+the input \code{df}, as well as decoy proteins.
+
+In addition, there is no duplicated entries.
 }
 \examples{
 \donttest{

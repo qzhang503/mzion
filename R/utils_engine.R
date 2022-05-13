@@ -41,6 +41,15 @@ which_topx <- function(x, n = 50L, ...)
 #' 
 #' # 103, not 100
 #' xp <- sort(x, partial = p)[p]
+#' 
+#' # multiple ties
+#' x <- c(1, 2, 2, 3, 3, 3, 4, 4, 4, 4)
+#' p <- 2L
+#' 
+#' x <- c(1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5)
+#' set.seed <- (3)
+#' x <- sample(x)
+#' p <- 4L
 which_topx2 <- function(x, n = 50L, ...) 
 {
   len <- length(x)
@@ -51,24 +60,49 @@ which_topx2 <- function(x, n = 50L, ...)
   
   xp <- sort(x, partial = p, ...)[p]
   
-  ans <- which(x > xp)
+  inds <- which(x > xp)
   
-  # in case of ties -> length(ans) < n
+  # in case of ties -> length(inds) < n
   # detrimental e.g. ms2_n = 500 and n = 100
   #   -> expect 100 `ms2_moverzs` guaranteed but may be only 99
   #
   # MGF `ms2_moverzs` is increasing
-  # `ans2` goes first to ensure non-decreasing index for `ms2_moverzs`
+  # `inds2` goes first to ensure non-decreasing index for `ms2_moverzs`
   
-  d <- n - length(ans)
+  d <- n - length(inds)
   
   if (d) {
-    ans2 <- which(x == xp)
-    ans <- c(ans2[1:d], ans)
-    ans <- sort(ans)
+    # must exist and length(ties) >= length(d)
+    ties <- which(x == xp)
+    for (i in seq_len(d)) inds <- insVal(ties[i], inds)
   }
   
-  invisible(ans)
+  invisible(inds)
+}
+
+
+#' Gets top-n values
+#' 
+#' @param vals a vector of values
+#' @param n The top-n values to be retained
+get_topn_vals <- function (vals, n) vals[which_topx2(vals, n)]
+
+
+#' Inserts a value.
+#' 
+#' @param x A value to be inserted.
+#' @param sv A sorted vector of indexes(thus without ties).
+#' 
+#' @examples
+#' sv <- c(4, 10)
+#' 
+#' sv <- insVal(2, sv)
+#' sv <- insVal(6, sv)
+#' sv <- insVal(20, sv)
+insVal <- function (x, sv) 
+{
+  grs <- sv > x
+  c(sv[!grs], x, sv[grs])
 }
 
 
@@ -830,6 +864,17 @@ combi_mat <- function (nb = 5L, ns = 3L)
   m
 }
 
+
+#' Makes a data frame of zero rows.
+#' 
+#' @param vec A vector of names.
+make_zero_df <- function (vec) 
+{
+  df <- data.frame(matrix(ncol = length(vec), nrow = 0L))
+  colnames(df) <- vec
+  
+  invisible(df)
+}
 
 #' Makes hash table.
 #' 

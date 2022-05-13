@@ -286,9 +286,7 @@ add_prot_acc <- function (df = NULL, out_path = NULL, .path_cache = NULL,
     rev_prps <- unique(rev_prps)
   }
   
-  out <- hadd_prot_acc(df, fwd_prps, rev_prps)
-  
-  invisible(out)
+  hadd_prot_acc(df, fwd_prps, rev_prps)
 }
 
 
@@ -432,73 +430,21 @@ hadd_prot_acc <- function (df, fwd_prps, rev_prps)
 }
 
 
-#' Helper of \link{groupProts}.
-#'
-#' @param df A data frame contains proteins and peptides.
-#' @param out_path The output path.
-grp_prots <- function (df, out_path = NULL) 
-{
-  if (!nrow(df))
-    stop("Zero row of data for protein groupings.")
-  
-  dir.create(file.path(out_path), recursive = TRUE, showWarnings = FALSE)
-  
-  # Significant (df1) and trivial (df0) entries
-  df <- df[with(df, order(pep_seq)), ]
-  rows <- (df$pep_issig & (!df$pep_isdecoy) & (df$pep_rank <= 3L))
-  
-  df1 <- df[rows, ]
-  df0 <- df[!rows, ]
-  rm(list = c("df"))
-  gc()
-  
-  # (passes the whole `df1` to avoid expensive left_join)
-  if (nrow(df1) > 1L) 
-    df1 <- groupProts(df1, out_path)
-  else {
-    df1 <- dplyr::mutate(df1, 
-                         prot_isess = TRUE,
-                         prot_hit_num = 1L,
-                         prot_family_member = 1L, 
-                         pep_literal_unique = TRUE, 
-                         pep_razor_unique = TRUE)
-  }
-
-  # Trivial entries
-  ess_prots <- df1 %>%
-    dplyr::filter(prot_isess, !duplicated(prot_acc)) %>%
-    `[[`("prot_acc")
-
-  hits_n_fams <- df1[, c("prot_acc", "prot_hit_num", "prot_family_member")] %>%
-    dplyr::filter(!duplicated(prot_acc))
-  
-  df2 <- df0 %>%
-    dplyr::select(prot_acc) %>%
-    dplyr::filter(!duplicated(prot_acc)) %>%
-    dplyr::mutate(prot_isess = ifelse(prot_acc %in% ess_prots, TRUE, FALSE)) %>%
-    dplyr::left_join(hits_n_fams, by = "prot_acc")
-
-  df2 <- df2 %>%
-    dplyr::right_join(df0, by = "prot_acc") %>%
-    dplyr::mutate(pep_literal_unique = NA, pep_razor_unique = NA) %>%
-    dplyr::select(names(df1))
-  
-  if (nrow(df2))
-    df1 <- dplyr::bind_rows(df1, df2)
-  
-  df1 %>% 
-    dplyr::select(-which(names(.) %in% c("prot_n_psm", "prot_n_pep")))
-}
-
-
 #' Groups proteins by shared peptides.
 #'
-#' Adds columns \code{prot_hit_num} and \code{prot_family_member} to
-#' \code{psm.txt}.
+#' Adds columns \code{prot_hit_num} and \code{prot_family_member} etc. to
+#' \code{psmQ.txt}.
 #'
-#' @param df Interim results from \link{matchMS}.
+#' In general, non-significant and decoy peptides should have been removed from
+#' the input \code{df}, as well as decoy proteins.
+#'
+#' In addition, there is no duplicated entries.
+#'
+#' @param df A two-column data frame contains \code{prot_acc} and
+#'   \code{pep_seq}.
 #' @param out_path The output path.
 #' @param out_name The output filename.
+#' @param fct A factor for data splitting into chunks.
 #' 
 #' @examples
 #' \donttest{
@@ -525,7 +471,8 @@ grp_prots <- function (df, out_path = NULL)
 #' out <- proteoM:::groupProts(df)
 #' stopifnot(nrow(out) == 3L)
 #' }
-groupProts <- function (df, out_path = NULL, out_name = "prot_pep_setcover.rds") 
+groupProts <- function (df, out_path = NULL, fct = 4L, 
+                        out_name = "prot_pep_setcover.rds") 
 {
   # `pep_seq` in `df` are all from target and significant;
   # yet target `pep_seq` can be assigned to both target and decoy proteins
@@ -535,8 +482,30 @@ groupProts <- function (df, out_path = NULL, out_name = "prot_pep_setcover.rds")
   #  2 -GOG8D_HUMAN EEQERLR
   # 11 MNT_HUMAN    EEQERLR
   
+  if (!identical(names(df), c("prot_acc", "pep_seq")))
+    stop("The two columns of `df` need to be in the order of ", "
+         \"prot_acc\" and \"pep_seq\".")
+  
+  if (!nrow(df))
+    stop("Zero row of data for protein groupings.")
+  
+  dir.create(file.path(out_path), recursive = TRUE, showWarnings = FALSE)
+  
+  df <- df[with(df, order(pep_seq)), ]
+  
+  if (nrow(df) <= 1L) {
+    df <- dplyr::mutate(df, 
+                        prot_isess = TRUE,
+                        prot_hit_num = 1L,
+                        prot_family_member = 1L, 
+                        pep_literal_unique = TRUE, 
+                        pep_razor_unique = TRUE)
+    
+    return(df)
+  }
+
   ## (1) builds protein ~ peptide map
-  Mats <- map_pepprot(df[, c("prot_acc", "pep_seq")], out_path)
+  Mats <- map_pepprot(df, out_path = out_path, fct = fct)
   
   Mat_upr_left <- Mats$upr_left
   Mat_lwr_left <- Mats$lwr_left
@@ -694,8 +663,10 @@ groupProts <- function (df, out_path = NULL, out_name = "prot_pep_setcover.rds")
 #' "empty" sparse matrix with end return. Maybe uniform later to "empty" matrix.
 #'
 #' @param df The data frame from upstream steps. It must contains the two
-#'   columns of \code{prot_acc} and \code{pep_seq}.
+#'   columns of \code{prot_acc} and \code{pep_seq}. It should be TRUE that
+#'   \code{df} is identical to \code{unique(df)}.
 #' @param out_path An output path.
+#' @param fct A factor for data splitting into chunks.
 #' @examples
 #' \donttest{
 #' df <- data.frame(prot_acc = character(2000), pep_seq = character(2000))
@@ -721,7 +692,7 @@ groupProts <- function (df, out_path = NULL, out_name = "prot_pep_setcover.rds")
 #' out <- proteoM:::map_pepprot(df)
 #' stopifnot(rownames(out[[1]]) == LETTERS[24:26], colnames(out[[1]]) == "A")
 #' }
-map_pepprot <- function (df, out_path = NULL) 
+map_pepprot <- function (df, out_path = NULL, fct = 4L) 
 {
   # collapse rows of the same pep_seq
   #
@@ -748,7 +719,8 @@ map_pepprot <- function (df, out_path = NULL)
   
   # FIRST ordered by `pep_seq`, SECOND by `prot_acc` 
   # (for continuity of the same `pep_seq`)
-  df <- df[!duplicated.data.frame(df), ]
+  
+  # df <- df[!duplicated.data.frame(df), ] # should not contain duplicated entries
   df <- df[with(df, order(pep_seq, prot_acc)), ]
 
   peps <- df$pep_seq
@@ -794,7 +766,7 @@ map_pepprot <- function (df, out_path = NULL)
   ## Mat1: (a) pre sparse-matrix vector
   ncol <- as.numeric(ncol(Mat1))
   peps1 <- rownames(Mat1)
-  vec <- pcollapse_sortpeps(Mat1, ncol, peps1)
+  vec <- pcollapse_sortpeps(Mat = Mat1, ncol = ncol, peps = peps1, fct = fct)
   rm(list = c("Mat1"))
   gc()
 
@@ -885,6 +857,9 @@ collapse_sortpeps <- function (mat, ncol = NULL, peps = NULL)
 
   cts <- cumsum(table(peps))
   llen <- as.numeric(length(cts)) * ncol
+  
+  rm(list = c("peps"))
+  gc()
 
   out <- rep.int(0L, llen)
   
@@ -903,10 +878,11 @@ collapse_sortpeps <- function (mat, ncol = NULL, peps = NULL)
     start <- start + ncol
     end <- end + ncol
     
-    # if (i %% 100 == 0) gc()
+    if (i %% 100 == 0) gc()
   }
   
-  # rm(list = c("mat"))
+  rm(list = c("mat"))
+  gc()
 
   invisible(out)
 }
@@ -916,10 +892,10 @@ collapse_sortpeps <- function (mat, ncol = NULL, peps = NULL)
 #' 
 #' Parallel version of \link{collapse_sortpeps}.
 #' 
-#' @param n_cores The number of CPU cores.
+#' @param fct A factor for data splitting into chunks.
 #' @param Mat A sparse matrix.
 #' @inheritParams collapse_sortpeps
-pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, n_cores = NULL) 
+pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, fct = 4L) 
 {
   if (is.null(peps)) 
     peps <- rownames(Mat)
@@ -927,37 +903,46 @@ pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, n_cores = NULL)
   if (is.null(ncol))
     ncol <- as.numeric(ncol(Mat))
   
-  if (is.null(n_cores))
-    n_cores <- detect_cores(16L)
-
-  # !!! `peps` must be SORTED !!!
-  
   size <- local({
     dim <- dim(Mat)
     as.numeric(dim[1]) * as.numeric(dim[2])
   })
+  
+  # n_cores <- detect_cores(14L)
+  n_cores <- detect_cores(16L)
+  n_cores <- min(n_cores, floor(n_cores * 7E9 /size))
 
-  if (size <= 100000000 || n_cores <= 1L) {
+  # !!! `peps` must be SORTED !!!
+
+  if (size <= 1E8 || n_cores <= 1L) {
     vec <- collapse_sortpeps(Mat, ncol, peps)
   }
   else {
-    Mats <- chunksplit_spmat(Mat, peps, n_cores * 2L)
-    rm(list = "Mat")
+    # Mats <- chunksplit_spmat(Mat, peps, n_cores * 4L)
+    # Mats <- chunksplit_spmat(Mat, peps, n_cores * 8L)
+    Mats <- chunksplit_spmat(Mat, peps, n_cores * fct)
+    rm(list = c("Mat", "peps"))
     gc()
     
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    # don't delete, otherwise return 0L
     parallel::clusterEvalQ(cl, library(Matrix))
-    vecs <- parallel::clusterApply(cl, Mats, collapse_sortpeps)
+    vecs <- parallel::clusterApplyLB(cl, Mats, collapse_sortpeps)
     parallel::stopCluster(cl)
-
-    vec <- NULL
+    gc()
     
-    for (i in seq_along(vecs)) {
-      vec <- c(vec, vecs[[i]])
-      vecs[i] <- list(NULL)
+    vec <- NULL
+    len <- length(vecs)
+    
+    while(len) {
+      vec <- c(vec, vecs[[1]])
+      vecs[1] <- NULL
+      len <- len - 1L
       gc()
     }
   }
+  
+  message("\tFinished matrix-to-vector conversion.")
   
   invisible(vec)
 }

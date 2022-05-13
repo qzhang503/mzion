@@ -1,36 +1,36 @@
 #' Searches for MS ions.
 #'
 #' Database searches of MSMS data.
-#' 
-#' @section \code{Output columns}: 
-#' \code{system.file("extdata", "column_keys.txt", package = "proteoM")} \cr
-#'   
-#' @section \code{Notes}: 
-#' The annotation of protein attributes, including percent coverage, will be
-#' performed with \link[proteoQ]{normPSM} given that values will be affected
-#' with the combination of multiple PSM tables.
 #'
-#' The search engine does not assume that variable peptides are descendants of
-#' fixed peptides. In other words, each combination of variable and fixed
-#' modifications is a set of \emph{realization} and applied freshly for searches
-#' against all possible candidate sequences. Cares in search space were taken by
-#' restricting only possible candidates at a given realization.
+#' @section \code{Output columns}: \code{system.file("extdata",
+#'   "column_keys.txt", package = "proteoM")} \cr
 #'
-#' The search is a two-way match: (a) a forward matching of theoretical values
-#' to experiment ones and (b) a backward matching of the experimental values to
-#' the theoretical ones. This allows the establishment of one-to-one
-#' correspondences between experiments and theoreticals. The correspondences are
-#' made available to users in files of \code{ion_matches_1.rds...} (nested form)
-#' and \code{list_table_1.rds...} etc. (flat form). A more self-contained output
-#' can be made available at the TRUE of \code{add_ms2theos},
-#' \code{add_ms2theos2}, \code{add_ms2moverzs} and \code{add_ms2ints}.
+#' @section \code{Notes}: The annotation of protein attributes, including
+#'   percent coverage, will be performed with \link[proteoQ]{normPSM} given that
+#'   values will be affected with the combination of multiple PSM tables.
 #'
-#' When there is no evidence to distinguish, e.g. distinct primary sequences of
-#' \code{P[EMPTY]EPTIDE} and \code{P[MTYPE]EPTIDE}, both will be reported by
-#' proteoM and further kept by proteoQ. For peptides under the same primary
-#' sequence, the redundancy in the positions and/or neutral losses of
-#' \code{Anywhere} variable modifications are also kept in the outputs of
-#' proteoM but removed with proteoQ.
+#'   The search engine does not assume that variable peptides are descendants of
+#'   fixed peptides. In other words, each combination of variable and fixed
+#'   modifications is a set of \emph{realization} and applied freshly for
+#'   searches against all possible candidate sequences. Cares in search space
+#'   were taken by restricting only possible candidates at a given realization.
+#'
+#'   The search is a two-way match: (a) a forward matching of theoretical values
+#'   to experiment ones and (b) a backward matching of the experimental values
+#'   to the theoretical ones. This allows the establishment of one-to-one
+#'   correspondences between experiments and theoreticals. The correspondences
+#'   are made available to users in files of \code{ion_matches_1.rds...} (nested
+#'   form) and \code{list_table_1.rds...} etc. (flat form). A more
+#'   self-contained output can be made available at the TRUE of
+#'   \code{add_ms2theos}, \code{add_ms2theos2}, \code{add_ms2moverzs} and
+#'   \code{add_ms2ints}.
+#'
+#'   When there is no evidence to distinguish, e.g. distinct primary sequences
+#'   of \code{P[EMPTY]EPTIDE} and \code{P[MTYPE]EPTIDE}, both will be reported
+#'   by proteoM and further kept by proteoQ. For peptides under the same primary
+#'   sequence, the redundancy in the positions and/or neutral losses of
+#'   \code{Anywhere} variable modifications are also kept in the outputs of
+#'   proteoM but removed with proteoQ.
 #'
 #' @param out_path A file path of outputs.
 #' @param mgf_path A file path to a list of MGF files. The experimenter needs to
@@ -134,6 +134,8 @@
 #'   interrogation. The default is 4500.
 #' @param min_ms2mass A positive integer; the minimum MS2 mass for
 #'   interrogation. The default is 110.
+#' @param max_ms2mass Not currently used. A positive integer; the maximum MS2
+#'   mass for interrogation. The default is 4500.
 #' @param n_13c A non-negative integer; the maximum number of 13C off-sets for
 #'   consideration in MS1 masses. The default is 0 with no off-sets.
 #'   Peak-pickings by various MGF conversion tools may have attempted to adjust
@@ -162,6 +164,22 @@
 #'   and y-ions.
 #' @param topn_ms2ions A positive integer; the top-n species for uses in MS2 ion
 #'   searches. The default is to use the top-100 ions in an MS2 event.
+#' @param topn_ms2ion_cuts Advanced feature. Either \code{NA} or a named vector.
+#'   For instance, at \code{topn_ms2ions = 100} and \code{topn_ms2ion_cuts =
+#'   c(`1000` = 90, `1100` = 5, `4500` = 5)}, the maximum number of MS2 peaks
+#'   that can be used is \eqn{90} at \eqn{m/z \le 1000}, \eqn{5} at \eqn{1000 <
+#'   m/z < 1100} and \code{5} at \eqn{m/z > 1100}. The trailing \code{`4500` =
+#'   5} can be skipped.
+#'
+#'   To exclude MS2 features such as at \eqn{m/z > 4500}: \code{topn_ms2ion_cuts
+#'   = c(`4500` = 100)}.
+#'
+#'   It is also possible to make a zone of voids. For instance, features at
+#'   \eqn{1200 < m/z < 1250} can be excluded at \code{topn_ms2ion_cuts =
+#'   c(`1000` = 90, `1200` = 5, `1250` = 0)}.
+#'
+#'   The default is \code{NA} where \code{topn_ms2ions} are picked uniformly
+#'   across the entire m/z range.
 #' @param minn_ms2 A positive integer; the minimum number of matched MS2 ions
 #'   for consideration as a hit. The default is 6. Counts of secondary ions,
 #'   e.g. b0, b* etc., are not part of the threshold.
@@ -217,15 +235,13 @@
 #'   level of \code{target_fdr}. The default if TRUE. Choose \code{match_pepfdr
 #'   = FALSE} for higher data quality (at a price of fewer hits).
 #' @param topn_seqs_per_query Positive integer; a threshold to discard peptide
-#'   matches under the same MS query with scores beyond the top-n. The default
-#'   is 3.
+#'   matches under the same MS query with scores beyond the top-n.
 #'
 #'   The same \code{MS query} refers to the identity in \code{MS scan number}
 #'   and \code{MS raw file name}. Target and decoys matches are treated
 #'   separately.
 #' @param topn_mods_per_seq Positive integer; a threshold to discard variable
 #'   modifications under the same peptide match with scores beyond the top-n.
-#'   The default is 3.
 #'
 #'   The same \code{peptide match} refers to matches with identities in \code{MS
 #'   scan number}, \code{MS raw file name} and \code{peptide sequence}. Target
@@ -329,7 +345,7 @@
 #' \donttest{
 #' ## All examples are hypothetical
 #' ## (some real ones at https://github.com/qzhang503/proteoM)
-#' 
+#'
 #' # TMT10
 #' matchMS(
 #'   fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
@@ -341,7 +357,7 @@
 #'   fdr_type = "protein",
 #'   out_path = "~/proteoM/examples",
 #' )
-#' 
+#'
 #' # TMT16, phospho
 #' matchMS(
 #'   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
@@ -385,7 +401,7 @@
 #'   quant    = "tmt10",
 #' )
 #'
-#' 
+#'
 #' ## Stable isotope-labeled K and R
 #' # K8, R10
 #' matchMS(
@@ -394,7 +410,7 @@
 #'               "K8 (C-term = K)", "R10 (C-term = R)"),
 #'   quant    = "none",
 #' )
-#' 
+#'
 #' # TMT+K8, TMT+R10
 #' matchMS(
 #'   fixedmods = c("Carbamidomethyl (C)"),
@@ -403,8 +419,8 @@
 #'   max_miss = 2,
 #'   quant    = "tmt10",
 #' )
-#' 
-#' 
+#'
+#'
 #' #######################################
 #' # SILAC
 #' #######################################
@@ -529,6 +545,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
                      type_ms2ions = "by", 
                      min_ms2mass = 115L, 
+                     max_ms2mass = 4500L, 
                      minn_ms2 = 6L, 
                      ppm_ms2 = 25L, 
                      
@@ -546,10 +563,11 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 40000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/proteoM/.MSearches (1.1.3.0)/Cache/Calls", 
+                     .path_cache = "~/proteoM/.MSearches (1.1.5.0)/Cache/Calls", 
                      .path_fasta = NULL,
                      
-                     topn_ms2ions = 100L, 
+                     topn_ms2ions = 100L,
+                     topn_ms2ion_cuts = NA, 
                      min_ms1_charge = 2L, max_ms1_charge = 6L, 
                      min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                      min_ret_time = 0, max_ret_time = Inf, 
@@ -608,7 +626,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   stopifnot(vapply(c(maxn_fasta_seqs, maxn_vmods_setscombi, maxn_vmods_per_pep, 
                      maxn_sites_per_vmod, maxn_vmods_sitescombi_per_pep, 
                      min_len, max_len, max_miss, topn_ms2ions, minn_ms2, 
-                     min_mass, max_mass, min_ms2mass, n_13c, 
+                     min_mass, max_mass, min_ms2mass, max_ms2mass, n_13c, 
                      ppm_ms1, ppm_ms2, ppm_reporters, max_n_prots, digits, 
                      target_fdr, max_pepscores_co, max_protscores_co, 
                      topn_mods_per_seq, topn_seqs_per_query), 
@@ -645,6 +663,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   min_mass <- as.integer(min_mass)
   max_mass <- as.integer(max_mass)
   min_ms2mass <- as.integer(min_ms2mass)
+  max_ms2mass <- as.integer(max_ms2mass)
   n_13c <- as.integer(n_13c)
   noenzyme_maxn <- as.integer(noenzyme_maxn)
   ppm_ms1 <- as.integer(ppm_ms1)
@@ -660,7 +679,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
   digits <- as.integer(digits)
   
   stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 10L, minn_ms2 >= 2L, 
-            min_mass >= 1L, max_mass >= min_mass, min_ms2mass >= 1L, 
+            min_mass >= 1L, max_mass >= min_mass, 
+            min_ms2mass >= 1L, max_ms2mass > min_ms2mass, 
             n_13c >= 0L, noenzyme_maxn >= 0L, 
             maxn_vmods_per_pep >= maxn_sites_per_vmod, max_n_prots > 1000L, 
             min_ms1_charge >= 1L, max_ms1_charge >= min_ms1_charge, 
@@ -682,6 +702,44 @@ matchMS <- function (out_path = "~/proteoM/outs",
   stopifnot(max_pepscores_co >= 0, max_protscores_co >= 0, 
             min_ret_time >= 0, max_ret_time >= min_ret_time)
   
+  # named vectors
+  if (any(is.na(topn_ms2ion_cuts)))
+    mgf_cutmzs <- mgf_cutpercs <- numeric()
+  else {
+    if (is.infinite(topn_ms2ions))
+      stop("Choose a finite value of \"topn_ms2ions\" to enable \"topn_ms2ion_cuts\".")
+    
+    mgf_cutmzs <- as.numeric(names(topn_ms2ion_cuts))
+    len <- length(topn_ms2ion_cuts)
+    
+    if (!identical(mgf_cutmzs, sort(mgf_cutmzs)))
+      stop("\"mgf_cutmzs\" is not in an ascending order.")
+    
+    if (anyDuplicated(mgf_cutmzs))
+      warning("Duplicated m-over-z cutpoints in \"topn_ms2ion_cuts\".")
+    
+    s_topn <- sum(topn_ms2ion_cuts)
+    
+    if (s_topn > topn_ms2ions) {
+      stop("\"sum(topn_ms2ion_cuts) = ", s_topn, "\" is greater than ", 
+           "\"topn_ms2ions = ", topn_ms2ions, ".\"")
+    }
+    else if (s_topn < topn_ms2ions) {
+      mgf_cutpercs <- c(unname(topn_ms2ion_cuts), topn_ms2ions - s_topn)
+      mgf_cutmzs <- c(mgf_cutmzs, max_ms2mass)
+    }
+    else {
+      mgf_cutpercs <- unname(topn_ms2ion_cuts)
+    }
+    
+    rm(list = c("len", "s_topn"))
+    
+    if (mgf_cutpercs[length(mgf_cutpercs)] != 0) {
+      mgf_cutpercs <- c(mgf_cutpercs, 0)
+      mgf_cutmzs <- c(mgf_cutmzs, max_ms2mass)
+    }
+  }
+
   # enzyme
   oks <- eval(formals()[["enzyme"]])
   oks_lwr <- tolower(oks)
@@ -940,8 +998,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
               max_ret_time = max_ret_time, 
               ppm_ms1 = ppm_ms1,
               ppm_ms2 = ppm_ms2,
-              index_ms2 = FALSE, 
-              enzyme = enzyme)
+              mgf_cutmzs = mgf_cutmzs, 
+              mgf_cutpercs = mgf_cutpercs, 
+              enzyme = enzyme, 
+              index_ms2 = FALSE)
   }
 
   ## MSMS matches
@@ -1128,17 +1188,25 @@ matchMS <- function (out_path = "~/proteoM/outs",
   df <- reloc_col_after(df, "pep_delta", "pep_calc_mr")
   readr::write_tsv(df, file.path(out_path, "psmC.txt"))
   
+  local({
+    session_info <- sessionInfo()
+    save(session_info, file = file.path(out_path, "Calls", "proteoM.rda"))
+  })
+  
   ## psmC to psmQ
+  df <- df[, c("prot_acc", "pep_seq", "pep_issig", "pep_isdecoy", 
+               "prot_issig", "prot_n_pep")]
+  
+  df <- dplyr::filter(df, pep_issig, !pep_isdecoy, !grepl("^-", prot_acc))
+  gc()
+
   df <- try_psmC2Q(df, 
                    out_path = out_path,
                    fdr_type = fdr_type, 
                    combine_tier_three = combine_tier_three, 
                    max_n_prots = max_n_prots)
-
-  local({
-    session_info <- sessionInfo()
-    save(session_info, file = file.path(out_path, "Calls", "proteoM.rda"))
-  })
+  
+  # post_psmc2q
 
   .savecall <- TRUE
 
@@ -1154,25 +1222,25 @@ matchMS <- function (out_path = "~/proteoM/outs",
 #' 
 #' @inheritParams psmC2Q
 #' @importFrom magrittr %>% %T>%
-try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
+try_psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
                         combine_tier_three = FALSE, max_n_prots = 40000L) 
 {
-  n_peps <- length(unique(out$pep_seq))
-  n_prots <- length(unique(out$prot_acc))
-
+  n_peps <- length(unique(df$pep_seq))
+  n_prots <- length(unique(df$prot_acc))
+  
   if (n_prots == 1L) {
     message("No grouping with the number of of proteins = ", n_prots, ".\n",
             "Search completed successfully.")
     options(show.error.messages = FALSE)
     stop()
   }
-    
+  
   if (n_peps > 1000000L && n_prots > 100000L) {
-    out <- NA
+    df <- NA
   } 
   else {
-    out <- tryCatch(
-      psmC2Q(out,
+    df <- tryCatch(
+      psmC2Q(df,
              out_path = out_path,
              fdr_type = fdr_type,
              combine_tier_three = combine_tier_three, 
@@ -1180,21 +1248,22 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
       error = function(e) NA
     )
   }
-
-  if (length(out) == 1L && is.na(out)) {
+  
+  if (length(df) == 1L && is.na(df)) {
     message("Retry with a new R session: \n\n",
-            "proteoM:::reproc_psmC(\n",
+            "Manual execution of the following codes if not start automatically.\n\n", 
+            "proteoM::reproc_psmC(\n",
             "  out_path = \"", out_path, "\",\n",
             "  fdr_type = \"", fdr_type, "\",\n",
             "  combine_tier_three  = ", combine_tier_three, ",\n",
             "  max_n_prots  = ", max_n_prots, "\n",
-            ")")
-
+            ")\n")
+    
     fileConn <- file(file.path("~/post_psmC.R"))
-
+    
     lines <- c(
       "library(proteoM)\n",
-      "proteoM:::reproc_psmC(",
+      "proteoM::reproc_psmC(",
       paste0("  out_path = \"", out_path, "\","),
       paste0("  fdr_type = \"", fdr_type, "\","),
       paste0("  combine_tier_three = ", combine_tier_three, ","),
@@ -1202,48 +1271,60 @@ try_psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
       ")\n",
       "unlink(\"~/post_psmC.R\")"
     )
-
+    
     writeLines(lines, fileConn)
     close(fileConn)
-
-    rstudioapi::restartSession(command='source("~/post_psmC.R")')
+    
+    rstudioapi::restartSession(command = 'source("~/post_psmC.R")')
   } 
   else {
     suppressWarnings(
       rm(list = c(".path_cache", ".path_ms1masses", ".time_stamp"),
          envir = .GlobalEnv)
     )
-
+    
     message("Done.")
   }
-
-  invisible(out)
+  
+  invisible(df)
 }
-
 
 
 #' Reprocessing of \code{psmC.txt}.
 #'
 #' Protein grouping from \code{psmC.txt} to \code{psmQ.txt}.
 #'
-#' May solve some memory shortage issues for large data sets (e.g., over a
-#' million peptide sequences * 35000 proteins from \code{psmC.txt}).
-#'
+#' May solve some memory shortage issues for large data sets by restarting An
+#' Rstudio session.
+#' 
+#' @param fct A factor for data splitting into chunks. May consider a greater
+#'   value for a larger data set.
 #' @inheritParams matchMS
+#' @export
 reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
-                         combine_tier_three = FALSE, max_n_prots = 40000L) 
+                         combine_tier_three = FALSE, max_n_prots = 40000L, 
+                         fct = 4L) 
 {
   if (is.null(out_path)) 
     stop("`out_path` cannot be NULL.", call. = FALSE)
 
   message("Leave the session open and wait for the `Search completed` message.")
+
+  df <- suppressWarnings(
+    readr::read_tsv(file.path(out_path, "psmC.txt"), 
+                    col_types = get_proteoM_coltypes()))
+
+  df <- df[, c("pep_seq", "prot_acc", "prot_issig", "prot_n_pep",
+               "pep_issig", "pep_isdecoy")]
   
-  df <- readr::read_tsv(file.path(out_path, "psmC.txt"), show_col_types = FALSE)
-  
+  df <- dplyr::filter(df, pep_issig, !pep_isdecoy, !grepl("^-", prot_acc))
+  gc()
+
   psmC2Q(df, out_path = out_path,
          fdr_type = fdr_type,
          combine_tier_three = combine_tier_three, 
-         max_n_prots = max_n_prots)
+         max_n_prots = max_n_prots, 
+         fct = fct)
 
   message("Done.")
 }
@@ -1251,51 +1332,59 @@ reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
 
 #' From \code{psmC.txt} to \code{psmQ.txt}.
 #'
-#' @param out A result of \code{psmC.txt}.
+#' Non-significant and decoy peptides should have been removed from the input
+#' \code{df}, as well as decoy proteins.
+#'
+#' @param df A result of \code{psmC.txt} with the removals of non-significant
+#'   or decoy peptides, as well as decoy proteins.
+#' @param fct A factor for data splitting into chunks. May consider a greater
+#'   value for a larger data set.
 #' @inheritParams matchMS
-psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
-                    combine_tier_three = FALSE, max_n_prots = 40000L) 
+psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
+                    combine_tier_three = FALSE, max_n_prots = 40000L, 
+                    fct = 4L) 
 {
   options(warn = 1L)
   
+  # if (!all(df[["pep_issig"]])) stop("Developer: filter data by \"pep_issig\" first.")
+  # if (any(df[["pep_isdecoy"]])) stop("Developer: remove decoy peptide first.")
+  # if (any(grepl("^-", df["prot_acc"]))) stop("Developr: remove decoy proteins first.")
+
   message("\n=================================\n",
           "prot_tier  prot_issig  prot_n_pep \n",
           "    1          [y]          \n",
           "    2          [n]          > 1\n",
           "    3          [n]          = 1\n",
           "=================================\n")
-
-  out <- dplyr::filter(out, pep_issig, !pep_isdecoy, !grepl("^-", prot_acc))
-  gc()
-
+  
   # Set aside one-hit wonders
-  out3 <- out %>%
+  df3 <- df %>%
     dplyr::filter(!prot_issig, prot_n_pep == 1L) %>%
     dplyr::mutate(prot_tier = 3L)
-
-  out <- dplyr::bind_rows(
-    out %>% dplyr::filter(prot_issig),
-    out %>% dplyr::filter(!prot_issig, prot_n_pep >= 2L)
+  
+  df <- dplyr::bind_rows(
+    dplyr::filter(df, prot_issig),
+    dplyr::filter(df, !prot_issig, prot_n_pep >= 2L)
   ) %>%
     dplyr::mutate(prot_tier = ifelse(prot_issig, 1L, 2L))
-
+  
   # the same peptide can be present in all three protein tiers; 
   # steps up if pep_seq(s) in tier 3 also in tiers 1, 2
   if (FALSE) {
-    rows <- out3$pep_seq %in% out$pep_seq
+    rows <- df3$pep_seq %in% df$pep_seq
     
-    out <- dplyr::bind_rows(out, out3[rows, ])
-    out3 <- out3[!rows, ]
+    df <- dplyr::bind_rows(df, df3[rows, ])
+    df3 <- df3[!rows, ]
     
     rm(list = "rows")
     gc()
   }
-
+  
   # Protein groups
   message("Building protein-peptide maps.")
   
-  len_prots <- length(unique(out$prot_acc))
-
+  len_prots <- length(unique(df$prot_acc))
+  
   if (len_prots > max_n_prots && fdr_type != "protein") {
     warning("Large number of proteins at ", len_prots, ".\n", 
             "Coerce to `fdr_type = protein` ",
@@ -1303,14 +1392,14 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
             call. = FALSE)
     
     fdr_type <- "protein"
-
-    out2 <- dplyr::filter(out, prot_tier == 2L)
-    out <- dplyr::filter(out, prot_tier == 1L)
+    
+    df2 <- dplyr::filter(df, prot_tier == 2L)
+    df <- dplyr::filter(df, prot_tier == 1L)
   } 
   else {
     if (fdr_type == "protein") {
-      out2 <- dplyr::filter(out, prot_tier == 2L)
-      out <- dplyr::filter(out, prot_tier == 1L)
+      df2 <- dplyr::filter(df, prot_tier == 2L)
+      df <- dplyr::filter(df, prot_tier == 1L)
     } 
     else {
       message("No tier-2 outputs at `fdr_type = ", fdr_type, "`.")
@@ -1320,47 +1409,72 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
                 "Consider `fdr_type = protein`.",
                 call. = FALSE)
       }
-
-      out2 <- out[0, ]
-      out <- out
+      
+      df2 <- df[0, ]
+      df <- df # prot_tiers: 1 + 2
     }
   }
-
-  if (nrow(out))
-    out <- grp_prots(out, file.path(out_path, "temp1"))
-
-  if (nrow(out2)) 
-    out2 <- grp_prots(out2, file.path(out_path, "temp2"))
-  else 
-    out2 <- out[0, ]
   
-  if (nrow(out3)) 
-    out3 <- grp_prots(out3, file.path(out_path, "temp3"))
+  # df may have both prot_tier 1 and 2 if fdr_type != "protein"
+  df_tier12 <- unique(df[, c("prot_acc", "prot_tier")])
+  
+  df <- unique(df[, c("prot_acc", "pep_seq")])
+  df2 <- unique(df2[, c("prot_acc", "pep_seq")])
+  df3 <- unique(df3[, c("prot_acc", "pep_seq")])
+  gc()
+  
+  nms <- c("prot_acc", "pep_seq", "prot_isess", "prot_hit_num", 
+           "prot_family_member", "pep_literal_unique", "pep_razor_unique")
+  
+  if (nrow(df)) {
+    df <- groupProts(df, out_path = file.path(out_path, "temp1"), fct = fct)
+    df <- dplyr::left_join(df, df_tier12, by = "prot_acc")
+  }
+  else
+    df <- make_zero_df(nms)
+
+  if (nrow(df2)) 
+    df2 <- groupProts(df2, out_path = file.path(out_path, "temp2"), fct = fct)
   else 
-    out3 <- out[0, ]
+    df2 <- make_zero_df(nms)
+  
+  if (nrow(df3)) 
+    df3 <- groupProts(df3, out_path = file.path(out_path, "temp3"), fct = fct)
+  else 
+    df3 <- make_zero_df(nms)
+  
+  rm(list = c("nms", "df_tier12"))
 
   # Cleanup
-  out <- dplyr::bind_cols(
-    out %>% .[grepl("^prot_", names(.))],
-    out %>% .[grepl("^pep_", names(.))],
-    out %>% .[grepl("^psm_", names(.))],
-    out %>% .[!grepl("^prot_|^pep_|^psm_", names(.))],
-  ) %>%
-    reloc_col_after("prot_es", "prot_family_member") %>%
-    reloc_col_after("prot_es_co", "prot_es") %>%
-    reloc_col_after("prot_tier", "prot_isess")
+  dfC <- suppressWarnings(
+    read_tsv(file.path(out_path, "psmC.txt"), col_types = get_proteoM_coltypes())
+  ) %>% 
+    dplyr::filter(pep_issig, !pep_isdecoy, !grepl("^-", prot_acc)) %>% 
+    tidyr::unite(uniq_id, prot_acc, pep_seq, sep = ".", remove = FALSE)
+  
+  df <- post_psmC2Q(df, dfC, tier = NULL)
+  df2 <- post_psmC2Q(df2, dfC, tier = 2L)
+  df3 <- post_psmC2Q(df3, dfC, tier = 3L)
+  
+  rm(list = "dfC")
+  gc()
 
   # Three-tier combines
-  max <- max(out$prot_hit_num, na.rm = TRUE)
-
+  nms_df <- names(df)
+  df2 <- df2[, nms_df]
+  df3 <- df3[, nms_df]
+  rm(list = "nms_df")
+  
+  max <- max(df$prot_hit_num, na.rm = TRUE)
+  
   if (fdr_type == "protein" && combine_tier_three) {
     warning("Coerce to `combine_tier_three = FALSE` at `fdr_type = protein`.",
             call. = FALSE)
     combine_tier_three <- FALSE
   }
-
+  
   if (combine_tier_three) {
-    out <- list(out, out2, out3) %>%
+    df <- list(df, df2, df3) %>%
       dplyr::bind_rows() %>%
       dplyr::arrange(prot_acc, pep_seq) %T>%
       readr::write_tsv(file.path(out_path, "psmQ.txt"))
@@ -1373,7 +1487,7 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
         message("Delete `psmT2.txt` at `combine_tier_three = TRUE`.")
         unlink(file_t2)
       }
-
+      
       if (file.exists(file_t3)) {
         message("Delete `psmT3.txt` at `combine_tier_three = TRUE`.")
         unlink(file_t3)
@@ -1381,26 +1495,69 @@ psmC2Q <- function (out = NULL, out_path = NULL, fdr_type = "protein",
     })
   } 
   else {
-    out <- out %>%
+    df <- df %>%
       dplyr::arrange(prot_acc, pep_seq) %T>%
       readr::write_tsv(file.path(out_path, "psmQ.txt"))
-
-    if (nrow(out2)) {
-      out2 <- out2[names(out)] %>%
+    
+    if (nrow(df2)) {
+      df2 <- df2[names(df)] %>%
         dplyr::mutate(prot_hit_num = prot_hit_num + max)  %T>%
         readr::write_tsv(file.path(out_path, "psmT2.txt"))
-
-      max <- max(out2$prot_hit_num, na.rm = TRUE)
+      
+      max <- max(df2$prot_hit_num, na.rm = TRUE)
     }
-
-    if (nrow(out3)) {
-      out3 <- out3[names(out)] %>%
+    
+    if (nrow(df3)) {
+      df3 <- df3[names(df)] %>%
         dplyr::mutate(prot_hit_num = prot_hit_num + max)  %T>%
         readr::write_tsv(file.path(out_path, "psmT3.txt"))
     }
   }
+  
+  invisible(df)
+}
 
-  invisible(out)
+
+#' Post \link{psmC2Q}.
+#'
+#' @param df A data frame of protein-peptide map.
+#' @param dfC A \code{psmQ} data with the removal of non-significant peptides
+#'   etc.
+#' @param tier The tier of proteins in \code{df}.
+post_psmC2Q <- function (df, dfC, tier = NULL) 
+{
+  if (!is.null(tier))
+    df <- dplyr::mutate(df, prot_tier = tier)
+
+  df <- df %>% 
+    tidyr::unite(uniq_id, prot_acc, pep_seq, sep = ".", remove = TRUE) %>% 
+    dplyr::left_join(dfC, by = "uniq_id") %>% 
+    dplyr::select(-uniq_id)
+  
+  ord_prots <- c("prot_acc", "prot_issig")
+  
+  df <- dplyr::bind_cols(
+    df[, ord_prots, drop = FALSE], 
+    df[, !names(df) %in% ord_prots, drop = FALSE]
+  )
+
+  ord_peps <- c("pep_seq", "pep_issig", "pep_literal_unique", 
+                "pep_razor_unique", "pep_score", "pep_score_co")
+  
+  df <- dplyr::bind_cols(
+    df[, ord_peps, drop = FALSE], 
+    df[, !names(df) %in% ord_peps, drop = FALSE]
+  )
+  
+  df <- dplyr::bind_cols(
+    df %>% .[grepl("^prot_", names(.))],
+    df %>% .[grepl("^pep_", names(.))],
+    df %>% .[grepl("^psm_", names(.))],
+    df %>% .[!grepl("^prot_|^pep_|^psm_", names(.))],
+  )
+  
+  df <- df %>% 
+    dplyr::select(-which(names(.) %in% c("prot_n_psm", "prot_n_pep")))
 }
 
 

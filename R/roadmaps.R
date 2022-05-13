@@ -271,7 +271,7 @@
 #   findLocFracsDF
 #   concatFracs
 
-## grp_prots (quant2.R)
+## (quant2.R)
 #   groupProts
 #     map_pepprot
 #       pcollapse_sortpeps
@@ -317,6 +317,8 @@
 #################################
 # which_topx
 # which_topx2
+# get_topn_vals
+# insVal
 # topx
 # find_ppm_error
 # find_mass_error_range

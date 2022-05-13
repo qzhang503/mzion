@@ -4,7 +4,7 @@
 \alias{pcollapse_sortpeps}
 \title{Helper of \link{map_pepprot}.}
 \usage{
-pcollapse_sortpeps(Mat, ncol = NULL, peps = NULL, n_cores = NULL)
+pcollapse_sortpeps(Mat, ncol = NULL, peps = NULL, fct = 4L)
 }
 \arguments{
 \item{Mat}{A sparse matrix.}
@@ -13,7 +13,7 @@ pcollapse_sortpeps(Mat, ncol = NULL, peps = NULL, n_cores = NULL)
 
 \item{peps}{Peptide sequences as the row names of \code{mat}.}
 
-\item{n_cores}{The number of CPU cores.}
+\item{fct}{A factor for data splitting into chunks.}
 }
 \description{
 Parallel version of \link{collapse_sortpeps}.

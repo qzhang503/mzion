@@ -26,4 +26,13 @@ x <- sample(1:150, replace = T)
 
 # 103, not 100
 xp <- sort(x, partial = p)[p]
+
+# multiple ties
+x <- c(1, 2, 2, 3, 3, 3, 4, 4, 4, 4)
+p <- 2L
+
+x <- c(1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5)
+set.seed <- (3)
+x <- sample(x)
+p <- 4L
 }

@@ -4,13 +4,16 @@
 \alias{map_pepprot}
 \title{Helper of \link{groupProts}.}
 \usage{
-map_pepprot(df, out_path = NULL)
+map_pepprot(df, out_path = NULL, fct = 4L)
 }
 \arguments{
 \item{df}{The data frame from upstream steps. It must contains the two
-columns of \code{prot_acc} and \code{pep_seq}.}
+columns of \code{prot_acc} and \code{pep_seq}. It should be TRUE that
+\code{df} is identical to \code{unique(df)}.}
 
 \item{out_path}{An output path.}
+
+\item{fct}{A factor for data splitting into chunks.}
 }
 \description{
 Builds the logical map between peptide (in rows) and proteins (in columns).

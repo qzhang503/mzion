@@ -8,7 +8,8 @@ reproc_psmC(
   out_path = NULL,
   fdr_type = "protein",
   combine_tier_three = FALSE,
-  max_n_prots = 40000L
+  max_n_prots = 40000L,
+  fct = 4L
 )
 }
 \arguments{
@@ -54,11 +55,14 @@ reproc_psmC(
   \code{fdr_type} of \code{psm} or \code{peptide}. For very large data sets,
   a lower value of \code{max_n_prots} can be used to reduce the chance of
   memory exhaustion by setting aside some protein entries from tier 1 to 2.}
+
+\item{fct}{A factor for data splitting into chunks. May consider a greater
+value for a larger data set.}
 }
 \description{
 Protein grouping from \code{psmC.txt} to \code{psmQ.txt}.
 }
 \details{
-May solve some memory shortage issues for large data sets (e.g., over a
-million peptide sequences * 35000 proteins from \code{psmC.txt}).
+May solve some memory shortage issues for large data sets by restarting An
+Rstudio session.
 }

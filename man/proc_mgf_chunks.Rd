@@ -12,6 +12,8 @@ proc_mgf_chunks(
   ret_range = c(0, Inf),
   ppm_ms2 = 25L,
   min_ms2mass = 115L,
+  mgf_cutmzs = numeric(),
+  mgf_cutpercs = numeric(),
   index_ms2 = FALSE,
   type_mgf = "msconv_thermo",
   n_bf_begin = 0L,

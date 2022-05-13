@@ -5,7 +5,7 @@
 \title{Helper of \link{psmC2Q}.}
 \usage{
 try_psmC2Q(
-  out = NULL,
+  df = NULL,
   out_path = NULL,
   fdr_type = "protein",
   combine_tier_three = FALSE,
@@ -13,7 +13,8 @@ try_psmC2Q(
 )
 }
 \arguments{
-\item{out}{A result of \code{psmC.txt}.}
+\item{df}{A result of \code{psmC.txt} with the removals of non-significant
+or decoy peptides, as well as decoy proteins.}
 
 \item{out_path}{A file path of outputs.}
 

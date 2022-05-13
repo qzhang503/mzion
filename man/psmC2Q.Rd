@@ -5,15 +5,17 @@
 \title{From \code{psmC.txt} to \code{psmQ.txt}.}
 \usage{
 psmC2Q(
-  out = NULL,
+  df = NULL,
   out_path = NULL,
   fdr_type = "protein",
   combine_tier_three = FALSE,
-  max_n_prots = 40000L
+  max_n_prots = 40000L,
+  fct = 4L
 )
 }
 \arguments{
-\item{out}{A result of \code{psmC.txt}.}
+\item{df}{A result of \code{psmC.txt} with the removals of non-significant
+or decoy peptides, as well as decoy proteins.}
 
 \item{out_path}{A file path of outputs.}
 
@@ -57,7 +59,11 @@ psmC2Q(
   \code{fdr_type} of \code{psm} or \code{peptide}. For very large data sets,
   a lower value of \code{max_n_prots} can be used to reduce the chance of
   memory exhaustion by setting aside some protein entries from tier 1 to 2.}
+
+\item{fct}{A factor for data splitting into chunks. May consider a greater
+value for a larger data set.}
 }
 \description{
-From \code{psmC.txt} to \code{psmQ.txt}.
+Non-significant and decoy peptides should have been removed from the input
+\code{df}, as well as decoy proteins.
 }
