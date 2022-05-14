@@ -918,8 +918,6 @@ pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, fct = 4L)
     vec <- collapse_sortpeps(Mat, ncol, peps)
   }
   else {
-    # Mats <- chunksplit_spmat(Mat, peps, n_cores * 4L)
-    # Mats <- chunksplit_spmat(Mat, peps, n_cores * 8L)
     Mats <- chunksplit_spmat(Mat, peps, n_cores * fct)
     rm(list = c("Mat", "peps"))
     gc()
@@ -931,13 +929,29 @@ pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, fct = 4L)
     parallel::stopCluster(cl)
     gc()
     
-    vec <- NULL
+    vec <- integer(sum(unlist(lapply(vecs, length))))
     len <- length(vecs)
+    sta <- 0L
     
     while(len) {
-      vec <- c(vec, vecs[[1]])
+      vec_1 <- vecs[[1]]
+      len_1 <- length(vec_1)
+      end <- sta + len_1
+      
+      if (is.na(end)) {
+        len_1 <- as.numeric(len_1)
+        vec[(sta + 1):(sta + len_1)] <- vec_1
+        sta <- sta + len_1
+      }
+      else {
+        vec[(sta + 1L):end] <- vec_1
+        ok_sta <- sta + len_1
+        sta <- if (is.na(sta)) sta + as.numeric(len_1) else ok_sta
+      }
+
       vecs[1] <- NULL
       len <- len - 1L
+      rm(list = c("vec_1", "len_1"))
       gc()
     }
   }
