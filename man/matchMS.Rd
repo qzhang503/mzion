@@ -226,8 +226,8 @@ and y-ions.}
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
 
-\item{max_ms2mass}{Not currently used. A positive integer; the maximum MS2
-mass for interrogation. The default is 4500.}
+\item{max_ms2mass}{A positive integer; the maximum MS2 mass for
+interrogation. The default is 4500.}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
 for consideration as a hit. The default is 6. Counts of secondary ions,

@@ -134,8 +134,8 @@
 #'   interrogation. The default is 4500.
 #' @param min_ms2mass A positive integer; the minimum MS2 mass for
 #'   interrogation. The default is 110.
-#' @param max_ms2mass Not currently used. A positive integer; the maximum MS2
-#'   mass for interrogation. The default is 4500.
+#' @param max_ms2mass A positive integer; the maximum MS2 mass for
+#'   interrogation. The default is 4500.
 #' @param n_13c A non-negative integer; the maximum number of 13C off-sets for
 #'   consideration in MS1 masses. The default is 0 with no off-sets.
 #'   Peak-pickings by various MGF conversion tools may have attempted to adjust
@@ -989,6 +989,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
               min_mass = min_mass,
               max_mass = max_mass, 
               min_ms2mass = min_ms2mass,
+              max_ms2mass = max_ms2mass,
               topn_ms2ions = topn_ms2ions,
               min_ms1_charge = min_ms1_charge, 
               max_ms1_charge = max_ms1_charge, 

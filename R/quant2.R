@@ -939,6 +939,8 @@ pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, fct = 4L)
       end <- sta + len_1
       
       if (is.na(end)) {
+        message("Handling integer overflow.")
+        
         len_1 <- as.numeric(len_1)
         vec[(sta + 1):(sta + len_1)] <- vec_1
         sta <- sta + len_1
@@ -956,7 +958,7 @@ pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, fct = 4L)
     }
   }
   
-  message("\tFinished matrix-to-vector conversion.")
+  # message("\tFinished matrix-to-vector conversion.")
   
   invisible(vec)
 }

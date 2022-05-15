@@ -35,4 +35,8 @@ x <- c(1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5)
 set.seed <- (3)
 x <- sample(x)
 p <- 4L
+
+\donttest{
+which_topx2(5000, NA_integer_)
+}
 }

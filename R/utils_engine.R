@@ -50,14 +50,20 @@ which_topx <- function(x, n = 50L, ...)
 #' set.seed <- (3)
 #' x <- sample(x)
 #' p <- 4L
+#' 
+#' \donttest{
+#' which_topx2(5000, NA_integer_)
+#' }
 which_topx2 <- function(x, n = 50L, ...) 
 {
+  if (is.na(n)) return(NULL)
+  
   len <- length(x)
   p <- len - n
-  
-  if (p  <= 0L) 
+
+  if (p  <= 0L)
     return(seq_along(x))
-  
+
   xp <- sort(x, partial = p, ...)[p]
   
   inds <- which(x > xp)

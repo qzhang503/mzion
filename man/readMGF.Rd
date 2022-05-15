@@ -9,6 +9,7 @@ readMGF(
   min_mass = 700L,
   max_mass = 4500L,
   min_ms2mass = 115L,
+  max_ms2mass = 4500L,
   topn_ms2ions = 100L,
   ms1_charge_range = c(2L, 6L),
   ms1_scan_range = c(1L, .Machine$integer.max),
@@ -30,6 +31,9 @@ match the one in  \link{binTheoSeqs}.}
 \item{max_mass}{A maximum mass of precursors for considerations.}
 
 \item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
+
+\item{max_ms2mass}{A positive integer; the maximum MS2 mass for
+interrogation. The default is 4500.}
 
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
 MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}

@@ -12,6 +12,7 @@ proc_mgf_chunks(
   ret_range = c(0, Inf),
   ppm_ms2 = 25L,
   min_ms2mass = 115L,
+  max_ms2mass = 4500L,
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
   index_ms2 = FALSE,
@@ -47,6 +48,9 @@ MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 default is 25.}
 
 \item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
+
+\item{max_ms2mass}{A positive integer; the maximum MS2 mass for
+interrogation. The default is 4500.}
 
 \item{index_ms2}{Logical; if TRUE, converts MS2 m/z values to indices.}
 

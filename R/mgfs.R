@@ -12,7 +12,7 @@
 #'   preceeding, current and following.
 #' @inheritParams matchMS
 load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L, 
-                       min_ms2mass = 115L, topn_ms2ions = 100L, 
+                       min_ms2mass = 115L, max_ms2mass = 4500L, topn_ms2ions = 100L, 
                        min_ms1_charge = 2L, max_ms1_charge = 6L, 
                        min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                        min_ret_time = 0, max_ret_time = Inf, 
@@ -96,6 +96,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
             min_mass = min_mass,
             max_mass = max_mass, 
             min_ms2mass = min_ms2mass,
+            max_ms2mass = max_ms2mass, 
             topn_ms2ions = topn_ms2ions,
             ms1_charge_range = c(min_ms1_charge, max_ms1_charge), 
             ms1_scan_range = c(min_scan_num, max_scan_num), 
@@ -136,7 +137,8 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
 #' mgf_queries <- proteoM:::readMGF()
 #' }
 readMGF <- function (filepath = "~/proteoM/mgf",
-                     min_mass = 700L, max_mass = 4500L, min_ms2mass = 115L, 
+                     min_mass = 700L, max_mass = 4500L, 
+                     min_ms2mass = 115L, max_ms2mass = 4500L, 
                      topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                      ms1_scan_range = c(1L, .Machine$integer.max), 
                      ret_range = c(0, Inf), 
@@ -225,6 +227,7 @@ readMGF <- function (filepath = "~/proteoM/mgf",
                                 ret_range = ret_range,
                                 ppm_ms2 = ppm_ms2,
                                 min_ms2mass = min_ms2mass,
+                                max_ms2mass = max_ms2mass, 
                                 mgf_cutmzs = mgf_cutmzs, 
                                 mgf_cutpercs = mgf_cutpercs, 
                                 index_ms2 = index_ms2,
@@ -367,8 +370,8 @@ readlineMGFs <- function (i, file, filepath, raw_file)
 read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                              topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
-                             ret_range = c(0, Inf), 
-                             ppm_ms2 = 25L, min_ms2mass = 115L, 
+                             ret_range = c(0, Inf), ppm_ms2 = 25L, 
+                             min_ms2mass = 115L, max_ms2mass = 4500L, 
                              mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                              index_ms2 = FALSE,
                              type_mgf = "msconv_thermo", n_bf_begin = 0L, 
@@ -403,7 +406,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
     c("proc_mgf_chunks", 
       "proc_mgfs", 
       "which_topx2", 
-      "get_topn_vals", 
+      # "get_topn_vals", 
       "find_ms1_interval"), 
     envir = environment(proteoM:::proc_mgf_chunks)
   )
@@ -416,6 +419,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                                 ret_range = ret_range,
                                 ppm_ms2 = ppm_ms2,
                                 min_ms2mass = min_ms2mass,
+                                max_ms2mass = max_ms2mass, 
                                 mgf_cutmzs = mgf_cutmzs, 
                                 mgf_cutpercs = mgf_cutpercs, 
                                 index_ms2 = index_ms2,
@@ -481,6 +485,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                 ret_range = ret_range,
                 ppm_ms2 = ppm_ms2,
                 min_ms2mass = min_ms2mass,
+                max_ms2mass = max_ms2mass, 
                 mgf_cutmzs = mgf_cutmzs, 
                 mgf_cutpercs = mgf_cutpercs, 
                 index_ms2 = index_ms2,
@@ -518,8 +523,8 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
 proc_mgf_chunks <- function (file, topn_ms2ions = 100L, 
                              ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
-                             ret_range = c(0, Inf), 
-                             ppm_ms2 = 25L, min_ms2mass = 115L, 
+                             ret_range = c(0, Inf), ppm_ms2 = 25L, 
+                             min_ms2mass = 115L, max_ms2mass = 4500L, 
                              mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                              index_ms2 = FALSE,
                              type_mgf = "msconv_thermo", n_bf_begin = 0L, 
@@ -578,6 +583,7 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                    ret_range = ret_range,
                    ppm_ms2 = ppm_ms2,
                    min_ms2mass = min_ms2mass,
+                   max_ms2mass = max_ms2mass, 
                    mgf_cutmzs = mgf_cutmzs, 
                    mgf_cutpercs = mgf_cutpercs, 
                    index_ms2 = index_ms2,
@@ -605,8 +611,8 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
 proc_mgfs <- function (lines, topn_ms2ions = 100L, 
                        ms1_charge_range = c(2L, 6L), 
                        ms1_scan_range = c(1L, .Machine$integer.max), 
-                       ret_range = c(0, Inf), 
-                       ppm_ms2 = 25L, min_ms2mass = 115L, 
+                       ret_range = c(0, Inf), ppm_ms2 = 25L, 
+                       min_ms2mass = 115L, max_ms2mass = 4500L, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                        index_ms2 = FALSE,
                        type_mgf = "msconv_thermo", n_bf_begin = 0L, 
@@ -658,11 +664,16 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
     if (length(mgf_cutmzs)) {
       m_long <- ms2_moverzs[is_long]
       i_long <- ms2_ints[is_long]
-      
+
       for (i in seq_along(m_long)) {
         x <- m_long[[i]]
         y <- i_long[[i]]
         
+        # (`<` not `<=`)
+        ok_ms2 <- x < max_ms2mass
+        x <- x[ok_ms2]
+        y <- y[ok_ms2]
+
         idxes <- findInterval(x, mgf_cutmzs)
         xs <- split(x, idxes)
         ys <- split(y, idxes)
@@ -670,8 +681,20 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
         # some zones may have no entries
         ok_percs <- mgf_cutpercs[as.integer(names(xs)) + 1L]
         
-        ans_x <- mapply(get_topn_vals, xs, ok_percs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-        ans_y <- mapply(get_topn_vals, ys, ok_percs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+        # e.g. the last interval from ms2masses >= max_ms2mass -> c(100, 10, NA)
+        # but no need to remove NA since already `ok_ms2`;
+        # 
+        # `which_topx2` also guard against NA
+        # 
+        # ok_percs <- ok_percs[!is.na(ok_percs)]
+
+        rows <- mapply(which_topx2, ys, ok_percs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+        
+        ans_x <- mapply(function (x, y) x[y], xs, rows, 
+                        SIMPLIFY = FALSE, USE.NAMES = FALSE)
+        ans_y <- mapply(function (x, y) x[y], ys, rows, 
+                        SIMPLIFY = FALSE, USE.NAMES = FALSE)
+        
         ans_x <- .Internal(unlist(ans_x, recursive = FALSE, use.names = FALSE))
         ans_y <- .Internal(unlist(ans_y, recursive = FALSE, use.names = FALSE))
         
@@ -686,11 +709,11 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
     else {
       rows <- lapply(ms2_ints[is_long], which_topx2, topn_ms2ions)
       
-      ms2_ints[is_long] <- mapply(function (x, y) round(x[y], digits = 0L), 
+      ms2_ints[is_long] <- mapply(function (x, y) x[y], 
                                   ms2_ints[is_long], rows, 
                                   SIMPLIFY = FALSE, USE.NAMES = FALSE)
       
-      ms2_moverzs[is_long] <- mapply(function (x, y) round(x[y], digits = 5L), 
+      ms2_moverzs[is_long] <- mapply(function (x, y) x[y], 
                                      ms2_moverzs[is_long], rows, 
                                      SIMPLIFY = FALSE, USE.NAMES = FALSE)
       
@@ -699,6 +722,9 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
 
     rm(list = c("is_long"))
   }
+  
+  ms2_ints <- lapply(ms2_ints, round, digits = 0L)
+  ms2_moverzs <- lapply(ms2_moverzs, round, digits = 5L)
 
   # MS1 ions
   ms1s <- stringi::stri_replace_first_fixed(lines[begins + n_to_pepmass], 

@@ -10,6 +10,7 @@ load_mgfs(
   min_mass = 700L,
   max_mass = 4500L,
   min_ms2mass = 115L,
+  max_ms2mass = 4500L,
   topn_ms2ions = 100L,
   min_ms1_charge = 2L,
   max_ms1_charge = 6L,
@@ -48,6 +49,9 @@ load_mgfs(
 \item{max_mass}{A maximum mass of precursors for considerations.}
 
 \item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
+
+\item{max_ms2mass}{A positive integer; the maximum MS2 mass for
+interrogation. The default is 4500.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches. The default is to use the top-100 ions in an MS2 event.}
