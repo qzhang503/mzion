@@ -756,7 +756,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   n_cores <- detect_cores(16L)
   
   n_chunks <- local({
-    free_mem <- find_free_mem(sys_ram)/2
+    free_mem <- find_free_mem(sys_ram)/2.4
     
     fct <- 10/.25 # 10G free RAM -> .25G chunk_size
     max_chunk_size <- free_mem/fct
@@ -1145,26 +1145,68 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01, out_p
   rows <- which(td$fdr <= target_fdr)
   
   if (length(rows)) {
+    max_pr <- max(td[["fdr"]], na.rm = TRUE)
     row <- max(rows, na.rm = TRUE)
-    score_co <- td$pep_score[row]
+    score_co <- td[["pep_score"]][row]
+
+    ### guard against really low score_co
+    if (FALSE) {
+      lwr <- if (len <= 10L)
+        -0.02 * len / target_fdr + 31
+      else if (len <= 15L)
+        -.016 * len / target_fdr + 29
+      else
+        2
+      
+      # if (len <= 15L)cscore_co <- max(score_co, lwr)
+    }
+    ####
     
     # fittings (the data range may affect the fitting)
     df <- data.frame(x = td[["pep_score"]], y = td[["fdr"]])
-
-    fit <- suppressWarnings(
-      tryCatch(
-        nls(y ~ SSlogis(x, Asym, xmid, scal), data = df, 
-            control = list(tol = 1e-03, warnOnly = TRUE), 
-            algorithm = "port"), 
-        error = function (e) NA)
-    )
     
+    if (max_pr <= target_fdr) {
+      fit <- suppressWarnings(
+        tryCatch(
+          nls(y ~ SSasymp(x, Asym, R0, lrc), data = df, 
+              control = list(tol = 1e-03, warnOnly = TRUE), 
+              algorithm = "port"), 
+          error = function (e) NA)
+      )
+    }
+    else {
+      fit <- suppressWarnings(
+        tryCatch(
+          nls(y ~ SSlogis(x, Asym, xmid, scal), data = df, 
+              control = list(tol = 1e-03, warnOnly = TRUE), 
+              algorithm = "port"), 
+          error = function (e) NA)
+      )
+    }
+
     if (!all(is.na(fit))) {
-      newx <- min(df$x, na.rm = TRUE):max(df$x, na.rm = TRUE)
+      min_x <- min(target_fdr, min(df$x, na.rm = TRUE))
+      max_x <- max(target_fdr, max(df$x, na.rm = TRUE))
+      del_x <- max_x - min_x
+      
+      step <- if (del_x > 10) 
+        .25
+      else if (del_x > 1)
+        .02
+      else
+        .01
+
+      newx <- seq(min_x, max_x, by = step)
       newy <- predict(fit, data.frame(x = newx)) %>% `names<-`(newx)
       
       # NA if not existed
-      score_co2 <- which(newy <= target_fdr)[1] %>% names() %>% as.numeric()
+      score_co2 <- as.numeric(names(which(newy <= target_fdr)[1]))
+      score_co2 <- max(score_co2, 2)
+      
+      ### guard against lower score_co2
+      # if (len <= 15L) score_co2 <- max(score_co2, lwr)
+      ###
+      
       best_co <- min(score_co, score_co2, na.rm = TRUE)
       
       if (FALSE) {
@@ -1194,7 +1236,6 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01, out_p
     rm(list = c("df", "fit"))
     
     prob_co <- 10^(-best_co/10)
-    
   } 
   else {
     best_co <- tryCatch(
@@ -1410,6 +1451,27 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     start <- which(names(prob_cos) == valley)
     end <- length(prob_cos)
     x <- -log10(prob_cos[start:end])
+    
+    # first pass
+    fit_lm <- lm(x ~ as.integer(names(x)))
+    res_lm <- residuals(fit_lm)
+    bad_lm <- x[abs(res_lm) > 5]
+    
+    if (length(bad_lm)) {
+      rm(list = c("fit_lm", "res_lm"))
+      
+      x_ok <- x[! names(x) %in% names(bad_lm)]
+      fit_lm <- lm(x_ok ~ as.integer(names(x_ok)))
+      coefs <- coef(fit_lm)
+      slp <- coefs[[2]]
+      
+      if (is.na(slp)) slp <- 0
+      
+      x[names(bad_lm)] <- slp * as.integer(names(bad_lm)) + coefs[[1]]
+      rm(list = c("x_ok", "fit_lm", "coefs", "bad_lm"))
+    }
+
+    # second pass
     ans <- tsoutliers(x)
     x[ans$index] <- ans$replacements
     prob_cos[start:end] <- 1/10^x
@@ -1423,10 +1485,10 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   
   # valley left
   df_left <- df[df$x <= valley, ]
-  rank_left <- 4L # often results in: originals == fitted <-> no fitting
-  
   nrow_left <- nrow(df_left)
-  
+  rank_left <- 4L # often results in: originals == fitted <-> no fitting
+  # rank_left <- min(nrow_left, 4L)
+
   if (nrow_left == 0L) {
     newx_left <- NULL
     newy_left <- NULL
@@ -1465,10 +1527,9 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
 
   # valley right (small rank to down-weight wiggly high `pep_len` points)
   df_right <- df[df$x > valley, ]
-  rank_right <- 3L # changed from 2 to 3
-  
   nrow_right <- nrow(df_right)
-  
+  rank_right <- 4L # changed from 3 to 4
+
   if (nrow_right == 0L) {
     newx_right <- NULL
     newy_right <- NULL
@@ -1478,7 +1539,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     newy_right <- df_right$y
   } 
   else {
-    if (nrow_right > rank_right) {
+    if (nrow_right >= rank_right) {
       fit_right <- local({
         fit_ns <- tryCatch(
           lm(y ~ splines::ns(x, rank_right), df_right),

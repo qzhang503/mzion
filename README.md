@@ -1,12 +1,12 @@
 proteoM
 ================
 true
-2022-05-02
+2022-05-18
 
 -   [Installation](#installation)
 -   [FASTAs and MGFs](#fastas-and-mgfs)
 -   [Database searches](#database-searches)
--   [Next steps?](#next-steps)
+-   [Next steps](#next-steps)
 -   [Other utilities](#other-utilities)
 
 ## Installation
@@ -18,16 +18,13 @@ if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 devtools::install_github("qzhang503/proteoM")
 
-# Optional data package
+# (Optional: exemplary FASTAs and MGFs)
 devtools::install_github("qzhang503/proteoQDA")
 ```
 
 ## FASTAs and MGFs
 
 ``` r
-## (Optional: exemplary FASTAs and MGFs)
-devtools::install_github("qzhang503/proteoQDA")
-
 # Fasta databases
 library(proteoQDA)
 
@@ -48,23 +45,23 @@ copy_msconv_mgf("~/proteoM/examples_p/mgfs")
 library(proteoM)
 
 matchMS(
-  out_path = "~/proteoM/examples", 
-  mgf_path = "~/proteoM/examples/mgfs",
-  fasta = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta", 
-            "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta", 
-            "~/proteoM/dbs/fasta/crap/crap.fasta"), 
+  out_path  = "~/proteoM/examples", 
+  mgf_path  = "~/proteoM/examples/mgfs",
+  fasta     = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta", 
+                "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta", 
+                "~/proteoM/dbs/fasta/crap/crap.fasta"), 
   
   # (see also ?load_fasta2)
-  acc_type = c("refseq_acc", "refseq_acc", "other"), 
+  acc_type  = c("refseq_acc", "refseq_acc", "other"), 
   
   # "TMT6plex" at mass 229.162932 Da for TMT-6, -10 and -11 
   # (see also ?table_unimods)
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
-  varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
-              "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
-  max_miss = 4, 
-  quant = "tmt10", 
-  fdr_type = "protein", 
+  varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
+               "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
+  max_miss  = 4, 
+  quant     = "tmt10", 
+  fdr_type  = "protein", 
 )
 
 
@@ -72,26 +69,25 @@ matchMS(
 library(proteoM)
 
 matchMS(
-  out_path = "~/proteoM/examples_p", 
-  mgf_path = "~/proteoM/examples_p/mgfs",
+  out_path  = "~/proteoM/examples_p", 
+  mgf_path  = "~/proteoM/examples_p/mgfs",
   
-  # (try a different FASTA)
-  fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hsmm_2020_03.fasta", 
-            "~/proteoM/dbs/fasta/crap/crap.fasta"), 
-  acc_type = c("uniprot_acc", "other"), 
+  fasta     = c("~/proteoM/dbs/fasta/uniprot/uniprot_hsmm_2020_03.fasta", 
+                "~/proteoM/dbs/fasta/crap/crap.fasta"), 
+  acc_type  = c("uniprot_acc", "other"), 
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"), 
-  varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
-              "Deamidated (N)", "Phospho (S)", "Phospho (T)", 
-              "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"), 
-  max_miss = 4, 
-  quant = "tmt10", 
+  varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", 
+                "Deamidated (N)", "Phospho (S)", "Phospho (T)", 
+                "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"), 
+  max_miss  = 4, 
+  quant     = "tmt10", 
   
-  fdr_type = "psm",
+  fdr_type  = "psm",
   combine_tier_three = TRUE, 
 )
 ```
 
-## Next steps?
+## Next steps
 
 -   Search against full-length MGFs
 

@@ -35,7 +35,8 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
   )
 
   # ---
-  fun <- as.character(match.call()[[1]])
+  this_call <- match.call()
+  fun <- as.character(this_call[[1]])
   fun_env <- environment()
   
   # args_except <- NULL
@@ -59,7 +60,6 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
   ) 
   
   call_pars <- call_pars[sort(names(call_pars))]
-
   ok_pars <- identical(call_pars, cache_pars)
   
   # suboptimal; for noenzyme
@@ -406,7 +406,6 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
     c("proc_mgf_chunks", 
       "proc_mgfs", 
       "which_topx2", 
-      # "get_topn_vals", 
       "find_ms1_interval"), 
     envir = environment(proteoM:::proc_mgf_chunks)
   )
@@ -508,7 +507,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
 
   if (type_mgf == "default_pasef") {
     out <- dplyr::mutate(out, scan_id = as.character(scan_num), 
-                         scan_num = row_number())
+                         scan_num = as.character(row_number()))
   } 
 
   invisible(out)
@@ -545,12 +544,7 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
   af <- local({
     le <- ends[length(ends)]
     lb <- begins[length(begins)]
-
-    af <- if (lb > le) 
-      lines[(le + n_spacer + 1L):length(lines)]
-    else 
-      NULL
-
+    af <- if (lb > le) lines[(le + n_spacer + 1L):length(lines)] else NULL
     write(af, file.path(paste0(basename, "_af.mgf")))
 
     af
@@ -559,12 +553,7 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
   bf <- local({
     le <- ends[1]
     lb <- begins[1]
-
-    bf <- if (lb > le) 
-      lines[1:(le + n_spacer)]
-    else 
-      NULL
-
+    bf <- if (lb > le) lines[1:(le + n_spacer)] else NULL
     write(bf, file.path(paste0(basename, "_bf.mgf")))
 
     bf
@@ -679,7 +668,8 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
         ys <- split(y, idxes)
         
         # some zones may have no entries
-        ok_percs <- mgf_cutpercs[as.integer(names(xs)) + 1L]
+        ok_idxes <- as.integer(names(xs)) + 1L
+        ok_percs <- mgf_cutpercs[ok_idxes]
         
         # e.g. the last interval from ms2masses >= max_ms2mass -> c(100, 10, NA)
         # but no need to remove NA since already `ok_ms2`;
@@ -687,6 +677,24 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
         # `which_topx2` also guard against NA
         # 
         # ok_percs <- ok_percs[!is.na(ok_percs)]
+        
+        ## (little benefit with padding) 
+        if (FALSE) {
+          percs_no_one <- ok_percs[-1]
+          ys_no_one <- ys[-1]
+          rows_no_one <- mapply(which_topx2,ys_no_one, percs_no_one, 
+                                SIMPLIFY = FALSE, USE.NAMES = FALSE)
+          
+          cts_no_one <- lapply(rows_no_one, length)
+          cts_no_one <- .Internal(unlist(cts_no_one, recursive = FALSE, use.names = FALSE))
+          cts_delta <- sum(percs_no_one) - sum(cts_no_one)
+          
+          cts_one <- ok_percs[1] + cts_delta
+          rows_one <- which_topx2(ys[[1]], cts_one)
+          
+          rows <- c(list(rows_one), rows_no_one)
+        }
+        ##
 
         rows <- mapply(which_topx2, ys, ok_percs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
         
@@ -749,16 +757,16 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
   if (type_mgf %in% c("msconv_thermo", "msconv_pasef")) {
     raw_files <- 
       stringi::stri_replace_first_regex(scan_titles, "^.* File:\"([^\"]+)\".*", "$1")
-    scan_nums <- as.integer(
+    scan_nums <- 
       stringi::stri_replace_first_regex(scan_titles, 
                                         "^.*\\.(\\d+)\\.\\d+\\.\\d+ File:\".*", 
-                                        "$1"))
+                                        "$1")
   } 
   else if (type_mgf == "pd") {
     raw_files <- gsub("^.*File: \"([^\"]+)\".*", "\\1", scan_titles)
     raw_files <- gsub("\\\\", "/", raw_files)
     raw_files <- gsub("^.*/(.*)", "\\1", raw_files)
-    scan_nums <- as.integer(gsub("^.* scans: \"([0-9]+)\"$", "\\1", scan_titles))
+    scan_nums <- gsub("^.* scans: \"([0-9]+)\"$", "\\1", scan_titles)
   } 
   else if (type_mgf == "default_pasef") {
     raw_files <- rep(raw_file, length(lens))
@@ -789,13 +797,13 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
   ms1_masses <- round(ms1_masses, digits = 5L)
 
   # Subsetting
-  # (no `scan_num` subsetting for PASEF)
+  # (no `scan_num` subsetting)
   if (type_mgf == "default_pasef") 
     rows <- (charges >= ms1_charge_range[1] & charges <= ms1_charge_range[2] & 
                ret_times >= ret_range[1] & ret_times <= ret_range[2])
   else 
     rows <- (charges >= ms1_charge_range[1] & charges <= ms1_charge_range[2] & 
-               scan_nums >= ms1_scan_range[1] & scan_nums <= ms1_scan_range[2] &
+               # scan_nums >= ms1_scan_range[1] & scan_nums <= ms1_scan_range[2] &
                ret_times >= ret_range[1] & ret_times <= ret_range[2])
 
   scan_titles <- scan_titles[rows]
@@ -811,11 +819,12 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
   lens <- lens[rows]
 
   # Actually slower
-  if (index_ms2) 
+  if (index_ms2) {
     ms2_imoverzs <- lapply(ms2_moverzs,
                            find_ms1_interval,
                            from = min_ms2mass,
                            ppm = ppm_ms2)
+  }
 
   out <- tibble::tibble(scan_title = scan_titles,
                         raw_file = raw_files,

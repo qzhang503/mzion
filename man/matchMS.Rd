@@ -371,13 +371,13 @@ considerations. The default is 2.}
 \item{max_ms1_charge}{A positive integer; the maximum MS1 charge state for
 considerations. The default is 6.}
 
-\item{min_scan_num}{A positive integer; the minimum scan number for
-considerations. The default is 1. The setting only applies to MGFs with
+\item{min_scan_num}{Depreciated. A positive integer; the minimum scan number
+for considerations. The default is 1. The setting only applies to MGFs with
 numeric scan numbers. For example, it has no effects on Bruker's timsTOF
 data.}
 
-\item{max_scan_num}{A positive integer; the maximum scan number for
-considerations. The default is the maximum machine integer. The setting
+\item{max_scan_num}{Depreciated. A positive integer; the maximum scan number
+for considerations. The default is the maximum machine integer. The setting
 only applies to MGFs with numeric scan numbers.}
 
 \item{min_ret_time}{A non-negative numeric; the minimum retention time in

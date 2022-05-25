@@ -187,12 +187,12 @@
 #'   considerations. The default is 2.
 #' @param max_ms1_charge A positive integer; the maximum MS1 charge state for
 #'   considerations. The default is 6.
-#' @param min_scan_num A positive integer; the minimum scan number for
-#'   considerations. The default is 1. The setting only applies to MGFs with
+#' @param min_scan_num Depreciated. A positive integer; the minimum scan number
+#'   for considerations. The default is 1. The setting only applies to MGFs with
 #'   numeric scan numbers. For example, it has no effects on Bruker's timsTOF
 #'   data.
-#' @param max_scan_num A positive integer; the maximum scan number for
-#'   considerations. The default is the maximum machine integer. The setting
+#' @param max_scan_num Depreciated. A positive integer; the maximum scan number
+#'   for considerations. The default is the maximum machine integer. The setting
 #'   only applies to MGFs with numeric scan numbers.
 #' @param min_ret_time A non-negative numeric; the minimum retention time in
 #'   seconds for considerations. The default is 0.
