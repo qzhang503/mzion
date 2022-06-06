@@ -25,7 +25,7 @@ load_mgfs(
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
   enzyme = "trypsin_p",
-  index_ms2 = FALSE
+  digits = 5L
 )
 }
 \arguments{
@@ -89,12 +89,18 @@ preceeding, current and following.}
 \item{is_ms2_three_frame}{Logical; is the searches by the three frames of
 preceeding, current and following.}
 
+\item{mgf_cutmzs}{Cut points of MS1 moverz values in peak picking.}
+
+\item{mgf_cutpercs}{The counts of MS2 features in each region of
+\code{mgf_cutmzs}.}
+
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from protein entries. The
 default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
 
-\item{index_ms2}{Logical; if TRUE, converts MS2 m/z values to indices.}
+\item{digits}{A non-negative integer; the number of decimal places to be
+used. The default is 4.}
 }
 \description{
-Currently, \code{index_ms2} is always FALSE.
+Helper in loading MGFs.
 }

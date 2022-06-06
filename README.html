@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2022-05-18" />
+<meta name="date" content="2022-06-05" />
 
 <title>proteoM</title>
 
@@ -1578,14 +1578,15 @@ div.tocify {
 
 <h1 class="title toc-ignore">proteoM</h1>
 <h4 class="author">John Doe</h4>
-<h4 class="date">2022-05-18</h4>
+<h4 class="date">2022-06-05</h4>
 
 </div>
 
 
 <div id="installation" class="section level2">
 <h2>Installation</h2>
-<p>To install this package, start R (latest version) and enter:</p>
+<p>To install this package, start R (latest version or 4.1.3) and
+enter:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">requireNamespace</span>(<span class="st">&quot;devtools&quot;</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>))</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">install.packages</span>(<span class="st">&quot;devtools&quot;</span>)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;qzhang503/proteoM&quot;</span>)</span>
@@ -1603,7 +1604,7 @@ div.tocify {
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_uniprot_hsmm</span>(<span class="st">&quot;~/proteoM/dbs/fasta/uniprot&quot;</span>)</span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_crap</span>(<span class="st">&quot;~/proteoM/dbs/fasta/crap&quot;</span>)</span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># MGF (by Proteome Discoverer or free MSConvert)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># MGF (by MSConvert or Proteome Discoverer)</span></span>
 <span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_pd_mgf</span>(<span class="st">&quot;~/proteoM/examples/mgfs&quot;</span>)</span>
 <span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="fu">copy_msconv_mgf</span>(<span class="st">&quot;~/proteoM/examples_p/mgfs&quot;</span>)</span></code></pre></div>
 </div>
@@ -1657,14 +1658,17 @@ div.tocify {
 <div id="next-steps" class="section level2">
 <h2>Next steps</h2>
 <ul>
-<li><p>Search against full-length MGFs</p>
+<li><p>Search against full-length MGFs or mzML</p>
 <ul>
 <li>Thermo’s MS
 <ul class="task-list">
-<li><input type="checkbox" disabled checked></input>
-<code>MSConvert</code></li>
-<li><input type="checkbox" disabled checked></input>
-<code>Proteome Discoverer</code></li>
+<li><p><input type="checkbox" disabled checked></input>
+<code>MSConvert</code></p><p>[+] Binary encode 64-bit</p>
+<p>[+] Write index</p>
+<p>[+] TPP compatibility</p>
+<p>[-] (<em>uncheck</em>) Use zlib compression</p></li>
+<li><p><input type="checkbox" disabled checked></input>
+<code>Proteome Discoverer</code></p></li>
 </ul></li>
 <li>Bruker’s MS
 <ul class="task-list">
@@ -1679,6 +1683,7 @@ div.tocify {
 <h2>Other utilities</h2>
 <ul>
 <li><code>mapMS2ions</code>: visualizations of matched MS2 ions</li>
+<li><code>table_unimods</code> summary of Unimod entry</li>
 <li><code>add_unimod</code>: addition of a Unimod entry</li>
 </ul>
 </div>

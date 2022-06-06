@@ -746,30 +746,38 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   df$uniq_id <- paste(df$scan_num, df$raw_file, sep = "@")
   
   esscols <- c("ms2_moverz", "ms2_int", "matches", "ms2_n", "uniq_id")
-  df2 <- df[, -which(names(df) %in% esscols), drop = FALSE]
-  df <- df[, esscols, drop = FALSE]
   
+  path_df2 <- file.path(out_path, "df2_sc_temp.rda")
+  df2 <- df[, -which(names(df) %in% esscols), drop = FALSE]
+  qs::qsave(df2, path_df2, preset = "fast")
+  rm(list = "df2")
+  gc()
+  
+  df <- df[, esscols, drop = FALSE]
+
   # otherwise, chunksplit return NULL
   #   -> res[[i]] <- NULL 
   #   -> length(res) shortened by 1
   
   n_cores <- detect_cores(16L)
   
-  n_chunks <- local({
-    free_mem <- find_free_mem(sys_ram)/2.4
-    
-    fct <- 10/.25 # 10G free RAM -> .25G chunk_size
-    max_chunk_size <- free_mem/fct
-    obj_size <- object.size(df)/1024^2
-    n_chunks <- ceiling((obj_size/max_chunk_size) * n_cores)
-    
-    n_chunks <- ceiling(n_chunks/n_cores) * n_cores
-    n_chunks <- min(n_chunks, n_cores^2)
-    n_chunks <- max(n_chunks, n_cores)
-  })
-  
+  if (FALSE) {
+    n_chunks <- local({
+      free_mem <- find_free_mem(sys_ram)/2.5
+      
+      fct <- 10/.25 # 10G free RAM -> .25G chunk_size
+      max_chunk_size <- free_mem/fct
+      obj_size <- object.size(df)/1024^2
+      n_chunks <- ceiling((obj_size/max_chunk_size) * n_cores)
+      
+      n_chunks <- ceiling(n_chunks/n_cores) * n_cores
+      n_chunks <- min(n_chunks, n_cores^2)
+      n_chunks <- max(n_chunks, n_cores)
+    })
+  }
+
   ## don't change (RAM)
-  # n_chunks <- n_cores^2
+  n_chunks <- n_cores^2
   
   if (n_rows <= 5000L) {
     probs <- calc_pepprobs_i(
@@ -783,8 +791,16 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   else {
     if (!is.null(df)) {
       dfs <- suppressWarnings(chunksplit(df, n_chunks, "row"))
-      gc()
     }
+    else {
+      dfs <- list(df)
+    }
+
+    path_df <- file.path(out_path, "df_sc_temp.rda")
+    df <- df[, -which(names(df) == "matches"), drop = FALSE]
+    qs::qsave(df, path_df, preset = "fast")
+    rm(list = "df", envir = environment())
+    gc()
     
     if (length(dfs) >= n_chunks) {
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
@@ -807,8 +823,9 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                                         digits = digits)
       
       parallel::stopCluster(cl)
+      rm(list = c("cl", "dfs"))
       gc()
-      
+
       probs <- dplyr::bind_rows(probs)
     } 
     else {
@@ -821,24 +838,40 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                       type_ms2ions = type_ms2ions, 
                       ppm_ms2 = ppm_ms2,
                       out_path = out_path, 
-                      digits = digits) %>% 
-        dplyr::bind_rows()
+                      digits = digits) 
+      
+      probs <- dplyr::bind_rows(probs)
+      
+      rm(list = c("dfs"))
+      gc()
     }
-    
-    rm(list = "dfs")
+
+    df <- qs::qread(path_df)
+    unlink(path_df)
+    rm(list = c("path_df"))
     gc()
   }
   
   ## Reassemble `df`
-  df <- df[, -which(names(df) == "matches"), drop = FALSE]
-  df <- dplyr::bind_cols(df, df2)
-  df <- quick_rightjoin(df, probs, "uniq_id")
-  df <- df[, -which(names(df) == "uniq_id"), drop = FALSE]
-  df <- post_pepscores(df)
+  if ("matches" %in% names(df)) 
+    df <- df[, -which(names(df) == "matches"), drop = FALSE]
   
-  rm(list = c("df2", "probs"))
   gc()
   
+  df2 <- qs::qread(path_df2)
+  unlink(path_df2)
+
+  df <- dplyr::bind_cols(df, df2)
+  rm(list = c("df2", "path_df2"))
+  gc()
+  
+  df <- quick_rightjoin(df, probs, "uniq_id")
+  rm(list = c("probs"))
+  gc()
+  
+  df <- df[, -which(names(df) == "uniq_id"), drop = FALSE]
+  df <- post_pepscores(df)
+
   ## Outputs 
   qs::qsave(df[, cols_lt, drop = FALSE], file_lt, preset = "fast")
   
@@ -852,9 +885,10 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       add_ms2theos = add_ms2theos, 
       add_ms2theos2 = add_ms2theos2, 
       add_ms2moverzs = add_ms2moverzs, 
-      add_ms2ints = add_ms2ints) %>% 
-      dplyr::bind_rows()
+      add_ms2ints = add_ms2ints) 
     
+    df <- dplyr::bind_rows(df)
+
     parallel::stopCluster(cl)
   }
   else {

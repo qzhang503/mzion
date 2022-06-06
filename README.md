@@ -1,7 +1,7 @@
 proteoM
 ================
 true
-2022-05-18
+2022-06-05
 
 -   [Installation](#installation)
 -   [FASTAs and MGFs](#fastas-and-mgfs)
@@ -11,7 +11,7 @@ true
 
 ## Installation
 
-To install this package, start R (latest version) and enter:
+To install this package, start R (latest version or 4.1.3) and enter:
 
 ``` r
 if (!requireNamespace("devtools", quietly = TRUE))
@@ -33,7 +33,7 @@ copy_refseq_mm("~/proteoM/dbs/fasta/refseq")
 copy_uniprot_hsmm("~/proteoM/dbs/fasta/uniprot")
 copy_crap("~/proteoM/dbs/fasta/crap")
 
-# MGF (by Proteome Discoverer or free MSConvert)
+# MGF (by MSConvert or Proteome Discoverer)
 copy_pd_mgf("~/proteoM/examples/mgfs")
 copy_msconv_mgf("~/proteoM/examples_p/mgfs")
 ```
@@ -89,10 +89,19 @@ matchMS(
 
 ## Next steps
 
--   Search against full-length MGFs
+-   Search against full-length MGFs or mzML
 
     -   Thermo’s MS
         -   [x] `MSConvert`
+
+            \[+\] Binary encode 64-bit
+
+            \[+\] Write index
+
+            \[+\] TPP compatibility
+
+            \[-\] (*uncheck*) Use zlib compression
+
         -   [x] `Proteome Discoverer`
     -   Bruker’s MS
         -   [x] `DataAnalysis`
@@ -103,4 +112,5 @@ matchMS(
 ## Other utilities
 
 -   `mapMS2ions`: visualizations of matched MS2 ions
+-   `table_unimods` summary of Unimod entry
 -   `add_unimod`: addition of a Unimod entry

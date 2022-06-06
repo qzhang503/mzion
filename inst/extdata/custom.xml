@@ -139,5 +139,14 @@
         <umod:element symbol="O" number="2"/>
       </umod:delta>
     </umod:mod>
+    <umod:mod title="Diglycyl" full_name="Ubiquitination with arginine removal by trypsinolysis" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-06-01 08:09:10" date_time_modified="2022-06-01 08:09:10" approved="0" record_id="20">
+      <umod:specificity hidden="0" site="K" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="114.042928" avge_mass="114.10264" composition="H(6) C(4) N(2) O(2)">
+        <umod:element symbol="H" number="6"/>
+        <umod:element symbol="C" number="4"/>
+        <umod:element symbol="N" number="2"/>
+        <umod:element symbol="O" number="2"/>
+      </umod:delta>
+    </umod:mod>
   </umod:modifications>
 </umod:unimod>

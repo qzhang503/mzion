@@ -1002,7 +1002,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
               mgf_cutmzs = mgf_cutmzs, 
               mgf_cutpercs = mgf_cutpercs, 
               enzyme = enzyme, 
-              index_ms2 = FALSE)
+              digits = digits)
   }
 
   ## MSMS matches

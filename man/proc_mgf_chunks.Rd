@@ -10,12 +10,13 @@ proc_mgf_chunks(
   ms1_charge_range = c(2L, 6L),
   ms1_scan_range = c(1L, .Machine$integer.max),
   ret_range = c(0, Inf),
+  min_mass = 700L,
+  max_mass = 4500L,
   ppm_ms2 = 25L,
   min_ms2mass = 115L,
   max_ms2mass = 4500L,
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
-  index_ms2 = FALSE,
   type_mgf = "msconv_thermo",
   n_bf_begin = 0L,
   n_spacer = 0L,
@@ -29,7 +30,8 @@ proc_mgf_chunks(
   nfields_ms2s = 2L,
   sep_pepmass = " ",
   nfields_pepmass = 2L,
-  raw_file = NULL
+  raw_file = NULL,
+  digits = 5L
 )
 }
 \arguments{
@@ -44,6 +46,11 @@ MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 
 \item{ret_range}{The range of retention time in seconds.}
 
+\item{min_mass}{Numeric; the minimum mass of MS1 species. The value needs to
+match the one in  \link{binTheoSeqs}.}
+
+\item{max_mass}{A maximum mass of precursors for considerations.}
+
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 25.}
 
@@ -52,7 +59,10 @@ default is 25.}
 \item{max_ms2mass}{A positive integer; the maximum MS2 mass for
 interrogation. The default is 4500.}
 
-\item{index_ms2}{Logical; if TRUE, converts MS2 m/z values to indices.}
+\item{mgf_cutmzs}{Cut points of MS1 moverz values in peak picking.}
+
+\item{mgf_cutpercs}{The counts of MS2 features in each region of
+\code{mgf_cutmzs}.}
 
 \item{type_mgf}{The type of MGF format.}
 
@@ -90,6 +100,9 @@ values.}
 \item{nfields_pepmass}{The number of fields in \code{PEPMASS}.}
 
 \item{raw_file}{The raw file name. Is NULL for PD and MSConvert.}
+
+\item{digits}{A non-negative integer; the number of decimal places to be
+used. The default is 4.}
 }
 \description{
 Processes MGF entries in chunks.

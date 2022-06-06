@@ -11,7 +11,7 @@ readlineMGFs(i, file, filepath, raw_file)
 
 \item{file}{An MGF file name.}
 
-\item{filepath}{The file path to a list of mgf files.}
+\item{filepath}{The file path to a list of MGF or mzML files.}
 
 \item{raw_file}{The raw file name. Is NULL for PD and MSConvert.}
 }

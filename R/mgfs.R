@@ -1,15 +1,15 @@
 #' Helper in loading MGFs.
 #'
-#' Currently, \code{index_ms2} is always FALSE.
-#' 
 #' @param min_mass A minimum mass of precursors for considerations.
 #' @param max_mass A maximum mass of precursors for considerations.
 #' @param min_ms2mass A minimum m/z of MS2 ions for considerations.
-#' @param index_ms2 Logical; if TRUE, converts MS2 m/z values to indices.
 #' @param is_ms1_three_frame Logical; is the searches by the three frames of
 #'   preceeding, current and following.
 #' @param is_ms2_three_frame Logical; is the searches by the three frames of
 #'   preceeding, current and following.
+#' @param mgf_cutmzs Cut points of MS1 moverz values in peak picking.
+#' @param mgf_cutpercs The counts of MS2 features in each region of
+#'   \code{mgf_cutmzs}.
 #' @inheritParams matchMS
 load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L, 
                        min_ms2mass = 115L, max_ms2mass = 4500L, topn_ms2ions = 100L, 
@@ -19,7 +19,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
                        ppm_ms1 = 20L, ppm_ms2 = 25L, 
                        is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
-                       enzyme = "trypsin_p", index_ms2 = FALSE) 
+                       enzyme = "trypsin_p", digits = 5L) 
 {
   old_opts <- options()
   options(warn = 1L)
@@ -39,26 +39,20 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
   fun <- as.character(this_call[[1]])
   fun_env <- environment()
   
-  # args_except <- NULL
   args_except <- c("out_path")
+  args <- names(formals(fun))
+  args_must <- args[! args %in% args_except]
   
   cache_pars <- find_callarg_vals(
     time = NULL, 
     path = file.path(out_path, "Calls"), 
     fun = paste0(fun, ".rda"), 
-    args = names(formals(fun)) %>% 
-      .[! . %in% args_except], 
+    args = args_must, 
     new_args = unlist(formals(load_mgfs)[c("enzyme")])
   ) 
   
   cache_pars <- cache_pars[sort(names(cache_pars))]
-  
-  call_pars <- mget(
-    names(formals()) %>% .[! . %in% args_except], 
-    envir = fun_env, 
-    inherits = FALSE
-  ) 
-  
+  call_pars <- mget(args_must, envir = fun_env, inherits = FALSE)
   call_pars <- call_pars[sort(names(call_pars))]
   ok_pars <- identical(call_pars, cache_pars)
   
@@ -92,21 +86,58 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
                   "^mgf$", "^mgfs$", "Calls")
     )
     
-    readMGF(filepath = mgf_path,
-            min_mass = min_mass,
-            max_mass = max_mass, 
-            min_ms2mass = min_ms2mass,
-            max_ms2mass = max_ms2mass, 
-            topn_ms2ions = topn_ms2ions,
-            ms1_charge_range = c(min_ms1_charge, max_ms1_charge), 
-            ms1_scan_range = c(min_scan_num, max_scan_num), 
-            ret_range = c(min_ret_time, max_ret_time),
-            ppm_ms1 = ppm_ms1_new,
-            ppm_ms2 = ppm_ms2_new,
-            mgf_cutmzs = mgf_cutmzs, 
-            mgf_cutpercs = mgf_cutpercs, 
-            index_ms2 = index_ms2,
-            out_path = rds)
+    fi_mgf <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mgf$")
+    fi_mzml <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mzML$")
+    len_mgf <- length(fi_mgf)
+    len_mzml <- length(fi_mzml)
+    
+    if (len_mgf && len_mzml)
+      stop("Peak lists need to be in either MGF or mzML, but not both.")
+    
+    filelist <- if (len_mgf) fi_mgf else fi_mzml
+    
+    if (len_mgf) {
+      readMGF(filepath = mgf_path,
+              filelist = filelist, 
+              min_mass = min_mass,
+              max_mass = max_mass, 
+              min_ms2mass = min_ms2mass,
+              max_ms2mass = max_ms2mass, 
+              topn_ms2ions = topn_ms2ions,
+              ms1_charge_range = c(min_ms1_charge, max_ms1_charge), 
+              ms1_scan_range = c(min_scan_num, max_scan_num), 
+              ret_range = c(min_ret_time, max_ret_time),
+              ppm_ms1 = ppm_ms1_new,
+              ppm_ms2 = ppm_ms2_new,
+              mgf_cutmzs = mgf_cutmzs, 
+              mgf_cutpercs = mgf_cutpercs, 
+              out_path = rds, 
+              digits = digits)
+    }
+    else if (len_mzml) {
+      warning("Please uncheck \"Use zlib compression\" with mzML from MSConvert.", 
+              call. = FALSE)
+      
+      readmzML(filepath = mgf_path,
+               filelist = filelist, 
+               min_mass = min_mass,
+               max_mass = max_mass, 
+               min_ms2mass = min_ms2mass,
+               max_ms2mass = max_ms2mass, 
+               topn_ms2ions = topn_ms2ions,
+               ms1_charge_range = c(min_ms1_charge, max_ms1_charge), 
+               ms1_scan_range = c(min_scan_num, max_scan_num), 
+               ret_range = c(min_ret_time, max_ret_time),
+               ppm_ms1 = ppm_ms1_new,
+               ppm_ms2 = ppm_ms2_new,
+               mgf_cutmzs = mgf_cutmzs, 
+               mgf_cutpercs = mgf_cutpercs, 
+               out_path = rds, 
+               digits = digits)
+    }
+    else {
+      stop("No files of peak lists found.")
+    }
     
     .savecall <- TRUE
   }
@@ -117,7 +148,8 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
 
 #' Reads MGF files in chunks.
 #'
-#' @param filepath The file path to a list of mgf files.
+#' @param filepath The file path to a list of MGF or mzML files.
+#' @param filelist A list of MGF or mzML files.
 #' @param min_mass Numeric; the minimum mass of MS1 species. The value needs to
 #'   match the one in  \link{binTheoSeqs}.
 #' @param topn_ms2ions A non-negative integer; the top-n species for uses in
@@ -136,23 +168,17 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
 #' \donttest{
 #' mgf_queries <- proteoM:::readMGF()
 #' }
-readMGF <- function (filepath = "~/proteoM/mgf",
+readMGF <- function (filepath = NULL, filelist = NULL, 
                      min_mass = 700L, max_mass = 4500L, 
                      min_ms2mass = 115L, max_ms2mass = 4500L, 
                      topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                      ms1_scan_range = c(1L, .Machine$integer.max), 
-                     ret_range = c(0, Inf), 
-                     ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                     ret_range = c(0, Inf), ppm_ms1 = 20L, ppm_ms2 = 25L, 
                      mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
-                     index_ms2 = FALSE,
-                     out_path = file.path(filepath, "mgf_queries.rds")) 
+                     out_path = file.path(filepath, "mgf_queries.rds"), 
+                     digits = 5L) 
 {
   ## Parsing rules
-  filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
-  
-  if (!length(filelist)) 
-    stop("No '.mgf' files under ", filepath)
-  
   pat_mgf <- find_mgf_type(file.path(filepath, filelist[[1]]))
   
   type_mgf <- pat_mgf$type
@@ -225,12 +251,13 @@ readMGF <- function (filepath = "~/proteoM/mgf",
                                 ms1_charge_range = ms1_charge_range, 
                                 ms1_scan_range = ms1_scan_range, 
                                 ret_range = ret_range,
+                                min_mass = min_mass, 
+                                max_mass = max_mass, 
                                 ppm_ms2 = ppm_ms2,
                                 min_ms2mass = min_ms2mass,
                                 max_ms2mass = max_ms2mass, 
                                 mgf_cutmzs = mgf_cutmzs, 
                                 mgf_cutpercs = mgf_cutpercs, 
-                                index_ms2 = index_ms2,
                                 type_mgf = type_mgf, 
                                 n_bf_begin = n_bf_begin, 
                                 n_spacer = n_spacer,
@@ -244,7 +271,8 @@ readMGF <- function (filepath = "~/proteoM/mgf",
                                 nfields_ms2s = nfields_ms2s, 
                                 sep_pepmass = sep_pepmass, 
                                 nfields_pepmass = nfields_pepmass, 
-                                raw_file = raw_files[[i]])
+                                raw_file = raw_files[[i]], 
+                                digits = digits)
     
     local({
       dir2 <- file.path(filepath, gsub("\\.[^.]*$", "", file))
@@ -259,33 +287,42 @@ readMGF <- function (filepath = "~/proteoM/mgf",
   }
   
   ## Clean up
-  out <- out %>%
-    dplyr::bind_rows() %>%
-    dplyr::arrange(ms1_mass) %>%
-    dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass) %>% 
-    dplyr::mutate(frame = find_ms1_interval(ms1_mass,
-                                            from = min_mass,
-                                            ppm = ppm_ms1)) 
+  out <- dplyr::bind_rows(out)
   
-  out <- local({
-    raws_files <- out$raw_file
-    raws <- raws_files[!duplicated.default(raws_files)]
-    inds <- seq_along(raws)
-    names(inds) <- raws
-    qs::qsave(inds, file.path(filepath, "raw_indexes.rds"), preset = "fast")
-    out$raw_file <- unname(inds[raws_files])
-    
-    scans <- out$scan_title
-    inds <- seq_along(scans)
-    names(inds) <- scans
-    qs::qsave(inds, file.path(filepath, "scan_indexes.rds"), preset = "fast")
-    out$scan_title <- unname(inds[scans])
-    
-    out
-  })
-  
-  qs::qsave(out, out_path, preset = "fast")
+  post_readmgf(out, min_mass = min_mass, max_mass = max_mass, ppm_ms1 = ppm_ms1, 
+               filepath = filepath, out_path = out_path)
+}
 
+
+#' Post-processing of MGF or mzML
+#' 
+#' Calculates mass \code{frame}s etc.
+#' 
+#' @param df A data frame of processed peak lists.
+#' @inheritParams readMGF
+post_readmgf <- function (df, min_mass = 700L, max_mass = 4500L, ppm_ms1 = 20L, 
+                          filepath, out_path) 
+{
+  df <- df %>%
+    dplyr::arrange(ms1_mass) %>%
+    # dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass) %>%
+    dplyr::mutate(frame = find_ms1_interval(ms1_mass, from = min_mass, ppm = ppm_ms1))
+
+  raws_files <- df$raw_file
+  raws <- raws_files[!duplicated.default(raws_files)]
+  inds <- seq_along(raws)
+  names(inds) <- raws
+  qs::qsave(inds, file.path(filepath, "raw_indexes.rds"), preset = "fast")
+  df$raw_file <- unname(inds[raws_files])
+  
+  scans <- df$scan_title
+  inds2 <- seq_along(scans)
+  names(inds2) <- scans
+  qs::qsave(inds2, file.path(filepath, "scan_indexes.rds"), preset = "fast")
+  df$scan_title <- unname(inds2[scans])
+  
+  qs::qsave(df, out_path, preset = "fast")
+  
   invisible(NULL)
 }
 
@@ -370,16 +407,16 @@ readlineMGFs <- function (i, file, filepath, raw_file)
 read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                              topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
-                             ret_range = c(0, Inf), ppm_ms2 = 25L, 
+                             ret_range = c(0, Inf), min_mass = 700L, 
+                             max_mass = 4500L, ppm_ms2 = 25L, 
                              min_ms2mass = 115L, max_ms2mass = 4500L, 
                              mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
-                             index_ms2 = FALSE,
                              type_mgf = "msconv_thermo", n_bf_begin = 0L, 
                              n_spacer = 0L, n_hdr = 5L, n_to_pepmass = 3L, 
                              n_to_title = 1L, n_to_scan = 0L, n_to_rt = 2L, 
                              n_to_charge = 4L, sep_ms2s = " ", nfields_ms2s = 2L, 
                              sep_pepmass = " ", nfields_pepmass = 2L, 
-                             raw_file = NULL) 
+                             raw_file = NULL, digits = 5L) 
 {
   filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
   len <- length(filelist)
@@ -416,12 +453,13 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                                 ms1_charge_range = ms1_charge_range, 
                                 ms1_scan_range = ms1_scan_range, 
                                 ret_range = ret_range,
+                                min_mass = min_mass, 
+                                max_mass = max_mass, 
                                 ppm_ms2 = ppm_ms2,
                                 min_ms2mass = min_ms2mass,
                                 max_ms2mass = max_ms2mass, 
                                 mgf_cutmzs = mgf_cutmzs, 
                                 mgf_cutpercs = mgf_cutpercs, 
-                                index_ms2 = index_ms2,
                                 type_mgf = type_mgf,
                                 n_bf_begin = n_bf_begin, 
                                 n_spacer = n_spacer,
@@ -435,7 +473,8 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                                 nfields_ms2s = nfields_ms2s, 
                                 sep_pepmass = sep_pepmass, 
                                 nfields_pepmass = nfields_pepmass, 
-                                raw_file = raw_file)
+                                raw_file = raw_file, 
+                                digits = digits)
   
   parallel::stopCluster(cl)
   gc()
@@ -482,12 +521,13 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                 ms1_charge_range = ms1_charge_range, 
                 ms1_scan_range = ms1_scan_range, 
                 ret_range = ret_range,
+                min_mass = min_mass, 
+                max_mass = max_mass, 
                 ppm_ms2 = ppm_ms2,
                 min_ms2mass = min_ms2mass,
                 max_ms2mass = max_ms2mass, 
                 mgf_cutmzs = mgf_cutmzs, 
                 mgf_cutpercs = mgf_cutpercs, 
-                index_ms2 = index_ms2,
                 type_mgf = type_mgf, 
                 n_bf_begin = n_bf_begin, 
                 n_spacer = n_spacer,
@@ -501,7 +541,8 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                 nfields_ms2s = nfields_ms2s, 
                 sep_pepmass = sep_pepmass, 
                 nfields_pepmass = nfields_pepmass, 
-                raw_file = raw_file)
+                raw_file = raw_file, 
+                digits = digits)
     )
   }
 
@@ -522,16 +563,16 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
 proc_mgf_chunks <- function (file, topn_ms2ions = 100L, 
                              ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
-                             ret_range = c(0, Inf), ppm_ms2 = 25L, 
+                             ret_range = c(0, Inf), min_mass = 700L, 
+                             max_mass = 4500L, ppm_ms2 = 25L, 
                              min_ms2mass = 115L, max_ms2mass = 4500L, 
                              mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
-                             index_ms2 = FALSE,
                              type_mgf = "msconv_thermo", n_bf_begin = 0L, 
                              n_spacer = 0L, n_hdr = 5L, n_to_pepmass = 3L, 
                              n_to_title = 1L, n_to_scan = 0L, n_to_rt = 2L, 
                              n_to_charge = 4L, sep_ms2s = " ", nfields_ms2s = 2L, 
                              sep_pepmass = " ", nfields_pepmass = 2L, 
-                             raw_file = NULL) 
+                             raw_file = NULL, digits = 5L) 
 {
   message("Parsing '", file, "'.")
   lines <- stringi::stri_read_lines(file)
@@ -570,12 +611,13 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                    ms1_charge_range = ms1_charge_range, 
                    ms1_scan_range = ms1_scan_range, 
                    ret_range = ret_range,
+                   min_mass = min_mass, 
+                   max_mass = max_mass, 
                    ppm_ms2 = ppm_ms2,
                    min_ms2mass = min_ms2mass,
                    max_ms2mass = max_ms2mass, 
                    mgf_cutmzs = mgf_cutmzs, 
                    mgf_cutpercs = mgf_cutpercs, 
-                   index_ms2 = index_ms2,
                    type_mgf = type_mgf, 
                    n_bf_begin = n_bf_begin,
                    n_spacer = n_spacer,
@@ -589,7 +631,8 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                    nfields_ms2s = nfields_ms2s, 
                    sep_pepmass = sep_pepmass, 
                    nfields_pepmass = nfields_pepmass, 
-                   raw_file = raw_file)
+                   raw_file = raw_file, 
+                   digits = digits)
 }
 
 
@@ -600,60 +643,174 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
 proc_mgfs <- function (lines, topn_ms2ions = 100L, 
                        ms1_charge_range = c(2L, 6L), 
                        ms1_scan_range = c(1L, .Machine$integer.max), 
-                       ret_range = c(0, Inf), ppm_ms2 = 25L, 
-                       min_ms2mass = 115L, max_ms2mass = 4500L, 
+                       ret_range = c(0, Inf), min_mass = 700L, max_mass = 4500L, 
+                       ppm_ms2 = 25L, min_ms2mass = 115L, max_ms2mass = 4500L, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
-                       index_ms2 = FALSE,
                        type_mgf = "msconv_thermo", n_bf_begin = 0L, 
                        n_spacer = 0L, n_hdr = 5L, n_to_pepmass = 3L,
                        n_to_title = 1L, n_to_scan = 0L, n_to_rt = 2L,
                        n_to_charge = 4L, sep_ms2s = " ", nfields_ms2s = 2L, 
-                       sep_pepmass = " ", nfields_pepmass = 2L, raw_file = NULL) 
+                       sep_pepmass = " ", nfields_pepmass = 2L, raw_file = NULL, 
+                       digits = 5L) 
 {
   options(digits = 9L)
 
-  # MS2 ions
   begins <- which(stringi::stri_startswith_fixed(lines, "BEGIN IONS"))
   ends <- which(stringi::stri_endswith_fixed(lines, "END IONS"))
 
+  ## MS1 
+  # (1) m-over-z and intensity
+  ms1s <- stringi::stri_replace_first_fixed(lines[begins + n_to_pepmass], 
+                                            "PEPMASS=", "")
+  ms1s <- lapply(ms1s, stringi::stri_split_fixed, pattern = sep_pepmass, 
+                 n = nfields_pepmass, simplify = TRUE)
+
+  ms1_moverzs <- lapply(ms1s, function (x) round(as.numeric(x[, 1]), digits = digits))
+  ms1_moverzs <- .Internal(unlist(ms1_moverzs, recursive = FALSE, use.names = FALSE))
+
+  ms1_ints <- lapply(ms1s, function (x) round(as.numeric(x[, 2]), digits = 0L))
+  ms1_ints <- .Internal(unlist(ms1_ints, recursive = FALSE, use.names = FALSE))
+
+  rm(list = c("ms1s"))
+  gc()
+  
+  # (2) retention time
+  ret_times <- stringi::stri_replace_first_fixed(lines[begins + n_to_rt], "RTINSECONDS=", "")
+  ret_times <- as.numeric(ret_times)
+
+  # (3) MS1 charges and masses
+  ms1_charges <- stringi::stri_replace_first_fixed(lines[begins + n_to_charge], "CHARGE=", "")
+  charges <- lapply(ms1_charges, stringi::stri_reverse)
+  charges <- .Internal(unlist(charges, recursive = FALSE, use.names = FALSE))
+  charges <- as.integer(charges)
+  
+  ms1_masses <- mapply(function (x, y) x * y - y * 1.00727647, 
+                       ms1_moverzs, charges, 
+                       SIMPLIFY = TRUE, USE.NAMES = FALSE)
+  ms1_masses <- round(ms1_masses, digits = digits)
+
+  rows <- (charges >= ms1_charge_range[1] & charges <= ms1_charge_range[2] & 
+             ret_times >= ret_range[1] & ret_times <= ret_range[2] & 
+             ms1_masses >= min_mass & ms1_masses <= max_mass)
+  
+  begins <- begins[rows]
+  ends <- ends[rows]
+  ms1_moverzs <- ms1_moverzs[rows]
+  ms1_ints <- ms1_ints[rows]
+  ms1_charges <- ms1_charges[rows]
+  ret_times <- round(ret_times[rows], digits = 2L)
+  ms1_masses <- ms1_masses[rows]
+  charges <- charges[rows]
+
+  # Others
+  scan_titles <- 
+    stringi::stri_replace_first_fixed(lines[begins + n_to_title], "TITLE=", "")
+  
+  if (type_mgf %in% c("msconv_thermo", "msconv_pasef")) {
+    raw_files <- 
+      stringi::stri_replace_first_regex(scan_titles, "^.* File:\"([^\"]+)\".*", "$1")
+    scan_nums <- 
+      stringi::stri_replace_first_regex(scan_titles, 
+                                        "^.*\\.(\\d+)\\.\\d+\\.\\d+ File:\".*", 
+                                        "$1")
+  } 
+  else if (type_mgf == "pd") {
+    raw_files <- gsub("^.*File: \"([^\"]+)\".*", "\\1", scan_titles)
+    raw_files <- gsub("\\\\", "/", raw_files)
+    raw_files <- gsub("^.*/(.*)", "\\1", raw_files)
+    scan_nums <- gsub("^.* scans: \"([0-9]+)\"$", "\\1", scan_titles)
+  } 
+  else if (type_mgf == "default_pasef") {
+    # one raw_file one .d file guaranteed
+    raw_files <- rep(raw_file, length(begins))
+    scan_nums <- stringi::stri_replace_first_fixed(lines[begins + n_to_scan], "RAWSCANS=", "")
+  } 
+  else {
+    stop("Unknown MGF format.", call. = FALSE)
+  }
+
+  ## MS2
   # (-1L: one line above "END IONS")
   ms2s <- mapply(function (x, y) lines[(x + n_hdr) : (y - 1L)], 
                  begins, ends, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
   ms2s <- lapply(ms2s, stringi::stri_split_fixed, pattern = sep_ms2s, 
                  n = nfields_ms2s, simplify = TRUE)
-
-  ms2_moverzs <- lapply(ms2s, function (x) as.numeric(x[, 1]))
-
-  # not to round the `ms2_ints` values here (to avoid ties and thus
-  # shorter length after `which_topx` of a vector of integers;
-  # more likely to have ties with integers than doubles)
-  #
-  # the latest `which_topx` handles ties and the length of the output
-  #  equals `topn_ms2ions` even with ties;
-  # except when the length of a vector is shorter than `topn_ms2ions`)
-
-  # subsets by min_ms2mass
-  ms2_ints <- lapply(ms2s, function (x) as.numeric(x[, 2]))
   
+  ms2_moverzs <- lapply(ms2s, function (x) as.numeric(x[, 1]))
+  ms2_ints <- lapply(ms2s, function (x) as.numeric(x[, 2]))
+  rm(list = c("ms2s"))
+  
+  # subsets by top-n and min_ms2mass
+  mz_n_int <- sub_mgftopn(ms2_moverzs = ms2_moverzs, 
+                          ms2_ints = ms2_ints, 
+                          topn_ms2ions = topn_ms2ions, 
+                          mgf_cutmzs = mgf_cutmzs, 
+                          mgf_cutpercs = mgf_cutpercs, 
+                          min_ms2mass = min_ms2mass, 
+                          max_ms2mass = max_ms2mass)
+  
+  ms2_moverzs <- mz_n_int[["ms2_moverzs"]]
+  ms2_ints <- mz_n_int[["ms2_ints"]]
+  lens <- mz_n_int[["lens"]]
+  rm(list = "mz_n_int")
+  
+  ms2_moverzs <- lapply(ms2_moverzs, round, digits = digits)
+  ms2_ints <- lapply(ms2_ints, round, digits = 0L)
+  
+  tibble::tibble(
+    scan_title = scan_titles,
+    raw_file = raw_files,
+    ms1_moverz = ms1_moverzs,
+    ms1_mass = ms1_masses,
+    ms1_int = ms1_ints,
+    ms1_charge = ms1_charges,
+    ret_time = ret_times,
+    scan_num = scan_nums,
+    ms2_moverz = ms2_moverzs,
+    ms2_int = ms2_ints,
+    ms2_n = lens, 
+    # charge = charges, 
+    )
+}
+
+
+#' Subsets MGFs by top-n
+#' 
+#' \code{lens} after filtered by \code{min_ms2mass} but before subset by 
+#' \code{topn_ms2ions} to reflect noise levels.
+#' 
+#' @param ms2_moverzs Lists of MS2 moverz values.
+#' @param ms2_ints Lists of MS2 intensities
+#' @inheritParams load_mgfs
+sub_mgftopn <- function (ms2_moverzs, ms2_ints, topn_ms2ions = 100L, 
+                         mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
+                         min_ms2mass = 115L, max_ms2mass = 4500L) 
+{
+  options(digits = 9L)
+  
+  ## subsets by min_ms2mass
   oks <- lapply(ms2_moverzs, function (x) x >= min_ms2mass)
   
   ms2_moverzs <- mapply(function (x, y) x[y], ms2_moverzs, oks, 
                         SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
   ms2_ints <- mapply(function (x, y) x[y], ms2_ints, oks, 
                      SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  rm(list = "oks", "ms2s")
-
-  # subsets by top-n
+  
+  rm(list = c("oks"))
+  
+  ## subsets by topn
   lens <- lapply(ms2_moverzs, length)
   lens <- .Internal(unlist(lens, recursive = FALSE, use.names = FALSE))
-
+  
   if (topn_ms2ions < Inf) {
     is_long <- lens > topn_ms2ions
-
+    
     if (length(mgf_cutmzs)) {
       m_long <- ms2_moverzs[is_long]
       i_long <- ms2_ints[is_long]
-
+      
       for (i in seq_along(m_long)) {
         x <- m_long[[i]]
         y <- i_long[[i]]
@@ -662,7 +819,7 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
         ok_ms2 <- x < max_ms2mass
         x <- x[ok_ms2]
         y <- y[ok_ms2]
-
+        
         idxes <- findInterval(x, mgf_cutmzs)
         xs <- split(x, idxes)
         ys <- split(y, idxes)
@@ -695,13 +852,10 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
           rows <- c(list(rows_one), rows_no_one)
         }
         ##
-
-        rows <- mapply(which_topx2, ys, ok_percs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
         
-        ans_x <- mapply(function (x, y) x[y], xs, rows, 
-                        SIMPLIFY = FALSE, USE.NAMES = FALSE)
-        ans_y <- mapply(function (x, y) x[y], ys, rows, 
-                        SIMPLIFY = FALSE, USE.NAMES = FALSE)
+        rows <- mapply(which_topx2, ys, ok_percs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+        ans_x <- mapply(function (x, y) x[y], xs, rows, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+        ans_y <- mapply(function (x, y) x[y], ys, rows, SIMPLIFY = FALSE, USE.NAMES = FALSE)
         
         ans_x <- .Internal(unlist(ans_x, recursive = FALSE, use.names = FALSE))
         ans_y <- .Internal(unlist(ans_y, recursive = FALSE, use.names = FALSE))
@@ -727,119 +881,11 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
       
       rm(list = c("rows"))
     }
-
+    
     rm(list = c("is_long"))
   }
   
-  ms2_ints <- lapply(ms2_ints, round, digits = 0L)
-  ms2_moverzs <- lapply(ms2_moverzs, round, digits = 5L)
-
-  # MS1 ions
-  ms1s <- stringi::stri_replace_first_fixed(lines[begins + n_to_pepmass], 
-                                            "PEPMASS=", "")
-  ms1s <- lapply(ms1s, stringi::stri_split_fixed, pattern = sep_pepmass, 
-                 n = nfields_pepmass, simplify = TRUE)
-
-  ms1_moverzs <- lapply(ms1s, function (x) round(as.numeric(x[, 1]), digits = 5L))
-  ms1_moverzs <- .Internal(unlist(ms1_moverzs, recursive = FALSE, use.names = FALSE))
-
-  # NA's if no MS1 intensities available
-  ms1_ints <- lapply(ms1s, function (x) round(as.numeric(x[, 2]), digits = 0L))
-  ms1_ints <- .Internal(unlist(ms1_ints, recursive = FALSE, use.names = FALSE))
-
-  rm(list = c("ms1s"))
-  gc()
-
-  # Others
-  scan_titles <- 
-    stringi::stri_replace_first_fixed(lines[begins + n_to_title], "TITLE=", "")
-  
-  if (type_mgf %in% c("msconv_thermo", "msconv_pasef")) {
-    raw_files <- 
-      stringi::stri_replace_first_regex(scan_titles, "^.* File:\"([^\"]+)\".*", "$1")
-    scan_nums <- 
-      stringi::stri_replace_first_regex(scan_titles, 
-                                        "^.*\\.(\\d+)\\.\\d+\\.\\d+ File:\".*", 
-                                        "$1")
-  } 
-  else if (type_mgf == "pd") {
-    raw_files <- gsub("^.*File: \"([^\"]+)\".*", "\\1", scan_titles)
-    raw_files <- gsub("\\\\", "/", raw_files)
-    raw_files <- gsub("^.*/(.*)", "\\1", raw_files)
-    scan_nums <- gsub("^.* scans: \"([0-9]+)\"$", "\\1", scan_titles)
-  } 
-  else if (type_mgf == "default_pasef") {
-    raw_files <- rep(raw_file, length(lens))
-    scan_nums <- 
-      stringi::stri_replace_first_fixed(lines[begins + n_to_scan], "RAWSCANS=", "")
-  } 
-  else {
-    stop("Unknown MGF format.", call. = FALSE)
-  }
-
-  ret_times <- 
-    stringi::stri_replace_first_fixed(lines[begins + n_to_rt], "RTINSECONDS=", "")
-  ret_times <- as.numeric(ret_times)
-  
-  ms1_charges <- 
-    stringi::stri_replace_first_fixed(lines[begins + n_to_charge], "CHARGE=", "")
-
-  # MS1 neutral masses
-  proton <- 1.00727647
-
-  charges <- lapply(ms1_charges, stringi::stri_reverse)
-  charges <- .Internal(unlist(charges, recursive = FALSE, use.names = FALSE))
-  charges <- as.integer(charges)
-
-  ms1_masses <- mapply(function (x, y) x * y - y * proton, 
-                       ms1_moverzs, charges, 
-                       SIMPLIFY = TRUE, USE.NAMES = FALSE)
-  ms1_masses <- round(ms1_masses, digits = 5L)
-
-  # Subsetting
-  # (no `scan_num` subsetting)
-  if (type_mgf == "default_pasef") 
-    rows <- (charges >= ms1_charge_range[1] & charges <= ms1_charge_range[2] & 
-               ret_times >= ret_range[1] & ret_times <= ret_range[2])
-  else 
-    rows <- (charges >= ms1_charge_range[1] & charges <= ms1_charge_range[2] & 
-               # scan_nums >= ms1_scan_range[1] & scan_nums <= ms1_scan_range[2] &
-               ret_times >= ret_range[1] & ret_times <= ret_range[2])
-
-  scan_titles <- scan_titles[rows]
-  raw_files <- raw_files[rows]
-  ms1_moverzs <- ms1_moverzs[rows]
-  ms1_masses <- ms1_masses[rows]
-  ms1_ints <- ms1_ints[rows]
-  ms1_charges <- ms1_charges[rows]
-  ret_times <- ret_times[rows]
-  scan_nums <- scan_nums[rows]
-  ms2_moverzs <- ms2_moverzs[rows]
-  ms2_ints <- ms2_ints[rows]
-  lens <- lens[rows]
-
-  # Actually slower
-  if (index_ms2) {
-    ms2_imoverzs <- lapply(ms2_moverzs,
-                           find_ms1_interval,
-                           from = min_ms2mass,
-                           ppm = ppm_ms2)
-  }
-
-  out <- tibble::tibble(scan_title = scan_titles,
-                        raw_file = raw_files,
-                        ms1_moverz = ms1_moverzs,
-                        ms1_mass = ms1_masses,
-                        ms1_int = ms1_ints,
-                        ms1_charge = ms1_charges,
-                        ret_time = ret_times,
-                        scan_num = scan_nums,
-                        ms2_moverz = ms2_moverzs,
-                        ###
-                        # ms2_imoverzs = ms2_imoverzs, 
-                        ###
-                        ms2_int = ms2_ints,
-                        ms2_n = lens)
+  list(ms2_moverzs = ms2_moverzs, ms2_ints = ms2_ints, lens = lens)
 }
 
 
@@ -1088,5 +1134,234 @@ find_mgf_type <- function (file)
                  sep_pepmass = sep_pepmass, 
                  nfields_pepmass = nfields_pepmass, 
                  raw_file = raw_file))
+}
+
+
+#' Reads mzML files.
+#'
+#' @inheritParams readMGF
+readmzML <- function (filepath = NULL, filelist = NULL, 
+                      min_mass = 700L, max_mass = 4500L, 
+                      min_ms2mass = 115L, max_ms2mass = 4500L, 
+                      topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
+                      ms1_scan_range = c(1L, .Machine$integer.max), 
+                      ret_range = c(0, Inf), ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                      mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
+                      out_path, digits = 4L)
+{
+  len <- length(filelist)
+  out <- vector("list", len)
+  
+  # parallel here
+  files <- file.path(filepath, filelist)
+  sizes <- max(unlist(lapply(files, file.size)))/1024^3
+  n_cores <- min(detect_cores(16L), floor((max_ram <- 32)/(sizes * 8)), len)
+  n_cores <- max(1L, n_cores)
+  
+  if (n_cores == 1L) {
+    for (i in 1:len) {
+      out[[i]] <- proc_mzml(files[[i]], 
+                            ms1_charge_range = ms1_charge_range, 
+                            ret_range = ret_range, 
+                            min_mass = min_mass, 
+                            max_mass = max_mass, 
+                            topn_ms2ions = topn_ms2ions, 
+                            mgf_cutmzs = mgf_cutmzs, 
+                            mgf_cutpercs = mgf_cutpercs, 
+                            min_ms2mass = min_ms2mass, 
+                            max_ms2mass = max_ms2mass)
+    }
+  }
+  else {
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    out <- parallel::clusterApply(cl, files, proc_mzml, 
+                                  ms1_charge_range = ms1_charge_range, 
+                                  ret_range = ret_range, 
+                                  min_mass = min_mass, 
+                                  max_mass = max_mass, 
+                                  topn_ms2ions = topn_ms2ions, 
+                                  mgf_cutmzs = mgf_cutmzs, 
+                                  mgf_cutpercs = mgf_cutpercs, 
+                                  min_ms2mass = min_ms2mass, 
+                                  max_ms2mass = max_ms2mass)
+    parallel::stopCluster(cl)
+  }
+  
+  out <- dplyr::bind_rows(out)
+  
+  ## frame number
+  post_readmgf(out, min_mass = min_mass, max_mass = max_mass, ppm_ms1 = ppm_ms1, 
+               filepath = filepath, out_path = out_path)
+}
+
+
+#' Helper of \link{readmzML}
+#' 
+#' @param file A file name to mzML with a prepending path.
+#' @inheritParams readmzML
+proc_mzml <- function (file, ms1_charge_range = c(2L, 6L), ret_range = c(0, Inf), 
+                       min_mass = 700L, max_mass = 4500L, topn_ms2ions = 100L, 
+                       mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
+                       min_ms2mass = 115L, max_ms2mass = 4500L) 
+{
+  message("Loading ", file)
+  
+  df <- read_mzml(file)
+  df <- df[with(df, !is.na(ms1_mass)), ]
+  .Internal(gc(verbose = FALSE, reset = FALSE, full = TRUE))
+  
+  if (! "charge" %in% names(df)) {
+    ms1_charges <- df[["ms1_charges"]]
+    charges <- lapply(ms1_charges, stringi::stri_reverse)
+    charges <- .Internal(unlist(charges, recursive = FALSE, use.names = FALSE))
+    charges <- as.integer(charges)
+    df <- dplyr::mutate(df, charge = charges)
+    rm(list = c("charges", "ms1_charges"))
+  }
+  
+  df <- dplyr::filter(df, 
+                      charge >= ms1_charge_range[1], charge <= ms1_charge_range[2], 
+                      ret_time >= ret_range[1], ret_time <= ret_range[2], 
+                      ms1_mass >= min_mass, ms1_mass <= max_mass, )
+  
+  df[["charge"]] <- NULL
+  
+  mz_n_int <- sub_mgftopn(ms2_moverzs = df[["ms2_moverz"]], 
+                          ms2_ints = df[["ms2_int"]], 
+                          topn_ms2ions = topn_ms2ions, 
+                          mgf_cutmzs = mgf_cutmzs, 
+                          mgf_cutpercs = mgf_cutpercs, 
+                          min_ms2mass = min_ms2mass, 
+                          max_ms2mass = max_ms2mass)
+  
+  # no need of rounding ms2_moverzs, always 4L with Binary64 encoding
+  df[["ms2_moverz"]] <- mz_n_int[["ms2_moverzs"]]
+  df[["ms2_int"]] <- lapply(mz_n_int[["ms2_ints"]], round, digits = 0L)
+  df[["ms2_n"]] <- mz_n_int[["lens"]]
+
+  invisible(df)
+}
+
+
+#' Reads mzML from MSConvert
+#' 
+#' zlib compression need to be disabled when creating mzML from MSConvert.
+#' 
+#' @param xml_file A file name of mzML.
+read_mzml <- function (xml_file)
+{
+  ## spectrum
+  xml_root <- xml2::read_xml(xml_file)
+  mzML <- xml2::xml_child(xml_root)
+  idx_run <- which(xml2::xml_name(xml2::xml_children(mzML)) == "run") # 8
+  run <- xml2::xml_children(mzML)[[idx_run]]
+  idx_specs <- which(xml2::xml_name(xml2::xml_children(run)) == "spectrumList")
+  spec <- xml2::xml_children(xml2::xml_children(run)[[idx_specs]])
+  rm(list = c("mzML", "idx_run", "run", "idx_specs"))
+  
+  len <- length(spec)
+  scan_nums <- ms1_charges <- raw_files <- scan_titles <- character(len)
+  ret_times <- ms1_ints <- ms1_masses <- ms1_moverzs <- numeric(len)
+  ms2_moverzs <- ms2_ints <- vector("list", len)
+  charges <- ms2_ns <- frames <- integer(len)
+  
+  for (i in seq_along(spec)) {
+    x <- spec[[i]]
+    scan_nums[i] <- gsub(".* scan=(.*)$", "\\1", xml2::xml_attr(x, "id"))
+    xc <- xml2::xml_children(x)
+    idx_precursor <- grep("precursorList", xc) # 12
+    rm(list = c("x"))
+    
+    if (length(idx_precursor)) {
+      nms <- xml2::xml_attr(xc, "name")
+      idx_title <- which(nms == "spectrum title") # 10
+      idx_scanList <- grep("scanList", xc) # 11
+      idx_bin <- grep("binaryDataArrayList", xc) # 13
+      
+      ## title
+      title <- xml2::xml_attr(xc[[idx_title]], "value")
+      scan_titles[i] <- title
+      raw_files[i] <- gsub("(.*)\\.[0-9]+\\.[0-9]+\\.[0-9]+ File:.*", "\\1", title)
+      
+      ## retention
+      scanList <- xml2::xml_children(xc[[idx_scanList]])
+      idx_rt <- grep("scan", scanList) # 2
+      scanList_scan <- xml2::xml_children(scanList[[idx_rt]])
+      idx_scan_start <- which(xml2::xml_attr(scanList_scan, "name") == "scan start time") # 1
+      ret_times[i] <- xml2::xml_attr(scanList_scan[[idx_scan_start]], "value")
+      rm(list = c("nms", "title", "scanList_scan", "scanList"))
+      
+      ## precursorList
+      precursorList <- xml2::xml_children(xc[[idx_precursor]])
+      
+      # (assume one precursor, not yet chimeric)
+      precursor <- precursorList[[1]]
+      precursorc <- xml2::xml_children(precursor)
+      idx_selectedIonList <- grep("selectedIonList", precursorc)
+      
+      selectedIon <- xml2::xml_child(precursorc[[idx_selectedIonList]], 1)
+      selectedIonc <- xml2::xml_children(selectedIon)
+      ms1_moverzs[i] <- xml2::xml_attr(selectedIonc[[1]], "value")
+      ms1_charges[i] <- xml2::xml_attr(selectedIonc[[2]], "value")
+      
+      # may be no precursor intensity
+      ms1_ints[i] <- if (length(selectedIonc) > 2L)
+        xml2::xml_attr(selectedIonc[[3]], "value")
+      else
+        numeric(1)
+      
+      rm(list = c("precursor", "precursorc", "idx_selectedIonList", 
+                  "selectedIon", "selectedIonc"))
+      
+      ## binaryDataArrayList
+      binData <- xml2::xml_children(xml2::xml_children(xc[[idx_bin]]))
+      ms2s <- xml2::xml_contents(binData)
+      r1 <- .Call(base64enc:::B64_decode, xml2::xml_text(ms2s[[1]]))
+      r2 <- .Call(base64enc:::B64_decode, xml2::xml_text(ms2s[[2]]))
+      ms2_n <- length(r1)/8L
+      ms2_moverzs[[i]] <- readBin(r1, "double", n = ms2_n, size = 8L)
+      ms2_ints[[i]] <- readBin(r2, "double", n = ms2_n, size = 8L)
+      ms2_ns[i] <- ms2_n
+      rm(list = c("r1", "r2", "ms2s", "binData", "ms2_n"))
+    }
+  }
+  
+  rows <- !is.na(ms1_charges)
+  scan_titles <- scan_titles[rows]
+  raw_files <- raw_files[rows]
+  ms1_moverzs <- ms1_moverzs[rows]
+  ms1_masses <- ms1_masses[rows]
+  ms1_ints <- ms1_ints[rows]
+  ms1_charges <- ms1_charges[rows]
+  ret_times <- ret_times[rows]
+  scan_nums <- scan_nums[rows]
+  ms2_moverzs <- ms2_moverzs[rows]
+  ms2_ints <- ms2_ints[rows]
+  ms2_ns <- ms2_ns[rows]
+  
+  charges <- as.integer(ms1_charges)
+  ms1_charges <- paste0(ms1_charges, "+") # assume always "+" for now
+  ms1_moverzs <- round(as.numeric(ms1_moverzs), digits = 4L)
+  ms1_masses <- round(ms1_moverzs * charges - charges * 1.00727647, digits = 4L)
+  ms1_ints <- round(as.numeric(ms1_ints), digits = 0L)
+  ret_times <- round(as.numeric(ret_times) * 60, digits = 2L)
+  
+  tibble::tibble(
+    scan_title = scan_titles,
+    raw_file = raw_files,
+    ms1_moverz = ms1_moverzs,
+    ms1_mass = ms1_masses,
+    ms1_int = ms1_ints,
+    ms1_charge = ms1_charges,
+    ret_time = ret_times,
+    scan_num = scan_nums,
+    ms2_moverz = ms2_moverzs,
+    ms2_int = ms2_ints,
+    
+    # before subset by min_ms2mass
+    ms2_n = ms2_ns, 
+    
+    # temporarily kept
+    charge = charges,)
 }
 

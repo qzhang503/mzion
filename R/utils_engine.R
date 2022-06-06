@@ -353,12 +353,9 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
       # lapply(tps2, hash_frame_nums)
     })
   }
-  else 
-    theopeps2 <- NULL
 
   invisible(list(mgf_frames = mgf_frames, 
-                 theopeps = theopeps, 
-                 theopeps2 = theopeps2))
+                 theopeps = theopeps))
 }
 
 
