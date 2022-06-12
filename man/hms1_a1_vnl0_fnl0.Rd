@@ -10,7 +10,6 @@ hms1_a1_vnl0_fnl0(
   aa_masses,
   vmods_nl = NULL,
   fmods_nl = NULL,
-  include_insource_nl = FALSE,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   ms1vmods = NULL,
@@ -29,12 +28,6 @@ acid residues.}
 \item{vmods_nl}{The attribute of \code{vmods_nl} from an \code{aa_masses}.}
 
 \item{fmods_nl}{The attribute of \code{fmods_nl} from an \code{aa_masses}.}
-
-\item{include_insource_nl}{Not yet used. Logical; if TRUE, includes MS1
-precursor masses with the losses of neutral species prior to MS2
-fragmentation. The default is FALSE. The setting at TRUE remains
-experimenting by allowing additional masses in the universe of MS1
-precursors.}
 
 \item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
 \code{Anywhere} (non-terminal) variable modifications per peptide. The
@@ -59,5 +52,5 @@ interrogation. The default is 4500.}
 used. The default is 4.}
 }
 \description{
-Needs additional unlist if \code{include_insource_nl = TRUE}.
+Helper of \link{ms1_a1_vnl0_fnl0}.
 }

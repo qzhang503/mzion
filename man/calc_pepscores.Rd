@@ -27,7 +27,6 @@ calc_pepscores(
   acc_pattern,
   fixedmods,
   varmods,
-  include_insource_nl = FALSE,
   enzyme = "trypsin_p",
   maxn_fasta_seqs = 200000L,
   maxn_vmods_setscombi = 64L,
@@ -150,12 +149,6 @@ c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
   \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
   \link{parse_unimod} for grammars of modification \code{title},
   \code{position} and \code{site}.}
-
-\item{include_insource_nl}{Not yet used. Logical; if TRUE, includes MS1
-precursor masses with the losses of neutral species prior to MS2
-fragmentation. The default is FALSE. The setting at TRUE remains
-experimenting by allowing additional masses in the universe of MS1
-precursors.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from protein entries. The

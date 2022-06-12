@@ -24,7 +24,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                       # dummies
                       fasta, acc_type, acc_pattern,
                       topn_ms2ions, fixedmods, varmods, 
-                      include_insource_nl, enzyme, 
+                      enzyme, 
                       maxn_fasta_seqs, maxn_vmods_setscombi, 
                       min_len, max_len, max_miss, 
 

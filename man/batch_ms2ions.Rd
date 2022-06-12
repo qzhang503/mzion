@@ -10,7 +10,6 @@ batch_ms2ions(
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
-  include_insource_nl = FALSE,
   type_ms2ions = "by",
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
@@ -37,12 +36,6 @@ prepended directory path. The experimenter needs to supply the files.}
   \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
   \link{parse_unimod} for grammars of modification \code{title},
   \code{position} and \code{site}.}
-
-\item{include_insource_nl}{Not yet used. Logical; if TRUE, includes MS1
-precursor masses with the losses of neutral species prior to MS2
-fragmentation. The default is FALSE. The setting at TRUE remains
-experimenting by allowing additional masses in the universe of MS1
-precursors.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2

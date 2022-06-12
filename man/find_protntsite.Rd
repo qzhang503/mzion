@@ -45,15 +45,15 @@ passed as a parameter for vectorization.}
 vectorization).}
 }
 \description{
-Flowchart (1-nt): `Dimethyl (Protein N-term = P)`
+Flowchart (1-nt): Dimethyl (Protein N-term = P)
 
-Flowchart (3-nt): `Gln->pyro Glu (N-term = Q)`
+Flowchart (3-nt): Gln->pyro Glu (N-term = Q)
 
-Flowchart (5): `Oxidation (M)`
+Flowchart (5): Oxidation (M)
 
-Flowchart f(1-ct): `Dehydrated (Protein C-term = N)`
+Flowchart f(1-ct): Dehydrated (Protein C-term = N)
 
-Flowchart f(3-ct): `Oxidation (C-term = G)`
+Flowchart f(3-ct): Oxidation (C-term = G)
 }
 \details{
 In the less common cases of multiple modifications to the same

@@ -4,7 +4,7 @@
 \alias{find_nmodtree}
 \title{Find and subset peptides.}
 \usage{
-find_nmodtree(prps, min_n_res, vmods, posns, len)
+find_nmodtree(prps, min_n_res, vmods, posns, len, motifs = NULL)
 }
 \arguments{
 \item{prps}{Lists of peptide sequences with a one-letter representation of
@@ -21,6 +21,9 @@ passed as a parameter for vectorization.}
 
 \item{len}{The count of \code{vmods} (passed as a parameter for
 vectorization).}
+
+\item{motifs}{A list of motifs of amino-acide residues. for example,
+"MN|NG". See also \link{matchMS}.}
 }
 \description{
 (1-nt) Protein N-term + site -> (2-nt) Any protein N-term -> (3-nt) Any

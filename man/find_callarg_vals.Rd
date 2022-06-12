@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils_os.R
 \name{find_callarg_vals}
 \alias{find_callarg_vals}
-\title{Finds the values of a list of arguments.}
+\title{Finds the values of a list of arguments from caches.}
 \usage{
 find_callarg_vals(
   time = NULL,
@@ -21,11 +21,14 @@ find_callarg_vals(
 
 \item{args}{Arguments to be matched.}
 
-\item{new_args}{Named vector; new arguments that are not in earlier versions.}
+\item{new_args}{vector of argument_name-default_value pairs; new arguments
+that are not in earlier versions.}
 }
 \value{
 The time stamp of a matched cache results.
 }
 \description{
-Finds the values of a list of arguments.
+Back-compatibility: if \code{new_args} are not in an earlier version. The
+\emph{default} value from the current version will be added to cached
+results.
 }

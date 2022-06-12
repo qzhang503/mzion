@@ -22,3 +22,6 @@ Note to the developer: when manufacturing, a \code{pos} must be terminal in
 one of \code{c("Protein N-term", "Any N-term", "Protein C-term", "Any
 C-term")}. \code{"Anywhere"} is not one of them.
 }
+\details{
+No need to check \code{is.null(p)} and \code{is.null(posns)}.
+}

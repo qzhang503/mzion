@@ -7,7 +7,6 @@
 calc_monopep(
   aa_seq,
   aa_masses,
-  include_insource_nl = FALSE,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   max_mass = 4500L,
@@ -20,14 +19,6 @@ representation of amino acids.}
 
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
-
-\item{include_insource_nl}{Logical Logical; if TRUE, includes MS1 precursor
-masses with the losses of neutral species prior to MS2 fragmentation. The
-default is FALSE. The setting at TRUE remains experimenting by allowing
-additional masses in the universe of MS1 precursors. The offsets in NLs (by
-adding back precursor masses) have not yet taken into account in MS2 ion
-searches. A more systemically approach such as \code{open} MS1 masses might
-be developed in the future.}
 
 \item{maxn_vmods_per_pep}{The maximum number of variable modifications per
 peptide.}

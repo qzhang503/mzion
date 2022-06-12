@@ -7,6 +7,7 @@
 distri_peps(
   prps,
   aa_masses_all,
+  motifs_all,
   max_miss = 2L,
   max_len = 40L,
   enzyme = "trypsin_p"
@@ -17,6 +18,8 @@ distri_peps(
 amino acid residues. Each list is named by protein accession.}
 
 \item{aa_masses_all}{All the amino acid look-up tables.}
+
+\item{motifs_all}{Lists of motifs of modifications.}
 
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
 

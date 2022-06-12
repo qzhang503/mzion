@@ -4,7 +4,7 @@
 \alias{add_fixvar_masses}
 \title{Helper to add modification masses to amino-acid residues.}
 \usage{
-add_fixvar_masses(mods, mod_type, aa_masses)
+add_fixvar_masses(mods, mod_type, aa_masses, mod_motifs = NULL)
 }
 \arguments{
 \item{mods}{A list of modifications.}
@@ -15,6 +15,16 @@ modifications.}
 
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
+
+\item{mod_motifs}{The motifs to restrict \code{Anywhere} variable
+  modification. For example, provided the \code{Anywhere} variable
+  modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
+
+  \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation
+  (M)`  = c("NM", "MP"))}
+
+  variable modifications will only be considered at sites that satisfy the
+  motifs.}
 }
 \value{
 Lists of of amino-acid residues with modified mono-isotopic masses

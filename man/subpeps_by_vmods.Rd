@@ -4,7 +4,7 @@
 \alias{subpeps_by_vmods}
 \title{Subsets peptides by variable modifications.}
 \usage{
-subpeps_by_vmods(aa_masses, prps)
+subpeps_by_vmods(aa_masses, prps, motifs = NULL)
 }
 \arguments{
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
@@ -12,6 +12,9 @@ acid residues.}
 
 \item{prps}{Lists of peptide sequences with a one-letter representation of
 amino acid residues. Each list is named by protein accession.}
+
+\item{motifs}{A list of motifs of amino-acide residues. for example,
+"MN|NG". See also \link{matchMS}.}
 }
 \description{
 From N-term to C-term.

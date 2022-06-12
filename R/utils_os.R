@@ -23,21 +23,21 @@
 #' @param TMT_plex Numeric; the multiplexity of TMT, i.e., 10, 11 etc.
 find_int_cols <- function (TMT_plex) 
 {
-  col_int <- if (TMT_plex == 18) 
+  col_int <- if (TMT_plex == 18L) 
     c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
       "I130N", "I130C", "I131N", "I131C",
       "I132N", "I132C", "I133N", "I133C", "I134N", "I134C", "I135N") 
-  else if (TMT_plex == 16) 
+  else if (TMT_plex == 16L) 
     c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
       "I130N", "I130C", "I131N", "I131C",
       "I132N", "I132C", "I133N", "I133C", "I134N")
-  else if (TMT_plex == 11) 
+  else if (TMT_plex == 11L) 
     c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
       "I130N", "I130C", "I131N", "I131C")
-  else if (TMT_plex == 10) 
+  else if (TMT_plex == 10L) 
     c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
       "I130N", "I130C", "I131")
-  else if(TMT_plex == 6) 
+  else if(TMT_plex == 6L) 
     c("I126", "I127", "I128", "I129", "I130", "I131")
   else 
     NULL
@@ -59,8 +59,10 @@ ins_cols_after <- function(df = NULL, idx_bf = ncol(df), idx_ins = NULL)
 {
   if (is.null(df)) 
     stop("`df` cannot be `NULL`.", call. = FALSE)
+  
   if (is.null(idx_ins)) 
     return(df)
+  
   if (idx_bf >= ncol(df)) 
     return(df)
   
@@ -81,7 +83,8 @@ ins_cols_after <- function(df = NULL, idx_bf = ncol(df), idx_ins = NULL)
 #'   (after).
 add_cols_at <- function(df, df2, idx) 
 {
-  stopifnot(idx >= 0L)
+  if (idx < 0L)
+    stop("Column index ", idx, " cannot be negative.")
   
   bf <- if (idx == 0L) 
     NULL
@@ -111,7 +114,12 @@ add_cols_at <- function(df, df2, idx)
 replace_cols_at <- function(df, df2, idxs) 
 {
   ncol <- ncol(df)
-  stopifnot(all(idxs >= 1L), all(idxs <= ncol))
+  
+  if (!all(idxs >= 1L))
+    stop("Not all indexes are greater or equal to one.")
+  
+  if (!all(idxs <= ncol))
+    stop("Not all indexes are smaller or equal to the number of columns.")
   
   idxs <- sort(idxs)
   stopifnot(all.equal(idxs - idxs[1] + 1L, seq_along(idxs)))
@@ -232,9 +240,9 @@ find_preceding_colnm <- function(df, to_move)
   if (!to_move %in% names(df)) 
     stop("Column ", to_move, " not found.", call. = FALSE)
 
-  ind_bf <- which(names(df) == to_move) - 1
+  ind_bf <- which(names(df) == to_move) - 1L
   
-  if (ind_bf == 0) 
+  if (ind_bf == 0L) 
     names(df)[1]
   else 
     names(df)[ind_bf]
@@ -267,9 +275,10 @@ recur_flatten <- function (x)
 chunksplit <- function (data, n_chunks = 5L, type = c("list", "row"), ...)
 {
   type <- match.arg(type)
-
-  stopifnot(type %in% c("list", "row"))
   
+  if (!type %in% c("list", "row"))
+    stop("The value of \"type\" needs to be either \"list\" or \"row\".")
+
   if (n_chunks <= 1L) 
     return(data)
   
@@ -301,8 +310,9 @@ chunksplit <- function (data, n_chunks = 5L, type = c("list", "row"), ...)
 #' @inheritParams chunksplit
 chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list") 
 {
-  stopifnot(type %in% c("list", "row"))
-  
+  if (!type %in% c("list", "row"))
+    stop("The value of \"type\" needs to be either \"list\" or \"row\".")
+
   if (n_chunks <= 1L) 
     return(data)
   
@@ -374,13 +384,16 @@ find_dir <- function (path, create = FALSE)
   
   if (fs::dir_exists(p1)) {
     path <- p1
-  } else if (fs::dir_exists(p2)) {
+  } 
+  else if (fs::dir_exists(p2)) {
     path <- p2
-  } else {
+  } 
+  else {
     if (create) {
       dir.create(file.path(path), recursive = TRUE, showWarnings = FALSE)
       path <- p1
-    } else {
+    } 
+    else {
       message(path, " not found.")
       path <- NULL
     }
@@ -426,10 +439,16 @@ save_call2 <- function(path, fun, time = NULL)
 }
 
 
-#' Finds the values of a list of arguments.
+#' Finds the values of a list of arguments from caches.
+#'
+#' Back-compatibility: if \code{new_args} are not in an earlier version. The
+#' \emph{default} value from the current version will be added to cached
+#' results.
 #'
 #' @param args Arguments to be matched.
-#' @param new_args Named vector; new arguments that are not in earlier versions.
+#' @param new_args vector of argument_name-default_value pairs; new arguments
+#'   that are not in earlier versions.
+#'
 #' @inheritParams save_call2
 #' @import dplyr purrr
 #' @importFrom magrittr %>% %T>% %$%
@@ -443,42 +462,40 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
   if (length(fun) != 1L)
     stop("Length of `fun` is not exactly one: ", paste(fun, collapse = ", "))
 
-  if (is.null(time)) {
-    file <- file.path(path, fun)
-  } 
-  else {
-    stopifnot(length(time) == 1L)
-    file <- file.path(path, fun, time)
-  }
-  
+  file <- if (is.null(time)) file.path(path, fun) else file.path(path, fun, time)
+
   if (!file.exists(file)) 
     return(NULL)
 
   load(file = file)
   
   # --- back-compatibility
-  if (!is.null(new_args) && is.null(names(new_args))) 
-    stop("Named vector for `new_args`.")
+  if ((!is.null(new_args)) && is.null(names(new_args))) 
+    stop("Need named vector for `new_args`.")
   
-  call_pars <- local({
-    new_args <- c(n_13c = 0L, min_ms1_charge = 2L, max_ms1_charge = 6L, 
-                  min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
-                  min_ret_time = 0L, max_ret_time = .Machine$integer.max, 
-                  new_args)
-    
-    for (i in seq_along(new_args)) {
-      x <- new_args[i]
-      nm <- names(x)
-      val <- unname(x)
+  if (!is.null(new_args)) {
+    call_pars <- local({
+      nargs <- c(# n_13c = 0L, min_ms1_charge = 2L, max_ms1_charge = 6L, 
+                 new_args)
       
-      # nm in "must-matched" args but not in earlier "call_pars"
-      if ((nm %in% args) && (! nm %in% names(call_pars)))
-        call_pars[[nm]] <- val
-    }
-    
-    call_pars
-  })
-  
+      for (i in seq_along(nargs)) {
+        x <- nargs[i]
+        nm <- names(x)
+        val <- unname(x)
+        
+        # nm in "must-matched" args but not in earlier "call_pars"
+        if ((nm %in% args) && (! nm %in% names(call_pars))) {
+          if (is_nulllist(x))
+            call_pars <- c(call_pars, x)
+          else
+            call_pars[[nm]] <- val
+        }
+      }
+      
+      call_pars
+    })
+  }
+
   nots <- which(! args %in% names(call_pars))
   
   if (length(nots)) 
@@ -514,40 +531,45 @@ match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
   if (len_path > 1L)
     stop("Multiple pathes to cache folder.")
   
-  if (length(fun) != 1) 
+  if (length(fun) != 1L) 
     stop("Multiple functions: ", fun)
 
   if (length(type) > 1L) 
     type <- TRUE
   
-  # current
+  # if (!all(names(new_args) %in% nms))
+  #   warning("Developer: not all new arguments defined in the required list.")
+  
+  # current values
+  fml_nms <- names(formals(fun))
+  
   args <- if (type) 
-    mget(names(formals(fun)) %>% .[. %in% nms], 
-         envir = parent.frame(), inherits = FALSE)
+    mget(fml_nms[fml_nms %in% nms], envir = parent.frame(), inherits = FALSE)
   else 
-    mget(names(formals(fun)) %>% .[! . %in% nms], 
-         envir = parent.frame(), inherits = FALSE)
+    mget(fml_nms[! fml_nms %in% nms], envir = parent.frame(), inherits = FALSE)
 
   if (!length(args)) 
     stop("Arguments for matching is empty.", call. = FALSE)
   
-  args <- lapply(args, sort)
+  args <- lapply(args, function (x) if (is.list(x)) lapply(x, sort) else sort(x))
   
   times <- list.files(path = file.path(path, fun),
                       pattern = "\\.rda$",
                       all.files = TRUE)
   
-  # cached
+  # cached values
   cached <- lapply(times, find_callarg_vals, path = path, fun = fun,
                    args = names(args), new_args = new_args)
   
-  cached <- lapply(cached, function (x) lapply(x, sort))
+  cached <- lapply(cached, function (x) lapply(x, function (v) {
+    if (is.list(v)) lapply(v, sort) else sort(v)
+  }))
   
   # matched
   oks <- lapply(cached, identical, args)
   oks <- unlist(oks, recursive = FALSE, use.names = FALSE)
   
-  times[oks] %>% gsub("\\.rda$", "", .)
+  gsub("\\.rda$", "", times[oks])
 }
 
 
@@ -598,7 +620,7 @@ delete_files <- function (path, ignores = NULL, ...)
     })
   }
   
-  if (length(nms) > 0L) 
+  if (length(nms)) 
     suppressMessages(file.remove(file.path(nms)))
 
   invisible(NULL)
@@ -642,3 +664,126 @@ find_ms1_times <- function (out_path)
     stop("Cannot find `.time_stamp`.")
   }
 }
+
+
+
+#' Finds a global variable.
+#'
+#' Not yet used. The utility at first looks up the global environment then the
+#' indicated file.
+#'
+#' @param x Variable name
+#' @param file An file name as an alternative for looking up.
+#' @seealso \link{find_ms1_times}
+#' @examples
+#' \donttest{
+#' out_path <- "~/proteoM/example/"
+#' cache <- file.path(out_path, "Calls/.cache_info.rds")
+#' get_globalvar(".time_stamp", cache)
+#' }
+get_globalvar <- function (val = NULL, cache = NULL)
+{
+  ## See find_ms1_times for more complete implementation
+  
+  if (is.null(val))
+    stop("\"val\" cannot be NULL.")
+  
+  if (length(val) > 1L)
+    stop("The length of \"val\" is not one.")
+  
+  ok <- exists(val, envir = .GlobalEnv, inherits = FALSE)
+  
+  if (ok)
+    return(get(val, envir = .GlobalEnv, inherits = FALSE))
+  
+  if (is.null(cache))
+    stop("\"cache\" cannot be NULL when without a global match.")
+  
+  if (length(cache) > 1L)
+    stop("The length of \"cache\" is not one.")
+  
+  if (!file.exists(cache))
+    stop("Object \"", val, " \" not found in ", cache, ".")
+  
+  ans <- qs::qread(cache)
+  assign(x = val, val, envir = .GlobalEnv)
+  
+  ans[[val]]
+}
+
+
+#' Loads variable to the global environment.
+#' 
+#' Not yet used. 
+#' 
+#' @param file An file name as an alternative for looking up
+#' @param overwrite If TRUE, overwrite the pre-existed global values with the
+#'   cache values.
+#' @seealso \link{find_ms1_times}
+#' @examples
+#' \donttest{
+#' out_path <- "~/proteoM/example/"
+#' cache <- file.path(out_path, "Calls/.cache_info.rds")
+#' load_cache_info(cache)
+#' }
+load_cache_info <- function (cache = NULL, overwrite = TRUE)
+{
+  ## See find_ms1_times for more complete implementation
+  
+  if (is.null(cache))
+    stop("\"cache\" cannot be NULL.")
+  
+  if (length(cache) > 1L)
+    stop("The length of \"cache\" is not one.")
+  
+  if (!file.exists(cache))
+    stop("File not existed: ", cache)
+  
+  ans <- qs::qread(cache)
+  
+  for (i in seq_along(ans)) {
+    nm <- names(ans[i])
+    val <- ans[[i]]
+    
+    if (overwrite)
+      assign(x = nm, val, envir = .GlobalEnv)
+    else {
+      if (!exists(nm, envir = .GlobalEnv, inherits = FALSE))
+        assign(x = nm, val, envir = .GlobalEnv)
+    }
+  }
+  
+  invisible(ans)
+}
+
+
+#' Is a NULL list
+#' 
+#' @param x A list.
+#' @examples 
+#' is_nullist(list(a = NULL))
+is_nulllist <- function (x)
+{
+  length(x) == 1L && is.null(x[[1]])
+}
+
+
+#' Adds a plain NULL entry to a list.
+#' 
+#' This is different to, for example, \code{x[["a"]] <- list(NULL)}.
+#' 
+#' @param l A list.
+#' @param nm A character vector of name.
+#' @examples 
+#' l <- list(a = 2, b = 3)
+#' add_nulllist(l, "m")
+#' 
+add_nulllist <- function (l, nm)
+{
+  l <- c(l, list(NULL))
+  names(l)[length(l)] <- nm
+  
+  l
+}
+
+

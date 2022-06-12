@@ -27,13 +27,13 @@ passed as a parameter for vectorization.}
 vectorization).}
 }
 \description{
-Flowchart (2-nt): `Acetyl (Protein N-term)`
+Flowchart (2-nt): Acetyl (Protein N-term)
 
-Flowchart (4-nt): `Acetyl (N-term)`
+Flowchart (4-nt): Acetyl (N-term)
 
-Flowchart (2-ct): `Amidated (Protein C-term)`
+Flowchart (2-ct): Amidated (Protein C-term)
 
-Flowchart (4-ct): `Amidated (C-term)`
+Flowchart (4-ct): Amidated (C-term)
 }
 \examples{
 \donttest{

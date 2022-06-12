@@ -7,9 +7,9 @@
 find_pos_site(pos)
 }
 \arguments{
-\item{pos}{The UniMod position of a variable modification, which must be one
+\item{pos}{The Unimod position of a variable modification, which must be one
 of \code{c("Protein N-term", "Protein C-term", "Any N-term", "Any C-term",
-"Anywhere")}. No need to call stopifnot for the way the function is called
+"Anywhere")}. No need to check its value for the way the function is called
 (by the developer).}
 }
 \value{
@@ -25,4 +25,12 @@ one of \code{c("C-term", "N-term")}. For example, \code{`Oxidation (M)` =
 "M"} for the former and \code{`Protein N-term` = "N-term"} for the later. In
 other words, \code{pos} can be a simple upper case letter or a string of
 "\code{[NC]-term}".
+}
+\details{
+However, \code{vmods} like \code{`Protein N-term` = "N-term"} or \code{`Any
+N-term` = "N-term"} are trivial and will fail against the \code{oks} check.
+
+As pointed out above, there is no need to check \code{is.null(p)}. Also there
+is no need to check \code{is.null(posns)} as it is always a character string
+of \code{attr(aa_masses, "vmods_ps", exact = TRUE)}.
 }

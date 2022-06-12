@@ -12,7 +12,7 @@ calc_pepmasses2(
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
-  include_insource_nl = FALSE,
+  mod_motifs = NULL,
   enzyme = c("trypsin_p"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL),
   maxn_fasta_seqs = 50000L,
@@ -53,13 +53,15 @@ c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
 
 \item{varmods}{A character vector of variable modifications.}
 
-\item{include_insource_nl}{Logical Logical; if TRUE, includes MS1 precursor
-masses with the losses of neutral species prior to MS2 fragmentation. The
-default is FALSE. The setting at TRUE remains experimenting by allowing
-additional masses in the universe of MS1 precursors. The offsets in NLs (by
-adding back precursor masses) have not yet taken into account in MS2 ion
-searches. A more systemically approach such as \code{open} MS1 masses might
-be developed in the future.}
+\item{mod_motifs}{The motifs to restrict \code{Anywhere} variable
+  modification. For example, provided the \code{Anywhere} variable
+  modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
+
+  \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation
+  (M)`  = c("NM", "MP"))}
+
+  variable modifications will only be considered at sites that satisfy the
+  motifs.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from proteins. The enzyme

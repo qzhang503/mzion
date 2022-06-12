@@ -11,8 +11,6 @@ batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_202
                            varmods = c("Acetyl (Protein N-term)",
                                        "Oxidation (M)", "Deamidated (N)",
                                        "Gln->pyro-Glu (N-term = Q)"),
-                           include_insource_nl = FALSE,
-                           # enzyme = c("trypsin_p"),
                            type_ms2ions = "by", 
                            maxn_vmods_setscombi = 64L,
                            maxn_vmods_per_pep = 5L, 

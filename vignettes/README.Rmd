@@ -5,14 +5,6 @@ author:
 date: "`r Sys.Date()`"
 always_allow_html: true
 output:
-  github_document:
-    toc: yes
-  md_document:
-    toc: yes
-    toc_depth: 4
-    variant: gfm
-  word_document:
-    toc: yes
   html_document:
     fig_caption: yes
     highlight: haddock
@@ -21,6 +13,14 @@ output:
     toc: yes
     toc_depth: 4
     toc_float: yes
+  md_document:
+    toc: yes
+    toc_depth: 4
+    variant: gfm
+  word_document:
+    toc: yes
+  github_document:
+    toc: yes
   pdf_document:
     toc: yes
     number_sections: true
@@ -149,5 +149,5 @@ matchMS(
 ## Other utilities
 
 - `mapMS2ions`: visualizations of matched MS2 ions
-- `table_unimods` summary of Unimod entry
+- `table_unimods` summary of Unimod entries
 - `add_unimod`: addition of a Unimod entry

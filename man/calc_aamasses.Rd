@@ -8,6 +8,7 @@ calc_aamasses(
   fixedmods = c("TMT6plex (K)", "Carbamidomethyl (. = C)"),
   varmods = c("TMT6plex (N-term)", "Acetyl (Protein N-term)", "Oxidation (M)",
     "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
+  mod_motifs = NULL,
   maxn_vmods_setscombi = 64L,
   out_path = NULL
 )
@@ -17,6 +18,16 @@ calc_aamasses(
 \link{parse_unimod} for grammars.}
 
 \item{varmods}{A character vector of variable modifications.}
+
+\item{mod_motifs}{The motifs to restrict \code{Anywhere} variable
+  modification. For example, provided the \code{Anywhere} variable
+  modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
+
+  \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation
+  (M)`  = c("NM", "MP"))}
+
+  variable modifications will only be considered at sites that satisfy the
+  motifs.}
 
 \item{maxn_vmods_setscombi}{Integer; the maximum number of combinatorial variable
 modifications and neutral losses.}

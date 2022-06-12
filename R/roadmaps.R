@@ -81,6 +81,7 @@
 #           - calcms1mass_noterm_byprot (-> export)
 #             - calcms1mass_noterm_bypep (-> export)
 #       - roll_sum (-> export; ms1_precursors.R)
+#     - find_motif_pat
 #     - distri_peps (varmods)
 #       - subpeps_by_vmods (dispatch.R)
 #         - find_nmodtree
@@ -368,6 +369,8 @@
 # find_callarg_vals
 # match_calltime
 # delete_files
+# is_nulllist
+# add_nulllist
 #################################
 
 #################################
@@ -403,6 +406,21 @@
 # parse_unimod
 # find_unimod
 # table_unimods
+#################################
+
+
+
+#################################
+# dispatch.R
+#################################
+# find_pos_site
+# find_protntsite
+# find_anyntsite
+# ...
+# subpeps_by_vmods
+# find_nmodtree
+# find_cmodtree
+# subset_by_prps
 #################################
 
 

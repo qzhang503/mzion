@@ -1,7 +1,7 @@
 proteoM
 ================
 true
-2022-06-05
+2022-06-06
 
 -   [Installation](#installation)
 -   [FASTAs and MGFs](#fastas-and-mgfs)
@@ -112,5 +112,5 @@ matchMS(
 ## Other utilities
 
 -   `mapMS2ions`: visualizations of matched MS2 ions
--   `table_unimods` summary of Unimod entry
+-   `table_unimods` summary of Unimod entries
 -   `add_unimod`: addition of a Unimod entry

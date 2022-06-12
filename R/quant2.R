@@ -407,10 +407,10 @@ hadd_prot_acc <- function (df, fwd_prps, rev_prps)
     pnt_nots <- grepl("Protein N-term", out$pep_vmod) & !out$is_pnt
     pct_nots <- grepl("Protein C-term", out$pep_vmod) & !out$is_pct
     
-    if (sum(pnt_nots) > 0L) 
+    if (sum(pnt_nots, na.rm = TRUE) > 0L) 
       out <- out[!pnt_nots, ]
     
-    if (sum(pct_nots) > 0L) 
+    if (sum(pct_nots, na.rm = TRUE) > 0L) 
       out <- out[!pct_nots, ]
     
     # peptide `is_pnt` and `is_pct` are not EXACT facts

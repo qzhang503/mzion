@@ -7,23 +7,26 @@
 \alias{subset_anyntany}
 \alias{subset_anysite}
 \alias{subset_protctsite}
+\alias{subset_protctany}
 \alias{subset_anyctsite}
 \alias{subset_anyctany}
 \title{Subsets proteins by variable modifications.}
 \usage{
-subset_protntsite(prps, site)
+subset_protntsite(prps, site, motifs = NULL)
 
-subset_protntany(prps)
+subset_protntany(prps, motifs = NULL)
 
-subset_anyntsite(prps, site = "Q")
+subset_anyntsite(prps, site = "Q", motifs = NULL)
 
 subset_anyntany(peps)
 
-subset_anysite(prps, sites, min_n_res)
+subset_anysite(prps, sites, min_n_res, motifs = NULL)
 
-subset_protctsite(prps, site = "V")
+subset_protctsite(prps, site, motifs = NULL)
 
-subset_anyctsite(prps, site = "Q")
+subset_protctany(prps, motifs = NULL)
+
+subset_anyctsite(prps, site, motifs = NULL)
 
 subset_anyctany(peps)
 }
@@ -33,24 +36,29 @@ amino acid residues. Each list is named by protein accession.}
 
 \item{site}{A site. No need to specify "any terminal" sites.}
 
+\item{motifs}{A list of motifs of amino-acide residues. for example,
+"MN|NG". See also \link{matchMS}.}
+
 \item{min_n_res}{The minimum numbers of residues for a given set of sites.}
 }
 \description{
-Flowchart (1-nt): `Dimethyl (Protein N-term = P)`
+Flowchart (1-nt): Dimethyl (Protein N-term = P)
 
-Flowchart (2-nt): `Acetyl (Protein N-term)`
+Flowchart (2-nt): Acetyl (Protein N-term)
 
-Flowchart (3-nt): `Gln->pyro Glu (N-term = Q)`
+Flowchart (3-nt): Gln->pyro Glu (N-term = Q)
 
-Flowchart f(4-nt): `Acetyl (N-term)`
+Flowchart f(4-nt): Acetyl (N-term)
 
-Flowchart (5): `Oxidation (M)`
+Flowchart (5): Oxidation (M)
 
-Flowchart (1-ct): `Dehydrated (Protein C-term = N)`
+Flowchart (1-ct): Dehydrated (Protein C-term = N)
 
-Flowchart (3-ct): `Oxidation (C-term = G)`
+Flowchart f(2-ct)
 
-Flowchart (4-ct): `Amidated (C-term)`
+Flowchart (3-ct): Oxidation (C-term = G)
+
+Flowchart (4-ct): Amidated (C-term)
 }
 \examples{
 \donttest{

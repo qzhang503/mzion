@@ -27,8 +27,7 @@
 #' # (2-b) combinatorial NL for fixed modifications
 #' x <- calc_monopeptide("MAKEMASSPECFUN",
 #'                       fixedmods = "Oxidation (M)",
-#'                       varmods = NULL,
-#'                       include_insource_nl = TRUE)
+#'                       varmods = NULL)
 #'
 #' m <- unlist(x$mass)
 #'
@@ -51,8 +50,7 @@
 #' # (3-b)
 #' x <- calc_monopeptide("MAKEMASSPECFUN",
 #'                       fixedmods = NULL,
-#'                       varmods = "Oxidation (M)",
-#'                       include_insource_nl = TRUE)
+#'                       varmods = "Oxidation (M)")
 #'
 #' x$mass
 #'
@@ -81,14 +79,12 @@
 #'                                     "Carbamidomethyl (C)"),
 #'                       varmods = c("Acetyl (N-term)",
 #'                                   "Gln->pyro-Glu (N-term = Q)",
-#'                                   "Oxidation (M)"),
-#'                       include_insource_nl = TRUE)
+#'                                   "Oxidation (M)"))
 #'
 #' x$mass
 #' }
 #' @export
 calc_monopeptide <- function (aa_seq, fixedmods, varmods,
-                              include_insource_nl = FALSE,
                               maxn_vmods_setscombi = 64L,
                               maxn_vmods_per_pep = Inf,
                               maxn_sites_per_vmod = Inf,
@@ -110,7 +106,6 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
   
   ms <- purrr::map2(peps, aa_masses_all, ~ {
     calc_monopep(.x, .y,
-                 include_insource_nl = include_insource_nl,
                  maxn_vmods_per_pep = maxn_vmods_per_pep,
                  maxn_sites_per_vmod = maxn_sites_per_vmod,
                  max_mass = max_mass, 
@@ -138,7 +133,6 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
 #' @import purrr
 #' @importFrom stringr str_split
 calc_monopep <- function (aa_seq, aa_masses,
-                          include_insource_nl = FALSE,
                           maxn_vmods_per_pep = 5L,
                           maxn_sites_per_vmod = 3L,
                           max_mass = 4500L, 
@@ -176,7 +170,7 @@ calc_monopep <- function (aa_seq, aa_masses,
   tmod <- attr(aa_masses, "tmod", exact = TRUE)
   
   # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
-  if (include_insource_nl) {
+  if (FALSE) {
     if (type %in% c("amods- tmod- vnl- fnl+", "amods- tmod+ vnl- fnl+")) {
       fnl_combi <- expand_grid_rows(fmods_nl)
       deltas <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)

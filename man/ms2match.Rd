@@ -26,7 +26,6 @@ ms2match(
   topn_ms2ions,
   fixedmods,
   varmods,
-  include_insource_nl,
   enzyme,
   maxn_fasta_seqs,
   maxn_vmods_setscombi,
@@ -138,12 +137,6 @@ searches. The default is to use the top-100 ions in an MS2 event.}
   \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
   \link{parse_unimod} for grammars of modification \code{title},
   \code{position} and \code{site}.}
-
-\item{include_insource_nl}{Not yet used. Logical; if TRUE, includes MS1
-precursor masses with the losses of neutral species prior to MS2
-fragmentation. The default is FALSE. The setting at TRUE remains
-experimenting by allowing additional masses in the universe of MS1
-precursors.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from protein entries. The

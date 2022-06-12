@@ -68,11 +68,15 @@
 #'   \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
 #'   \link{parse_unimod} for grammars of modification \code{title},
 #'   \code{position} and \code{site}.
-#' @param include_insource_nl Not yet used. Logical; if TRUE, includes MS1
-#'   precursor masses with the losses of neutral species prior to MS2
-#'   fragmentation. The default is FALSE. The setting at TRUE remains
-#'   experimenting by allowing additional masses in the universe of MS1
-#'   precursors.
+#' @param mod_motifs The motifs to restrict \code{Anywhere} variable
+#'   modification. For example, provided the \code{Anywhere} variable
+#'   modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
+#'
+#'   \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation
+#'   (M)`  = c("NM", "MP"))}
+#'
+#'   variable modifications will only be considered at sites that satisfy the
+#'   motifs.
 #' @param enzyme A character string; the proteolytic specificity of the assumed
 #'   enzyme will be used to generate peptide sequences from protein entries. The
 #'   default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.
@@ -520,7 +524,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      varmods = c("Acetyl (Protein N-term)",
                                  "Oxidation (M)", "Deamidated (N)",
                                  "Gln->pyro-Glu (N-term = Q)"),
-                     include_insource_nl = FALSE,
+                     mod_motifs = NULL, 
                      enzyme = c("Trypsin_P", "Trypsin", "LysC", "LysN", "ArgC", 
                                 "LysC_P", "Chymotrypsin", "GluC", "GluN", 
                                 "AspC", "AspN", "SemiTrypsin_P", "SemiTrypsin", 
@@ -542,7 +546,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      
                      par_groups = NULL, 
                      silac_mix = NULL, 
-
+                     
                      type_ms2ions = "by", 
                      min_ms2mass = 115L, 
                      max_ms2mass = 4500L, 
@@ -593,20 +597,17 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   this_call <- match.call()
   fun <- as.character(this_call[1])
+  this_fml <- formals()
+  
+  ## Developer's dots
+  dots <- as.list(substitute(...()))
   
   suppressWarnings(
     rm(list = c(".path_cache", ".path_fasta", ".path_ms1masses", 
                 ".time_stamp", ".time_bin", ".path_bin"), 
        envir = .GlobalEnv)
   )
-  
-  ## Developer's dots
-  dots <- as.list(substitute(...()))
 
-  ## Tentative; not for users
-  if (include_insource_nl) 
-    stop("Currently only supports `include_insource_nl = FALSE`.")
-  
   ## Preparation
   # modifications
   fixedmods <- sort(fixedmods)
@@ -617,7 +618,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
     acc_pattern <- NULL
   
   # logical types 
-  stopifnot(vapply(c(include_insource_nl, match_pepfdr, combine_tier_three, 
+  stopifnot(vapply(c(match_pepfdr, combine_tier_three, 
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
                      add_ms2ints), 
                    is.logical, logical(1L)))
@@ -741,7 +742,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   }
 
   # enzyme
-  oks <- eval(formals()[["enzyme"]])
+  oks <- eval(this_fml[["enzyme"]])
   oks_lwr <- tolower(oks)
   enzyme <- substitute(enzyme)
   
@@ -757,14 +758,14 @@ matchMS <- function (out_path = "~/proteoM/outs",
       stop("Incorrect `enzyme = ", enzyme, "`.")
   }
   
-  if (!is.null(custom_enzyme)) {
+  if (is.null(custom_enzyme)) {
+    enzyme <- enzyme_lwr
+  }
+  else {
     warning("Overrule `enzyme` with `custom_enzyme`.", call. = FALSE)
     enzyme <- NULL
   }
-  else {
-    enzyme <- enzyme_lwr
-  }
-
+  
   if ((!is.null(enzyme)) && (enzyme == "noenzyme"))
     max_miss <- 0L
   
@@ -776,7 +777,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   rm(list = c("oks", "oks_lwr", "enzyme_lwr"))
   
   # fdr_type
-  oks <- eval(formals()[["fdr_type"]])
+  oks <- eval(this_fml[["fdr_type"]])
   fdr_type <- substitute(fdr_type)
   
   if (length(fdr_type) > 1L)
@@ -791,7 +792,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   rm(list = c("oks"))
 
   # Quantitation method
-  oks <- eval(formals()[["quant"]])
+  oks <- eval(this_fml[["quant"]])
   quant <- substitute(quant)
   
   if (length(quant) > 1L)
@@ -893,7 +894,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   ## No-enzyme searches
   exec_noenzyme <- if (isTRUE(dots$bypass_noenzyme)) FALSE else TRUE
   
-  if (enzyme == "noenzyme" && exec_noenzyme) {
+  if (isTRUE(enzyme == "noenzyme") && exec_noenzyme) {
     matchMS_noenzyme(this_call = this_call, min_len = min_len, max_len = max_len, 
                      fasta = fasta, out_path = out_path, mgf_path = mgf_path, 
                      noenzyme_maxn = noenzyme_maxn, quant = quant, 
@@ -938,7 +939,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
       acc_pattern = acc_pattern,
       fixedmods = fixedmods,
       varmods = varmods,
-      include_insource_nl = include_insource_nl,
+      mod_motifs = mod_motifs, 
       enzyme = enzyme,
       custom_enzyme = custom_enzyme, 
       maxn_fasta_seqs = maxn_fasta_seqs,
@@ -1012,11 +1013,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
   use_first_rev <- dots$use_first_rev
   if (is.null(use_first_rev)) use_first_rev <- FALSE
   
-  aa_masses_all <- 
-    qs::qread(file.path(.path_ms1masses, .time_stamp, "aa_masses_all.rds"))
-  
-  mod_indexes <- 
-    find_mod_indexes(file.path(.path_ms1masses, .time_stamp, "mod_indexes.txt"))
+  .time_stamp <- find_ms1_times(out_path)
+  aa_masses_all <- qs::qread(file.path(.path_ms1masses, .time_stamp, "aa_masses_all.rds"))
+  mod_indexes <- find_mod_indexes(file.path(.path_ms1masses, .time_stamp, "mod_indexes.txt"))
 
   if (!bypass_ms2match) {
     ms2match(mgf_path = mgf_path,
@@ -1042,7 +1041,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
              topn_ms2ions = topn_ms2ions,
              fixedmods = fixedmods,
              varmods = varmods,
-             include_insource_nl = include_insource_nl,
              enzyme = enzyme,
              maxn_fasta_seqs = maxn_fasta_seqs,
              maxn_vmods_setscombi = maxn_vmods_setscombi,
@@ -1088,7 +1086,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
                    acc_pattern = acc_pattern,
                    fixedmods = fixedmods,
                    varmods = varmods,
-                   include_insource_nl = include_insource_nl,
                    enzyme = enzyme,
                    maxn_fasta_seqs = maxn_fasta_seqs,
                    maxn_vmods_setscombi = maxn_vmods_setscombi,
@@ -1207,8 +1204,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
                    combine_tier_three = combine_tier_three, 
                    max_n_prots = max_n_prots)
   
-  # post_psmc2q
-
   .savecall <- TRUE
 
   invisible(df)
@@ -1727,7 +1722,7 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
       ans <- tryCatch(eval(sub_call), error = function (e) NULL)
 
       if (is.null(ans)) {
-        message("No results from `min_len = ", start, "` to `max_len = ", end, "`.")
+        message("Completed `min_len = ", start, "` to `max_len = ", end, "`.")
         # unlink(sub_path, recursive = TRUE)
       }
       
@@ -2087,16 +2082,20 @@ checkMGF <- function (mgf_path = NULL, grp_args = NULL,
   if (is.null(mgf_path)) 
     stop("`mgf_path` not found.", call. = FALSE)
   
-  filelist <- list.files(path = mgf_path, pattern = "\\.mgf$")
+  fi_mgf <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mgf$")
+  fi_mzml <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mzML$")
+  len_mgf <- length(fi_mgf)
+  len_mzml <- length(fi_mzml)
   
-  if (!length(filelist)) {
+  if (len_mgf && len_mzml)
+    stop("Peak lists need to be in either MGF or mzML, but not both.")
+  
+  if (!(len_mgf || len_mzml)) {
     if (error == "warn")
       warning("No `.mgf` files immediately under ", mgf_path, call. = FALSE)
     else
       stop("No `.mgf` files immediately under ", mgf_path, call. = FALSE)
   }
-
-  rm(list = c("filelist"))
   
   invisible(mgf_path)
 }

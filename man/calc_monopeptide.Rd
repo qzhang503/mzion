@@ -8,7 +8,6 @@ calc_monopeptide(
   aa_seq,
   fixedmods,
   varmods,
-  include_insource_nl = FALSE,
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = Inf,
   maxn_sites_per_vmod = Inf,
@@ -24,14 +23,6 @@ representation of amino acids.}
 \link{parse_unimod} for grammars.}
 
 \item{varmods}{A character vector of variable modifications.}
-
-\item{include_insource_nl}{Logical Logical; if TRUE, includes MS1 precursor
-masses with the losses of neutral species prior to MS2 fragmentation. The
-default is FALSE. The setting at TRUE remains experimenting by allowing
-additional masses in the universe of MS1 precursors. The offsets in NLs (by
-adding back precursor masses) have not yet taken into account in MS2 ion
-searches. A more systemically approach such as \code{open} MS1 masses might
-be developed in the future.}
 
 \item{maxn_vmods_setscombi}{Integer; the maximum number of combinatorial variable
 modifications and neutral losses.}
@@ -72,8 +63,7 @@ stopifnot((m[1] - 1626.5267) < 1e-4)
 # (2-b) combinatorial NL for fixed modifications
 x <- calc_monopeptide("MAKEMASSPECFUN",
                       fixedmods = "Oxidation (M)",
-                      varmods = NULL,
-                      include_insource_nl = TRUE)
+                      varmods = NULL)
 
 m <- unlist(x$mass)
 
@@ -96,8 +86,7 @@ stopifnot((m[2] - m[1]) == (m[3] - m[2]))
 # (3-b)
 x <- calc_monopeptide("MAKEMASSPECFUN",
                       fixedmods = NULL,
-                      varmods = "Oxidation (M)",
-                      include_insource_nl = TRUE)
+                      varmods = "Oxidation (M)")
 
 x$mass
 
@@ -126,8 +115,7 @@ x <- calc_monopeptide("MAKEMASSPECFUN",
                                     "Carbamidomethyl (C)"),
                       varmods = c("Acetyl (N-term)",
                                   "Gln->pyro-Glu (N-term = Q)",
-                                  "Oxidation (M)"),
-                      include_insource_nl = TRUE)
+                                  "Oxidation (M)"))
 
 x$mass
 }
