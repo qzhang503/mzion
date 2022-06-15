@@ -898,8 +898,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
     matchMS_noenzyme(this_call = this_call, min_len = min_len, max_len = max_len, 
                      fasta = fasta, out_path = out_path, mgf_path = mgf_path, 
                      noenzyme_maxn = noenzyme_maxn, quant = quant, 
-                     sys_ram = sys_ram)
-    
+                     sys_ram = sys_ram, 
+                     silac_noenzyme = if (!is.null(silac_mix)) TRUE else FALSE, 
+                     groups_noenzyme = if (!is.null(par_groups)) TRUE else FALSE)
+
     return(NULL)
   }
 
@@ -911,7 +913,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                       this_call = this_call, 
                       out_path = out_path, 
                       mgf_path = mgf_path)
-    
+
     return(NULL)
   }
   
@@ -924,6 +926,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                              mgf_paths = mgf_paths, 
                              this_call = this_call, 
                              out_path = out_path)
+    
+    .savecall <- TRUE
     
     return(df)
   }
@@ -1014,9 +1018,19 @@ matchMS <- function (out_path = "~/proteoM/outs",
   if (is.null(use_first_rev)) use_first_rev <- FALSE
   
   .time_stamp <- find_ms1_times(out_path)
-  aa_masses_all <- qs::qread(file.path(.path_ms1masses, .time_stamp, "aa_masses_all.rds"))
-  mod_indexes <- find_mod_indexes(file.path(.path_ms1masses, .time_stamp, "mod_indexes.txt"))
-
+  
+  if (length(.time_stamp) == 1L) {
+    aa_masses_all <- qs::qread(file.path(.path_ms1masses, .time_stamp, 
+                                         "aa_masses_all.rds"))
+    mod_indexes <- find_mod_indexes(file.path(.path_ms1masses, .time_stamp, 
+                                              "mod_indexes.txt"))
+  }
+  else {
+    # only with group searches (low priority)
+    aa_masses_all <- NULL
+    mod_indexes <- NULL
+  }
+  
   if (!bypass_ms2match) {
     ms2match(mgf_path = mgf_path,
              aa_masses_all = aa_masses_all,
@@ -1132,16 +1146,29 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   if (bypass_from_protacc) 
     return(NULL)
-
+  
   if (enzyme != "noenzyme") {
     df <- add_prot_acc(out_path = out_path, 
                        .path_cache = .path_cache, 
                        .path_fasta = .path_fasta)
   }
   else {
-    df <- add_prot_acc2(out_path = out_path, 
-                        .path_cache = .path_cache, 
-                        .path_fasta = .path_fasta)
+    silac_noenzyme <- if (isTRUE(dots$silac_noenzyme)) TRUE else FALSE
+    
+    if (silac_noenzyme) {
+      # see matchMS_noenzyme for nested silac under noenzyme
+      df <- add_prot_acc(out_path = out_path, 
+                         .path_cache = .path_cache, 
+                         .path_fasta = .path_fasta)
+    }
+    else {
+      # with multiple subdirs (length ranges)
+      df <- add_prot_acc2(out_path = out_path, 
+                          .path_cache = .path_cache, 
+                          .path_fasta = .path_fasta)
+    }
+    
+    rm(list = "silac_noenzyme")
   }
 
   df <- calc_protfdr(df = df, 
@@ -1635,14 +1662,22 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
 
 
 #' Noenzyme search.
-#' 
+#'
 #' @param this_call An expression from match.call.
+#' @param silac_noenzyme Logical; is the search a combination of SILAC and
+#'   noenzyme.
+#' @param groups_noenzyme Logical; is the search a combination of group search
+#'   and noenzyme.
 #' @inheritParams matchMS
 matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L, 
                               fasta = NULL, out_path = NULL, mgf_path = NULL, 
                               noenzyme_maxn = 0L, quant = "none", 
-                              sys_ram = 32L) 
+                              sys_ram = 32L, silac_noenzyme = FALSE, 
+                              groups_noenzyme = FALSE) 
 {
+  if (groups_noenzyme)
+    stop("Not yet support group searches with no enzyme specificity")
+    
   message("Searches with no enzyme specificity...")
   
   size <- local({
@@ -1686,14 +1721,14 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
       spans <- chunksplit(min_len:max_len, n_chunks, rightmost.closed = TRUE)
     }
 
-    out_paths <- vector("list", n_chunks)
+    sub_nms <- out_paths <- vector("list", n_chunks)
 
     for (i in seq_len(n_chunks)) {
       sub_call <- this_call
       span <- spans[[i]]
       start <- span[1]
       end <- span[length(span)]
-      sub_nm <- paste0("sub", i, "_", start, "_", end)
+      sub_nm <- sub_nms[[i]] <- paste0("sub", i, "_", start, "_", end)
       sub_path <- out_paths[[i]] <- create_dir(file.path(out_path, sub_nm))
 
       ok <- file.exists(file.path(sub_path, "psmQ.txt"))
@@ -1705,9 +1740,7 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
         
         if (file.exists(mgf_call)) {
           sub_call_path <- create_dir(file.path(sub_path, "Calls"))
-          
-          file.copy(mgf_call, file.path(sub_call_path, "load_mgfs.rda"), 
-                    overwrite = TRUE)
+          file.copy(mgf_call, file.path(sub_call_path, "load_mgfs.rda"), overwrite = TRUE)
         }
       }
 
@@ -1718,34 +1751,57 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
       sub_call$bypass_noenzyme <- TRUE
       sub_call$bypass_from_pepscores <- TRUE
       sub_call$use_first_rev <- TRUE
-      
+      sub_call$silac_noenzyme <- silac_noenzyme # silac + noenzyme
+
       ans <- tryCatch(eval(sub_call), error = function (e) NULL)
-
-      if (is.null(ans)) {
-        message("Completed `min_len = ", start, "` to `max_len = ", end, "`.")
-        # unlink(sub_path, recursive = TRUE)
-      }
       
-      file.copy(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots.rds"), 
-                file.path(sub_path))
-      file.copy(file.path(.path_ms1masses, .time_stamp, "prot_pep_annots_rev.rds"), 
-                file.path(sub_path))
-
+      message("Completed `min_len = ", start, "` to `max_len = ", end, "`.")
       gc()
     }
     
+    # not necessary for silac_noenzyme
     file.copy(file.path(out_paths[[1]], "Calls"), out_path, recursive = TRUE)
     combine_ion_matches(out_path, out_paths, type = "ion_matches_")
     combine_ion_matches(out_path, out_paths, type = "reporters_")
     combine_ion_matches(out_path, out_paths, type = "ion_matches_rev_")
-
+    
     this_call$bypass_noenzyme <- TRUE
     this_call$bypass_pepmasses <- TRUE
     this_call$bypass_bin_ms1 <- TRUE
     this_call$bypass_mgf <- TRUE
     this_call$bypass_ms2match <- TRUE
+    
+    # (a) nested silac + noenzyme: flow through to psmQ -> combine -> done
+    # 
+    # (b) noenzyme only: early return bypass_from_pepscores -> next length range 
+    #     ... -> all lengths -> combine ion_matches ... -> final psmQ
+    
+    silac_mix <- eval(this_call$silac_mix)
 
-    ans <- tryCatch(eval(this_call), error = function (e) NULL)
+    # if (a) nested or (b) noenzyme only
+    if (length(silac_mix) > 1L) {
+      lapply(c("psmC.txt", "psmQ.txt", "psmT2.txt", "psmT3.txt"), function (file) {
+        dfs <- lapply(out_paths, function (sub_path) {
+          fi <- file.path(sub_path, file)
+          
+          if (file.exists(fi)) 
+            df <- readr::read_tsv(fi, show_col_types = FALSE)
+          else 
+            df <- NULL
+        })
+        
+        dfs <- dplyr::bind_rows(dfs)
+        readr::write_tsv(dfs, file.path(out_path, file))
+        
+        invisible(NULL)
+      })
+      
+      this_call$silac_mix <- NULL # just in case 
+    }
+    else {
+      ans <- tryCatch(eval(this_call), error = function (e) NULL)
+    }
+    
 
     message("Done (noenzyme search).")
     options(show.error.messages = FALSE)
@@ -1759,7 +1815,7 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
 #' SILAC
 #'
 #' Searches against mixed SILAC groups (heave and light mixed into one sample).
-#' 
+#'
 #' @param this_call An expression from match.call.
 #' @inheritParams matchMS
 matchMS_silac_mix <- function (silac_mix = list(base = NULL, 
@@ -1823,9 +1879,7 @@ matchMS_silac_mix <- function (silac_mix = list(base = NULL,
       
       if (file.exists(mgf_call)) {
         sub_call_path <- create_dir(file.path(sub_path, "Calls"))
-        
-        file.copy(mgf_call, file.path(sub_call_path, "load_mgfs.rda"), 
-                  overwrite = TRUE)
+        file.copy(mgf_call, file.path(sub_call_path, "load_mgfs.rda"), overwrite = TRUE)
       }
     }
     
@@ -1834,13 +1888,12 @@ matchMS_silac_mix <- function (silac_mix = list(base = NULL,
     sub_call$mgf_path <- mgf_path
     sub_call$bypass_silac_mix <- TRUE
     sub_call$silac_mix <- NULL
+    sub_call$bypass_from_pepscores <- FALSE # flowthrough: silac + noenzyme
 
     df <- tryCatch(eval(sub_call), error = function (e) NULL)
     
-    if (is.null(df)) {
+    if (is.null(df)) 
       warning("No results at `silac_mix = ", sub_nm, "`.")
-      # unlink(sub_path, recursive = TRUE)
-    }
 
     rm(list = c("df"))
     gc()
@@ -1848,8 +1901,12 @@ matchMS_silac_mix <- function (silac_mix = list(base = NULL,
   
   message("Combine mixed SILAC results.")
   comine_PSMsubs(sub_paths = out_paths, groups = nms, out_path = out_path)
-
   gc()
+  
+  enzyme <- as.character(this_call[["enzyme"]])
+
+  if (isTRUE(enzyme == "noenzyme"))
+    return(NULL)
   
   message("Done (mixed SILAC search).")
   options(show.error.messages = FALSE)

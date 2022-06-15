@@ -633,7 +633,7 @@ delete_files <- function (path, ignores = NULL, ...)
 find_ms1_times <- function (out_path) 
 {
   if (".time_stamp" %in% ls(envir = .GlobalEnv, all.names = TRUE)) {
-    # sometime incorrect `.time_stamp` from a previous session
+    # may be incorrect `.time_stamp` from a previous session
     return(get(".time_stamp", envir = .GlobalEnv, inherits = FALSE))
   }
   
@@ -649,6 +649,7 @@ find_ms1_times <- function (out_path)
     return(.time_stamp)
   }
   
+  # not really used; may return(NULL)
   file2 <- file.path(out_path, "temp", "out_paths.rds")
   
   if (file.exists(file2)) {
@@ -657,7 +658,7 @@ find_ms1_times <- function (out_path)
     .cache_infos <- 
       lapply(out_paths, function (x) qs::qread(file.path(x, "Calls", ".cache_info.rds")))
 
-    # multiple time stamps
+    # multiple time stamps (e.g. group searches)
     return(lapply(.cache_infos, function (x) x[[".time_stamp"]]))
   }
   else {
@@ -683,8 +684,6 @@ find_ms1_times <- function (out_path)
 #' }
 get_globalvar <- function (val = NULL, cache = NULL)
 {
-  ## See find_ms1_times for more complete implementation
-  
   if (is.null(val))
     stop("\"val\" cannot be NULL.")
   
@@ -728,8 +727,6 @@ get_globalvar <- function (val = NULL, cache = NULL)
 #' }
 load_cache_info <- function (cache = NULL, overwrite = TRUE)
 {
-  ## See find_ms1_times for more complete implementation
-  
   if (is.null(cache))
     stop("\"cache\" cannot be NULL.")
   

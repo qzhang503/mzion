@@ -637,7 +637,7 @@ calc_pepmasses2 <- function (
 #'
 #' @inheritParams calc_pepmasses2
 find_aa_masses <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
-                            mod_motifs = NULL, maxn_vmods_setscombi = 64L) 
+                           mod_motifs = NULL, maxn_vmods_setscombi = 64L) 
 {
   if (!file.exists(file.path(out_path, "aa_masses_all.rds"))) {
     message("Computing the combinations of fixed and variable modifications.")

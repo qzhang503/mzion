@@ -1,7 +1,7 @@
 Package: proteoM
 Type: Package
 Title: Database Searches of Proteomic Mass-spectrometrirc Data
-Version: 1.1.6.0
+Version: 1.1.6.1
 Authors@R: 
     person(given = "Qiang",
            family = "Zhang",
@@ -40,7 +40,7 @@ Imports:
     xml2, 
     Matrix,
     Rcpp
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.0
 Remotes:
     qzhang503/proteoCpp
 LinkingTo: 

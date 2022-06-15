@@ -13,7 +13,9 @@ matchMS_noenzyme(
   mgf_path = NULL,
   noenzyme_maxn = 0L,
   quant = "none",
-  sys_ram = 32L
+  sys_ram = 32L,
+  silac_noenzyme = FALSE,
+  groups_noenzyme = FALSE
 )
 }
 \arguments{
@@ -61,6 +63,12 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 \code{quant = tmt18} is suitable.}
 
 \item{sys_ram}{For Mac OS or Linux. The amount of system RAM in GB.}
+
+\item{silac_noenzyme}{Logical; is the search a combination of SILAC and
+noenzyme.}
+
+\item{groups_noenzyme}{Logical; is the search a combination of group search
+and noenzyme.}
 }
 \description{
 Noenzyme search.
