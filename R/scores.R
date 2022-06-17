@@ -1451,6 +1451,8 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   counts <- as.numeric(names(prob_cos))
   names(counts) <- all_lens
   names(prob_cos) <- all_lens
+  
+  prob_nas <- prob_cos[is.na(prob_cos)]
   prob_cos <- prob_cos[!is.na(prob_cos)]
   
   if (length(prob_cos) == 1L) {
@@ -1470,8 +1472,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   if (length(lens) <= 3L) {
     prob_cos <- prob_cos[!is.na(names(prob_cos))]
     
-    return(data.frame(pep_len = as.numeric(names(prob_cos)), 
-                      pep_prob_co = prob_cos))
+    return(fill_probco_nas(prob_nas, prob_cos))
   }
 
   # quality ones for fittings
@@ -1671,9 +1672,31 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     })
   }
   
-  prob_cos <- data.frame(pep_len = as.numeric(names(prob_cos)), 
-                         pep_prob_co = prob_cos) %T>% 
+  prob_cos <- fill_probco_nas(prob_nas, prob_cos) %T>% 
     qs::qsave(file.path(out_path, "temp", "pep_probco.rds"), preset = "fast")
+}
+
+
+#' Fills NA in probability cutoffs
+#' 
+#' @param prob_nas Named vector; peptide length in names and NA in values.
+#' @param prob_cos Named vector; non-NA probability cutoffs.
+fill_probco_nas <- function (prob_nas, prob_cos)
+{
+  prob_nas <- prob_nas[!names(prob_nas) %in% names(prob_cos)]
+  
+  if (length(prob_nas)) {
+    nm_nas <- names(prob_nas)
+    prob_nas <-rep(median(prob_cos), length(prob_nas))
+    names(prob_nas) <- nm_nas
+    ans <- c(prob_cos, prob_nas)
+  }
+  else {
+    ans <- prob_cos
+  }
+  
+  ans <- data.frame(pep_len = as.numeric(names(ans)), pep_prob_co = ans)
+  ans <- dplyr::arrange(ans, pep_len)
 }
 
 

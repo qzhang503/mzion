@@ -1229,7 +1229,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
       `names<-`(c(fixedmods, varmods))
     
     is_coerced <- if (length(f_to_v)) 
-      names(mod_indexes) == f_to_v
+      names(mod_indexes) %in% f_to_v
     else 
       rep(FALSE, length(mod_indexes))
 
