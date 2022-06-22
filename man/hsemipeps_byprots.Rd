@@ -4,7 +4,7 @@
 \alias{hsemipeps_byprots}
 \title{Helper of \link{semipeps_byprots}.}
 \usage{
-hsemipeps_byprots(prots, min_len = 7L, aa_masses = NULL)
+hsemipeps_byprots(prots, min_len = 7L, max_len = 40L, aa_masses)
 }
 \arguments{
 \item{prots}{Lists of proteins with full-enzymatic sequences. For each entry

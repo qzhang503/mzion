@@ -16,7 +16,7 @@
 #' @param df0 A zero-row data frame that holds column names.
 #' @inheritParams matchMS
 #' @inheritParams ms2match
-#' @inheritParams add_fixvar_masses
+#' @inheritParams add_var_masses
 #' @import purrr
 #' @import parallel
 ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass, 

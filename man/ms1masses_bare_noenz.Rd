@@ -4,7 +4,7 @@
 \alias{ms1masses_bare_noenz}
 \title{Calculates masses of peptides.}
 \usage{
-ms1masses_bare_noenz(x, aa_masses, ftmass = 18.010565, digits = 5L)
+ms1masses_bare_noenz(x, aa_masses, ftmass = 18.010565)
 }
 \arguments{
 \item{x}{A vector of peptide sequences.}

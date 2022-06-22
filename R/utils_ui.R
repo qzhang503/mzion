@@ -128,7 +128,7 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
 #'
 #' @param aa_seq Character string; a peptide sequences with one-letter
 #'   representation of amino acids.
-#' @inheritParams add_fixvar_masses
+#' @inheritParams add_var_masses
 #' @inheritParams calc_pepmasses2
 #' @import purrr
 #' @importFrom stringr str_split
@@ -645,7 +645,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
 #' @param .ms1_vmodsets Not used.
 #' @param .base_ent Not used.
 #' @inheritParams matchMS
-#' @inheritParams add_fixvar_masses
+#' @inheritParams add_var_masses
 #' @import purrr
 #' @return Lists by residues in \code{amods}.
 #' @seealso \link{ms1_a1_vnl0_fnl0} for examples.

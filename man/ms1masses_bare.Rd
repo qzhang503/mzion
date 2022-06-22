@@ -11,13 +11,10 @@ ms1masses_bare(
   max_miss = 2L,
   min_len = 7L,
   max_len = 40L,
-  min_mass = 700L,
-  max_mass = 4500L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   is_fixed_protnt = FALSE,
-  is_fixed_protct = FALSE,
-  digits = 4L
+  is_fixed_protct = FALSE
 )
 }
 \arguments{
@@ -39,12 +36,6 @@ be excluded.}
 \item{max_len}{Integer; the maximum length of peptides. Longer peptides will
 be excluded.}
 
-\item{min_mass}{A positive integer; the minimum precursor mass for
-interrogation. The default is 700.}
-
-\item{max_mass}{A positive integer; the maximum precursor mass for
-interrogation. The default is 4500.}
-
 \item{maxn_vmods_per_pep}{The maximum number of variable modifications per
 peptide.}
 
@@ -54,8 +45,6 @@ variable modifications per site in a per peptide sequence.}
 \item{is_fixed_protnt}{Logical; is protein N-terminal modification fixed.}
 
 \item{is_fixed_protct}{Logical; is protein C-terminal modification fixed.}
-
-\item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
 Calculates mono-isotopic masses of peptide sequences.

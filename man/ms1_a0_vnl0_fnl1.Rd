@@ -9,6 +9,7 @@ ms1_a0_vnl0_fnl1(
   aa_seq,
   fnl_combi,
   aa_masses,
+  min_mass = 700,
   max_mass = 4500L,
   digits = 4L
 )
@@ -25,6 +26,10 @@ corresponds to the combination without NLs (all zeros).}
 
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
+
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is an arbitrarily low value. The primary guard
+against low molecular-weight precursors is \code{min_len}.}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation. The default is 4500.}

@@ -4,7 +4,14 @@
 \alias{calc_semipepmasses}
 \title{Finds and calculates the masses of semi-enzymatic sequences.}
 \usage{
-calc_semipepmasses(val, pep, min_len = 7L, aa_masses = NULL, ct_offset = 0L)
+calc_semipepmasses(
+  val,
+  pep,
+  min_len = 7L,
+  max_len = 40L,
+  aa_masses,
+  ct_offset = 0L
+)
 }
 \arguments{
 \item{val}{A mass of a peptide.}
@@ -13,6 +20,9 @@ calc_semipepmasses(val, pep, min_len = 7L, aa_masses = NULL, ct_offset = 0L)
 
 \item{min_len}{A positive integer; the minimum length of peptide sequences
 for considerations. Shorter peptides will be excluded. The default is 7.}
+
+\item{max_len}{A positive integer; the maximum length of peptide sequences
+for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{ct_offset}{Zero or one to account for the "-" in the C-term of pep.}
 }

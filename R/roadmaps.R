@@ -67,7 +67,8 @@
 #   - calc_pepmasses2
 #    - find_aa_masses
 #       - calc_aamasses
-#         - add_fixvar_masses
+#         - add_fix_masses
+#         - add_var_masses
 #         - parse_aamasses
 #     - split_fastaseqs
 #       - load_fasta2 (fastas.R)

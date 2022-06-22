@@ -337,7 +337,7 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
 #'   corresponds to a set of neutral loss. The first column corresponds to the
 #'   combination without NLs.
 #' @inheritParams ms2ions_by_type
-#' @inheritParams add_fixvar_masses
+#' @inheritParams add_var_masses
 #' @inheritParams ms2match_base
 calc_ms2ions_a1_vnl1_fnl0 <- function (vmods_combi, vnl_combi, aas2, aa_masses, 
                                        ntmass, ctmass, type_ms2ions = "by", 

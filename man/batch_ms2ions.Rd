@@ -43,7 +43,7 @@ ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
 
 \item{maxn_vmods_setscombi}{A non-negative integer; the maximum number of
-sets of combinatorial variable modifications. The default is 64.}
+sets of combinatorial variable modifications. The default is 512.}
 
 \item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
 \code{Anywhere} (non-terminal) variable modifications per peptide. The

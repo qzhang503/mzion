@@ -289,7 +289,7 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
 #' 
 #' @param vmods_combi Lists of variable modifications.
 #' @inheritParams ms2ions_by_type
-#' @inheritParams add_fixvar_masses
+#' @inheritParams add_var_masses
 #' @inheritParams ms2match_base
 calc_ms2ions_a1_vnl0_fnl0 <- function (vmods_combi, aas2, aa_masses, 
                                        ntmass, ctmass, type_ms2ions = "by", 

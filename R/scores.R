@@ -1681,13 +1681,15 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
 #' 
 #' @param prob_nas Named vector; peptide length in names and NA in values.
 #' @param prob_cos Named vector; non-NA probability cutoffs.
-fill_probco_nas <- function (prob_nas, prob_cos)
+#' @inheritParams calc_pepfdr
+fill_probco_nas <- function (prob_nas, prob_cos, target_fdr = .01)
 {
   prob_nas <- prob_nas[!names(prob_nas) %in% names(prob_cos)]
   
   if (length(prob_nas)) {
     nm_nas <- names(prob_nas)
-    prob_nas <-rep(median(prob_cos), length(prob_nas))
+    val <- max(median(prob_cos), mean(prob_cos), target_fdr)
+    prob_nas <-rep(val, length(prob_nas))
     names(prob_nas) <- nm_nas
     ans <- c(prob_cos, prob_nas)
   }

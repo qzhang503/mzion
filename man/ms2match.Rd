@@ -146,7 +146,7 @@ default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
 sequences in fasta files. The default is 200000.}
 
 \item{maxn_vmods_setscombi}{A non-negative integer; the maximum number of
-sets of combinatorial variable modifications. The default is 64.}
+sets of combinatorial variable modifications. The default is 512.}
 
 \item{min_len}{A positive integer; the minimum length of peptide sequences
 for considerations. Shorter peptides will be excluded. The default is 7.}

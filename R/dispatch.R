@@ -754,7 +754,7 @@ find_cmodtree <- function (prps, min_n_res, vmods, posns, len, motifs = NULL)
 #'
 #' @param motifs A list of motifs of amino-acide residues. for example,
 #' "MN|NG". See also \link{matchMS}.
-#' @inheritParams add_fixvar_masses
+#' @inheritParams add_var_masses
 #' @inheritParams distri_peps
 subpeps_by_vmods <- function(aa_masses, prps, motifs = NULL) 
 {

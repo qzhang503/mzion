@@ -12,8 +12,7 @@ split_fastaseqs_noenz(
   min_len = 7L,
   max_len = 40L,
   aa_masses = NULL,
-  ftmass = 18.010565,
-  digits = 5L
+  ftmass = 18.010565
 )
 }
 \arguments{
@@ -44,8 +43,6 @@ be excluded.}
 
 \item{ftmass}{The sum of masses of \code{fixed} N-term and C-term
 modifications.}
-
-\item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
 For \code{no enzyme} searches.

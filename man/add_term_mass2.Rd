@@ -4,13 +4,17 @@
 \alias{add_term_mass2}
 \title{Helper in calculating peptide masses.}
 \usage{
-add_term_mass2(aa_masses, peps, max_mass = 4500L)
+add_term_mass2(aa_masses, peps, min_mass = 700L, max_mass = 4500L)
 }
 \arguments{
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
 
 \item{peps}{A list of peptide sequences.}
+
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is an arbitrarily low value. The primary guard
+against low molecular-weight precursors is \code{min_len}.}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation. The default is 4500.}

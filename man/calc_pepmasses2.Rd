@@ -57,8 +57,8 @@ c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
   modification. For example, provided the \code{Anywhere} variable
   modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
 
-  \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation
-  (M)`  = c("NM", "MP"))}
+  \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation (M)` =
+  c("NM", "MP"))}
 
   variable modifications will only be considered at sites that satisfy the
   motifs.}
@@ -107,7 +107,8 @@ be excluded.}
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
-interrogation. The default is 700.}
+interrogation. The default is an arbitrarily low value. The primary guard
+against low molecular-weight precursors is \code{min_len}.}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation. The default is 4500.}

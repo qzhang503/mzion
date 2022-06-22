@@ -8,8 +8,7 @@ calcms1mass_noterm_byprot(
   prot_peps,
   aa_masses,
   maxn_vmods_per_pep = 5L,
-  maxn_sites_per_vmod = 3L,
-  digits = 4L
+  maxn_sites_per_vmod = 3L
 )
 }
 \arguments{
@@ -31,9 +30,6 @@ default is 5.}
   combination of two \code{Carbamyl (M)} and two \code{Oxidation (M)} being
   considered, the value of \code{maxn_sites_per_vmod} needs to be four or
   greater.}
-
-\item{digits}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
 }
 \description{
 For single protein.

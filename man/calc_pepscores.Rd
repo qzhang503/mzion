@@ -158,7 +158,7 @@ default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
 sequences in fasta files. The default is 200000.}
 
 \item{maxn_vmods_setscombi}{A non-negative integer; the maximum number of
-sets of combinatorial variable modifications. The default is 64.}
+sets of combinatorial variable modifications. The default is 512.}
 
 \item{add_ms2theos}{Logical. If true, adds the sequence of primary
   theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a

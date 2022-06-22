@@ -72,8 +72,8 @@
 #'   modification. For example, provided the \code{Anywhere} variable
 #'   modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
 #'
-#'   \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation
-#'   (M)`  = c("NM", "MP"))}
+#'   \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation (M)` =
+#'   c("NM", "MP"))}
 #'
 #'   variable modifications will only be considered at sites that satisfy the
 #'   motifs.
@@ -110,7 +110,7 @@
 #' @param maxn_fasta_seqs A positive integer; the maximum number of protein
 #'   sequences in fasta files. The default is 200000.
 #' @param maxn_vmods_setscombi A non-negative integer; the maximum number of
-#'   sets of combinatorial variable modifications. The default is 64.
+#'   sets of combinatorial variable modifications. The default is 512.
 #' @param maxn_vmods_per_pep A non-negative integer; the maximum number of
 #'   \code{Anywhere} (non-terminal) variable modifications per peptide. The
 #'   default is 5.
@@ -133,7 +133,8 @@
 #' @param max_miss A non-negative integer; the maximum number of mis-cleavages
 #'   per peptide sequence for considerations. The default is 2.
 #' @param min_mass A positive integer; the minimum precursor mass for
-#'   interrogation. The default is 700.
+#'   interrogation. The default is an arbitrarily low value. The primary guard
+#'   against low molecular-weight precursors is \code{min_len}.
 #' @param max_mass A positive integer; the maximum precursor mass for
 #'   interrogation. The default is 4500.
 #' @param min_ms2mass A positive integer; the minimum MS2 mass for
@@ -535,12 +536,12 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
                      noenzyme_maxn = 0L, 
                      maxn_fasta_seqs = 200000L,
-                     maxn_vmods_setscombi = 64L,
+                     maxn_vmods_setscombi = 512L,
                      maxn_vmods_per_pep = 5L,
                      maxn_sites_per_vmod = 3L,
                      maxn_vmods_sitescombi_per_pep = 64L,
                      min_len = 7L, max_len = 40L, max_miss = 2L, 
-                     min_mass = 700L, max_mass = 4500L, 
+                     min_mass = 200L, max_mass = 4500L, 
                      ppm_ms1 = 20L, 
                      n_13c = 0L, 
                      
@@ -567,7 +568,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 40000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/proteoM/.MSearches (1.1.5.0)/Cache/Calls", 
+                     .path_cache = "~/proteoM/.MSearches (1.1.7.0)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,
@@ -1024,6 +1025,13 @@ matchMS <- function (out_path = "~/proteoM/outs",
                                          "aa_masses_all.rds"))
     mod_indexes <- find_mod_indexes(file.path(.path_ms1masses, .time_stamp, 
                                               "mod_indexes.txt"))
+    
+    local({
+      mods <- data.frame(mod_indexes, check.names = FALSE)
+      mods[["mod_name"]] <- rownames(mods)
+      write.table(mods, file.path(out_path, "mod_indexes.txt"), row.names = FALSE, 
+                  sep = "\t")
+    })
   }
   else {
     # only with group searches (low priority)
@@ -2127,8 +2135,7 @@ comine_PSMsubs <- function (sub_paths, groups, out_path)
 #' @param error Character string; the level of error.
 #' @inheritParams matchMS
 #' @inheritParams matchMS_par_groups
-checkMGF <- function (mgf_path = NULL, grp_args = NULL, 
-                            error = c("stop", "warn")) 
+checkMGF <- function (mgf_path = NULL, grp_args = NULL, error = c("stop", "warn")) 
 {
   mgf_path <- find_dir(mgf_path)
   error <- match.arg(error)

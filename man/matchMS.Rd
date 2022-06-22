@@ -22,14 +22,14 @@ matchMS(
   custom_enzyme = c(Cterm = NULL, Nterm = NULL),
   noenzyme_maxn = 0L,
   maxn_fasta_seqs = 200000L,
-  maxn_vmods_setscombi = 64L,
+  maxn_vmods_setscombi = 512L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
   min_len = 7L,
   max_len = 40L,
   max_miss = 2L,
-  min_mass = 700L,
+  min_mass = 200L,
   max_mass = 4500L,
   ppm_ms1 = 20L,
   n_13c = 0L,
@@ -52,7 +52,7 @@ matchMS(
   combine_tier_three = FALSE,
   max_n_prots = 40000L,
   use_ms1_cache = TRUE,
-  .path_cache = "~/proteoM/.MSearches (1.1.5.0)/Cache/Calls",
+  .path_cache = "~/proteoM/.MSearches (1.1.7.0)/Cache/Calls",
   .path_fasta = NULL,
   topn_ms2ions = 100L,
   topn_ms2ion_cuts = NA,
@@ -118,8 +118,8 @@ c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
   modification. For example, provided the \code{Anywhere} variable
   modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
 
-  \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation
-  (M)`  = c("NM", "MP"))}
+  \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation (M)` =
+  c("NM", "MP"))}
 
   variable modifications will only be considered at sites that satisfy the
   motifs.}
@@ -159,7 +159,7 @@ lengths will be taken at a time, etc.}
 sequences in fasta files. The default is 200000.}
 
 \item{maxn_vmods_setscombi}{A non-negative integer; the maximum number of
-sets of combinatorial variable modifications. The default is 64.}
+sets of combinatorial variable modifications. The default is 512.}
 
 \item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
 \code{Anywhere} (non-terminal) variable modifications per peptide. The
@@ -189,7 +189,8 @@ for considerations. Longer peptides will be excluded. The default is 40.}
 per peptide sequence for considerations. The default is 2.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
-interrogation. The default is 700.}
+interrogation. The default is an arbitrarily low value. The primary guard
+against low molecular-weight precursors is \code{min_len}.}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation. The default is 4500.}

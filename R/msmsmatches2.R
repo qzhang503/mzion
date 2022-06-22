@@ -12,7 +12,7 @@
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
 #' @inheritParams frames_adv
-#' @inheritParams add_fixvar_masses
+#' @inheritParams add_var_masses
 #' @import parallel
 ms2match <- function (mgf_path, aa_masses_all, out_path, 
                       mod_indexes, type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
