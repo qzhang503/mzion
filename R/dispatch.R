@@ -559,18 +559,28 @@ subset_anyntany <- function (peps) peps
 #' 
 #' ans <- subset_anysite(prps, sites, min_n_res)
 #' }
-subset_anysite <- function (prps, sites, min_n_res, motifs = NULL) 
+subset_anysite <- function (prps, sites, min_n_res, motifs = NULL, excepts = NULL) 
 {
   # ps - peptides under a protein
   # p  - a peptide
   # ns - counts for each site
+
+  if (!is.null(excepts)) {
+    sites <- sites[!sites %in% excepts]
+    min_n_res <- min_n_res[sites]
+  }
+
+  if (!length(sites))
+    return(prps)
   
+  ok_mo <- !is.null(motifs)
+
   lapply(prps, function (ps) {
     oks <- lapply(ps, function (p) {
       ns <- .Call(stringi:::C_stri_count_fixed, str = p, pattern = sites, opts_fixed = NULL)
       ok <- all(ns >= min_n_res)
       
-      if (!is.null(motifs) && ok)
+      if (ok_mo && ok)
         ok <- ok && .Internal(grepl(motifs, p, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
       
       # if (nchar(motifs) && ok)
@@ -634,6 +644,7 @@ subset_anyctany <- function (peps) peps
 #'
 #' @param vmods A named list of variable modifications. See also
 #'   \link{find_protntsite} for examples of \code{vmods}.
+#' @param excepts Sites to be exempted from matching during distribution.
 #' @param min_n_res The minimum numbers of residues for a given set of sites.
 #' @param posns The position (e.g., \code{Protein N-term}, \code{Anywhere},
 #'   etc.) of \code{vmods}. The argument can be obtained from \code{vmods} but
@@ -642,14 +653,15 @@ subset_anyctany <- function (peps) peps
 #'   vectorization).
 #' @inheritParams distri_peps
 #' @inheritParams subpeps_by_vmods
-find_nmodtree <- function (prps, min_n_res, vmods, posns, len, motifs = NULL) 
+find_nmodtree <- function (prps, excepts = NULL, min_n_res, vmods, posns, len, 
+                           motifs = NULL) 
 {
   if (contain_protntsite(vmods, posns, len)) { # level_1: Protein N-term + Site
     prps <- subset_protntsite(prps, find_protntsite(vmods, posns), motifs)
     
     if (contain_anysite(vmods, posns, len)) {
       # (1) -|* .. |
-      prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res, motifs)
+      prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res, motifs, excepts)
     } else {
       # (2) -|*    |
       prps <- prps
@@ -661,7 +673,7 @@ find_nmodtree <- function (prps, min_n_res, vmods, posns, len, motifs = NULL)
       
       if (contain_anysite(vmods, posns, len)) {
         # (3) -|o .. |
-        prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res, motifs)
+        prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res, motifs, excepts)
       } else {
         # (4) -|o    |
         prps <- prps
@@ -673,7 +685,7 @@ find_nmodtree <- function (prps, min_n_res, vmods, posns, len, motifs = NULL)
         
         if (contain_anysite(vmods, posns, len)) {
           # (5) |* .. |
-          prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res, motifs)
+          prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res, motifs, excepts)
         } else {
           # (6) |*    |
           prps <- prps
@@ -685,7 +697,7 @@ find_nmodtree <- function (prps, min_n_res, vmods, posns, len, motifs = NULL)
           
           if (contain_anysite(vmods, posns, len)) {
             # (7) |o .. |
-            prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res, motifs)
+            prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res, motifs, excepts)
           } else {
             # (8) |o    |
             prps <- prps
@@ -694,7 +706,7 @@ find_nmodtree <- function (prps, min_n_res, vmods, posns, len, motifs = NULL)
         else { 
           if (contain_anysite(vmods, posns, len)) { # level_5: Anywhere
             # (9) |  .. |
-            prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res, motifs)
+            prps <- subset_anysite(prps, find_anysite(vmods, posns), min_n_res, motifs, excepts)
           } else {
             # (10) |     |
             prps <- prps
@@ -713,7 +725,8 @@ find_nmodtree <- function (prps, min_n_res, vmods, posns, len, motifs = NULL)
 #'
 #' @inheritParams find_nmodtree
 #' @inheritParams subpeps_by_vmods
-find_cmodtree <- function (prps, min_n_res, vmods, posns, len, motifs = NULL) 
+find_cmodtree <- function (prps, excepts = NULL, min_n_res, vmods, posns, len, 
+                           motifs = NULL) 
 {
   if (contain_protctsite(vmods, posns, len)) { # level_1: Protein C-term + Site
     # (1) -|* .. *|-, (2) -|*    *|-, (3) -|o .. *|-, (4) -|o    *|-, (5) |* .. *|-, 
@@ -761,6 +774,8 @@ subpeps_by_vmods <- function(aa_masses, prps, motifs = NULL)
   vmods <- attr(aa_masses, "vmods_ps", exact = TRUE) 
   min_n_res <- attr(aa_masses, "min_n_res", exact = TRUE)
   is_same <- attr(aa_masses, "is_same", exact = TRUE)
+  
+  excepts <- attr(aa_masses, "anywhere_excepts", exact = TRUE)
 
   if (is.list(vmods)) {
     vmods <- unname(vmods)
@@ -774,7 +789,7 @@ subpeps_by_vmods <- function(aa_masses, prps, motifs = NULL)
   len <- length(vmods)
 
   # don't change the order: nomdtree -> cmodtree
-  prps <- find_nmodtree(prps, min_n_res, vmods, posns, len, motifs)
-  prps <- find_cmodtree(prps, min_n_res, vmods, posns, len, motifs)
+  prps <- find_nmodtree(prps, excepts, min_n_res, vmods, posns, len, motifs)
+  prps <- find_cmodtree(prps, excepts, min_n_res, vmods, posns, len, motifs)
 }
 

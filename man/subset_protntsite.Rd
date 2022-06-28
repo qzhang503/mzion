@@ -20,7 +20,7 @@ subset_anyntsite(prps, site = "Q", motifs = NULL)
 
 subset_anyntany(peps)
 
-subset_anysite(prps, sites, min_n_res, motifs = NULL)
+subset_anysite(prps, sites, min_n_res, motifs = NULL, excepts = NULL)
 
 subset_protctsite(prps, site, motifs = NULL)
 
@@ -40,6 +40,8 @@ amino acid residues. Each list is named by protein accession.}
 "MN|NG". See also \link{matchMS}.}
 
 \item{min_n_res}{The minimum numbers of residues for a given set of sites.}
+
+\item{excepts}{Sites to be exempted from matching during distribution.}
 }
 \description{
 Flowchart (1-nt): Dimethyl (Protein N-term = P)

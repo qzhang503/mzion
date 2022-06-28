@@ -93,7 +93,7 @@
 #       - rm_char_in_nlast (ms1_precursors.R)
 #     - tbl_prots_peps
 #     - flat_pepseqs
-#     - add_term_mass2
+#     - add_term_mass
 #     - helpers below
 # 
 # helpers at sets of realized modifications: 

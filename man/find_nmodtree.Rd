@@ -4,11 +4,21 @@
 \alias{find_nmodtree}
 \title{Find and subset peptides.}
 \usage{
-find_nmodtree(prps, min_n_res, vmods, posns, len, motifs = NULL)
+find_nmodtree(
+  prps,
+  excepts = NULL,
+  min_n_res,
+  vmods,
+  posns,
+  len,
+  motifs = NULL
+)
 }
 \arguments{
 \item{prps}{Lists of peptide sequences with a one-letter representation of
 amino acid residues. Each list is named by protein accession.}
+
+\item{excepts}{Sites to be exempted from matching during distribution.}
 
 \item{min_n_res}{The minimum numbers of residues for a given set of sites.}
 

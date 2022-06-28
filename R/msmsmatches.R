@@ -568,7 +568,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 40000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/proteoM/.MSearches (1.1.7.0)/Cache/Calls", 
+                     .path_cache = "~/proteoM/.MSearches (1.1.8.0)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,
@@ -1021,17 +1021,16 @@ matchMS <- function (out_path = "~/proteoM/outs",
   .time_stamp <- find_ms1_times(out_path)
   
   if (length(.time_stamp) == 1L) {
-    aa_masses_all <- qs::qread(file.path(.path_ms1masses, .time_stamp, 
-                                         "aa_masses_all.rds"))
-    mod_indexes <- find_mod_indexes(file.path(.path_ms1masses, .time_stamp, 
-                                              "mod_indexes.txt"))
+    path_time <- file.path(.path_ms1masses, .time_stamp)
+    file_aams <- file.path(path_time, "aa_masses_all.rds")
+    file_mods <- file.path(path_time, "mod_indexes.txt")
+    file.copy(file_aams, file.path(out_path, "aa_masses_all.rds"), overwrite = TRUE)
+    file.copy(file_mods, file.path(out_path, "mod_indexes.txt"), overwrite = TRUE)
     
-    local({
-      mods <- data.frame(mod_indexes, check.names = FALSE)
-      mods[["mod_name"]] <- rownames(mods)
-      write.table(mods, file.path(out_path, "mod_indexes.txt"), row.names = FALSE, 
-                  sep = "\t")
-    })
+    aa_masses_all <- qs::qread(file_aams)
+    mod_indexes <- find_mod_indexes(file_mods)
+    
+    rm(list = c("path_time", "file_aams", "file_mods"))
   }
   else {
     # only with group searches (low priority)

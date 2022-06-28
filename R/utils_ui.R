@@ -158,7 +158,7 @@ calc_monopep <- function (aa_seq, aa_masses,
   
   # adds terminal mass
   if (grepl("tmod+", type, fixed = TRUE)) {
-    mass <- add_term_mass2(aa_masses, mass, max_mass)
+    mass <- add_term_mass(mass, aa_masses, max_mass)
   }
   
   # --- Mass of variable mods and/or NLs ---

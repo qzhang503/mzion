@@ -52,7 +52,7 @@ matchMS(
   combine_tier_three = FALSE,
   max_n_prots = 40000L,
   use_ms1_cache = TRUE,
-  .path_cache = "~/proteoM/.MSearches (1.1.7.0)/Cache/Calls",
+  .path_cache = "~/proteoM/.MSearches (1.1.8.0)/Cache/Calls",
   .path_fasta = NULL,
   topn_ms2ions = 100L,
   topn_ms2ion_cuts = NA,

@@ -4,7 +4,14 @@
 \alias{add_var_masses}
 \title{Helper to add modification masses to amino-acid residues.}
 \usage{
-add_var_masses(mods, aa_masses, mod_motifs = NULL)
+add_var_masses(
+  mods,
+  aa_masses,
+  mod_motifs = NULL,
+  anywhere_coerce_sites = NULL,
+  nt_coerce_site = NULL,
+  ct_coerce_site = NULL
+)
 }
 \arguments{
 \item{mods}{A list of modifications.}
@@ -21,6 +28,12 @@ acid residues.}
 
   variable modifications will only be considered at sites that satisfy the
   motifs.}
+
+\item{anywhere_coerce_sites}{The sites of coerced Anywhere modifications; for
+example, \code{K}.}
+
+\item{anywhere_f_to_v}{Anywhere modifications coerced from fixed to variable;
+for example, \code{TMT6plex (K)}.}
 }
 \value{
 Lists of of amino-acid residues with modified mono-isotopic masses

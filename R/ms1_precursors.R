@@ -84,6 +84,10 @@ calc_pepmasses2 <- function (
   # (2.3) Adds FIXED terminal mass: 
   #     H2O 18.010565, FIXED N-term TMT modification 230.170757 + 17.002740 ...
   #     (which are reflected on aa_masses["N-term"] and aa_masses["C-term"])
+  # (2.4) Adds coerced fixed masses
+  #     E.g., with the original fixed TMT6plex (K) and variable Acetyl (K),
+  #     TMT6plex (K) is back-coerced to fixedmod under some combinations.
+  # (2.5) Adds variable masses with the look-up of aa_masses_all
   # 
   # Note:
   # For "historical" reasons, terminal "tmods+" refers to "VARIABLE tmods+". 
@@ -157,7 +161,7 @@ calc_pepmasses2 <- function (
     .time_stamp <- .time_stamp[len_ts]
     
     message("Loading peptide masses from cache.")
-
+    
     aa_masses_all <- find_aa_masses(
       out_path = file.path(.path_fasta, "ms1masses", .time_stamp),
       fixedmods = fixedmods,
@@ -192,6 +196,7 @@ calc_pepmasses2 <- function (
     
     .time_stamp <- format(Sys.time(), ".%Y-%m-%d_%H%M%S")
     path_tstamp <- file.path(.path_fasta, "ms1masses", .time_stamp)
+    file_ms1 <- file.path(path_tstamp, "aa_masses_ms1.rds")
 
     aa_masses_all <- find_aa_masses(
       out_path = path_tstamp,
@@ -200,12 +205,17 @@ calc_pepmasses2 <- function (
       mod_motifs = mod_motifs, 
       maxn_vmods_setscombi = maxn_vmods_setscombi)
     
+    if (file.exists(file_ms1))
+      aa_masses_ms1 <- qs::qread(file_ms1)
+    else
+      stop("File not found: ", file_ms1)
+    
+    aa_masses_0 <- aa_masses_ms1[[1]]
+    aa_masses_1 <- aa_masses_all[[1]]
+    
     ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
                            maxn_vmods_per_pep = maxn_vmods_per_pep,
                            maxn_sites_per_vmod = maxn_sites_per_vmod)
-
-    len <- length(aa_masses_all)
-    types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
 
     # Design:
     #   variable modifications, including [NC]-term, were appended in parallel 
@@ -222,28 +232,15 @@ calc_pepmasses2 <- function (
     # 
     # "tmods-" refers to VARIABLE terminal modifications
     #   aa_masses_0 and aa_masses_1 are always "tmods-"
-
-    file_coerce <- file.path(path_tstamp, "aa_masses_fc.rds")
     
-    if (file.exists(file_coerce)) 
-      aa_masses_0 <- qs::qread(file_coerce)
-    else 
-      stop("File not found: ", file_coerce)
+    is_fixed_protnt <- any(grepl("Protein N-term", fixedmods))
+    is_fixed_protct <- any(grepl("Protein C-term", fixedmods))
 
-    aa_masses_1 <- aa_masses_all[[1]]
-
-    rm(list = c("path_tstamp", "file_coerce"))
-    gc()
-
-    
     # --- Forward sequences  ---
     if (isTRUE(enzyme == "noenzyme")) {
       if (max_len > 25L) 
         warning("May be out of RAM at `max_len = ", max_len, "`.\n",
                 "Consider a smaller value, e.g., `max_len = 25`")
-
-      is_fixed_protnt <- any(grepl("Protein N-term", fixedmods))
-      is_fixed_protct <- any(grepl("Protein C-term", fixedmods))
 
       if (any(is_fixed_protnt, is_fixed_protct))
         stop("Not yet support FIXED protein terminal modifications for ", 
@@ -274,7 +271,7 @@ calc_pepmasses2 <- function (
                                 maxn_fasta_seqs = maxn_fasta_seqs,
                                 max_miss = max_miss)
       
-      ### Special case of FIXED Protein [NC]-term modification(s) ---
+      ### Special case of FIXED Protein [NC]-term modification(s)
       # 
       # (i) Dispatches `pep_seq`s by `fixedmod`s
       # (only incur at the rare case of Protein terminals being `fixedmods`)
@@ -289,12 +286,10 @@ calc_pepmasses2 <- function (
       # (ftmass will be 18.010565 or plus fixed [NC] terminal modifications)
       #   aa_masses["N-term"] = 1.007825, aa_masses["C-term"] = 17.002740
       
-      is_fixed_protnt <- any(grepl("Protein N-term", fixedmods))
-      is_fixed_protct <- any(grepl("Protein C-term", fixedmods))
-      
       seqs_0 <- distri_fpeps(data = seqs_0, max_miss = max_miss, 
                              is_fixed_protnt = is_fixed_protnt, 
                              is_fixed_protct = is_fixed_protct)
+      ###
 
       
       # --- Masses of sequences: fixed mods + terminals ---
@@ -371,8 +366,8 @@ calc_pepmasses2 <- function (
 
     # aa_masses_all[[1]] is for the original all-fixed mode not for the coerced,
     # otherwise, e.g. fixed to variable coercion of "TMT (K)" with a conflicting 
-    # "Acetyl (K)", sequences without "K" will be lost.
-    
+    # "Acetyl (K)", sequences without "K" will be dropped.
+
     fwd_peps <- parallel::clusterApply(
       cl, 
       fwd_peps, 
@@ -386,7 +381,7 @@ calc_pepmasses2 <- function (
     
     parallel::stopCluster(cl)
     
-    fwd_peps <- lapply(seq_len(len), function (i) {
+    fwd_peps <- lapply(seq_along(aa_masses_all), function (i) {
       # by i-th aa_masses from each node
       fwd_peps_i <- lapply(fwd_peps, `[[`, i)
       
@@ -411,37 +406,23 @@ calc_pepmasses2 <- function (
     fwd_peps[[1]] <- adj_base_masses(fwd_peps[[1]], aa_masses_0, aa_masses_1, 
                                      min_mass = min_mass, max_mass = max_mass, 
                                      digits = digits)
-
+    
+    gc()
     
     # --- Delta masses of `variable` terminals  ---
     # (e.g., on top of the `fixed` 18.010565)
     message("Adding terminal masses (variable modifications) ...")
-
-    inds <- grep("tmod+", types, fixed = TRUE)
-
-    if (length(inds)) {
-      nt_inds <- which(types %in% c("amods- tmod+ vnl- fnl-",
-                                    "amods- tmod+ vnl- fnl+"))
-
-      for (i in inds) {
-        fwd_peps[[i]] <- add_term_mass2(aa_masses_all[[i]], fwd_peps[[i]], 
-                                        min_mass, max_mass)
-
-        if (i %in% nt_inds) 
-          message("\tCompleted peptide terminal masses: ",
-                  paste(attributes(aa_masses_all[[i]])$fmods,
-                        attributes(aa_masses_all[[i]])$vmods,
-                        collapse = ", "))
-
-        gc()
-      }
-
-      rm(list = "nt_inds")
-    }
-
+    fwd_peps <- mapply(add_term_mass, fwd_peps, aa_masses_ms1, 
+                       MoreArgs = list(min_mass = min_mass, max_mass = max_mass))
     
+    message("Adding coerced fixed masses...")
+    fwd_peps <- mapply(adj_anywhere_masses, fwd_peps, aa_masses_ms1)
+
     # --- Mass of variable mods and/or NLs ---
-    message("Calculating peptide masses (variable modifications + neutral losses) ...")
+    message("Adding variable masses...")
+
+    # (switch to aa_masses_all)
+    types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
 
     fmods_ps <- lapply(aa_masses_all, attr, "fmods_ps", exact = TRUE)
     vmods_ps <- lapply(aa_masses_all, attr, "vmods_ps", exact = TRUE)
@@ -589,7 +570,7 @@ calc_pepmasses2 <- function (
         gc()
 
         message("\tCompleted peptide masses: ",
-                paste(attributes(aa_masses_i)$fmods,
+                paste(attributes(aa_masses_i)$fmods, "|", 
                       attributes(aa_masses_i)$vmods,
                       collapse = ", "))
       }
@@ -668,8 +649,6 @@ find_aa_masses <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
                                  mod_motifs = mod_motifs, 
                                  maxn_vmods_setscombi = maxn_vmods_setscombi,
                                  out_path = out_path)
-  
-  qs::qsave(aa_masses_all, file, preset = "fast")
 
   invisible(aa_masses_all)
 }
@@ -973,16 +952,12 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
   fixedmods <- new_mods$fixedmods
   varmods <- new_mods$varmods
   f_to_v <- new_mods$f_to_v
-  fixednt_coercion <- new_mods$fixednt_coercion
-  fixedct_coercion <- new_mods$fixedct_coercion
-  anywhere_coercion <- new_mods$anywhere_coercion
   anywhere_coerce_sites <- new_mods$anywhere_coerce_sites
   nt_coerce_site <- new_mods$nt_coerce_site
   ct_coerce_site <- new_mods$ct_coerce_site
-  fV_coercion <- new_mods$fV_coercion
   rm(list = "new_mods")
   
-  if (!is.null(mod_motifs)) check_mod_motifs(mod_motifs, fixedmods, varmods)
+  if (!is.null(mod_motifs)) check_mod_motifs(mod_motifs, c(fixedmods, varmods))
   fmod_motifs <- mod_motifs[names(mod_motifs) %in% fixedmods]
   vmod_motifs <- mod_motifs[names(mod_motifs) %in% varmods]
   
@@ -1022,20 +997,13 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
   attr(aa_masses_fc, "nt_coerce_site") <- nt_coerce_site
   attr(aa_masses_fc, "ct_coerce_site") <- ct_coerce_site
   attr(aa_masses_fc, "anywhere_coerce_sites") <- anywhere_coerce_sites
-  aa_masses_fc <- parse_aamasses(aa_masses_fc)
-  qs::qsave(aa_masses_fc, file.path(out_path, "aa_masses_fc.rds"), preset = "fast")
+  # qs::qsave(aa_masses_fc, file.path(out_path, "aa_masses_fc.rds"), preset = "fast")
 
   ## (3) add variable mods + NL
-  varmods_comb <- 
-    find_aamasses_vmodscombi(varmods = varmods, 
-                             fixednt_coercion = fixednt_coercion, 
-                             fixedct_coercion = fixedct_coercion, 
-                             anywhere_coerce_sites = anywhere_coerce_sites)
+  varmods_comb <- find_aamasses_vmodscombi(varmods, f_to_v, anywhere_coerce_sites)
 
-  # return NULL if is.null(varmods_comb)
-  aa_masses_var <- lapply(varmods_comb, function (vi) 
-    add_var_masses(vi, aa_masses_fc, vmod_motifs)
-  )
+  aa_masses_var <- lapply(varmods_comb, add_var_masses, aa_masses_fc, vmod_motifs, 
+                          anywhere_coerce_sites, nt_coerce_site, ct_coerce_site)
 
   if (length(aa_masses_var) >= maxn_vmods_setscombi) {
     warning("The ways of combinatorial variable modifications are ",
@@ -1046,41 +1014,93 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
     
     aa_masses_var <- aa_masses_var[1:maxn_vmods_setscombi]
   }
+  
+  aa_masses_ms1 <- lapply(c(list(aa_masses_fc), aa_masses_var), parse_aamasses)
+  
+  aa_masses_all <- lapply(c(list(aa_masses_fi), aa_masses_var), finalize_aamasses, 
+                          aa_masses, mod_motifs)
 
-  aa_masses_all <- c(list(aa_masses_fi), aa_masses_var)
-
-  # Indexes of modifications
   if (!is.null(out_path)) {
-    mod_indexes <- seq_along(c(fixedmods, varmods)) %>%
-      as.hexmode() %>%
-      `names<-`(c(fixedmods, varmods))
-    
-    is_coerced <- if (length(f_to_v)) 
-      names(mod_indexes) %in% f_to_v
-    else 
-      rep(FALSE, length(mod_indexes))
-
-    Desc <- if (length(mod_indexes)) 
-      names(mod_indexes)
-    else 
-      character()
-
-    ## At NULL fixedmods and varmods: 
-    # [1] Abbr    Desc    Type    Coerced
-    # <0 rows> (or 0-length row.names)
-    
-    df_mods <- data.frame(Abbr = as.character(mod_indexes),
-                          Desc = Desc, 
-                          Type = c(rep("fixed", length(fixedmods)), 
-                                   rep("variable", length(varmods))), 
-                          Coerced = is_coerced) 
-    
-    readr::write_tsv(df_mods, file.path(out_path, "mod_indexes.txt"))
-    
-    rm(list = c("mod_indexes", "is_coerced", "Desc", "df_mods"))
+    save_mod_indexes(out_path, fixedmods, varmods, f_to_v)
+    qs::qsave(aa_masses_ms1, file.path(out_path, "aa_masses_ms1.rds"), preset = "fast")
+    qs::qsave(aa_masses_all, file.path(out_path, "aa_masses_all.rds"), preset = "fast")
   }
+  
+  invisible(aa_masses_all)
+}
 
-  aa_masses_all <- lapply(aa_masses_all, parse_aamasses)
+
+
+#' Finalizes \code{aa_masses_all}
+#' 
+#' Replaces interim fixed and variable modifications with the finals.
+#' 
+#' @param aa_masses_i The i-th aa_masses_all.
+#' @param aa_masses The original look-ups of AA masses.
+#' @inheritParams matchMS
+finalize_aamasses <- function (aa_masses_i, aa_masses, mod_motifs = NULL)
+{
+  fixedmods <- names(attr(aa_masses_i, "fmods_ps", exact = TRUE))
+  varmods <- names(attr(aa_masses_i, "vmods_ps", exact = TRUE))
+  
+  anywhere_excepts <- attr(aa_masses_i, "anywhere_excepts", exact = TRUE)
+  nt_except <- attr(aa_masses_i, "nt_except", exact = TRUE)
+  ct_except <- attr(aa_masses_i, "ct_except", exact = TRUE)
+  excepts <- c(anywhere_excepts, nt_except, ct_except)
+  cmods <- names(excepts)
+  
+  if (length(cmods)) {
+    fixedmods <- c(fixedmods, cmods)
+    varmods <- varmods[!varmods %in% cmods]
+  }
+  
+  fmod_motifs <- mod_motifs[names(mod_motifs) %in% fixedmods]
+  vmod_motifs <- mod_motifs[names(mod_motifs) %in% varmods]
+  
+  aa_masses_i <- add_fixed_masses(fixedmods, aa_masses, fmod_motifs)
+  aa_masses_i <- add_var_masses(varmods, aa_masses_i, vmod_motifs)
+  aa_masses_i <- parse_aamasses(aa_masses_i)
+}
+
+
+
+#' Saves mod_indexes.txt
+#' 
+#' @param out_path An output path
+#' @param fixedmods Fixed modifications
+#' @param varmods Variable modifications
+#' @param f_to_v Coerced fixed to variable modifications
+save_mod_indexes <- function (out_path = NULL, fixedmods, varmods, 
+                              f_to_v)
+{
+  if (is.null(out_path))
+    return(NULL)
+  
+  mod_indexes <- seq_along(c(fixedmods, varmods)) %>%
+    as.hexmode() %>%
+    `names<-`(c(fixedmods, varmods))
+  
+  is_coerced <- if (length(f_to_v)) 
+    names(mod_indexes) %in% f_to_v
+  else 
+    rep(FALSE, length(mod_indexes))
+  
+  Desc <- if (length(mod_indexes)) 
+    names(mod_indexes)
+  else 
+    character()
+  
+  ## At NULL fixedmods and varmods: 
+  # [1] Abbr    Desc    Type    Coerced
+  # <0 rows> (or 0-length row.names)
+  
+  df_mods <- data.frame(Abbr = as.character(mod_indexes),
+                        Desc = Desc, 
+                        Type = c(rep("fixed", length(fixedmods)), 
+                                 rep("variable", length(varmods))), 
+                        Coerced = is_coerced) 
+  
+  readr::write_tsv(df_mods, file.path(out_path, "mod_indexes.txt"))
 }
 
 
@@ -1104,79 +1124,52 @@ check_dupfvmods <- function (fixedmods, varmods)
 #' @inheritParams calc_aamasses
 coerce_fvmods <- function (fixedmods, varmods)
 {
-  # (a) Different fixedmods to the same site not allowed
-  fmods_ps <- fixedmods %>%
-    lapply(find_unimod) %>%
-    lapply(`[[`, "position_site") %>%
-    unlist()
+  fmods_ps <- find_modps(fixedmods)
+  vmods_ps <- find_modps(varmods)
   
-  dup_fixedmods <- fmods_ps[duplicated(fmods_ps)]
-  
-  if (length(dup_fixedmods)) 
-    stop("Multiple fixed modifications to the same site: \n",
-         "'", paste(dup_fixedmods, collapse = ", "), "'")
-  
-  # (b) Coercion from fixedmods to varmods
-  vmods_ps <- varmods %>%
-    lapply(find_unimod) %>%
-    lapply(`[[`, "position_site") %>%
-    unlist()
-  
-  coerce_asite <- intersect(fmods_ps, vmods_ps)
-
-  coerce_tsite <- local({
-    f_nms <- names(fmods_ps)
-    v_nms <- names(vmods_ps)
-    f_pos <- f_nms[grepl("[NC]-term", f_nms)]
-    v_pos <- v_nms[grepl("[NC]-term", v_nms)]
-
-    unname(fmods_ps[intersect(f_pos, v_pos)])
+  local({
+    dup_fsites <- fmods_ps[duplicated(fmods_ps)]
+    
+    if (length(dup_fsites)) {
+      stop("Multiple fixed modifications to the same site: \n",
+           "'", paste(dup_fsites, collapse = ", "), "'")
+    }
   })
-
-  # e.g. "N-term" by both site and position
-  coerce_site <- unique(c(coerce_asite, coerce_tsite))
-  fV_coercion <- (length(coerce_site) > 0L)
   
+  coerce_sites <- find_f_to_v(fixedmods, fmods_ps, vmods_ps)
+  fV_coercion <- (length(coerce_sites) > 0L)
+
   if (fV_coercion) {
-    f_to_v <- local({
-      idxes <- lapply(coerce_site, function (x) fmods_ps == x)
-      unlist(lapply(idxes, function (i) fixedmods[i]))
-    })
-    
+    f_to_v <- names(coerce_sites)
     varmods <- c(f_to_v, varmods)
-    
-    fixedmods <- local({
-      idxes <- unlist(lapply(fixedmods, function (x) x %in% f_to_v))
-      fixedmods[!idxes]
-    })
+    fixedmods <- fixedmods[!fixedmods %in% f_to_v]
     
     warning("Coerce '",
             paste(f_to_v, collapse = ", "), "'",
             " to conditional variable modifications.",
             call. = FALSE)
+
+    oks_a <- !grepl("[NC]-term", f_to_v)
+    oks_n <- grepl("N-term", f_to_v)
+    oks_c <- grepl("C-term", f_to_v)
     
-    anywhere_coerce_sites <- coerce_site[!grepl("[NC]-term", coerce_site)]
-    nt_coerce_site <- coerce_site[coerce_site == "N-term"]
-    ct_coerce_site <- coerce_site[coerce_site == "C-term"]
+    # ok since the parity between coerce_sites and f_to_v
+    anywhere_coerce_sites <- coerce_sites[oks_a]
+    nt_coerce_site <- coerce_sites[oks_n]
+    ct_coerce_site <- coerce_sites[oks_c]
     if (!length(anywhere_coerce_sites)) anywhere_coerce_sites <- NULL
     if (!length(nt_coerce_site)) nt_coerce_site <- NULL
     if (!length(ct_coerce_site)) ct_coerce_site <- NULL
-
-    anywhere_coercion <- if (length(anywhere_coerce_sites)) TRUE else FALSE
-    fixednt_coercion <- any(grepl("N-term", f_to_v))
-    fixedct_coercion <- any(grepl("C-term", f_to_v))
   } 
   else {
+    fixedmods <- NULL
+    varmods <- NULL
     f_to_v <- NULL
     anywhere_coerce_sites <- NULL
     nt_coerce_site <- NULL
     ct_coerce_site <- NULL
-    
-    anywhere_coercion <- FALSE
-    fixednt_coercion <- FALSE
-    fixedct_coercion <- FALSE
   }
-  
+
   default_mods <- c("initiator methionine from protein N-terminus")
   
   if (any(grepl(default_mods, c(fixedmods, varmods)))) 
@@ -1189,20 +1182,49 @@ coerce_fvmods <- function (fixedmods, varmods)
        f_to_v = f_to_v, 
        anywhere_coerce_sites = anywhere_coerce_sites, 
        nt_coerce_site = nt_coerce_site, 
-       ct_coerce_site = ct_coerce_site, 
-       anywhere_coercion = anywhere_coercion,
-       fixednt_coercion = fixednt_coercion, 
-       fixedct_coercion = fixedct_coercion, 
-       fV_coercion = fV_coercion)
+       ct_coerce_site = ct_coerce_site)
 }
 
 
+#' Helper of finding the coercion sites.
+#'
+#' @param fmods_ps Positions and sites of fixed modifications.
+#' @param vmods_ps Positions and sites of variable modifications.
+#' @inheritParams calc_aamasses
+#' @return A named vector, e.g., \code{c("TMT6plex (K)", "TMT6plex (N-term)")}
+find_f_to_v <- function (fixedmods, fmods_ps, vmods_ps)
+{
+  f_nms <- names(fmods_ps)
+  v_nms <- names(vmods_ps)
+  fmods_ps_any <- fmods_ps[!grepl("[NC]-term", f_nms)]
+  vmods_ps_any <- vmods_ps[!grepl("[NC]-term", v_nms)]
+  fterm_nms <- f_nms[grepl("[NC]-term", f_nms)]
+  vterm_nms <- v_nms[grepl("[NC]-term", v_nms)]
+  
+  coerce_asites <- fmods_ps_any[fmods_ps_any %in% vmods_ps_any]
+  coerce_tsites <- unname(fmods_ps[intersect(fterm_nms, vterm_nms)])
+  
+  rm(list = c("f_nms", "v_nms", "fmods_ps_any", "vmods_ps_any", 
+              "fterm_nms", "vterm_nms"))
+  
+  # e.g. "N-term" can be matched by both site and position
+  # (no guarantee in the order of coerce_sites; so match names one at a time)
+  coerce_sites <- unique(c(coerce_asites, coerce_tsites)) %>% 
+    lapply(function (x) {
+      names(x) <- fixedmods[fmods_ps == x]
+      x
+    })
+  
+  unlist(coerce_sites)
+}
+
 #' Checks mod_motifs
 #' 
+#' @param mods A concatenated list of fixed and variable modifications.
 #' @inheritParams calc_aamasses
-check_mod_motifs <- function (mod_motifs, fixedmods, varmods)
+check_mod_motifs <- function (mod_motifs, mods)
 {
-  bads <- mod_motifs[!names(mod_motifs) %in% c(varmods, fixedmods)]
+  bads <- mod_motifs[!names(mod_motifs) %in% mods]
   
   if (length(bads))
     stop("\"mod_motifs\" not found in \"varmods\" or \"fixedmods\": ", 
@@ -1211,16 +1233,12 @@ check_mod_motifs <- function (mod_motifs, fixedmods, varmods)
 
 
 #' Finds the combination of varmods
-#'
-#' @param fixednt_coercion Logical; with coercion of N-term fixed to variable
-#'   modifications.
-#' @param fixedct_coercion Logical; with coercion of C-term fixed to variable
-#'   modifications.
+#' 
+#' @param f_to_v Coerced fixed to variable modifications
 #' @param anywhere_coerce_sites \code{Anywhere} sites coerced from fixed to
 #'   variable modifications.
 #' @inheritParams calc_aamasses
-find_aamasses_vmodscombi <- function (varmods = NULL, fixednt_coercion = TRUE, 
-                                      fixedct_coercion = FALSE, 
+find_aamasses_vmodscombi <- function (varmods = NULL, f_to_v = NULL, 
                                       anywhere_coerce_sites = NULL) 
 {
   if (is.null(varmods))
@@ -1228,12 +1246,8 @@ find_aamasses_vmodscombi <- function (varmods = NULL, fixednt_coercion = TRUE,
   
   varmods_comb <- lapply(seq_along(varmods), function (x) sim_combn(varmods, x)) 
   varmods_comb <- unlist(varmods_comb, recursive = FALSE)
+  vmods_ps <- find_modps(varmods)
 
-  vmods_ps <- varmods %>%
-    lapply(find_unimod) %>%
-    lapply(`[[`, "position_site") %>%
-    purrr::flatten()
-  
   vmods_ps_combi <- seq_along(vmods_ps) %>%
     lapply(function (x) sim_combn(vmods_ps, x)) %>%
     purrr::flatten()
@@ -1241,13 +1255,22 @@ find_aamasses_vmodscombi <- function (varmods = NULL, fixednt_coercion = TRUE,
   ## Remove the combinations without anywhere_coerce_sites
   # [x] e.g. "TMT6plex (K)" coerced from fixedmod to varmod, 
   #     the combination after coercion must contain "K"
-  # [x] in case of multiple varmod coercion, apply a weak condition of "any"
-  if (length(anywhere_coerce_sites)) {
-    ok_coerced_sites <- lapply(vmods_ps_combi, function (v) {
-      oks <- lapply(v, function (x) grepl(anywhere_coerce_sites, x))
-      any(unlist(oks))
-    })
-    
+  # [x] in the (less frequent) case of multiple varmod coercions, 
+  #     apply a strong condition of "all" sites
+  
+  # if no K -> need everything else: TMT6plex (N-term), Acetyl (K), Deamidated (N)
+  
+  len_a <- length(anywhere_coerce_sites)
+  
+  if (len_a > 1L) {
+    warning("Multiple coercions from fixed to variable modifications: ", 
+            paste(anywhere_coerce_sites, collapse = ", "), "\n", 
+            "Suggest change (some of) them to variable modifications.")
+  }
+
+  if (len_a) {
+    ok_coerced_sites <- 
+      lapply(vmods_ps_combi, function (v) all(anywhere_coerce_sites %in% unlist(v)))
     ok_coerced_sites <- unlist(ok_coerced_sites)
   }
   else {
@@ -1273,15 +1296,18 @@ find_aamasses_vmodscombi <- function (varmods = NULL, fixednt_coercion = TRUE,
   ## Remove the combinations without terminal mods
   # e.g., if `Fixed Anywhere N-term` by users 
   #   -> must have `N-term` in any realization of varmods
+  fixednt_coercion <- any(grepl("N-term", f_to_v))
+  fixedct_coercion <- any(grepl("C-term", f_to_v))
+
   if (fixednt_coercion && length(varmods_comb)) {
-    ok_nts <- sapply(varmods_comb, function (x) any(grepl("N-term", x)))
-    varmods_comb <- varmods_comb[ok_nts]
+    ok_nts <- lapply(varmods_comb, function (x) any(grepl("N-term", x)))
+    varmods_comb <- varmods_comb[unlist(ok_nts)]
     rm(list = c("ok_nts"))
   }
   
   if (fixedct_coercion && length(varmods_comb)) {
-    ok_cts <- sapply(varmods_comb, function (x) any(grepl("C-term", x)))
-    varmods_comb <- varmods_comb[ok_cts]
+    ok_cts <- lapply(varmods_comb, function (x) any(grepl("C-term", x)))
+    varmods_comb <- varmods_comb[unlist(ok_cts)]
     rm(list = c("ok_cts"))
   }
 
@@ -1298,44 +1324,37 @@ find_aamasses_vmodscombi <- function (varmods = NULL, fixednt_coercion = TRUE,
 #' @param mods A list of modifications.
 #' @param aa_masses A named list containing the (mono-isotopic) masses of amino
 #'   acid residues.
+#' @param anywhere_f_to_v Anywhere modifications coerced from fixed to variable;
+#'   for example, \code{TMT6plex (K)}.
+#' @param anywhere_coerce_sites The sites of coerced Anywhere modifications; for
+#'   example, \code{K}.
 #' @inheritParams matchMS
 #' @return Lists of of amino-acid residues with modified mono-isotopic masses
 #'   being incorporated. Returns NULL if \code{is.null(varmods_comb)}.
-add_var_masses <- function (mods, aa_masses, mod_motifs = NULL) 
+add_var_masses <- function (mods, aa_masses, mod_motifs = NULL, 
+                            anywhere_coerce_sites = NULL, nt_coerce_site = NULL, 
+                            ct_coerce_site = NULL) 
 {
+  mod_type <- "vmods"
   all_mods <- if (length(mods)) paste(mods, collapse = ", ") else ""
   
-  mod_type <- "vmods"
-  
-  res <- mods %>%
-    lapply(find_unimod) %>%
-    `names<-`(mods) %>% 
-    check_resunimod()
-  
+  res <- extract_umods(mods)
   mod_masses <- lapply(res, `[[`, "monomass")
   positions_sites <- lapply(res, `[[`, "position_site")
   neulosses <- lapply(res, `[[`, "nl")
   rm(list = c("res"))
   
-  #  Add mod_masses of variable mods (multiple lists)
-  aas <- purrr::map2(positions_sites, mod_masses, ~ {
-    site <- find_aa_site(.x)
-    aa_masses[site] <- .y
-    aa_masses
-  }, aa_masses)
-  
-  # Flatten the lists (with attributes being kept)
-  aa_masses <- local({
-    masses <- purrr::map2_dbl(positions_sites, aas, ~ .y[find_aa_site(.x)])
-    attrs <- attributes(aa_masses)
-    aa_masses <- c(aa_masses, masses)
-    attrs$names <- names(aa_masses)
-    attributes(aa_masses) <- attrs
-    
-    aa_masses
-  })
-  
-  rm(list = c("aas"))
+  anywhere_excepts <- find_except_sites(anywhere_coerce_sites, positions_sites)
+  nt_except <- find_except_sites(nt_coerce_site, positions_sites)
+  ct_except <- find_except_sites(ct_coerce_site, positions_sites)
+
+  for (i in seq_along(positions_sites)) {
+    p <- positions_sites[[i]]
+    s <- find_aa_site(p)
+    nm <- names(positions_sites[i])
+    aa_masses[nm] <- mod_masses[[i]]
+  }
+  # rm(list = c("p", "s", "nm"))
   
   attr(aa_masses, mod_type) <- all_mods
   attr(aa_masses, paste0(mod_type, "_ps")) <- positions_sites
@@ -1343,17 +1362,16 @@ add_var_masses <- function (mods, aa_masses, mod_motifs = NULL)
   aa_masses <- add_aamasses_motifs(aa_masses, mod_motifs, positions_sites)
   aa_masses <- add_aamasses_neulosses(aa_masses, neulosses, mod_type)
   
-  if (is.null(attr(aa_masses, "vmods"))) 
-    attr(aa_masses, "vmods") <- ""
-  
-  if (is.null(attr(aa_masses, "vmods_neuloss"))) 
-    attr(aa_masses, "vmods_neuloss") <- ""
-  
-  if (is.null(attr(aa_masses, "vmods_mass"))) 
-    attr(aa_masses, "vmods_mass") <- 0
+  if (is.null(attr(aa_masses, "vmods"))) attr(aa_masses, "vmods") <- ""
+  if (is.null(attr(aa_masses, "vmods_neuloss"))) attr(aa_masses, "vmods_neuloss") <- ""
+  if (is.null(attr(aa_masses, "vmods_mass"))) attr(aa_masses, "vmods_mass") <- 0
+  attr(aa_masses, "anywhere_excepts") <- anywhere_excepts
+  attr(aa_masses, "nt_except") <- nt_except
+  attr(aa_masses, "ct_except") <- ct_except
 
   ### 
   # Variable mods: need both the "original" and the "delta" forms
+  # (in combinatorial some are modified and some are not) 
   # whereas fixed mods only has one form.
   # 
   # (1) 
@@ -1379,15 +1397,10 @@ add_var_masses <- function (mods, aa_masses, mod_motifs = NULL)
 #' @inheritParams add_var_masses
 add_fixed_masses <- function (mods, aa_masses, mod_motifs = NULL) 
 {
+  mod_type <- "fmods"
   all_mods <- if (length(mods)) paste(mods, collapse = ", ") else ""
   
-  mod_type <- "fmods"
-  
-  res <- mods %>%
-    lapply(find_unimod) %>%
-    `names<-`(mods) %>% 
-    check_resunimod()
-  
+  res <- extract_umods(mods)
   mod_masses <- lapply(res, `[[`, "monomass")
   positions_sites <- lapply(res, `[[`, "position_site")
   neulosses <- lapply(res, `[[`, "nl")
@@ -1395,11 +1408,12 @@ add_fixed_masses <- function (mods, aa_masses, mod_motifs = NULL)
   
   check_fmods_pos_site(positions_sites)
   
-  purrr::walk2(positions_sites, mod_masses, ~ {
-    site <- find_aa_site(.x)
-    m <- aa_masses[site]
-    aa_masses[site] <<- m + .y
-  })
+  for (i in seq_along(positions_sites)) {
+    p <- positions_sites[[i]]
+    s <- find_aa_site(p)
+    aa_masses[s] <- aa_masses[s] + mod_masses[[i]]
+  }
+  rm(list = c("p", "s"))
 
   attr(aa_masses, mod_type) <- all_mods
   attr(aa_masses, paste0(mod_type, "_ps")) <- positions_sites
@@ -1416,6 +1430,105 @@ add_fixed_masses <- function (mods, aa_masses, mod_motifs = NULL)
   if (is.null(attr(aa_masses, "vmods_mass"))) attr(aa_masses, "vmods_mass") <- 0
 
   aa_masses
+}
+
+
+#' Finds the coerced fixed sites that can be coerced back to fixed sites.
+#'
+#' @param positions_sites Lists of positions and sites.
+#' @param fixed_sites Sites coerced from fixed to variable modifications.
+#' @examples
+#' \donttest{
+#' mods <- c("TMT6plex (K)", "Carbamyl (M)", "Oxidation (M)", "Gln->pyro-Glu (N-term = Q)")
+#' res <- extract_umods(mods)
+#' positions_sites <- lapply(res, `[[`, "position_site")
+#' fixed_sites <- c("TMT6plex (K)" = "K", "Carbamyl (M)" = "M")
+#' }
+find_except_sites <- function (fixed_sites, positions_sites)
+{
+  fixed_mods <- names(fixed_sites)
+  csites <- fixed_sites[fixed_sites %in% positions_sites]
+  
+  except_sites <- lapply(csites, function (csite) {
+    vmods_at_csite <- names(positions_sites[positions_sites == csite])
+    other_csites <- setdiff(vmods_at_csite, fixed_mods)
+    if (length(other_csites)) NULL else csite
+  })
+  
+  except_sites <- unlist(except_sites, recursive = FALSE)
+  except_vmods <- fixed_mods[fixed_sites %in% except_sites]
+  
+  if (!is.null(except_sites)) 
+    names(except_sites) <- except_vmods
+  
+  invisible(except_sites)
+}
+
+
+#' Finds the positions and sites of modifications.
+#'
+#' @param mods A vector of modifications, e.g., \code{c("TMT6plex (K)", "Acetyl
+#'   (K)")}
+find_modps <- function (mods)
+{
+  ans <- lapply(mods, find_unimod) 
+  ps <- lapply(ans, `[[`, "position_site")
+  purrr::flatten(ps)
+}
+
+
+#' Extracts Unimod results.
+#' 
+#' @param mods A vector of modifications. 
+extract_umods <- function (mods)
+{
+  res <- lapply(mods, find_unimod)
+  names(res) <- mods
+  check_resunimod(res)
+}
+
+#' Checks the results from find_unimod
+#' 
+#' Shows warning if the same \code{site} with different fixedmods.
+#' 
+#' @param res Results from \link{find_unimod}
+check_resunimod <- function (res)
+{
+  if (length(res)) {
+    x <- res[[1]]
+    
+    nm_seqs <- c("title", "monomass", "position_site", "nl")
+    ok <- identical(names(x), nm_seqs)
+    
+    if (!ok)
+      stop("The structures from `find_unimod` is not in the order of: ", 
+           paste(nm_seqs, collapse = ", "))
+  }
+  
+  invisible(res)
+}
+
+
+#' Checks the positions_sites in fixedmods
+#' 
+#' @param positions_sites Lists of positions and sites.
+check_fmods_pos_site <- function (positions_sites)
+{
+  if (length(positions_sites) > 1L) {
+    dups <- purrr::reduce(positions_sites, `c`) %>%
+      .[duplicated(.)]
+    
+    if (length(dups)) {
+      dups_in_each <- lapply(positions_sites, function (x) x == dups)
+      dup_mods <- names(positions_sites[unlist(dups_in_each)])
+      
+      warning("Conflicts in fixed modifications: \n",
+              paste(dup_mods, collapse = ", "), "\n",
+              "May consider change from fixed to variable modifications(s); \n",
+              "or create a new Unimod for joint modifications.",
+              call. = FALSE)
+    }
+  }
 }
 
 
@@ -1461,51 +1574,6 @@ add_aamasses_motifs <- function (aa_masses, mod_motifs, positions_sites)
   attr(aa_masses, "mod_motifs") <- pmod_motifs
   
   aa_masses
-}
-
-
-#' Checks the results from find_unimod
-#' 
-#' Shows warning if the same \code{site} with different fixedmods.
-#' 
-#' @param res Results from \link{find_unimod}
-check_resunimod <- function (res)
-{
-  if (length(res)) {
-    x <- res[[1]]
-    
-    nm_seqs <- c("title", "monomass", "position_site", "nl")
-    ok <- identical(names(x), nm_seqs)
-    
-    if (!ok)
-      stop("The structures from `find_unimod` is not in the order of: ", 
-           paste(nm_seqs, collapse = ", "))
-  }
-  
-  invisible(res)
-}
-
-
-#' Checks the positions_sites in fixedmods
-#' 
-#' @param positions_sites Lists of positions and sites.
-check_fmods_pos_site <- function (positions_sites)
-{
-  if (length(positions_sites) > 1L) {
-    dups <- purrr::reduce(positions_sites, `c`) %>%
-      .[duplicated(.)]
-    
-    if (length(dups)) {
-      dups_in_each <- lapply(positions_sites, function (x) x == dups)
-      dup_mods <- names(positions_sites[unlist(dups_in_each)])
-      
-      warning("Conflicts in fixed modifications: \n",
-              paste(dup_mods, collapse = ", "), "\n",
-              "May consider change from fixed to variable modifications(s); \n",
-              "or create a new Unimod for joint modifications.",
-              call. = FALSE)
-    }
-  }
 }
 
 
@@ -1559,20 +1627,19 @@ parse_aamasses <- function (aa_masses)
     sites[!empties]
   })
   
-  min_n_res <- amods %>% 
-    unlist(recursive = FALSE, use.names = FALSE) %>% 
-    count_elements()
-  
+  min_n_res <- local({
+    anywhere_backs <- attr(aa_masses, "anywhere_backs", exact = TRUE)
+    amods2 <- if (is.null(anywhere_backs)) amods else amods[!names(amods) %in% anywhere_backs]
+    count_elements(unlist(amods2, recursive = FALSE, use.names = FALSE))
+    # count_elements(unlist(amods, recursive = FALSE, use.names = FALSE))
+  })
+
   # Is "same Anywhere mod existed"
   is_same <- any(length(min_n_res) > 1L)
 
   # `TMT6plex (N-term)` and `Amidated (Protein C-term)`
-  tmod <- vmods_ps %>% .[! . %in% amods]
-  
-  if (!length(tmod)) 
-    tmod <- NULL
-  else if (all(tmod == "")) 
-    tmod <- NULL
+  tmod <- vmods_ps[!vmods_ps %in% amods]
+  tmod <- if (!length(tmod)) NULL else if (all(tmod == "")) NULL else tmod
 
   # variable N-term, C-term
   #
@@ -1613,16 +1680,10 @@ parse_aamasses <- function (aa_masses)
     sites[!empties]
   })
 
-  ftmod <- fmods_ps %>% .[! . %in% famods]
-  
-  if (!length(ftmod)) {
-    ftmod <- NULL
-  }
   # length(ftmod) > 1L: `TMT6plex (N-term)` and `K8 (C-term)`
-  else if (all(ftmod == "")) {
-    ftmod <- NULL
-  }
-
+  ftmod <- fmods_ps %>% .[! . %in% famods]
+  ftmod <- if (!length(ftmod)) NULL else if (all(ftmod == "")) NULL
+  
   # fixed N-term, C-term
   fntmod <- ftmod %>% .[. == "N-term" || grepl("N-term", names(.))]
   fctmod <- ftmod %>% .[. == "C-term" || grepl("C-term", names(.))]
@@ -2381,20 +2442,57 @@ adj_base_masses <- function (fwd_peps_1, aa_masses_0, aa_masses_1,
 }
 
 
+#' Adjusts the masses for the coerced sites
+#' 
+#' @param peps The list of forward peptides with masses.
+#' @param aa_masses An amino-acid masses look-up table.
+adj_anywhere_masses <- function (peps, aa_masses)
+{
+  anywhere_excepts <- attr(aa_masses, "anywhere_excepts", exact = TRUE)
+  len_a <- length(anywhere_excepts)
+  
+  if (!len_a)
+    return(peps)
+  
+  ds <- aa_masses[names(anywhere_excepts)]
+  
+  ns <- lapply(anywhere_excepts, function (s) {
+    .Call(stringi:::C_stri_count_fixed, str = names(peps), 
+          pattern = s, opts_fixed = NULL)
+  })
+  
+  dns <- mapply(function (d, n) {
+    d * n
+  }, ds, ns, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
+  for (i in seq_along(dns)) {
+    peps <- peps + dns[[i]]
+  }
+  
+  invisible(peps)
+}
+
+
 #' Helper in calculating peptide masses.
 #'
 #' (2) "amods- tmod+ vnl- fnl-".
+#' 
+#' No needs of checking \code{is_empty(ntmod) && is_empty(ctmod)}
 #' 
 #' @param peps A list of peptide sequences.
 #' @inheritParams add_var_masses
 #' @inheritParams distri_peps
 #' @inheritParams matchMS
-add_term_mass2 <- function (aa_masses, peps, min_mass = 700L, max_mass = 4500L) 
+add_term_mass <- function (peps, aa_masses, min_mass = 700L, max_mass = 4500L) 
 {
+  type <- attr(aa_masses, "type", exact = TRUE)
+  
+  if (!grepl("tmod+", type, fixed = TRUE))
+    return(peps)
+  
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
   
-  # No needs of is_empty(ntmod) && is_empty(ctmod)
   delta <- if (length(ntmod) && length(ctmod)) 
     aa_masses[names(ntmod)] + aa_masses[names(ctmod)]
   else if (length(ntmod)) 
@@ -2438,7 +2536,7 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
                              maxn_sites_per_vmod = maxn_sites_per_vmod)
   data_2 <- attr(data_2, "data")
 
-  # (2) rolling sum (not yet terminal H2O)
+  # (2) rolling sum (not yet terminal masses, e.g, H2O)
   n_cores <- detect_cores(16L)
   
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
@@ -2484,7 +2582,7 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
   
   parallel::stopCluster(cl)
 
-  # (3) putting together (+ terminal H2O)
+  # (3) putting together (+ terminal masses)
   # (USE.NAMES of prot_acc)
   ms <- mapply(`c`, ms_1, ms_2, SIMPLIFY = FALSE, USE.NAMES = TRUE)
 

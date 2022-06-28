@@ -6,19 +6,14 @@
 \usage{
 find_aamasses_vmodscombi(
   varmods = NULL,
-  fixednt_coercion = TRUE,
-  fixedct_coercion = FALSE,
+  f_to_v = NULL,
   anywhere_coerce_sites = NULL
 )
 }
 \arguments{
 \item{varmods}{A character vector of variable modifications.}
 
-\item{fixednt_coercion}{Logical; with coercion of N-term fixed to variable
-modifications.}
-
-\item{fixedct_coercion}{Logical; with coercion of C-term fixed to variable
-modifications.}
+\item{f_to_v}{Coerced fixed to variable modifications}
 
 \item{anywhere_coerce_sites}{\code{Anywhere} sites coerced from fixed to
 variable modifications.}
