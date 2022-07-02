@@ -153,7 +153,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       aa_masses = aa_masses, 
       ms1vmods = ms1vmods, 
       ms2vmods = ms2vmods, 
-      ntmod = ntmod, ctmod = ctmod, 
+      ntmod = ntmod, 
+      ctmod = ctmod, 
       ntmass = ntmass, 
       ctmass = ctmass, 
       amods = amods, vmods_nl = vmods_nl, fmods_nl = fmods_nl, 
@@ -177,7 +178,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       aa_masses = aa_masses, 
       ms1vmods = ms1vmods, 
       ms2vmods = ms2vmods, 
-      ntmod = ntmod, ctmod = ctmod, 
+      ntmod = ntmod, 
+      ctmod = ctmod, 
       ntmass = ntmass, 
       ctmass = ctmass, 
       amods = amods, vmods_nl = vmods_nl, fmods_nl = fmods_nl, 
@@ -481,8 +483,7 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
                               maxn_vmods_sitescombi_per_pep = 64L, 
                               digits = 4L) 
 {
-  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
-                            useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
   
@@ -490,7 +491,6 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
   
   len_a <- length(aas)
   nm <- .Internal(paste0(list(rep("0", len_a)), collapse = "", recycle0 = FALSE))
-
   out <- list(out)
   names(out) <- nm
   

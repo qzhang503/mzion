@@ -258,8 +258,7 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
                                       maxn_vmods_sitescombi_per_pep = 64L, 
                                       digits = 4L) 
 {
-  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
-                            useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
   
@@ -276,7 +275,8 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
                                  ntmod = ntmod, ctmod = ctmod, 
                                  ms1_mass = ms1_mass)
   
-  if (!any(idxes)) return(NULL)
+  if (!any(idxes)) 
+    return(NULL)
   
   vmods_combi <- vmods_combi[idxes]
   vnl_combi <- lapply(vmods_combi, function (x) expand_grid_rows(vmods_nl[x]))
@@ -350,14 +350,11 @@ calc_ms2ions_a1_vnl1_fnl0 <- function (vmods_combi, vnl_combi, aas2, aa_masses,
   
   # updates vnl masses
   len <- length(vnl_combi)
-  
   out <- vector("list", len)
   
   for (i in 1:len) {
     aas2_i <- aas2
-    delta_nl <- .Internal(unlist(vnl_combi[[i]], recursive = FALSE, 
-                                 use.names = FALSE))
-
+    delta_nl <- .Internal(unlist(vnl_combi[[i]], recursive = FALSE, use.names = FALSE))
     aas2_i[idxes] <- aas2_i[idxes] - delta_nl
     out[[i]] <- ms2ions_by_type(aas2_i, ntmass, ctmass, type_ms2ions, digits)
   }

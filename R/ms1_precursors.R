@@ -411,7 +411,7 @@ calc_pepmasses2 <- function (
     
     # --- Delta masses of `variable` terminals  ---
     # (e.g., on top of the `fixed` 18.010565)
-    message("Adding terminal masses (variable modifications) ...")
+    message("Adding terminal masses...")
     fwd_peps <- mapply(add_term_mass, fwd_peps, aa_masses_ms1, 
                        MoreArgs = list(min_mass = min_mass, max_mass = max_mass))
     

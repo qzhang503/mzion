@@ -197,7 +197,6 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
   # (7, 8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
   # (no pep_seq dispatching by fmod residues -> possible no matched sites)
   sites <- names(fmods_nl)
-  
   pattern <- paste(sites, collapse = "|")
   
   if (!grepl(pattern, aa_seq)) 
@@ -216,8 +215,7 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
                                digits = digits))
 
   # (11, 12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
-  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
-                            useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
   
@@ -240,7 +238,6 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
   
   # NLs of fixedmods
   fnl_idxes <- which(aas %in% names(fmods_nl))
-
   fmods_combi <- aas[fnl_idxes]
   names(fmods_combi) <- fnl_idxes
   fnl_combi <- expand_grid_rows(fmods_nl[fmods_combi])
@@ -281,7 +278,6 @@ calc_ms2ions_a1_vnl0_fnl1 <- function (vmods_combi, fnl_combi, fnl_idxes,
   
   # updates fnl masses
   len <- length(fnl_combi)
-  
   out <- vector("list", len)
 
   for (i in 1:len) {

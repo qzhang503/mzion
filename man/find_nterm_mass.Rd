@@ -11,6 +11,6 @@ find_nterm_mass(aa_masses)
 acid residues.}
 }
 \description{
-When "length(ntmod) > 0", aa_mass["N-term"] must be H given the rule of
-no additive (terminal) modifications.
+When \code{length(ntmod) > 0}, \code{aa_mass["N-term"]} must be H given the
+rule of no additive (terminal) modifications.
 }

@@ -37,28 +37,26 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       if (.savecall) {
         save_call2(path = file.path(out_path, "Calls"), fun = fun)
       }
-    }, 
-    add = TRUE
+    }, add = TRUE
   )
   
   # Check cached 
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
-  
+  fml_nms <- names(formals(fun))
+
   # (OK as `use_first_rev` is not for users)
   args_except <- c("use_first_rev", "quant")
+  fml_incl <- fml_nms[!fml_nms %in% args_except]
   
   cache_pars <- find_callarg_vals(time = NULL, 
                                   path = file.path(out_path, "Calls"), 
                                   fun = paste0(fun, ".rda"), 
-                                  args = names(formals(fun)) %>% 
-                                    .[! . %in% args_except]) %>% 
-    .[sort(names(.))]
+                                  args = fml_incl) 
+  cache_pars <- cache_pars[sort(names(cache_pars))]
   
-  call_pars <- mget(names(formals()) %>% .[! . %in% args_except], 
-                    envir = fun_env, 
-                    inherits = FALSE) %>% 
-    .[sort(names(.))]
+  call_pars <- mget(fml_incl, envir = fun_env, inherits = FALSE)
+  call_pars <- call_pars[sort(names(call_pars))]
   
   if (identical(cache_pars, call_pars)) {
     len <- length(aa_masses_all)
@@ -73,7 +71,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                           pattern = "reporters_[0-9]+\\.rds$")
       
       ok_tmt <- (length(ftmt) == len)
-    } else {
+    } 
+    else {
       ok_tmt <- TRUE
     }
     
@@ -117,12 +116,12 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   else 
     ppm_ms2
   
-  # The universes of MS1 varmods combinations & MS2 permutations
   ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
                          maxn_vmods_per_pep = maxn_vmods_per_pep,
                          maxn_sites_per_vmod = maxn_sites_per_vmod)
   
   ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+  
   
   message("\n===  MS2 ion searches started at ", Sys.time(), ". ===\n")
   
@@ -130,14 +129,9 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   obj_sizes <- numeric(length(aa_masses_all))
   types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
   
-  
   # (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-" 
   inds <- which(types %in% c("amods- tmod- vnl- fnl-", 
                              "amods- tmod+ vnl- fnl-"))
-  
-  ### 
-  # inds <- NULL
-  ###
   
   if (length(inds)) {
     for (i in inds) {
@@ -145,9 +139,9 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ms1vmods <- ms1vmods_all[[i]]
       ms2vmods <- ms2vmods_all[[i]]
       
-      # need ntmod and ctmod for `amod+_...` for 
-      #   excluding additive terminal mod and anywhere mod
-      
+      # need ntmod and ctmod for `amod+_...` for excluding 
+      #   additive terminal mod and anywhere mod
+      # 
       # aa_masses["N-term"] not necessary H; 
       #   e.g., `Acetyl + hydrogen` in case of FIXED Protein N-term 
       #   or fixed N-term `TMT + hydrogen`
@@ -157,7 +151,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ntmass <- find_nterm_mass(aa_masses)
       ctmass <- find_cterm_mass(aa_masses)
       
-      # (`map` against groups of frames)
       out <- ms2match_base(
         i = i, 
         aa_masses = aa_masses, 
@@ -179,7 +172,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         df0 = out0, 
         digits = digits)
       
-      # if (is.null(out)) out <- out0
       obj_sizes[i] <- object.size(out)
       
       if (grepl("^tmt[0-9]+$", quant)) {
@@ -207,10 +199,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   inds <- which(types %in% c("amods- tmod- vnl- fnl+", 
                              "amods- tmod+ vnl- fnl+"))
 
-  ### 
-  # inds <- NULL
-  ###
-  
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
@@ -246,7 +234,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         df0 = out0, 
         digits = digits)
       
-      # if (is.null(out)) out <- out0
       obj_sizes[i] <- object.size(out)
       
       if (grepl("^tmt[0-9]+$", quant)) {
@@ -272,10 +259,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   inds <- which(types %in% c("amods+ tmod- vnl- fnl-", 
                              "amods+ tmod+ vnl- fnl-"))
 
-  ### 
-  # inds <- NULL
-  ###
-  
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
@@ -313,7 +296,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         df0 = out0, 
         digits = digits)
       
-      # if (is.null(out)) out <- out0
       obj_sizes[i] <- object.size(out)
       
       if (grepl("^tmt[0-9]+$", quant)) {
@@ -378,7 +360,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         df0 = out0, 
         digits = digits)
       
-      # if (is.null(out)) out <- out0
       obj_sizes[i] <- object.size(out)
       
       if (grepl("^tmt[0-9]+$", quant)) {
@@ -444,7 +425,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         df0 = out0, 
         digits = digits)
       
-      # if (is.null(out)) out <- out0
       obj_sizes[i] <- object.size(out)
       
       if (grepl("^tmt[0-9]+$", quant)) {

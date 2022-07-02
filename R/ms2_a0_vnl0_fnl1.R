@@ -168,19 +168,18 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL,
                        digits = digits))
 
   # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+" 
-  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
-                            useBytes = FALSE))
+  aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
-  
-  idxes <- which(aas %in% names(fmods_nl))
-  
+
   # At varmods "Oxidation (M)", pep_seq(s) must contain "M" 
   #   (with an additional entry of "Oxidation (M)" in aa_masses)
   # 
   # At fixedmods "Oxidation (M)", pep_seq(s) may not contain "M"; 
   #   (as `distri_peps` does not filter pep_seq by fixedmods)
   
+  idxes <- which(aas %in% names(fmods_nl))
   len_i <- length(idxes)
+  
   if (len_i > maxn_vmods_per_pep) 
     idxes <- idxes[1:maxn_vmods_per_pep]
 

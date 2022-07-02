@@ -52,14 +52,15 @@ calc_tmtint <- function (data = NULL,
     
     # stopifnot(all(c("ms2_moverz", "ms2_int") %in% names(data)))
     
-    out <- purrr::map2(data$ms2_moverz, data$ms2_int,
-                       find_reporter_ints,
-                       theos = theos,
-                       ul = ul,
-                       ppm_reporters = ppm_reporters,
-                       len = length(theos),
-                       nms = names(theos)) %>%
-      dplyr::bind_rows() 
+    out <- mapply(find_reporter_ints, data[["ms2_moverz"]], data[["ms2_int"]], 
+                  MoreArgs = list(
+                    theos = theos,
+                    ul = ul,
+                    ppm_reporters = ppm_reporters,
+                    len = length(theos),
+                    nms = names(theos)
+                  ), USE.NAMES = FALSE, SIMPLIFY = FALSE) %>%
+      dplyr::bind_rows()
     
     if (!nrow(out)) {
       out <- data.frame(matrix(ncol = length(theos), nrow = 0L))
@@ -85,31 +86,22 @@ calc_tmtint <- function (data = NULL,
 #' @inheritParams matchMS
 add_rptrs <- function (df = NULL, quant = "none", out_path = NULL) 
 {
-  if (grepl("^tmt[0-9]+$", quant)) {
-    files <- list.files(path = file.path(out_path, "temp"),
-                        pattern = "^reporters_\\d+\\.rds$")
-    
-    idxes <- gsub("^reporters_([0-9]+)\\.rds$", "\\1", files) %>%
-      as.integer() %>%
-      order()
-    
-    files <- files[idxes]
-    
-    reporters <- lapply(files, function (x) 
-      qs::qread(file.path(out_path, "temp", x))
-      ) %>%
-      dplyr::bind_rows()
-
-    rm(list = c("idxes", "files"))
-    
-    df <- df %>%
-      tidyr::unite(uniq_id, raw_file, pep_mod_group, scan_num, sep = ".",
-                   remove = FALSE) %>%
-      dplyr::left_join(reporters, by = "uniq_id") %>%
-      dplyr::select(-uniq_id)
-  }
+  if (!grepl("^tmt[0-9]+$", quant))
+    return(df)
   
-  invisible(df)
+  pattern <- "^reporters_\\d+\\.rds$"
+  files <- list.files(path = file.path(out_path, "temp"), pattern = pattern)
+  idxes <- order(as.integer(gsub("^reporters_([0-9]+)\\.rds$", "\\1", files)))
+  files <- files[idxes]
+  
+  reporters <- lapply(files, function (x) qs::qread(file.path(out_path, "temp", x)))
+  reporters <- dplyr::bind_rows(reporters)
+  
+  df <- df %>%
+    tidyr::unite(uniq_id, raw_file, pep_mod_group, scan_num, sep = ".",
+                 remove = FALSE) %>%
+    dplyr::left_join(reporters, by = "uniq_id") %>%
+    dplyr::select(-uniq_id)
 }
 
 

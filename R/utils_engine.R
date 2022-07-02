@@ -254,7 +254,7 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 
   message("Matching against: ",
           paste0(nm_fmods,
-                 nm_vmods %>% { if (nchar(.) > 0) paste0(" + ", .) else . },
+                 nm_vmods %>% { if (nchar(.) > 0L) paste0(" | ", .) else . },
                  msg_end))
 
   # reads theoretical peptide data
@@ -401,8 +401,8 @@ subset_neuloss_peps <- function (pattern, theopeps)
 
 #' Finds MS2 N-terminal mass.
 #'
-#' When "length(ntmod) > 0", aa_mass["N-term"] must be H given the rule of
-#' no additive (terminal) modifications.
+#' When \code{length(ntmod) > 0}, \code{aa_mass["N-term"]} must be H given the
+#' rule of no additive (terminal) modifications.
 #'
 #' @param aa_masses A named list containing the (mono-isotopic) masses of amino
 #'   acid residues.
@@ -411,20 +411,20 @@ find_nterm_mass <- function (aa_masses)
   ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
   
   # (1) For the "if" part at "length(ntmod) > 0": 
-  # aa_mass["N-term"] must be hydrogen, provided the 
-  # rule of no additive (terminal) modifications. Thus, 
+  #   aa_mass["N-term"] must be hydrogen, provided the 
+  #   rule of no additive (terminal) modifications. Thus, 
   #   aa_masses[names(ntmod)] + aa_masses["N-term"] - e is identical to
   #   aa_masses[names(ntmod)] + 1.00727647
   # 
   # (2) For the "else" part: 
-  # e.g. at fixed `TMT6plex (N-term)`
+  #   e.g. at fixed `TMT6plex (N-term)`
   #   aa_masses["N-term"] = 229 + H -> 230
   
   # hydrogen <- 1.007825
   # proton <- 1.00727647
   # electr <- 0.000549
   
-  ntmass <- if (length(ntmod))
+  if (length(ntmod))
     aa_masses[names(ntmod)] + 1.00727647
   else
     aa_masses["N-term"] - 0.000549
@@ -440,12 +440,12 @@ find_cterm_mass <- function (aa_masses)
   ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
   
   # (1) For the "if" part at "length(ctmod) > 0": 
-  # aa_mass["C-term"] must be OH, provided the 
-  # rule of no additive (terminal) modifications. Thus, 
+  #   aa_mass["C-term"] must be OH, provided the 
+  #   rule of no additive (terminal) modifications. Thus, 
   #   aa_masses[names(ctmod)] + aa_masses["C-term"] + (H) + (H+) is identical to
   #   aa_masses[names(ctmod)] + 19
 
-  ctmass <- if (length(ctmod))
+  if (length(ctmod))
     aa_masses[names(ctmod)] + 19.0178415
   else 
     aa_masses["C-term"] + 2.01510147 # + (H) + (H+)

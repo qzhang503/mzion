@@ -530,7 +530,6 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
                  digits = digits)
     
     df <- .Internal(unlist(df, recursive = FALSE, use.names = FALSE))
-    
     df <- dplyr::bind_rows(df)
   } 
   else {
@@ -595,20 +594,19 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   ## Check cached current
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
+  fml_nms <- names(formals(fun))
   
   args_except <- "sys_ram"
+  fml_incl <- fml_nms[!fml_nms %in% args_except]
   
   cache_pars <- find_callarg_vals(time = NULL, 
                                   path = file.path(out_path, "Calls"), 
                                   fun = paste0(fun, ".rda"), 
-                                  args = names(formals(fun)) %>% 
-                                    .[! . %in% args_except]) %>% 
+                                  args = fml_incl) %>% 
     .[sort(names(.))]
   
-  call_pars <- mget(names(formals()) %>% .[! . %in% args_except], 
-                    envir = fun_env, 
-                    inherits = FALSE) %>% 
-    .[sort(names(.))]
+  call_pars <- mget(fml_incl, envir = fun_env, inherits = FALSE) 
+  call_pars <- call_pars[sort(names(call_pars))]
   
   if (identical(cache_pars, call_pars)) {
     ok_scores <- find_targets(out_path, pattern = "^pepscores_")
@@ -1150,14 +1148,6 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01, out_p
     dplyr::mutate(fdr = decoy/total) %>% 
     dplyr::mutate(pep_score = -log10(pep_prob) * 10)
   
-  # ---
-  # len 7:19
-  # ans_param <- c(46.0, 42.8, 21.5, 20.3, 16.0, 19.25, 20.5, 22.1, 24.7, 
-  #                26.4, 29.8, 33.3, 38.5)
-  # ans_nonparam <- c(45.6, 37.3, 26.2, 21.4, 16.6, 19.5, 21.6, 22.4, 24.8, 
-  #                   27.0, 31.1, 33.4, 37.0)
-
-  # ---
   count <- nrow(td)
   
   if (count < (1 / target_fdr)) {
@@ -2208,22 +2198,26 @@ find_ppm_outer_bycombi <- function (X, Y, ppm_ms2 = 25L)
   list(theo = Y, expt = es, ith = iy, iex = ix, m = length(ix))
 }
 
-#' Calculates the delta scores of `pep_seq`.
+
+#' Calculates the delta scores of \code{pep_seq}.
 #'
 #' A score delta between the best and the second best.
 #'
-#' There should not be any duplicated rows by the combination of
+#' There should not be any duplicated rows at the combination of
 #' c("pep_isdecoy", "scan_num", "raw_file", "pep_seq", "pep_ivmod")
 #'
-#' @param x The result from \link{calc_pepscores}.
+#' @param x The results from \link{calc_pepscores}.
 #' @param out_path An output path.
+#' @param mod_indexes Integer; the indexes of fixed and/or variable
+#'   modifications.
+#' @inheritParams matchMS
 #' @rawNamespace import(data.table, except = c(last, first, between, transpose,
 #'   melt, dcast))
 calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL, 
                          topn_mods_per_seq = 3L, topn_seqs_per_query = 3L) 
 {
-  message("Calculating peptide localization scores.")
-  
+  message("Calculating peptide localization scores and deltas.")
+
   # some shallow copy warnings from data.table
   old_opts <- options()
   options(warn = -1L)
@@ -2232,10 +2226,10 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   if (is.null(x)) {
     file <- file.path(out_path, "temp", "pepfdr.rds")
     
-    if (file.exists(file))
-      x <- qs::qread(file)
-    else
-      stop("File not found: ", file, call. = FALSE)
+    if (file.exists(file)) 
+      x <- qs::qread(file) 
+    else 
+      stop("File not found: ", file)
     
     rm(list = "file")
   }
@@ -2243,7 +2237,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x <- data.table::data.table(x)
   gc()
   
-  # x[ , "pep_score" := round(pep_score, 2L)]
+  n_cores <- detect_cores(16L)
+  para <- nrow(x) > 10000L
   
   # For simplicity `pep_seq` uses interchangeably with `uniq_id` and 
   # `pep_seq_mod` with `uniq_id2` where everything is on top of the same 
@@ -2266,10 +2261,21 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x[, uniq_id := paste(pep_isdecoy, scan_num, raw_file, pep_seq, sep = ".")]
   x[, "pep_ivmod2" := gsub(" [\\(\\[]\\d+[\\)\\[]$", "", pep_ivmod)]
   x[, uniq_id2 := paste(uniq_id, pep_ivmod2, sep = ".")]
-  x[, pep_rank2 := data.table::frank(-pep_score, ties.method = "min"), 
-    by = list(uniq_id2)]
 
+  if (para) {
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    xs <- parallel::clusterApply(
+      cl, split(x, find_chunkbreaks(x[["uniq_id2"]], n_cores)), calcpeprank_1)
+    parallel::stopCluster(cl)
+    
+    x <- data.table::rbindlist(xs, use.names = FALSE)
+    rm(list = c("xs"))
+  }
+  else {
+    x <- calcpeprank_1(x)
+  }
   
+
   ## 2 separate the best NL (x0) from the rest (y0, z0) at the same `pep_seq_mod`
   # 
   # the same pep_seq_mod only differ by NLs:
@@ -2284,7 +2290,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   # x0 --- best NL at a pep_seq_mod and only the first one if with ties in NLs
   # y0 --- not the best NL at a pep_seq_mod
   # z0 --- still the best NL at a pep_seq_mod but tied with the first one
-
+  
   # need to order after ranking (better NLs first)
   x <- x[order(-pep_score), by = list(uniq_id2)] 
   x[, nl_id := seq_len(.N), by = uniq_id2]
@@ -2300,20 +2306,30 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   rm(list = c("x"))
   gc()
   
-  
   ## 3. keep the top-3 `pep_seq_mod`
   # the `pep_rank` here is after the "collapse" of NLs by only using the best;
   # net effect: the top-3 pep_seq_mod's, each represented by its best NL;
   # nevertheless, there can be ties in NL.
   message("\tSubset peptides by modifications: \"topn_mods_per_seq <= ", 
           topn_mods_per_seq, "\".")
-
-  x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
-     by = list(uniq_id)]
+  
+  if (para) {
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    x0s <- parallel::clusterApply(
+      cl, split(x0, find_chunkbreaks(x0[["uniq_id"]], n_cores)), calcpeprank_2)
+    parallel::stopCluster(cl)
+    
+    x0 <- data.table::rbindlist(x0s, use.names = FALSE)
+    rm(list = c("x0s"))
+  }
+  else {
+    x0 <- calcpeprank_2(x0)
+  }
+  
   x0 <- x0[pep_rank <= topn_mods_per_seq, ]
   x0[["pep_rank"]] <- NULL
   gc()
-
+  
   
   ## 4 `pep_locprob` (the same `pep_seq`, different `pep_seq_mod`)
   # 4.1 separations into ambiguous x0 and non-ambiguous x1
@@ -2330,7 +2346,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
     message("\tCalculates peptide localization scores.")
   
   if (nrow(x0)) {
-    us <- split(x0[, c("uniq_id2", "pep_ivmod2", "pep_ms2_ideltas.")], x0$uniq_id)
+    us <- split(x0[, c("uniq_id2", "pep_ivmod2", "pep_ms2_ideltas.")], 
+                x0[["uniq_id"]])
     gc()
     
     probs <- lapply(us, findLocFracsDF, phosmods = phosmods)
@@ -2344,7 +2361,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
         abs(topx[1] - topx[2])
       }
     })
-
+    
     us <- mapply(function (x, y, z) {
       x[["pep_locprob"]] <- y
       x[["pep_locdiff"]] <- z
@@ -2366,7 +2383,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
     colnames(x0) <- col_nms
     rm(list = "col_nms")
   }
-
+  
   # 4.3 adds back x1
   if (nrow(x1)) {
     x1[["pep_locprob"]] <- 1.0
@@ -2380,7 +2397,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
                        by = "uniq_id2")
   x0 <- data.table::rbindlist(list(x0, z0), use.names = FALSE)
   rm(list = "z0")
-
+  
   # 4.5 adds back y0
   if (nrow(y0)) {
     y0[["pep_locprob"]] <- NA_real_
@@ -2388,7 +2405,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
     x0 <- data.table::rbindlist(list(x0, y0), use.names = FALSE)
   }
   rm(list = "y0")
-
+  
   ## 5. clean-ups
   x0 <- x0[, -c("uniq_id", "uniq_id2")]
   x0[ , "pep_score" := round(pep_score, 2L)]
@@ -2403,24 +2420,111 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   #   pep_seq_1: EVEEDSEDEEMSEDE[E]D[D]S[SG]EEVVIPQKK
   #   pep_seq_2: EVEEDSEDEEMSEDE[D]D[S]S[GE]EEVVIPQKK
   # both will be kept (at the same rank)
-
+  
   message("\tSubset peptide sequences by query: \"topn_seqs_per_query <= ", 
           topn_seqs_per_query, "\".")
-
+  
   x0[, uniq_id3 := paste(pep_isdecoy, scan_num, raw_file, sep = ".")]
-  x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
-     by = list(uniq_id3)]
+  
+  if (para) {
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    x0s <- parallel::clusterApply(
+      cl, split(x0, find_chunkbreaks(x0[["uniq_id3"]], n_cores)), calcpeprank_3)
+    parallel::stopCluster(cl)
+    
+    x0 <- data.table::rbindlist(x0s, use.names = FALSE)
+    rm(list = c("x0s"))
+  }
+  else {
+    x0 <- calcpeprank_3(x0)
+  }
+  
+  # x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), by = list(uniq_id3)]
   
   x0 <- x0[pep_rank <= topn_seqs_per_query, ]
   data.table::setorder(x0, uniq_id3, -pep_score)
   x0$uniq_id3 <- NULL
-
+  
   x0 <- x0[, pep_isdecoy := as.logical(pep_isdecoy)]
   x0[["pep_ms2_ideltas."]] <- NULL
   x0[["pep_ivmod2"]] <- NULL
   qs::qsave(x0, file.path(out_path, "temp", "peploc.rds"), preset = "fast")
-
+  
   invisible(x0)
+}
+
+
+#' Helper for parallel frank
+#' 
+#' @param x A data.table object
+calcpeprank_1 <- function (x)
+{
+  x[, pep_rank2 := data.table::frank(-pep_score, ties.method = "min"), 
+    by = list(uniq_id2)]
+}
+
+
+#' Helper for parallel frank
+#' 
+#' @param x0 A data.table object
+calcpeprank_2 <- function (x0)
+{
+  x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
+     by = list(uniq_id)]
+}
+
+
+#' Helper for parallel frank
+#' 
+#' @param x0 A data.table object
+calcpeprank_3 <- function (x0) 
+{
+  x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
+     by = list(uniq_id3)]
+}
+
+
+#' Finds the break points
+#' 
+#' @param vals An order vector.
+#' @param n_chunks The number of chunks.
+#' 
+#' @examples 
+#' \donttest{
+#' vals <- c(rep("B", 6), rep("A", 6), rep("E", 5), rep("D", 5), rep("C", 7))
+#' brs <- find_chunkbreaks(vals, 3L)
+#' split(vals, brs)
+#' }
+find_chunkbreaks <- function (vals, n_chunks) 
+{
+  lenv <- length(vals)
+  n_chunks <- min(length(unique(vals)), n_chunks)
+  
+  if (n_chunks == 1L)
+    return(rep(1L, lenv))
+  
+  pos <- floor(lenv/n_chunks) * 1:n_chunks
+  len <- length(pos)
+  pos[len] <- lenv
+  
+  for (i in 1:(len - 1L)) {
+    icr <- pos[i]
+    inx <- icr + 1L
+    vcr <- vals[icr]
+    vnx <- vals[inx]
+    
+    while(vcr == vnx) {
+      icr <- inx
+      inx <- inx + 1L
+      vcr <- vals[icr]
+      vnx <- vals[inx]
+    }
+    
+    pos[i] <- icr
+  }
+  
+  ds <- c(pos[1], diff(pos))
+  rep(seq_along(pos), ds)
 }
 
 

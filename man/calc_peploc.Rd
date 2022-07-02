@@ -2,7 +2,7 @@
 % Please edit documentation in R/scores.R
 \name{calc_peploc}
 \alias{calc_peploc}
-\title{Calculates the delta scores of `pep_seq`.}
+\title{Calculates the delta scores of \code{pep_seq}.}
 \usage{
 calc_peploc(
   x = NULL,
@@ -13,14 +13,34 @@ calc_peploc(
 )
 }
 \arguments{
-\item{x}{The result from \link{calc_pepscores}.}
+\item{x}{The results from \link{calc_pepscores}.}
 
 \item{out_path}{An output path.}
+
+\item{mod_indexes}{Integer; the indexes of fixed and/or variable
+modifications.}
+
+\item{topn_mods_per_seq}{Positive integer; a threshold to discard variable
+  modifications under the same peptide match with scores beyond the top-n.
+
+  The same \code{peptide match} refers to matches with identities in \code{MS
+  scan number}, \code{MS raw file name} and \code{peptide sequence}. Target
+  and decoys matches are treated separately.
+
+  For a variable modification with multiple neutral losses (NL), the
+  best-scored NL will be used in the ranking.}
+
+\item{topn_seqs_per_query}{Positive integer; a threshold to discard peptide
+  matches under the same MS query with scores beyond the top-n.
+
+  The same \code{MS query} refers to the identity in \code{MS scan number}
+  and \code{MS raw file name}. Target and decoys matches are treated
+  separately.}
 }
 \description{
 A score delta between the best and the second best.
 }
 \details{
-There should not be any duplicated rows by the combination of
+There should not be any duplicated rows at the combination of
 c("pep_isdecoy", "scan_num", "raw_file", "pep_seq", "pep_ivmod")
 }
