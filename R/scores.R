@@ -2261,8 +2261,10 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x[, uniq_id := paste(pep_isdecoy, scan_num, raw_file, pep_seq, sep = ".")]
   x[, "pep_ivmod2" := gsub(" [\\(\\[]\\d+[\\)\\[]$", "", pep_ivmod)]
   x[, uniq_id2 := paste(uniq_id, pep_ivmod2, sep = ".")]
-
+  
   if (para) {
+    x[order(uniq_id2), ]
+
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     xs <- parallel::clusterApply(
       cl, split(x, find_chunkbreaks(x[["uniq_id2"]], n_cores)), calcpeprank_1)
@@ -2272,7 +2274,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
     rm(list = c("xs"))
   }
   else {
-    x <- calcpeprank_1(x)
+    x[, pep_rank2 := data.table::frank(-pep_score, ties.method = "min"), 
+      by = list(uniq_id2)]
   }
   
 
@@ -2314,6 +2317,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
           topn_mods_per_seq, "\".")
   
   if (para) {
+    x0[order(uniq_id), ]
+
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     x0s <- parallel::clusterApply(
       cl, split(x0, find_chunkbreaks(x0[["uniq_id"]], n_cores)), calcpeprank_2)
@@ -2323,7 +2328,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
     rm(list = c("x0s"))
   }
   else {
-    x0 <- calcpeprank_2(x0)
+    x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
+       by = list(uniq_id)]
   }
   
   x0 <- x0[pep_rank <= topn_mods_per_seq, ]
@@ -2427,6 +2433,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x0[, uniq_id3 := paste(pep_isdecoy, scan_num, raw_file, sep = ".")]
   
   if (para) {
+    x0[order(uniq_id3), ]
+
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     x0s <- parallel::clusterApply(
       cl, split(x0, find_chunkbreaks(x0[["uniq_id3"]], n_cores)), calcpeprank_3)
@@ -2436,10 +2444,9 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
     rm(list = c("x0s"))
   }
   else {
-    x0 <- calcpeprank_3(x0)
+    x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
+       by = list(uniq_id3)]
   }
-  
-  # x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), by = list(uniq_id3)]
   
   x0 <- x0[pep_rank <= topn_seqs_per_query, ]
   data.table::setorder(x0, uniq_id3, -pep_score)
