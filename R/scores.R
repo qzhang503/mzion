@@ -2263,7 +2263,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x[, uniq_id2 := paste(uniq_id, pep_ivmod2, sep = ".")]
   
   if (para) {
-    x[order(uniq_id2), ]
+    x <- x[order(x[["uniq_id2"]]), ] # for group split
 
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     xs <- parallel::clusterApply(
@@ -2308,6 +2308,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   z0[["nl_id"]] <- NULL
   rm(list = c("x"))
   gc()
+
   
   ## 3. keep the top-3 `pep_seq_mod`
   # the `pep_rank` here is after the "collapse" of NLs by only using the best;
@@ -2315,9 +2316,9 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   # nevertheless, there can be ties in NL.
   message("\tSubset peptides by modifications: \"topn_mods_per_seq <= ", 
           topn_mods_per_seq, "\".")
-  
+
   if (para) {
-    x0[order(uniq_id), ]
+    x0 <- x0[order(x0[["uniq_id"]]), ] # for group split
 
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     x0s <- parallel::clusterApply(
@@ -2335,7 +2336,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x0 <- x0[pep_rank <= topn_mods_per_seq, ]
   x0[["pep_rank"]] <- NULL
   gc()
-  
+
   
   ## 4 `pep_locprob` (the same `pep_seq`, different `pep_seq_mod`)
   # 4.1 separations into ambiguous x0 and non-ambiguous x1
@@ -2433,7 +2434,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x0[, uniq_id3 := paste(pep_isdecoy, scan_num, raw_file, sep = ".")]
   
   if (para) {
-    x0[order(uniq_id3), ]
+    x0 <- x0[order(x0[["uniq_id3"]]), ]
 
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     x0s <- parallel::clusterApply(
@@ -2467,7 +2468,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
 calcpeprank_1 <- function (x)
 {
   x[, pep_rank2 := data.table::frank(-pep_score, ties.method = "min"), 
-    by = list(uniq_id2)]
+    by = "uniq_id2"]
 }
 
 
@@ -2477,7 +2478,7 @@ calcpeprank_1 <- function (x)
 calcpeprank_2 <- function (x0)
 {
   x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
-     by = list(uniq_id)]
+     by = "uniq_id"]
 }
 
 
@@ -2487,7 +2488,7 @@ calcpeprank_2 <- function (x0)
 calcpeprank_3 <- function (x0) 
 {
   x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
-     by = list(uniq_id3)]
+     by = "uniq_id3"]
 }
 
 
