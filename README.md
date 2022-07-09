@@ -1,13 +1,14 @@
 proteoM
 ================
 true
-2022-06-06
+2022-07-06
 
--   [Installation](#installation)
--   [FASTAs and MGFs](#fastas-and-mgfs)
--   [Database searches](#database-searches)
--   [Next steps](#next-steps)
--   [Other utilities](#other-utilities)
+-   <a href="#installation" id="toc-installation">Installation</a>
+-   <a href="#fastas-and-mgfs" id="toc-fastas-and-mgfs">FASTAs and MGFs</a>
+-   <a href="#database-searches" id="toc-database-searches">Database
+    searches</a>
+-   <a href="#next-steps" id="toc-next-steps">Next steps</a>
+-   <a href="#other-utilities" id="toc-other-utilities">Other utilities</a>
 
 ## Installation
 
@@ -79,6 +80,7 @@ matchMS(
   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", 
                 "Deamidated (N)", "Phospho (S)", "Phospho (T)", 
                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"), 
+  locmods   = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
   max_miss  = 4, 
   quant     = "tmt10", 
   

@@ -14,6 +14,7 @@ matchMS(
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
+  locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
   mod_motifs = NULL,
   enzyme = c("Trypsin_P", "Trypsin", "LysC", "LysN", "ArgC", "LysC_P", "Chymotrypsin",
     "GluC", "GluN", "AspC", "AspN", "SemiTrypsin_P", "SemiTrypsin", "SemiLysC",
@@ -52,7 +53,7 @@ matchMS(
   combine_tier_three = FALSE,
   max_n_prots = 40000L,
   use_ms1_cache = TRUE,
-  .path_cache = "~/proteoM/.MSearches (1.1.8.0)/Cache/Calls",
+  .path_cache = "~/proteoM/.MSearches (1.1.8.1)/Cache/Calls",
   .path_fasta = NULL,
   topn_ms2ions = 100L,
   topn_ms2ion_cuts = NA,
@@ -113,6 +114,14 @@ c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
   \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
   \link{parse_unimod} for grammars of modification \code{title},
   \code{position} and \code{site}.}
+
+\item{locmods}{Among \code{varmods} for the consideration of localization
+probabilities; for instance, \code{locmods = NULL} for nothing,
+\code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
+phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
+\code{fixedmods} that were coerced to \code{varmods} will be added
+automatically to \code{locmods}. For convenience, the default is set to
+look for applicable peptide phosphorylation.}
 
 \item{mod_motifs}{The motifs to restrict \code{Anywhere} variable
   modification. For example, provided the \code{Anywhere} variable
@@ -513,6 +522,7 @@ matchMS(
   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
                 "Deamidated (N)", "Phospho (S)", "Phospho (T)",
                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
+  locmods   = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
   quant     = "tmt16",
   fdr_type  = "psm",
   combine_tier_three = TRUE,

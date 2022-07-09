@@ -240,7 +240,7 @@ calc_pepmasses2 <- function (
     if (isTRUE(enzyme == "noenzyme")) {
       if (max_len > 25L) 
         warning("May be out of RAM at `max_len = ", max_len, "`.\n",
-                "Consider a smaller value, e.g., `max_len = 25`")
+                "Consider a sectional search, e.g., `noenzyme_maxn = 10`")
 
       if (any(is_fixed_protnt, is_fixed_protct))
         stop("Not yet support FIXED protein terminal modifications for ", 
@@ -511,7 +511,7 @@ calc_pepmasses2 <- function (
     # 32L: 22.6
     # 64L: 39 
 
-    n_cores <- detect_cores(32L)
+    n_cores <- detect_cores(16L)
 
     inds <- which(types %in% c("amods+ tmod- vnl- fnl-",
                                "amods+ tmod+ vnl- fnl-",
@@ -1162,8 +1162,8 @@ coerce_fvmods <- function (fixedmods, varmods)
     if (!length(ct_coerce_site)) ct_coerce_site <- NULL
   } 
   else {
-    fixedmods <- NULL
-    varmods <- NULL
+    fixedmods <- fixedmods
+    varmods <- varmods
     f_to_v <- NULL
     anywhere_coerce_sites <- NULL
     nt_coerce_site <- NULL
@@ -1191,21 +1191,22 @@ coerce_fvmods <- function (fixedmods, varmods)
 #' @param fmods_ps Positions and sites of fixed modifications.
 #' @param vmods_ps Positions and sites of variable modifications.
 #' @inheritParams calc_aamasses
-#' @return A named vector, e.g., \code{c("TMT6plex (K)", "TMT6plex (N-term)")}
+#' @return A named vector, e.g., \code{c("TMT6plex (K) = K", "TMT6plex
+#'   (N-term)" = "N-term")}
 find_f_to_v <- function (fixedmods, fmods_ps, vmods_ps)
 {
   f_nms <- names(fmods_ps)
   v_nms <- names(vmods_ps)
-  fmods_ps_any <- fmods_ps[!grepl("[NC]-term", f_nms)]
-  vmods_ps_any <- vmods_ps[!grepl("[NC]-term", v_nms)]
-  fterm_nms <- f_nms[grepl("[NC]-term", f_nms)]
-  vterm_nms <- v_nms[grepl("[NC]-term", v_nms)]
   
+  ok_ft <- grepl("[NC]-term", f_nms)
+  ok_vt <- grepl("[NC]-term", v_nms)
+  fmods_ps_any <- fmods_ps[!ok_ft]
+  vmods_ps_any <- vmods_ps[!ok_vt]
+  fmods_ps_term <- fmods_ps[ok_ft]
+  vmods_ps_term <- vmods_ps[ok_vt]
+
   coerce_asites <- fmods_ps_any[fmods_ps_any %in% vmods_ps_any]
-  coerce_tsites <- unname(fmods_ps[intersect(fterm_nms, vterm_nms)])
-  
-  rm(list = c("f_nms", "v_nms", "fmods_ps_any", "vmods_ps_any", 
-              "fterm_nms", "vterm_nms"))
+  coerce_tsites <- fmods_ps_term[fmods_ps_term %in% vmods_ps_term]
   
   # e.g. "N-term" can be matched by both site and position
   # (no guarantee in the order of coerce_sites; so match names one at a time)
@@ -1311,8 +1312,13 @@ find_aamasses_vmodscombi <- function (varmods = NULL, f_to_v = NULL,
     rm(list = c("ok_cts"))
   }
 
-  # the the first combi correspond to (coerced) base
-  varmods_comb[-1]
+  if (length(f_to_v)) {
+    is_base <- lapply(varmods_comb, function (x) all(x %in% f_to_v))
+    is_base <- unlist(is_base)
+    varmods_comb <- varmods_comb[!is_base]
+  }
+    
+  varmods_comb
 }
 
 

@@ -68,6 +68,13 @@
 #'   \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
 #'   \link{parse_unimod} for grammars of modification \code{title},
 #'   \code{position} and \code{site}.
+#' @param locmods Among \code{varmods} for the consideration of localization
+#'   probabilities; for instance, \code{locmods = NULL} for nothing,
+#'   \code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
+#'   phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
+#'   \code{fixedmods} that were coerced to \code{varmods} will be added
+#'   automatically to \code{locmods}. For convenience, the default is set to
+#'   look for applicable peptide phosphorylation.
 #' @param mod_motifs The motifs to restrict \code{Anywhere} variable
 #'   modification. For example, provided the \code{Anywhere} variable
 #'   modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
@@ -369,6 +376,7 @@
 #'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
 #'                 "Deamidated (N)", "Phospho (S)", "Phospho (T)",
 #'                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
+#'   locmods   = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
 #'   quant     = "tmt16",
 #'   fdr_type  = "psm",
 #'   combine_tier_three = TRUE,
@@ -525,6 +533,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      varmods = c("Acetyl (Protein N-term)",
                                  "Oxidation (M)", "Deamidated (N)",
                                  "Gln->pyro-Glu (N-term = Q)"),
+                     locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
                      mod_motifs = NULL, 
                      enzyme = c("Trypsin_P", "Trypsin", "LysC", "LysN", "ArgC", 
                                 "LysC_P", "Chymotrypsin", "GluC", "GluN", 
@@ -568,7 +577,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 40000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/proteoM/.MSearches (1.1.8.0)/Cache/Calls", 
+                     .path_cache = "~/proteoM/.MSearches (1.1.8.1)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,
@@ -613,6 +622,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   # modifications
   fixedmods <- sort(fixedmods)
   varmods <- sort(varmods)
+  locmods <- check_locmods(fixedmods, varmods, locmods)
   
   # accession pattern
   if ((!is.null(acc_pattern)) && (acc_pattern == "")) 
@@ -1142,6 +1152,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   if (!bypass_peploc) {
     calc_peploc(out_path = out_path, 
                 mod_indexes = mod_indexes, 
+                locmods = locmods, 
                 topn_mods_per_seq = topn_mods_per_seq, 
                 topn_seqs_per_query = topn_seqs_per_query)
     gc()
@@ -1808,11 +1819,15 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
     else {
       ans <- tryCatch(eval(this_call), error = function (e) NULL)
     }
-    
 
     message("Done (noenzyme search).")
     options(show.error.messages = FALSE)
     stop()
+  }
+  else {
+    this_call$bypass_noenzyme <- TRUE
+    this_call$silac_noenzyme <- TRUE # for regular add_prot_acc
+    ans <- tryCatch(eval(this_call), error = function (e) NULL)
   }
   
   invisible(NULL)
@@ -2161,6 +2176,45 @@ checkMGF <- function (mgf_path = NULL, grp_args = NULL, error = c("stop", "warn"
   }
   
   invisible(mgf_path)
+}
+
+
+#' Checks \code{locmods}
+#' 
+#' Coerced \code{fixedmods} not considered.
+#' 
+#' @inheritParams matchMS
+check_locmods <- function (fixedmods, varmods, locmods)
+{
+  if (!length(locmods))
+    return(NULL)
+  
+  oks <- locmods %in% c(fixedmods, varmods)
+  
+  if (!all(oks)) {
+    warning("Some \"locmods\" not in \"varmods\" or \"fixedmods\": ", 
+            paste(locmods[!oks], collapse = ", "))
+    locmods <- locmods[oks]
+  }
+  
+  if (!length(locmods))
+    return(NULL)
+
+  vids <- which(varmods %in% locmods)
+  
+  # locmods are only among fixedmods
+  if (!length(vids)) 
+    stop("No \"varmods\" matched to \"locmods\": ", paste(locmods, collapse = ", "))
+    
+  vmods <- find_modps(varmods)
+  vsites <- unlist(vmods[vids], recursive = FALSE, use.names = FALSE)
+  fmods <- find_modps(fixedmods)
+  fids <- which(fmods %in% vsites)
+  
+  if (length(fids))
+    locmods <- c(fixedmods[fids], locmods)
+
+  locmods
 }
 
 

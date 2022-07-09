@@ -602,9 +602,9 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   cache_pars <- find_callarg_vals(time = NULL, 
                                   path = file.path(out_path, "Calls"), 
                                   fun = paste0(fun, ".rda"), 
-                                  args = fml_incl) %>% 
-    .[sort(names(.))]
+                                  args = fml_incl) 
   
+  cache_pars <- cache_pars[sort(names(cache_pars))]
   call_pars <- mget(fml_incl, envir = fun_env, inherits = FALSE) 
   call_pars <- call_pars[sort(names(call_pars))]
   
@@ -629,24 +629,52 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     rm(list = c("args_except", "cache_pars", "call_pars"))
   }
 
-  for (fi in c(listi_t, listi_d)) {
-    message("\tModule: ", fi)
+  listi_td <- c(listi_t, listi_d)
+  n_cores <- detect_cores(16L)
+  
+  len_td <- length(listi_td)
+  
+  if (FALSE) {
+    cl <- parallel::makeCluster(getOption("cl.cores", min(len_td, n_cores)))
     
-    calcpepsc(file = fi, 
-              topn_ms2ions = topn_ms2ions, 
-              type_ms2ions = type_ms2ions, 
-              ppm_ms2 = ppm_ms2, 
-              out_path = out_path, 
-              add_ms2theos = add_ms2theos, 
-              add_ms2theos2 = add_ms2theos2, 
-              add_ms2moverzs = add_ms2moverzs, 
-              add_ms2ints = add_ms2ints,
-              sys_ram = sys_ram, 
-              digits = digits)
+    parallel::clusterApplyLB(cl, 
+      listi_td, calcpepsc, 
+      topn_ms2ions = topn_ms2ions, 
+      type_ms2ions = type_ms2ions, 
+      ppm_ms2 = ppm_ms2, 
+      out_path = out_path, 
+      add_ms2theos = add_ms2theos, 
+      add_ms2theos2 = add_ms2theos2, 
+      add_ms2moverzs = add_ms2moverzs, 
+      add_ms2ints = add_ms2ints,
+      sys_ram = sys_ram, 
+      parallel = FALSE, 
+      digits = digits
+    )
     
-    gc()
+    parallel::stopCluster(cl)
   }
-
+  else {
+    for (fi in listi_td) {
+      message("\tModule: ", fi)
+      
+      calcpepsc(file = fi, 
+                topn_ms2ions = topn_ms2ions, 
+                type_ms2ions = type_ms2ions, 
+                ppm_ms2 = ppm_ms2, 
+                out_path = out_path, 
+                add_ms2theos = add_ms2theos, 
+                add_ms2theos2 = add_ms2theos2, 
+                add_ms2moverzs = add_ms2moverzs, 
+                add_ms2ints = add_ms2ints,
+                sys_ram = sys_ram, 
+                parallel = TRUE, 
+                digits = digits)
+      
+      gc()
+    }
+  }
+  
   .savecall <- TRUE
   
   invisible(NULL)
@@ -695,13 +723,14 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 #' Helper of \link{calc_pepscores}.
 #' 
 #' @param file A file name of \code{ion_matches_}.
+#' @param parallel Logical; parallel or not.
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by", 
                        ppm_ms2 = 25L, out_path = NULL, 
                        add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                        add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
-                       sys_ram = 32L, digits = 4L) 
+                       sys_ram = 32L, parallel = TRUE, digits = 4L) 
 {
   # (can be decoy => .*, not \\d+)
   idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
@@ -741,10 +770,8 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     return (dfb)
   }
   
-  df$uniq_id <- paste(df$scan_num, df$raw_file, sep = "@")
-  
+  df[["uniq_id"]] <- paste(df[["scan_num"]], df[["raw_file"]], sep = "@")
   esscols <- c("ms2_moverz", "ms2_int", "matches", "ms2_n", "uniq_id")
-  
   path_df2 <- file.path(out_path, "df2_sc_temp.rda")
   df2 <- df[, -which(names(df) %in% esscols), drop = FALSE]
   qs::qsave(df2, path_df2, preset = "fast")
@@ -800,10 +827,9 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     rm(list = "df", envir = environment())
     gc()
     
-    if (length(dfs) >= n_chunks) {
+    if ((length(dfs) >= n_chunks) && parallel) {
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-      
-      parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
+      # parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
       
       parallel::clusterExport(cl, list("calc_pepprobs_i", "scalc_pepprobs", 
                                        "calc_probi", "calc_probi_bypep", 
@@ -2214,6 +2240,7 @@ find_ppm_outer_bycombi <- function (X, Y, ppm_ms2 = 25L)
 #' @rawNamespace import(data.table, except = c(last, first, between, transpose,
 #'   melt, dcast))
 calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL, 
+                         locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
                          topn_mods_per_seq = 3L, topn_seqs_per_query = 3L) 
 {
   message("Calculating peptide localization scores and deltas.")
@@ -2347,42 +2374,49 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x1[["n_pep_seq_mod"]] <- NULL
   
   # 4.2 probability and delta
-  phosmods <- unname(mod_indexes[grepl("^Phospho ", names(mod_indexes))])
-  
-  if (length(phosmods)) 
-    message("\tCalculates peptide localization scores.")
-  
   if (nrow(x0)) {
-    us <- split(x0[, c("uniq_id2", "pep_ivmod2", "pep_ms2_ideltas.")], 
-                x0[["uniq_id"]])
-    gc()
+    locmod_indexes <- if (length(locmods))
+      unname(mod_indexes[names(mod_indexes) %in% locmods])
+    else 
+      NULL
     
-    probs <- lapply(us, findLocFracsDF, phosmods = phosmods)
-    
-    deltas <- lapply(probs, function (x) {
-      # the same as allNA
-      if (anyNA(x))
-        NA_real_
-      else {
-        topx <- x[which_topx2(x, 2L)]
-        abs(topx[1] - topx[2])
-      }
-    })
-    
-    us <- mapply(function (x, y, z) {
-      x[["pep_locprob"]] <- y
-      x[["pep_locdiff"]] <- z
-      x
-    }, us, probs, deltas, 
-    SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    
-    us <- data.table::rbindlist(us)
-    
-    x0 <- quick_leftjoin(x0, us[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
-                         by = "uniq_id2")
-    
-    rm(list = c("probs", "deltas", "us"))
-    gc()
+    if (length(locmod_indexes)) {
+      message("\tCalculates peptide localization scores.")
+      
+      us <- split(x0[, c("uniq_id2", "pep_ivmod2", "pep_ms2_ideltas.")], 
+                  x0[["uniq_id"]])
+      gc()
+      
+      probs <- lapply(us, findLocFracsDF, locmod_indexes)
+      
+      deltas <- lapply(probs, function (x) {
+        if (all(is.na(x)))
+          NA_real_
+        else {
+          topx <- x[which_topx2(x, 2L)]
+          abs(topx[1] - topx[2])
+        }
+      })
+      
+      us <- mapply(function (x, y, z) {
+        x[["pep_locprob"]] <- y
+        x[["pep_locdiff"]] <- z
+        x
+      }, us, probs, deltas, 
+      SIMPLIFY = FALSE, USE.NAMES = FALSE)
+      
+      us <- data.table::rbindlist(us)
+      
+      x0 <- quick_leftjoin(x0, us[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
+                           by = "uniq_id2")
+      
+      rm(list = c("probs", "deltas", "us"))
+      gc()
+    }
+    else {
+      x0[["pep_locprob"]] <- NA_real_
+      x0[["pep_locdiff"]] <- NA_real_
+    }
   }
   else {
     col_nms <- c(names(x0), "pep_locprob", "pep_locdiff")
@@ -2437,8 +2471,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
     x0 <- x0[order(x0[["uniq_id3"]]), ]
 
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-    x0s <- parallel::clusterApply(
-      cl, split(x0, find_chunkbreaks(x0[["uniq_id3"]], n_cores)), calcpeprank_3)
+    x0s <- parallel::clusterApply(cl, 
+      split(x0, find_chunkbreaks(x0[["uniq_id3"]], n_cores)), calcpeprank_3)
     parallel::stopCluster(cl)
     
     x0 <- data.table::rbindlist(x0s, use.names = FALSE)
@@ -2542,66 +2576,108 @@ find_chunkbreaks <- function (vals, n_chunks)
 #'
 #' @param df A data frame containing columns \code{pep_ivmod2} and
 #'   \code{pep_ms2_ideltas.}.
-#' @param phosmods A vector to the modification indexes of phosphorylations.
-#' 
-#' @examples 
-#' phosmods <- c("8", "9", "a")
+#' @param locmod_indexes A vector to the modification indexes.
+#'
+#' @examples
+#' locmod_indexes <- c("8", "9", "a")
 #' df <- data.frame(pep_ivmod2 = c("0080000", "0009000"), pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(1,2,3,4,5,6,8,9,10,11,12,13,14))
 #' df$pep_ms2_ideltas.[2] <- list(c(1,2,3,4,5,6,8,9,10,12,13,14))
-findLocFracsDF <- function (df, phosmods = NULL) 
+#' ans <- findLocFracsDF(df, locmod_indexes)
+#' 
+#' # Variable Acetyl (K) and fixed TMT6plex (K)
+#' locmod_indexes <- "4"
+#' df <- data.frame(pep_ivmod2 = c("04000000", "00000000"), pep_ms2_ideltas. = NA)
+#' df$pep_ms2_ideltas.[1] <- list(c(2,5,6,7,9,11,14,15,16))
+#' df$pep_ms2_ideltas.[2] <- list(c(1,2,5,6,7,9,11,14))
+#' ans <- findLocFracsDF(df, locmod_indexes)
+#' 
+#' df <- data.frame(pep_ivmod2 = c("0004000", "4000000"), pep_ms2_ideltas. = NA)
+#' df$pep_ms2_ideltas.[1] <- list(c(2,3,4,5,6,8,10,11,12,14))
+#' df$pep_ms2_ideltas.[2] <- list(c(4,5,6,8,10,14))
+#' ans <- findLocFracsDF(df, locmod_indexes)
+#' 
+#' df <- data.frame(pep_ivmod2 = c("00040402", "00040204", "00020202"), pep_ms2_ideltas. = NA)
+#' df$pep_ms2_ideltas.[1] <- list(c(1,4,6,7,9,10,11,12,15,16))
+#' df$pep_ms2_ideltas.[2] <- list(c(1,4,11,12,15,16))
+#' df$pep_ms2_ideltas.[3] <- list(c(1,4,11,12,15,16))
+#' ans <- findLocFracsDF(df, locmod_indexes)
+#' 
+#' locmod_indexes <- c("2", "4")
+#' df <- data.frame(pep_ivmod2 = c("0004004000402", "0002004000402", "0004004000204"), pep_ms2_ideltas. = NA)
+#' df$pep_ms2_ideltas.[1] <- list(c(1,3,4,5,6,7,8,10,14,15,16,17,18,19))
+#' df$pep_ms2_ideltas.[2] <- list(c(4,5,6,7,8,10,14,15,16,17,18,19))
+#' df$pep_ms2_ideltas.[3] <- list(c(1,3,4,5,6,7,8,10,14,16,17,18,19))
+#' ans <- findLocFracsDF(df, locmod_indexes)
+findLocFracsDF <- function (df, locmod_indexes = NULL) 
 {
   ivms <- df[["pep_ivmod2"]]
   seqs <- df[["pep_ms2_ideltas."]]
-  
   ivms <- .Internal(strsplit(ivms, "", fixed = FALSE, perl = FALSE, useBytes = FALSE))
-  lenv <- length(ivms[[1]])
+  naas <- length(ivms[[1]])
   
-  if (is.null(phosmods))
-    ps <- lapply(ivms, function (x) which(x != "0"))
-  else
-    ps <- lapply(ivms, function (x) which(x %in% phosmods))
+  # if (is.null(locmod_indexes))
+  #   ps <- lapply(ivms, function (x) which(x != "0"))
+  # else
+  #   ps <- lapply(ivms, function (x) which(x %in% locmod_indexes))
   
+  ps <- lapply(ivms, function (x) which(x %in% locmod_indexes))
+  ns <- .Internal(unlist(lapply(ps, length), recursive = FALSE, use.names = FALSE))
+  oks <- ns > 0L
+
+  # (1) set aside entries without the target modifications, e.g. No STY sites
+  ans <- numeric(length(ps))
+  ans[!oks] <- NA_real_
+  ps <- ps[oks]
+  seqs <- seqs[oks]
+  
+  # (2) single non-trivial entry and thus unambiguous
   lenp <- length(ps)
   
-  # eg. No STY sites in a sequence
+  if (!lenp)
+    return(ans)
+
+  if (lenp == 1L) {
+    ans[oks] <- 1.00
+    return(ans)
+  }
+
+  # (3) multiple entries (lenp > 1L)
+  #     with position permutation, all ps (should) have the same length
+  #     or not yet handle ps with different lengths
   len1 <- length(ps[[1]])
-  
-  if (!len1)
-    return(rep(NA_real_, lenp))
-  
-  if (lenp == 1L) 
-    return(1.00)
-  
   len <- lenp - 1L
   ncr <- nnx <- vector("integer", len)
   
   for (i in 1:len) {
-    pcr <- ps[[i]] # all(pcr <= lenv)
+    pcr <- ps[[i]] # all(pcr <= naas)
     pnx <- ps[[i+1L]]
     seqcr <- seqs[[i]]
     seqnx <- seqs[[i+1L]]
+    
     bmin <- min(pcr[[1]], pnx[[1]])
-    bmax <- max(pcr[[len1]], pnx[[len1]]) # bmax <= lenv
+    bmax <- max(pcr[[len1]], pnx[[len1]]) # bmax <= naas
     
     # b-ions
-    bcr <- seqcr <= lenv
-    bnx <- seqnx <= lenv
+    bcr <- seqcr <= naas
+    bnx <- seqnx <= naas
     bseqcr <- seqcr[bcr]
     bseqnx <- seqnx[bnx]
     
     # y-ions
-    yseqcr <- seqcr[!bcr] - lenv
-    yseqnx <- seqnx[!bnx] - lenv
-    ymax <- lenv - bmin
-    ymin <- lenv - bmax
+    yseqcr <- seqcr[!bcr] - naas
+    yseqnx <- seqnx[!bnx] - naas
+    ymax <- naas - bmin
+    ymin <- naas - bmax
     
     # b & y
     ncr[[i]] <- sum(bseqcr >= bmin & bseqcr < bmax) + sum(yseqcr > ymin & yseqcr <= ymax)
     nnx[[i]] <- sum(bseqnx >= bmin & bseqnx < bmax) + sum(yseqnx > ymin & yseqnx <= ymax)
   }
   
-  ans <- concatFracs(ncr, nnx)
+  ans[oks] <- concatFracs(ncr, nnx)
+  
+  ans
 }
 
 

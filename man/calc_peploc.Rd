@@ -8,6 +8,7 @@ calc_peploc(
   x = NULL,
   out_path = NULL,
   mod_indexes = NULL,
+  locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
   topn_mods_per_seq = 3L,
   topn_seqs_per_query = 3L
 )
@@ -19,6 +20,14 @@ calc_peploc(
 
 \item{mod_indexes}{Integer; the indexes of fixed and/or variable
 modifications.}
+
+\item{locmods}{Among \code{varmods} for the consideration of localization
+probabilities; for instance, \code{locmods = NULL} for nothing,
+\code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
+phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
+\code{fixedmods} that were coerced to \code{varmods} will be added
+automatically to \code{locmods}. For convenience, the default is set to
+look for applicable peptide phosphorylation.}
 
 \item{topn_mods_per_seq}{Positive integer; a threshold to discard variable
   modifications under the same peptide match with scores beyond the top-n.

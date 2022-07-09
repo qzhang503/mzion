@@ -15,7 +15,8 @@ find_f_to_v(fixedmods, fmods_ps, vmods_ps)
 \item{vmods_ps}{Positions and sites of variable modifications.}
 }
 \value{
-A named vector, e.g., \code{c("TMT6plex (K)", "TMT6plex (N-term)")}
+A named vector, e.g., \code{c("TMT6plex (K) = K", "TMT6plex
+  (N-term)" = "N-term")}
 }
 \description{
 Helper of finding the coercion sites.

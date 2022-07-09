@@ -5,6 +5,14 @@ author:
 date: "`r Sys.Date()`"
 always_allow_html: true
 output:
+  github_document:
+    toc: yes
+  md_document:
+    toc: yes
+    toc_depth: 4
+    variant: gfm
+  word_document:
+    toc: yes
   html_document:
     fig_caption: yes
     highlight: haddock
@@ -13,14 +21,6 @@ output:
     toc: yes
     toc_depth: 4
     toc_float: yes
-  md_document:
-    toc: yes
-    toc_depth: 4
-    variant: gfm
-  word_document:
-    toc: yes
-  github_document:
-    toc: yes
   pdf_document:
     toc: yes
     number_sections: true
@@ -118,6 +118,7 @@ matchMS(
   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", 
                 "Deamidated (N)", "Phospho (S)", "Phospho (T)", 
                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"), 
+  locmods   = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
   max_miss  = 4, 
   quant     = "tmt10", 
   
