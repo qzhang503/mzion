@@ -88,6 +88,7 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
                               maxn_vmods_setscombi = 64L,
                               maxn_vmods_per_pep = Inf,
                               maxn_sites_per_vmod = Inf,
+                              min_mass = 200L, 
                               max_mass = 4500L, 
                               digits = 4L) 
 {
@@ -98,9 +99,7 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
                                  maxn_vmods_setscombi = maxn_vmods_setscombi)
   
   peps <- check_aaseq(aa_seq, aa_masses_all, fixedmods, varmods)
-
-  # e.g. "MAKEMASSPECFUN" cannot have a mod of "Gln->pyro-Glu (N-term = Q)"
-  oks <- purrr::map_lgl(peps, ~ !purrr::is_empty(.x))
+  oks <- purrr::map_lgl(peps, function (x) !purrr::is_empty(x))
   peps <- peps[oks]
   aa_masses_all <- aa_masses_all[oks]
   
@@ -108,6 +107,7 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
     calc_monopep(.x, .y,
                  maxn_vmods_per_pep = maxn_vmods_per_pep,
                  maxn_sites_per_vmod = maxn_sites_per_vmod,
+                 min_mass = min_mass, 
                  max_mass = max_mass, 
                  digits = digits)
   })
@@ -135,12 +135,13 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
 calc_monopep <- function (aa_seq, aa_masses,
                           maxn_vmods_per_pep = 5L,
                           maxn_sites_per_vmod = 3L,
+                          min_mass = 200L, 
                           max_mass = 4500L, 
                           digits = 5L) 
 {
   if (is.na(aa_seq)) return(NULL)
   
-  aas <- aa_seq %>% stringr::str_split("", simplify = TRUE)
+  aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
   type <- attr(aa_masses, "type", exact = TRUE)
   
   # bare
@@ -158,7 +159,7 @@ calc_monopep <- function (aa_seq, aa_masses,
   
   # adds terminal mass
   if (grepl("tmod+", type, fixed = TRUE)) {
-    mass <- add_term_mass(mass, aa_masses, max_mass)
+    mass <- add_term_mass(mass, aa_masses, min_mass, max_mass)
   }
   
   # --- Mass of variable mods and/or NLs ---
@@ -170,7 +171,7 @@ calc_monopep <- function (aa_seq, aa_masses,
   tmod <- attr(aa_masses, "tmod", exact = TRUE)
   
   # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
-  if (FALSE) {
+  if (TRUE) {
     if (type %in% c("amods- tmod- vnl- fnl+", "amods- tmod+ vnl- fnl+")) {
       fnl_combi <- expand_grid_rows(fmods_nl)
       deltas <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
@@ -221,7 +222,7 @@ calc_monopep <- function (aa_seq, aa_masses,
 #' Checks the validity of a peptide sequence and dispatched it by fixedmods and
 #' varmods.
 #'
-#' A sequence may be invalide at a given set of fixedmods and varmods. For
+#' A sequence may be invalid at a given set of fixedmods and varmods. For
 #' example, "MAKEMASSPECFUN" cannot have a mod of "Gln->pyro-Glu (N-term = Q)".
 #' 
 #' @param aa_seq Character string; a peptide sequences with one-letter
@@ -288,71 +289,77 @@ check_aaseq <- function (aa_seq, aa_masses_all, fixedmods, varmods)
 #' 
 #' ## With variable modifications
 #' # (3) combinatorial sites and NL available
-#' x <- calc_ms2ionseries("MAKEMASSPECFUN", 
-#'                        fixedmods = NULL, 
-#'                        varmods = "Oxidation (M)")
+#' aa_seq <- "MAKEMASSPECFUN"
+#' fixedmods <- NULL
+#' varmods <- "Oxidation (M)"
+#' ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
+#' 
+#' x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+#'                        ms1_mass = ms$mass[[2]][1])
 #' 
 #' x$mass
 #' # x$vmods_ps
 #' 
 #' # (4)
-#' x <- calc_ms2ionseries("MAKEMASSPECFUN",
-#'                        c("TMT6plex (N-term)", 
-#'                          "TMT6plex (K)", 
-#'                          "Carbamidomethyl (C)"),
-#'                        c("Acetyl (N-term)", 
-#'                          "Gln->pyro-Glu (N-term = Q)", 
-#'                          "Oxidation (M)"))
+#' aa_seq <- "MAKEMASSPECFUN"
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+#' varmods <- c("Acetyl (N-term)", "Gln->pyro-Glu (N-term = Q)", "Oxidation (M)")
+#' ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
+#' 
+#' x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+#'                        ms1_mass = ms$mass[[4]][[1]])
 #'                       
 #' x$mass
 #' 
-#' # The N-term M realizes with acetylation
-#' x$vmods_ps[[3]]
-#' 
 #' # (5) Neutral losses for occurrences of both fixed 
-#' #     and variable modifications ignored
-#' x <- calc_ms2ionseries("MAKEMASSPECFUN",
-#'                        c("TMT6plex (N-term)", 
-#'                          "Oxidation (M)", 
-#'                          "Deamidated (N)"), 
-#'                        c("dHex (S)"))
+#' aa_seq <- "MAKEMASSPECFUN"
+#' fixedmods <- c("TMT6plex (N-term)", "Oxidation (M)", "Deamidated (N)")
+#' varmods <- c("dHex (S)")
+#' ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
+#' 
+#' # and variable modifications ignored
+#' x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+#'                        ms1_mass = 2002.7316)
 #'                       
 #' stopifnot(is.null(x$mass[[2]]))
 #' 
 #' # Change from fixed to variable for full combinatorials
-#' x <- calc_ms2ionseries("MAKEMASSPECFUN",
-#'                        c("TMT6plex (N-term)", 
-#'                          "Deamidated (N)"), 
-#'                        c("Acetyl (Protein N-term)", 
-#'                          "Oxidation (M)", 
-#'                          "dHex (S)"))
+#' fixedmods <- c("TMT6plex (N-term)", "Deamidated (N)")
+#' varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", "dHex (S)")
+#' 
+#' x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+#'                        ms1_mass = 2002.7316)
 #'                       
 #' x$mass[[8]]
 #' x$vmods_ps[[8]]
 #' 
 #' # (6) A lot of S
-#' x <- calc_ms2ionseries("MAKEMASSSSSSPECFUNSS", 
-#'                        fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
-#'                                      "Carbamidomethyl (C)"), 
-#'                        varmods = c("Acetyl (N-term)", "Oxidation (M)", 
-#'                                    "Deamidated (N)", 
-#'                                    "Phospho (S)", "Phospho (T)", "Phospho (Y)", 
-#'                                    "Gln->pyro-Glu (N-term = Q)"))
+#' aa_seq <- "MAKEMASSSSSSPECFUNSS"
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+#' varmods <- c("Acetyl (N-term)", "Oxidation (M)", "Deamidated (N)", 
+#'              "Phospho (S)", "Phospho (T)", "Phospho (Y)", 
+#'              "Gln->pyro-Glu (N-term = Q)")
+#' ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
+#' 
+#' x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+#'                        ms1_mass = 2649.0553)
 #' 
 #' # (7) A lot of S and Y
-#' x <- calc_ms2ionseries("MAKEMASSSSSSPECFUNSSYYYYYYY", 
-#'                        fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
-#'                                      "Carbamidomethyl (C)"), 
-#'                        varmods = c("Acetyl (N-term)", "Oxidation (M)", 
-#'                                    "Deamidated (N)", 
-#'                                    "Phospho (S)", "Phospho (T)", "Phospho (Y)", 
-#'                                    "Gln->pyro-Glu (N-term = Q)"))
+#' aa_seq <- "MAKEMASSSSSSPECFUNSSYYYYYYY"
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+#' varmods <- c("Acetyl (N-term)", "Oxidation (M)", "Deamidated (N)", 
+#'              "Phospho (S)", "Phospho (T)", "Phospho (Y)", 
+#'              "Gln->pyro-Glu (N-term = Q)")
+#' ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
+#' 
+#' x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+#'                        ms1_mass = ms$mass[[21]][[3]])
 #' }
 #' 
 #' @export
 calc_ms2ionseries <- function (aa_seq, fixedmods, varmods, 
                                type_ms2ions = "by", ms1_mass = NULL, 
-                               maxn_vmods_setscombi = 64L,
+                               maxn_vmods_setscombi = 512L,
                                maxn_vmods_per_pep = 5L, 
                                maxn_sites_per_vmod = 3L, 
                                maxn_vmods_sitescombi_per_pep = 32L, 
@@ -365,8 +372,6 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
                                  maxn_vmods_setscombi = maxn_vmods_setscombi)
   
   peps <- check_aaseq(aa_seq, aa_masses_all, fixedmods, varmods)
-  
-  # e.g. "MAKEMASSPECFUN" cannot have a mod of "Gln->pyro-Glu (N-term = Q)"
   oks <- purrr::map_lgl(peps, ~ !purrr::is_empty(.x))
   peps <- peps[oks]
   aa_masses_all <- aa_masses_all[oks]
@@ -380,7 +385,7 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
                         maxn_vmods_per_pep, maxn_sites_per_vmod, 
                         maxn_vmods_sitescombi_per_pep, digits)
     
-    sec <- lapply(pri, add_seions, type_ms2ions, digits)
+    sec <- lapply(pri, add_seions, type_ms2ions = type_ms2ions, digits = digits)
     
     list(pri = pri, sec = sec)
   })
@@ -446,7 +451,8 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
   # moverz <- (mass + h2o + z*proton)/z
   # moverz*z 
   
-  if (is.na(aa_seq) || is.null(aa_seq)) return(NULL)
+  if (is.na(aa_seq) || is.null(aa_seq)) 
+    return(NULL)
   
   aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
   type <- attr(aa_masses, "type", exact = TRUE)
@@ -457,7 +463,10 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
     
     ans <- gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                             aa_masses = aa_masses, 
+                            ms1vmods = NULL, ms2vmods = NULL, 
+                            ntmod = NULL, ctmod = NULL, 
                             ntmass = NULL, ctmass = NULL, 
+                            amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
                             mod_indexes = mod_indexes, 
                             type_ms2ions = type_ms2ions, 
                             maxn_vmods_per_pep = maxn_vmods_per_pep, 
@@ -507,6 +516,12 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
     return(ans)
   }
   
+  ms1vmods <- make_ms1vmod_i(aa_masses = aa_masses, 
+                             maxn_vmods_per_pep = maxn_vmods_per_pep,
+                             maxn_sites_per_vmod = maxn_sites_per_vmod)
+  
+  ms2vmods <- lapply(ms1vmods, make_ms2vmods)
+  
   # (7, 8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
   #        (ALL amods are vnl-)
 
@@ -531,6 +546,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
     
     ans <- gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                                     aa_masses = aa_masses, 
+                                    ms1vmods = ms1vmods, ms2vmods = ms2vmods,
                                     ntmod = ntmod, ctmod = ctmod, 
                                     ntmass = ntmass, ctmass = ctmass, 
                                     amods = amods, 
@@ -571,6 +587,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
     
     ans <- gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                                     aa_masses = aa_masses, 
+                                    ms1vmods = ms1vmods, ms2vmods = ms2vmods,
                                     ntmod = ntmod, ctmod = ctmod, 
                                     ntmass = ntmass, ctmass = ctmass, 
                                     amods = amods, vmods_nl = vmods_nl, 
@@ -610,6 +627,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
     
     ans <- gen_ms2ions_a1_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                                     aa_masses = aa_masses, 
+                                    ms1vmods = ms1vmods, ms2vmods = ms2vmods,
                                     ntmod = ntmod, ctmod = ctmod, 
                                     ntmass = ntmass, ctmass = ctmass, 
                                     amods = amods, fmods_nl = fmods_nl, 
@@ -701,7 +719,8 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
                            digits = 5L) 
 {
   # (6) "amods- tmod- vnl- fnl+"
-  if (!length(amods)) return(NULL)
+  if (!length(amods)) 
+    return(NULL)
   
   residue_mods <- .Internal(unlist(amods, recursive = FALSE, use.names = FALSE))
   names(residue_mods) <- names(amods)
@@ -789,7 +808,8 @@ vmods_elements <- function (aas,
     }
   }
   
-  if (len_p <= 0) return(list())
+  if (len_p <= 0) 
+    return(list())
   
   len_p <- min(len_p, maxn_vmods_per_pep)
   
@@ -875,7 +895,4 @@ find_intercombi <- function (intra_combis, maxn_vmods_per_pep = 5L)
   
   invisible(v_out)
 }
-
-
-
 

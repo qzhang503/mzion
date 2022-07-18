@@ -575,7 +575,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      topn_seqs_per_query = 3L, 
                      
                      combine_tier_three = FALSE,
-                     max_n_prots = 40000L, 
+                     max_n_prots = 60000L, 
                      use_ms1_cache = TRUE, 
                      .path_cache = "~/proteoM/.MSearches (1.1.8.1)/Cache/Calls", 
                      .path_fasta = NULL,
@@ -1201,7 +1201,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
   # (raw_file etc. already mapped if `from_group_search`)
   from_group_search <- dots$from_group_search
   if (!isTRUE(from_group_search)) df <- map_raw_n_scan(df, mgf_path)
-
+  
+  df <- dplyr::mutate(df, pep_expect = 10^((pep_score_co - pep_score)/10) * target_fdr)
+  df[["pep_score_co"]] <- NULL
   df$pep_ms1_delta <- df$ms1_mass - df$theo_ms1
 
   df <- dplyr::rename(df, 
@@ -1229,6 +1231,13 @@ matchMS <- function (out_path = "~/proteoM/outs",
   df <- reloc_col_after(df, "pep_exp_z", "pep_exp_mr")
   df <- reloc_col_after(df, "pep_calc_mr", "pep_exp_z")
   df <- reloc_col_after(df, "pep_delta", "pep_calc_mr")
+  
+  # e.g. realization with Acetyl (K) but no TMT (K)
+  cols_tmt <- grepl("^I[0-9]{3}[Nc]{0,1}", names(df))
+  rows_tmt <- grepl("TMT", df[["pep_fmod"]]) | grepl("TMT", df[["pep_vmod"]])
+  df[!rows_tmt, cols_tmt] <- NA_real_
+  rm(list = c("cols_tmt", "rows_tmt"))
+
   readr::write_tsv(df, file.path(out_path, "psmC.txt"))
   
   local({
@@ -1264,7 +1273,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 #' @inheritParams psmC2Q
 #' @importFrom magrittr %>% %T>%
 try_psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
-                        combine_tier_three = FALSE, max_n_prots = 40000L) 
+                        combine_tier_three = FALSE, max_n_prots = 60000L) 
 {
   n_peps <- length(unique(df$pep_seq))
   n_prots <- length(unique(df$prot_acc))
@@ -1343,7 +1352,7 @@ try_psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
 #' @inheritParams matchMS
 #' @export
 reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
-                         combine_tier_three = FALSE, max_n_prots = 40000L, 
+                         combine_tier_three = FALSE, max_n_prots = 60000L, 
                          fct = 4L) 
 {
   if (is.null(out_path)) 
@@ -1382,7 +1391,7 @@ reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
 #'   value for a larger data set.
 #' @inheritParams matchMS
 psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
-                    combine_tier_three = FALSE, max_n_prots = 40000L, 
+                    combine_tier_three = FALSE, max_n_prots = 60000L, 
                     fct = 4L) 
 {
   options(warn = 1L)
@@ -1583,7 +1592,7 @@ post_psmC2Q <- function (df, dfC, tier = NULL)
   )
 
   ord_peps <- c("pep_seq", "pep_issig", "pep_literal_unique", 
-                "pep_razor_unique", "pep_score", "pep_score_co")
+                "pep_razor_unique", "pep_score", "pep_expect")
   
   df <- dplyr::bind_cols(
     df[, ord_peps, drop = FALSE], 

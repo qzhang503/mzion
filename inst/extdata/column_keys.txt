@@ -41,7 +41,7 @@ pep_ms2_deltas_mean	Mean representation of pep_ms2_deltas
 pep_ms2_deltas_sd	Standard deviation of pep_ms2_deltas	
 pep_issig	Is peptide identication significant or not	
 pep_score	Score of PSM	
-pep_score_co	Peptide enrichment score cut-off	
+pep_expect	Peptide expectation value	10^(pep_score_co - pep_score)/10) * [target_fdr]
 pep_rank	Peptide sequence match (PSM) rank.	
 pep_locprob	The probablity of the localization of phospho sites	"The second highest probablity, `pep_locprob2` is made implicit through `pep_locdiff`. Cf. `pep_var_mod_conf` from Mascot."
 pep_locdiff	pep_locprob – pep_locprob2	

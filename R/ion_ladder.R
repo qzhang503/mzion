@@ -178,9 +178,10 @@ yions_base <- function (aas2, tmass, digits = 4L)
 
 #' B2-ions.
 #' 
+#' @param n The charge state.
 #' @rdname bions_base
-b2ions_base <- function (aas2, tmass, digits = 4L) 
-  (bions_base(aas2, tmass, digits) + 1.00727647)/2
+b2ions_base <- function (aas2, tmass, digits = 4L, n = 2L) 
+  (bions_base(aas2, tmass, digits) + 1.00727647)/n
 
 
 #' B*-ions.
@@ -199,17 +200,19 @@ bstarions <- function (aas2, tmass, digits = 4L)
 
 #' B*2-ions.
 #' 
+#' @param n The charge state.
 #' @rdname bions_base
-bstar2ions <- function (aas2, tmass, digits = 4L) 
-  (bstarions(aas2, tmass, digits) + 1.00727647)/2
+bstar2ions <- function (aas2, tmass, digits = 4L, n = 2L) 
+  (bstarions(aas2, tmass, digits) + 1.00727647)/n
 
 
 #' B0-ions.
 #' 
+#' \code{H2O = 18.010565}.
+#' 
 #' @rdname bions_base
 b0ions <- function (aas2, tmass, digits = 4L) 
 {
-  # -H2O 18.010565
   ions <- c(tmass - 18.010565, aas2)
   ions <- cumsum(ions)
   ions <- ions[-1]
@@ -220,16 +223,18 @@ b0ions <- function (aas2, tmass, digits = 4L)
 
 #' B02-ions.
 #' 
+#' @param n The charge state.
 #' @rdname bions_base
-b02ions <- function (aas2, tmass, digits = 4L) 
-  (b0ions(aas2, tmass, digits) + 1.00727647)/2
+b02ions <- function (aas2, tmass, digits = 4L, n = 2L) 
+  (b0ions(aas2, tmass, digits) + 1.00727647)/n
 
 
 #' Y2-ions.
 #' 
+#' @param n The charge state.
 #' @rdname bions_base
-y2ions <- function (aas2, tmass, digits = 4L) 
-  (yions_base(aas2, tmass, digits) + 1.00727647)/2
+y2ions <- function (aas2, tmass, digits = 4L, n = 2L) 
+  (yions_base(aas2, tmass, digits) + 1.00727647)/n
 
 
 #' Y*-ions.
@@ -247,9 +252,10 @@ ystarions <- function (aas2, tmass, digits = 4L)
 
 #' Y*2-ions.
 #' 
+#' @param n The charge state.
 #' @rdname bions_base
-ystar2ions <- function (aas2, tmass, digits = 4L) 
-  (ystarions(aas2, tmass, digits) + 1.00727647)/2
+ystar2ions <- function (aas2, tmass, digits = 4L, n = 2L) 
+  (ystarions(aas2, tmass, digits) + 1.00727647)/n
 
 
 #' Y0-ions.
@@ -267,9 +273,10 @@ y0ions <- function (aas2, tmass, digits = 4L)
 
 #' Y02-ions.
 #' 
+#' @param n The charge state.
 #' @rdname bions_base
-y02ions <- function (aas2, tmass, digits = 4L) 
-  (y0ions(aas2, tmass, digits) + 1.00727647)/2
+y02ions <- function (aas2, tmass, digits = 4L, n = 2L) 
+  (y0ions(aas2, tmass, digits) + 1.00727647)/n
 
 
 #' C-ions.
@@ -287,9 +294,10 @@ cions_base <- function (aas2, tmass, digits = 4L)
 
 #' C2-ions.
 #' 
+#' @param n The charge state.
 #' @rdname bions_base
-c2ions <- function (aas2, tmass, digits = 4L) 
-  (cions_base(aas2, tmass, digits) + 1.00727647)/2
+c2ions <- function (aas2, tmass, digits = 4L, n = 2L) 
+  (cions_base(aas2, tmass, digits) + 1.00727647)/n
 
 
 #' Z-ions.
@@ -307,9 +315,10 @@ zions_base <- function (aas2, tmass, digits = 4L)
 
 #' Z2-ions.
 #' 
+#' @param n The charge state.
 #' @rdname bions_base
-z2ions <- function (aas2, tmass, digits = 4L) 
-  (zions_base(aas2, tmass, digits) + 1.00727647)/2
+z2ions <- function (aas2, tmass, digits = 4L, n = 2L) 
+  (zions_base(aas2, tmass, digits) + 1.00727647)/n
 
 
 #' A-ions.
@@ -327,9 +336,10 @@ aions_base <- function (aas2, tmass, digits = 4L)
 
 #' A2-ions.
 #' 
+#' @param n The charge state.
 #' @rdname bions_base
-a2ions <- function (aas2, tmass, digits = 4L) 
-  (aions_base(aas2, tmass, digits) + 1.00727647)/2
+a2ions <- function (aas2, tmass, digits = 4L, n = 2L) 
+  (aions_base(aas2, tmass, digits) + 1.00727647)/n
 
 
 #' A*-ions.
@@ -348,9 +358,10 @@ astarions <- function (aas2, tmass, digits = 4L)
 
 #' A*2-ions.
 #' 
+#' @param n The charge state.
 #' @rdname bions_base
-astar2ions <- function (aas2, tmass, digits = 4L) 
-  (astarions(aas2, tmass, digits) + 1.00727647)/2
+astar2ions <- function (aas2, tmass, digits = 4L, n = 2L) 
+  (astarions(aas2, tmass, digits) + 1.00727647)/n
 
 
 #' A0-ions.
@@ -369,9 +380,10 @@ a0ions <- function (aas2, tmass, digits = 4L)
 
 #' A02-ions.
 #' 
+#' @param n The charge state.
 #' @rdname bions_base
-a02ions <- function (aas2, tmass, digits = 4L) 
-  (a0ions(aas2, tmass, digits) + 1.00727647)/2
+a02ions <- function (aas2, tmass, digits = 4L, n = 2L) 
+  (a0ions(aas2, tmass, digits) + 1.00727647)/n
 
 
 #' X-ions.
@@ -390,7 +402,8 @@ xions_base <- function (aas2, tmass, digits = 4L)
 
 #' X2-ions.
 #' 
+#' @param n The charge state.
 #' @rdname bions_base
-x2ions <- function (aas2, tmass, digits = 4L) 
-  (xions(aas2, tmass, digits) + 1.00727647)/2
+x2ions <- function (aas2, tmass, digits = 4L, n = 2L) 
+  (xions(aas2, tmass, digits) + 1.00727647)/n
 

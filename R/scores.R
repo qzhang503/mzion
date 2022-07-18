@@ -1492,8 +1492,11 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   }
 
   # quality ones for fittings
-  prob_cos <- prob_cos %>% .[names(.) %in% lens]
-  counts <- counts %>% .[names(.) %in% lens]
+  ok_lens <- names(prob_cos) %in% lens
+  prob_no_uses <- prob_cos[!ok_lens]
+  count_no_uses <- counts[!ok_lens]
+  prob_cos <- prob_cos[ok_lens]
+  counts <- counts[ok_lens]
   
   valley <- find_probco_valley(prob_cos)
   best_co <- -fct_score * log10(prob_cos[as.character(valley)])
@@ -1688,7 +1691,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     })
   }
   
-  prob_cos <- fill_probco_nas(prob_nas, prob_cos) %T>% 
+  prob_cos <- fill_probco_nas(prob_nas, prob_no_uses, prob_cos) %T>% 
     qs::qsave(file.path(out_path, "temp", "pep_probco.rds"), preset = "fast")
 }
 
@@ -1696,18 +1699,28 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
 #' Fills NA in probability cutoffs
 #' 
 #' @param prob_nas Named vector; peptide length in names and NA in values.
+#' @param prob_no_uses Named vector; peptide length in names and NA in values.
 #' @param prob_cos Named vector; non-NA probability cutoffs.
 #' @inheritParams calc_pepfdr
-fill_probco_nas <- function (prob_nas, prob_cos, target_fdr = .01)
+fill_probco_nas <- function (prob_nas, prob_no_uses, prob_cos, target_fdr = .01)
 {
   prob_nas <- prob_nas[!names(prob_nas) %in% names(prob_cos)]
+  len_nu <- length(prob_no_uses)
   
+  if (len_nu) {
+    prob_nas <- c(prob_no_uses, prob_nas) # no need of unique(pep_len)
+    co_no_uses <- prod(prob_no_uses)^(1/len_nu)
+  }
+  else {
+    co_no_uses <- target_fdr
+  }
+
   if (length(prob_nas)) {
     nm_nas <- names(prob_nas)
-    val <- max(median(prob_cos), mean(prob_cos), target_fdr)
-    prob_nas <-rep(val, length(prob_nas))
-    names(prob_nas) <- nm_nas
-    ans <- c(prob_cos, prob_nas)
+    val <- max(median(prob_cos), mean(prob_cos), co_no_uses, target_fdr)
+    vals <-rep(val, length(prob_nas))
+    names(vals) <- nm_nas
+    ans <- c(prob_cos, vals)
   }
   else {
     ans <- prob_cos

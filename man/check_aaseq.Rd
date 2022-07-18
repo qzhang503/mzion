@@ -27,6 +27,6 @@ representation of amino acids.}
   \code{position} and \code{site}.}
 }
 \description{
-A sequence may be invalide at a given set of fixedmods and varmods. For
+A sequence may be invalid at a given set of fixedmods and varmods. For
 example, "MAKEMASSPECFUN" cannot have a mod of "Gln->pyro-Glu (N-term = Q)".
 }

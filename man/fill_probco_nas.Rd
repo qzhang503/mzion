@@ -4,10 +4,12 @@
 \alias{fill_probco_nas}
 \title{Fills NA in probability cutoffs}
 \usage{
-fill_probco_nas(prob_nas, prob_cos, target_fdr = 0.01)
+fill_probco_nas(prob_nas, prob_no_uses, prob_cos, target_fdr = 0.01)
 }
 \arguments{
 \item{prob_nas}{Named vector; peptide length in names and NA in values.}
+
+\item{prob_no_uses}{Named vector; peptide length in names and NA in values.}
 
 \item{prob_cos}{Named vector; non-NA probability cutoffs.}
 

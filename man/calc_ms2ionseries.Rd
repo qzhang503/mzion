@@ -10,7 +10,7 @@ calc_ms2ionseries(
   varmods,
   type_ms2ions = "by",
   ms1_mass = NULL,
-  maxn_vmods_setscombi = 64L,
+  maxn_vmods_setscombi = 512L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 32L,
@@ -69,65 +69,71 @@ x$mass
 
 ## With variable modifications
 # (3) combinatorial sites and NL available
-x <- calc_ms2ionseries("MAKEMASSPECFUN", 
-                       fixedmods = NULL, 
-                       varmods = "Oxidation (M)")
+aa_seq <- "MAKEMASSPECFUN"
+fixedmods <- NULL
+varmods <- "Oxidation (M)"
+ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
+
+x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+                       ms1_mass = ms$mass[[2]][1])
 
 x$mass
 # x$vmods_ps
 
 # (4)
-x <- calc_ms2ionseries("MAKEMASSPECFUN",
-                       c("TMT6plex (N-term)", 
-                         "TMT6plex (K)", 
-                         "Carbamidomethyl (C)"),
-                       c("Acetyl (N-term)", 
-                         "Gln->pyro-Glu (N-term = Q)", 
-                         "Oxidation (M)"))
+aa_seq <- "MAKEMASSPECFUN"
+fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+varmods <- c("Acetyl (N-term)", "Gln->pyro-Glu (N-term = Q)", "Oxidation (M)")
+ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
+
+x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+                       ms1_mass = ms$mass[[4]][[1]])
                       
 x$mass
 
-# The N-term M realizes with acetylation
-x$vmods_ps[[3]]
-
 # (5) Neutral losses for occurrences of both fixed 
-#     and variable modifications ignored
-x <- calc_ms2ionseries("MAKEMASSPECFUN",
-                       c("TMT6plex (N-term)", 
-                         "Oxidation (M)", 
-                         "Deamidated (N)"), 
-                       c("dHex (S)"))
+aa_seq <- "MAKEMASSPECFUN"
+fixedmods <- c("TMT6plex (N-term)", "Oxidation (M)", "Deamidated (N)")
+varmods <- c("dHex (S)")
+ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
+
+# and variable modifications ignored
+x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+                       ms1_mass = 2002.7316)
                       
 stopifnot(is.null(x$mass[[2]]))
 
 # Change from fixed to variable for full combinatorials
-x <- calc_ms2ionseries("MAKEMASSPECFUN",
-                       c("TMT6plex (N-term)", 
-                         "Deamidated (N)"), 
-                       c("Acetyl (Protein N-term)", 
-                         "Oxidation (M)", 
-                         "dHex (S)"))
+fixedmods <- c("TMT6plex (N-term)", "Deamidated (N)")
+varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", "dHex (S)")
+
+x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+                       ms1_mass = 2002.7316)
                       
 x$mass[[8]]
 x$vmods_ps[[8]]
 
 # (6) A lot of S
-x <- calc_ms2ionseries("MAKEMASSSSSSPECFUNSS", 
-                       fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
-                                     "Carbamidomethyl (C)"), 
-                       varmods = c("Acetyl (N-term)", "Oxidation (M)", 
-                                   "Deamidated (N)", 
-                                   "Phospho (S)", "Phospho (T)", "Phospho (Y)", 
-                                   "Gln->pyro-Glu (N-term = Q)"))
+aa_seq <- "MAKEMASSSSSSPECFUNSS"
+fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+varmods <- c("Acetyl (N-term)", "Oxidation (M)", "Deamidated (N)", 
+             "Phospho (S)", "Phospho (T)", "Phospho (Y)", 
+             "Gln->pyro-Glu (N-term = Q)")
+ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
+
+x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+                       ms1_mass = 2649.0553)
 
 # (7) A lot of S and Y
-x <- calc_ms2ionseries("MAKEMASSSSSSPECFUNSSYYYYYYY", 
-                       fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
-                                     "Carbamidomethyl (C)"), 
-                       varmods = c("Acetyl (N-term)", "Oxidation (M)", 
-                                   "Deamidated (N)", 
-                                   "Phospho (S)", "Phospho (T)", "Phospho (Y)", 
-                                   "Gln->pyro-Glu (N-term = Q)"))
+aa_seq <- "MAKEMASSSSSSPECFUNSSYYYYYYY"
+fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+varmods <- c("Acetyl (N-term)", "Oxidation (M)", "Deamidated (N)", 
+             "Phospho (S)", "Phospho (T)", "Phospho (Y)", 
+             "Gln->pyro-Glu (N-term = Q)")
+ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
+
+x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+                       ms1_mass = ms$mass[[21]][[3]])
 }
 
 }

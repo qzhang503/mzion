@@ -51,7 +51,7 @@ matchMS(
   topn_mods_per_seq = 3L,
   topn_seqs_per_query = 3L,
   combine_tier_three = FALSE,
-  max_n_prots = 40000L,
+  max_n_prots = 60000L,
   use_ms1_cache = TRUE,
   .path_cache = "~/proteoM/.MSearches (1.1.8.1)/Cache/Calls",
   .path_fasta = NULL,

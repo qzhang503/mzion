@@ -35,11 +35,11 @@ calc_tmtint <- function (data = NULL,
       `134N` = 134.148245, `134C` = 134.154565, `135N` = 135.15160)
     
     theos <- switch(quant,
-                    tmt6 = tmts %>% .[names(.) %in% nms_tmt6],
-                    tmt10 = tmts %>% .[names(.) %in% nms_tmt10],
-                    tmt11 = tmts %>% .[names(.) %in% nms_tmt11],
-                    tmt16 = tmts %>% .[names(.) %in% nms_tmtpro],
-                    tmt18 = tmts %>% .[names(.) %in% nms_tmtpro],
+                    tmt6  = tmts[names(tmts) %in% nms_tmt6],
+                    tmt10 = tmts[names(tmts) %in% nms_tmt10],
+                    tmt11 = tmts[names(tmts) %in% nms_tmt11],
+                    tmt16 = tmts[names(tmts) %in% nms_tmtpro],
+                    tmt18 = tmts[names(tmts) %in% nms_tmtpro],
                     stop("Unknown TMt type.", call. = FALSE))
     
     ul <- switch(quant,
@@ -59,9 +59,10 @@ calc_tmtint <- function (data = NULL,
                     ppm_reporters = ppm_reporters,
                     len = length(theos),
                     nms = names(theos)
-                  ), USE.NAMES = FALSE, SIMPLIFY = FALSE) %>%
-      dplyr::bind_rows()
+                  ), USE.NAMES = FALSE, SIMPLIFY = FALSE) 
     
+    out <- dplyr::bind_rows(out)
+
     if (!nrow(out)) {
       out <- data.frame(matrix(ncol = length(theos), nrow = 0L))
       colnames(out) <- theos
@@ -73,8 +74,8 @@ calc_tmtint <- function (data = NULL,
     out <- dplyr::bind_cols(data, out)
   }
   
-  names(out)[grep("^([0-9]{3}[NC]{0,1})", names(out))] <-
-    find_int_cols(length(theos))
+  cols <- grep("^([0-9]{3}[NC]{0,1})", names(out))
+  names(out)[cols] <- find_int_cols(length(theos))
   
   invisible(out)
 }

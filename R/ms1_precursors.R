@@ -1419,7 +1419,6 @@ add_fixed_masses <- function (mods, aa_masses, mod_motifs = NULL)
     s <- find_aa_site(p)
     aa_masses[s] <- aa_masses[s] + mod_masses[[i]]
   }
-  rm(list = c("p", "s"))
 
   attr(aa_masses, mod_type) <- all_mods
   attr(aa_masses, paste0(mod_type, "_ps")) <- positions_sites

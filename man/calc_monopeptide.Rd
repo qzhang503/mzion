@@ -11,6 +11,7 @@ calc_monopeptide(
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = Inf,
   maxn_sites_per_vmod = Inf,
+  min_mass = 200L,
   max_mass = 4500L,
   digits = 4L
 )
@@ -32,6 +33,10 @@ peptide.}
 
 \item{maxn_sites_per_vmod}{Integer; the maximum number of combinatorial
 variable modifications per site in a per peptide sequence.}
+
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is an arbitrarily low value. The primary guard
+against low molecular-weight precursors is \code{min_len}.}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation. The default is 4500.}

@@ -40,49 +40,49 @@ bions_base(aas2, tmass, digits = 4L)
 
 yions_base(aas2, tmass, digits = 4L)
 
-b2ions_base(aas2, tmass, digits = 4L)
+b2ions_base(aas2, tmass, digits = 4L, n = 2L)
 
 bstarions(aas2, tmass, digits = 4L)
 
-bstar2ions(aas2, tmass, digits = 4L)
+bstar2ions(aas2, tmass, digits = 4L, n = 2L)
 
 b0ions(aas2, tmass, digits = 4L)
 
-b02ions(aas2, tmass, digits = 4L)
+b02ions(aas2, tmass, digits = 4L, n = 2L)
 
-y2ions(aas2, tmass, digits = 4L)
+y2ions(aas2, tmass, digits = 4L, n = 2L)
 
 ystarions(aas2, tmass, digits = 4L)
 
-ystar2ions(aas2, tmass, digits = 4L)
+ystar2ions(aas2, tmass, digits = 4L, n = 2L)
 
 y0ions(aas2, tmass, digits = 4L)
 
-y02ions(aas2, tmass, digits = 4L)
+y02ions(aas2, tmass, digits = 4L, n = 2L)
 
 cions_base(aas2, tmass, digits = 4L)
 
-c2ions(aas2, tmass, digits = 4L)
+c2ions(aas2, tmass, digits = 4L, n = 2L)
 
 zions_base(aas2, tmass, digits = 4L)
 
-z2ions(aas2, tmass, digits = 4L)
+z2ions(aas2, tmass, digits = 4L, n = 2L)
 
 aions_base(aas2, tmass, digits = 4L)
 
-a2ions(aas2, tmass, digits = 4L)
+a2ions(aas2, tmass, digits = 4L, n = 2L)
 
 astarions(aas2, tmass, digits = 4L)
 
-astar2ions(aas2, tmass, digits = 4L)
+astar2ions(aas2, tmass, digits = 4L, n = 2L)
 
 a0ions(aas2, tmass, digits = 4L)
 
-a02ions(aas2, tmass, digits = 4L)
+a02ions(aas2, tmass, digits = 4L, n = 2L)
 
 xions_base(aas2, tmass, digits = 4L)
 
-x2ions(aas2, tmass, digits = 4L)
+x2ions(aas2, tmass, digits = 4L, n = 2L)
 }
 \arguments{
 \item{ntmass}{The mass of a fixed or variable N-term modification.}
@@ -98,9 +98,13 @@ x2ions(aas2, tmass, digits = 4L)
 \item{digits}{Integer; the number of decimal places to be used.}
 
 \item{tmass}{The mass of a fixed or variable N-term or C-term modification.}
+
+\item{n}{The charge state.}
 }
 \description{
 For (1) "amods- tmod- vnl- fnl-", (2) "amods- tmod+ vnl- fnl-".
+
+\code{H2O = 18.010565}.
 }
 \examples{
 \donttest{

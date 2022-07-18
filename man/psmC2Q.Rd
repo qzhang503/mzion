@@ -9,7 +9,7 @@ psmC2Q(
   out_path = NULL,
   fdr_type = "protein",
   combine_tier_three = FALSE,
-  max_n_prots = 40000L,
+  max_n_prots = 60000L,
   fct = 4L
 )
 }

@@ -26,6 +26,8 @@
         <umod:element symbol="13C" number="6"/>
         <umod:element symbol="C" number="-6"/>
       </umod:delta>
+      <umod:specificity hidden="0" site="K" position="Any C-term" classification="other" spec_group="2"/>
+      <umod:specificity hidden="0" site="C-term" position="Any C-term" classification="other" spec_group="3"/>
     </umod:mod>
     <umod:mod title="R6" full_name="Heavy arginine 13C(6)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-03-03 08:45:39" date_time_modified="2022-03-03 08:45:39" approved="0" record_id="6">
       <umod:specificity hidden="0" site="R" position="Anywhere" classification="other" spec_group="1"/>
@@ -147,6 +149,14 @@
         <umod:element symbol="N" number="2"/>
         <umod:element symbol="O" number="2"/>
       </umod:delta>
+    </umod:mod>
+    <umod:mod title="R4" full_name="Heavy arginine 15N(4)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-07-15 16:17:10" date_time_modified="2022-07-15 16:17:10" approved="0" record_id="21">
+      <umod:specificity hidden="0" site="R" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="3.98814" avge_mass="3.97364" composition="15N(4) N(-4)">
+        <umod:element symbol="15N" number="4"/>
+        <umod:element symbol="N" number="-4"/>
+      </umod:delta>
+      <umod:specificity hidden="0" site="R" position="Any C-term" classification="other" spec_group="2"/>
     </umod:mod>
   </umod:modifications>
 </umod:unimod>
