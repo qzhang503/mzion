@@ -1487,8 +1487,10 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   # no fittings
   if (length(lens) <= 3L) {
     prob_cos <- prob_cos[!is.na(names(prob_cos))]
+    prob_no_uses <- NULL
     
-    return(fill_probco_nas(prob_nas, prob_cos))
+    return(fill_probco_nas(prob_nas = prob_nas, prob_no_uses = prob_no_uses, 
+                           prob_cos = prob_cos, target_fdr = target_fdr))
   }
 
   # quality ones for fittings
@@ -1691,7 +1693,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     })
   }
   
-  prob_cos <- fill_probco_nas(prob_nas, prob_no_uses, prob_cos) %T>% 
+  prob_cos <- fill_probco_nas(prob_nas, prob_no_uses, prob_cos, target_fdr) %T>% 
     qs::qsave(file.path(out_path, "temp", "pep_probco.rds"), preset = "fast")
 }
 
@@ -1702,32 +1704,51 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
 #' @param prob_no_uses Named vector; peptide length in names and NA in values.
 #' @param prob_cos Named vector; non-NA probability cutoffs.
 #' @inheritParams calc_pepfdr
-fill_probco_nas <- function (prob_nas, prob_no_uses, prob_cos, target_fdr = .01)
+fill_probco_nas <- function (prob_nas = NULL, prob_no_uses = NULL, prob_cos, 
+                             target_fdr = .01)
 {
-  prob_nas <- prob_nas[!names(prob_nas) %in% names(prob_cos)]
-  len_nu <- length(prob_no_uses)
+  prob_nas <- fill_probs(prob_nas, prob_cos, target_fdr)
+  prob_no_uses <- fill_probs(prob_no_uses, prob_cos, target_fdr)
+  prob_cos <- c(prob_cos, prob_nas, prob_no_uses)
   
-  if (len_nu) {
-    prob_nas <- c(prob_no_uses, prob_nas) # no need of unique(pep_len)
-    co_no_uses <- prod(prob_no_uses)^(1/len_nu)
-  }
-  else {
-    co_no_uses <- target_fdr
-  }
+  prob_cos <- data.frame(pep_len = as.numeric(names(prob_cos)), 
+                         pep_prob_co = prob_cos)
+  
+  prob_cos <- dplyr::arrange(prob_cos, pep_len)
+}
 
-  if (length(prob_nas)) {
-    nm_nas <- names(prob_nas)
-    val <- max(median(prob_cos), mean(prob_cos), co_no_uses, target_fdr)
-    vals <-rep(val, length(prob_nas))
-    names(vals) <- nm_nas
-    ans <- c(prob_cos, vals)
-  }
-  else {
-    ans <- prob_cos
-  }
+
+#' Helper of \link{fill_probco_nas}
+#'
+#' @param nas A vector of NA or inferior probability cut-offs to be replaced.
+#' @inheritParams fill_probco_nas
+#' @return The replacements. Do not return the concatenated prob_cos and nas, to
+#'   prevent the estimated values from affecting the consequent replacement of
+#'   prob_no_uses.
+fill_probs <- function (nas, prob_cos, target_fdr = .01) 
+{
+  len <- length(nas)
   
-  ans <- data.frame(pep_len = as.numeric(names(ans)), pep_prob_co = ans)
-  ans <- dplyr::arrange(ans, pep_len)
+  if (!len)
+    return(NULL)
+  
+  peplen_prs <- as.integer(names(prob_cos))
+  peplen_nas <- as.integer(names(nas))
+  nas <- nas[!peplen_nas %in% peplen_prs]
+  peplen_nas <- as.integer(names(nas))
+
+  co_nas <- if (all(peplen_nas > max(peplen_prs)))
+    prob_cos[length(prob_cos)]
+  else if (all(peplen_nas < min(peplen_prs)))
+    prob_cos[1]
+  else
+    min(median(prob_cos), mean(prob_cos), target_fdr)
+  
+  val <- unname(co_nas)
+  vals <-rep(val, len)
+  names(vals) <- peplen_nas
+
+  vals
 }
 
 
