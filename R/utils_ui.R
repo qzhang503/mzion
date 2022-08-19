@@ -458,14 +458,25 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
   type <- attr(aa_masses, "type", exact = TRUE)
   
   # (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-" 
-  if (type %in% c("amods- tmod- vnl- fnl-", 
-                  "amods- tmod+ vnl- fnl-")) {
+  if (type %in% c("amods- tmod- vnl- fnl-", "amods- tmod+ vnl- fnl-")) {
+    ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
+    ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
     
+    ntmass <- if (length(ntmod)) 
+      aa_masses[names(ntmod)] + 1.00727647
+    else
+      aa_masses["N-term"] - 0.000549
+
+    ctmass <- if (length(ctmod)) 
+      aa_masses[names(ctmod)] + 2.01510147
+    else
+      aa_masses["C-term"] + 2.01510147
+
     ans <- gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                             aa_masses = aa_masses, 
                             ms1vmods = NULL, ms2vmods = NULL, 
-                            ntmod = NULL, ctmod = NULL, 
-                            ntmass = NULL, ctmass = NULL, 
+                            ntmod = ntmod, ctmod = ctmod, 
+                            ntmass = ntmass, ctmass = ctmass, 
                             amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
                             mod_indexes = mod_indexes, 
                             type_ms2ions = type_ms2ions, 
@@ -483,9 +494,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
   #         "ANY" fmod has neuloss -> 5, 6;
   #         "ALL" fmods have no neuloss -> 1, 2)
   
-  if (type %in% c("amods- tmod- vnl- fnl+", 
-                  "amods- tmod+ vnl- fnl+")) {
-    
+  if (type %in% c("amods- tmod- vnl- fnl+", "amods- tmod+ vnl- fnl+")) {
     ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
     
     ntmass <- if (length(ntmod)) 
@@ -503,8 +512,10 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
     fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
     
     ans <- gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = ms1_mass, 
-                                    aa_masses = aa_masses, ntmass = ntmass, 
-                                    ctmass = ctmass, fmods_nl = fmods_nl, 
+                                    aa_masses = aa_masses, 
+                                    ntmod = ntmod, ctmod = ctmod, 
+                                    ntmass = ntmass, ctmass = ctmass, 
+                                    fmods_nl = fmods_nl, 
                                     mod_indexes = mod_indexes, 
                                     type_ms2ions = type_ms2ions, 
                                     maxn_vmods_per_pep = maxn_vmods_per_pep, 
@@ -525,9 +536,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
   # (7, 8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
   #        (ALL amods are vnl-)
 
-  if (type %in% c("amods+ tmod- vnl- fnl-", 
-                  "amods+ tmod+ vnl- fnl-")) {
-    
+  if (type %in% c("amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-")) {
     ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
     
     ntmass <- if (length(ntmod)) 

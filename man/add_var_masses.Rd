@@ -7,6 +7,7 @@
 add_var_masses(
   mods,
   aa_masses,
+  varlabs = NULL,
   mod_motifs = NULL,
   anywhere_coerce_sites = NULL,
   nt_coerce_site = NULL,
@@ -18,6 +19,10 @@ add_var_masses(
 
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
+
+\item{varlabs}{Character string(s) of variable isotopic labels. See examples
+of SILAC for details. Can be but not typically used in standard alone
+searches of labeled residues.}
 
 \item{mod_motifs}{The motifs to restrict \code{Anywhere} variable
   modification. For example, provided the \code{Anywhere} variable

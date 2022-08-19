@@ -15,3 +15,14 @@ used.}
 \description{
 Calculates the masses of a chemical formula.
 }
+\examples{
+\donttest{
+# Error
+comp <- "N(+1) 15N(-1)"
+m <- calc_unimod_compmass(comp)
+
+# Instead 
+comp <- "N(1) 15N(-1)"
+m <- calc_unimod_compmass(comp)
+}
+}

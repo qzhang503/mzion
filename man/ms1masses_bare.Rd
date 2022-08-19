@@ -22,8 +22,7 @@ ms1masses_bare(
 list contains two lists of sequences: (1) without and (2) with N-terminal
 methionine.}
 
-\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
-acid residues.}
+\item{aa_masses}{An amino acid mass look-up.}
 
 \item{ftmass}{The sum of masses of \code{fixed} N-term and C-term
 modifications.}

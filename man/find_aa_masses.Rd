@@ -5,20 +5,28 @@
 \title{Finds the existence of \code{aa_masses_all.rds}.}
 \usage{
 find_aa_masses(
+  aa_masses = NULL,
   out_path = NULL,
   fixedmods = NULL,
   varmods = NULL,
+  varlabs = NULL,
   mod_motifs = NULL,
   maxn_vmods_setscombi = 64L
 )
 }
 \arguments{
+\item{aa_masses}{An amino acid mass look-up.}
+
 \item{out_path}{An output path.}
 
 \item{fixedmods}{A character vector of fixed modifications. See also
 \link{parse_unimod} for grammars.}
 
 \item{varmods}{A character vector of variable modifications.}
+
+\item{varlabs}{Character string(s) of variable isotopic labels. See examples
+of SILAC for details. Can be but not typically used in standard alone
+searches of labeled residues.}
 
 \item{mod_motifs}{The motifs to restrict \code{Anywhere} variable
   modification. For example, provided the \code{Anywhere} variable

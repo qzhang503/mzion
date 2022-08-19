@@ -21,5 +21,5 @@ and \code{tmt10} for \code{tmt8} etc.}
 \item{ppm_reporters}{The mass tolerance of MS2 reporter ions.}
 }
 \description{
-Reporter-ion quantitation.
+Not yet used: \code{`134C` = 134.154565}, \code{`135N` = 135.15160}
 }

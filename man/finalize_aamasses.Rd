@@ -4,12 +4,16 @@
 \alias{finalize_aamasses}
 \title{Finalizes \code{aa_masses_all}}
 \usage{
-finalize_aamasses(aa_masses_i, aa_masses, mod_motifs = NULL)
+finalize_aamasses(aa_masses_i, aa_masses, varlabs = NULL, mod_motifs = NULL)
 }
 \arguments{
 \item{aa_masses_i}{The i-th aa_masses_all.}
 
 \item{aa_masses}{The original look-ups of AA masses.}
+
+\item{varlabs}{Character string(s) of variable isotopic labels. See examples
+of SILAC for details. Can be but not typically used in standard alone
+searches of labeled residues.}
 
 \item{mod_motifs}{The motifs to restrict \code{Anywhere} variable
   modification. For example, provided the \code{Anywhere} variable
@@ -22,5 +26,6 @@ finalize_aamasses(aa_masses_i, aa_masses, mod_motifs = NULL)
   motifs.}
 }
 \description{
-Replaces interim fixed and variable modifications with the finals.
+Replaces interim fixed and variable modifications with the finals. Results in
+correct attributes in aa_masses_i.
 }

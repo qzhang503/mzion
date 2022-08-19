@@ -45,7 +45,7 @@ fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)",
 varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
 
-aa_masses_all <- calc_aamasses(fixedmods, varmods)
+aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 aa_masses <- aa_masses_all[[1]]
 
 val <- 4237.89756

@@ -8,6 +8,8 @@ calc_aamasses(
   fixedmods = c("TMT6plex (K)", "Carbamidomethyl (. = C)"),
   varmods = c("TMT6plex (N-term)", "Acetyl (Protein N-term)", "Oxidation (M)",
     "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
+  aa_masses = NULL,
+  varlabs = NULL,
   mod_motifs = NULL,
   maxn_vmods_setscombi = 64L,
   out_path = NULL
@@ -18,6 +20,10 @@ calc_aamasses(
 \link{parse_unimod} for grammars.}
 
 \item{varmods}{A character vector of variable modifications.}
+
+\item{varlabs}{Character string(s) of variable isotopic labels. See examples
+of SILAC for details. Can be but not typically used in standard alone
+searches of labeled residues.}
 
 \item{mod_motifs}{The motifs to restrict \code{Anywhere} variable
   modification. For example, provided the \code{Anywhere} variable
@@ -45,18 +51,17 @@ names(x_att[[1]])
 x_vmods <- lapply(x_att, `[`, c("vmods"))
 x_fmods <- lapply(x_att, `[`, c("fmods"))
 
-x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)",
-                     "Carbamidomethyl (C)"), c("Acetyl (N-term)",
-                     "Gln->pyro-Glu (N-term = Q)", "Oxidation (M)"))
+x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"), 
+                   varmods   = c("Acetyl (N-term)", "Gln->pyro-Glu (N-term = Q)", "Oxidation (M)"))
 
 stopifnot(length(x) == 6L)
 
 # Fixed N-term mod (no coercion to variable mod)
-x <- calc_aamasses("TMT6plex (N-term)", NULL)
+x <- calc_aamasses(fixedmods = "TMT6plex (N-term)", varmods = NULL)
 x[[1]][["N-term"]]
 
 # Fixed N-term mod (coerced to variable mod)
-x <- calc_aamasses("TMT6plex (N-term)", "Acetyl (Protein N-term)")
+x <- calc_aamasses(fixedmods = "TMT6plex (N-term)", varmods = "Acetyl (Protein N-term)")
 lapply(x, `[[`, "N-term")
 x[[1]][["TMT6plex (N-term)"]]
 x[[2]][["Acetyl (Protein N-term)"]]
@@ -88,62 +93,63 @@ x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)",
 stopifnot(length(x) == 3L)
 
 # Fixed mod + NL; var mod + NL
-x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)",
+x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)",
                      "Carbamidomethyl (. = M)",
                      "Deamidated (. = R)"),
-                   c("Acetyl (N-term)", "Gln->pyro-Glu (N-term = Q)",
+                   varmods = c("Acetyl (N-term)", "Gln->pyro-Glu (N-term = Q)",
                      "Hex(5)HexNAc(2) (N)"))
 
 stopifnot(length(x) == 6L)
 
-x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)",
+x <- calc_aamasses(c(fixedmods = "TMT6plex (N-term)", "TMT6plex (K)",
                      "Carbamidomethyl (. = M)", "Deamidated (. = R)"),
-                   c("Acetyl (N-term)", "Carbamyl (. = M)",
+                   varmods = c("Acetyl (N-term)", "Carbamyl (. = M)",
                      "Gln->pyro-Glu (N-term = Q)", "Hex(5)HexNAc(2) (N)"))
 
 stopifnot(length(x) == 18L)
 
 ## Coercion       
 # No fixed terminal or fixed anywhere coercion
-x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)", 
+x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
                      "Carbamidomethyl (C)"),
-                   c("Carbamidomethyl (M)"))
+                   varmods = c("Carbamidomethyl (M)"))
 
 stopifnot(length(x) == 2L)
 
-x <- calc_aamasses(c("TMT6plex (K)", "Carbamidomethyl (C)"), 
-                   c("Acetyl (Protein N-term)", "TMT6plex (N-term)", 
+x <- calc_aamasses(fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)"), 
+                   varmods = c("Acetyl (Protein N-term)", "TMT6plex (N-term)", 
                      "Oxidation (M)", "Carbamidomethyl (M)"))
 
 stopifnot(length(x) == 12L)
 
 # Fixed terminal coercion
-x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)", 
+x <- calc_aamasses(fixedmos = c("TMT6plex (N-term)", "TMT6plex (K)", 
                      "Carbamidomethyl (C)"),
-                   c("Acetyl (Protein N-term)", "Oxidation (M)"))
+                   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)"))
                    
 stopifnot(length(x) == 4L)
 
 # Fixed anywhere coercion
-x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)", 
+x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
                      "Carbamidomethyl (C)", "Carbamidomethyl (M)"),
-                   c("Oxidation (M)"))
+                   varmods = c("Oxidation (M)"))
                    
 stopifnot(length(x) == 3L)
                    
 # Both fixed terminal and fixed anywhere coercion
-x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)", 
+x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
                      "Carbamidomethyl (C)", "Carbamidomethyl (M)"),
-                   c("Acetyl (Protein N-term)", "Oxidation (M)"))
+                   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)"))
 
 stopifnot(length(x) == 6L)
 
 }
 \dontrun{
 # conflicts
-x <- calc_aamasses(c("Carbamidomethyl (N-term)", "TMT2plex (N-term)"), NULL)
+x <- calc_aamasses(fixedmods = c("Carbamidomethyl (N-term)", "TMT2plex (N-term)"), 
+                   varmods = NULL)
 
 # need separate S and T
-x <- calc_aamasses(NULL, "Phospho (ST)")
+x <- calc_aamasses(fixedmods = NULL, varmods = "Phospho (ST)")
 }
 }

@@ -14,6 +14,8 @@ matchMS(
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
+  fixedlabs = NULL,
+  varlabs = NULL,
   locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
   mod_motifs = NULL,
   enzyme = c("Trypsin_P", "Trypsin", "LysC", "LysN", "ArgC", "LysC_P", "Chymotrypsin",
@@ -53,7 +55,7 @@ matchMS(
   combine_tier_three = FALSE,
   max_n_prots = 60000L,
   use_ms1_cache = TRUE,
-  .path_cache = "~/proteoM/.MSearches (1.1.8.1)/Cache/Calls",
+  .path_cache = "~/proteoM/.MSearches (1.1.9.0)/Cache/Calls",
   .path_fasta = NULL,
   topn_ms2ions = 100L,
   topn_ms2ion_cuts = NA,
@@ -114,6 +116,14 @@ c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
   \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
   \link{parse_unimod} for grammars of modification \code{title},
   \code{position} and \code{site}.}
+
+\item{fixedlabs}{Character string(s) of fixed isotopic labels. See examples
+of SILAC for details. Can be but not typically used in standard alone
+searches of labeled residues.}
+
+\item{varlabs}{Character string(s) of variable isotopic labels. See examples
+of SILAC for details. Can be but not typically used in standard alone
+searches of labeled residues.}
 
 \item{locmods}{Among \code{varmods} for the consideration of localization
 probabilities; for instance, \code{locmods = NULL} for nothing,
@@ -516,6 +526,10 @@ matchMS(
   out_path = "~/proteoM/examples",
 )
 
+# (from protein to PSM FDR)
+reproc_psmC(out_path = "~/proteoM/examples", fdr_type = "psm",
+            combine_tier_three = TRUE)
+
 # TMT16, phospho
 matchMS(
   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
@@ -542,6 +556,7 @@ matchMS(
 )
 
 # Custom Unimod (Oxi+Carbamidomethyl)
+# (see also calc_unimod_compmass)
 add_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
            full_name   = "Oxidation and iodoacetamide derivative"),
            specificity = c(site        = "M",
@@ -555,28 +570,27 @@ add_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
 
 matchMS(
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
-  varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
-              "Oxi+Carbamidomethyl (M)"),
+  varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+                "Oxi+Carbamidomethyl (M)"),
   quant    = "tmt10",
 )
 
 
-## Stable isotope-labeled K and R
-# K8, R10
+## Stable isotope-labeled K and R (not SILAC mixtures)
+# Anywhere K8, R10
 matchMS(
   fixedmods = c("Carbamidomethyl (C)"),
-  varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
-              "K8 (C-term = K)", "R10 (C-term = R)"),
-  quant    = "none",
+  varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+                "Label:13C(6)15N(2) (K)", "Label:13C(6)15N(4) (R)"),
+  quant     = "none",
 )
 
-# TMT+K8, TMT+R10
+# K8, R10 + TMT10
 matchMS(
-  fixedmods = c("Carbamidomethyl (C)"),
-  varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
-              "TMT+K8 (C-term = K)", "TMT+R10 (C-term = R)"),
-  max_miss = 2,
-  quant    = "tmt10",
+  fixedmods = c("TMT6plex (N-term)", "TMT+K8 (K)", "Carbamidomethyl (C)"),
+  varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+                "R10 (R)"),
+  quant     = "tmt10",
 )
 
 
@@ -584,16 +598,58 @@ matchMS(
 # SILAC
 #######################################
 
-## 1. heavy and light mixed into one sample (typical SILAC)
-
-# unlabeled base
+## 1. heavy and light mixed into one sample (classical SILAC)
+# (i) K8R10
 matchMS(
-  silac_mix = list(base = NULL, heavy = c("K8 (K)", "R10 (R)")),
+  fixedmods = c("Carbamidomethyl (C)"),
+  varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+                "Gln->pyro-Glu (N-term = Q)"),
+  silac_mix = list(base  = c(fixedlabs = NULL, varlabs = NULL),
+                   K8R10 = c(fixedlabs = c("Label:13C(6)15N(2) (K)",
+                                           "Label:13C(6)15N(4) (R)"),
+                             varlabs   = NULL)),
   ...
-)
+  )
 
-# labeled base
-# (first add K4 Unimod if not yet present)
+
+# (ii) base: unlabeled; grpC: 13C; grpN: 15N
+# (example Dong-Ecoli-QE, Nat. Biotech. 2018, 36, 1059-1061)
+matchMS(
+  fixedmods = c("Carbamidomethyl (C)"),
+  varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+                "Gln->pyro-Glu (N-term = Q)"),
+  
+  silac_mix = list(base = c(fixedlabs = NULL, varlabs   = NULL),
+
+                   grpC = c(fixedlabs = c("Label:13C(3) (A)", "Label:13C(6) (R)",
+                                          "Label:13C(4) (N)", "Label:13C(4) (D)",
+                                          "Label:13C(3) (C)", "Label:13C(5) (E)",
+                                          "Label:13C(5) (Q)", "Label:13C(2) (G)",
+                                          "Label:13C(6) (H)", "Label:13C(6) (I)",
+                                          "Label:13C(6) (L)", "Label:13C(6) (K)",
+                                          "Label:13C(5) (M)", "Label:13C(9) (F)",
+                                          "Label:13C(5) (P)", "Label:13C(3) (S)",
+                                          "Label:13C(4) (T)", "Label:13C(11) (W)",
+                                          "Label:13C(9) (Y)", "Label:13C(5) (V)"),
+                            varlabs = c("Label:13C(2) (Protein N-term)")),
+
+                   grpN = c(fixedlabs = c("Label:15N(1) (A)", "Label:15N(4) (R)",
+                                          "Label:15N(2) (N)", "Label:15N(1) (D)",
+                                          "Label:15N(1) (C)", "Label:15N(1) (E)",
+                                          "Label:15N(2) (Q)", "Label:15N(1) (G)",
+                                          "Label:15N(3) (H)", "Label:15N(1) (I)",
+                                          "Label:15N(1) (L)", "Label:15N(2) (K)",
+                                          "Label:15N(1) (M)", "Label:15N(1) (F)",
+                                          "Label:15N(1) (P)", "Label:15N(1) (S)",
+                                          "Label:15N(1) (T)", "Label:15N(2) (W)",
+                                          "Label:15N(1) (Y)", "Label:15N(1) (V)"),
+                            varlabs = c("Label:15N(-1) (N)",
+                                        "Label:15N(-1) (N-term = Q)"))),
+  ...)
+
+
+# (iii) labeled base
+# (first to add exemplary K4 Unimod if not yet available)
 K4 <- calc_unimod_compmass("2H(4) H(-4)")
 mono_mass <- K4$mono_mass
 avge_mass <- K4$avge_mass
@@ -610,23 +666,9 @@ add_unimod(header      = c(title       = "K4",
                            composition = "0"))
 
 matchMS(
-  silac_mix = list(base   = c("K4 (K)"),
-                   median = c("K6 (K)", "R6 (R)"),
-                   heavy  = c("K8 (K)", "R10 (R)")),
-  ...
-)
-
-# custom groups
-matchMS(
-  silac_mix = list(base = NULL,
-                   grp1 = c("K6 (K)", "R6 (R)"),
-                   grp2 = c("K8 (K)", "R10 (R)")),
-  ...
-)
-
-matchMS(
-  silac_mix = list(base = c("K6 (K)", "R6 (R)"),
-                   grp1 = c("K8 (K)", "R10 (R)"),
+  silac_mix = list(base   = c(fixedlabs = c("K4 (K)"), varlabs = NULL),
+                   median = c(fixedlabs = c("K6 (K)", "R6 (R)"), varlabs = NULL),
+                   heavy  = c(fixedlabs = c("K8 (K)", "R10 (R)"), varlabs = NULL)),
   ...
 )
 
@@ -648,23 +690,6 @@ matchMS(
   quant = "none",
   ...
 )
-
-# The results next processed by proteoQ just like LFQ.
-
-# (ii) SILAC at low-throughput + TMT
-matchMS(
-  par_groups = list(
-    light = list(mgf_path  = "~/proteoM/my_project/mgf/light",
-                 fixedmods = "Carbamidomethyl (C)"),
-    heavy = list(mgf_path  = "~/proteoM/my_project/mgf/heavy",
-                 fixedmods = c("Carbamidomethyl (C)", "K8 (K)", "R10 (R)"))
-  ),
-  quant = "TMT10",
-  ...
-)
-
-# Next processed by proteoQ just like TMT
-# ...
 
 }
 }

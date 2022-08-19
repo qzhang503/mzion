@@ -1,6 +1,7 @@
 #' Generates and Calculates the masses of tryptic peptides from a fasta
 #' database.
 #'
+#' @param aa_masses An amino acid mass look-up.
 #' @param enzyme A character string; the proteolytic specificity of the assumed
 #'   enzyme will be used to generate peptide sequences from proteins. The enzyme
 #'   is currently \code{trypsin}.
@@ -45,7 +46,7 @@
 #' length(unlist(res_data, use.names = FALSE))
 #'
 #' }
-calc_pepmasses2 <- function (
+calc_pepmasses2 <- function (aa_masses = NULL, 
   fasta = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
   acc_type = "uniprot_acc",
   acc_pattern = NULL,
@@ -56,6 +57,8 @@ calc_pepmasses2 <- function (
               "Oxidation (M)", 
               "Deamidated (N)",
               "Gln->pyro-Glu (N-term = Q)"),
+  fixedlabs = NULL, 
+  varlabs = NULL, 
   mod_motifs = NULL, 
   enzyme = c("trypsin_p"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
@@ -144,6 +147,7 @@ calc_pepmasses2 <- function (
     # `nms` must be matched in order to retrieve cached results
     nms = c("fasta", "acc_type", "acc_pattern",
             "fixedmods", "varmods", "mod_motifs", 
+            "fixedlabs", "varlabs", 
             "enzyme", "custom_enzyme",
             "maxn_fasta_seqs", "maxn_vmods_setscombi",
             "maxn_vmods_per_pep", "maxn_sites_per_vmod",
@@ -159,13 +163,15 @@ calc_pepmasses2 <- function (
   if (len_ts && use_ms1_cache) {
     # can have multiple matches with use_ms1_cache on/off
     .time_stamp <- .time_stamp[len_ts]
-    
+
     message("Loading peptide masses from cache.")
     
     aa_masses_all <- find_aa_masses(
+      aa_masses = aa_masses, 
       out_path = file.path(.path_fasta, "ms1masses", .time_stamp),
       fixedmods = fixedmods,
       varmods = varmods,
+      varlabs = varlabs, 
       mod_motifs = mod_motifs, 
       maxn_vmods_setscombi = maxn_vmods_setscombi)
 
@@ -199,9 +205,11 @@ calc_pepmasses2 <- function (
     file_ms1 <- file.path(path_tstamp, "aa_masses_ms1.rds")
 
     aa_masses_all <- find_aa_masses(
+      aa_masses = aa_masses, 
       out_path = path_tstamp,
       fixedmods = fixedmods,
       varmods = varmods,
+      varlabs = varlabs,
       mod_motifs = mod_motifs, 
       maxn_vmods_setscombi = maxn_vmods_setscombi)
     
@@ -632,7 +640,8 @@ calc_pepmasses2 <- function (
 #' Finds the existence of \code{aa_masses_all.rds}.
 #'
 #' @inheritParams calc_pepmasses2
-find_aa_masses <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
+find_aa_masses <- function(aa_masses = NULL, out_path = NULL, fixedmods = NULL, 
+                           varmods = NULL, varlabs = NULL, 
                            mod_motifs = NULL, maxn_vmods_setscombi = 64L) 
 {
   file <- file.path(out_path, "aa_masses_all.rds")
@@ -643,9 +652,11 @@ find_aa_masses <- function(out_path = NULL, fixedmods = NULL, varmods = NULL,
   message("Computing the combinations of fixed and variable modifications.")
   
   dir.create(out_path, recursive = TRUE, showWarnings = FALSE)
-  
+
   aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
                                  varmods = varmods,
+                                 aa_masses = aa_masses, 
+                                 varlabs = varlabs, 
                                  mod_motifs = mod_motifs, 
                                  maxn_vmods_setscombi = maxn_vmods_setscombi,
                                  out_path = out_path)
@@ -802,18 +813,17 @@ find_aa_site <- function (pos_site)
 #' x_vmods <- lapply(x_att, `[`, c("vmods"))
 #' x_fmods <- lapply(x_att, `[`, c("fmods"))
 #' 
-#' x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)",
-#'                      "Carbamidomethyl (C)"), c("Acetyl (N-term)",
-#'                      "Gln->pyro-Glu (N-term = Q)", "Oxidation (M)"))
+#' x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"), 
+#'                    varmods   = c("Acetyl (N-term)", "Gln->pyro-Glu (N-term = Q)", "Oxidation (M)"))
 #' 
 #' stopifnot(length(x) == 6L)
 #'
 #' # Fixed N-term mod (no coercion to variable mod)
-#' x <- calc_aamasses("TMT6plex (N-term)", NULL)
+#' x <- calc_aamasses(fixedmods = "TMT6plex (N-term)", varmods = NULL)
 #' x[[1]][["N-term"]]
 #' 
 #' # Fixed N-term mod (coerced to variable mod)
-#' x <- calc_aamasses("TMT6plex (N-term)", "Acetyl (Protein N-term)")
+#' x <- calc_aamasses(fixedmods = "TMT6plex (N-term)", varmods = "Acetyl (Protein N-term)")
 #' lapply(x, `[[`, "N-term")
 #' x[[1]][["TMT6plex (N-term)"]]
 #' x[[2]][["Acetyl (Protein N-term)"]]
@@ -845,63 +855,64 @@ find_aa_site <- function (pos_site)
 #' stopifnot(length(x) == 3L)
 #' 
 #' # Fixed mod + NL; var mod + NL
-#' x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)",
+#' x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)",
 #'                      "Carbamidomethyl (. = M)",
 #'                      "Deamidated (. = R)"),
-#'                    c("Acetyl (N-term)", "Gln->pyro-Glu (N-term = Q)",
+#'                    varmods = c("Acetyl (N-term)", "Gln->pyro-Glu (N-term = Q)",
 #'                      "Hex(5)HexNAc(2) (N)"))
 #' 
 #' stopifnot(length(x) == 6L)
 #' 
-#' x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)",
+#' x <- calc_aamasses(c(fixedmods = "TMT6plex (N-term)", "TMT6plex (K)",
 #'                      "Carbamidomethyl (. = M)", "Deamidated (. = R)"),
-#'                    c("Acetyl (N-term)", "Carbamyl (. = M)",
+#'                    varmods = c("Acetyl (N-term)", "Carbamyl (. = M)",
 #'                      "Gln->pyro-Glu (N-term = Q)", "Hex(5)HexNAc(2) (N)"))
 #' 
 #' stopifnot(length(x) == 18L)
 #' 
 #' ## Coercion       
 #' # No fixed terminal or fixed anywhere coercion
-#' x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)", 
+#' x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
 #'                      "Carbamidomethyl (C)"),
-#'                    c("Carbamidomethyl (M)"))
+#'                    varmods = c("Carbamidomethyl (M)"))
 #' 
 #' stopifnot(length(x) == 2L)
 #' 
-#' x <- calc_aamasses(c("TMT6plex (K)", "Carbamidomethyl (C)"), 
-#'                    c("Acetyl (Protein N-term)", "TMT6plex (N-term)", 
+#' x <- calc_aamasses(fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)"), 
+#'                    varmods = c("Acetyl (Protein N-term)", "TMT6plex (N-term)", 
 #'                      "Oxidation (M)", "Carbamidomethyl (M)"))
 #' 
 #' stopifnot(length(x) == 12L)
 #' 
 #' # Fixed terminal coercion
-#' x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)", 
+#' x <- calc_aamasses(fixedmos = c("TMT6plex (N-term)", "TMT6plex (K)", 
 #'                      "Carbamidomethyl (C)"),
-#'                    c("Acetyl (Protein N-term)", "Oxidation (M)"))
+#'                    varmods = c("Acetyl (Protein N-term)", "Oxidation (M)"))
 #'                    
 #' stopifnot(length(x) == 4L)
 #' 
 #' # Fixed anywhere coercion
-#' x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)", 
+#' x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
 #'                      "Carbamidomethyl (C)", "Carbamidomethyl (M)"),
-#'                    c("Oxidation (M)"))
+#'                    varmods = c("Oxidation (M)"))
 #'                    
 #' stopifnot(length(x) == 3L)
 #'                    
 #' # Both fixed terminal and fixed anywhere coercion
-#' x <- calc_aamasses(c("TMT6plex (N-term)", "TMT6plex (K)", 
+#' x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
 #'                      "Carbamidomethyl (C)", "Carbamidomethyl (M)"),
-#'                    c("Acetyl (Protein N-term)", "Oxidation (M)"))
+#'                    varmods = c("Acetyl (Protein N-term)", "Oxidation (M)"))
 #' 
 #' stopifnot(length(x) == 6L)
 #' 
 #' }
 #' \dontrun{
 #' # conflicts
-#' x <- calc_aamasses(c("Carbamidomethyl (N-term)", "TMT2plex (N-term)"), NULL)
+#' x <- calc_aamasses(fixedmods = c("Carbamidomethyl (N-term)", "TMT2plex (N-term)"), 
+#'                    varmods = NULL)
 #'
 #' # need separate S and T
-#' x <- calc_aamasses(NULL, "Phospho (ST)")
+#' x <- calc_aamasses(fixedmods = NULL, varmods = "Phospho (ST)")
 #' }
 #' @export
 calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
@@ -911,7 +922,8 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
                                        "Oxidation (M)",
                                        "Deamidated (N)",
                                        "Gln->pyro-Glu (N-term = Q)"),
-                           mod_motifs = NULL, 
+                           aa_masses = NULL, 
+                           varlabs = NULL, mod_motifs = NULL, 
                            maxn_vmods_setscombi = 64L,
                            out_path = NULL) 
 {
@@ -961,16 +973,18 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
   fmod_motifs <- mod_motifs[names(mod_motifs) %in% fixedmods]
   vmod_motifs <- mod_motifs[names(mod_motifs) %in% varmods]
   
-  aa_masses <- c(
-    A = 71.037114, R = 156.101111, N = 114.042927, D = 115.026943,
-    C = 103.009185, E = 129.042593, Q = 128.058578, G = 57.021464,
-    H = 137.058912, I = 113.084064, L = 113.084064, K = 128.094963,
-    M = 131.040485, F = 147.068414, P = 97.052764, S = 87.032028,
-    T = 101.047679, W = 186.079313, Y = 163.063329, V = 99.068414,
-    "N-term" = 1.007825, "C-term" = 17.002740,
-    U = 150.953633, B = 114.534940, X = 111.000000, Z = 128.550590,
-    "-" = 0)
-  
+  if (is.null(aa_masses)) {
+    aa_masses <- c(
+      A = 71.037114, R = 156.101111, N = 114.042927, D = 115.026943,
+      C = 103.009185, E = 129.042593, Q = 128.058578, G = 57.021464,
+      H = 137.058912, I = 113.084064, L = 113.084064, K = 128.094963,
+      M = 131.040485, F = 147.068414, P = 97.052764, S = 87.032028,
+      T = 101.047679, W = 186.079313, Y = 163.063329, V = 99.068414,
+      "N-term" = 1.007825, "C-term" = 17.002740,
+      U = 150.953633, B = 114.534940, X = 111.000000, Z = 128.550590,
+      "-" = 0)
+  }
+
   # At the end, the mass delta from fixed [NC]-term will be added to 
   # each aa_masses["N-term"] and aa_masses["C-term"]
   # e.g. with a TMT N-term tag, aa_masses["N-term"] + aa_masses["C-term"] = 
@@ -997,13 +1011,15 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
   attr(aa_masses_fc, "nt_coerce_site") <- nt_coerce_site
   attr(aa_masses_fc, "ct_coerce_site") <- ct_coerce_site
   attr(aa_masses_fc, "anywhere_coerce_sites") <- anywhere_coerce_sites
-  # qs::qsave(aa_masses_fc, file.path(out_path, "aa_masses_fc.rds"), preset = "fast")
 
   ## (3) add variable mods + NL
   varmods_comb <- find_aamasses_vmodscombi(varmods, f_to_v, anywhere_coerce_sites)
 
-  aa_masses_var <- lapply(varmods_comb, add_var_masses, aa_masses_fc, vmod_motifs, 
-                          anywhere_coerce_sites, nt_coerce_site, ct_coerce_site)
+  aa_masses_var <- lapply(varmods_comb, add_var_masses, aa_masses = aa_masses_fc, 
+                          varlabs = varlabs, mod_motifs = vmod_motifs, 
+                          anywhere_coerce_sites = anywhere_coerce_sites, 
+                          nt_coerce_site = nt_coerce_site, 
+                          ct_coerce_site = ct_coerce_site)
 
   if (length(aa_masses_var) >= maxn_vmods_setscombi) {
     warning("The ways of combinatorial variable modifications are ",
@@ -1018,7 +1034,8 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
   aa_masses_ms1 <- lapply(c(list(aa_masses_fc), aa_masses_var), parse_aamasses)
   
   aa_masses_all <- lapply(c(list(aa_masses_fi), aa_masses_var), finalize_aamasses, 
-                          aa_masses, mod_motifs)
+                          aa_masses = aa_masses, varlabs = varlabs, 
+                          mod_motifs = mod_motifs)
 
   if (!is.null(out_path)) {
     save_mod_indexes(out_path, fixedmods, varmods, f_to_v)
@@ -1030,15 +1047,15 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
 }
 
 
-
 #' Finalizes \code{aa_masses_all}
-#' 
-#' Replaces interim fixed and variable modifications with the finals.
-#' 
+#'
+#' Replaces interim fixed and variable modifications with the finals. Results in
+#' correct attributes in aa_masses_i. 
+#'
 #' @param aa_masses_i The i-th aa_masses_all.
 #' @param aa_masses The original look-ups of AA masses.
 #' @inheritParams matchMS
-finalize_aamasses <- function (aa_masses_i, aa_masses, mod_motifs = NULL)
+finalize_aamasses <- function (aa_masses_i, aa_masses, varlabs = NULL, mod_motifs = NULL)
 {
   fixedmods <- names(attr(aa_masses_i, "fmods_ps", exact = TRUE))
   varmods <- names(attr(aa_masses_i, "vmods_ps", exact = TRUE))
@@ -1049,6 +1066,7 @@ finalize_aamasses <- function (aa_masses_i, aa_masses, mod_motifs = NULL)
   excepts <- c(anywhere_excepts, nt_except, ct_except)
   cmods <- names(excepts)
   
+  # coerced mods
   if (length(cmods)) {
     fixedmods <- c(fixedmods, cmods)
     varmods <- varmods[!varmods %in% cmods]
@@ -1057,8 +1075,13 @@ finalize_aamasses <- function (aa_masses_i, aa_masses, mod_motifs = NULL)
   fmod_motifs <- mod_motifs[names(mod_motifs) %in% fixedmods]
   vmod_motifs <- mod_motifs[names(mod_motifs) %in% varmods]
   
-  aa_masses_i <- add_fixed_masses(fixedmods, aa_masses, fmod_motifs)
-  aa_masses_i <- add_var_masses(varmods, aa_masses_i, vmod_motifs)
+  # may skip the mass updates if no coerced mods
+  aa_masses_i <- add_fixed_masses(mods = fixedmods, aa_masses = aa_masses, 
+                                  mod_motifs = fmod_motifs)
+  
+  aa_masses_i <- add_var_masses(mods = varmods, aa_masses = aa_masses_i, 
+                                varlabs = varlabs, mod_motifs = vmod_motifs)
+  
   aa_masses_i <- parse_aamasses(aa_masses_i)
 }
 
@@ -1337,7 +1360,7 @@ find_aamasses_vmodscombi <- function (varmods = NULL, f_to_v = NULL,
 #' @inheritParams matchMS
 #' @return Lists of of amino-acid residues with modified mono-isotopic masses
 #'   being incorporated. Returns NULL if \code{is.null(varmods_comb)}.
-add_var_masses <- function (mods, aa_masses, mod_motifs = NULL, 
+add_var_masses <- function (mods, aa_masses, varlabs = NULL, mod_motifs = NULL, 
                             anywhere_coerce_sites = NULL, nt_coerce_site = NULL, 
                             ct_coerce_site = NULL) 
 {
@@ -1348,20 +1371,52 @@ add_var_masses <- function (mods, aa_masses, mod_motifs = NULL,
   mod_masses <- lapply(res, `[[`, "monomass")
   positions_sites <- lapply(res, `[[`, "position_site")
   neulosses <- lapply(res, `[[`, "nl")
+  positions <- unlist(lapply(positions_sites, names), use.names = FALSE)
+  sites <- unlist(lapply(positions_sites, find_aa_site), use.names = FALSE)
   rm(list = c("res"))
-  
+
+  if (!is.null(varlabs)) {
+    # subsets positions_sites2 by positions_sites
+    res2 <- extract_umods(varlabs)
+    mod_masses2 <- lapply(res2, `[[`, "monomass")
+    positions_sites2 <- lapply(res2, `[[`, "position_site")
+    neulosses2 <- lapply(res2, `[[`, "nl")
+    positions2 <- unlist(lapply(positions_sites2, names), use.names = FALSE)
+    sites2 <- unlist(lapply(positions_sites2, find_aa_site), use.names = FALSE)
+    rm(list = "res2")
+
+    oks2 <- (positions2 %in% positions) & (sites2 %in% sites)
+    positions_sites2 <- positions_sites2[oks2]
+    mod_masses2 <- mod_masses2[oks2]
+    neulosses2 <- neulosses2[oks2]
+    positions2 <- positions2[oks2]
+    sites2 <- sites2[oks2]
+    rm(list = c("oks2"))
+
+    # to ensure the same order
+    ps <- paste(positions, sites, sep = ".")
+    ps2 <- paste(positions2, sites2, sep = ".")
+    idxes <- match(ps2, ps)
+    rm(list = c("ps", "ps2"))
+    
+    # updates mass deltas and NLs
+    mod_masses[idxes] <- mod_masses[idxes] %+% mod_masses2
+
+    if (length(neulosses2))
+      neulosses[idxes] <- mapply(function (x, y) x + y, neulosses[idxes], neulosses2, 
+                                 USE.NAMES = TRUE, SIMPLIFY = FALSE)
+    
+    rm(list = c("mod_masses2", "positions_sites2", "neulosses2", "idxes", 
+                "positions2", "sites2"))
+  }
+
   anywhere_excepts <- find_except_sites(anywhere_coerce_sites, positions_sites)
   nt_except <- find_except_sites(nt_coerce_site, positions_sites)
   ct_except <- find_except_sites(ct_coerce_site, positions_sites)
 
-  for (i in seq_along(positions_sites)) {
-    p <- positions_sites[[i]]
-    s <- find_aa_site(p)
-    nm <- names(positions_sites[i])
-    aa_masses[nm] <- mod_masses[[i]]
-  }
-  # rm(list = c("p", "s", "nm"))
-  
+  for (i in seq_along(positions_sites))
+    aa_masses[names(positions_sites[i])] <- mod_masses[[i]]
+
   attr(aa_masses, mod_type) <- all_mods
   attr(aa_masses, paste0(mod_type, "_ps")) <- positions_sites
   attr(aa_masses, paste0(mod_type, "_mass")) <- mod_masses
@@ -1491,6 +1546,7 @@ extract_umods <- function (mods)
   names(res) <- mods
   check_resunimod(res)
 }
+
 
 #' Checks the results from find_unimod
 #' 
@@ -2118,7 +2174,7 @@ mmake_noenzpeps <- function (fasta_db = NULL, min_len = 7L, max_len = 40L,
 #' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
 #'             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
 #' 
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
+#' aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 #' aa_masses <- aa_masses_all[[1]]
 #' 
 #' ans <- make_noenzpeps(prot, 7, 40, aa_masses)
@@ -2180,7 +2236,7 @@ make_noenzpeps <- function (prot = NULL, min_len = 7L, max_len = 40L,
 #' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
 #'             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
 #' 
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
+#' aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 #' aa_masses <- aa_masses_all[[1]]
 #' 
 #' aas <- LETTERS[LETTERS %in% names(aa_masses)]
@@ -2224,7 +2280,7 @@ hmake_noenzpeps <- function (start = 1L, prot = NULL, min_len = 7L, max_len = 40
 #' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
 #'             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
 #' 
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
+#' aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 #' aa_masses <- aa_masses_all[[1]]
 #' 
 #' x <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL")
@@ -3032,7 +3088,7 @@ semipeps_byprots <- function (vals, min_len = 7L, max_len = 40L, aa_masses)
 #' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
 #'             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
 #'
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
+#' aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 #' aa_masses <- aa_masses_all[[1]]
 #'
 #' val <- 4237.89756

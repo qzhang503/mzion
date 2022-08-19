@@ -604,12 +604,34 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
   neuloss_mono_mass <- neuloss[["mono_mass"]]
   neuloss_avge_mass <- neuloss[["avge_mass"]]
   neuloss_composition <- neuloss[["composition"]]
-
-  xml_file <- system.file("extdata", "custom.xml", package = "proteoM")
+  
+  xml_file <- system.file("extdata", "master.xml", package = "proteoM")
   xml_root <- xml2::read_xml(xml_file)
   nodes_lev1_four <- xml2::xml_children(xml_root)
   node_modif <- xml2::xml_find_all(nodes_lev1_four, "//umod:modifications")
+  
+  modifications <- xml2::xml_children(node_modif)
+  idx_title <- which(xml2::xml_attr(modifications, "title") == title)
+  len_title <- length(idx_title)
+  
+  # not in master
+  if (!len_title) {
+    xml_file <- system.file("extdata", "custom.xml", package = "proteoM")
+    xml_root <- xml2::read_xml(xml_file)
+    nodes_lev1_four <- xml2::xml_children(xml_root)
+    node_modif <- xml2::xml_find_all(nodes_lev1_four, "//umod:modifications")
+    
+    modifications <- xml2::xml_children(node_modif)
+    idx_title <- which(xml2::xml_attr(modifications, "title") == title)
+    len_title <- length(idx_title)
+    
+    is_master <- FALSE
+  }
+  else{
+    is_master <- TRUE
+  }
 
+  # adds entries to custom.xml for the first time
   if (!length(node_modif)) {
     xml2::xml_add_child(xml_root, "umod:modifications")
     node_modif <- xml2::xml_find_all(xml_root, "//umod:modifications")
@@ -650,11 +672,6 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
   if (is.numeric(neuloss_avge_mass)) 
     neuloss_avge_mass <- as.character(neuloss_avge_mass)
 
-  # individual nodes of modifications
-  modifications <- xml2::xml_children(node_modif)
-  idx_title <- which(xml2::xml_attr(modifications, "title") == title)
-  len_title <- length(idx_title)
-  
   if (!len_title) {
     # `title` not found -> new modifiation
     rec_ids <- as.integer(xml2::xml_attr(modifications, "record_id"))
@@ -697,29 +714,47 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
       this_avge_mass <- xml2::xml_attr(this_delta, "avge_mass")
       this_composition <- xml2::xml_attr(this_delta, "composition")
       
-      if (this_mono_mass != mod_mono_mass)
-        stop("The original `mono_mass = ", mod_mono_mass, "` ", 
-             "is different to the current `mono_mass = ", this_mono_mass, "`.\n", 
-             "If you believe the new entry is correct: \n", 
-             "  try `remove_unimod(title = ", title, "`, ", 
-             "then repeat the current call.", 
-             call. = FALSE)
+      if (this_mono_mass != mod_mono_mass) {
+        if (abs(as.numeric(this_mono_mass) - as.numeric(mod_mono_mass)) <= 1E-5)
+          mod_mono_mass <- this_mono_mass
+        else
+          stop("The user provided `mono_mass = ", mod_mono_mass, "` ", 
+               "is different to the current `mono_mass = ", this_mono_mass, "`.\n", 
+               "If you believe the new entry is correct: \n", 
+               "  try `remove_unimod(title = ", title, "`, ", 
+               "then repeat the current call.", 
+               call. = FALSE)
+      }
 
-      if (this_avge_mass != mod_avge_mass)
-        stop("The original `avge_mass = ", mod_avge_mass, "` ", 
-             "is different to the current `avge_mass = ", this_avge_mass, "`.\n", 
-             "If you believe the new entry is correct: \n", 
-             "  try `remove_unimod(title = ", title, "`, ", 
-             "then repeat the current call.", 
-             call. = FALSE)
-      
-      if (this_composition != mod_composition)
-        stop("The original `composition = ", mod_composition, "` ", 
-             "is different to the current `composition = ", this_composition, "`.\n", 
-             "If you believe the new entry is correct: \n", 
-             "  try `remove_unimod(title = ", title, "`, ", 
-             "then repeat the current call.", 
-             call. = FALSE)
+      if (this_avge_mass != mod_avge_mass) {
+        if (abs(as.numeric(this_avge_mass) - as.numeric(mod_avge_mass)) <= 1E-3)
+          mod_avge_mass <- this_avge_mass
+        else
+          stop("The user provided `avge_mass = ", mod_avge_mass, "` ", 
+               "is different to the current `avge_mass = ", this_avge_mass, "`.\n", 
+               "If you believe the new entry is correct: \n", 
+               "  try `remove_unimod(title = ", title, "`, ", 
+               "then repeat the current call.", 
+               call. = FALSE)
+      }
+
+      if (this_composition != mod_composition) {
+        if (is_master) {
+          warning("Changed from the user provided `composition = ", mod_composition, "` ", 
+                  "to the current `composition = ", this_composition, "`.\n", 
+                  call. = FALSE)
+          
+          mod_composition <- this_composition
+        }
+        else {
+          stop("The user provided `composition = ", mod_composition, "` ", 
+               "is different to the current `composition = ", this_composition, "`.\n", 
+               "If you believe the new entry is correct: \n", 
+               "  try `remove_unimod(title = ", title, "`, ", 
+               "then repeat the current call.", 
+               call. = FALSE)
+        }
+      }
     })
     
     sites <- unlist(lapply(attrs_children, `[`, c("site")))
@@ -1301,6 +1336,16 @@ remove_unimod_title <- function (title = NULL)
 #' @param digits A non-negative integer; the number of decimal places to be
 #'   used.
 #' @export
+#' @examples 
+#' \donttest{
+#' # Error
+#' comp <- "N(+1) 15N(-1)"
+#' m <- calc_unimod_compmass(comp)
+#' 
+#' # Instead 
+#' comp <- "N(1) 15N(-1)"
+#' m <- calc_unimod_compmass(comp)
+#' }
 calc_unimod_compmass <- function (composition = "H(4) C O S", digits = 6L) 
 {
   options(digits = 9L)

@@ -7,8 +7,7 @@
 add_unimod(
   header = c(title = "Foo", full_name = "Foo bar"),
   specificity = c(site = "C", position = "Anywhere"),
-  delta = c(mono_mass = "42.010565", avge_mass = "42.0367", composition =
-    "H(2) C(2) O"),
+  delta = c(mono_mass = "42.010565", avge_mass = "42.0367", composition = "H(2) C(2) O"),
   neuloss = c(mono_mass = "0", avge_mass = "0", composition = "0")
 )
 }

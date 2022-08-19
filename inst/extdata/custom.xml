@@ -158,5 +158,62 @@
       </umod:delta>
       <umod:specificity hidden="0" site="R" position="Any C-term" classification="other" spec_group="2"/>
     </umod:mod>
+    <umod:mod title="K6_13C6" full_name="Heavy lysine 13C(6)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-08-12 09:10:19" date_time_modified="2022-08-12 09:10:19" approved="0" record_id="22">
+      <umod:specificity hidden="0" site="K" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="6.02013" avge_mass="5.9559" composition="13C(6) C(-6)">
+        <umod:element symbol="13C" number="6"/>
+        <umod:element symbol="C" number="-6"/>
+      </umod:delta>
+      <umod:specificity hidden="0" site="K" position="Any C-term" classification="other" spec_group="2"/>
+    </umod:mod>
+    <umod:mod title="R6_13C6" full_name="Heavy arginine 13C(6)" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-08-12 09:16:07" date_time_modified="2022-08-12 09:16:07" approved="0" record_id="23">
+      <umod:specificity hidden="0" site="R" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="6.02013" avge_mass="5.9559" composition="13C(6) C(-6)">
+        <umod:element symbol="13C" number="6"/>
+        <umod:element symbol="C" number="-6"/>
+      </umod:delta>
+      <umod:specificity hidden="0" site="R" position="Any C-term" classification="other" spec_group="2"/>
+    </umod:mod>
+    <umod:mod title="Label:13C(2)" full_name="13C2 label for SILAC" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-08-16 12:11:51" date_time_modified="2022-08-16 12:11:51" approved="0" record_id="24">
+      <umod:specificity hidden="0" site="G" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="2.00671" avge_mass="1.9853" composition="13C(2) C(-2)">
+        <umod:element symbol="13C" number="2"/>
+        <umod:element symbol="C" number="-2"/>
+      </umod:delta>
+      <umod:specificity hidden="0" site="N-term" position="Protein N-term" classification="other" spec_group="2"/>
+    </umod:mod>
+    <umod:mod title="Label:13C(11)" full_name="13C11 label for SILAC" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-08-16 12:25:23" date_time_modified="2022-08-16 12:25:23" approved="0" record_id="25">
+      <umod:specificity hidden="0" site="W" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="11.036905" avge_mass="10.91915" composition="13C(11) C(-11)">
+        <umod:element symbol="13C" number="11"/>
+        <umod:element symbol="C" number="-11"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="Label:13C(3)+Carbamidomethyl" full_name="13C3 label for SILAC" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-08-16 12:55:20" date_time_modified="2022-08-16 12:55:20" approved="0" record_id="26">
+      <umod:specificity hidden="0" site="C" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="60.031529" avge_mass="60.02927" composition="H(3) C(-1) 13C(3) N O">
+        <umod:element symbol="H" number="3"/>
+        <umod:element symbol="C" number="-1"/>
+        <umod:element symbol="13C" number="3"/>
+        <umod:element symbol="N" number="1"/>
+        <umod:element symbol="O" number="1"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="Deamidated:15N(-1)" full_name="15N(-1) deamidation for SILAC" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-08-17 11:47:25" date_time_modified="2022-08-17 11:47:25" approved="0" record_id="27">
+      <umod:specificity hidden="0" site="N" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="-0.013019" avge_mass="-0.00865" composition="H(-1) 15N(-1) O">
+        <umod:element symbol="H" number="-1"/>
+        <umod:element symbol="15N" number="-1"/>
+        <umod:element symbol="O" number="1"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="Label:15N(-1)" full_name="15N(-1) label for SILAC" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-08-17 12:45:02" date_time_modified="2022-08-17 12:45:02" approved="0" record_id="28">
+      <umod:specificity hidden="0" site="N" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="-0.997035" avge_mass="-0.99341" composition="N(1) 15N(-1)">
+        <umod:element symbol="N" number="1"/>
+        <umod:element symbol="15N" number="-1"/>
+      </umod:delta>
+      <umod:specificity hidden="0" site="Q" position="Any N-term" classification="other" spec_group="2"/>
+    </umod:mod>
   </umod:modifications>
 </umod:unimod>

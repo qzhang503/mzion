@@ -6,12 +6,15 @@
 database.}
 \usage{
 calc_pepmasses2(
+  aa_masses = NULL,
   fasta = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
   acc_type = "uniprot_acc",
   acc_pattern = NULL,
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
+  fixedlabs = NULL,
+  varlabs = NULL,
   mod_motifs = NULL,
   enzyme = c("trypsin_p"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL),
@@ -34,6 +37,8 @@ calc_pepmasses2(
 )
 }
 \arguments{
+\item{aa_masses}{An amino acid mass look-up.}
+
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}
 
@@ -52,6 +57,14 @@ c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
 \link{parse_unimod} for grammars.}
 
 \item{varmods}{A character vector of variable modifications.}
+
+\item{fixedlabs}{Character string(s) of fixed isotopic labels. See examples
+of SILAC for details. Can be but not typically used in standard alone
+searches of labeled residues.}
+
+\item{varlabs}{Character string(s) of variable isotopic labels. See examples
+of SILAC for details. Can be but not typically used in standard alone
+searches of labeled residues.}
 
 \item{mod_motifs}{The motifs to restrict \code{Anywhere} variable
   modification. For example, provided the \code{Anywhere} variable

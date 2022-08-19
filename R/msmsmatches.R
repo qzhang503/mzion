@@ -68,6 +68,12 @@
 #'   \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
 #'   \link{parse_unimod} for grammars of modification \code{title},
 #'   \code{position} and \code{site}.
+#' @param fixedlabs Character string(s) of fixed isotopic labels. See examples
+#'   of SILAC for details. Can be but not typically used in standard alone
+#'   searches of labeled residues.
+#' @param varlabs Character string(s) of variable isotopic labels. See examples
+#'   of SILAC for details. Can be but not typically used in standard alone
+#'   searches of labeled residues.
 #' @param locmods Among \code{varmods} for the consideration of localization
 #'   probabilities; for instance, \code{locmods = NULL} for nothing,
 #'   \code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
@@ -370,6 +376,10 @@
 #'   out_path = "~/proteoM/examples",
 #' )
 #'
+#' # (from protein to PSM FDR)
+#' reproc_psmC(out_path = "~/proteoM/examples", fdr_type = "psm",
+#'             combine_tier_three = TRUE)
+#'
 #' # TMT16, phospho
 #' matchMS(
 #'   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
@@ -396,6 +406,7 @@
 #' )
 #'
 #' # Custom Unimod (Oxi+Carbamidomethyl)
+#' # (see also calc_unimod_compmass)
 #' add_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
 #'            full_name   = "Oxidation and iodoacetamide derivative"),
 #'            specificity = c(site        = "M",
@@ -409,28 +420,27 @@
 #'
 #' matchMS(
 #'   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
-#'   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
-#'               "Oxi+Carbamidomethyl (M)"),
+#'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+#'                 "Oxi+Carbamidomethyl (M)"),
 #'   quant    = "tmt10",
 #' )
 #'
 #'
-#' ## Stable isotope-labeled K and R
-#' # K8, R10
+#' ## Stable isotope-labeled K and R (not SILAC mixtures)
+#' # Anywhere K8, R10
 #' matchMS(
 #'   fixedmods = c("Carbamidomethyl (C)"),
-#'   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
-#'               "K8 (C-term = K)", "R10 (C-term = R)"),
-#'   quant    = "none",
+#'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+#'                 "Label:13C(6)15N(2) (K)", "Label:13C(6)15N(4) (R)"),
+#'   quant     = "none",
 #' )
 #'
-#' # TMT+K8, TMT+R10
+#' # K8, R10 + TMT10
 #' matchMS(
-#'   fixedmods = c("Carbamidomethyl (C)"),
-#'   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
-#'               "TMT+K8 (C-term = K)", "TMT+R10 (C-term = R)"),
-#'   max_miss = 2,
-#'   quant    = "tmt10",
+#'   fixedmods = c("TMT6plex (N-term)", "TMT+K8 (K)", "Carbamidomethyl (C)"),
+#'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+#'                 "R10 (R)"),
+#'   quant     = "tmt10",
 #' )
 #'
 #'
@@ -438,16 +448,58 @@
 #' # SILAC
 #' #######################################
 #'
-#' ## 1. heavy and light mixed into one sample (typical SILAC)
-#'
-#' # unlabeled base
+#' ## 1. heavy and light mixed into one sample (classical SILAC)
+#' # (i) K8R10
 #' matchMS(
-#'   silac_mix = list(base = NULL, heavy = c("K8 (K)", "R10 (R)")),
+#'   fixedmods = c("Carbamidomethyl (C)"),
+#'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+#'                 "Gln->pyro-Glu (N-term = Q)"),
+#'   silac_mix = list(base  = c(fixedlabs = NULL, varlabs = NULL),
+#'                    K8R10 = c(fixedlabs = c("Label:13C(6)15N(2) (K)",
+#'                                            "Label:13C(6)15N(4) (R)"),
+#'                              varlabs   = NULL)),
 #'   ...
-#' )
+#'   )
 #'
-#' # labeled base
-#' # (first add K4 Unimod if not yet present)
+#'
+#' # (ii) base: unlabeled; grpC: 13C; grpN: 15N
+#' # (example Dong-Ecoli-QE, Nat. Biotech. 2018, 36, 1059-1061)
+#' matchMS(
+#'   fixedmods = c("Carbamidomethyl (C)"),
+#'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+#'                 "Gln->pyro-Glu (N-term = Q)"),
+#'   
+#'   silac_mix = list(base = c(fixedlabs = NULL, varlabs   = NULL),
+#'
+#'                    grpC = c(fixedlabs = c("Label:13C(3) (A)", "Label:13C(6) (R)",
+#'                                           "Label:13C(4) (N)", "Label:13C(4) (D)",
+#'                                           "Label:13C(3) (C)", "Label:13C(5) (E)",
+#'                                           "Label:13C(5) (Q)", "Label:13C(2) (G)",
+#'                                           "Label:13C(6) (H)", "Label:13C(6) (I)",
+#'                                           "Label:13C(6) (L)", "Label:13C(6) (K)",
+#'                                           "Label:13C(5) (M)", "Label:13C(9) (F)",
+#'                                           "Label:13C(5) (P)", "Label:13C(3) (S)",
+#'                                           "Label:13C(4) (T)", "Label:13C(11) (W)",
+#'                                           "Label:13C(9) (Y)", "Label:13C(5) (V)"),
+#'                             varlabs = c("Label:13C(2) (Protein N-term)")),
+#'
+#'                    grpN = c(fixedlabs = c("Label:15N(1) (A)", "Label:15N(4) (R)",
+#'                                           "Label:15N(2) (N)", "Label:15N(1) (D)",
+#'                                           "Label:15N(1) (C)", "Label:15N(1) (E)",
+#'                                           "Label:15N(2) (Q)", "Label:15N(1) (G)",
+#'                                           "Label:15N(3) (H)", "Label:15N(1) (I)",
+#'                                           "Label:15N(1) (L)", "Label:15N(2) (K)",
+#'                                           "Label:15N(1) (M)", "Label:15N(1) (F)",
+#'                                           "Label:15N(1) (P)", "Label:15N(1) (S)",
+#'                                           "Label:15N(1) (T)", "Label:15N(2) (W)",
+#'                                           "Label:15N(1) (Y)", "Label:15N(1) (V)"),
+#'                             varlabs = c("Label:15N(-1) (N)",
+#'                                         "Label:15N(-1) (N-term = Q)"))),
+#'   ...)
+#'
+#'
+#' # (iii) labeled base
+#' # (first to add exemplary K4 Unimod if not yet available)
 #' K4 <- calc_unimod_compmass("2H(4) H(-4)")
 #' mono_mass <- K4$mono_mass
 #' avge_mass <- K4$avge_mass
@@ -464,23 +516,9 @@
 #'                            composition = "0"))
 #'
 #' matchMS(
-#'   silac_mix = list(base   = c("K4 (K)"),
-#'                    median = c("K6 (K)", "R6 (R)"),
-#'                    heavy  = c("K8 (K)", "R10 (R)")),
-#'   ...
-#' )
-#'
-#' # custom groups
-#' matchMS(
-#'   silac_mix = list(base = NULL,
-#'                    grp1 = c("K6 (K)", "R6 (R)"),
-#'                    grp2 = c("K8 (K)", "R10 (R)")),
-#'   ...
-#' )
-#'
-#' matchMS(
-#'   silac_mix = list(base = c("K6 (K)", "R6 (R)"),
-#'                    grp1 = c("K8 (K)", "R10 (R)"),
+#'   silac_mix = list(base   = c(fixedlabs = c("K4 (K)"), varlabs = NULL),
+#'                    median = c(fixedlabs = c("K6 (K)", "R6 (R)"), varlabs = NULL),
+#'                    heavy  = c(fixedlabs = c("K8 (K)", "R10 (R)"), varlabs = NULL)),
 #'   ...
 #' )
 #'
@@ -503,23 +541,6 @@
 #'   ...
 #' )
 #'
-#' # The results next processed by proteoQ just like LFQ.
-#'
-#' # (ii) SILAC at low-throughput + TMT
-#' matchMS(
-#'   par_groups = list(
-#'     light = list(mgf_path  = "~/proteoM/my_project/mgf/light",
-#'                  fixedmods = "Carbamidomethyl (C)"),
-#'     heavy = list(mgf_path  = "~/proteoM/my_project/mgf/heavy",
-#'                  fixedmods = c("Carbamidomethyl (C)", "K8 (K)", "R10 (R)"))
-#'   ),
-#'   quant = "TMT10",
-#'   ...
-#' )
-#'
-#' # Next processed by proteoQ just like TMT
-#' # ...
-#'
 #' }
 #' @export
 matchMS <- function (out_path = "~/proteoM/outs",
@@ -533,6 +554,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      varmods = c("Acetyl (Protein N-term)",
                                  "Oxidation (M)", "Deamidated (N)",
                                  "Gln->pyro-Glu (N-term = Q)"),
+                     fixedlabs = NULL, 
+                     varlabs = NULL, 
                      locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
                      mod_motifs = NULL, 
                      enzyme = c("Trypsin_P", "Trypsin", "LysC", "LysN", "ArgC", 
@@ -577,7 +600,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 60000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/proteoM/.MSearches (1.1.8.1)/Cache/Calls", 
+                     .path_cache = "~/proteoM/.MSearches (1.1.9.0)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,
@@ -611,7 +634,22 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   ## Developer's dots
   dots <- as.list(substitute(...()))
+
+  if (is.null(aa_masses <- dots$aa_masses)) {
+    aa_masses <- c(
+      A = 71.037114, R = 156.101111, N = 114.042927, D = 115.026943,
+      C = 103.009185, E = 129.042593, Q = 128.058578, G = 57.021464,
+      H = 137.058912, I = 113.084064, L = 113.084064, K = 128.094963,
+      M = 131.040485, F = 147.068414, P = 97.052764, S = 87.032028,
+      T = 101.047679, W = 186.079313, Y = 163.063329, V = 99.068414,
+      "N-term" = 1.007825, "C-term" = 17.002740,
+      U = 150.953633, B = 114.534940, X = 111.000000, Z = 128.550590,
+      "-" = 0)
+  }
   
+  if (!is.null(fixedlabs))
+    aa_masses <- add_fixedlab_masses(fixedlabs, aa_masses)
+
   suppressWarnings(
     rm(list = c(".path_cache", ".path_fasta", ".path_ms1masses", 
                 ".time_stamp", ".time_bin", ".path_bin"), 
@@ -920,10 +958,18 @@ matchMS <- function (out_path = "~/proteoM/outs",
   exec_silac_mix <- if (isTRUE(dots$bypass_silac_mix)) FALSE else TRUE
   
   if (length(silac_mix) && exec_silac_mix) {
+    if (!is.null(fixedlabs)) {
+      stop("Arguments \"fixedlabs\" and \"silac_mix\" both are non-NULL.\n", 
+           "  Set up \"fixedlabs\" under \"silac_mix\" for SILAC;\n", 
+           "  Use directly \"fixedlabs\" for direct searches with labels.\n", 
+           "The same applies to \"varlabs\".")
+    }
+    
     matchMS_silac_mix(silac = silac_mix, 
                       this_call = this_call, 
                       out_path = out_path, 
-                      mgf_path = mgf_path)
+                      mgf_path = mgf_path, 
+                      aa_masses = aa_masses)
 
     return(NULL)
   }
@@ -949,11 +995,14 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   if (!bypass_pepmasses) {
     res <- calc_pepmasses2(
+      aa_masses = aa_masses, 
       fasta = fasta,
       acc_type = acc_type,
       acc_pattern = acc_pattern,
       fixedmods = fixedmods,
       varmods = varmods,
+      fixedlabs = fixedlabs, 
+      varlabs = varlabs, 
       mod_motifs = mod_motifs, 
       enzyme = enzyme,
       custom_enzyme = custom_enzyme, 
@@ -1034,12 +1083,11 @@ matchMS <- function (out_path = "~/proteoM/outs",
     path_time <- file.path(.path_ms1masses, .time_stamp)
     file_aams <- file.path(path_time, "aa_masses_all.rds")
     file_mods <- file.path(path_time, "mod_indexes.txt")
-    file.copy(file_aams, file.path(out_path, "aa_masses_all.rds"), overwrite = TRUE)
-    file.copy(file_mods, file.path(out_path, "mod_indexes.txt"), overwrite = TRUE)
-    
     aa_masses_all <- qs::qread(file_aams)
     mod_indexes <- find_mod_indexes(file_mods)
     
+    file.copy(file_aams, file.path(out_path, "aa_masses_all.rds"), overwrite = TRUE)
+    file.copy(file_mods, file.path(out_path, "mod_indexes.txt"), overwrite = TRUE)
     rm(list = c("path_time", "file_aams", "file_mods"))
   }
   else {
@@ -1683,471 +1731,6 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
                 call. = FALSE)
     }
   }
-  
-  invisible(NULL)
-}
-
-
-#' Noenzyme search.
-#'
-#' @param this_call An expression from match.call.
-#' @param silac_noenzyme Logical; is the search a combination of SILAC and
-#'   noenzyme.
-#' @param groups_noenzyme Logical; is the search a combination of group search
-#'   and noenzyme.
-#' @inheritParams matchMS
-matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L, 
-                              fasta = NULL, out_path = NULL, mgf_path = NULL, 
-                              noenzyme_maxn = 0L, quant = "none", 
-                              sys_ram = 32L, silac_noenzyme = FALSE, 
-                              groups_noenzyme = FALSE) 
-{
-  if (groups_noenzyme)
-    stop("Not yet support group searches with no enzyme specificity")
-    
-  message("Searches with no enzyme specificity...")
-  
-  size <- local({
-    if (noenzyme_maxn) 
-      return (noenzyme_maxn)
-
-    mouse_fasta_size <- 11 
-    fasta_size <- sum(unlist(lapply(fasta, file.size)))/1024^2
-    
-    # large RAM -> large `fct_mem`
-    fct_mem <- local({
-      mgf_files <- list.files(mgf_path, pattern = "\\.mgf$", full.names = TRUE)
-      fct_mgf <- max(1, sum(unlist(lapply(mgf_files, file.size)))/1024^3)
-      
-      ans <- tryCatch(
-        find_free_mem(sys_ram)/1024/fct_mgf,
-        error = function (e) NA)
-      
-      if (is.na(ans))
-        ans <- fct_mgf
-      
-      ans
-    })
-    
-    # large fasta -> large `fct_fasta` (>= 1)
-    fct_fasta <- max(1, fasta_size/mouse_fasta_size)
-    
-    # ^1.5, 0.6: 90% RAM aggressiveness with uniprot fasta human + mouse
-    max(1L, floor(fct_mem/(fct_fasta^1.5) * .5))
-  })
-  
-  len <- length(min_len:max_len)
-  
-  if (len > size) {
-    if (size == 1L) {
-      n_chunks <- len
-      spans <- split(min_len:max_len, 1:len)
-    }
-    else {
-      n_chunks <- ceiling(len/size)
-      spans <- chunksplit(min_len:max_len, n_chunks, rightmost.closed = TRUE)
-    }
-
-    sub_nms <- out_paths <- vector("list", n_chunks)
-
-    for (i in seq_len(n_chunks)) {
-      sub_call <- this_call
-      span <- spans[[i]]
-      start <- span[1]
-      end <- span[length(span)]
-      sub_nm <- sub_nms[[i]] <- paste0("sub", i, "_", start, "_", end)
-      sub_path <- out_paths[[i]] <- create_dir(file.path(out_path, sub_nm))
-
-      ok <- file.exists(file.path(sub_path, "psmQ.txt"))
-      
-      if (ok) next
-      
-      if (i > 1L) {
-        mgf_call <- file.path(out_paths[[1]], "Calls", "load_mgfs.rda")
-        
-        if (file.exists(mgf_call)) {
-          sub_call_path <- create_dir(file.path(sub_path, "Calls"))
-          file.copy(mgf_call, file.path(sub_call_path, "load_mgfs.rda"), overwrite = TRUE)
-        }
-      }
-
-      sub_call$min_len <- start
-      sub_call$max_len <- end
-      sub_call$out_path <- sub_path
-      sub_call$mgf_path <- mgf_path
-      sub_call$bypass_noenzyme <- TRUE
-      sub_call$bypass_from_pepscores <- TRUE
-      sub_call$use_first_rev <- TRUE
-      sub_call$silac_noenzyme <- silac_noenzyme # silac + noenzyme
-
-      ans <- tryCatch(eval(sub_call), error = function (e) NULL)
-      
-      message("Completed `min_len = ", start, "` to `max_len = ", end, "`.")
-      gc()
-    }
-    
-    # not necessary for silac_noenzyme
-    file.copy(file.path(out_paths[[1]], "Calls"), out_path, recursive = TRUE)
-    combine_ion_matches(out_path, out_paths, type = "ion_matches_")
-    combine_ion_matches(out_path, out_paths, type = "reporters_")
-    combine_ion_matches(out_path, out_paths, type = "ion_matches_rev_")
-    
-    this_call$bypass_noenzyme <- TRUE
-    this_call$bypass_pepmasses <- TRUE
-    this_call$bypass_bin_ms1 <- TRUE
-    this_call$bypass_mgf <- TRUE
-    this_call$bypass_ms2match <- TRUE
-    
-    # (a) nested silac + noenzyme: flow through to psmQ -> combine -> done
-    # 
-    # (b) noenzyme only: early return bypass_from_pepscores -> next length range 
-    #     ... -> all lengths -> combine ion_matches ... -> final psmQ
-    
-    silac_mix <- eval(this_call$silac_mix)
-
-    # if (a) nested or (b) noenzyme only
-    if (length(silac_mix) > 1L) {
-      lapply(c("psmC.txt", "psmQ.txt", "psmT2.txt", "psmT3.txt"), function (file) {
-        dfs <- lapply(out_paths, function (sub_path) {
-          fi <- file.path(sub_path, file)
-          
-          if (file.exists(fi)) 
-            df <- readr::read_tsv(fi, show_col_types = FALSE)
-          else 
-            df <- NULL
-        })
-        
-        dfs <- dplyr::bind_rows(dfs)
-        readr::write_tsv(dfs, file.path(out_path, file))
-        
-        invisible(NULL)
-      })
-      
-      this_call$silac_mix <- NULL # just in case 
-    }
-    else {
-      ans <- tryCatch(eval(this_call), error = function (e) NULL)
-    }
-
-    message("Done (noenzyme search).")
-    options(show.error.messages = FALSE)
-    stop()
-  }
-  else {
-    this_call$bypass_noenzyme <- TRUE
-    this_call$silac_noenzyme <- TRUE # for regular add_prot_acc
-    ans <- tryCatch(eval(this_call), error = function (e) NULL)
-  }
-  
-  invisible(NULL)
-}
-
-
-#' SILAC
-#'
-#' Searches against mixed SILAC groups (heave and light mixed into one sample).
-#'
-#' @param this_call An expression from match.call.
-#' @inheritParams matchMS
-matchMS_silac_mix <- function (silac_mix = list(base = NULL, 
-                                            heavy = c("K8 (K)", "R10 (R)")), 
-                               this_call, out_path, mgf_path) 
-{
-  message("Searches against SILAC groups ", 
-          "(heavy, light etc. mixed into one sample)")
-  
-  lapply(c("silac_mix", "mgf_path", "this_call", "out_path"), function (x) {
-    if (is.null(x)) stop("`", x, "` cannot be NULL.")
-  })
-  
-  if (!is.list(silac_mix)) {
-    stop("Supply silac_mix groups as list, e.g., \n\n", 
-         "  # unlabelled base\n", 
-         "  # (see ?add_unimod for custom silac_mix groups)\n", 
-         "  silac_mix = list(base = NULL, heavy = c(\"K8 (K)\", \"R10 (R)\"))\n\n", 
-         "  # labelled base \n", 
-         "  silac_mix = list(base   = c(\"K4 (K)\", \"R4 (R)\"), \n", 
-         "                   median = c(\"K6 (K)\", \"R6 (R)\"), \n", 
-         "                   heavy  = c(\"K8 (K)\", \"R10 (R)\"))\n\n",  
-         "# custom groups\n",
-         "# (always require base)\n", 
-         "  silac_mix = list(base    = NULL, \n", 
-         "                   my_grp1 = ...)\n\n",  
-         "  silac_mix = list(base    = c(\"K6 (K)\", \"R6 (R)\"), \n", 
-         "                   my_grp1 = ...)\n\n",  
-         call. = FALSE)
-  }
-  
-  nms <- names(silac_mix)
-  
-  if (!"base" %in% nms) {
-    warning("Required `base` group not found; assume: base = NULL")
-    nms <- c("base", nms)
-    silac_mix <- c(list(base = NULL), silac_mix)
-  }
-
-  if (all(unlist(lapply(silac_mix, is.null))))
-    stop("`silac_mix` groups cannot be all NULL.", call. = FALSE)
-  
-  len <- length(nms)
-  
-  if (len < 2L)
-    stop("Need at least two `silac_mix` groups.", call. = FALSE)
-  
-  out_paths <- vector("list", len)
-  
-  for (i in seq_len(len)) {
-    sub_call <- this_call
-    sub_nm <- nms[i]
-    sub_path <- out_paths[[i]] <- create_dir(file.path(out_path, sub_nm))
-    
-    ok <- file.exists(file.path(sub_path, "psmQ.txt"))
-    
-    if (ok) next
-    
-    if (i > 1L) {
-      mgf_call <- file.path(out_paths[[1]], "Calls", "load_mgfs.rda")
-      
-      if (file.exists(mgf_call)) {
-        sub_call_path <- create_dir(file.path(sub_path, "Calls"))
-        file.copy(mgf_call, file.path(sub_call_path, "load_mgfs.rda"), overwrite = TRUE)
-      }
-    }
-    
-    sub_call$fixedmods <- c(eval(sub_call$fixedmods), silac_mix[[sub_nm]])
-    sub_call$out_path <- sub_path
-    sub_call$mgf_path <- mgf_path
-    sub_call$bypass_silac_mix <- TRUE
-    sub_call$silac_mix <- NULL
-    sub_call$bypass_from_pepscores <- FALSE # flowthrough: silac + noenzyme
-
-    df <- tryCatch(eval(sub_call), error = function (e) NULL)
-    
-    if (is.null(df)) 
-      warning("No results at `silac_mix = ", sub_nm, "`.")
-
-    rm(list = c("df"))
-    gc()
-  }
-  
-  message("Combine mixed SILAC results.")
-  comine_PSMsubs(sub_paths = out_paths, groups = nms, out_path = out_path)
-  gc()
-  
-  enzyme <- as.character(this_call[["enzyme"]])
-
-  if (isTRUE(enzyme == "noenzyme"))
-    return(NULL)
-  
-  message("Done (mixed SILAC search).")
-  options(show.error.messages = FALSE)
-  stop()
-}
-
-
-#' Searches by sets of parameters.
-#'
-#' @param grp_args The names of arguments in \code{par_groups}.
-#' @param mgf_paths The paths to MGF (with group searches).
-#' @param this_call An expression from match.call.
-#' @inheritParams matchMS
-matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL, 
-                                mgf_paths = NULL, this_call = NULL, 
-                                out_path = NULL) 
-{
-  message("Multiple searches by parameter groups...")
-  
-  lapply(c("par_groups", "grp_args", "this_call", "out_path"), function (x) {
-    if (is.null(x))
-      stop("`", x, "` cannot be NULL.")
-  })
-  
-  if (!is.list(par_groups)) {
-    stop("Supply `par_groups` as list, e.g., \n\n", 
-         "par_groups = list(\n", 
-         "  list(mgf_path  = \"~/proteoM/my_proj/mgfs/grp_1\"", ",\n", 
-         "       fixedmods = c(\"Carbamidomethyl (C)\")", "),\n", 
-         "  list(mgf_path  = \"~/proteoM/my_proj/mgfs/grp_2\"", ",\n", 
-         "       fixedmods = c(\"Carbamidomethyl (C)\", \"K8 (K)\", \"R10 (R)\")", ")\n", 
-         "  )", 
-         call. = FALSE)
-  }
-  
-  nms <- names(par_groups)
-  
-  if (all(unlist(lapply(par_groups, is.null))))
-    stop("`par_groups` cannot be all NULL.")
-  
-  len <- length(nms)
-  
-  if (len < 2L)
-    stop("Need at least two `par_groups`.", call. = FALSE)
-  
-  ans <- out_paths <- vector("list", len)
-  
-  for (i in seq_len(len)) {
-    sub_call <- this_call
-    sub_nm <- nms[i]
-    sub_pars <- par_groups[[i]]
-    sub_path <- out_paths[[i]] <- create_dir(file.path(out_path, sub_nm))
-    
-    file_peploc <- file.path(sub_path, "temp", "peploc.rds")
-    
-    if (file.exists(file_peploc)) {
-      ans[[i]] <- qs::qread(file_peploc)
-      next
-    }
-
-    for (arg in grp_args) 
-      sub_call[[arg]] <- sub_pars[[arg]]
-
-    sub_call$out_path <- sub_path
-    sub_call$bypass_par_groups <- TRUE
-    sub_call$bypass_from_protacc <- TRUE
-    sub_call$par_groups <- NULL
-    
-    local({
-      mgf_path <- eval(sub_call$mgf_path)
-      checkMGF(mgf_path, grp_args = NULL, error = "stop")
-    })
-
-    df <- tryCatch(eval(sub_call), error = function (e) NULL)
-    
-    if (!file.exists(file_peploc)) 
-      stop("File not found: ", file_peploc)
-
-    ans[[i]] <- if (is.null(df)) qs::qread(file_peploc) else df
-    rm(list = "df")
-
-    if (is.null(ans[[i]])) 
-      warning("No results at `par_groups = ", sub_nm, "`.")
-
-    gc()
-  }
-  
-  # map `raw_file` and `scan_title` before data combination
-  if (!is.null(mgf_paths)) {
-    for (i in seq_along(ans)) {
-      ans[[i]] <- map_raw_n_scan(ans[[i]], mgf_paths[[i]])
-      ans[[i]]$pep_group <- nms[i]
-    }
-  }
-
-  out <- dplyr::bind_rows(ans)
-  rm(list = "ans")
-  dir.create(file.path(out_path, "temp"), showWarnings = FALSE, recursive = FALSE)
-  qs::qsave(out, file.path(out_path, "temp", "peploc.rds"), preset = "fast")
-  qs::qsave(out_paths, file.path(out_path, "temp", "out_paths.rds"), preset = "fast")
-  rm(list = "out")
-  
-  gc()
-  
-  this_call$bypass_pepmasses <- TRUE
-  this_call$bypass_bin_ms1 <- TRUE
-  this_call$bypass_mgf <- TRUE
-  this_call$bypass_ms2match <- TRUE
-  this_call$bypass_pepscores <- TRUE
-  this_call$bypass_pepfdr <- TRUE
-  this_call$bypass_peploc <- TRUE
-  this_call$bypass_par_groups <- TRUE
-  this_call$bypss_mgf_checks <- TRUE
-  this_call$from_group_search <- TRUE
-  this_call$par_groups <- NULL
-
-  out <- tryCatch(eval(this_call), error = function (e) NULL)
-  
-  message("Done (group search).")
-  
-  invisible(out)
-}
-
-
-#' Combines the results of ion matches.
-#' 
-#' @param out_path A parent output path.
-#' @param out_paths Sub output pathes.
-#' @param type The type of data for combining.
-combine_ion_matches <- function (out_path, out_paths, type = "ion_matches_") 
-{
-  out_path_temp <- create_dir(file.path(out_path, "temp"))
-  out_paths_temp <- lapply(out_paths, function(x) file.path(x, "temp"))
-  
-  pat <- paste0(type, "[0-9]+\\.rds$")
-  pat2 <- paste0(type, "([0-9]+)\\.rds$")
-  
-  files_mts <- local({
-    xs <- list.files(out_paths_temp[[1]], pattern = pat)
-    
-    if (length(xs)) {
-      idxes <- sort(as.integer(gsub(pat2, "\\1", xs)))
-      files <- paste0(type, idxes, ".rds")
-    }
-    else {
-      files <- NULL
-    }
-  })
-  
-  len_mts <- length(files_mts)
-  
-  if (!len_mts) {
-    warning("Files not found: ", type)
-    return(NULL)
-  }
-  
-  ans_mts <- vector("list", len_mts)
-  
-  for (i in seq_along(ans_mts)) {
-    ans_mts[[i]] <- lapply(out_paths_temp, function (path) {
-      qs::qread(file.path(path, files_mts[i]))
-    }) %>% 
-      dplyr::bind_rows()
-    
-    qs::qsave(ans_mts[[i]], file.path(out_path_temp, files_mts[i]), preset = "fast")
-  }
-  
-  invisible(NULL)
-}
-
-
-#' Combines PSMs from sub folders.
-#'
-#' @param sub_paths A list of sub paths.
-#' @param groups A character vector of sample groups. The group names will also
-#'   be applied to the \code{pep_group} in PSM tables.
-#' @param out_path An output path.
-comine_PSMsubs <- function (sub_paths, groups, out_path) 
-{
-  lapply(c("psmC.txt", "psmQ.txt", "psmT2.txt", "psmT3.txt"), function (file) {
-    df <- lapply(groups, function (group) {
-      fi <- file.path(out_path, group, file)
-      
-      if (file.exists(fi)) {
-        df <- readr::read_tsv(fi, show_col_types = FALSE)
-        df$pep_group <- group
-        nms <- names(df)
-        
-        df <- dplyr::bind_cols(
-          df[, grepl("^prot_", nms)], 
-          df[, grepl("^pep_", nms)], 
-          df[, !grepl("^(prot|pep)_", nms)], 
-        )
-      }
-      else {
-        df <- NULL
-      }
-    }) 
-    
-    df <- dplyr::bind_rows(df)
-    readr::write_tsv(df, file.path(out_path, file))
-    
-    invisible(NULL)
-  })
-  
-  create_dir(file.path(out_path, "Calls"))
-  file.copy(file.path(sub_paths[[1]], "Calls"), out_path, recursive = TRUE)
-  combine_ion_matches(out_path, sub_paths, type = "ion_matches_")
-  suppressWarnings(combine_ion_matches(out_path, sub_paths, type = "reporters_"))
-  combine_ion_matches(out_path, sub_paths, type = "ion_matches_rev_")
   
   invisible(NULL)
 }

@@ -203,7 +203,7 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
     return(
       gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                                aa_masses = aa_masses, 
-                               ms1vmods = NULL, ms2vmods = NULL, 
+                               ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
                                ntmod = ntmod, ctmod = ctmod, 
                                ntmass = ntmass, ctmass = ctmass, 
                                amods = amods, mod_indexes = mod_indexes, 
