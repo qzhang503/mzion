@@ -59,6 +59,9 @@
 #'                        show.legend = FALSE) 
 #' }
 #' 
+#' pep <- paste0(duo$site[1:(nrow(duo)/2L)], collapse = " ")
+#' p + annotate("text", -Inf, Inf, label = pep, hjust = -.2, vjust = 2)
+#' 
 #' }
 #' @export
 mapMS2ions <- function (out_path = NULL, scan = 1234, 
@@ -71,9 +74,14 @@ mapMS2ions <- function (out_path = NULL, scan = 1234,
   if (is.null(filename)) 
     filename <- "bar.png"
   
-  filename <- as.character(substitute(filename))
-  raw_file <- as.character(substitute(raw_file))
-  type_ms2ions <- as.character(substitute(type_ms2ions))
+  if (!is.character(filename)) 
+    filename <- as.character(substitute(filename))
+  
+  if (!is.character(raw_file)) 
+    raw_file <- as.character(substitute(raw_file))
+  
+  if (!is.character(type_ms2ions)) 
+    type_ms2ions <- as.character(substitute(type_ms2ions))
 
   mgf_path <- match_mgf_path(out_path)
   raw_id <- match_raw_id(raw_file, mgf_path)
@@ -155,6 +163,8 @@ mapMS2ions <- function (out_path = NULL, scan = 1234,
                          show.legend = FALSE) 
   }
   
+  pep <- paste0(duo$site[1:(nrow(duo)/2L)], collapse = " ")
+  p <- p + annotate("text", -Inf, Inf, label = pep, hjust = -.2, vjust = 2)
   ggplot2::ggsave(file.path(out_path, filename), width = 8, height = 5)
   
   invisible(list(mgf = mgf, duo = duo, duo2 = duo2))

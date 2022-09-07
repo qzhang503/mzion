@@ -18,6 +18,7 @@ calc_pepmasses2(
   mod_motifs = NULL,
   enzyme = c("trypsin_p"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL),
+  noenzyme_maxn = 0L,
   maxn_fasta_seqs = 50000L,
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
@@ -98,6 +99,14 @@ is currently \code{trypsin}.}
   \cr # Faked: Trypsin, proline not allowed on neither Nterm or Cterm \cr
   custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
   "([^P]\{1\})([KR]\{1\})")}
+
+\item{noenzyme_maxn}{Non-negative integer; the maximum number of peptide
+lengths for sectional searches at \code{noenzyme} specificity. The argument
+may be used to guard against RAM exhaustion. At the zero default, The
+peptide lengths from \code{min_len} to \code{max_len} will be broken
+automatically into continuous sections. At value 1, searches will be
+performed against individual peptide lengths; at value 2, two adjacent
+lengths will be taken at a time, etc.}
 
 \item{maxn_fasta_seqs}{Integer; the maximum number of protein sequences in
 fasta files.}

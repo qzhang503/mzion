@@ -12,6 +12,7 @@ calc_probi(
   type_ms2ions = "by",
   topn_ms2ions = 100L,
   ppm_ms2 = 25L,
+  soft_secions = FALSE,
   digits = 5L
 )
 }
@@ -34,6 +35,11 @@ searches. The default is to use the top-100 ions in an MS2 event.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 25.}
+
+\item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
+ions to primary ions at the absence of the primaries. The default is FALSE.
+For instance, the signal of \code{b5^*} will be ignored if its primary ion
+\code{b5} is not matched.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

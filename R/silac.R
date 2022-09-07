@@ -245,6 +245,8 @@ add_fixedlab_masses <- function (fixedlabs, aa_masses)
 {
   # not yet check the validity of fixedlabs
   # ...
+  # not yet test multiple sites, e.g., Oxidation (M) and Carbamyl (M)
+  # ...
   
   umods <- lapply(fixedlabs, find_unimod)
   monos <- unlist(lapply(umods, `[[`, "monomass"), use.names = FALSE)

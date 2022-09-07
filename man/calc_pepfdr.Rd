@@ -9,7 +9,6 @@ calc_pepfdr(
   fdr_type = "psm",
   min_len = 7L,
   max_len = 40L,
-  match_pepfdr = TRUE,
   max_pepscores_co = Inf,
   out_path
 )
@@ -24,11 +23,6 @@ for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
 for considerations. Longer peptides will be excluded. The default is 40.}
-
-\item{match_pepfdr}{Logical; if TRUE, matches empirically the highest peptide
-probability (corresponding to the lowest score) cut-offs to the pre-defined
-level of \code{target_fdr}. The default if TRUE. Choose \code{match_pepfdr
-= FALSE} for higher data quality (at a price of fewer hits).}
 
 \item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
 of peptide scores for discriminating significant and insignificant

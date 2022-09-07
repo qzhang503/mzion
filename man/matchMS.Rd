@@ -49,7 +49,7 @@ matchMS(
   fdr_type = c("psm", "peptide", "protein"),
   max_pepscores_co = Inf,
   max_protscores_co = Inf,
-  match_pepfdr = TRUE,
+  soft_secions = FALSE,
   topn_mods_per_seq = 3L,
   topn_seqs_per_query = 3L,
   combine_tier_three = FALSE,
@@ -294,10 +294,10 @@ of protein scores for discriminating significant and insignificant
 identities.  For higher quality and data-driven thresholds, choose the
 default \code{max_protscores_co = Inf}.}
 
-\item{match_pepfdr}{Logical; if TRUE, matches empirically the highest peptide
-probability (corresponding to the lowest score) cut-offs to the pre-defined
-level of \code{target_fdr}. The default if TRUE. Choose \code{match_pepfdr
-= FALSE} for higher data quality (at a price of fewer hits).}
+\item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
+ions to primary ions at the absence of the primaries. The default is FALSE.
+For instance, the signal of \code{b5^*} will be ignored if its primary ion
+\code{b5} is not matched.}
 
 \item{topn_mods_per_seq}{Positive integer; a threshold to discard variable
   modifications under the same peptide match with scores beyond the top-n.
@@ -618,7 +618,7 @@ matchMS(
   fixedmods = c("Carbamidomethyl (C)"),
   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
                 "Gln->pyro-Glu (N-term = Q)"),
-  
+
   silac_mix = list(base = c(fixedlabs = NULL, varlabs   = NULL),
 
                    grpC = c(fixedlabs = c("Label:13C(3) (A)", "Label:13C(6) (R)",

@@ -248,10 +248,10 @@
 #'   of protein scores for discriminating significant and insignificant
 #'   identities.  For higher quality and data-driven thresholds, choose the
 #'   default \code{max_protscores_co = Inf}.
-#' @param match_pepfdr Logical; if TRUE, matches empirically the highest peptide
-#'   probability (corresponding to the lowest score) cut-offs to the pre-defined
-#'   level of \code{target_fdr}. The default if TRUE. Choose \code{match_pepfdr
-#'   = FALSE} for higher data quality (at a price of fewer hits).
+#' @param soft_secions Logical; if TRUE, collapses the intensities of secondary
+#'   ions to primary ions at the absence of the primaries. The default is FALSE.
+#'   For instance, the signal of \code{b5^*} will be ignored if its primary ion
+#'   \code{b5} is not matched.
 #' @param topn_seqs_per_query Positive integer; a threshold to discard peptide
 #'   matches under the same MS query with scores beyond the top-n.
 #'
@@ -468,7 +468,7 @@
 #'   fixedmods = c("Carbamidomethyl (C)"),
 #'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
 #'                 "Gln->pyro-Glu (N-term = Q)"),
-#'   
+#'
 #'   silac_mix = list(base = c(fixedlabs = NULL, varlabs   = NULL),
 #'
 #'                    grpC = c(fixedlabs = c("Label:13C(3) (A)", "Label:13C(6) (R)",
@@ -592,7 +592,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      target_fdr = 0.01,
                      fdr_type = c("psm", "peptide", "protein"),
                      max_pepscores_co = Inf, max_protscores_co = Inf, 
-                     match_pepfdr = TRUE, 
+                     soft_secions = FALSE, 
                      
                      topn_mods_per_seq = 3L, 
                      topn_seqs_per_query = 3L, 
@@ -667,7 +667,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
     acc_pattern <- NULL
   
   # logical types 
-  stopifnot(vapply(c(match_pepfdr, combine_tier_three, 
+  stopifnot(vapply(c(soft_secions, combine_tier_three, 
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
                      add_ms2ints), 
                    is.logical, logical(1L)))
@@ -1006,6 +1006,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
       mod_motifs = mod_motifs, 
       enzyme = enzyme,
       custom_enzyme = custom_enzyme, 
+      noenzyme_maxn = noenzyme_maxn, 
       maxn_fasta_seqs = maxn_fasta_seqs,
       maxn_vmods_setscombi = maxn_vmods_setscombi,
       maxn_vmods_per_pep = maxn_vmods_per_pep,
@@ -1148,8 +1149,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
                    min_len = min_len,
                    max_len = max_len,
                    ppm_ms2 = ppm_ms2,
+                   soft_secions = soft_secions, 
                    out_path = out_path,
-                   
+
                    # dummies
                    mgf_path = mgf_path,
                    maxn_vmods_per_pep = maxn_vmods_per_pep,
@@ -1186,7 +1188,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
                             min_len = min_len, 
                             max_len = max_len, 
                             max_pepscores_co = max_pepscores_co, 
-                            match_pepfdr = match_pepfdr, 
                             out_path = out_path)
     
     post_pepfdr(prob_cos, out_path)

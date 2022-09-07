@@ -254,7 +254,7 @@ list_leftmatch <- function (a, b)
 #' }
 calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, 
                                 N, type_ms2ions = "by", topn_ms2ions = 100L, 
-                                ppm_ms2 = 25L, 
+                                ppm_ms2 = 25L, soft_secions = FALSE, 
                                 burn_ins = c(1:2), digits = 5L) 
 {
   df_theo <- df$theo
@@ -266,7 +266,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
 
   ith2 <- df2[["ith"]]
   iex2 <- df2[["iex"]]
-  n <- N - m - length(iex2)
+  # n <- N - m - length(iex2)
   
   ## 1. int2 (secondary intensities)
   len <- length(df2[["expt"]])
@@ -309,6 +309,19 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   ## 4. collapses `int2` to `int`
   y[["int"]] <- y[["int"]] %+% y[["int2"]]
   y[["idx"]] <- y[["int2"]] <- NULL
+  
+  ###
+  if (soft_secions) {
+    ok_int2 <- which(int2 > 0L & is.na(df[["int"]])) # 11, 21
+    
+    if (length(ok_int2)) {
+      ok_iex2 <- iex2[match(ok_int2, ith2 %% m)]
+      ok_iex2 <- ifelse(is.na(ok_iex2), m, ok_iex2)
+      y[["int"]][ok_iex2] <- int2[ok_int2]
+      y[["theo"]][ok_iex2] <- df_theo[ok_int2]
+    }
+  }
+  ###
 
   ## 5. arrange by "-int"
   ord_int <- order(y[["int"]], decreasing = TRUE, method = "radix", na.last = TRUE)
@@ -330,14 +343,15 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   ## 8. Probability
   # (to have sufficient counts of noise)
   # (also guaranteed n > 0L)
-  n <- max(n, topn_ms2ions + k[length(k)])
+  # n <- max(n, topn_ms2ions + k[length(k)])
   
   # excludes unstable burn-in scores
   x_ <- x[-burn_ins]
   k_ <- k[-burn_ins]
   
   if (length(x_)) {
-    prs <- mapply(dhyper, x_, m, n, k_)
+    # prs <- mapply(dhyper, x_, m, n, k_)
+    prs <- dhyper(x = x_, m = m, n = N, k = k_)
     pr <- min(prs, na.rm = TRUE)
   }
   else 
@@ -362,7 +376,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
 #' @importFrom tibble tibble
 calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, 
                               N, type_ms2ions = "by", topn_ms2ions = 100L, 
-                              ppm_ms2 = 25L, digits = 5L) 
+                              ppm_ms2 = 25L, soft_secions = FALSE, digits = 5L) 
 {
   ## for different positions: $TNLAMMR$`0000500`, $TNLAMMR$`0000050`
   #    the same `pep_seq`, `theo_ms1` for different mod positions
@@ -378,6 +392,7 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
                   type_ms2ions = type_ms2ions, 
                   topn_ms2ions = topn_ms2ions, 
                   ppm_ms2 = ppm_ms2, 
+                  soft_secions = soft_secions, 
                   burn_ins = c(1:2),
                   digits = digits
                 ), 
@@ -418,7 +433,7 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
 #' @importFrom purrr map
 calc_probi <- function (mts, expt_moverzs, expt_ints, 
                         N, type_ms2ions = "by", topn_ms2ions = 100L, 
-                        ppm_ms2 = 25L, digits = 5L) 
+                        ppm_ms2 = 25L, soft_secions = FALSE, digits = 5L) 
 {
   out <- mapply(
     calc_probi_bypep, 
@@ -429,6 +444,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
       N = N, 
       type_ms2ions = type_ms2ions, 
       topn_ms2ions = topn_ms2ions, 
+      soft_secions = soft_secions, 
       ppm_ms2 = ppm_ms2, 
       digits = digits
     ), 
@@ -448,7 +464,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
 #' @inheritParams calc_pepscores
 #' @import purrr
 scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by", 
-                            ppm_ms2 = 25L, digits = 5L) 
+                            ppm_ms2 = 25L, soft_secions = FALSE, digits = 5L) 
 {
   # only one experimental set of values and thus `[[1]]`
   expt_moverzs <- entry$ms2_moverz[[1]]
@@ -486,8 +502,9 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
   # (flattens by one level as is a list-column)
   mts <- entry$matches[[1]]
   
-  N <- entry$ms2_n[[1]]
-  topn_ms2ions <- min(topn_ms2ions, N)
+  # N <- entry$ms2_n[[1]]
+  topn_ms2ions <- min(topn_ms2ions, entry$ms2_n[[1]])
+  N <- topn_ms2ions * 5L
   
   out <- calc_probi(mts = mts, 
                     expt_moverzs = expt_moverzs, 
@@ -496,6 +513,7 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
                     type_ms2ions = type_ms2ions, 
                     topn_ms2ions = topn_ms2ions, 
                     ppm_ms2 = ppm_ms2, 
+                    soft_secions = soft_secions, 
                     digits = digits)
 
   uniq_id <- .Internal(unlist(entry$uniq_id, recursive = FALSE, use.names = FALSE))
@@ -515,8 +533,8 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by", 
-                             ppm_ms2 = 25L, out_path = "~/proteoM/outs", 
-                             digits = 5L) 
+                             ppm_ms2 = 25L, soft_secions = FALSE, 
+                             out_path = "~/proteoM/outs", digits = 5L) 
 {
   n_rows <- nrow(df)
   
@@ -527,6 +545,7 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
                  topn_ms2ions = topn_ms2ions, 
                  type_ms2ions = type_ms2ions, 
                  ppm_ms2 = ppm_ms2, 
+                 soft_secions = soft_secions, 
                  digits = digits)
     
     df <- .Internal(unlist(df, recursive = FALSE, use.names = FALSE))
@@ -552,8 +571,8 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @import parallel
 calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by", 
                             target_fdr = 0.01, fdr_type = "psm", 
-                            min_len = 7L, max_len = 40L, 
-                            ppm_ms2 = 25L, 
+                            min_len = 7L, max_len = 40L, ppm_ms2 = 25L, 
+                            soft_secions = FALSE, 
                             out_path = "~/proteoM/outs", 
                             
                             mgf_path, maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
@@ -642,6 +661,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
       topn_ms2ions = topn_ms2ions, 
       type_ms2ions = type_ms2ions, 
       ppm_ms2 = ppm_ms2, 
+      soft_secions = soft_secions, 
       out_path = out_path, 
       add_ms2theos = add_ms2theos, 
       add_ms2theos2 = add_ms2theos2, 
@@ -662,6 +682,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                 topn_ms2ions = topn_ms2ions, 
                 type_ms2ions = type_ms2ions, 
                 ppm_ms2 = ppm_ms2, 
+                soft_secions = soft_secions, 
                 out_path = out_path, 
                 add_ms2theos = add_ms2theos, 
                 add_ms2theos2 = add_ms2theos2, 
@@ -727,7 +748,7 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by", 
-                       ppm_ms2 = 25L, out_path = NULL, 
+                       ppm_ms2 = 25L, soft_secions = FALSE, out_path = NULL, 
                        add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                        add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
                        sys_ram = 32L, parallel = TRUE, digits = 4L) 
@@ -810,6 +831,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       topn_ms2ions = topn_ms2ions, 
       type_ms2ions = type_ms2ions, 
       ppm_ms2 = ppm_ms2,
+      soft_secions = soft_secions, 
       out_path = out_path, 
       digits = digits)
   }
@@ -843,6 +865,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                                         topn_ms2ions = topn_ms2ions, 
                                         type_ms2ions = type_ms2ions, 
                                         ppm_ms2 = ppm_ms2,
+                                        soft_secions = soft_secions, 
                                         out_path = out_path, 
                                         digits = digits)
       
@@ -861,6 +884,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                       topn_ms2ions = topn_ms2ions, 
                       type_ms2ions = type_ms2ions, 
                       ppm_ms2 = ppm_ms2,
+                      soft_secions = soft_secions, 
                       out_path = out_path, 
                       digits = digits) 
       
@@ -1369,7 +1393,7 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 #'                         out_path = "~/proteoM/bi_1")
 #' }
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm", 
-                         min_len = 7L, max_len = 40L, match_pepfdr = TRUE, 
+                         min_len = 7L, max_len = 40L, 
                          max_pepscores_co = Inf, out_path) 
 {
   message("Calculating peptide FDR.")
@@ -1680,19 +1704,6 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     prob_cos[!is.na(names(prob_cos))]
   })
 
-  if (match_pepfdr) {
-    prob_cos <- local({
-      idxes <- prob_cos[prob_cos <= target_fdr]
-      
-      fct_homol <- if (length(idxes)) 
-        max(target_fdr/max(idxes, na.rm = TRUE), 1)
-      else 
-        1L
-      
-      prob_cos * fct_homol
-    })
-  }
-  
   prob_cos <- fill_probco_nas(prob_nas, prob_no_uses, prob_cos, target_fdr) %T>% 
     qs::qsave(file.path(out_path, "temp", "pep_probco.rds"), preset = "fast")
 }

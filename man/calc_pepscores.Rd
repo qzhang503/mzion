@@ -12,6 +12,7 @@ calc_pepscores(
   min_len = 7L,
   max_len = 40L,
   ppm_ms2 = 25L,
+  soft_secions = FALSE,
   out_path = "~/proteoM/outs",
   mgf_path,
   maxn_vmods_per_pep = 5L,
@@ -67,6 +68,11 @@ for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 25.}
+
+\item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
+ions to primary ions at the absence of the primaries. The default is FALSE.
+For instance, the signal of \code{b5^*} will be ignored if its primary ion
+\code{b5} is not matched.}
 
 \item{out_path}{A file path of outputs.}
 

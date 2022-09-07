@@ -86,5 +86,8 @@ if (nrow(duo2)) {
                        show.legend = FALSE) 
 }
 
+pep <- paste0(duo$site[1:(nrow(duo)/2L)], collapse = " ")
+p + annotate("text", -Inf, Inf, label = pep, hjust = -.2, vjust = 2)
+
 }
 }

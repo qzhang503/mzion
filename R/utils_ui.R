@@ -9,14 +9,14 @@
 #' \donttest{
 #' ## No variable modifications
 #' # (1)
-#' x <- calc_monopeptide("MAKEMASSPECFUN",
+#' x <- calc_monopeptide(aa_seq = "MAKEMASSPECFUN",
 #'                       fixedmods = NULL,
 #'                       varmods = NULL)
 #'
 #' stopifnot((unlist(x$mass) - 1594.5369) < 1e-4)
 #'
 #' # (2-a)
-#' x <- calc_monopeptide("MAKEMASSPECFUN",
+#' x <- calc_monopeptide(aa_seq = "MAKEMASSPECFUN",
 #'                       fixedmods = "Oxidation (M)",
 #'                       varmods = NULL)
 #'
@@ -25,7 +25,7 @@
 #' stopifnot((m[1] - 1626.5267) < 1e-4)
 #'
 #' # (2-b) combinatorial NL for fixed modifications
-#' x <- calc_monopeptide("MAKEMASSPECFUN",
+#' x <- calc_monopeptide(aa_seq = "MAKEMASSPECFUN",
 #'                       fixedmods = "Oxidation (M)",
 #'                       varmods = NULL)
 #'
@@ -36,7 +36,7 @@
 #'
 #' ## With variable modifications
 #' # (3-a)
-#' x <- calc_monopeptide("MAKEMASSPECFUN",
+#' x <- calc_monopeptide(aa_seq = "MAKEMASSPECFUN",
 #'                       fixedmods = NULL,
 #'                       varmods = "Oxidation (M)")
 #'
@@ -48,20 +48,20 @@
 #' # x$vmods_ps
 #'
 #' # (3-b)
-#' x <- calc_monopeptide("MAKEMASSPECFUN",
+#' x <- calc_monopeptide(aa_seq = "MAKEMASSPECFUN",
 #'                       fixedmods = NULL,
 #'                       varmods = "Oxidation (M)")
 #'
 #' x$mass
 #'
 #' # (4-a)
-#' x <- calc_monopeptide("MAKEMASSPECFUN",
-#'                       c("TMT6plex (N-term)",
-#'                         "TMT6plex (K)",
-#'                         "Carbamidomethyl (C)"),
-#'                       c("Acetyl (N-term)",
-#'                         "Gln->pyro-Glu (N-term = Q)",
-#'                         "Oxidation (M)"))
+#' x <- calc_monopeptide(aa_seq = "MAKEMASSPECFUN",
+#'                       fixedmods = c("TMT6plex (N-term)",
+#'                                     "TMT6plex (K)",
+#'                                     "Carbamidomethyl (C)"),
+#'                       varmods = c("Acetyl (N-term)",
+#'                                   "Gln->pyro-Glu (N-term = Q)",
+#'                                    "Oxidation (M)"))
 #'
 #' x$mass
 #'
@@ -73,7 +73,7 @@
 #'
 #'
 #' # (4-b)
-#' x <- calc_monopeptide("MAKEMASSPECFUN",
+#' x <- calc_monopeptide(aa_seq = "MAKEMASSPECFUN",
 #'                       fixedmods = c("TMT6plex (N-term)",
 #'                                     "TMT6plex (K)",
 #'                                     "Carbamidomethyl (C)"),
@@ -209,7 +209,7 @@ calc_monopep <- function (aa_seq, aa_masses,
                                  digits = digits) %>% 
       find_intercombi()
 
-    deltas <- lapply(vmods_combi, function (x) sum(aa_masses[x]))
+    deltas <- unname(lapply(vmods_combi, function (x) sum(aa_masses[x])))
     
     masses <- 
       sapply(deltas, function (x) round(unlist(masses) + x, digits = digits))

@@ -62,6 +62,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
   mod_motifs = NULL, 
   enzyme = c("trypsin_p"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
+  noenzyme_maxn = 0L, 
   maxn_fasta_seqs = 50000L,
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
@@ -128,7 +129,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
   
   # argument_name-default_value pair
   new_args <- local({
-    args <- c("mod_motifs")
+    args <- c("noenzyme_maxn")
     fmls <- formals(fun)[args]
     
     # for example `custom_enzyme` (should be NULL after eval)
@@ -139,6 +140,10 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     def_nulls <- unlist(are_nulls)
     c(unlist(nargs), nargs[def_nulls])
   })
+  
+  ### currently not new argument to bypass
+  # new_args <- NULL
+  ###
   
   .time_stamp <- match_calltime(
     path = .path_cache,

@@ -487,6 +487,7 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aas2 <- aa_masses[aas]
   
+  # currently no subsetting by ms1_mass
   out <- ms2ions_by_type(aas2, ntmass, ctmass, type_ms2ions, digits)
   
   len_a <- length(aas)
