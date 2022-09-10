@@ -504,7 +504,7 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
   
   # N <- entry$ms2_n[[1]]
   topn_ms2ions <- min(topn_ms2ions, entry$ms2_n[[1]])
-  N <- topn_ms2ions * 5L
+  N <- min(topn_ms2ions * 5L, 500L)
   
   out <- calc_probi(mts = mts, 
                     expt_moverzs = expt_moverzs, 
@@ -615,8 +615,11 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   fun_env <- environment()
   fml_nms <- names(formals(fun))
   
-  args_except <- "sys_ram"
+  args_except <- c("sys_ram")
   fml_incl <- fml_nms[!fml_nms %in% args_except]
+  
+  message("[x] For reprocessing (with new score function) ", 
+          "delete cached 'pepscores_[...]' and 'calc_pepscores.rda'.\n")
   
   cache_pars <- find_callarg_vals(time = NULL, 
                                   path = file.path(out_path, "Calls"), 

@@ -26,8 +26,8 @@ for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
 of peptide scores for discriminating significant and insignificant
-identities. For higher quality and data-driven thresholds, choose the
-default \code{max_pepscores_co = Inf}.}
+identities. The default is changed from \code{Inf} to 50 from version
+1.1.9.2 on.}
 
 \item{out_path}{A file path of outputs.}
 }

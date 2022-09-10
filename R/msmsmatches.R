@@ -242,8 +242,8 @@
 #'   \code{prot_tier == 1}.
 #' @param max_pepscores_co A positive numeric; the upper limit in the cut-offs
 #'   of peptide scores for discriminating significant and insignificant
-#'   identities. For higher quality and data-driven thresholds, choose the
-#'   default \code{max_pepscores_co = Inf}.
+#'   identities. The default is changed from \code{Inf} to 50 from version
+#'   1.1.9.2 on.
 #' @param max_protscores_co A positive numeric; the upper limit in the cut-offs
 #'   of protein scores for discriminating significant and insignificant
 #'   identities.  For higher quality and data-driven thresholds, choose the
@@ -591,7 +591,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      
                      target_fdr = 0.01,
                      fdr_type = c("psm", "peptide", "protein"),
-                     max_pepscores_co = Inf, max_protscores_co = Inf, 
+                     max_pepscores_co = 50, max_protscores_co = Inf, 
                      soft_secions = FALSE, 
                      
                      topn_mods_per_seq = 3L, 

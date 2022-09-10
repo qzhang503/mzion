@@ -10,6 +10,8 @@ matchMS_silac_mix <- function (silac_mix = list(base = NULL, heavy = c("K8 (K)",
 {
   message("Searches against SILAC groups ", 
           "(heavy, light etc. mixed into one sample)")
+  message("[x] For reprocessing (with new score function) ", 
+          "delete cached 'pepscores_[...]' and 'calc_pepscores.rda'.\n")
   
   lapply(c("silac_mix", "mgf_path", "this_call", "out_path"), function (x) {
     if (is.null(x)) stop("`", x, "` cannot be NULL.")
@@ -131,6 +133,8 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
                                 out_path = NULL) 
 {
   message("Multiple searches by parameter groups...")
+  message("[x] For reprocessing (with new score function) ", 
+          "delete cached 'pepscores_[...]' and 'calc_pepscores.rda'.\n")
   
   lapply(c("par_groups", "grp_args", "this_call", "out_path"), function (x) {
     if (is.null(x))
@@ -283,6 +287,8 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
     stop("Not yet support group searches with no enzyme specificity")
   
   message("Searches with no enzyme specificity...")
+  message("[x] For reprocessing (with new score function) ", 
+          "delete cached 'pepscores_[...]' and 'calc_pepscores.rda'.\n")
   
   size <- local({
     if (noenzyme_maxn) 
