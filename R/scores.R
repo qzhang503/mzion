@@ -1653,7 +1653,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
       slope <- if (class(fit_right) == "lm") 
         unname(coef(fit_right)[2])
       else 
-        .25
+        .1
       
       newx_right <- valley:max(df_right$x, na.rm = TRUE)
       newy_right <- best_co + slope * (newx_right - valley)

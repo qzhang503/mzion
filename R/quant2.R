@@ -505,6 +505,7 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
 
   ## (1) builds protein ~ peptide map
   Mats <- map_pepprot(df, out_path = out_path, fct = fct)
+  message("Completed protein-peptide maps.")
   
   Mat_upr_left <- Mats$upr_left
   Mat_lwr_left <- Mats$lwr_left
@@ -576,6 +577,7 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
                             prot_hit_num = seq_along(prots_upr_right), 
                             prot_family_member = 1L)
   }
+  message("Completed protein grouping.")
 
   ## (3) finds essential protein entries
   ess_prots <- local({
@@ -605,6 +607,7 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
 
     unique(sets$prot_acc)
   })
+  message("Established essential proteins.")
 
   ## Parses literal or razor uniqueness of peptides
   # sets aside df0
@@ -641,6 +644,7 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
   
   rm(list = c("M4", "M4_ess"))
   gc()
+  message("Parsed unique versus shared peptides.")
   
   df0 <- df0 %>%
     dplyr::mutate(prot_hit_num = NA, prot_family_member = NA)
@@ -957,7 +961,7 @@ pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, fct = 4L)
     }
   }
   
-  # message("\tFinished matrix-to-vector conversion.")
+  message("\tCompleted matrix-to-vector conversion.")
   
   invisible(vec)
 }
@@ -1055,7 +1059,8 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
   rm(list = c("M"))
   gc()
   
-  if (n_prots > 10000L) {
+  # n_prots > 10000L
+  if (FALSE) {
     dm <- matrix(nrow = n_prots, ncol = n_prots)
     colnames(dm) <- prots
     rownames(dm) <- prots
@@ -1107,14 +1112,14 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
   # NP_000007        TRUE      TRUE     FALSE
   
   # --- finds protein groups
-  d <- as_lgldist(dm, diag = FALSE, upper = FALSE) # logical distance
+  # d <- as_lgldist(dm, diag = FALSE, upper = FALSE) # logical distance
+  d <- as.dist(dm)
   rm(list = "dm")
   gc()
   
   if (length(d)) {
     hc <- hclust(d, method = "single")
     gc()
-    
     grps <- data.frame(prot_hit_num = cutree(hc, h = .9))
   } 
   else {
@@ -1200,18 +1205,18 @@ as_dist <- function (m, diag = FALSE, upper = FALSE)
 #' @inheritParams stats::as.dist
 as_lgldist <- function(m, diag = FALSE, upper = FALSE) 
 {
-  d = proteoCpp::to_lgldistC(m)
+  d <- proteoCpp::to_lgldistC(m)
   
   if (!is.null(rownames(m))) 
     attr(d, "Labels") <- rownames(m)
   else if (!is.null(colnames(m))) 
     attr(d, "Labels") <- colnames(m)
 
-  attr(d, "class") = "dist"
-  attr(d, "Size") = nrow(m)
-  attr(d, "call") = match.call()
-  attr(d, "Diag") = diag
-  attr(d, "Upper") = upper
+  attr(d, "class") <- "dist"
+  attr(d, "Size") <- nrow(m)
+  attr(d, "call") <- match.call()
+  attr(d, "Diag") <- diag
+  attr(d, "Upper") <- upper
 
   d
 }

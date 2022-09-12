@@ -1798,7 +1798,7 @@ check_locmods <- function (fixedmods, varmods, locmods)
   # locmods are only among fixedmods
   if (!length(vids)) 
     stop("No \"varmods\" matched to \"locmods\": ", paste(locmods, collapse = ", "))
-    
+  
   vmods <- find_modps(varmods)
   vsites <- unlist(vmods[vids], recursive = FALSE, use.names = FALSE)
   fmods <- find_modps(fixedmods)
