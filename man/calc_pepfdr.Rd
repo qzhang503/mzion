@@ -9,7 +9,8 @@ calc_pepfdr(
   fdr_type = "psm",
   min_len = 7L,
   max_len = 40L,
-  max_pepscores_co = Inf,
+  max_pepscores_co = 50,
+  min_pepscores_co = 10,
   out_path
 )
 }
@@ -28,6 +29,10 @@ for considerations. Longer peptides will be excluded. The default is 40.}
 of peptide scores for discriminating significant and insignificant
 identities. The default is changed from \code{Inf} to 50 from version
 1.1.9.2 on.}
+
+\item{min_pepscores_co}{A positive numeric; the lower limit in the cut-offs
+of peptide scores for discriminating significant and insignificant
+identities.}
 
 \item{out_path}{A file path of outputs.}
 }

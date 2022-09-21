@@ -48,6 +48,7 @@ matchMS(
   target_fdr = 0.01,
   fdr_type = c("psm", "peptide", "protein"),
   max_pepscores_co = 50,
+  min_pepscores_co = 10,
   max_protscores_co = Inf,
   soft_secions = FALSE,
   topn_mods_per_seq = 3L,
@@ -288,6 +289,10 @@ levels of PSM, peptide or protein. The default is 0.01. See also argument
 of peptide scores for discriminating significant and insignificant
 identities. The default is changed from \code{Inf} to 50 from version
 1.1.9.2 on.}
+
+\item{min_pepscores_co}{A positive numeric; the lower limit in the cut-offs
+of peptide scores for discriminating significant and insignificant
+identities.}
 
 \item{max_protscores_co}{A positive numeric; the upper limit in the cut-offs
 of protein scores for discriminating significant and insignificant

@@ -656,47 +656,24 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   
   len_td <- length(listi_td)
   
-  if (FALSE) {
-    cl <- parallel::makeCluster(getOption("cl.cores", min(len_td, n_cores)))
+  for (fi in listi_td) {
+    message("\tModule: ", fi)
     
-    parallel::clusterApplyLB(cl, 
-      listi_td, calcpepsc, 
-      topn_ms2ions = topn_ms2ions, 
-      type_ms2ions = type_ms2ions, 
-      ppm_ms2 = ppm_ms2, 
-      soft_secions = soft_secions, 
-      out_path = out_path, 
-      add_ms2theos = add_ms2theos, 
-      add_ms2theos2 = add_ms2theos2, 
-      add_ms2moverzs = add_ms2moverzs, 
-      add_ms2ints = add_ms2ints,
-      sys_ram = sys_ram, 
-      parallel = FALSE, 
-      digits = digits
-    )
+    calcpepsc(file = fi, 
+              topn_ms2ions = topn_ms2ions, 
+              type_ms2ions = type_ms2ions, 
+              ppm_ms2 = ppm_ms2, 
+              soft_secions = soft_secions, 
+              out_path = out_path, 
+              add_ms2theos = add_ms2theos, 
+              add_ms2theos2 = add_ms2theos2, 
+              add_ms2moverzs = add_ms2moverzs, 
+              add_ms2ints = add_ms2ints,
+              sys_ram = sys_ram, 
+              parallel = TRUE, 
+              digits = digits)
     
-    parallel::stopCluster(cl)
-  }
-  else {
-    for (fi in listi_td) {
-      message("\tModule: ", fi)
-      
-      calcpepsc(file = fi, 
-                topn_ms2ions = topn_ms2ions, 
-                type_ms2ions = type_ms2ions, 
-                ppm_ms2 = ppm_ms2, 
-                soft_secions = soft_secions, 
-                out_path = out_path, 
-                add_ms2theos = add_ms2theos, 
-                add_ms2theos2 = add_ms2theos2, 
-                add_ms2moverzs = add_ms2moverzs, 
-                add_ms2ints = add_ms2ints,
-                sys_ram = sys_ram, 
-                parallel = TRUE, 
-                digits = digits)
-      
-      gc()
-    }
+    gc()
   }
   
   .savecall <- TRUE
@@ -810,21 +787,6 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   
   n_cores <- detect_cores(16L)
   
-  if (FALSE) {
-    n_chunks <- local({
-      free_mem <- find_free_mem(sys_ram)/2.5
-      
-      fct <- 10/.25 # 10G free RAM -> .25G chunk_size
-      max_chunk_size <- free_mem/fct
-      obj_size <- object.size(df)/1024^2
-      n_chunks <- ceiling((obj_size/max_chunk_size) * n_cores)
-      
-      n_chunks <- ceiling(n_chunks/n_cores) * n_cores
-      n_chunks <- min(n_chunks, n_cores^2)
-      n_chunks <- max(n_chunks, n_cores)
-    })
-  }
-
   ## don't change (RAM)
   n_chunks <- n_cores^2
   
@@ -854,8 +816,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     
     if ((length(dfs) >= n_chunks) && parallel) {
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-      # parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
-      
+
       parallel::clusterExport(cl, list("calc_pepprobs_i", "scalc_pepprobs", 
                                        "calc_probi", "calc_probi_bypep", 
                                        "calc_probi_byvmods", "add_seions", 
@@ -1182,7 +1143,8 @@ find_pepscore_co2 <- function (td, target_fdr = 0.01)
 #' @param td A target-decoy pair.
 #' @param len Numeric; the length of peptides.
 #' @inheritParams matchMS
-probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01, out_path) 
+probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01, 
+                             min_pepscores_co = 10, out_path) 
 {
   td <- dplyr::filter(td, pep_len == len)
   
@@ -1193,14 +1155,13 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01, out_p
     td <- dplyr::ungroup(td)
   }
 
-  td <- td %>% 
-    dplyr::select(pep_prob, pep_isdecoy) %>% 
-    dplyr::arrange(pep_prob) %>% 
-    dplyr::mutate(total = row_number()) %>% 
-    dplyr::mutate(decoy = cumsum(pep_isdecoy)) %>% 
-    dplyr::mutate(fdr = decoy/total) %>% 
-    dplyr::mutate(pep_score = -log10(pep_prob) * 10)
-  
+  td <- dplyr::select(td, pep_prob, pep_isdecoy)
+  td <- dplyr::arrange(td, pep_prob)
+  td <- dplyr::mutate(td, total = row_number())
+  td <- dplyr::mutate(td, decoy = cumsum(pep_isdecoy))
+  td <- dplyr::mutate(td, fdr = decoy/total)
+  td <- dplyr::mutate(td, pep_score = -log10(pep_prob) * 10)
+
   count <- nrow(td)
   
   if (count < (1 / target_fdr)) {
@@ -1226,16 +1187,20 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01, out_p
     row <- max(rows, na.rm = TRUE)
     score_co <- td[["pep_score"]][row]
 
-    ### guard against really low score_co
+    ### guard against very low score_co
     if (FALSE) {
-      lwr <- if (len <= 10L)
-        -0.02 * len / target_fdr + 31
-      else if (len <= 15L)
-        -.016 * len / target_fdr + 29
-      else
+      lwr <- if (len <= 10L) {
+        31 - len * target_fdr * 200
+      }
+      else if (len <= 15L) {
+        29 - 11:15 * target_fdr * 160
+      }
+      else {
         2
-      
-      # if (len <= 15L)cscore_co <- max(score_co, lwr)
+      }
+
+      lwr <- ifelse(lwr <= 5, 5, lwr)
+      # if (len <= 15L) score_co <- max(score_co, lwr)
     }
     ####
     
@@ -1248,8 +1213,18 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01, out_p
           nls(y ~ SSasymp(x, Asym, R0, lrc), data = df, 
               control = list(tol = 1e-03, warnOnly = TRUE), 
               algorithm = "port"), 
-          error = function (e) NA)
-      )
+          error = function (e) NA, 
+          warning = function (w) NA))
+
+      if (all(is.na(fit))) {
+        fit <- suppressWarnings(
+          tryCatch(
+            nls(y ~ SSlogis(x, Asym, xmid, scal), data = df, 
+                control = list(tol = 1e-03, warnOnly = TRUE), 
+                algorithm = "port"), 
+            error = function (e) NA, 
+            warning = function (w) NA))
+      }
     }
     else {
       fit <- suppressWarnings(
@@ -1257,8 +1232,18 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01, out_p
           nls(y ~ SSlogis(x, Asym, xmid, scal), data = df, 
               control = list(tol = 1e-03, warnOnly = TRUE), 
               algorithm = "port"), 
-          error = function (e) NA)
-      )
+          error = function (e) NA, 
+          warning = function (w) NA))
+
+      if (all(is.na(fit))) {
+        fit <- suppressWarnings(
+          tryCatch(
+            nls(y ~ SSasymp(x, Asym, R0, lrc), data = df, 
+                control = list(tol = 1e-03, warnOnly = TRUE), 
+                algorithm = "port"), 
+            error = function (e) NA, 
+            warning = function (w) NA))
+      }
     }
 
     if (!all(is.na(fit))) {
@@ -1278,14 +1263,15 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01, out_p
       
       # NA if not existed
       score_co2 <- as.numeric(names(which(newy <= target_fdr)[1]))
-      score_co2 <- max(score_co2, 2)
-      
-      ### guard against lower score_co2
+      score_co2 <- max(score_co2, min_pepscores_co)
+
+      ### guard against vert low score_co2
       # if (len <= 15L) score_co2 <- max(score_co2, lwr)
       ###
       
       best_co <- min(score_co, score_co2, na.rm = TRUE)
-      
+      # best_co <- max(best_co, min_pepscores_co)
+
       if (FALSE) {
         try(
           local({
@@ -1397,7 +1383,7 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 #' }
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm", 
                          min_len = 7L, max_len = 40L, 
-                         max_pepscores_co = Inf, out_path) 
+                         max_pepscores_co = 50, min_pepscores_co = 10, out_path) 
 {
   message("Calculating peptide FDR.")
   
@@ -1477,6 +1463,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
                      td = td, 
                      fdr_type = fdr_type, 
                      target_fdr = target_fdr, 
+                     min_pepscores_co = min_pepscores_co, 
                      out_path = out_path)
   prob_cos <- unlist(prob_cos)
   
@@ -1668,6 +1655,8 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   # left + right
   newx <- c(newx_left, newx_right)
   newy <- c(newy_left, newy_right)
+  newy[newy < min_pepscores_co] <- min_pepscores_co
+  newy[newy > max_pepscores_co] <- max_pepscores_co
   
   local({
     n_row <- nrow(df)
@@ -1678,10 +1667,6 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     )
     
     n_row2 <- nrow(df_new) - n_row
-    
-    # `*10` only for plots
-    # df_new$y <- df_new$y * 10 
-    df_new$y <- df_new$y
     
     try(
       local({
@@ -1696,8 +1681,6 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   })
   
   ## Outputs
-  newy[newy > max_pepscores_co] <- max_pepscores_co
-  
   prob_cos <- local({
     nms <- names(prob_cos)
     prob_cos <- 10^(-newy/fct_score)
@@ -1815,7 +1798,7 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
     stop("No PSM matches for scoring. Consider different search parameters.", 
          call. = FALSE)
   
-  # Adjusted p-values
+  # Adjusted p-values (just to moderate pep_score)
   td <- td %>% 
     dplyr::left_join(prob_cos, by = "pep_len") %>% 
     dplyr::mutate(pep_issig = ifelse(pep_prob <= pep_prob_co, TRUE, FALSE), 

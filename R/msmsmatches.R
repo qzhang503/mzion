@@ -244,6 +244,9 @@
 #'   of peptide scores for discriminating significant and insignificant
 #'   identities. The default is changed from \code{Inf} to 50 from version
 #'   1.1.9.2 on.
+#' @param min_pepscores_co A positive numeric; the lower limit in the cut-offs
+#'   of peptide scores for discriminating significant and insignificant
+#'   identities.
 #' @param max_protscores_co A positive numeric; the upper limit in the cut-offs
 #'   of protein scores for discriminating significant and insignificant
 #'   identities.  For higher quality and data-driven thresholds, choose the
@@ -591,7 +594,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      
                      target_fdr = 0.01,
                      fdr_type = c("psm", "peptide", "protein"),
-                     max_pepscores_co = 50, max_protscores_co = Inf, 
+                     max_pepscores_co = 50, min_pepscores_co = 10, 
+                     max_protscores_co = Inf, 
                      soft_secions = FALSE, 
                      
                      topn_mods_per_seq = 3L, 
@@ -678,8 +682,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      min_len, max_len, max_miss, topn_ms2ions, minn_ms2, 
                      min_mass, max_mass, min_ms2mass, max_ms2mass, n_13c, 
                      ppm_ms1, ppm_ms2, ppm_reporters, max_n_prots, digits, 
-                     target_fdr, max_pepscores_co, max_protscores_co, 
-                     topn_mods_per_seq, topn_seqs_per_query), 
+                     target_fdr, max_pepscores_co, min_pepscores_co, 
+                     max_protscores_co, topn_mods_per_seq, topn_seqs_per_query), 
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
@@ -747,10 +751,12 @@ matchMS <- function (out_path = "~/proteoM/outs",
   min_ret_time <- round(min_ret_time, digits = 2L)
   max_ret_time <- round(max_ret_time, digits = 2L)
   max_pepscores_co <- round(max_pepscores_co, digits = 2L)
+  min_pepscores_co <- round(min_pepscores_co, digits = 2L)
   max_protscores_co <- round(max_protscores_co, digits = 2L)
 
-  stopifnot(max_pepscores_co >= 0, max_protscores_co >= 0, 
-            min_ret_time >= 0, max_ret_time >= min_ret_time)
+  stopifnot(max_pepscores_co >= 0, min_pepscores_co >= 0, max_protscores_co >= 0, 
+            min_ret_time >= 0, max_pepscores_co >= min_pepscores_co, 
+            max_ret_time >= min_ret_time)
   
   # named vectors
   if (any(is.na(topn_ms2ion_cuts)))
@@ -1188,6 +1194,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                             min_len = min_len, 
                             max_len = max_len, 
                             max_pepscores_co = max_pepscores_co, 
+                            min_pepscores_co = min_pepscores_co, 
                             out_path = out_path)
     
     post_pepfdr(prob_cos, out_path)

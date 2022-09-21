@@ -4,7 +4,14 @@
 \alias{probco_bypeplen}
 \title{Helper of \link{calc_pepfdr}.}
 \usage{
-probco_bypeplen(len, td, fdr_type = "psm", target_fdr = 0.01, out_path)
+probco_bypeplen(
+  len,
+  td,
+  fdr_type = "psm",
+  target_fdr = 0.01,
+  min_pepscores_co = 10,
+  out_path
+)
 }
 \arguments{
 \item{len}{Numeric; the length of peptides.}
@@ -22,6 +29,10 @@ probco_bypeplen(len, td, fdr_type = "psm", target_fdr = 0.01, out_path)
 \item{target_fdr}{A numeric; the targeted false-discovery rate (FDR) at the
 levels of PSM, peptide or protein. The default is 0.01. See also argument
 \code{fdr_type}.}
+
+\item{min_pepscores_co}{A positive numeric; the lower limit in the cut-offs
+of peptide scores for discriminating significant and insignificant
+identities.}
 
 \item{out_path}{A file path of outputs.}
 }
