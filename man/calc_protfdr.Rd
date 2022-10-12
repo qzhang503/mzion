@@ -7,7 +7,8 @@
 calc_protfdr(
   df = NULL,
   target_fdr = 0.01,
-  max_protscores_co = 50,
+  max_protscores_co = Inf,
+  max_protnpep_co = 10L,
   out_path = NULL
 )
 }
@@ -20,6 +21,11 @@ calc_protfdr(
 of protein scores for discriminating significant and insignificant
 identities.  For higher quality and data-driven thresholds, choose the
 default \code{max_protscores_co = Inf}.}
+
+\item{max_protnpep_co}{The maximum value of \code{prot_n_pep} for the
+consideration of protein significance. Proteins with \code{prot_n_pep >
+max_protnpep_co} will have a protein significance score cutoff of zero and
+thus are significant.}
 
 \item{out_path}{An output path.}
 }

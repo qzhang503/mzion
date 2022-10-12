@@ -90,7 +90,8 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
       gsub("^[^=]+?[=](.*)", "\\1", .) %>%
       gsub("^[ ]*", "\\1", .) %>%
       gsub(" *$", "", .)
-  } else {
+  } 
+  else {
     pos <- "."
     site <- pos_site
   }
@@ -122,7 +123,8 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
   if (site == ".") {
     if (pos %in% c("Protein N-term", "Any N-term")) {
       site <- "N-term"
-    } else if (pos %in% c("Protein C-term", "Any C-term")) {
+    } 
+    else if (pos %in% c("Protein C-term", "Any C-term")) {
       site <- "C-term"
     }
   }

@@ -4,12 +4,25 @@
 \alias{calc_protfdr_i}
 \title{Helper of \link{calc_protfdr}.}
 \usage{
-calc_protfdr_i(td, target_fdr = 0.01, out_path)
+calc_protfdr_i(
+  td,
+  target_fdr = 0.01,
+  max_protnpep_co = 10L,
+  n_burnin = 3L,
+  out_path
+)
 }
 \arguments{
 \item{td}{A data frame with paired target-decoys at prot_n_pep = i.}
 
 \item{target_fdr}{Numeric; the levels of false-discovery rate (FDR).}
+
+\item{max_protnpep_co}{The maximum value of \code{prot_n_pep} for the
+consideration of protein significance. Proteins with \code{prot_n_pep >
+max_protnpep_co} will have a protein significance score cutoff of zero and
+thus are significant.}
+
+\item{n_burnin}{The minimum number of burn-ins in protein enrichment scores.}
 
 \item{out_path}{An output path.}
 }

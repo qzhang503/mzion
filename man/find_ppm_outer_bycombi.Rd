@@ -12,7 +12,7 @@ find_ppm_outer_bycombi(X, Y, ppm_ms2 = 25L)
 \item{Y}{Numeric vector; one series of theoretical MS2s.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
-default is 25.}
+default is 20.}
 }
 \description{
 \emph{Experiment} values go first and theoretical seconded.

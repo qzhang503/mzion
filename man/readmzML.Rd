@@ -51,7 +51,7 @@ MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 default is 20.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
-default is 25.}
+default is 20.}
 
 \item{mgf_cutmzs}{Cut points of MS1 moverz values in peak picking.}
 

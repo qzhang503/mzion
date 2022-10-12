@@ -219,7 +219,7 @@
 #' @param ppm_ms1 A positive integer; the mass tolerance of MS1 species. The
 #'   default is 20.
 #' @param ppm_ms2 A positive integer; the mass tolerance of MS2 species. The
-#'   default is 25.
+#'   default is 20.
 #' @param ppm_reporters A positive integer; the mass tolerance of MS2 reporter
 #'   ions. The default is 10.
 #' @param quant A character string; the quantitation method. The default is
@@ -234,12 +234,10 @@
 #'   levels of PSM, peptide or protein. The default is 0.01. See also argument
 #'   \code{fdr_type}.
 #' @param fdr_type A character string; the type of FDR control. The value is in
-#'   one of c("psm", "peptide", "protein"). The current default is \code{psm}.
+#'   one of c("protein", "peptide", "psm"). The default is \code{protein}.
 #'
 #'   Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
-#'   peptide} with the additional filtration of data at \code{prot_tier == 1}. A
-#'   variant is to set \code{fdr_type = psm}, followed by a data filtration at
-#'   \code{prot_tier == 1}.
+#'   peptide} with the additional filtration of data at \code{prot_tier == 1}. 
 #' @param max_pepscores_co A positive numeric; the upper limit in the cut-offs
 #'   of peptide scores for discriminating significant and insignificant
 #'   identities. The default is changed from \code{Inf} to 50 from version
@@ -587,24 +585,24 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      min_ms2mass = 115L, 
                      max_ms2mass = 4500L, 
                      minn_ms2 = 6L, 
-                     ppm_ms2 = 25L, 
+                     ppm_ms2 = 20L, 
                      
                      ppm_reporters = 10L,
                      quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
                      
                      target_fdr = 0.01,
-                     fdr_type = c("psm", "peptide", "protein"),
+                     fdr_type = c("protein", "peptide", "psm"),
                      max_pepscores_co = 50, min_pepscores_co = 10, 
                      max_protscores_co = Inf, 
                      soft_secions = FALSE, 
                      
-                     topn_mods_per_seq = 3L, 
-                     topn_seqs_per_query = 3L, 
+                     topn_mods_per_seq = 1L, 
+                     topn_seqs_per_query = 1L, 
                      
                      combine_tier_three = FALSE,
                      max_n_prots = 60000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/proteoM/.MSearches (1.1.9.0)/Cache/Calls", 
+                     .path_cache = "~/proteoM/.MSearches (1.1.9.5)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,

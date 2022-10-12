@@ -39,7 +39,7 @@ and y-ions.}
 searches. The default is to use the top-100 ions in an MS2 event.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
-default is 25.}
+default is 20.}
 
 \item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
 ions to primary ions at the absence of the primaries. The default is FALSE.

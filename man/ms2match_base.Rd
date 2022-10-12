@@ -198,7 +198,7 @@ e.g. b0, b* etc., are not part of the threshold.}
 default is 20.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
-default is 25.}
+default is 20.}
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}

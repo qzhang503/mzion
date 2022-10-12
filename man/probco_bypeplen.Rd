@@ -19,12 +19,10 @@ probco_bypeplen(
 \item{td}{A target-decoy pair.}
 
 \item{fdr_type}{A character string; the type of FDR control. The value is in
-  one of c("psm", "peptide", "protein"). The current default is \code{psm}.
+  one of c("protein", "peptide", "psm"). The default is \code{protein}.
 
   Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
-  peptide} with the additional filtration of data at \code{prot_tier == 1}. A
-  variant is to set \code{fdr_type = psm}, followed by a data filtration at
-  \code{prot_tier == 1}.}
+  peptide} with the additional filtration of data at \code{prot_tier == 1}.}
 
 \item{target_fdr}{A numeric; the targeted false-discovery rate (FDR) at the
 levels of PSM, peptide or protein. The default is 0.01. See also argument

@@ -1827,11 +1827,15 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
 #' Calculates the cut-offs of protein scores.
 #'
 #' @param df An output from upstream steps.
+#' @param max_protnpep_co The maximum value of \code{prot_n_pep} for the
+#'   consideration of protein significance. Proteins with \code{prot_n_pep >
+#'   max_protnpep_co} will have a protein significance score cutoff of zero and
+#'   thus are significant.
 #' @param out_path An output path.
 #' @inheritParams calc_pepfdr
 #' @inheritParams matchMS
-calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = 50, 
-                          out_path = NULL) 
+calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = Inf, 
+                          max_protnpep_co = 10L, out_path = NULL) 
 {
   message("Calculating peptide-protein FDR.")
   
@@ -1850,16 +1854,25 @@ calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = 50,
   # protein enrichment score cut-offs at each `prot_n_pep`
   score_co <- td %>% 
     split(.$prot_n_pep) %>% 
-    purrr::map_dbl(calc_protfdr_i, target_fdr, out_path) 
+    purrr::map_dbl(calc_protfdr_i, 
+                   target_fdr = target_fdr, 
+                   max_protnpep_co = max_protnpep_co, 
+                   out_path = out_path) 
   
   score_co[score_co > max_protscores_co] <- max_protscores_co
 
   # fitted score cut-offs
+  score_co_bf <- data.frame(prot_n_pep = as.integer(names(score_co)), 
+                            prot_score_co_bf = score_co)
+  
   score_co <- score_co %>% 
     fit_protfdr(max_n_pep, out_path) %>% 
     dplyr::filter(prot_n_pep %in% all_n_peps) %>% 
-    dplyr::rename(prot_es_co = prot_score_co)
-
+    dplyr::left_join(score_co_bf, by = "prot_n_pep") %>% 
+    dplyr::mutate(prot_es_co = ifelse(prot_score_co <= prot_score_co_bf, 
+                                      prot_score_co, prot_score_co_bf)) %>% 
+    dplyr::select(-c("prot_score_co", "prot_score_co_bf"))
+  
   # add protein enrichment score
   prot_es <- df %>% 
     dplyr::group_by(prot_acc, pep_seq) %>% 
@@ -1878,10 +1891,10 @@ calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = 50,
   df <- df %>% 
     dplyr::left_join(score_co, by = "prot_n_pep") %>% 
     dplyr::mutate(prot_issig = ifelse(prot_es >= prot_es_co, TRUE, FALSE)) %>% 
-    dplyr::mutate(pep_score = round(pep_score, digits = 1), 
-                  pep_score_co = round(pep_score_co, digits = 1), 
-                  prot_es = round(prot_es, digits = 1), 
-                  prot_es_co = round(prot_es_co, digits = 1))
+    dplyr::mutate(pep_score = round(pep_score, digits = 1L), 
+                  pep_score_co = round(pep_score_co, digits = 1L), 
+                  prot_es = round(prot_es, digits = 1L), 
+                  prot_es_co = round(prot_es_co, digits = 1L))
 }
 
 
@@ -1890,12 +1903,17 @@ calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = 50,
 #' For prot_n_pep at value i.
 #' 
 #' @param td A data frame with paired target-decoys at prot_n_pep = i.
+#' @param n_burnin The minimum number of burn-ins in protein enrichment scores. 
 #' @param out_path An output path.
-#' @inheritParams calc_pepfdr
+#' @inheritParams calc_protfdr
 #' @return A score cut-off at a given prot_n_pep.
-calc_protfdr_i <- function (td, target_fdr = .01, out_path) 
+calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L, 
+                            n_burnin = 3L, out_path) 
 {
   options(digits = 9L)
+  
+  if (td[["prot_n_pep"]][[1]] > max_protnpep_co)
+    return(0L)
 
   td <- td %>% 
     dplyr::group_by(prot_acc, pep_seq) %>% 
@@ -1958,7 +1976,7 @@ calc_protfdr_i <- function (td, target_fdr = .01, out_path)
 
   prot_scores <- prot_scores %>% 
     dplyr::arrange(prot_es) %>% 
-    dplyr::filter(row_number() > 3L)
+    dplyr::filter(row_number() > n_burnin)
 
   # no decoys
   if (!any(grepl("^-", prot_scores$prot_acc))) 
@@ -1980,7 +1998,8 @@ calc_protfdr_i <- function (td, target_fdr = .01, out_path)
   if (row == -Inf) {
     score_co <- 0L
     score_co2 <- score_co
-  } else {
+  } 
+  else {
     score_co <- td$prot_es[row]
 
     score_co2 <- local({
@@ -1996,13 +2015,13 @@ calc_protfdr_i <- function (td, target_fdr = .01, out_path)
       
       if (all(is.na(fit))) {
         score_co2 <- score_co
-      } else {
+      } 
+      else {
         min_score <- min(data$x, na.rm = TRUE)
         max_score <- max(data$x, na.rm = TRUE)
         newx <- min_score:max_score
-        newy <- predict(fit, data.frame(x = newx)) %>% 
-          `names<-`(newx)
-        
+        newy <- predict(fit, data.frame(x = newx)) %>% `names<-`(newx)
+
         # NA if not existed
         score_co2 <- which(newy <= target_fdr)[1] %>% 
           names() %>% 
@@ -2088,7 +2107,8 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
     
     fit <- if (all(is.na(fits))) {
       NA
-    } else {
+    } 
+    else {
       fits %>% 
         .[!is.na(.)] %>% 
         .[[length(.)]]
@@ -2122,7 +2142,8 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
       prot_n_pep = newx, 
       prot_score_co = newy) %>% 
       dplyr::mutate(prot_score_co = ifelse(prot_n_pep >= elbow, 0, prot_score_co))
-  } else {
+  } 
+  else {
     newx_left <- 1:elbow
     newy_left <- predict(fit_left, data.frame(x = newx_left))
     newx_right <- (elbow + 1L):max_n_pep
@@ -2149,6 +2170,8 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
       legend("topright", legend = c("Raw", "Smoothed"), 
              col = c("blue", "red"), pch = 19, bty = "n")
       dev.off()
+      
+      qs::qsave(df, file.path(out_path, "temp", "protein_score_co.rds"))
     })
   )
   

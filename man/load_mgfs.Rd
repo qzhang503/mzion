@@ -81,7 +81,7 @@ seconds for considerations. The default is \code{Inf}.}
 default is 20.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
-default is 25.}
+default is 20.}
 
 \item{is_ms1_three_frame}{Logical; is the searches by the three frames of
 preceeding, current and following.}

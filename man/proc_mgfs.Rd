@@ -52,7 +52,7 @@ match the one in  \link{binTheoSeqs}.}
 \item{max_mass}{A maximum mass of precursors for considerations.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
-default is 25.}
+default is 20.}
 
 \item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
 

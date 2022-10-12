@@ -19,12 +19,10 @@ or decoy peptides, as well as decoy proteins.}
 \item{out_path}{A file path of outputs.}
 
 \item{fdr_type}{A character string; the type of FDR control. The value is in
-  one of c("psm", "peptide", "protein"). The current default is \code{psm}.
+  one of c("protein", "peptide", "psm"). The default is \code{protein}.
 
   Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
-  peptide} with the additional filtration of data at \code{prot_tier == 1}. A
-  variant is to set \code{fdr_type = psm}, followed by a data filtration at
-  \code{prot_tier == 1}.}
+  peptide} with the additional filtration of data at \code{prot_tier == 1}.}
 
 \item{combine_tier_three}{Logical; if TRUE, combines search results at tiers
   1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
