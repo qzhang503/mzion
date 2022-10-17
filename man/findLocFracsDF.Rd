@@ -46,4 +46,15 @@ df$pep_ms2_ideltas.[1] <- list(c(1,3,4,5,6,7,8,10,14,15,16,17,18,19))
 df$pep_ms2_ideltas.[2] <- list(c(4,5,6,7,8,10,14,15,16,17,18,19))
 df$pep_ms2_ideltas.[3] <- list(c(1,3,4,5,6,7,8,10,14,16,17,18,19))
 ans <- findLocFracsDF(df, locmod_indexes)
+
+# Variable Digly (K), TMT6plex+Digly (K) fixed TMT6plex (K)
+# 9 - TMT6plex+Digly (K)
+# 6 - Digly (K)
+# 2 - TMT6plex (K)
+# different lengths but equal mass: 26 and 9
+locmod_indexes <- c(2, 6, 9)
+df <- data.frame(pep_ivmod2 = c("000000020000000602", "000000090000000002"), pep_ms2_ideltas. = NA)
+df$pep_ms2_ideltas.[1] <- list(c(1,2,3,4,5,6,19,20,21,22,23))
+df$pep_ms2_ideltas.[2] <- list(c(1,2,3,4,5,6,19,20,      23))
+ans <- findLocFracsDF(df, locmod_indexes)
 }

@@ -1,7 +1,7 @@
 Package: proteoM
 Type: Package
 Title: Database Searches of Proteomic Mass-spectrometrirc Data
-Version: 1.1.9.5
+Version: 1.1.9.6
 Authors@R: 
     person(given = "Qiang",
            family = "Zhang",

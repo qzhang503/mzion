@@ -1827,10 +1827,6 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
 #' Calculates the cut-offs of protein scores.
 #'
 #' @param df An output from upstream steps.
-#' @param max_protnpep_co The maximum value of \code{prot_n_pep} for the
-#'   consideration of protein significance. Proteins with \code{prot_n_pep >
-#'   max_protnpep_co} will have a protein significance score cutoff of zero and
-#'   thus are significant.
 #' @param out_path An output path.
 #' @inheritParams calc_pepfdr
 #' @inheritParams matchMS
@@ -2638,30 +2634,41 @@ find_chunkbreaks <- function (vals, n_chunks)
 #' df$pep_ms2_ideltas.[1] <- list(c(1,2,3,4,5,6,8,9,10,11,12,13,14))
 #' df$pep_ms2_ideltas.[2] <- list(c(1,2,3,4,5,6,8,9,10,12,13,14))
 #' ans <- findLocFracsDF(df, locmod_indexes)
-#' 
+#'
 #' # Variable Acetyl (K) and fixed TMT6plex (K)
 #' locmod_indexes <- "4"
 #' df <- data.frame(pep_ivmod2 = c("04000000", "00000000"), pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(2,5,6,7,9,11,14,15,16))
 #' df$pep_ms2_ideltas.[2] <- list(c(1,2,5,6,7,9,11,14))
 #' ans <- findLocFracsDF(df, locmod_indexes)
-#' 
+#'
 #' df <- data.frame(pep_ivmod2 = c("0004000", "4000000"), pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(2,3,4,5,6,8,10,11,12,14))
 #' df$pep_ms2_ideltas.[2] <- list(c(4,5,6,8,10,14))
 #' ans <- findLocFracsDF(df, locmod_indexes)
-#' 
+#'
 #' df <- data.frame(pep_ivmod2 = c("00040402", "00040204", "00020202"), pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(1,4,6,7,9,10,11,12,15,16))
 #' df$pep_ms2_ideltas.[2] <- list(c(1,4,11,12,15,16))
 #' df$pep_ms2_ideltas.[3] <- list(c(1,4,11,12,15,16))
 #' ans <- findLocFracsDF(df, locmod_indexes)
-#' 
+#'
 #' locmod_indexes <- c("2", "4")
 #' df <- data.frame(pep_ivmod2 = c("0004004000402", "0002004000402", "0004004000204"), pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(1,3,4,5,6,7,8,10,14,15,16,17,18,19))
 #' df$pep_ms2_ideltas.[2] <- list(c(4,5,6,7,8,10,14,15,16,17,18,19))
 #' df$pep_ms2_ideltas.[3] <- list(c(1,3,4,5,6,7,8,10,14,16,17,18,19))
+#' ans <- findLocFracsDF(df, locmod_indexes)
+#'
+#' # Variable Digly (K), TMT6plex+Digly (K) fixed TMT6plex (K)
+#' # 9 - TMT6plex+Digly (K)
+#' # 6 - Digly (K)
+#' # 2 - TMT6plex (K)
+#' # different lengths but equal mass: 26 and 9
+#' locmod_indexes <- c(2, 6, 9)
+#' df <- data.frame(pep_ivmod2 = c("000000020000000602", "000000090000000002"), pep_ms2_ideltas. = NA)
+#' df$pep_ms2_ideltas.[1] <- list(c(1,2,3,4,5,6,19,20,21,22,23))
+#' df$pep_ms2_ideltas.[2] <- list(c(1,2,3,4,5,6,19,20,      23))
 #' ans <- findLocFracsDF(df, locmod_indexes)
 findLocFracsDF <- function (df, locmod_indexes = NULL) 
 {
@@ -2684,6 +2691,7 @@ findLocFracsDF <- function (df, locmod_indexes = NULL)
   ans[!oks] <- NA_real_
   ps <- ps[oks]
   seqs <- seqs[oks]
+  ns <- ns[oks]
   
   # (2) single non-trivial entry and thus unambiguous
   lenp <- length(ps)
@@ -2697,20 +2705,23 @@ findLocFracsDF <- function (df, locmod_indexes = NULL)
   }
 
   # (3) multiple entries (lenp > 1L)
-  #     with position permutation, all ps (should) have the same length
-  #     or not yet handle ps with different lengths
-  len1 <- length(ps[[1]])
+  
   len <- lenp - 1L
   ncr <- nnx <- vector("integer", len)
   
   for (i in 1:len) {
-    pcr <- ps[[i]] # all(pcr <= naas)
-    pnx <- ps[[i+1L]]
-    seqcr <- seqs[[i]]
-    seqnx <- seqs[[i+1L]]
+    inx <- i + 1L
     
+    pcr <- ps[[i]] # all(pcr <= naas)
+    pnx <- ps[[inx]]
+    seqcr <- seqs[[i]]
+    seqnx <- seqs[[inx]]
+    lencr <- ns[[i]]
+    lennx <- ns[[inx]]
+    
+    # ps different lengths: see the Digly (K) and TMT (K) example
     bmin <- min(pcr[[1]], pnx[[1]])
-    bmax <- max(pcr[[len1]], pnx[[len1]]) # bmax <= naas
+    bmax <- max(pcr[[lencr]], pnx[[lennx]]) # bmax <= naas
     
     # b-ions
     bcr <- seqcr <= naas

@@ -17,10 +17,13 @@ calc_protfdr_i(
 
 \item{target_fdr}{Numeric; the levels of false-discovery rate (FDR).}
 
-\item{max_protnpep_co}{The maximum value of \code{prot_n_pep} for the
-consideration of protein significance. Proteins with \code{prot_n_pep >
-max_protnpep_co} will have a protein significance score cutoff of zero and
-thus are significant.}
+\item{max_protnpep_co}{A positive integer; the maximum number of peptides
+under a protein (\code{prot_n_pep}) to warrant the protein significance.
+For instance, proteins with \code{prot_n_pep > max_protnpep_co} will have a
+protein significance score cutoff of zero and thus are significant. Choose
+\code{max_protnpep_co = Inf} to learn automatically the cut-off from data.
+Note that the the value of \code{prot_n_pep} includes the counts of shared
+peptides.}
 
 \item{n_burnin}{The minimum number of burn-ins in protein enrichment scores.}
 

@@ -237,7 +237,7 @@
 #'   one of c("protein", "peptide", "psm"). The default is \code{protein}.
 #'
 #'   Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
-#'   peptide} with the additional filtration of data at \code{prot_tier == 1}. 
+#'   peptide} with the additional filtration of data at \code{prot_tier == 1}.
 #' @param max_pepscores_co A positive numeric; the upper limit in the cut-offs
 #'   of peptide scores for discriminating significant and insignificant
 #'   identities. The default is changed from \code{Inf} to 50 from version
@@ -249,6 +249,13 @@
 #'   of protein scores for discriminating significant and insignificant
 #'   identities.  For higher quality and data-driven thresholds, choose the
 #'   default \code{max_protscores_co = Inf}.
+#' @param max_protnpep_co A positive integer; the maximum number of peptides
+#'   under a protein (\code{prot_n_pep}) to warrant the protein significance.
+#'   For instance, proteins with \code{prot_n_pep > max_protnpep_co} will have a
+#'   protein significance score cutoff of zero and thus are significant. Choose
+#'   \code{max_protnpep_co = Inf} to learn automatically the cut-off from data.
+#'   Note that the the value of \code{prot_n_pep} includes the counts of shared
+#'   peptides.
 #' @param soft_secions Logical; if TRUE, collapses the intensities of secondary
 #'   ions to primary ions at the absence of the primaries. The default is FALSE.
 #'   For instance, the signal of \code{b5^*} will be ignored if its primary ion
@@ -594,6 +601,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      fdr_type = c("protein", "peptide", "psm"),
                      max_pepscores_co = 50, min_pepscores_co = 10, 
                      max_protscores_co = Inf, 
+                     max_protnpep_co = 10L, 
                      soft_secions = FALSE, 
                      
                      topn_mods_per_seq = 1L, 
@@ -681,7 +689,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      min_mass, max_mass, min_ms2mass, max_ms2mass, n_13c, 
                      ppm_ms1, ppm_ms2, ppm_reporters, max_n_prots, digits, 
                      target_fdr, max_pepscores_co, min_pepscores_co, 
-                     max_protscores_co, topn_mods_per_seq, topn_seqs_per_query), 
+                     max_protscores_co, max_protnpep_co, topn_mods_per_seq, 
+                     topn_seqs_per_query), 
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
@@ -754,7 +763,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   stopifnot(max_pepscores_co >= 0, min_pepscores_co >= 0, max_protscores_co >= 0, 
             min_ret_time >= 0, max_pepscores_co >= min_pepscores_co, 
-            max_ret_time >= min_ret_time)
+            max_ret_time >= min_ret_time, max_protnpep_co >= 1L)
   
   # named vectors
   if (any(is.na(topn_ms2ion_cuts)))
@@ -1246,6 +1255,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   df <- calc_protfdr(df = df, 
                      target_fdr = target_fdr, 
                      max_protscores_co = max_protscores_co, 
+                     max_protnpep_co = max_protnpep_co, 
                      out_path = out_path)
   
   df <- add_rptrs(df, quant, out_path)

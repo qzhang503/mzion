@@ -1,14 +1,14 @@
 proteoM
 ================
 true
-2022-07-06
+2022-10-15
 
--   <a href="#installation" id="toc-installation">Installation</a>
--   <a href="#fastas-and-mgfs" id="toc-fastas-and-mgfs">FASTAs and MGFs</a>
--   <a href="#database-searches" id="toc-database-searches">Database
-    searches</a>
--   <a href="#next-steps" id="toc-next-steps">Next steps</a>
--   <a href="#other-utilities" id="toc-other-utilities">Other utilities</a>
+- <a href="#installation" id="toc-installation">Installation</a>
+- <a href="#fastas-and-mgfs" id="toc-fastas-and-mgfs">FASTAs and MGFs</a>
+- <a href="#database-searches" id="toc-database-searches">Database
+  searches</a>
+- <a href="#next-steps" id="toc-next-steps">Next steps</a>
+- <a href="#other-utilities" id="toc-other-utilities">Other utilities</a>
 
 ## Installation
 
@@ -26,7 +26,7 @@ devtools::install_github("qzhang503/proteoQDA")
 ## FASTAs and MGFs
 
 ``` r
-# Fasta databases
+# (Optional for exemplary FASTAs and MGFs)
 library(proteoQDA)
 
 copy_refseq_hs("~/proteoM/dbs/fasta/refseq")
@@ -34,7 +34,7 @@ copy_refseq_mm("~/proteoM/dbs/fasta/refseq")
 copy_uniprot_hsmm("~/proteoM/dbs/fasta/uniprot")
 copy_crap("~/proteoM/dbs/fasta/crap")
 
-# MGF (by MSConvert or Proteome Discoverer)
+# MGF (by MSConvert, Proteome Discoverer or Bruker's DataAnalysis)
 copy_pd_mgf("~/proteoM/examples/mgfs")
 copy_msconv_mgf("~/proteoM/examples_p/mgfs")
 ```
@@ -84,35 +84,36 @@ matchMS(
   max_miss  = 4, 
   quant     = "tmt10", 
   
-  fdr_type  = "psm",
-  combine_tier_three = TRUE, 
+  fdr_type  = "protein",
 )
+
+## See also ?matchMS for SILAC, acetylome etc.
 ```
 
 ## Next steps
 
--   Search against full-length MGFs or mzML
+- Search against full-length MGFs or mzML
 
-    -   Thermo’s MS
-        -   [x] `MSConvert`
+  - Thermo’s MS
+    - [x] `MSConvert`
 
-            \[+\] Binary encode 64-bit
+      \[+\] Binary encode 64-bit
 
-            \[+\] Write index
+      \[+\] Write index
 
-            \[+\] TPP compatibility
+      \[+\] TPP compatibility
 
-            \[-\] (*uncheck*) Use zlib compression
+      \[-\] (*uncheck*) Use zlib compression
 
-        -   [x] `Proteome Discoverer`
-    -   Bruker’s MS
-        -   [x] `DataAnalysis`
+    - [x] `Proteome Discoverer`
+  - Bruker’s MS
+    - [x] `DataAnalysis`
 
--   Data QC and mining with
-    [proteoQ](https://github.com/qzhang503/proteoQ/)
+- Data QC and mining with
+  [proteoQ](https://github.com/qzhang503/proteoQ/)
 
 ## Other utilities
 
--   `mapMS2ions`: visualizations of matched MS2 ions
--   `table_unimods` summary of Unimod entries
--   `add_unimod`: addition of a Unimod entry
+- `mapMS2ions`: visualizations of matched MS2 ions
+- `table_unimods` summary of Unimod entries
+- `add_unimod`: addition of a Unimod entry

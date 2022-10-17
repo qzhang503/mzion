@@ -22,10 +22,13 @@ of protein scores for discriminating significant and insignificant
 identities.  For higher quality and data-driven thresholds, choose the
 default \code{max_protscores_co = Inf}.}
 
-\item{max_protnpep_co}{The maximum value of \code{prot_n_pep} for the
-consideration of protein significance. Proteins with \code{prot_n_pep >
-max_protnpep_co} will have a protein significance score cutoff of zero and
-thus are significant.}
+\item{max_protnpep_co}{A positive integer; the maximum number of peptides
+under a protein (\code{prot_n_pep}) to warrant the protein significance.
+For instance, proteins with \code{prot_n_pep > max_protnpep_co} will have a
+protein significance score cutoff of zero and thus are significant. Choose
+\code{max_protnpep_co = Inf} to learn automatically the cut-off from data.
+Note that the the value of \code{prot_n_pep} includes the counts of shared
+peptides.}
 
 \item{out_path}{An output path.}
 }
