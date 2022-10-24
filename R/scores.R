@@ -1831,7 +1831,8 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
 #' @inheritParams calc_pepfdr
 #' @inheritParams matchMS
 calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = Inf, 
-                          max_protnpep_co = 10L, out_path = NULL) 
+                          max_protnpep_co = 10L, method_prot_es_co = "median", 
+                          out_path = NULL) 
 {
   message("Calculating peptide-protein FDR.")
   
@@ -1853,6 +1854,7 @@ calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = Inf,
     purrr::map_dbl(calc_protfdr_i, 
                    target_fdr = target_fdr, 
                    max_protnpep_co = max_protnpep_co, 
+                   method_prot_es_co = method_prot_es_co, 
                    out_path = out_path) 
   
   score_co[score_co > max_protscores_co] <- max_protscores_co
@@ -1894,6 +1896,15 @@ calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = Inf,
 }
 
 
+#' Helper for descriptive statstics
+#' 
+#' @param f One of \code{max, mean, median, min}. 
+aggr_prot_es <- function(f) 
+{
+  function (df, ...) dplyr::summarise(df, prot_es = f(prot_es, ...))
+}
+
+
 #' Helper of \link{calc_protfdr}.
 #' 
 #' For prot_n_pep at value i.
@@ -1904,7 +1915,7 @@ calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = Inf,
 #' @inheritParams calc_protfdr
 #' @return A score cut-off at a given prot_n_pep.
 calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L, 
-                            n_burnin = 3L, out_path) 
+                            method_prot_es_co = "median", n_burnin = 3L, out_path) 
 {
   options(digits = 9L)
   
@@ -1936,9 +1947,15 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
   # (NOT to use `local` for hard `return (0L)`)
   prot_scores <- td %>% 
     dplyr::mutate(prot_es = pep_score - pep_score_co) %>% 
-    dplyr::group_by(prot_acc) %>% 
-    dplyr::summarise(prot_es = max(prot_es, na.rm = TRUE))
+    dplyr::group_by(prot_acc) 
   
+  prot_scores <- switch(method_prot_es_co, 
+                        max = aggr_prot_es(max)(prot_scores, na.rm = TRUE), 
+                        mean = aggr_prot_es(mean)(prot_scores, na.rm = TRUE), 
+                        median = aggr_prot_es(median)(prot_scores, na.rm = TRUE),
+                        min = aggr_prot_es(min)(prot_scores, na.rm = TRUE), 
+                        aggr_prot_es(max)(prot_scores, na.rm = TRUE))
+
   # no decoys
   if (!any(grepl("^-", prot_scores$prot_acc))) 
     return (0L)

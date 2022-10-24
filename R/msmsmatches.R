@@ -256,6 +256,13 @@
 #'   \code{max_protnpep_co = Inf} to learn automatically the cut-off from data.
 #'   Note that the the value of \code{prot_n_pep} includes the counts of shared
 #'   peptides.
+#' @param method_prot_es_co A character string; the method to calculate the
+#'   cut-offs of protein enrichment scores. The value is in one of \code{
+#'   "median", "mean", "max", "min"} with the default of \code{"median"}. For
+#'   instance at the default, the median of \code{peptide_score -
+#'   pep_score_cutoff} under a protein will be used to represent the threshold
+#'   of a protein enrichment score. For more conserved thresholds, the
+#'   statistics of \code{"max"} may be considered.
 #' @param soft_secions Logical; if TRUE, collapses the intensities of secondary
 #'   ions to primary ions at the absence of the primaries. The default is FALSE.
 #'   For instance, the signal of \code{b5^*} will be ignored if its primary ion
@@ -602,6 +609,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      max_pepscores_co = 50, min_pepscores_co = 10, 
                      max_protscores_co = Inf, 
                      max_protnpep_co = 10L, 
+                     method_prot_es_co = c("median", "mean", "max", "min"), 
                      soft_secions = FALSE, 
                      
                      topn_mods_per_seq = 1L, 
@@ -642,6 +650,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
   fun <- as.character(this_call[1])
   this_fml <- formals()
   
+  ## Match arguments
+  method_prot_es_co <- match.arg(method_prot_es_co)
+
   ## Developer's dots
   dots <- as.list(substitute(...()))
 
@@ -1256,6 +1267,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      target_fdr = target_fdr, 
                      max_protscores_co = max_protscores_co, 
                      max_protnpep_co = max_protnpep_co, 
+                     method_prot_es_co = method_prot_es_co, 
                      out_path = out_path)
   
   df <- add_rptrs(df, quant, out_path)

@@ -51,6 +51,7 @@ matchMS(
   min_pepscores_co = 10,
   max_protscores_co = Inf,
   max_protnpep_co = 10L,
+  method_prot_es_co = c("median", "mean", "max", "min"),
   soft_secions = FALSE,
   topn_mods_per_seq = 1L,
   topn_seqs_per_query = 1L,
@@ -305,6 +306,14 @@ protein significance score cutoff of zero and thus are significant. Choose
 \code{max_protnpep_co = Inf} to learn automatically the cut-off from data.
 Note that the the value of \code{prot_n_pep} includes the counts of shared
 peptides.}
+
+\item{method_prot_es_co}{A character string; the method to calculate the
+cut-offs of protein enrichment scores. The value is in one of \code{
+"median", "mean", "max", "min"} with the default of \code{"median"}. For
+instance at the default, the median of \code{peptide_score -
+pep_score_cutoff} under a protein will be used to represent the threshold
+of a protein enrichment score. For more conserved thresholds, the
+statistics of \code{"max"} may be considered.}
 
 \item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
 ions to primary ions at the absence of the primaries. The default is FALSE.
