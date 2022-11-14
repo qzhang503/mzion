@@ -2,15 +2,15 @@
 % Please edit documentation in R/ms1_precursors.R
 \name{adj_anywhere_masses}
 \alias{adj_anywhere_masses}
-\title{Adjusts the masses for the coerced sites}
+\title{Adjusts the masses for \code{Anywhere} coerced sites}
 \usage{
 adj_anywhere_masses(peps, aa_masses)
 }
 \arguments{
 \item{peps}{The list of forward peptides with masses.}
 
-\item{aa_masses}{An amino-acid masses look-up table.}
+\item{aa_masses}{A (coerced) amino-acid masses look-up table.}
 }
 \description{
-Adjusts the masses for the coerced sites
+Adjusts the masses for \code{Anywhere} coerced sites
 }

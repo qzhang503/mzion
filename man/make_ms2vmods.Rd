@@ -2,68 +2,67 @@
 % Please edit documentation in R/vmod_ms2_labels.R
 \name{make_ms2vmods}
 \alias{make_ms2vmods}
-\title{Makes the sets of MS2 labels (with permutations) for an \code{aa_masses}.}
+\title{Makes the sets of MS2 labels (with permutations) at an \code{aa_masses}.}
 \usage{
 make_ms2vmods(vec = NULL)
 }
 \arguments{
-\item{vec}{A named vector of labels.}
+\item{vec}{A named vector of labels. Site in name, modification in value.}
 }
 \description{
 For \code{Anywhere} variable modifications (\code{amods}) across all
 residues.
 }
 \details{
-For the universe of labels, loops through \code{aa_masses_all} and the
-indexes of lists are in one-to-one correspondence to \code{aa_masses_all}.
+The universe of labels. It loops through \code{aa_masses_all}. The indexes of
+lists are in one-to-one correspondence to \code{aa_masses_all}.
 
-By the design of \code{aa_masses}, the \code{amods} in a \code{aa_masses} are
-all realized. Therefore, each list in the resulted labels should contain at
-least one of the \code{amods} residues from the \code{aa_masses}. For
+By the design of \code{aa_masses}, the \code{amods} in an \code{aa_masses}
+are all realized. Therefore, each list in the resulted labels should contain
+at least one of the \code{amods} residues from the \code{aa_masses}. For
 example, if \code{amods} contain M, N and S, each list in the result should
 contains at least one of the residues.
 }
 \examples{
 \donttest{
 ## with a bare vector
-# One-to-one correspondance between Names and Sites
+# One-to-one correspondence between Names and Sites
 vec <- c(M = "Oxidation (M)", N = "Deamidated (N)")
-attr(vec, "ps") <- c(M = 3L, N = 2L)
-attr(vec, "labs") <- c(`Oxidation (M)` = 3L, 
-                       `Deamidated (N)` = 2L)
+attr(vec, "ps")   <- c(M = 3L, N = 2L)
+attr(vec, "labs") <- c(`Oxidation (M)` = 3L, `Deamidated (N)` = 2L)
 
 ans <- make_ms2vmods(vec)
 
 # Multiple Names to the same Site (S)
-vec <- c(M = "Oxidation (M)", 
-         S = "Carbamidomethyl (S)", 
+vec <- c(M = "Oxidation (M)",
+         S = "Carbamidomethyl (S)",
          S = "Phospho (S)")
 attr(vec, "ps") <- c(M = 2L, S = 3L)
-attr(vec, "labs") <- c(`Oxidation (M)` = 2L, 
-                       `Carbamidomethyl (S)` = 2L, 
+attr(vec, "labs") <- c(`Oxidation (M)` = 2L,
+                       `Carbamidomethyl (S)` = 2L,
                        `Phospho (S)` = 1L)
 
 ans <- make_ms2vmods(vec)
 stopifnot(nrow(ans) == 6L, ncol(ans) == length(vec))
 
 # Another one-to-multiple
-vec <- c(M = "Oxidation (M)", M = "Carbamyl (M)", 
+vec <- c(M = "Oxidation (M)", M = "Carbamyl (M)",
          S = "Carbamidomethyl (S)", S = "Phospho (S)")
 attr(vec, "ps") <- c(M = 3L, S = 2L)
-attr(vec, "labs") <- c(`Oxidation (M)` = 2L, 
-                       `Carbamyl (M)` = 1L, 
-                       `Carbamidomethyl (S)` = 1L, 
+attr(vec, "labs") <- c(`Oxidation (M)` = 2L,
+                       `Carbamyl (M)` = 1L,
+                       `Carbamidomethyl (S)` = 1L,
                        `Phospho (S)` = 1L)
 
 ans <- make_ms2vmods(vec)
-stopifnot(nrow(ans) == 24L, ncol(ans) == length(vec), 
+stopifnot(nrow(ans) == 24L, ncol(ans) == length(vec),
           nrow(ans) == nrow(unique(ans)))
 
 ## Simple
-fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
+fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
                "Carbamidomethyl (C)")
 
-varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
+varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
             "Deamidated (N)",
             "Gln->pyro-Glu (N-term = Q)")
 
@@ -115,7 +114,7 @@ ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 
 # No duplication within each aa_masses
-any_dups <- lapply(ms1vmods_all, 
+any_dups <- lapply(ms1vmods_all,
                    function (x) anyDuplicated(x))
 
 stopifnot(all(unlist(any_dups) == 0L))
@@ -129,11 +128,11 @@ attr(aa_masses_all[[9]], "tmod")
 x <- ms1vmods_all[[64]] # list of 10 vectors
 
 # [[1]]
-#  M                     S                     S 
-# "Carbamyl (M)"  "Carbamidomethyl (S)"  "Phospho (S)" 
+#  M                     S                     S
+# "Carbamyl (M)"  "Carbamidomethyl (S)"  "Phospho (S)"
 # [[2]]
-# M                     M                     S               S 
-# "Carbamyl (M)"  "Carbamyl (M)"  "Carbamidomethyl (S)"  "Phospho (S)" 
+# M                     M                     S               S
+# "Carbamyl (M)"  "Carbamyl (M)"  "Carbamidomethyl (S)"  "Phospho (S)"
 # [[3]]
 # ...
 

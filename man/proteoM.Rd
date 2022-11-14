@@ -3,8 +3,7 @@
 \docType{package}
 \name{proteoM}
 \alias{proteoM}
-\title{proteoM: A package for database searches of mass spectrometry data (TMT and
-LFQ).}
+\title{proteoM: A package for proteomic database searches of mass spectrometry data.}
 \description{
 The proteoM package provides utilities for (1) database searches. The
 companion package proteoQ provides utilities for (2) data preprocessing, (3)
@@ -12,7 +11,7 @@ annotation, (4) quality assurance assessments and (5) informatic analysis.
 }
 \section{Main utility in database searches}{
  matchMS (additional UI tools:
-  load_fasta2, parse_unimod, table_unimods, calc_monopeptide,
-  calc_ms2ionseries)
+  mapMS2ions, load_fasta2, parse_unimod, table_unimods, add_unimod, 
+  calc_monopeptide, calc_ms2ionseries)
 }
 

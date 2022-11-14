@@ -11,7 +11,7 @@ make_ms1_vmodsets(
 )
 }
 \arguments{
-\item{aa_masses_all}{All the amino acid lookup tables.}
+\item{aa_masses_all}{All of the amino acid lookup tables.}
 
 \item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
 \code{Anywhere} (non-terminal) variable modifications per peptide. The

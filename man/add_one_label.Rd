@@ -9,7 +9,7 @@ add_one_label(M, x)
 \arguments{
 \item{M}{A permutation table with unique sets by rows.}
 
-\item{x}{A label to be added to M for additional permutations.}
+\item{x}{A duplicated label that can be found in M.}
 }
 \description{
 Adds one more labels to a permutation table.

@@ -56,7 +56,8 @@ which_topx <- function(x, n = 50L, ...)
 #' }
 which_topx2 <- function(x, n = 50L, ...) 
 {
-  if (is.na(n)) return(NULL)
+  if (is.na(n)) 
+    return(NULL)
   
   len <- length(x)
   p <- len - n
@@ -148,7 +149,7 @@ find_ppm_error <- function (x = 1000, y = 1000.01) (y - x)/y * 1E6
 find_mass_error_range <- function (x = 500L, ppm = 20L) 
 {
   d <- x * ppm/1E6
-  c(x-d, x+d)
+  c(x - d, x + d)
 }
 
 
@@ -177,11 +178,7 @@ post_ms2match <- function (df, i, aa_masses, out_path)
 
   nm_fmods <- attr(aa_masses, "fmods", exact = TRUE)
   nm_vmods <- attr(aa_masses, "vmods", exact = TRUE)
-
-  if (grepl("^rev", i)) 
-    is_decoy <- TRUE
-  else 
-    is_decoy <- FALSE
+  is_decoy <- if (grepl("^rev", i)) TRUE else FALSE
 
   df <- df %>%
     dplyr::mutate(pep_fmod = nm_fmods,
@@ -239,10 +236,9 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 
   mgf_frames <- local({
     ranges <- seq_along(mgf_frames)
-    labs <- levels(cut(ranges, n_cores^2))
-    lower = floor(as.numeric( sub("\\((.+),.*", "\\1", labs)))
-
-    grps <- findInterval(ranges, lower)
+    labs   <- levels(cut(ranges, n_cores^2))
+    lower  <- floor(as.numeric( sub("\\((.+),.*", "\\1", labs)))
+    grps   <- findInterval(ranges, lower)
 
     split(mgf_frames, grps)
   })
@@ -250,7 +246,7 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
   # parses aa_masses
   nm_fmods <- attr(aa_masses, "fmods", exact = TRUE)
   nm_vmods <- attr(aa_masses, "vmods", exact = TRUE)
-  msg_end <- if (grepl("^rev_", i)) " (decoy)." else "."
+  msg_end  <- if (grepl("^rev_", i)) " (decoy)." else "."
 
   message("Matching against: ",
           paste0(nm_fmods,
@@ -259,7 +255,7 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
 
   # reads theoretical peptide data
   .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
-  theopeps <- qs::qread(file.path(.path_bin, paste0("binned_theopeps_", i, ".rds")))
+  theopeps  <- qs::qread(file.path(.path_bin, paste0("binned_theopeps_", i, ".rds")))
   
   if (is.null(theopeps)) {
     return(list(mgf_frames = mgf_frames, 
@@ -288,17 +284,11 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
   frames_mgf <- lapply(mgf_frames, function (x) as.integer(names(x)))
   
   mins <- purrr::map_int(frames_mgf, function (x) {
-    if (!length(x)) 
-      0L 
-    else 
-      min(x, na.rm = TRUE)
+    if (length(x)) min(x, na.rm = TRUE) else 0L
   })
   
   maxs <- purrr::map_int(frames_mgf, function (x) {
-    if (!length(x)) 
-      0L 
-    else 
-      max(x, na.rm = TRUE)
+    if (length(x)) max(x, na.rm = TRUE) else 0L
   })
   
   frames_theo <- as.integer(names(theopeps))
@@ -354,8 +344,7 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
     })
   }
 
-  invisible(list(mgf_frames = mgf_frames, 
-                 theopeps = theopeps))
+  invisible(list(mgf_frames = mgf_frames, theopeps = theopeps))
 }
 
 
@@ -372,7 +361,7 @@ subset_theoframes <- function (mgf_frames = NULL, theopeps = NULL)
 
   frames <- as.integer(names(mgf_frames))
   breaks <- which(diff(frames) != 1L) + 1L
-  grps <- findInterval(frames, frames[breaks])
+  grps   <- findInterval(frames, frames[breaks])
   frames <- split(frames, grps)
   
   frames <- lapply(frames, function (x) c(x[1] - 1, x, x[length(x)] + 1))
@@ -596,9 +585,9 @@ find_mod_indexes <- function (file)
     stop("File not found: ", file, call. = FALSE)
   
   mod_indexes <- readr::read_tsv(file, show_col_types = FALSE)
-  
   inds <- mod_indexes$Abbr
   names(inds) <- mod_indexes$Desc
+  
   inds
 }
 

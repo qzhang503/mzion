@@ -11,11 +11,10 @@ find_vmodscombi(
 )
 }
 \arguments{
-\item{aas}{\code{aa_seq} split in a sequence of LETTERS.}
+\item{aas}{\code{aa_seq} split into a sequence of LETTERS.}
 
-\item{ms2vmods}{The i-th result from
-
-  lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods)).}
+\item{ms2vmods}{The i-th result from: 
+lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods)).}
 
 \item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
 number of combinatorial variable modifications per peptide sequence. The
@@ -26,27 +25,27 @@ Finds the combinatorial MS2 variable modifications.
 }
 \examples{
 \donttest{
-## One-to-one correspondance between Names and Sites
-#  (no need to permutate MS1 labels)
+## One-to-one correspondence between Names and Sites
+#  (no need to permute MS1 labels)
 
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
                "Carbamidomethyl (C)")
 
-varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)",
-             "Deamidated (N)",
-             "Gln->pyro-Glu (N-term = Q)")
+varmods   <- c("Acetyl (Protein N-term)", "Oxidation (M)",
+               "Deamidated (N)",
+               "Gln->pyro-Glu (N-term = Q)")
 
 aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
                                varmods = varmods,
-                               maxn_vmods_setscombi = 64,
                                out_path = NULL)
 
-maxn_vmods_per_pep <- 5L
+maxn_vmods_per_pep  <- 5L
 maxn_sites_per_vmod <- 3L
 
 ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
+
 ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
 
 i <- 11L
@@ -68,13 +67,13 @@ vmods_combi <- find_vmodscombi(aas, ms2vmods)
 ## 'Carbamidomethyl (M)',  'Carbamyl (M)' and N
 #  (need permutation of MS1 labels)
 
-fixedmods = c("TMT6plex (K)", "dHex (S)")
-varmods = c("Carbamidomethyl (M)", "Carbamyl (M)",
-            "Deamidated (N)", "Acetyl (Protein N-term)")
+fixedmods <- c("TMT6plex (K)", "dHex (S)")
+varmods   <- c("Carbamidomethyl (M)", "Carbamyl (M)",
+               "Deamidated (N)", "Acetyl (Protein N-term)")
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
-maxn_vmods_per_pep <- 5L
+maxn_vmods_per_pep  <- 5L
 maxn_sites_per_vmod <- 3L
 
 ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,

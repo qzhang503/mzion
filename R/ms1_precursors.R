@@ -415,26 +415,46 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     gc()
 
     # (e) Adjusted base masses if with fixed-to-variable coercion
-    # (filtered by min_mass and max_mass since it is a final)
+    # fwd_peps[[1]] ties to the original user-supplied fixed and variable mods;
+    #   adjusted against all of the coerced N-, C-term and Anywhere sites
+    # also filtered by min_mass and max_mass since it is a final
     fwd_peps[[1]] <- adj_base_masses(fwd_peps[[1]], aa_masses_0, aa_masses_1, 
                                      min_mass = min_mass, max_mass = max_mass, 
                                      digits = digits)
     
     gc()
     
+    
     # --- Delta masses of `variable` terminals  ---
-    # (e.g., on top of the `fixed` 18.010565)
-    message("Adding terminal masses...")
+    # e.g., on top of the `fixed` 18.010565; 
+    # 
+    # no effect on fwd_peps[[1]] since it is a "tmod-" (better term "vtmod")
+    # 
+    # also irrespective to fixed-to-variable coercions:
+    #   only one N- or C-term, simple summation makes no difference  
+    #   either its under fixed or variable modifcations
+    message("Adding variable terminal masses...")
     fwd_peps <- mapply(add_term_mass, fwd_peps, aa_masses_ms1, 
                        MoreArgs = list(min_mass = min_mass, max_mass = max_mass))
     
-    message("Adding coerced fixed masses...")
+    # (1) aa_masses_ms1 are the interim coerced lookups
+    #   e.g. K = 128.094963 and TMT6plex (K) = 229.1629
+    # (2) aa_masses_all are the final back-coerced lookups 
+    #   e.g., with TMT6plex (K) coerced back to fixed if no variable Acetyl (K);
+    #   K = 357.2579 and no TMT6plex in the lookup
+    # -> adds n*229.1629 to the masses to reflect K = 357.2579 in aa_masses_all
+    # 
+    # attr("anywhere_excepts") in aa_masses_ms1 tells the sites  
+    #   that are back-coerced to fixed from aa_masses_ms1 to aa_masses_all
+    # (no effect on fwd_peps[[1]] since it is a "amod-")
+    message("Adding back-coerced fixed \"Anywhere\" masses...")
     fwd_peps <- mapply(adj_anywhere_masses, fwd_peps, aa_masses_ms1)
+    rm(list = "aa_masses_ms1")
 
+    
     # --- Mass of variable mods and/or NLs ---
+    # !!! switch to the "ultimate" aa_masses_all (with back coercion)
     message("Adding variable masses...")
-
-    # (switch to aa_masses_all)
     types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
 
     fmods_ps <- lapply(aa_masses_all, attr, "fmods_ps", exact = TRUE)
@@ -2306,7 +2326,6 @@ ms1masses_bare_noenz <- function (x, aa_masses, ftmass = 18.010565)
   masses <- cumsum(aa_masses[aas])
   len_m <- length(masses)
   masses <- masses[(len_m - len + 1L):len_m] + ftmass
-  # masses <- tail(masses, len) + ftmass
   names(masses) <- x
   
   masses
@@ -2508,10 +2527,10 @@ adj_base_masses <- function (fwd_peps_1, aa_masses_0, aa_masses_1,
 }
 
 
-#' Adjusts the masses for the coerced sites
+#' Adjusts the masses for \code{Anywhere} coerced sites
 #' 
 #' @param peps The list of forward peptides with masses.
-#' @param aa_masses An amino-acid masses look-up table.
+#' @param aa_masses A (coerced) amino-acid masses look-up table.
 adj_anywhere_masses <- function (peps, aa_masses)
 {
   anywhere_excepts <- attr(aa_masses, "anywhere_excepts", exact = TRUE)
@@ -2543,7 +2562,8 @@ adj_anywhere_masses <- function (peps, aa_masses)
 #'
 #' (2) "amods- tmod+ vnl- fnl-".
 #' 
-#' No needs of checking \code{is_empty(ntmod) && is_empty(ctmod)}
+#' No needs of checking \code{is_empty(ntmod) && is_empty(ctmod)}. 
+#' \code{aa_masses} is one of \code{aa_masses_ms1} (coerced). 
 #' 
 #' @param peps A list of peptide sequences.
 #' @inheritParams add_var_masses
@@ -2573,6 +2593,8 @@ add_term_mass <- function (peps, aa_masses, min_mass = 700L, max_mass = 4500L)
 
 
 #' Calculates mono-isotopic masses of peptide sequences.
+#' 
+#' Also subset by min_len and max_len.
 #'
 #' @param seqs Sequences of peptides from FASTAs by protein accessions. Each
 #'   list contains two lists of sequences: (1) without and (2) with N-terminal
@@ -3112,7 +3134,7 @@ calc_semipepmasses <- function (val, pep, min_len = 7L, max_len = 40L, aa_masses
   len <- nchar(pep)
   len2 <- len - ct_offset
   
-  if (len2 < min_len || len2 > max_len) 
+  if (len2 <= min_len) 
     return(NULL)
   
   span <- len2 - min_len
@@ -3354,32 +3376,9 @@ ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
   if (!length(vmods_combi)) return(NULL)
 
   deltas <- lapply(vmods_combi, function (x) sum(aa_masses[x]))
-  
   masses <- lapply(deltas, function (x) round(mass + x, digits = digits))
   out <- .Internal(unlist(masses, recursive = FALSE, use.names = FALSE))
 
-  if (FALSE) {
-    if (length(vmods_nl)) {
-      vnl_combi <- lapply(vmods_combi, function (x) expand_grid_rows(vmods_nl[x]))
-
-      deltas_vnls <- lapply(vnl_combi, function (x) {
-        ss <- lapply(x, sum)
-        ss <- .Internal(unlist(ss, recursive = FALSE, use.names = FALSE))
-        ss <- unique(ss)
-      })
-
-      out <- mapply(`-`, out, deltas_vnls, SIMPLIFY = FALSE)
-    }
-    
-    if (length(fmods_nl)) {
-      fnl_combi <- expand_grid_rows(fmods_nl)
-                               
-      deltas_fnls <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
-      out <- mapply(`-`, out, deltas_fnls, SIMPLIFY = FALSE)
-    }
-  }
-  
-  # should be NULL if called from matchMS(max_mass = ...)
   out <- out[out >= min_mass & out <= max_mass]
   names(out) <- rep(aa_seq, length(out))
   

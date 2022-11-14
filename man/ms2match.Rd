@@ -15,7 +15,7 @@ ms2match(
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 20L,
-  ppm_ms2 = 25L,
+  ppm_ms2 = 20L,
   min_ms2mass = 115L,
   quant = "none",
   ppm_reporters = 10L,

@@ -46,5 +46,5 @@ variable modifications per site in a per peptide sequence.}
 \item{is_fixed_protct}{Logical; is protein C-terminal modification fixed.}
 }
 \description{
-Calculates mono-isotopic masses of peptide sequences.
+Also subset by min_len and max_len.
 }

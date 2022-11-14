@@ -14,21 +14,39 @@ A (faster alternative) to \link[gtools]{permutations} with duplicated labels.
 }
 \examples{
 \donttest{
+# four positions for four balls in three colors
+labs  <- c("A", "A", "B", "C")
+len   <- length(labs)
+g <- unique(gtools::permutations(len, len, labs, set = FALSE, repeats.allowed = FALSE))
+m <- find_perm_sets(labs)
+
+cns <- paste0("p", 1:len)
+g <- data.frame(g)
+m <- data.frame(m)
+colnames(m) <- colnames(g) <- cns
+
+stopifnot(identical(dplyr::arrange_all(g), dplyr::arrange_all(m)))
+
+# example-2
 labs <- c("A", "A", "A", "B", "B", "C")
-x <- find_perm_sets(labs)
+m <- find_perm_sets(labs)
 
 # Compares to gtools::permutations
 len <- length(labs)
-y <- gtools::permutations(len, len, labs, set = FALSE)
-y <- unique(y)
+g <- unique(gtools::permutations(len, len, labs, set = FALSE))
 
-stopifnot(dim(x) == dim(y))
+cns <- paste0("p", 1:len)
+g <- data.frame(g)
+m <- data.frame(m)
+colnames(m) <- colnames(g) <- cns
+
+stopifnot(identical(dplyr::arrange_all(g), dplyr::arrange_all(m)))
 
 # Compares to the theoretical number of entries
 len_labs <- length(labs)
 ns <- count_elements(labs)
 theo_cts <- factorial(len_labs)/prod(factorial(ns))
-stopifnot(nrow(x) == theo_cts)
+stopifnot(nrow(m) == theo_cts)
 
 ## Others
 x <- find_perm_sets(rep("A", 3))

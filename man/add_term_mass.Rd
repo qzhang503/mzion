@@ -23,5 +23,6 @@ interrogation. The default is 4500.}
 (2) "amods- tmod+ vnl- fnl-".
 }
 \details{
-No needs of checking \code{is_empty(ntmod) && is_empty(ctmod)}
+No needs of checking \code{is_empty(ntmod) && is_empty(ctmod)}. 
+\code{aa_masses} is one of \code{aa_masses_ms1} (coerced).
 }

@@ -23,7 +23,7 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
                            mod_indexes, mgf_path, out_path, type_ms2ions = "by", 
                            maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                            maxn_vmods_sitescombi_per_pep = 64L, 
-                           minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                           minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                            min_ms2mass = 115L, df0 = NULL, digits = 4L) 
 {
   # note: split into 16^2 lists
@@ -125,7 +125,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
                         maxn_vmods_per_pep = 5L, 
                         maxn_sites_per_vmod = 3L, 
                         maxn_vmods_sitescombi_per_pep = 64L, 
-                        minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                        minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 20L, 
                         min_ms2mass = 115L, digits = 4L, FUN) 
 {
   len <- length(mgf_frames)
@@ -960,13 +960,13 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
 search_mgf <- function (expt_mass_ms1, expt_moverz_ms2, 
                         theomasses_bf_ms1, theomasses_cr_ms1, theomasses_af_ms1, 
                         theos_bf_ms2, theos_cr_ms2, theos_af_ms2, 
-                        minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                        minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 20L, 
                         min_ms2mass = 115L) 
 {
   # --- subsets from the `before` and the `after` by MS1 mass tolerance 
   d <- expt_mass_ms1 * ppm_ms1/1E6
   bf_allowed <- which(theomasses_bf_ms1 >= (expt_mass_ms1 - d)) # 2 us
-  af_allowed <- which(theomasses_af_ms1 <= (expt_mass_ms1 + d)) # 1.9 us
+  af_allowed <- which(theomasses_af_ms1 <= (expt_mass_ms1 + d)) 
   
   theomasses_bf_ms1 <- theomasses_bf_ms1[bf_allowed]
   theomasses_af_ms1 <- theomasses_af_ms1[af_allowed]

@@ -70,9 +70,8 @@
 #' }
 match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL) 
 {
-  ## stronger check by each residues
   resids <- amods[!duplicated.default(amods)]
-  len_r <- length(resids)
+  len_r  <- length(resids)
   max_rs <- vector("integer", len_r)
   
   for (i in seq_len(len_r)) 
@@ -81,12 +80,12 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
   ## `make_ms1_vmodsets` is obtained from the same `amods`
   ##   -> no mess up in the order of `amods` -> no name sorting
   
-  len <- length(ms1vmods)
+  len  <- length(ms1vmods)
   rows <- vector("logical", len)
   
   for (i in seq_len(len)) {
     ps <- attr(ms1vmods[[i]], "ps")
-    rows[i] <- all(ps <= max_rs) # && all(labs <= max_ls)
+    rows[i] <- all(ps <= max_rs)
   }
   
   rows <- which(rows)
@@ -180,8 +179,8 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #'
 #' ms1vmods <- ms1vmods_all[[64]]
 #' n <- length(ms1vmods[[1]])
-#' 
-#' 
+#'
+#'
 #' ## "Oxidation (M)" on the N-term
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
 #'
@@ -200,25 +199,25 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
-#' 
+#'
 #' i <- 6L
 #' aa_masses <- aa_masses_all[[i]]
 #' amods <- attr(aa_masses, "amods")
 #'
 #' ms1vmods <- ms1vmods_all[[i]]
 #' ms2vmods <- ms2vmods_all[[i]]
-#' 
+#'
 #' aas <- unlist(strsplit("MHQGVMNVGMGQKNS", ""))
-#' 
+#'
 #' # Subset from ms1vmods by aas
 #' oks <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
 #' ms2vmods <- ms2vmods[oks]
 #'
 #' vmods_combi <- find_vmodscombi(aas, ms2vmods)
-#' 
+#'
 #' # "Oxidation (M)" on N-term kept in the label space
 #' lapply(vmods_combi, function (x) any(names(x) == 1))
-#' 
+#'
 #' # Otherwise check if any attr(aa_masses, "amods") in the N-term
 #' amods <- attr(aa_masses, "amods")
 #' # may do it during `combi_byvmodsM`...
@@ -240,7 +239,7 @@ make_ms1vmod_i <- function (aa_masses = NULL, maxn_vmods_per_pep = 5L,
 #' 
 #' No position permutation (for MS1 masses).
 #' 
-#' @param aa_masses_all All the amino acid lookup tables.
+#' @param aa_masses_all All of the amino acid lookup tables.
 #' @inheritParams matchMS
 make_ms1_vmodsets <- function (aa_masses_all = NULL, maxn_vmods_per_pep = 5L, 
                                maxn_sites_per_vmod = 3L) 
@@ -262,9 +261,9 @@ make_ms1_vmodsets <- function (aa_masses_all = NULL, maxn_vmods_per_pep = 5L,
       x <- .Internal(unlist(amods, recursive = FALSE, use.names = FALSE))
       names(x) <- names(amods)
       resmods_all[[i]] <- split_vec(x)
-    } else {
+    } 
+    else
       resmods_all[[i]] <- NULL
-    }
   }
   
   # unique sets of modifications by individual residues
@@ -289,7 +288,7 @@ make_ms1_vmodsets <- function (aa_masses_all = NULL, maxn_vmods_per_pep = 5L,
 #'
 #' @param resmods A vector of amino-acid residues with Unimod in names. For
 #'   example, c(`Oxidation (M)` = "M", `Carbamyl` = "M").The residues are the
-#'   same and the names are different.
+#'   same and the names (modifications) are different.
 #' @inheritParams matchMS
 #' @examples 
 #' \donttest{
@@ -304,7 +303,6 @@ bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L,
   ans <- make_unique_sets(p = maxn_vmods_per_pep, 
                           n = length(resmods), 
                           labs = names(resmods), 
-                          # resid = resmods, 
                           maxn_vmods_per_pep = maxn_vmods_per_pep, 
                           maxn_sites_per_vmod = maxn_sites_per_vmod)
   
@@ -348,7 +346,8 @@ make_unique_sets <- function (p = 5L, n = 2L, labs = c("X", "Y"),
 {
   # stopifnot(n == length(labs))
   
-  if (p < n) return(NULL)
+  if (p < n) 
+    return(NULL)
   
   p <- min(p, maxn_vmods_per_pep)
   ps <- n:p
@@ -363,10 +362,10 @@ make_unique_sets <- function (p = 5L, n = 2L, labs = c("X", "Y"),
     ans <- ans[rows]
   })
   
-  lens <- lapply(combs, length)
-  lens <- unlist(lens, recursive = FALSE, use.names = FALSE)
+  lens  <- lapply(combs, length)
+  lens  <- .Internal(unlist(lens, recursive = FALSE, use.names = FALSE))
   nms_p <- rep(ps, lens)
-  nms_n <- rep(n, length(nms_p))
+  # nms_n <- rep(n, length(nms_p))
   
   combs <- .Internal(unlist(combs, recursive = FALSE, use.names = FALSE))
   names(combs) <- nms_p
@@ -381,7 +380,6 @@ make_unique_sets <- function (p = 5L, n = 2L, labs = c("X", "Y"),
 #'
 #' @param p The number of positions.
 #' @param labs The names to be filled into the \code{p}-number of positions.
-#' @importFrom gtools combinations
 #' @examples 
 #' \donttest{
 #' find_unique_sets(5, c("Oxidation (M)", 
@@ -391,13 +389,16 @@ make_unique_sets <- function (p = 5L, n = 2L, labs = c("X", "Y"),
 find_unique_sets <- function (p = 5L, labs = c("A", "B", "C")) 
 {
   ps <- seq_len(p)
-  n <- length(labs)
-  r <- p - n
+  n  <- length(labs)
+  r  <- p - n
   
-  if (r == 0L) return(list(labs))
-  if (r < 0L) return(NULL)
+  if (r == 0L) 
+    return(list(labs))
   
-  x <- gtools::combinations(n, r, labs, repeats = TRUE)
+  if (r < 0L) 
+    return(NULL)
+  
+  x <- gtools_combn(n, r, labs, repeats = TRUE)
   
   n_row <- nrow(x)
   out <- vector("list", n_row)
@@ -406,6 +407,48 @@ find_unique_sets <- function (p = 5L, labs = c("A", "B", "C"))
     out[[i]] <- c(labs, x[i, ])
   
   out
+}
+
+
+#' Finds combination.
+#' 
+#' From gtools::combinations
+#'
+#' @param n The number of balls.
+#' @param r The number of slots.
+#' @param v The labels of the n balls.
+#' @param set Logical; duplicates should be removed from the source vector v or
+#'   not.
+#' @param repeats.allowed Logical; vector v may include duplicated values or
+#'   not.
+gtools_combn <- function (n, r, v = 1:n, set = TRUE, repeats.allowed = FALSE) 
+{
+  if (set) 
+    v <- unique(sort(v))
+
+  v0 <- vector(mode(v), 0)
+  
+  if (repeats.allowed) 
+    sub <- function(n, r, v) {
+      if (r == 0) 
+        v0
+      else if (r == 1) 
+        matrix(v, n, 1)
+      else if (n == 1) 
+        matrix(v, 1, r)
+      else rbind(cbind(v[1], Recall(n, r - 1, v)), Recall(n - 1, r, v[-1]))
+    }
+  else sub <- function(n, r, v) {
+    if (r == 0) 
+      v0
+    else if (r == 1) 
+      matrix(v, n, 1)
+    else if (r == n) 
+      matrix(v, 1, n)
+    else rbind(cbind(v[1], Recall(n - 1, r - 1, v[-1])), Recall(n - 1, r, v[-1]))
+  }
+  
+  sub(n, r, v[1:n])
 }
 
 
@@ -498,7 +541,8 @@ find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L)
   len <- length(vmodsets)
   
   # scalar
-  if (!len) return(list())
+  if (!len) 
+    return(list())
   
   # return "empty" if any is "empty"
   if (any(.Internal(unlist(lapply(vmodsets, purrr::is_empty), 
@@ -506,10 +550,12 @@ find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L)
     return(list())
   
   # all lists are non-empty
-  vmod_nms <- lapply(vmodsets, function (x) lapply(x, names))
-  len_ps <- lapply(vmodsets, function (x) lapply(x, length))
+  # vmod_nms <- lapply(vmodsets, function (x) lapply(x, names))
+  # len_ps   <- lapply(vmodsets, function (x) lapply(x, length))
+  vmod_nms <- lapply(vmodsets, lapply, names)
+  len_ps   <- lapply(vmodsets, lapply, length)
   
-  v_out <- expand_grid_rows(vmodsets, use.names = FALSE)
+  v_out  <- expand_grid_rows(vmodsets, use.names = FALSE)
   nm_out <- expand_grid_rows(vmod_nms, use.names = FALSE)
 
   v_out <- mapply(function (x, y) {
@@ -533,7 +579,7 @@ find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L)
 
   lens <- lapply(v_out, length)
   lens <- .Internal(unlist(lens, recursive = FALSE, use.names = FALSE))
-  oks <- (lens <= maxn_vmods_per_pep)
+  oks  <- (lens <= maxn_vmods_per_pep)
   
   v_out <- v_out[oks]
   ps <- ps[oks]

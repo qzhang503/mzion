@@ -10,7 +10,7 @@ reverse_peps_in_frame(pep_frame)
 \item{pep_frame}{A frame of data.}
 }
 \description{
-Reverses `pep_seq` in a frame.
+Reverses \code{pep_seq} in a frame.
 }
 \examples{
 ## pep_frame

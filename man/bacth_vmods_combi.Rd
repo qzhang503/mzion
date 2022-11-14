@@ -13,7 +13,7 @@ bacth_vmods_combi(
 \arguments{
 \item{resmods}{A vector of amino-acid residues with Unimod in names. For
 example, c(`Oxidation (M)` = "M", `Carbamyl` = "M").The residues are the
-same and the names are different.}
+same and the names (modifications) are different.}
 
 \item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
 \code{Anywhere} (non-terminal) variable modifications per peptide. The

@@ -1,33 +1,32 @@
 #' Finds the combinatorial MS2 variable modifications.
 #'
-#' @param aas \code{aa_seq} split in a sequence of LETTERS.
-#' @param ms2vmods The i-th result from
-#'
-#'   lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods)).
+#' @param aas \code{aa_seq} split into a sequence of LETTERS.
+#' @param ms2vmods The i-th result from: 
+#' lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods)).
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
-#' ## One-to-one correspondance between Names and Sites
-#' #  (no need to permutate MS1 labels)
+#' ## One-to-one correspondence between Names and Sites
+#' #  (no need to permute MS1 labels)
 #'
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
 #'                "Carbamidomethyl (C)")
 #'
-#' varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)",
-#'              "Deamidated (N)",
-#'              "Gln->pyro-Glu (N-term = Q)")
+#' varmods   <- c("Acetyl (Protein N-term)", "Oxidation (M)",
+#'                "Deamidated (N)",
+#'                "Gln->pyro-Glu (N-term = Q)")
 #'
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 #'                                varmods = varmods,
-#'                                maxn_vmods_setscombi = 64,
 #'                                out_path = NULL)
 #'
-#' maxn_vmods_per_pep <- 5L
+#' maxn_vmods_per_pep  <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
 #' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
+#' 
 #' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
 #'
 #' i <- 11L
@@ -49,13 +48,13 @@
 #' ## 'Carbamidomethyl (M)',  'Carbamyl (M)' and N
 #' #  (need permutation of MS1 labels)
 #'
-#' fixedmods = c("TMT6plex (K)", "dHex (S)")
-#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)",
-#'             "Deamidated (N)", "Acetyl (Protein N-term)")
+#' fixedmods <- c("TMT6plex (K)", "dHex (S)")
+#' varmods   <- c("Carbamidomethyl (M)", "Carbamyl (M)",
+#'                "Deamidated (N)", "Acetyl (Protein N-term)")
 #'
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
-#' maxn_vmods_per_pep <- 5L
+#' maxn_vmods_per_pep  <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
 #' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
@@ -117,7 +116,7 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
     }
 
     len_a <- length(ans)
-    tot <- tot + len_a
+    tot   <- tot + len_a
     
     if (tot > maxn_vmods_sitescombi_per_pep) {
       lags <- len_a + maxn_vmods_sitescombi_per_pep - tot
@@ -158,7 +157,6 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
 }
 
 
-
 #' Helper of combinatorial vmods (by each rows of labels).
 #'
 #' One-to-one correspondence between Names and Sites. Finds the positions of
@@ -173,21 +171,23 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
 #' @param aas \code{aa_seq} split in a sequence of LETTERS.
 combi_namesiteU <- function (M, aas) 
 {
-  m <- attr(M, "resids")
+  m  <- attr(M, "resids")
   ps <- attr(M, "ps")
   
-  ans <- find_vmodposU(m, ps, aas)
+  ans   <- find_vmodposU(m, ps, aas)
   combi <- ans$combi
-  vpos <- ans$vpos
+  vpos  <- ans$vpos # ordinal column indexes of the output
   
+  # replace the ordinal column indexes with aas indexes (faster than unlist)
   len_out <- nrow(combi)
-  out <- rep(list(M[1, ]), len_out)
+  out  <- rep(list(M[1, ]), len_out)
+  cols <- seq_len(len_out)
   
   for (i in seq_along(vpos)) { # by residue
-    ansi <- combi[[i]] # list of six: 5, 9; 9, 13 etc.
-    pi <- vpos[[i]] # 1, 3
+    ansi <- combi[[i]]
+    pi   <- vpos[[i]]
     
-    for (j in seq_len(len_out)) 
+    for (j in cols)
       names(out[[j]])[pi] <- ansi[[j]] # by combi
   }
   
@@ -216,11 +216,7 @@ find_vmodposU <- function (vec, ps, aas)
     
     ct <- ps[[i]] # M: 2; N: 1
     vpos[[i]] <- which(vec == resid) # M: 1, 2; N: 3
-    
-    if (ct == 1L) 
-      M[[i]] <- vec_to_list(aapos) 
-    else 
-      M[[i]] <- sim_combn(aapos, ct)
+    M[[i]] <- if (ct == 1L) vec_to_list(aapos) else sim_combn(aapos, ct)
   }
   
   list(
@@ -240,15 +236,18 @@ find_vmodposU <- function (vec, ps, aas)
 combi_namesiteM <- function (M, aas, nrows) 
 {
   ps <- attr(M, "ps")
-  m <- attr(M, "resids")
+  m  <- attr(M, "resids")
   
   # convert to vectors for speed
   mv <- vector("list", nrows)
-  for (i in 1:nrows) mv[[i]] <- m[i, ]
-  uniqs <- !duplicated.default(mv)
-  umv <- mv[uniqs]
   
-  len <- length(mv)
+  for (i in 1:nrows) 
+    mv[[i]] <- m[i, ]
+  
+  uniqs <- !duplicated.default(mv)
+  umv   <- mv[uniqs]
+  
+  len   <- length(mv)
   cache <- ans <- vector("list", len)
 
   for (i in 1:len) {
@@ -294,11 +293,7 @@ find_vmodposM <- function (Vec, vec, ps, aas)
     
     ct <- ps[[i]] # M: 2; N: 1
     vpos[[i]] <- which(vec == resid) # M: 1, 2; N: 3
-    
-    if (ct == 1L) 
-      M[[i]] <- vec_to_list(aapos) 
-    else 
-      M[[i]] <- sim_combn(aapos, ct)
+    M[[i]] <- if (ct == 1L) vec_to_list(aapos) else sim_combn(aapos, ct)
   }
   
   ans <- expand.grid(M, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
@@ -307,8 +302,8 @@ find_vmodposM <- function (Vec, vec, ps, aas)
   out <- rep(list(Vec), len_out)
   
   for (i in seq_along(vpos)) { # by residue
-    ansi <- ans[[i]] # list of six: 5, 9; 9, 13 etc.
-    pi <- vpos[[i]] # 1, 3
+    ansi <- ans[[i]]
+    pi   <- vpos[[i]]
     
     for (j in seq_len(len_out)) 
       names(out[[j]])[pi] <- ansi[[j]] # by combi
@@ -334,62 +329,62 @@ match_aas_indexes <- function (X, Vec)
 }
 
 
-#' Makes the sets of MS2 labels (with permutations) for an \code{aa_masses}.
+#' Makes the sets of MS2 labels (with permutations) at an \code{aa_masses}.
 #'
 #' For \code{Anywhere} variable modifications (\code{amods}) across all
 #' residues.
 #'
-#' For the universe of labels, loops through \code{aa_masses_all} and the
-#' indexes of lists are in one-to-one correspondence to \code{aa_masses_all}.
+#' The universe of labels. It loops through \code{aa_masses_all}. The indexes of
+#' lists are in one-to-one correspondence to \code{aa_masses_all}.
 #'
-#' By the design of \code{aa_masses}, the \code{amods} in a \code{aa_masses} are
-#' all realized. Therefore, each list in the resulted labels should contain at
-#' least one of the \code{amods} residues from the \code{aa_masses}. For
+#' By the design of \code{aa_masses}, the \code{amods} in an \code{aa_masses}
+#' are all realized. Therefore, each list in the resulted labels should contain
+#' at least one of the \code{amods} residues from the \code{aa_masses}. For
 #' example, if \code{amods} contain M, N and S, each list in the result should
 #' contains at least one of the residues.
 #'
-#' @param vec A named vector of labels.
+#' @param vec A named vector of labels. Site in name, modification in value.
+#'
 #' @examples
 #' \donttest{
 #' ## with a bare vector
-#' # One-to-one correspondance between Names and Sites
+#' # One-to-one correspondence between Names and Sites
 #' vec <- c(M = "Oxidation (M)", N = "Deamidated (N)")
-#' attr(vec, "ps") <- c(M = 3L, N = 2L)
-#' attr(vec, "labs") <- c(`Oxidation (M)` = 3L, 
-#'                        `Deamidated (N)` = 2L)
-#' 
+#' attr(vec, "ps")   <- c(M = 3L, N = 2L)
+#' attr(vec, "labs") <- c(`Oxidation (M)` = 3L, `Deamidated (N)` = 2L)
+#'
 #' ans <- make_ms2vmods(vec)
-#' 
+#'
 #' # Multiple Names to the same Site (S)
-#' vec <- c(M = "Oxidation (M)", 
-#'          S = "Carbamidomethyl (S)", 
+#' vec <- c(M = "Oxidation (M)",
+#'          S = "Carbamidomethyl (S)",
 #'          S = "Phospho (S)")
 #' attr(vec, "ps") <- c(M = 2L, S = 3L)
-#' attr(vec, "labs") <- c(`Oxidation (M)` = 2L, 
-#'                        `Carbamidomethyl (S)` = 2L, 
+#' attr(vec, "labs") <- c(`Oxidation (M)` = 2L,
+#'                        `Carbamidomethyl (S)` = 2L,
 #'                        `Phospho (S)` = 1L)
-#' 
+#'
 #' ans <- make_ms2vmods(vec)
 #' stopifnot(nrow(ans) == 6L, ncol(ans) == length(vec))
-#' 
+#'
 #' # Another one-to-multiple
-#' vec <- c(M = "Oxidation (M)", M = "Carbamyl (M)", 
+#' vec <- c(M = "Oxidation (M)", M = "Carbamyl (M)",
 #'          S = "Carbamidomethyl (S)", S = "Phospho (S)")
 #' attr(vec, "ps") <- c(M = 3L, S = 2L)
-#' attr(vec, "labs") <- c(`Oxidation (M)` = 2L, 
-#'                        `Carbamyl (M)` = 1L, 
-#'                        `Carbamidomethyl (S)` = 1L, 
+#' attr(vec, "labs") <- c(`Oxidation (M)` = 2L,
+#'                        `Carbamyl (M)` = 1L,
+#'                        `Carbamidomethyl (S)` = 1L,
 #'                        `Phospho (S)` = 1L)
-#' 
+#'
 #' ans <- make_ms2vmods(vec)
-#' stopifnot(nrow(ans) == 24L, ncol(ans) == length(vec), 
+#' stopifnot(nrow(ans) == 24L, ncol(ans) == length(vec),
 #'           nrow(ans) == nrow(unique(ans)))
-#' 
+#'
 #' ## Simple
-#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
 #'                "Carbamidomethyl (C)")
 #'
-#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
+#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
 #'             "Deamidated (N)",
 #'             "Gln->pyro-Glu (N-term = Q)")
 #'
@@ -404,20 +399,20 @@ match_aas_indexes <- function (X, Vec)
 #' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-#' 
+#'
 #' stopifnot(length(ms1vmods_all[[1]]) == 0L,
 #'           length(ms1vmods_all[[2]]) == 0L,
 #'           length(ms1vmods_all[[3]]) == 0L)
-#' 
+#'
 #' # M, N (up to 3 M's or N's and 5 in total)
 #' len_ps <- lapply(ms1vmods_all[[12]], function (x) attr(x, "ps"))
-#' 
+#'
 #' # M (up to 3 M's)
 #' len_ps <- lapply(ms1vmods_all[[4]], function (x) attr(x, "ps"))
-#' 
+#'
 #' x <- ms1vmods_all[[12]] # list of 8
 #' # x <- ms1vmods_all[[1]] # empty list
-#' 
+#'
 #' ans <- lapply(x, make_ms2vmods) # list of 8 matrices
 #'
 #'
@@ -441,9 +436,9 @@ match_aas_indexes <- function (X, Vec)
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
 #' # No duplication within each aa_masses
-#' any_dups <- lapply(ms1vmods_all, 
+#' any_dups <- lapply(ms1vmods_all,
 #'                    function (x) anyDuplicated(x))
-#' 
+#'
 #' stopifnot(all(unlist(any_dups) == 0L))
 #'
 #' # Can have identical sets of labels at different aa_masses
@@ -453,34 +448,30 @@ match_aas_indexes <- function (X, Vec)
 #' attr(aa_masses_all[[9]], "tmod")
 #'
 #' x <- ms1vmods_all[[64]] # list of 10 vectors
-#' 
+#'
 #' # [[1]]
-#' #  M                     S                     S 
-#' # "Carbamyl (M)"  "Carbamidomethyl (S)"  "Phospho (S)" 
+#' #  M                     S                     S
+#' # "Carbamyl (M)"  "Carbamidomethyl (S)"  "Phospho (S)"
 #' # [[2]]
-#' # M                     M                     S               S 
-#' # "Carbamyl (M)"  "Carbamyl (M)"  "Carbamidomethyl (S)"  "Phospho (S)" 
+#' # M                     M                     S               S
+#' # "Carbamyl (M)"  "Carbamyl (M)"  "Carbamidomethyl (S)"  "Phospho (S)"
 #' # [[3]]
 #' # ...
-#' 
+#'
 #' ans <- lapply(x, make_ms2vmods) # list of 10 matrices
-#' 
+#'
 #' ans_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
 #' }
 make_ms2vmods <- function (vec = NULL) 
 {
   # stopifnot(maxn_vmods_per_pep >= 2L)
   
-  n_nms <- length(unique(names(vec)))
+  n_nms  <- length(unique(names(vec)))
   n_vals <- length(unique(vec))
   
-  if (n_nms == n_vals)
-    ans <- matrix(vec, nrow = 1L)
-  else 
-    ans <- find_perm_sets(vec)
-  
-  attr(ans, "ps") <- attr(vec, "ps")
-  attr(ans, "labs") <- attr(vec, "labs")
+  ans <- if (n_nms == n_vals) matrix(vec, nrow = 1L) else find_perm_sets(vec)
+  attr(ans, "ps")     <- attr(vec, "ps")
+  attr(ans, "labs")   <- attr(vec, "labs")
   attr(ans, "resids") <- find_ms2resids(ans, vec)
   
   ans
@@ -499,7 +490,8 @@ find_ms2resids <- function (M, vec)
   names(vecinv) <- vec
   vecinv <- vecinv[unique(names(vecinv))]
   
-  for (i in 1:nrow(M)) M[i, ] <- vecinv[M[i, ]]
+  for (i in 1:nrow(M)) 
+    M[i, ] <- vecinv[M[i, ]]
 
   invisible(M)
 }
@@ -511,55 +503,21 @@ find_ms2resids <- function (M, vec)
 # labels: n
 # positions: p
 # 
-# n = c("A", "A", "B"); n1 = 2, n2 = = 1
-# p = c(1, 3, 5, 9)
-# n = c("Carbamidomethyl (M)",  "Carbamidomethyl (M)", "Oxidation (M)"); 
-# p = c(1, 3, 5, 9)
+# n <- c("A", "A", "B"); n1 <- 2; n2 <- 1
+# p <- c(1, 3, 5, 9)
+# n <- c("Carbamidomethyl (M)",  "Carbamidomethyl (M)", "Oxidation (M)")
+# p <- c(1, 3, 5, 9)
 # 
 # choose(p, n1 + n2) * choose(n1 + n2, n2)
 # = choose(4, 3) * choose(3, 2)
 # 
-# n = c("A", "A", "B", "B", "C"); n1 = 2, n2 = = 2, n3 = 1
-# p = c(1, 3, 5, 7, 8, 9)
+# n <- c("A", "A", "B", "B", "C"); n1 <- 2; n2 <- 2; n3 = 1
+# p <- c(1, 3, 5, 7, 8, 9)
 # 
 # p!/(n1!n2!n3!)/(p-n1-n2-n3)!
 # = choose(p, n1+n2+n3) * (n1+n2+n3)!/(n1!n2!n3!)
 # = choose(p, n1+n2+n3) * choose(n1+n2+n3, n1+n2) * choose(n1+n2, n1)
 ##
-
-
-
-#' Helper of \link{find_perm_sets}.
-#' 
-#' Adds one more labels to a permutation table.
-#' 
-#' @param M A permutation table with unique sets by rows.
-#' @param x A label to be added to M for additional permutations.
-add_one_label <- function (M, x) 
-{
-  ncols <- ncol(M)
-  nrows <- nrow(M)
-  
-  out <- matrix(nrow = ncols * nrows, ncol = ncols + 1L)
-  
-  k = 1L
-  
-  for (i in 1:nrows) {
-    mi <- M[i, ]
-    
-    if (ncols > 1L) {
-      for (j in 1:(ncols-1L)) {
-        out[k, ] <- c(mi[1:j], x, mi[(j+1):ncols])
-        k <- k + 1L
-      }
-    }
-    
-    out[k, ] <- c(mi, x)
-    k <- k + 1L
-  }
-  
-  out[!duplicated.matrix(out), ]
-}
 
 
 #' A (faster alternative) to \link[gtools]{permutations} with duplicated labels.
@@ -568,21 +526,39 @@ add_one_label <- function (M, x)
 #'
 #' @examples
 #' \donttest{
+#' # four positions for four balls in three colors
+#' labs  <- c("A", "A", "B", "C")
+#' len   <- length(labs)
+#' g <- unique(gtools::permutations(len, len, labs, set = FALSE, repeats.allowed = FALSE))
+#' m <- find_perm_sets(labs)
+#' 
+#' cns <- paste0("p", 1:len)
+#' g <- data.frame(g)
+#' m <- data.frame(m)
+#' colnames(m) <- colnames(g) <- cns
+#' 
+#' stopifnot(identical(dplyr::arrange_all(g), dplyr::arrange_all(m)))
+#' 
+#' # example-2
 #' labs <- c("A", "A", "A", "B", "B", "C")
-#' x <- find_perm_sets(labs)
+#' m <- find_perm_sets(labs)
 #'
 #' # Compares to gtools::permutations
 #' len <- length(labs)
-#' y <- gtools::permutations(len, len, labs, set = FALSE)
-#' y <- unique(y)
+#' g <- unique(gtools::permutations(len, len, labs, set = FALSE))
 #'
-#' stopifnot(dim(x) == dim(y))
+#' cns <- paste0("p", 1:len)
+#' g <- data.frame(g)
+#' m <- data.frame(m)
+#' colnames(m) <- colnames(g) <- cns
+#' 
+#' stopifnot(identical(dplyr::arrange_all(g), dplyr::arrange_all(m)))
 #'
 #' # Compares to the theoretical number of entries
 #' len_labs <- length(labs)
 #' ns <- count_elements(labs)
 #' theo_cts <- factorial(len_labs)/prod(factorial(ns))
-#' stopifnot(nrow(x) == theo_cts)
+#' stopifnot(nrow(m) == theo_cts)
 #'
 #' ## Others
 #' x <- find_perm_sets(rep("A", 3))
@@ -590,28 +566,125 @@ add_one_label <- function (M, x)
 find_perm_sets <- function (labs = c("A", "A", "A", "B", "B", "C")) 
 {
   grps <- split_vec(labs)
-  len_grps <- length(grps)
+  lens <- count_elements(labs)
   
-  ns <- count_elements(labs)
-  unilabs <- names(ns)
+  ## base perm with unique labels
+  ulabs <- names(lens)
+  M  <- matrix(ulabs[1])
   
-  # extra counts with duplicated labels
-  ns2 <- ns - 1L
-  ns2 <- ns2[ns2 > 0L]
-  
-  # base perm without duplicated labels
-  M <- gtools::permutations(len_grps, len_grps, unilabs)
-  
-  for (i in seq_along(ns2)) {
-    ct <- ns2[[i]]
-    x <- names(ns2)[i]
-    
-    for (j in seq_len(ct)) M <- add_one_label(M, x)
+  if (length(ulabs) > 1L) {
+    for (ul in ulabs[-1]) 
+      M <- add_one_permlab(M, ul)
   }
   
-  invisible(M)
+  ## extended perm with duplicated labels
+  dlens <- lens - 1L
+  dlens <- dlens[dlens > 0L]
+  lend  <- length(dlens)
+
+  if (lend) {
+    dlabs <- names(dlens)
+    
+    for (i in 1:lend) {
+      ct <- dlens[[i]]
+      dl <- dlabs[i]
+      
+      for (j in seq_len(ct)) 
+        M <- add_one_label(M, dl)
+    }
+  }
+
+  M
 }
 
+
+#' Helper in making permuation table.
+#' 
+#' @param M A permutation matrix with non-redundant labels.
+#' @param x A new label not in M for permutation.
+#' 
+#' @examples
+#' \donttest{
+#' unilabs <- c("A", "B", "C")
+#' nu <- length(unilabs)
+#' 
+#' G <- gtools::permutations(nu, nu, unilabs)
+#' 
+#' M  <- matrix(unilabs[1])
+#' for (ulab in unilabs[-1]) M <- add_one_permlab(M, ulab)
+#' 
+#' cns <- paste0("p", 1:nu)
+#' M <- data.frame(M)
+#' G <- data.frame(G)
+#' colnames(G) <- colnames(M) <- cns
+#' 
+#' stopifnot(identical(dplyr::arrange_all(G), dplyr::arrange_all(M)))
+#' }
+add_one_permlab <- function (M, x) 
+{
+  ncol  <- ncol(M)
+  nrow  <- nrow(M)
+  ncol2 <- ncol + 1L
+  nrow2 <- ncol2 * nrow
+  
+  ins_permlab(M, x, nrow, ncol, nrow2, ncol2, rm_dup = FALSE)
+}
+
+
+#' Helper of \link{find_perm_sets}.
+#' 
+#' Adds one more labels to a permutation table.
+#' 
+#' @param M A permutation table with unique sets by rows.
+#' @param x A duplicated label that can be found in M.
+add_one_label <- function (M, x) 
+{
+  ncol  <- ncol(M)
+  nrow  <- nrow(M)
+  ncol2 <- ncol + 1L
+  nrow2 <- ncol * nrow
+  
+  ins_permlab(M, x, nrow, ncol, nrow2, ncol2, rm_dup = TRUE)
+}
+
+
+#' Helper of \code{add_one_label} and \code{add_one_permlab}.
+#' 
+#' No duplicated labels for base permutation and \code{rm_dup = FALSE}. 
+#' 
+#' @inheritParams add_one_label
+#' @param nrow The number of rows of M.
+#' @param ncol The number of columns of M.
+#' @param nrow2 The number of rows of the output.
+#' @param ncol2 The number of columns of the output.
+#' @param rm_dup Logical; remove duplicated rows or not. 
+ins_permlab <- function (M, x, nrow, ncol, nrow2, ncol2, rm_dup = FALSE)
+{
+  out <- matrix(nrow = nrow2, ncol = ncol2)
+  
+  k <- 1L
+  
+  for (i in 1:nrow) {
+    mi <- M[i, ]
+    
+    if (ncol > 1L) {
+      for (j in 1:(ncol-1L)) {
+        out[k, ] <- c(mi[1:j], x, mi[(j+1):ncol])
+        k <- k + 1L
+      }
+    }
+    
+    out[k, ] <- c(mi, x)
+    k <- k + 1L
+  }
+  
+  if (rm_dup)
+    out <- out[!duplicated.matrix(out), , drop = FALSE]
+  else
+    out[k:nrow2, ] <- cbind(x, M)
+  
+  out
+}
 
 
 #' From \link[utils]{combn}.
@@ -629,9 +702,10 @@ sim_combn <- function (x, m)
     stop("m < 0", domain = NA)
   
   m <- as.integer(m)
-  
   n <- length(x)
-  if (n < m) stop("n < m", domain = NA)
+  
+  if (n < m) 
+    stop("n < m", domain = NA)
   
   x0 <- x
   e <- 0
@@ -669,5 +743,4 @@ sim_combn <- function (x, m)
   
   out
 }
-
 

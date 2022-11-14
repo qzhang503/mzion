@@ -17,7 +17,7 @@
 ms2match <- function (mgf_path, aa_masses_all, out_path, 
                       mod_indexes, type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                       maxn_sites_per_vmod = 3L, maxn_vmods_sitescombi_per_pep = 64L, 
-                      minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                      minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 20L, 
                       min_ms2mass = 115L, quant = "none", ppm_reporters = 10L, 
                       use_first_rev = FALSE, 
 
@@ -41,34 +41,34 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   )
   
   # Check cached 
-  fun <- as.character(match.call()[[1]])
+  fun     <- as.character(match.call()[[1]])
   fun_env <- environment()
   fml_nms <- names(formals(fun))
 
   # (OK as `use_first_rev` is not for users)
   args_except <- c("use_first_rev", "quant")
-  fml_incl <- fml_nms[!fml_nms %in% args_except]
+  fml_incl    <- fml_nms[!fml_nms %in% args_except]
   
-  cache_pars <- find_callarg_vals(time = NULL, 
-                                  path = file.path(out_path, "Calls"), 
-                                  fun = paste0(fun, ".rda"), 
-                                  args = fml_incl) 
-  cache_pars <- cache_pars[sort(names(cache_pars))]
+  cache_pars  <- find_callarg_vals(time = NULL, 
+                                   path = file.path(out_path, "Calls"), 
+                                   fun = paste0(fun, ".rda"), 
+                                   args = fml_incl) 
   
-  call_pars <- mget(fml_incl, envir = fun_env, inherits = FALSE)
-  call_pars <- call_pars[sort(names(call_pars))]
+  cache_pars  <- cache_pars[sort(names(cache_pars))]
+  call_pars   <- mget(fml_incl, envir = fun_env, inherits = FALSE)
+  call_pars   <- call_pars[sort(names(call_pars))]
   
   if (identical(cache_pars, call_pars)) {
-    len <- length(aa_masses_all)
+    len     <- length(aa_masses_all)
     
-    fions <- list.files(path = file.path(out_path, "temp"), 
-                        pattern = "ion_matches_[0-9]+\\.rds$")
+    fions   <- list.files(path = file.path(out_path, "temp"), 
+                          pattern = "ion_matches_[0-9]+\\.rds$")
     
     ok_ions <- (length(fions) == len)
     
     if (grepl("^tmt[0-9]+$", quant)) {
-      ftmt <- list.files(path = file.path(out_path, "temp"), 
-                          pattern = "reporters_[0-9]+\\.rds$")
+      ftmt   <- list.files(path = file.path(out_path, "temp"), 
+                           pattern = "reporters_[0-9]+\\.rds$")
       
       ok_tmt <- (length(ftmt) == len)
     } 
@@ -137,8 +137,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
-      ms1vmods <- ms1vmods_all[[i]]
-      ms2vmods <- ms2vmods_all[[i]]
+      ms1vmods  <- ms1vmods_all[[i]]
+      ms2vmods  <- ms2vmods_all[[i]]
       
       # need ntmod and ctmod for `amod+_...` for excluding 
       #   additive terminal mod and anywhere mod
@@ -147,8 +147,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       #   e.g., `Acetyl + hydrogen` in case of FIXED Protein N-term 
       #   or fixed N-term `TMT + hydrogen`
       
-      ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+      ntmod  <- attr(aa_masses, "ntmod", exact = TRUE)
+      ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
       ntmass <- find_nterm_mass(aa_masses)
       ctmass <- find_cterm_mass(aa_masses)
       
@@ -203,11 +203,11 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
-      ms1vmods <- ms1vmods_all[[i]]
-      ms2vmods <- ms2vmods_all[[i]]
+      ms1vmods  <- ms1vmods_all[[i]]
+      ms2vmods  <- ms2vmods_all[[i]]
       
-      ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+      ntmod  <- attr(aa_masses, "ntmod", exact = TRUE)
+      ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
       ntmass <- find_nterm_mass(aa_masses)
       ctmass <- find_cterm_mass(aa_masses)
       
@@ -263,11 +263,11 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
-      ms1vmods <- ms1vmods_all[[i]]
-      ms2vmods <- ms2vmods_all[[i]]
+      ms1vmods  <- ms1vmods_all[[i]]
+      ms2vmods  <- ms2vmods_all[[i]]
       
-      ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+      ntmod  <- attr(aa_masses, "ntmod", exact = TRUE)
+      ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
       ntmass <- find_nterm_mass(aa_masses)
       ctmass <- find_cterm_mass(aa_masses)
       
@@ -325,15 +325,15 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
-      ms1vmods <- ms1vmods_all[[i]]
-      ms2vmods <- ms2vmods_all[[i]]
+      ms1vmods  <- ms1vmods_all[[i]]
+      ms2vmods  <- ms2vmods_all[[i]]
       
-      ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+      ntmod  <- attr(aa_masses, "ntmod", exact = TRUE)
+      ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
       ntmass <- find_nterm_mass(aa_masses)
       ctmass <- find_cterm_mass(aa_masses)
       
-      amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
+      amods    <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
       vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
       
       out <- ms2match_a1_vnl1_fnl0(
@@ -390,15 +390,15 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   if (length(inds)) {
     for (i in inds) {
       aa_masses <- aa_masses_all[[i]]
-      ms1vmods <- ms1vmods_all[[i]]
-      ms2vmods <- ms2vmods_all[[i]]
+      ms1vmods  <- ms1vmods_all[[i]]
+      ms2vmods  <- ms2vmods_all[[i]]
       
-      ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-      ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+      ntmod  <- attr(aa_masses, "ntmod", exact = TRUE)
+      ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
       ntmass <- find_nterm_mass(aa_masses)
       ctmass <- find_cterm_mass(aa_masses)
       
-      amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
+      amods    <- attr(aa_masses, "amods", exact = TRUE)
       fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
       
       out <- ms2match_a1_vnl0_fnl1(
@@ -446,11 +446,11 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   ## Decoys
   # (1) makes binned_theopeps_rev_[i_max].rds
-  i_max <- if (use_first_rev) 1L else which.max(obj_sizes)
+  i_max  <- if (use_first_rev) 1L else which.max(obj_sizes)
   i_max2 <- paste0("rev_", i_max)
 
   .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
-  bin_file <- file.path(.path_bin, paste0("binned_theopeps_", i_max, ".rds"))
+  bin_file  <- file.path(.path_bin, paste0("binned_theopeps_", i_max, ".rds"))
   bin_file2 <- file.path(.path_bin, paste0("binned_theopeps_", i_max2, ".rds"))
   
   if (!file.exists(bin_file2)) {
@@ -466,15 +466,15 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   
   # (2) makes MS2 ions 
   aa_masses <- aa_masses_all[[i_max]]
-  ms1vmods <- ms1vmods_all[[i_max]]
-  ms2vmods <- ms2vmods_all[[i_max]]
+  ms1vmods  <- ms1vmods_all[[i_max]]
+  ms2vmods  <- ms2vmods_all[[i_max]]
 
-  ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-  ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
+  ntmod  <- attr(aa_masses, "ntmod", exact = TRUE)
+  ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
   ntmass <- find_nterm_mass(aa_masses)
   ctmass <- find_cterm_mass(aa_masses)
 
-  amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
+  amods  <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
   
   if (length(amods)) { # (7, 8)
     out <- ms2match_a1_vnl0_fnl0(
@@ -538,7 +538,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
 
 #' Helper of \link{reverse_seqs}.
 #' 
-#' Reverses `pep_seq` in a frame.
+#' Reverses \code{pep_seq} in a frame.
 #' 
 #' @param pep_frame A frame of data.
 #' 
@@ -552,7 +552,7 @@ reverse_peps_in_frame <- function (pep_frame)
   nms <- names(pep_frame)
   
   if ("pep_seq" %in% nms) 
-    pep_frame[["pep_seq"]] <- reverse_seqs(pep_frame[["pep_seq"]])
+    pep_frame[["pep_seq"]]  <- reverse_seqs(pep_frame[["pep_seq"]])
 
   if ("prot_acc" %in% nms) 
     pep_frame[["prot_acc"]] <- paste0("-", pep_frame[["prot_acc"]])
@@ -566,12 +566,12 @@ reverse_peps_in_frame <- function (pep_frame)
 #' @param seqs Lists of peptide sequences.
 reverse_seqs <- function (seqs) 
 {
-  fis <- stringi::stri_sub(seqs, 1, 1)
-  las <- stringi::stri_sub(seqs, -1, -1)
+  fis  <- stringi::stri_sub(seqs, 1, 1)
+  las  <- stringi::stri_sub(seqs, -1, -1)
   lens <- stringi::stri_length(seqs)
-  
   revs <- stringi::stri_reverse(seqs)
-  substring(revs, 1) <- fis
+  
+  substring(revs, 1)    <- fis
   substring(revs, lens) <- las
   
   revs
