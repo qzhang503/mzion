@@ -125,7 +125,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
                         maxn_vmods_per_pep = 5L, 
                         maxn_sites_per_vmod = 3L, 
                         maxn_vmods_sitescombi_per_pep = 64L, 
-                        minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 20L, 
+                        minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                         min_ms2mass = 115L, digits = 4L, FUN) 
 {
   len <- length(mgf_frames)
@@ -792,7 +792,7 @@ fuzzy_match_one2 <- function (x, y)
 #' 
 #' @return Lists of (1) theo, (2) expt, (3) ith, (4) iex and (5) m.
 find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL, 
-                                 ppm_ms2 = 25L, min_ms2mass = 115L, minn_ms2 = 6L) 
+                            ppm_ms2 = 10L, min_ms2mass = 115L, minn_ms2 = 6L) 
 {
   ##############################################################################
   # `theos` may be empty: 
@@ -853,7 +853,7 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
       lth <- length(ps)
       mid <- lth/2L
       
-      # NA placeholder oftheoretical values, 
+      # NA placeholder of theoretical values, 
       # and at the end replaced the matched by experimental values
       es <- theos_i
       es[!ps] <- NA_real_
@@ -960,23 +960,23 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
 search_mgf <- function (expt_mass_ms1, expt_moverz_ms2, 
                         theomasses_bf_ms1, theomasses_cr_ms1, theomasses_af_ms1, 
                         theos_bf_ms2, theos_cr_ms2, theos_af_ms2, 
-                        minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 20L, 
+                        minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                         min_ms2mass = 115L) 
 {
   # --- subsets from the `before` and the `after` by MS1 mass tolerance 
-  d <- expt_mass_ms1 * ppm_ms1/1E6
-  bf_allowed <- which(theomasses_bf_ms1 >= (expt_mass_ms1 - d)) # 2 us
-  af_allowed <- which(theomasses_af_ms1 <= (expt_mass_ms1 + d)) 
+  # d <- expt_mass_ms1 * ppm_ms1/1E6
+  # bf_allowed <- which(theomasses_bf_ms1 >= (expt_mass_ms1 - d))
+  # af_allowed <- which(theomasses_af_ms1 <= (expt_mass_ms1 + d)) 
   
-  theomasses_bf_ms1 <- theomasses_bf_ms1[bf_allowed]
-  theomasses_af_ms1 <- theomasses_af_ms1[af_allowed]
+  # theomasses_bf_ms1 <- theomasses_bf_ms1[bf_allowed]
+  # theomasses_af_ms1 <- theomasses_af_ms1[af_allowed]
   
-  theos_bf_ms2 <- theos_bf_ms2[bf_allowed]
-  theos_af_ms2 <- theos_af_ms2[af_allowed]
-  
+  # theos_bf_ms2 <- theos_bf_ms2[bf_allowed]
+  # theos_af_ms2 <- theos_af_ms2[af_allowed]
+
   # --- find MS2 matches ---
   d2 <- ppm_ms2/1E6
-  ex <- ceiling(log(expt_moverz_ms2/min_ms2mass)/log(1+d2)) # 4 us
+  ex <- ceiling(log(expt_moverz_ms2/min_ms2mass)/log(1+d2))
   
   ans_bf <- if (length(theos_bf_ms2)) 
     lapply(theos_bf_ms2, find_ms2_bypep, 

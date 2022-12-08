@@ -183,7 +183,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
 #' @param in_path An input path of \code{pepmasses_}.
 #' @inheritParams binTheoSeqs2
 binTheoSeqs_i <- function (idx = 1L, min_mass = 700L,max_mass = 4500L,
-                           ppm_ms1 = 20L, in_path = NULL, out_path = NULL) 
+                           ppm_ms1 = 10L, in_path = NULL, out_path = NULL) 
 {
   if (is.null(in_path)) 
     stop("`in_path` cannot be NULL.")
@@ -208,7 +208,7 @@ binTheoSeqs_i <- function (idx = 1L, min_mass = 700L,max_mass = 4500L,
 #'   \code{pepmasses_rev_1.rds}.
 #' @inheritParams binTheoSeqs
 binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 700L,
-                          max_mass = 4500L, ppm_ms1 = 20L, 
+                          max_mass = 4500L, ppm_ms1 = 10L, 
                           out_path = NULL) 
 {
   if (is.null(res)) 
@@ -238,7 +238,7 @@ binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 700L,
 #' @param out_nm A output name with prepending file path.
 #' @inheritParams binTheoSeqs
 bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 700L, 
-                          max_mass = 4500L, ppm_ms1 = 20L) 
+                          max_mass = 4500L, ppm_ms1 = 10L) 
 {
   if (!length(peps)) {
     out <- NULL   
@@ -272,7 +272,7 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 700L,
 #'   \link{readRDS}.
 #' @param min_mass Numeric; the minimum MS1 mass.
 #' @param max_mass Numeric; the maximum MS1 mass.
-#' @param ppm_ms1 Numeric; the error tolerance of MS1 mass in ppm.
+#' @param ppm_ms1 Numeric; (half of) the error tolerance of MS1 mass in ppm.
 #' @param out_path The output path.
 #' @examples
 #' \donttest{
@@ -283,7 +283,7 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 700L,
 #'   correspond to the lists of \code{res}.
 #' @import parallel
 binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 700L,
-                         max_mass = 4500L, ppm_ms1 = 20L, out_path = NULL) 
+                         max_mass = 4500L, ppm_ms1 = 10L, out_path = NULL) 
 {
   if (is.null(res)) 
     stop("`res` cannot be NULL.")
@@ -351,7 +351,7 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 700L,
 #' @param ppm Numeric; the ppm for data binning.
 #' @return Cut points.
 #' @seealso find_ms1_interval
-find_ms1_cutpoints <- function (from = 700L, to = 4500L, ppm = 20L) 
+find_ms1_cutpoints <- function (from = 700L, to = 4500L, ppm = 10L) 
 {
   d <- ppm/1e6
   n <- ceiling(log(to/from)/log(1+d))
@@ -359,7 +359,8 @@ find_ms1_cutpoints <- function (from = 700L, to = 4500L, ppm = 20L)
   x <- vector("numeric", n)
   x[1] <- from
 
-  for (i in seq_len(n-1)) x[i+1] <- x[i] * (1 + d)
+  for (i in seq_len(n-1)) 
+    x[i+1] <- x[i] * (1 + d)
 
   x
 }
@@ -379,7 +380,7 @@ s_readRDS <- function (file, out_path)
   )
   
   if (is.null(ans)) 
-    stop("Files found: ", file.path(out_path, file), call. = FALSE)
+    stop("Files not found: ", file.path(out_path, file))
   
   ans
 }

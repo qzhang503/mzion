@@ -14,8 +14,8 @@ search_mgf(
   theos_cr_ms2,
   theos_af_ms2,
   minn_ms2 = 6L,
-  ppm_ms1 = 20L,
-  ppm_ms2 = 20L,
+  ppm_ms1 = 10L,
+  ppm_ms2 = 10L,
   min_ms2mass = 115L
 )
 }

@@ -34,7 +34,7 @@ df$prot_acc <- sample(LETTERS[1:20], 2000, replace = TRUE)
 df$pep_seq <- sample(letters[1:26], 20, replace = TRUE)
 df <- df[!duplicated(df), ]
 
-out <- proteoM:::groupProts(df)
+out <- proteoM:::groupProts(df, "~")
 
 # One peptide, multiple proteins
 df <- data.frame(prot_acc = LETTERS[1:3], pep_seq = rep("X", 3))

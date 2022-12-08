@@ -16,7 +16,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
                        min_ms1_charge = 2L, max_ms1_charge = 6L, 
                        min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                        min_ret_time = 0, max_ret_time = Inf, 
-                       ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                       ppm_ms1 = 20L, ppm_ms2 = 20L, 
                        is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                        enzyme = "trypsin_p", digits = 5L) 
@@ -173,7 +173,7 @@ readMGF <- function (filepath = NULL, filelist = NULL,
                      min_ms2mass = 115L, max_ms2mass = 4500L, 
                      topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                      ms1_scan_range = c(1L, .Machine$integer.max), 
-                     ret_range = c(0, Inf), ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                     ret_range = c(0, Inf), ppm_ms1 = 10L, ppm_ms2 = 10L, 
                      mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                      out_path = file.path(filepath, "mgf_queries.rds"), 
                      digits = 5L) 
@@ -300,7 +300,7 @@ readMGF <- function (filepath = NULL, filelist = NULL,
 #' 
 #' @param df A data frame of processed peak lists.
 #' @inheritParams readMGF
-post_readmgf <- function (df, min_mass = 700L, max_mass = 4500L, ppm_ms1 = 20L, 
+post_readmgf <- function (df, min_mass = 700L, max_mass = 4500L, ppm_ms1 = 10L, 
                           filepath, out_path) 
 {
   df <- df %>%
@@ -408,7 +408,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                              topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
                              ret_range = c(0, Inf), min_mass = 700L, 
-                             max_mass = 4500L, ppm_ms2 = 25L, 
+                             max_mass = 4500L, ppm_ms2 = 10L, 
                              min_ms2mass = 115L, max_ms2mass = 4500L, 
                              mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                              type_mgf = "msconv_thermo", n_bf_begin = 0L, 
@@ -564,7 +564,7 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                              ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
                              ret_range = c(0, Inf), min_mass = 700L, 
-                             max_mass = 4500L, ppm_ms2 = 25L, 
+                             max_mass = 4500L, ppm_ms2 = 10L, 
                              min_ms2mass = 115L, max_ms2mass = 4500L, 
                              mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                              type_mgf = "msconv_thermo", n_bf_begin = 0L, 
@@ -644,7 +644,7 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
                        ms1_charge_range = c(2L, 6L), 
                        ms1_scan_range = c(1L, .Machine$integer.max), 
                        ret_range = c(0, Inf), min_mass = 700L, max_mass = 4500L, 
-                       ppm_ms2 = 25L, min_ms2mass = 115L, max_ms2mass = 4500L, 
+                       ppm_ms2 = 10L, min_ms2mass = 115L, max_ms2mass = 4500L, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                        type_mgf = "msconv_thermo", n_bf_begin = 0L, 
                        n_spacer = 0L, n_hdr = 5L, n_to_pepmass = 3L,
@@ -901,7 +901,7 @@ sub_mgftopn <- function (ms2_moverzs, ms2_ints, topn_ms2ions = 100L,
 #' }
 #' @return Frame numbers.
 #' @seealso find_ms1_cutpoints
-find_ms1_interval <- function (mass = 1800.0, from = 350L, ppm = 20L) 
+find_ms1_interval <- function (mass = 1800.0, from = 350L, ppm = 10L) 
 {
   d <- ppm/1e6
   ceiling(log(unlist(mass, recursive = FALSE, use.names = FALSE)/from)/log(1+d))
@@ -1145,7 +1145,7 @@ readmzML <- function (filepath = NULL, filelist = NULL,
                       min_ms2mass = 115L, max_ms2mass = 4500L, 
                       topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                       ms1_scan_range = c(1L, .Machine$integer.max), 
-                      ret_range = c(0, Inf), ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                      ret_range = c(0, Inf), ppm_ms1 = 10L, ppm_ms2 = 10L, 
                       mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                       out_path, digits = 4L)
 {

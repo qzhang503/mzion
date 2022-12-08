@@ -1,7 +1,7 @@
 proteoM
 ================
 true
-2022-10-15
+2022-12-07
 
 - <a href="#installation" id="toc-installation">Installation</a>
 - <a href="#fastas-and-mgfs" id="toc-fastas-and-mgfs">FASTAs and MGFs</a>
@@ -12,21 +12,20 @@ true
 
 ## Installation
 
-To install this package, start R (latest version or 4.1.3) and enter:
+To install this package, start R and enter:
 
 ``` r
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 devtools::install_github("qzhang503/proteoM")
-
-# (Optional: exemplary FASTAs and MGFs)
-devtools::install_github("qzhang503/proteoQDA")
 ```
 
 ## FASTAs and MGFs
 
 ``` r
-# (Optional for exemplary FASTAs and MGFs)
+# (feel free to skip, only for exemplary FASTAs and MGFs)
+devtools::install_github("qzhang503/proteoQDA")
+
 library(proteoQDA)
 
 copy_refseq_hs("~/proteoM/dbs/fasta/refseq")
@@ -43,6 +42,11 @@ copy_msconv_mgf("~/proteoM/examples_p/mgfs")
 
 ``` r
 ## Global, TMT-10plex
+
+# If not using examples from proteoQDA
+#   (1) link users' MGF or mzML files to 'mgf_path'
+#   (2) link FASTA files to 'fasta'
+#   (3) make addtional adjustments accordingly
 library(proteoM)
 
 matchMS(
@@ -92,7 +96,7 @@ matchMS(
 
 ## Next steps
 
-- Search against full-length MGFs or mzML
+- Search against full-length MGF or mzML files
 
   - Thermo’s MS
     - [x] `MSConvert`

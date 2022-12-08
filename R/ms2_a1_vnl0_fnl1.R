@@ -16,7 +16,7 @@ ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                                    maxn_sites_per_vmod = 3L, 
                                    maxn_vmods_sitescombi_per_pep = 64L, 
-                                   minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 25L, 
+                                   minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                                    min_ms2mass = 115L, df0 = NULL, digits = 4L) 
 {
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)

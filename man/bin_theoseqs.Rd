@@ -9,7 +9,7 @@ bin_theoseqs(
   out_nm = NULL,
   min_mass = 700L,
   max_mass = 4500L,
-  ppm_ms1 = 20L
+  ppm_ms1 = 10L
 )
 }
 \arguments{
@@ -21,7 +21,7 @@ bin_theoseqs(
 
 \item{max_mass}{Numeric; the maximum MS1 mass.}
 
-\item{ppm_ms1}{Numeric; the error tolerance of MS1 mass in ppm.}
+\item{ppm_ms1}{Numeric; (half of) the error tolerance of MS1 mass in ppm.}
 }
 \description{
 Separates theoretical peptides into mass groups.

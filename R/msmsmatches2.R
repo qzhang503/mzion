@@ -120,9 +120,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                          maxn_vmods_per_pep = maxn_vmods_per_pep,
                          maxn_sites_per_vmod = maxn_sites_per_vmod)
   
-  ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
-  
-  
+  ms2vmods_all <- lapply(ms1vmods_all, lapply, make_ms2vmods)
+
   message("\n===  MS2 ion searches started at ", Sys.time(), ". ===\n")
   
   ## Targets 

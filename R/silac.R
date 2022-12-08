@@ -134,7 +134,8 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
 {
   message("Multiple searches by parameter groups...")
   message("[x] For reprocessing (with new score function) ", 
-          "delete cached 'pepscores_[...]' and 'calc_pepscores.rda'.\n")
+          "delete cached 'pepscores_[...]' and 'calc_pepscores.rda'.\n", 
+          "[x] To bypass cached results, use \"use_ms1_cache = FALSE\".\n")
   
   lapply(c("par_groups", "grp_args", "this_call", "out_path"), function (x) {
     if (is.null(x))

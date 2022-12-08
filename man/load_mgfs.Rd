@@ -19,7 +19,7 @@ load_mgfs(
   min_ret_time = 0,
   max_ret_time = Inf,
   ppm_ms1 = 20L,
-  ppm_ms2 = 25L,
+  ppm_ms2 = 20L,
   is_ms1_three_frame = TRUE,
   is_ms2_three_frame = TRUE,
   mgf_cutmzs = numeric(),

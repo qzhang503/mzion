@@ -12,7 +12,7 @@ proc_mgf_chunks(
   ret_range = c(0, Inf),
   min_mass = 700L,
   max_mass = 4500L,
-  ppm_ms2 = 25L,
+  ppm_ms2 = 10L,
   min_ms2mass = 115L,
   max_ms2mass = 4500L,
   mgf_cutmzs = numeric(),

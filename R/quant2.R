@@ -178,7 +178,7 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
   
   if (anyDuplicated(names(idxes))) {
     idxes <- idxes %>%
-      split(., names(.)) %>%
+      split(names(.)) %>%
       purrr::imap_int(~ {
         if (length(.x) > 1L) {
           p <- which.min(abs(ms[.x] - theos[.y]))
@@ -194,7 +194,8 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
   # 126 <NA> 127C 128N 128C 129N 129C <NA> <NA> <NA>
   #  2   NA    3    4    5    6    8   NA   NA   NA
   
-  if (anyNA(names(idxes))) names(idxes) <- nms
+  if (anyNA(names(idxes))) 
+    names(idxes) <- nms
   
   rptr_ints <- is[idxes] %>%
     `names<-`(names(idxes))
@@ -386,8 +387,7 @@ hadd_prot_acc <- function (df, fwd_prps, rev_prps)
     dplyr::right_join(df, by = "pep_seq")
   
   rm(list = c("fwd_prps", "rev_prps"))
-  # gc()
-  
+
   # Adds prot_n_psm, prot_n_pep for protein FDR
   x <- out[out[["pep_issig"]], ]
   
@@ -453,7 +453,7 @@ hadd_prot_acc <- function (df, fwd_prps, rev_prps)
 #' df$pep_seq <- sample(letters[1:26], 20, replace = TRUE)
 #' df <- df[!duplicated(df), ]
 #'
-#' out <- proteoM:::groupProts(df)
+#' out <- proteoM:::groupProts(df, "~")
 #'
 #' # One peptide, multiple proteins
 #' df <- data.frame(prot_acc = LETTERS[1:3], pep_seq = rep("X", 3))
@@ -760,16 +760,17 @@ map_pepprot <- function (df, out_path = NULL, fct = 4L)
   
   dpeps <- peps[duplicated.default(peps)]
   drows <- peps %in% dpeps
-  Mat0 <- Mat[!drows, ]
-  Mat1 <- Mat[drows, ]
+  Mat0  <- Mat[!drows, ]
+  Mat1  <- Mat[drows, ]
 
   rm(list = c("dpeps", "drows", "Mat", "peps"))
   gc()
   
   ## Mat1: (a) pre sparse-matrix vector
-  ncol <- as.numeric(ncol(Mat1))
+  ncol  <- as.numeric(ncol(Mat1))
   peps1 <- rownames(Mat1)
-  vec <- pcollapse_sortpeps(Mat = Mat1, ncol = ncol, peps = peps1, fct = fct)
+  vec   <- pcollapse_sortpeps(Mat = Mat1, ncol = ncol, peps = peps1, fct = fct)
+  
   rm(list = c("Mat1"))
   gc()
 
@@ -814,16 +815,6 @@ map_pepprot <- function (df, out_path = NULL, fct = 4L)
   ## To logical sparse matrix
   out <- out == 1L
   gc()
-
-  if (FALSE) {
-    # grp_prots -> groupProts -> map_pepprot called multiple times
-    # need additional "tier" information to prevent overwrites
-    if (!is.null(out_path)) {
-      Matrix::writeMM(out, file = file.path(out_path, "prot_pep_map.mtx"))
-      qs::qsave(colnames(out), file.path(out_path, "prot_pep_map_col.rds"), preset = "fast")
-      qs::qsave(rownames(out), file.path(out_path, "prot_pep_map_row.rds"), preset = "fast")
-    }
-  }
 
   ## Cleans up
   cols_1 <- Matrix::colSums(out) > 0
@@ -911,7 +902,6 @@ pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, fct = 4L)
     as.numeric(dim[1]) * as.numeric(dim[2])
   })
   
-  # n_cores <- detect_cores(14L)
   n_cores <- detect_cores(16L)
   n_cores <- min(n_cores, floor(n_cores * 7E9 /size))
 
@@ -1231,8 +1221,9 @@ as_lgldist <- function(m, diag = FALSE, upper = FALSE)
 #' @return A two-column data frame of prot_acc and pep_seq. 
 greedysetcover3 <- function (mat) 
 {
+  # dense matrix to sparse matrix
   if (is.matrix(mat)) {
-    mat <- Matrix::Matrix(as.matrix(mat), sparse = TRUE)
+    mat <- Matrix::Matrix(mat, sparse = TRUE)
     gc()
   }
   
@@ -1245,7 +1236,8 @@ greedysetcover3 <- function (mat)
   while(nrow(mat)) {
     max <- which.max(Matrix::colSums(mat, na.rm = TRUE))
     
-    if (max == 0L) break
+    if (max == 0L) 
+      break
     
     prot <- names(max)
     rows <- which(mat[, max])

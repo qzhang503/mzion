@@ -23,8 +23,8 @@ frames_adv(
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
-  ppm_ms1 = 20L,
-  ppm_ms2 = 20L,
+  ppm_ms1 = 10L,
+  ppm_ms2 = 10L,
   min_ms2mass = 115L,
   digits = 4L,
   FUN

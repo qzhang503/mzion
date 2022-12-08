@@ -224,7 +224,7 @@ post_frame_adv <- function (res, mgf_frames)
 #' @inheritParams ms2match
 #' @inheritParams ms2match_base
 #' @inheritParams post_ms2match
-purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 20L,
+purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
                                 fmods_nl = NULL) 
 {
   # loads freshly mgfs (as will be modified)

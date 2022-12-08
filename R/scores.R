@@ -277,7 +277,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   int2 <- .Internal(split(df2[["int"]], as.factor(facs)))
   int2 <- Reduce(`%+%`, int2)
   
-  # df2[["int"]]:
+  # df2[["int"]]
   # NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA
   # NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA
   # NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA  48669 185877  12091   7927     NA  10710     NA
@@ -346,11 +346,13 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   # n <- max(n, topn_ms2ions + k[length(k)])
   
   # excludes unstable burn-in scores
+  # burn_ins is different to min_n_ms2
+  #   min_n_ms2 - guard against low-quality specta with low number of matches
+  #   burn_ins  - guard against unstable scores
   x_ <- x[-burn_ins]
   k_ <- k[-burn_ins]
   
   if (length(x_)) {
-    # prs <- mapply(dhyper, x_, m, n, k_)
     prs <- dhyper(x = x_, m = m, n = N, k = k_)
     pr <- min(prs, na.rm = TRUE)
   }
@@ -627,8 +629,8 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                                   args = fml_incl) 
   
   cache_pars <- cache_pars[sort(names(cache_pars))]
-  call_pars <- mget(fml_incl, envir = fun_env, inherits = FALSE) 
-  call_pars <- call_pars[sort(names(call_pars))]
+  call_pars  <- mget(fml_incl, envir = fun_env, inherits = FALSE) 
+  call_pars  <- call_pars[sort(names(call_pars))]
   
   if (identical(cache_pars, call_pars)) {
     ok_scores <- find_targets(out_path, pattern = "^pepscores_")
@@ -670,7 +672,6 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
               add_ms2moverzs = add_ms2moverzs, 
               add_ms2ints = add_ms2ints,
               sys_ram = sys_ram, 
-              parallel = TRUE, 
               digits = digits)
     
     gc()
@@ -724,22 +725,21 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 #' Helper of \link{calc_pepscores}.
 #' 
 #' @param file A file name of \code{ion_matches_}.
-#' @param parallel Logical; parallel or not.
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by", 
                        ppm_ms2 = 25L, soft_secions = FALSE, out_path = NULL, 
                        add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                        add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
-                       sys_ram = 32L, parallel = TRUE, digits = 4L) 
+                       sys_ram = 32L, digits = 4L) 
 {
   # (can be decoy => .*, not \\d+)
   idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
   file_lt <- file.path(out_path, "temp", paste0("list_table_", idx, ".rds"))
   file_sc <- file.path(out_path, "temp", paste0("pepscores_", idx, ".rds"))
   
-  cols_a <- c("scan_num", "raw_file")
-  cols_b <- c("ms2_moverz", "ms2_int", "pri_matches", "sec_matches")
+  cols_a  <- c("scan_num", "raw_file")
+  cols_b  <- c("ms2_moverz", "ms2_int", "pri_matches", "sec_matches")
   cols_lt <- c(cols_a, cols_b)
   
   cols_sc <- c("pep_seq", "ms2_n", "scan_title", "ms1_moverz", "ms1_mass", 
@@ -801,12 +801,10 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       digits = digits)
   }
   else {
-    if (!is.null(df)) {
-      dfs <- suppressWarnings(chunksplit(df, n_chunks, "row"))
-    }
-    else {
+    if (is.null(df))
       dfs <- list(df)
-    }
+    else
+      dfs <- suppressWarnings(chunksplit(df, n_chunks, "row"))
 
     path_df <- file.path(out_path, "df_sc_temp.rda")
     df <- df[, -which(names(df) == "matches"), drop = FALSE]
@@ -814,7 +812,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     rm(list = "df", envir = environment())
     gc()
     
-    if ((length(dfs) >= n_chunks) && parallel) {
+    if ((length(dfs) >= n_chunks)) {
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
       parallel::clusterExport(cl, list("calc_pepprobs_i", "scalc_pepprobs", 
@@ -1443,10 +1441,10 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   td[[nm_d]] <- purge_decoys(target = td[[nm_t]], decoy = td[[nm_d]])
   
   #  keeps the best hit for each `scan_num`
-  if (nrow(td[[nm_d]]))
-    td <- dplyr::bind_rows(td[c(nm_t, nm_d)])
+  td <- if (nrow(td[[nm_d]]))
+    dplyr::bind_rows(td[c(nm_t, nm_d)])
   else
-    td <- td[[nm_t]]
+    td[[nm_t]]
 
   td <- td %>% 
     dplyr::group_by(scan_num, raw_file) %>% 
@@ -1773,7 +1771,8 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
     list_t <- ok_targets$files
     nms_t <- ok_targets$idxes
     
-    if (!length(list_t)) stop("No target results with pattern '", pat, "'.")
+    if (!length(list_t)) 
+      stop("No target results with pattern '", pat, "'.")
 
     targets <- lapply(list_t, function (x) qs::qread(file.path(out_path, "temp", x)))
     names(targets) <- nms_t
@@ -1782,7 +1781,9 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
     ok_decoy <- find_decoy(out_path, pat)
     list_d <- ok_decoy$files
     nm_d <- ok_decoy$idxes
-    if (!length(list_d)) stop("No decoy results with pattern '", pat, "'.")
+    
+    if (!length(list_d)) 
+      stop("No decoy results with pattern '", pat, "'.")
 
     decoy <- qs::qread(file.path(out_path, "temp", list_d)) %>% 
       list() %>% 
@@ -1795,8 +1796,7 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
   td <- dplyr::bind_rows(td[oks])
   
   if (!nrow(td)) 
-    stop("No PSM matches for scoring. Consider different search parameters.", 
-         call. = FALSE)
+    stop("No PSM matches for scoring. Consider different search parameters.")
   
   # Adjusted p-values (just to moderate pep_score)
   td <- td %>% 
@@ -1934,10 +1934,7 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
   
   ## all decoys
   if (sum(!td$pep_isdecoy) == 0L) {
-    if (nrow(td) <= 5L) 
-      return(0L) 
-    else 
-      return(20L)
+    if (nrow(td) <= 5L) return(0L) else return(20L)
   }
 
   ## both targets and decoys
@@ -2178,8 +2175,10 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
       plot(y ~ x, df, xlab = "prot_n_pep", col = "blue", 
            ylab = "Protein score", pch = 19)
       title(main = "Protein score CO")
-      lines(newx, newy, col = "red", type = "b")
-      lines(newx, newy, col = "red")
+      # lines(newx, newy, col = "red", type = "b")
+      # lines(newx, newy, col = "red")
+      lines(out$prot_n_pep , out$prot_score_co, col = "red", type = "b")
+      lines(out$prot_n_pep , out$prot_score_co, col = "red")
       legend("topright", legend = c("Raw", "Smoothed"), 
              col = c("blue", "red"), pch = 19, bty = "n")
       dev.off()

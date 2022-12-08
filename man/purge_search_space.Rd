@@ -9,7 +9,7 @@ purge_search_space(
   aa_masses,
   mgf_path,
   n_cores,
-  ppm_ms1 = 20L,
+  ppm_ms1 = 10L,
   fmods_nl = NULL
 )
 }

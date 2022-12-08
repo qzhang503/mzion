@@ -8,7 +8,7 @@ post_readmgf(
   df,
   min_mass = 700L,
   max_mass = 4500L,
-  ppm_ms1 = 20L,
+  ppm_ms1 = 10L,
   filepath,
   out_path
 )
