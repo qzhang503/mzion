@@ -17,7 +17,7 @@ scalc_pepprobs(
 \item{entry}{A row of data.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
-searches. The default is to use the top-100 ions in an MS2 event.}
+searches.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2

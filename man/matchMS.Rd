@@ -48,7 +48,7 @@ matchMS(
   target_fdr = 0.01,
   fdr_type = c("protein", "peptide", "psm"),
   max_pepscores_co = 50,
-  min_pepscores_co = 10,
+  min_pepscores_co = 0,
   max_protscores_co = Inf,
   max_protnpep_co = 10L,
   method_prot_es_co = c("median", "mean", "max", "min"),
@@ -205,7 +205,7 @@ default is 64.}
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded. The default is 40.}
+for considerations. Longer peptides will be excluded.}
 
 \item{max_miss}{A non-negative integer; the maximum number of mis-cleavages
 per peptide sequence for considerations. The default is 2.}
@@ -215,7 +215,7 @@ interrogation. The default is an arbitrarily low value. The primary guard
 against low molecular-weight precursors is \code{min_len}.}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
-interrogation. The default is 4500.}
+interrogation.}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}
@@ -254,11 +254,11 @@ and y-ions.}
 interrogation. The default is 110.}
 
 \item{max_ms2mass}{A positive integer; the maximum MS2 mass for
-interrogation. The default is 4500.}
+interrogation.}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
-for consideration as a hit. The default is 6. Counts of secondary ions,
-e.g. b0, b* etc., are not part of the threshold.}
+for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
+not part of the threshold.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
@@ -290,8 +290,8 @@ of peptide scores for discriminating significant and insignificant
 identities. The default is changed from \code{Inf} to 50 from version
 1.1.9.2 on.}
 
-\item{min_pepscores_co}{A positive numeric; the lower limit in the cut-offs
-of peptide scores for discriminating significant and insignificant
+\item{min_pepscores_co}{A non-negative numeric; the lower limit in the
+cut-offs of peptide scores for discriminating significant and insignificant
 identities.}
 
 \item{max_protscores_co}{A positive numeric; the upper limit in the cut-offs
@@ -391,7 +391,7 @@ space or under infrequent events of modified framework incurred by the
 developer.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
-searches. The default is to use the top-100 ions in an MS2 event.}
+searches.}
 
 \item{topn_ms2ion_cuts}{Advanced feature. Either \code{NA} or a named vector.
   For instance, at \code{topn_ms2ions = 100} and \code{topn_ms2ion_cuts =
@@ -453,7 +453,7 @@ seconds for considerations. The default is \code{Inf}.}
 \item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
 intensity values (\code{pep_ms2_ints}).}
 
-\item{sys_ram}{For Mac OS or Linux. The amount of system RAM in GB.}
+\item{sys_ram}{Not used. The amount of system RAM in GB.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

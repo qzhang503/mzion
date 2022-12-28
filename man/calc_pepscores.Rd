@@ -35,13 +35,12 @@ calc_pepscores(
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
   add_ms2ints = FALSE,
-  sys_ram = 32L,
   digits = 5L
 )
 }
 \arguments{
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
-searches. The default is to use the top-100 ions in an MS2 event.}
+searches.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
@@ -62,7 +61,7 @@ levels of PSM, peptide or protein. The default is 0.01. See also argument
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded. The default is 40.}
+for considerations. Longer peptides will be excluded.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
@@ -106,8 +105,8 @@ number of combinatorial variable modifications per peptide sequence. The
 default is 64.}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
-for consideration as a hit. The default is 6. Counts of secondary ions,
-e.g. b0, b* etc., are not part of the threshold.}
+for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
+not part of the threshold.}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}
@@ -185,8 +184,6 @@ sets of combinatorial variable modifications. The default is 512.}
 
 \item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
 intensity values (\code{pep_ms2_ints}).}
-
-\item{sys_ram}{For Mac OS or Linux. The amount of system RAM in GB.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

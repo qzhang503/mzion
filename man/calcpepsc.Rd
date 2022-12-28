@@ -15,7 +15,6 @@ calcpepsc(
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
   add_ms2ints = FALSE,
-  sys_ram = 32L,
   digits = 4L
 )
 }
@@ -23,7 +22,7 @@ calcpepsc(
 \item{file}{A file name of \code{ion_matches_}.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
-searches. The default is to use the top-100 ions in an MS2 event.}
+searches.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
@@ -61,8 +60,6 @@ For instance, the signal of \code{b5^*} will be ignored if its primary ion
 
 \item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
 intensity values (\code{pep_ms2_ints}).}
-
-\item{sys_ram}{For Mac OS or Linux. The amount of system RAM in GB.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

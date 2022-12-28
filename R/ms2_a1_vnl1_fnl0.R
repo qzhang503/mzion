@@ -17,7 +17,8 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    maxn_sites_per_vmod = 3L, 
                                    maxn_vmods_sitescombi_per_pep = 64L, 
                                    minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                                   min_ms2mass = 115L, df0 = NULL, digits = 4L) 
+                                   min_ms2mass = 115L, df0 = NULL, 
+                                   digits = 4L) 
 {
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
@@ -29,7 +30,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
     return(df0)
   }
   
-  n_cores <- detect_cores(32L)
+  n_cores <- detect_cores(96L)
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
   parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
   parallel::clusterExport(cl, list("%fin%"), envir = environment(fastmatch::`%fin%`))

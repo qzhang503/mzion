@@ -36,6 +36,18 @@ set.seed <- (3)
 x <- sample(x)
 p <- 4L
 
+## more NA values (3) than n (2)
+x <- c(0.11, 0.11, NA, rep(0.11, 7), NA, NA)
+ans <- which_topx2(x, 2L, na.last = FALSE)
+
+# OK
+ans <- which_topx2(x, 8L, na.last = FALSE)
+
+# Bad
+ans <- which_topx2(x, 9L, na.last = FALSE)
+# OK
+ans <- which_topx2(x, 9L, na.last = TRUE)
+ 
 \donttest{
 which_topx2(5000, NA_integer_)
 }

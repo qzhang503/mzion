@@ -34,7 +34,7 @@ ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
-searches. The default is to use the top-100 ions in an MS2 event.}
+searches.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}

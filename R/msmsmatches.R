@@ -142,18 +142,18 @@
 #' @param min_len A positive integer; the minimum length of peptide sequences
 #'   for considerations. Shorter peptides will be excluded. The default is 7.
 #' @param max_len A positive integer; the maximum length of peptide sequences
-#'   for considerations. Longer peptides will be excluded. The default is 40.
+#'   for considerations. Longer peptides will be excluded.
 #' @param max_miss A non-negative integer; the maximum number of mis-cleavages
 #'   per peptide sequence for considerations. The default is 2.
 #' @param min_mass A positive integer; the minimum precursor mass for
 #'   interrogation. The default is an arbitrarily low value. The primary guard
 #'   against low molecular-weight precursors is \code{min_len}.
 #' @param max_mass A positive integer; the maximum precursor mass for
-#'   interrogation. The default is 4500.
+#'   interrogation.
 #' @param min_ms2mass A positive integer; the minimum MS2 mass for
 #'   interrogation. The default is 110.
 #' @param max_ms2mass A positive integer; the maximum MS2 mass for
-#'   interrogation. The default is 4500.
+#'   interrogation.
 #' @param n_13c A non-negative integer; the maximum number of 13C off-sets for
 #'   consideration in MS1 masses. The default is 0 with no off-sets.
 #'   Peak-pickings by various MGF conversion tools may have attempted to adjust
@@ -181,7 +181,7 @@
 #'   ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 #'   and y-ions.
 #' @param topn_ms2ions A positive integer; the top-n species for uses in MS2 ion
-#'   searches. The default is to use the top-100 ions in an MS2 event.
+#'   searches.
 #' @param topn_ms2ion_cuts Advanced feature. Either \code{NA} or a named vector.
 #'   For instance, at \code{topn_ms2ions = 100} and \code{topn_ms2ion_cuts =
 #'   c(`1000` = 90, `1100` = 5, `4500` = 5)}, the maximum number of MS2 peaks
@@ -199,8 +199,8 @@
 #'   The default is \code{NA} where \code{topn_ms2ions} are picked uniformly
 #'   across the entire m/z range.
 #' @param minn_ms2 A positive integer; the minimum number of matched MS2 ions
-#'   for consideration as a hit. The default is 6. Counts of secondary ions,
-#'   e.g. b0, b* etc., are not part of the threshold.
+#'   for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
+#'   not part of the threshold.
 #' @param min_ms1_charge A positive integer; the minimum MS1 charge state for
 #'   considerations. The default is 2.
 #' @param max_ms1_charge A positive integer; the maximum MS1 charge state for
@@ -242,8 +242,8 @@
 #'   of peptide scores for discriminating significant and insignificant
 #'   identities. The default is changed from \code{Inf} to 50 from version
 #'   1.1.9.2 on.
-#' @param min_pepscores_co A positive numeric; the lower limit in the cut-offs
-#'   of peptide scores for discriminating significant and insignificant
+#' @param min_pepscores_co A non-negative numeric; the lower limit in the
+#'   cut-offs of peptide scores for discriminating significant and insignificant
 #'   identities.
 #' @param max_protscores_co A positive numeric; the upper limit in the cut-offs
 #'   of protein scores for discriminating significant and insignificant
@@ -351,7 +351,7 @@
 #'   suggested. Occasionally experimenters may remove the file folder for disk
 #'   space or under infrequent events of modified framework incurred by the
 #'   developer.
-#' @param sys_ram For Mac OS or Linux. The amount of system RAM in GB.
+#' @param sys_ram Not used. The amount of system RAM in GB.
 #' @param digits A non-negative integer; the number of decimal places to be
 #'   used. The default is 4.
 #' @param ... Not currently used.
@@ -606,7 +606,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      
                      target_fdr = 0.01,
                      fdr_type = c("protein", "peptide", "psm"),
-                     max_pepscores_co = 50, min_pepscores_co = 10, 
+                     max_pepscores_co = 50, min_pepscores_co = 0, 
                      max_protscores_co = Inf, 
                      max_protnpep_co = 10L, 
                      method_prot_es_co = c("median", "mean", "max", "min"), 
@@ -971,7 +971,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
     matchMS_noenzyme(this_call = this_call, min_len = min_len, max_len = max_len, 
                      fasta = fasta, out_path = out_path, mgf_path = mgf_path, 
                      noenzyme_maxn = noenzyme_maxn, quant = quant, 
-                     sys_ram = sys_ram, 
                      silac_noenzyme = if (!is.null(silac_mix)) TRUE else FALSE, 
                      groups_noenzyme = if (!is.null(par_groups)) TRUE else FALSE)
 
@@ -1062,8 +1061,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                   use_ms1_cache = use_ms1_cache, 
                   .path_cache = .path_cache, 
                   .path_ms1masses = .path_ms1masses, 
-                  out_path = out_path, 
-                  sys_ram = sys_ram)
+                  out_path = out_path)
     
     try(rm(list = "res"), silent = TRUE)
     gc()
@@ -1122,6 +1120,9 @@ matchMS <- function (out_path = "~/proteoM/outs",
   }
   
   if (!bypass_ms2match) {
+    if (min_ms2mass < 5L) 
+      warning("Maybe out of RAM at \"min_ms2mass < 5L\".")
+
     ms2match(mgf_path = mgf_path,
              aa_masses_all = aa_masses_all,
              out_path = out_path,
@@ -1198,7 +1199,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
                    add_ms2theos2 = add_ms2theos2, 
                    add_ms2moverzs = add_ms2moverzs, 
                    add_ms2ints = add_ms2ints,
-                   sys_ram = sys_ram, 
                    digits = digits)
   }
   

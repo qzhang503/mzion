@@ -9,7 +9,7 @@ probco_bypeplen(
   td,
   fdr_type = "psm",
   target_fdr = 0.01,
-  min_pepscores_co = 10,
+  min_pepscores_co = 0,
   out_path
 )
 }
@@ -28,8 +28,8 @@ probco_bypeplen(
 levels of PSM, peptide or protein. The default is 0.01. See also argument
 \code{fdr_type}.}
 
-\item{min_pepscores_co}{A positive numeric; the lower limit in the cut-offs
-of peptide scores for discriminating significant and insignificant
+\item{min_pepscores_co}{A non-negative numeric; the lower limit in the
+cut-offs of peptide scores for discriminating significant and insignificant
 identities.}
 
 \item{out_path}{A file path of outputs.}

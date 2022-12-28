@@ -81,8 +81,8 @@ number of combinatorial variable modifications per peptide sequence. The
 default is 64.}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
-for consideration as a hit. The default is 6. Counts of secondary ions,
-e.g. b0, b* etc., are not part of the threshold.}
+for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
+not part of the threshold.}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}
@@ -123,7 +123,7 @@ c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
 \link{load_fasta2} for custom examples.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
-searches. The default is to use the top-100 ions in an MS2 event.}
+searches.}
 
 \item{fixedmods}{Character string(s) of fixed modifications.}
 
@@ -152,7 +152,7 @@ sets of combinatorial variable modifications. The default is 512.}
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded. The default is 40.}
+for considerations. Longer peptides will be excluded.}
 
 \item{max_miss}{A non-negative integer; the maximum number of mis-cleavages
 per peptide sequence for considerations. The default is 2.}

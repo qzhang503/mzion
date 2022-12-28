@@ -43,8 +43,8 @@ frame.}
 following \code{+1} frame.}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
-for consideration as a hit. The default is 6. Counts of secondary ions,
-e.g. b0, b* etc., are not part of the threshold.}
+for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
+not part of the threshold.}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}

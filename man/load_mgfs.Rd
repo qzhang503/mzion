@@ -51,10 +51,10 @@ load_mgfs(
 \item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
 
 \item{max_ms2mass}{A positive integer; the maximum MS2 mass for
-interrogation. The default is 4500.}
+interrogation.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
-searches. The default is to use the top-100 ions in an MS2 event.}
+searches.}
 
 \item{min_ms1_charge}{A positive integer; the minimum MS1 charge state for
 considerations. The default is 2.}

@@ -10,7 +10,7 @@ calc_pepfdr(
   min_len = 7L,
   max_len = 40L,
   max_pepscores_co = 50,
-  min_pepscores_co = 10,
+  min_pepscores_co = 0,
   out_path
 )
 }
@@ -23,15 +23,15 @@ calc_pepfdr(
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded. The default is 40.}
+for considerations. Longer peptides will be excluded.}
 
 \item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
 of peptide scores for discriminating significant and insignificant
 identities. The default is changed from \code{Inf} to 50 from version
 1.1.9.2 on.}
 
-\item{min_pepscores_co}{A positive numeric; the lower limit in the cut-offs
-of peptide scores for discriminating significant and insignificant
+\item{min_pepscores_co}{A non-negative numeric; the lower limit in the
+cut-offs of peptide scores for discriminating significant and insignificant
 identities.}
 
 \item{out_path}{A file path of outputs.}

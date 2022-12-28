@@ -586,7 +586,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             maxn_vmods_setscombi = 64L, 
                             add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                             add_ms2moverzs = FALSE, add_ms2ints = FALSE,
-                            sys_ram = 32L, digits = 5L) 
+                            digits = 5L) 
 {
   on.exit(
     if (exists(".savecall", envir = fun_env)) {
@@ -617,8 +617,9 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   fun_env <- environment()
   fml_nms <- names(formals(fun))
   
-  args_except <- c("sys_ram")
-  fml_incl <- fml_nms[!fml_nms %in% args_except]
+  # args_except <- c("sys_ram")
+  # fml_incl <- fml_nms[!fml_nms %in% args_except]
+  fml_incl <- fml_nms
   
   message("[x] For reprocessing (with new score function) ", 
           "delete cached 'pepscores_[...]' and 'calc_pepscores.rda'.\n")
@@ -671,7 +672,6 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
               add_ms2theos2 = add_ms2theos2, 
               add_ms2moverzs = add_ms2moverzs, 
               add_ms2ints = add_ms2ints,
-              sys_ram = sys_ram, 
               digits = digits)
     
     gc()
@@ -731,7 +731,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                        ppm_ms2 = 25L, soft_secions = FALSE, out_path = NULL, 
                        add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                        add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
-                       sys_ram = 32L, digits = 4L) 
+                       digits = 4L) 
 {
   # (can be decoy => .*, not \\d+)
   idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
@@ -1142,7 +1142,7 @@ find_pepscore_co2 <- function (td, target_fdr = 0.01)
 #' @param len Numeric; the length of peptides.
 #' @inheritParams matchMS
 probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01, 
-                             min_pepscores_co = 10, out_path) 
+                             min_pepscores_co = 0, out_path) 
 {
   td <- dplyr::filter(td, pep_len == len)
   
@@ -1268,7 +1268,6 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01,
       ###
       
       best_co <- min(score_co, score_co2, na.rm = TRUE)
-      # best_co <- max(best_co, min_pepscores_co)
 
       if (FALSE) {
         try(
@@ -1381,7 +1380,7 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 #' }
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm", 
                          min_len = 7L, max_len = 40L, 
-                         max_pepscores_co = 50, min_pepscores_co = 10, out_path) 
+                         max_pepscores_co = 50, min_pepscores_co = 0, out_path) 
 {
   message("Calculating peptide FDR.")
   
@@ -2455,13 +2454,31 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
       
       probs <- lapply(us, findLocFracsDF, locmod_indexes)
       
+      if (FALSE) {
+        deltas <- lapply(probs, function (x) {
+          if (all(is.na(x)))
+            NA_real_
+          else {
+            # may be more NA values, e.g. 3L, than 2L
+            # topx <- x[which_topx2(x, 2L)]
+            topx <- x[which_topx2(x, 2L, na.last = FALSE)]
+            abs(topx[1] - topx[2])
+          }
+        })
+      }
+
       deltas <- lapply(probs, function (x) {
-        if (all(is.na(x)))
-          NA_real_
-        else {
+        x <- x[!is.na(x)]
+        len <- length(x)
+        
+        if (len == 1L)
+          x
+        else if (len > 1L) {
           topx <- x[which_topx2(x, 2L)]
           abs(topx[1] - topx[2])
         }
+        else 
+          NA_real_
       })
       
       us <- mapply(function (x, y, z) {

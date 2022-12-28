@@ -28,7 +28,7 @@ interrogation. The default is an arbitrarily low value. The primary guard
 against low molecular-weight precursors is \code{min_len}.}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
-interrogation. The default is 4500.}
+interrogation.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

@@ -133,7 +133,7 @@ interrogation. The default is an arbitrarily low value. The primary guard
 against low molecular-weight precursors is \code{min_len}.}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
-interrogation. The default is 4500.}
+interrogation.}
 
 \item{n_13c}{A non-negative integer; the maximum number of 13C off-sets for
 consideration in MS1 masses. The default is 0 with no off-sets.

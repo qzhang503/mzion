@@ -22,7 +22,7 @@ calc_semipepmasses(
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded. The default is 40.}
+for considerations. Longer peptides will be excluded.}
 
 \item{ct_offset}{Zero or one to account for the "-" in the C-term of pep.}
 }

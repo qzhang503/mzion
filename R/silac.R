@@ -281,7 +281,7 @@ add_fixedlab_masses <- function (fixedlabs, aa_masses)
 matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L, 
                               fasta = NULL, out_path = NULL, mgf_path = NULL, 
                               noenzyme_maxn = 0L, quant = "none", 
-                              sys_ram = 32L, silac_noenzyme = FALSE, 
+                              sys_ram = 24L, silac_noenzyme = FALSE, 
                               groups_noenzyme = FALSE) 
 {
   if (groups_noenzyme)

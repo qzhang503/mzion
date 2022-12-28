@@ -15,7 +15,7 @@ in values.}
 \item{n}{The number of beginning entries to be considered.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded. The default is 40.}
+for considerations. Longer peptides will be excluded.}
 }
 \description{
 Removes a starting character from the first \code{n} entries.

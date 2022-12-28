@@ -36,7 +36,7 @@ match the one in  \link{binTheoSeqs}.}
 \item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
 
 \item{max_ms2mass}{A positive integer; the maximum MS2 mass for
-interrogation. The default is 4500.}
+interrogation.}
 
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
 MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}

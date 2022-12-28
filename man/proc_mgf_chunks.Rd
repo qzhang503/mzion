@@ -57,7 +57,7 @@ default is 20.}
 \item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
 
 \item{max_ms2mass}{A positive integer; the maximum MS2 mass for
-interrogation. The default is 4500.}
+interrogation.}
 
 \item{mgf_cutmzs}{Cut points of MS1 moverz values in peak picking.}
 

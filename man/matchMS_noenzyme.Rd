@@ -13,7 +13,7 @@ matchMS_noenzyme(
   mgf_path = NULL,
   noenzyme_maxn = 0L,
   quant = "none",
-  sys_ram = 32L,
+  sys_ram = 24L,
   silac_noenzyme = FALSE,
   groups_noenzyme = FALSE
 )
@@ -25,7 +25,7 @@ matchMS_noenzyme(
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded. The default is 40.}
+for considerations. Longer peptides will be excluded.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}
@@ -62,7 +62,7 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 \code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
 \code{quant = tmt18} is suitable.}
 
-\item{sys_ram}{For Mac OS or Linux. The amount of system RAM in GB.}
+\item{sys_ram}{Not used. The amount of system RAM in GB.}
 
 \item{silac_noenzyme}{Logical; is the search a combination of SILAC and
 noenzyme.}

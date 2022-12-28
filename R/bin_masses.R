@@ -12,7 +12,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
                            ppm_ms1 = 20L, use_ms1_cache = TRUE, 
                            .path_cache = NULL, .path_ms1masses = NULL, 
                            is_ms1_three_frame = TRUE, 
-                           out_path = NULL, sys_ram = 32L) 
+                           out_path = NULL, sys_ram = 24L) 
 {
   old_opts <- options()
   options(warn = 1L)
@@ -116,7 +116,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
       n_cores <- min(floor(free_mem/max_sz/fct), detect_cores(8L))
 
       if (n_cores < 1L) {
-        warning("May be out of memory with large peptide tables.")
+        warning("May be out of RAM with large peptide tables.")
         n_cores <- 1L
       }
       
@@ -150,7 +150,8 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
       )
       
       parallel::stopCluster(cl)
-    } else {
+    } 
+    else {
       lapply(idxes, binTheoSeqs_i, min_mass, max_mass, ppm_ms1_new, 
              .path_mass, .path_bin)
     }

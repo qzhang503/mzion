@@ -19,17 +19,18 @@ ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                                    min_ms2mass = 115L, df0 = NULL, digits = 4L) 
 {
-  tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
+  n_splits <- detect_cores(ceiling(16L*6L/minn_ms2))
+  tempdata <- purge_search_space(i, aa_masses, mgf_path, n_splits, ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
   theopeps <- tempdata$theopeps
-  rm(list = c("tempdata"))
+  rm(list = c("tempdata", "n_splits"))
   
   if (!length(mgf_frames) || !length(theopeps)) {
     qs::qsave(df0, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
     return(df0)
   }
   
-  n_cores <- detect_cores(32L)
+  n_cores <- detect_cores(96L)
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
   parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
   parallel::clusterExport(cl, list("%fin%"), envir = environment(fastmatch::`%fin%`))

@@ -560,6 +560,13 @@ calc_pepmasses2 <- function (aa_masses = NULL,
         amods_i <- amods[[i]]
         aa_masses_i <- aa_masses_all[[i]]
         ms1vmods_i <- ms1vmods_all[[i]]
+        
+        # at maxn_vmods_per_pep = 3, ms1vmods_i is empty at 
+        #   Oxidation (M), Phospho (S), Phospho (T), Phospho (Y)
+        if (!length(ms1vmods_i)) {
+          fwd_peps[i] <- list(NULL)
+          next
+        }
 
         fwd_peps_i <- fwd_peps[[i]]
         
@@ -2699,8 +2706,37 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
 #' @inheritParams matchMS
 add_ms1_13c <- function (peps, n_13c = 1L, max_mass = 4500L) 
 {
-  # consider -1L too...
+  len <- length(n_13c)
   
+  if (!len)
+    return(peps)
+  
+  if (len == 1L && n_13c == 0L)
+    return(peps)
+  
+  mass_13c <- 1.00335483
+  ns <- if (len == 1L) if (n_13c < 0L) n_13c:0L else 0:n_13c else n_13c
+  len2 <- length(ns)
+  out <- vector("list", len2)
+  
+  for (i in 1:len2) {
+    ni <- ns[[i]]
+    out[[i]] <- if (ni == 0L) peps else peps + mass_13c * ni
+  }
+  
+  out <- .Internal(unlist(out, recursive = FALSE, use.names = TRUE))
+  
+  out[out <= max_mass]
+}
+
+
+#' Adds Carbon-13 masses.
+#'
+#' @param peps A named vector of peptide sequences. Sequences in names and
+#'   masses in values.
+#' @inheritParams matchMS
+add_ms1_13c_orig <- function (peps, n_13c = 1L, max_mass = 4500L) 
+{
   if (n_13c <= 0L) 
     return(peps)
   
