@@ -68,6 +68,8 @@ matchMS(
   max_scan_num = .Machine$integer.max,
   min_ret_time = 0,
   max_ret_time = Inf,
+  calib_ms1mass = FALSE,
+  ppm_ms1calib = 10L,
   add_ms2theos = FALSE,
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
@@ -431,6 +433,12 @@ seconds for considerations. The default is 0.}
 \item{max_ret_time}{A non-negative numeric; the maximum retention time in
 seconds for considerations. The default is \code{Inf}.}
 
+\item{calib_ms1mass}{Logical; if TRUE, calibrates precursor masses.}
+
+\item{ppm_ms1calib}{A positive integer; the mass tolerance of MS1 species for
+precursor mass calibration. The default is 10. The argument has no effect
+at \code{calib_ms1mass = FALSE}.}
+
 \item{add_ms2theos}{Logical. If true, adds the sequence of primary
   theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a
   given \code{type_ms2ions} is:
@@ -477,21 +485,15 @@ Database searches of MSMS data.
   percent coverage, will be performed with \link[proteoQ]{normPSM} given that
   values will be affected with the combination of multiple PSM tables.
 
-  The search engine does not assume that variable peptides are descendants of
-  fixed peptides. In other words, each combination of variable and fixed
-  modifications is a set of \emph{realization} and applied freshly for
-  searches against all possible candidate sequences. Cares in search space
-  were taken by restricting only possible candidates at a given realization.
-
   The search is a two-way match: (a) a forward matching of theoretical values
   to experiment ones and (b) a backward matching of the experimental values
   to the theoretical ones. This allows the establishment of one-to-one
   correspondences between experiments and theoreticals. The correspondences
   are made available to users in files of \code{ion_matches_1.rds...} (nested
-  form) and \code{list_table_1.rds...} etc. (flat form). A more
-  self-contained output can be made available at the TRUE of
-  \code{add_ms2theos}, \code{add_ms2theos2}, \code{add_ms2moverzs} and
-  \code{add_ms2ints}.
+  form) and \code{list_table_1.rds...} etc. (flat form). To open the files,
+  use \code{qs::qread(...)}. A more self-contained output can be made
+  available at the TRUE of \code{add_ms2theos}, \code{add_ms2theos2},
+  \code{add_ms2moverzs} and \code{add_ms2ints}.
 
   When there is no evidence to distinguish, e.g. distinct primary sequences
   of \code{P[EMPTY]EPTIDE} and \code{P[MTYPE]EPTIDE}, both will be reported
@@ -533,9 +535,9 @@ Database searches of MSMS data.
 \examples{
 \donttest{
 ## All examples are hypothetical
-## (some real ones at https://github.com/qzhang503/proteoM)
+## (Users are responsible for supplying FASTA and peak lists in MGF or mzML)
 
-# TMT10
+# TMT-10plex
 matchMS(
   fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
                "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
@@ -551,7 +553,7 @@ matchMS(
 reproc_psmC(out_path = "~/proteoM/examples", fdr_type = "psm",
             combine_tier_three = TRUE)
 
-# TMT16, phospho
+# TMT-16plex, phospho
 matchMS(
   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
@@ -608,7 +610,7 @@ matchMS(
 
 # K8, R10 + TMT10
 matchMS(
-  fixedmods = c("TMT6plex (N-term)", "TMT+K8 (K)", "Carbamidomethyl (C)"),
+  fixedmods = c("TMT6plex (N-term)", "TMT10plex+K8 (K)", "Carbamidomethyl (C)"),
   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
                 "R10 (R)"),
   quant     = "tmt10",

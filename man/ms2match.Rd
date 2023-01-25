@@ -15,11 +15,15 @@ ms2match(
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 20L,
+  ppm_ms1calib = 10L,
   ppm_ms2 = 20L,
+  min_mass = 200L,
+  max_mass = 4500L,
   min_ms2mass = 115L,
   quant = "none",
   ppm_reporters = 10L,
   use_first_rev = FALSE,
+  calib_ms1mass = FALSE,
   fasta,
   acc_type,
   acc_pattern,
@@ -87,8 +91,19 @@ not part of the threshold.}
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}
 
+\item{ppm_ms1calib}{A positive integer; the mass tolerance of MS1 species for
+precursor mass calibration. The default is 10. The argument has no effect
+at \code{calib_ms1mass = FALSE}.}
+
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
+
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is an arbitrarily low value. The primary guard
+against low molecular-weight precursors is \code{min_len}.}
+
+\item{max_mass}{A positive integer; the maximum precursor mass for
+interrogation.}
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
@@ -107,6 +122,8 @@ ions. The default is 10.}
 
 \item{use_first_rev}{Logical; if TRUE, uses the first set of \code{aa_masses}
 for reversed searches; otherwise, uses the set with the maximum output.}
+
+\item{calib_ms1mass}{Logical; if TRUE, calibrates precursor masses.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}

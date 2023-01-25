@@ -9,21 +9,15 @@
 #'   percent coverage, will be performed with \link[proteoQ]{normPSM} given that
 #'   values will be affected with the combination of multiple PSM tables.
 #'
-#'   The search engine does not assume that variable peptides are descendants of
-#'   fixed peptides. In other words, each combination of variable and fixed
-#'   modifications is a set of \emph{realization} and applied freshly for
-#'   searches against all possible candidate sequences. Cares in search space
-#'   were taken by restricting only possible candidates at a given realization.
-#'
 #'   The search is a two-way match: (a) a forward matching of theoretical values
 #'   to experiment ones and (b) a backward matching of the experimental values
 #'   to the theoretical ones. This allows the establishment of one-to-one
 #'   correspondences between experiments and theoreticals. The correspondences
 #'   are made available to users in files of \code{ion_matches_1.rds...} (nested
-#'   form) and \code{list_table_1.rds...} etc. (flat form). A more
-#'   self-contained output can be made available at the TRUE of
-#'   \code{add_ms2theos}, \code{add_ms2theos2}, \code{add_ms2moverzs} and
-#'   \code{add_ms2ints}.
+#'   form) and \code{list_table_1.rds...} etc. (flat form). To open the files,
+#'   use \code{qs::qread(...)}. A more self-contained output can be made
+#'   available at the TRUE of \code{add_ms2theos}, \code{add_ms2theos2},
+#'   \code{add_ms2moverzs} and \code{add_ms2ints}.
 #'
 #'   When there is no evidence to distinguish, e.g. distinct primary sequences
 #'   of \code{P[EMPTY]EPTIDE} and \code{P[MTYPE]EPTIDE}, both will be reported
@@ -220,8 +214,12 @@
 #'   default is 20.
 #' @param ppm_ms2 A positive integer; the mass tolerance of MS2 species. The
 #'   default is 20.
+#' @param calib_ms1mass Logical; if TRUE, calibrates precursor masses.
 #' @param ppm_reporters A positive integer; the mass tolerance of MS2 reporter
 #'   ions. The default is 10.
+#' @param ppm_ms1calib A positive integer; the mass tolerance of MS1 species for
+#'   precursor mass calibration. The default is 10. The argument has no effect
+#'   at \code{calib_ms1mass = FALSE}.
 #' @param quant A character string; the quantitation method. The default is
 #'   "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
 #'   tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
@@ -377,9 +375,9 @@
 #' @examples
 #' \donttest{
 #' ## All examples are hypothetical
-#' ## (some real ones at https://github.com/qzhang503/proteoM)
+#' ## (Users are responsible for supplying FASTA and peak lists in MGF or mzML)
 #'
-#' # TMT10
+#' # TMT-10plex
 #' matchMS(
 #'   fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
 #'                "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
@@ -395,7 +393,7 @@
 #' reproc_psmC(out_path = "~/proteoM/examples", fdr_type = "psm",
 #'             combine_tier_three = TRUE)
 #'
-#' # TMT16, phospho
+#' # TMT-16plex, phospho
 #' matchMS(
 #'   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
 #'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
@@ -452,7 +450,7 @@
 #'
 #' # K8, R10 + TMT10
 #' matchMS(
-#'   fixedmods = c("TMT6plex (N-term)", "TMT+K8 (K)", "Carbamidomethyl (C)"),
+#'   fixedmods = c("TMT6plex (N-term)", "TMT10plex+K8 (K)", "Carbamidomethyl (C)"),
 #'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
 #'                 "R10 (R)"),
 #'   quant     = "tmt10",
@@ -626,6 +624,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      min_ms1_charge = 2L, max_ms1_charge = 6L, 
                      min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                      min_ret_time = 0, max_ret_time = Inf, 
+                     calib_ms1mass = FALSE, 
+                     ppm_ms1calib = 10L,
                      
                      add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                      add_ms2moverzs = FALSE, add_ms2ints = FALSE,
@@ -638,8 +638,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   on.exit(
     if (exists(".savecall", envir = environment())) {
       if (.savecall) {
-        tryCatch(save_call2(path = file.path(out_path, "Calls"),
-                            fun = fun), 
+        tryCatch(save_call2(path = file.path(out_path, "Calls"), fun = fun), 
                  error = function(e) NA)
       }
     },
@@ -688,7 +687,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
     acc_pattern <- NULL
   
   # logical types 
-  stopifnot(vapply(c(soft_secions, combine_tier_three, 
+  stopifnot(vapply(c(soft_secions, combine_tier_three, calib_ms1mass, 
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
                      add_ms2ints), 
                    is.logical, logical(1L)))
@@ -760,8 +759,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
             topn_mods_per_seq >= 1L, topn_seqs_per_query >= 1L)
 
   # (b) doubles
-  target_fdr <- as.double(target_fdr)
-  target_fdr <- round(target_fdr, digits = 2L)
+  target_fdr <- round(as.double(target_fdr), digits = 2L)
   
   if (target_fdr > .25) 
     stop("Choose a smaller `target_fdr`.", call. = FALSE)
@@ -1050,14 +1048,15 @@ matchMS <- function (out_path = "~/proteoM/outs",
   }
 
   ## Bin theoretical peptides
+  ppm_precsr <- if (calib_ms1mass) ppm_ms1calib else ppm_ms1
   bypass_bin_ms1 <- dots$bypass_bin_ms1
   if (is.null(bypass_bin_ms1)) bypass_bin_ms1 <- FALSE
-  
+
   if (!bypass_bin_ms1) {
     bin_ms1masses(res = res, 
                   min_mass = min_mass, 
                   max_mass = max_mass, 
-                  ppm_ms1 = ppm_ms1, 
+                  ppm_ms1 = ppm_precsr, 
                   use_ms1_cache = use_ms1_cache, 
                   .path_cache = .path_cache, 
                   .path_ms1masses = .path_ms1masses, 
@@ -1085,7 +1084,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
               max_scan_num = max_scan_num, 
               min_ret_time = min_ret_time,
               max_ret_time = max_ret_time, 
-              ppm_ms1 = ppm_ms1,
+              ppm_ms1 = ppm_precsr,
               ppm_ms2 = ppm_ms2,
               mgf_cutmzs = mgf_cutmzs, 
               mgf_cutpercs = mgf_cutpercs, 
@@ -1132,13 +1131,19 @@ matchMS <- function (out_path = "~/proteoM/outs",
              maxn_sites_per_vmod = maxn_sites_per_vmod,
              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
              minn_ms2 = minn_ms2,
+             
              ppm_ms1 = ppm_ms1,
+             ppm_ms1calib = ppm_ms1calib,
+             
              ppm_ms2 = ppm_ms2,
+             min_mass = 200L, 
+             max_mass = 4500L, 
              min_ms2mass = min_ms2mass,
              quant = quant,
              ppm_reporters = ppm_reporters,
              use_first_rev = use_first_rev, 
-             
+             calib_ms1mass = calib_ms1mass, 
+
              # dummy for argument matching
              fasta = fasta,
              acc_type = acc_type,
@@ -1154,6 +1159,18 @@ matchMS <- function (out_path = "~/proteoM/outs",
              max_miss = max_miss,
              
              digits = digits)
+    
+    if (calib_ms1mass) {
+      ppm_ms1_calib <- qs::qread(file.path(mgf_path, "ppm_ms1calib.rds"))
+      this_call$ppm_ms1 <- ppm_ms1_calib[["ppm_ms1_af"]]
+      this_call$bypass_mgf <- TRUE
+      this_call$calib_ms1mass <- FALSE
+      df <- tryCatch(eval(this_call), error = function (e) NULL)
+
+      .savecall <- TRUE
+      
+      return(invisible(df))
+    }
   }
 
   ## Peptide scores
@@ -1296,12 +1313,14 @@ matchMS <- function (out_path = "~/proteoM/outs",
     pep_frame = frame)
 
   nms <- names(df)
+  
   df <- dplyr::bind_cols(
     df[grepl("^prot_", nms)],
     df[grepl("^pep_", nms)],
     df[grepl("^psm_", nms)],
     df[!grepl("^prot_|^pep_|^psm_", nms)],
   )
+  
   rm(list = "nms")
   
   df <- reloc_col_after(df, "pep_exp_z", "pep_exp_mr")

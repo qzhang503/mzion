@@ -26,6 +26,13 @@ excludes all \code{nms}.}
 }
 \value{
 An empty object if no matches.
+\donttest{
+.time_bin <- match_calltime(
+  path = file.path(.path_cache, "calc_pepmasses2", .time_stamp), 
+  fun = fun,
+  nms = c("min_mass", "max_mass", "ppm_ms1", "calib_ms1mass"), 
+  new_args = c(`calib_ms1mass` = calib_ms1mass)) 
+}
 }
 \description{
 Finds the time stamp of a matched call from cached results.

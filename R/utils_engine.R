@@ -929,3 +929,62 @@ find_from_hash <- function (ht, val, n_bucks = length(ht), offset = 0L)
 }
 
 
+#' Calculates the three-frame ppm.
+#'
+#' @param ppm A positive integer; the mass tolerance of MS1 species. The default
+#'   is 20.
+#' @param is_three_frame Logical; is a three-frame search or not. The value is
+#'   always TRUE.
+#' @param fct_ppm A factor to new ppm error. The value is always 0.5 for a
+#'   three-frame search.
+calc_threeframe_ppm <- function (ppm = 20L, is_three_frame = TRUE, fct_ppm = .5) 
+{
+  if (is_three_frame) as.integer(ceiling(ppm * fct_ppm)) else ppm
+}
+
+
+#' Checks the status of a prior execution of precursor mass calibration.
+#' 
+#' @inheritParams matchMS 
+#' @return TRUE if without precursor mass calibration.
+check_ms1calib <- function(out_path = NULL, calib_ms1mass = FALSE) 
+{
+  workflow_file <- file.path(out_path, "Calls", "workflow_info.rds")
+  
+  passed_ms1calib <- if (calib_ms1mass) {
+    if (file.exists(workflow_file)) 
+      qs::qread(workflow_file)[["passed_ms1calib"]]
+    else 
+      FALSE
+  }
+  else {
+    TRUE
+  }
+  
+  if (is.null(passed_ms1calib)) FALSE else passed_ms1calib
+}
+
+
+#' Saves the \code{ppm_ms1} before and after calibration.
+#' 
+#' @param ppm_ms1calib The mass error after calibration in ppm.
+#' @inheritParams matchMS
+save_ms1calib <- function (ppm_ms1, ppm_ms1calib, mgf_path)
+{
+  info_calib <- c(`ppm_ms1_bf` = ppm_ms1, `ppm_ms1_af` = ppm_ms1calib)
+  qs::qsave(info_calib, file.path(mgf_path, "ppm_ms1calib.rds"))
+}
+
+
+#' Gets the MS1 charges.
+#' 
+#' @param charges A vector of \code{2+, 3+} etc.
+get_ms1charges <- function (charges)
+{
+  charges <- lapply(charges, stringi::stri_reverse)
+  charges <- .Internal(unlist(charges, recursive = FALSE, use.names = FALSE))
+  
+  as.integer(charges)
+}
+
+

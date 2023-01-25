@@ -8,7 +8,7 @@
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
 #' @inheritParams calc_pepmasses2
-bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L, 
+bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L, 
                            ppm_ms1 = 20L, use_ms1_cache = TRUE, 
                            .path_cache = NULL, .path_ms1masses = NULL, 
                            is_ms1_three_frame = TRUE, 
@@ -33,10 +33,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
   
-  ppm_ms1_new <- if (is_ms1_three_frame) 
-    as.integer(ceiling(ppm_ms1 * .5))
-  else 
-    ppm_ms1
+  ppm_ms1_bin <- calc_threeframe_ppm(ppm_ms1)
 
   # checks pre-existed precursor masses
   .time_stamp <- get(".time_stamp", envir = .GlobalEnv, inherits = FALSE)
@@ -97,7 +94,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
                 res = res,
                 min_mass = min_mass,
                 max_mass = max_mass,
-                ppm_ms1 = ppm_ms1_new,
+                ppm_ms1 = ppm_ms1_bin,
                 out_path = file.path(.path_bin, "binned_theopeps.rds"))
   } 
   else {
@@ -144,7 +141,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
         FUN = "binTheoSeqs_i", 
         min_mass = min_mass, 
         max_mass = max_mass, 
-        ppm_ms1 = ppm_ms1_new, 
+        ppm_ms1 = ppm_ms1_bin, 
         in_path = .path_mass,
         out_path = .path_bin
       )
@@ -152,7 +149,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 700L, max_mass = 4500L,
       parallel::stopCluster(cl)
     } 
     else {
-      lapply(idxes, binTheoSeqs_i, min_mass, max_mass, ppm_ms1_new, 
+      lapply(idxes, binTheoSeqs_i, min_mass, max_mass, ppm_ms1_bin, 
              .path_mass, .path_bin)
     }
   }

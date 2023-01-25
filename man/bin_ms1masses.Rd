@@ -6,7 +6,7 @@
 \usage{
 bin_ms1masses(
   res = NULL,
-  min_mass = 700L,
+  min_mass = 200L,
   max_mass = 4500L,
   ppm_ms1 = 20L,
   use_ms1_cache = TRUE,

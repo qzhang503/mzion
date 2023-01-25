@@ -323,6 +323,9 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
   len <- length(min_len:max_len)
   
   if (len > size) {
+    message("Split data by peptide lengths. To overrule, may consider ", 
+            "\"noenzyme_maxn = ", len + 1, "\".")
+
     if (size == 1L) {
       n_chunks <- len
       spans <- split(min_len:max_len, 1:len)
@@ -515,6 +518,39 @@ comine_PSMsubs <- function (sub_paths, groups, out_path)
   combine_ion_matches(out_path, sub_paths, type = "ion_matches_rev_")
   
   invisible(NULL)
+}
+
+
+#' Wrapper of \link{matchMS}.
+#' 
+#' With the calibration of precursor masses.
+#' 
+#' @param ... Arguments for \link{matchMS}.
+matchMS_ms1calib <- function (...)
+{
+  matchMS(...)
+  
+  this_call <- match.call()
+  fun <- as.character(this_call[1])
+  this_fml <- formals()
+  
+  out_path <- this_call[["out_path"]]
+  mgf_path <- this_call[["mgf_path"]]
+  calib_ms1mass <- this_call[["calib_ms1mass"]]
+  
+  if (passed_ms1calib <- check_ms1calib(out_path, calib_ms1mass)) {
+    file <- file.path(mgf_path, "ppm_ms1calib.rds")
+    ppm_ms1_calib <- if (file.exists(file)) qs::qread(file) else stop()
+    ppm_ms1_af <- ppm_ms1_calib[["ppm_ms1_af"]]
+  }
+  else 
+    stop()
+  
+  matchMS(..., 
+          ppm_ms1 = ppm_ms1_af, 
+          bypass_mgf = TRUE, 
+          calib_ms1mass = FALSE, 
+  )
 }
 
 

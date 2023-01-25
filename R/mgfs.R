@@ -501,7 +501,10 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
   gaps <- purrr::map2(afs, bfs, function (x, y) {
     af <- stringi::stri_read_lines(file.path(filepath, x))
     bf <- stringi::stri_read_lines(file.path(filepath, y))
-    append(af, bf)
+    ab <- append(af, bf)
+    
+    # perfect case of no gaps: two lines of "" and ""
+    if (length(ab) > 2L) ab else NULL
   }) %>%
     unlist(use.names = FALSE) %T>%
     write(file.path(filepath, "gaps.mgf"))
@@ -691,7 +694,12 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
 
   rows <- (charges >= ms1_charge_range[1] & charges <= ms1_charge_range[2] & 
              ret_times >= ret_range[1] & ret_times <= ret_range[2] & 
-             ms1_masses >= min_mass & ms1_masses <= max_mass)
+             ms1_masses >= min_mass & ms1_masses <= max_mass & 
+             # timsTOF: no MS1 masses
+             !is.na(ms1_masses))
+  
+  # timsTOF data may have undetermined charge states
+  rows <- rows[!is.na(rows)]
   
   begins <- begins[rows]
   ends <- ends[rows]
