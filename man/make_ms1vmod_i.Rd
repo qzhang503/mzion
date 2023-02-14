@@ -47,6 +47,8 @@ the combination of \code{Anywhere} can be further reduced.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 ## Simple
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
                "Carbamidomethyl (C)")
@@ -63,7 +65,7 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 
@@ -92,13 +94,12 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 
 # No duplication within each aa_masses
-any_dups <- lapply(ms1vmods_all,
-                   function (x) anyDuplicated(x))
+any_dups <- lapply(ms1vmods_all, function (x) anyDuplicated(x))
 
 stopifnot(all(unlist(any_dups) == 0L))
 
@@ -126,10 +127,10 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
 
 i <- 6L
 aa_masses <- aa_masses_all[[i]]
@@ -141,16 +142,16 @@ ms2vmods <- ms2vmods_all[[i]]
 aas <- unlist(strsplit("MHQGVMNVGMGQKNS", ""))
 
 # Subset from ms1vmods by aas
-oks <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
+oks <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
 ms2vmods <- ms2vmods[oks]
 
-vmods_combi <- find_vmodscombi(aas, ms2vmods)
+vmods_combi <- proteoM:::find_vmodscombi(aas, ms2vmods)
 
 # "Oxidation (M)" on N-term kept in the label space
 lapply(vmods_combi, function (x) any(names(x) == 1))
 
 # Otherwise check if any attr(aa_masses, "amods") in the N-term
 amods <- attr(aa_masses, "amods")
-# may do it during `combi_byvmodsM`...
+# may do it during combi_byvmodsM(...)
 }
 }

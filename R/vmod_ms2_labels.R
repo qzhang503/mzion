@@ -6,6 +6,8 @@
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## One-to-one correspondence between Names and Sites
 #' #  (no need to permute MS1 labels)
 #'
@@ -23,11 +25,11 @@
 #' maxn_vmods_per_pep  <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #' 
-#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
 #'
 #' i <- 11L
 #' aa_masses <- aa_masses_all[[i]]
@@ -39,10 +41,10 @@
 #' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 #'
 #' # Subset from ms1vmods by aas
-#' oks <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
+#' oks <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
 #' ms2vmods <- ms2vmods[oks]
 #'
-#' vmods_combi <- find_vmodscombi(aas, ms2vmods)
+#' vmods_combi <- proteoM:::find_vmodscombi(aas, ms2vmods)
 #'
 #'
 #' ## 'Carbamidomethyl (M)',  'Carbamyl (M)' and N
@@ -57,11 +59,11 @@
 #' maxn_vmods_per_pep  <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
-#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
 #'
 #' i <- 16L
 #' aa_masses <- aa_masses_all[[i]]
@@ -76,10 +78,10 @@
 #'
 #'
 #' # Subset from ms1vmods by aas
-#' oks <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
+#' oks <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
 #' ms2vmods <- ms2vmods[oks]
 #'
-#' vmods_combi <- find_vmodscombi(aas, ms2vmods)
+#' vmods_combi <- proteoM:::find_vmodscombi(aas, ms2vmods)
 #' 
 #' n_pos <- lapply(vmods_combi, function (x) names(x[x == "Deamidated (N)"]))
 #' stopifnot(all(sapply(n_pos, function (x) all(x %in% c("6", "14")))))
@@ -347,13 +349,15 @@ match_aas_indexes <- function (X, Vec)
 #'
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## with a bare vector
 #' # One-to-one correspondence between Names and Sites
 #' vec <- c(M = "Oxidation (M)", N = "Deamidated (N)")
 #' attr(vec, "ps")   <- c(M = 3L, N = 2L)
 #' attr(vec, "labs") <- c(`Oxidation (M)` = 3L, `Deamidated (N)` = 2L)
 #'
-#' ans <- make_ms2vmods(vec)
+#' ans <- proteoM:::make_ms2vmods(vec)
 #'
 #' # Multiple Names to the same Site (S)
 #' vec <- c(M = "Oxidation (M)",
@@ -364,7 +368,7 @@ match_aas_indexes <- function (X, Vec)
 #'                        `Carbamidomethyl (S)` = 2L,
 #'                        `Phospho (S)` = 1L)
 #'
-#' ans <- make_ms2vmods(vec)
+#' ans <- proteoM:::make_ms2vmods(vec)
 #' stopifnot(nrow(ans) == 6L, ncol(ans) == length(vec))
 #'
 #' # Another one-to-multiple
@@ -376,7 +380,7 @@ match_aas_indexes <- function (X, Vec)
 #'                        `Carbamidomethyl (S)` = 1L,
 #'                        `Phospho (S)` = 1L)
 #'
-#' ans <- make_ms2vmods(vec)
+#' ans <- proteoM:::make_ms2vmods(vec)
 #' stopifnot(nrow(ans) == 24L, ncol(ans) == length(vec),
 #'           nrow(ans) == nrow(unique(ans)))
 #'
@@ -396,7 +400,7 @@ match_aas_indexes <- function (X, Vec)
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
@@ -413,7 +417,7 @@ match_aas_indexes <- function (X, Vec)
 #' x <- ms1vmods_all[[12]] # list of 8
 #' # x <- ms1vmods_all[[1]] # empty list
 #'
-#' ans <- lapply(x, make_ms2vmods) # list of 8 matrices
+#' ans <- lapply(x, proteoM:::make_ms2vmods) # list of 8 matrices
 #'
 #'
 #' ## More complex
@@ -431,13 +435,12 @@ match_aas_indexes <- function (X, Vec)
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
 #' # No duplication within each aa_masses
-#' any_dups <- lapply(ms1vmods_all,
-#'                    function (x) anyDuplicated(x))
+#' any_dups <- lapply(ms1vmods_all, function (x) anyDuplicated(x))
 #'
 #' stopifnot(all(unlist(any_dups) == 0L))
 #'
@@ -458,9 +461,9 @@ match_aas_indexes <- function (X, Vec)
 #' # [[3]]
 #' # ...
 #'
-#' ans <- lapply(x, make_ms2vmods) # list of 10 matrices
+#' ans <- lapply(x, proteoM:::make_ms2vmods) # list of 10 matrices
 #'
-#' ans_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+#' ans_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
 #' }
 make_ms2vmods <- function (vec = NULL) 
 {
@@ -526,11 +529,15 @@ find_ms2resids <- function (M, vec)
 #'
 #' @examples
 #' \donttest{
+#' library(gtools)
+#' library(proteoM)
+#' library(dplyr)
+#' 
 #' # four positions for four balls in three colors
 #' labs  <- c("A", "A", "B", "C")
 #' len   <- length(labs)
-#' g <- unique(gtools::permutations(len, len, labs, set = FALSE, repeats.allowed = FALSE))
-#' m <- find_perm_sets(labs)
+#' g <- unique(permutations(len, len, labs, set = FALSE, repeats.allowed = FALSE))
+#' m <- proteoM:::find_perm_sets(labs)
 #' 
 #' cns <- paste0("p", 1:len)
 #' g <- data.frame(g)
@@ -541,11 +548,11 @@ find_ms2resids <- function (M, vec)
 #' 
 #' # example-2
 #' labs <- c("A", "A", "A", "B", "B", "C")
-#' m <- find_perm_sets(labs)
+#' m <- proteoM:::find_perm_sets(labs)
 #'
 #' # Compares to gtools::permutations
 #' len <- length(labs)
-#' g <- unique(gtools::permutations(len, len, labs, set = FALSE))
+#' g <- unique(permutations(len, len, labs, set = FALSE))
 #'
 #' cns <- paste0("p", 1:len)
 #' g <- data.frame(g)
@@ -556,12 +563,12 @@ find_ms2resids <- function (M, vec)
 #'
 #' # Compares to the theoretical number of entries
 #' len_labs <- length(labs)
-#' ns <- count_elements(labs)
+#' ns <- proteoM:::count_elements(labs)
 #' theo_cts <- factorial(len_labs)/prod(factorial(ns))
 #' stopifnot(nrow(m) == theo_cts)
 #'
 #' ## Others
-#' x <- find_perm_sets(rep("A", 3))
+#' x <- proteoM:::find_perm_sets(rep("A", 3))
 #' }
 find_perm_sets <- function (labs = c("A", "A", "A", "B", "B", "C")) 
 {
@@ -605,13 +612,17 @@ find_perm_sets <- function (labs = c("A", "A", "A", "B", "B", "C"))
 #' 
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' library(gtools)
+#' library(dplyr)
+#' 
 #' unilabs <- c("A", "B", "C")
 #' nu <- length(unilabs)
 #' 
 #' G <- gtools::permutations(nu, nu, unilabs)
 #' 
 #' M  <- matrix(unilabs[1])
-#' for (ulab in unilabs[-1]) M <- add_one_permlab(M, ulab)
+#' for (ulab in unilabs[-1]) M <- proteoM:::add_one_permlab(M, ulab)
 #' 
 #' cns <- paste0("p", 1:nu)
 #' M <- data.frame(M)

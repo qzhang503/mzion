@@ -13,7 +13,7 @@
 #' @param comment_char Character: a character or an empty string. Use "" to turn
 #'   off the interpretation of comment lines.
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' # assume the file and location of "uniprot_hs_2020_05.fasta"
 #' fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 #' head(names(fasta))
@@ -84,7 +84,7 @@ read_fasta <- function (file = NULL, acc_pattern = ">([^ ]+?) .*",
 #' @param fasta_db A list of protein entries from \code{\link{read_fasta}}.
 #' @inheritParams read_fasta
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' fasta_db <- read_fasta(file = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 #' write_fasta(fasta_db, "~/proteoM/examples/my.fasta")
 #' }
@@ -110,7 +110,7 @@ write_fasta <- function (fasta_db, file)
 #'   prepended directory path. There is no default and the experimenters need to
 #'   supply the files.
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' fasta_db <- load_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 #' }
 load_fasta <- function (fasta = NULL) 
@@ -151,7 +151,7 @@ load_fasta <- function (fasta = NULL)
 #'   "uniprot_id", "refseq_acc", "other").
 #' @inheritParams matchMS
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' fasta_db <- load_fasta2(
 #'               c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
 #'                 "~/proteoM/dbs/fasta/crap/crap.fasta"),

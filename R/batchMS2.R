@@ -526,6 +526,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
 #'
 #' @param ms1s Lists of named values. Peptide sequences in names and precursor
 #'   masses in values.
+#' @param aa_masses An amino-acid mass lookup.
 #' @param FUN A function pointer to, e.g., \link{gen_ms2ions_base}.
 #' @inheritParams gen_ms2ions_base
 mgen_ms2ions <- function (ms1s = NULL, aa_masses = NULL, 

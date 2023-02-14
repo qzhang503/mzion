@@ -28,6 +28,7 @@ ms2match_a0_vnl0_fnl1(
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
   min_ms2mass = 115L,
+  index_mgf_ms2 = FALSE,
   df0 = NULL,
   digits = 4L
 )
@@ -53,6 +54,7 @@ ms2match_a1_vnl0_fnl0(
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
   min_ms2mass = 115L,
+  index_mgf_ms2 = FALSE,
   df0 = NULL,
   digits = 4L
 )
@@ -79,6 +81,7 @@ ms2match_a1_vnl0_fnl1(
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
   min_ms2mass = 115L,
+  index_mgf_ms2 = FALSE,
   df0 = NULL,
   digits = 4L
 )
@@ -105,6 +108,7 @@ ms2match_a1_vnl1_fnl0(
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
   min_ms2mass = 115L,
+  index_mgf_ms2 = FALSE,
   df0 = NULL,
   digits = 4L
 )
@@ -127,6 +131,7 @@ ms2match_base(
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
   min_ms2mass = 115L,
+  index_mgf_ms2 = FALSE,
   df0 = NULL,
   digits = 4L
 )
@@ -135,8 +140,7 @@ ms2match_base(
 \item{i}{Integer; the index for a set of corresponding aa_masses and
 theoretical peptides.}
 
-\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
-acid residues.}
+\item{aa_masses}{An amino-acid mass lookup.}
 
 \item{ms1vmods}{The set of all possible MS1 vmod labels at a given aa_masses.}
 
@@ -202,6 +206,19 @@ default is 20.}
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
+
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
+
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{df0}{A zero-row data frame that holds column names.}
 

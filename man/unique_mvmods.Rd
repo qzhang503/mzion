@@ -65,9 +65,11 @@ a given \code{aa_masses}.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 ## M
-fixedmods = c("TMT6plex (K)", "dHex (S)")
-varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", "Acetyl (Protein N-term)")
+fixedmods <- c("TMT6plex (K)", "dHex (S)")
+varmods <- c("Carbamidomethyl (M)", "Carbamyl (M)", "Acetyl (Protein N-term)")
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
@@ -78,16 +80,16 @@ amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"),
 
 aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 
-ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
+ans <- proteoM:::unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
                      aa_masses = aa_masses, aas = aas)
 
 stopifnot(length(ans) == 1L,
           length(ans[[1]]) == 3L)
 
 ## M and N
-fixedmods = c("TMT6plex (K)", "dHex (S)")
-varmods = c("Carbamidomethyl (M)", "Carbamyl (M)",
-            "Deamidated (N)", "Acetyl (Protein N-term)")
+fixedmods <- c("TMT6plex (K)", "dHex (S)")
+varmods <- c("Carbamidomethyl (M)", "Carbamyl (M)",
+             "Deamidated (N)", "Acetyl (Protein N-term)")
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
@@ -99,7 +101,7 @@ amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"),
 
 aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 
-ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
+ans <- proteoM:::unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
                      aa_masses = aa_masses, aas = aas)
 
 stopifnot(length(ans) == 2L,

@@ -65,6 +65,8 @@ used. The default is 4.}
 }
 \examples{
 \donttest{
+library(proteoM)
+
 m0 <- calc_monopeptide("HQGVMCNVGMGQKMNSC", NULL, NULL)
 stopifnot(unlist(m0$mass, use.names = FALSE) - 1822.7405 < 1e-4)
 
@@ -80,7 +82,7 @@ pep <- c("HQGVMCNVGMGQKMNSC" = 2051.90346)
 amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
               `Carbamidomethyl (C)` = c("Anywhere" = "C"))
 
-x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[4]])
+x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[4]])
 
 stopifnot(x[[1]] - 2109.9089 < 1e-4,
           x[[2]] - 2166.9304 < 1e-4,
@@ -98,7 +100,7 @@ pep <- c("HQGVMNVGMGQKSMNS" = 1932.9171) # + TMT6plex (K)
 amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
               `Carbamidomethyl (S)` = c("Anywhere" = "S"))
 
-x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]])
+x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]])
 
 stopifnot(x[[1]] - 1990.9226 < 1e-4,
           x[[2]] - 1991.9066 < 1e-4,
@@ -107,27 +109,28 @@ stopifnot(x[[1]] - 1990.9226 < 1e-4,
 
 
 # (8-b)
-.ms1_vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses_all, 
+.ms1_vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses_all, 
                                    maxn_vmods_per_pep = 5L, 
                                    maxn_sites_per_vmod = 3L)
 .base_ent <- lapply(.ms1_vmodsets, `[[`, 1)
 
- x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]], 
-                      .ms1_vmodsets = .ms1_vmodsets, 
-                      .base_ent = .base_ent)
+ x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]], 
+                      # .ms1_vmodsets = .ms1_vmodsets, 
+                      # .base_ent = .base_ent
+                      )
 
 # (8-c)
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
 
-varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
-            "Gln->pyro-Glu (N-term = Q)")
+varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+             "Gln->pyro-Glu (N-term = Q)")
 
 aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
                                varmods = varmods,
                                maxn_vmods_setscombi = 64,
                                out_path = NULL)
 
-ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i)
+ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i)
 
 i <- 10
 aa_masses <- aa_masses_all[[i]]
@@ -136,10 +139,10 @@ ms1vmods <- ms1vmods_all[[i]]
 pep <- c("HQGVMCNVGMGQKMNSC" = 2051.90346)
 amods <- attr(aa_masses, "amods")
 
-x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
+x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
                       ms1vmods = ms1vmods)
 
-# y <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
+# y <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
 #                       ms1vmods = NULL)
 
 # identical(x, y)

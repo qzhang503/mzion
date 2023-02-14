@@ -10,6 +10,8 @@
 #' @param amods \code{Anywhere} variable modifications.
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
 #'                "Carbamidomethyl (C)")
 #'
@@ -25,7 +27,7 @@
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
@@ -36,7 +38,7 @@
 #'
 #' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 #'
-#' vmods_combi <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
+#' vmods_combi <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
 #'
 #' ## M and N
 #' fixedmods = c("TMT6plex (K)", "dHex (S)")
@@ -48,7 +50,7 @@
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
@@ -62,7 +64,7 @@
 #'
 #' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 #'
-#' vmods_combi <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
+#' vmods_combi <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
 #'
 #' stopifnot(sapply(vmods_combi$ms1, function (x) all(names(amods) %in% x)),
 #'           length(vmods_combi$ms1) == 6L)
@@ -116,6 +118,8 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## Simple
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
 #'                "Carbamidomethyl (C)")
@@ -132,7 +136,7 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
@@ -161,13 +165,12 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
 #' # No duplication within each aa_masses
-#' any_dups <- lapply(ms1vmods_all,
-#'                    function (x) anyDuplicated(x))
+#' any_dups <- lapply(ms1vmods_all, function (x) anyDuplicated(x))
 #'
 #' stopifnot(all(unlist(any_dups) == 0L))
 #'
@@ -195,10 +198,10 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
 #'
 #' i <- 6L
 #' aa_masses <- aa_masses_all[[i]]
@@ -210,17 +213,17 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' aas <- unlist(strsplit("MHQGVMNVGMGQKNS", ""))
 #'
 #' # Subset from ms1vmods by aas
-#' oks <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
+#' oks <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
 #' ms2vmods <- ms2vmods[oks]
 #'
-#' vmods_combi <- find_vmodscombi(aas, ms2vmods)
+#' vmods_combi <- proteoM:::find_vmodscombi(aas, ms2vmods)
 #'
 #' # "Oxidation (M)" on N-term kept in the label space
 #' lapply(vmods_combi, function (x) any(names(x) == 1))
 #'
 #' # Otherwise check if any attr(aa_masses, "amods") in the N-term
 #' amods <- attr(aa_masses, "amods")
-#' # may do it during `combi_byvmodsM`...
+#' # may do it during combi_byvmodsM(...)
 #' }
 make_ms1vmod_i <- function (aa_masses = NULL, maxn_vmods_per_pep = 5L, 
                             maxn_sites_per_vmod = 3L) 
@@ -292,8 +295,9 @@ make_ms1_vmodsets <- function (aa_masses_all = NULL, maxn_vmods_per_pep = 5L,
 #' @inheritParams matchMS
 #' @examples 
 #' \donttest{
+#' library(proteoM)
 #' resmods <- c(`Oxidation (M)` = "M", `Carbamidomethyl (M)` = "M")
-#' ans <- bacth_vmods_combi(resmods)
+#' ans <- proteoM:::bacth_vmods_combi(resmods)
 #' }
 bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L, 
                                maxn_sites_per_vmod = 3L) 
@@ -321,14 +325,16 @@ bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L,
 #' @inheritParams matchMS
 #' @examples 
 #' \donttest{
+#' library(proteoM)
+#' 
 #' # multiple outs
 #' p <- 5
 #' labs <- c("Oxidation (M)", "Carbamidomethyl (M)", "Carbamyl (M)")
 #' n <- length(labs)
 #' stopifnot(n == length(labs))
 #' 
-#' ans5 <- make_unique_sets(5, n, labs)
-#' ans7 <- make_unique_sets(7, n, labs)
+#' ans5 <- proteoM:::make_unique_sets(5, n, labs)
+#' ans7 <- proteoM:::make_unique_sets(7, n, labs)
 #' 
 #' stopifnot(identical(ans5, ans7))
 #' 
@@ -338,7 +344,7 @@ bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L,
 #' n <- length(labs)
 #' stopifnot(n == length(labs))
 #' 
-#' ans <- make_unique_sets(p, n, labs)
+#' ans <- proteoM:::make_unique_sets(p, n, labs)
 #' }
 make_unique_sets <- function (p = 5L, n = 2L, labs = c("X", "Y"), 
                               maxn_vmods_per_pep = 5L, 
@@ -382,9 +388,10 @@ make_unique_sets <- function (p = 5L, n = 2L, labs = c("X", "Y"),
 #' @param labs The names to be filled into the \code{p}-number of positions.
 #' @examples 
 #' \donttest{
-#' find_unique_sets(5, c("Oxidation (M)", 
-#'                       "Carbamidomethyl (M)", 
-#'                       "Carbamyl (M)"))
+#' library(proteoM)
+#' proteoM:::find_unique_sets(5, c("Oxidation (M)", 
+#'                            "Carbamidomethyl (M)", 
+#'                            "Carbamyl (M)"))
 #' }
 find_unique_sets <- function (p = 5L, labs = c("A", "B", "C")) 
 {
@@ -398,7 +405,7 @@ find_unique_sets <- function (p = 5L, labs = c("A", "B", "C"))
   if (r < 0L) 
     return(NULL)
   
-  x <- gtools_combn(n, r, labs, repeats = TRUE)
+  x <- gtools_combn(n, r, labs, repeats.allowed = TRUE)
   
   n_row <- nrow(x)
   out <- vector("list", n_row)
@@ -460,6 +467,8 @@ gtools_combn <- function (n, r, v = 1:n, set = TRUE, repeats.allowed = FALSE)
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## Simple
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
 #'
@@ -479,11 +488,11 @@ gtools_combn <- function (n, r, v = 1:n, set = TRUE, repeats.allowed = FALSE)
 #' i <- 10L
 #' aa_masses <- aa_masses_all[[i]]
 #'
-#' vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses,
+#' vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses,
 #'                               maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                               maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
-#' ms1vmods <- find_intercombi2(vmodsets)
+#' ms1vmods <- proteoM:::find_intercombi2(vmodsets)
 #' 
 #' ## More complex
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
@@ -505,11 +514,11 @@ gtools_combn <- function (n, r, v = 1:n, set = TRUE, repeats.allowed = FALSE)
 #' i <- 8L
 #' aa_masses <- aa_masses_all[[i]]
 #'
-#' vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses,
+#' vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses,
 #'                               maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                               maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
-#' ms1vmods <- find_intercombi2(vmodsets)
+#' ms1vmods <- proteoM:::find_intercombi2(vmodsets)
 #' 
 #' ## `Oxidation (M)`, "Carbamidomethyl (M)"
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
@@ -529,12 +538,11 @@ gtools_combn <- function (n, r, v = 1:n, set = TRUE, repeats.allowed = FALSE)
 #' i <- 16L
 #' aa_masses <- aa_masses_all[[i]]
 #'
-#' vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses,
+#' vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses,
 #'                               maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                               maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
-#' ms1vmods <- find_intercombi2(vmodsets)
-#' 
+#' ms1vmods <- proteoM:::find_intercombi2(vmodsets)
 #' }
 find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L) 
 {

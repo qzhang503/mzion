@@ -47,7 +47,9 @@ allowed in \code{title}.}
 Removes an existing modification.
 }
 \examples{
-\donttest{
+\dontrun{
+library(proteoM)
+
 # site `C`: Oxiation + Carbamidomethyl
 # (without neutral losses)
 x <- remove_unimod(header      = c(title       = "Oxi+Carbamidomethyl",

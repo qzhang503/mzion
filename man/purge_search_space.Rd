@@ -17,8 +17,7 @@ purge_search_space(
 \item{i}{Integer; the index for a set of corresponding aa_masses and
 theoretical peptides.}
 
-\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
-acid residues.}
+\item{aa_masses}{An amino-acid mass lookup.}
 
 \item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
   supply the files.

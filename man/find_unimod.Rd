@@ -25,6 +25,8 @@ In the field of \code{position_site}, \code{position} is the name and
 }
 \examples{
 \donttest{
+library(proteoM)
+
 x1 <- find_unimod("Carbamidomethyl (C)")
 x2 <- find_unimod("Carbamidomethyl (M)")
 x3 <- find_unimod("Acetyl (Protein N-term)")

@@ -12,8 +12,7 @@ post_ms2match(df, i, aa_masses, out_path)
 \item{i}{Integer; the index for a set of corresponding aa_masses and
 theoretical peptides.}
 
-\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
-acid residues.}
+\item{aa_masses}{An amino-acid mass lookup.}
 
 \item{out_path}{A file path of outputs.}
 }

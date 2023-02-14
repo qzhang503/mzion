@@ -17,9 +17,11 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
                        min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                        min_ret_time = 0, max_ret_time = Inf, 
                        ppm_ms1 = 20L, ppm_ms2 = 20L, 
+                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                       exclude_reporter_region = TRUE, index_mgf_ms2 = FALSE, 
                        is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
-                       enzyme = "trypsin_p", digits = 5L) 
+                       enzyme = "trypsin_p", quant = "none", digits = 5L) 
 {
   old_opts <- options()
   options(warn = 1L)
@@ -56,7 +58,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
   call_pars <- call_pars[sort(names(call_pars))]
   ok_pars <- identical(call_pars, cache_pars)
   
-  # suboptimal; for noenzyme
+  # suboptimal for handling matchMS_noenzyme()
   if ((!ok_pars) && enzyme == "noenzyme") 
     ok_pars <- TRUE
   
@@ -104,11 +106,16 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
               min_ms2mass = min_ms2mass,
               max_ms2mass = max_ms2mass, 
               topn_ms2ions = topn_ms2ions,
+              quant = quant, 
               ms1_charge_range = c(min_ms1_charge, max_ms1_charge), 
               ms1_scan_range = c(min_scan_num, max_scan_num), 
               ret_range = c(min_ret_time, max_ret_time),
               ppm_ms1 = ppm_ms1_new,
               ppm_ms2 = ppm_ms2_new,
+              tmt_reporter_lower = tmt_reporter_lower, 
+              tmt_reporter_upper = tmt_reporter_upper, 
+              exclude_reporter_region = exclude_reporter_region, 
+              index_mgf_ms2 = index_mgf_ms2, 
               mgf_cutmzs = mgf_cutmzs, 
               mgf_cutpercs = mgf_cutpercs, 
               out_path = rds, 
@@ -125,11 +132,16 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
                min_ms2mass = min_ms2mass,
                max_ms2mass = max_ms2mass, 
                topn_ms2ions = topn_ms2ions,
+               quant = quant, 
                ms1_charge_range = c(min_ms1_charge, max_ms1_charge), 
                ms1_scan_range = c(min_scan_num, max_scan_num), 
                ret_range = c(min_ret_time, max_ret_time),
                ppm_ms1 = ppm_ms1_new,
                ppm_ms2 = ppm_ms2_new,
+               tmt_reporter_lower = tmt_reporter_lower, 
+               tmt_reporter_upper = tmt_reporter_upper, 
+               exclude_reporter_region = exclude_reporter_region, 
+               index_mgf_ms2 = index_mgf_ms2, 
                mgf_cutmzs = mgf_cutmzs, 
                mgf_cutpercs = mgf_cutpercs, 
                out_path = rds, 
@@ -164,16 +176,17 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
 #' @import stringi
 #' @import readr
 #' @import fs
-#' @examples
-#' \donttest{
-#' mgf_queries <- proteoM:::readMGF()
-#' }
 readMGF <- function (filepath = NULL, filelist = NULL, 
                      min_mass = 700L, max_mass = 4500L, 
                      min_ms2mass = 115L, max_ms2mass = 4500L, 
-                     topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
+                     topn_ms2ions = 100L, quant = "none", 
+                     ms1_charge_range = c(2L, 6L), 
                      ms1_scan_range = c(1L, .Machine$integer.max), 
                      ret_range = c(0, Inf), ppm_ms1 = 10L, ppm_ms2 = 10L, 
+                     tmt_reporter_lower = 126.1, 
+                     tmt_reporter_upper = 135.2, 
+                     exclude_reporter_region = TRUE, 
+                     index_mgf_ms2 = FALSE, 
                      mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                      out_path = file.path(filepath, "mgf_queries.rds"), 
                      digits = 5L) 
@@ -253,6 +266,7 @@ readMGF <- function (filepath = NULL, filelist = NULL,
                                 ret_range = ret_range,
                                 min_mass = min_mass, 
                                 max_mass = max_mass, 
+                                ppm_ms1 = ppm_ms1, 
                                 ppm_ms2 = ppm_ms2,
                                 min_ms2mass = min_ms2mass,
                                 max_ms2mass = max_ms2mass, 
@@ -272,6 +286,11 @@ readMGF <- function (filepath = NULL, filelist = NULL,
                                 sep_pepmass = sep_pepmass, 
                                 nfields_pepmass = nfields_pepmass, 
                                 raw_file = raw_files[[i]], 
+                                tmt_reporter_lower = tmt_reporter_lower, 
+                                tmt_reporter_upper = tmt_reporter_upper, 
+                                exclude_reporter_region = exclude_reporter_region, 
+                                index_mgf_ms2 = index_mgf_ms2, 
+                                quant = quant, 
                                 digits = digits)
     
     local({
@@ -300,7 +319,7 @@ readMGF <- function (filepath = NULL, filelist = NULL,
 #' 
 #' @param df A data frame of processed peak lists.
 #' @inheritParams readMGF
-post_readmgf <- function (df, min_mass = 700L, max_mass = 4500L, ppm_ms1 = 10L, 
+post_readmgf <- function (df, min_mass = 200L, max_mass = 4500L, ppm_ms1 = 10L, 
                           filepath, out_path) 
 {
   df <- df %>%
@@ -408,7 +427,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                              topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
                              ret_range = c(0, Inf), min_mass = 700L, 
-                             max_mass = 4500L, ppm_ms2 = 10L, 
+                             max_mass = 4500L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                              min_ms2mass = 115L, max_ms2mass = 4500L, 
                              mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                              type_mgf = "msconv_thermo", n_bf_begin = 0L, 
@@ -416,7 +435,10 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                              n_to_title = 1L, n_to_scan = 0L, n_to_rt = 2L, 
                              n_to_charge = 4L, sep_ms2s = " ", nfields_ms2s = 2L, 
                              sep_pepmass = " ", nfields_pepmass = 2L, 
-                             raw_file = NULL, digits = 5L) 
+                             raw_file = NULL, 
+                             tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                             exclude_reporter_region = TRUE, index_mgf_ms2 = FALSE, 
+                             quant = "none", digits = 5L) 
 {
   filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
   len <- length(filelist)
@@ -455,6 +477,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                                 ret_range = ret_range,
                                 min_mass = min_mass, 
                                 max_mass = max_mass, 
+                                ppm_ms1 = ppm_ms1,
                                 ppm_ms2 = ppm_ms2,
                                 min_ms2mass = min_ms2mass,
                                 max_ms2mass = max_ms2mass, 
@@ -474,6 +497,11 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                                 sep_pepmass = sep_pepmass, 
                                 nfields_pepmass = nfields_pepmass, 
                                 raw_file = raw_file, 
+                                tmt_reporter_lower = tmt_reporter_lower, 
+                                tmt_reporter_upper = tmt_reporter_upper, 
+                                exclude_reporter_region = exclude_reporter_region, 
+                                index_mgf_ms2 = index_mgf_ms2, 
+                                quant = quant, 
                                 digits = digits)
   
   parallel::stopCluster(cl)
@@ -545,6 +573,11 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                 sep_pepmass = sep_pepmass, 
                 nfields_pepmass = nfields_pepmass, 
                 raw_file = raw_file, 
+                tmt_reporter_lower = tmt_reporter_lower, 
+                tmt_reporter_upper = tmt_reporter_upper, 
+                exclude_reporter_region = exclude_reporter_region, 
+                index_mgf_ms2 = index_mgf_ms2, 
+                quant = quant, 
                 digits = digits)
     )
   }
@@ -567,7 +600,7 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                              ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
                              ret_range = c(0, Inf), min_mass = 700L, 
-                             max_mass = 4500L, ppm_ms2 = 10L, 
+                             max_mass = 4500L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                              min_ms2mass = 115L, max_ms2mass = 4500L, 
                              mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                              type_mgf = "msconv_thermo", n_bf_begin = 0L, 
@@ -575,7 +608,12 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                              n_to_title = 1L, n_to_scan = 0L, n_to_rt = 2L, 
                              n_to_charge = 4L, sep_ms2s = " ", nfields_ms2s = 2L, 
                              sep_pepmass = " ", nfields_pepmass = 2L, 
-                             raw_file = NULL, digits = 5L) 
+                             raw_file = NULL, 
+                             tmt_reporter_lower = 126.1, 
+                             tmt_reporter_upper = 135.2, 
+                             exclude_reporter_region = TRUE, 
+                             index_mgf_ms2 = FALSE, 
+                             quant = "none", digits = 5L) 
 {
   message("Parsing '", file, "'.")
   lines <- stringi::stri_read_lines(file)
@@ -616,6 +654,7 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                    ret_range = ret_range,
                    min_mass = min_mass, 
                    max_mass = max_mass, 
+                   ppm_ms1 = ppm_ms1,
                    ppm_ms2 = ppm_ms2,
                    min_ms2mass = min_ms2mass,
                    max_ms2mass = max_ms2mass, 
@@ -635,6 +674,11 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                    sep_pepmass = sep_pepmass, 
                    nfields_pepmass = nfields_pepmass, 
                    raw_file = raw_file, 
+                   tmt_reporter_lower = tmt_reporter_lower, 
+                   tmt_reporter_upper = tmt_reporter_upper, 
+                   exclude_reporter_region = exclude_reporter_region, 
+                   index_mgf_ms2 = index_mgf_ms2, 
+                   quant = quant, 
                    digits = digits)
 }
 
@@ -647,14 +691,17 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
                        ms1_charge_range = c(2L, 6L), 
                        ms1_scan_range = c(1L, .Machine$integer.max), 
                        ret_range = c(0, Inf), min_mass = 700L, max_mass = 4500L, 
-                       ppm_ms2 = 10L, min_ms2mass = 115L, max_ms2mass = 4500L, 
+                       ppm_ms1 = 10L, ppm_ms2 = 10L, 
+                       min_ms2mass = 115L, max_ms2mass = 4500L, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                        type_mgf = "msconv_thermo", n_bf_begin = 0L, 
                        n_spacer = 0L, n_hdr = 5L, n_to_pepmass = 3L,
                        n_to_title = 1L, n_to_scan = 0L, n_to_rt = 2L,
                        n_to_charge = 4L, sep_ms2s = " ", nfields_ms2s = 2L, 
                        sep_pepmass = " ", nfields_pepmass = 2L, raw_file = NULL, 
-                       digits = 5L) 
+                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                       exclude_reporter_region = TRUE, index_mgf_ms2 = FALSE, 
+                       quant = "none", digits = 4L) 
 {
   options(digits = 9L)
 
@@ -668,10 +715,10 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
   ms1s <- lapply(ms1s, stringi::stri_split_fixed, pattern = sep_pepmass, 
                  n = nfields_pepmass, simplify = TRUE)
 
-  ms1_moverzs <- lapply(ms1s, function (x) round(as.numeric(x[, 1]), digits = digits))
+  ms1_moverzs <- lapply(ms1s, function (x) as.numeric(x[, 1]))
   ms1_moverzs <- .Internal(unlist(ms1_moverzs, recursive = FALSE, use.names = FALSE))
-
-  ms1_ints <- lapply(ms1s, function (x) round(as.numeric(x[, 2]), digits = 0L))
+  # not as.integer; intensity may be > .Machine$integer.max (2147483647)
+  ms1_ints <- lapply(ms1s, function (x) round(as.numeric(x[, 2]), digits = 1L))
   ms1_ints <- .Internal(unlist(ms1_ints, recursive = FALSE, use.names = FALSE))
 
   rm(list = c("ms1s"))
@@ -685,12 +732,14 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
   ms1_charges <- stringi::stri_replace_first_fixed(lines[begins + n_to_charge], "CHARGE=", "")
   charges <- lapply(ms1_charges, stringi::stri_reverse)
   charges <- .Internal(unlist(charges, recursive = FALSE, use.names = FALSE))
+  # timsTOF no CHARGE line -> NAs introduced by coercion
   charges <- as.integer(charges)
   
   ms1_masses <- mapply(function (x, y) x * y - y * 1.00727647, 
                        ms1_moverzs, charges, 
                        SIMPLIFY = TRUE, USE.NAMES = FALSE)
   ms1_masses <- round(ms1_masses, digits = digits)
+  ms1_moverzs <- round(ms1_moverzs, digits = digits)
 
   rows <- (charges >= ms1_charge_range[1] & charges <= ms1_charge_range[2] & 
              ret_times >= ret_range[1] & ret_times <= ret_range[2] & 
@@ -699,8 +748,9 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
              !is.na(ms1_masses))
   
   # timsTOF data may have undetermined charge states
-  rows <- rows[!is.na(rows)]
-  
+  na_rows <- which(is.na(rows))
+  if (length(na_rows)) rows[na_rows] <- FALSE
+
   begins <- begins[rows]
   ends <- ends[rows]
   ms1_moverzs <- ms1_moverzs[rows]
@@ -744,12 +794,29 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
   
   ms2s <- lapply(ms2s, stringi::stri_split_fixed, pattern = sep_ms2s, 
                  n = nfields_ms2s, simplify = TRUE)
-  
+
   ms2_moverzs <- lapply(ms2s, function (x) as.numeric(x[, 1]))
+  # not as.integer; intensity may be > .Machine$integer.max
   ms2_ints <- lapply(ms2s, function (x) as.numeric(x[, 2]))
   rm(list = c("ms2s"))
   
+  # extract the TMT region of MS2 moverz and intensity
+  # (also convert reporter-ion intensities to integers)
+  restmt <- extract_mgf_rptrs(ms2_moverzs = ms2_moverzs, 
+                              ms2_ints = ms2_ints, 
+                              quant = quant, 
+                              tmt_reporter_lower = tmt_reporter_lower, 
+                              tmt_reporter_upper = tmt_reporter_upper, 
+                              exclude_reporter_region = exclude_reporter_region)
+  
+  ms2_moverzs <- restmt[["ms2_moverzs"]]
+  ms2_ints <- restmt[["ms2_ints"]]
+  rptr_moverzs <- restmt[["rptr_moverzs"]]
+  rptr_ints <- restmt[["rptr_ints"]]
+  rm(list = "restmt")
+
   # subsets by top-n and min_ms2mass
+  # (also convert non reporter-ion MS2 intensities to integers)
   mz_n_int <- sub_mgftopn(ms2_moverzs = ms2_moverzs, 
                           ms2_ints = ms2_ints, 
                           topn_ms2ions = topn_ms2ions, 
@@ -763,9 +830,16 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
   lens <- mz_n_int[["lens"]]
   rm(list = "mz_n_int")
   
-  ms2_moverzs <- lapply(ms2_moverzs, round, digits = digits)
-  ms2_ints <- lapply(ms2_ints, round, digits = 0L)
-  
+  if (index_mgf_ms2) {
+    ms2_moverzs <- lapply(ms2_moverzs, index_mz, min_ms2mass, ppm_ms2/1E6)
+    # dups <- lapply(ms2_moverzs, duplicated.default)
+    # ms2_moverzs <- mapply(function (x, y) x[!y], ms2_moverzs, dups, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    # ms2_ints <- mapply(function (x, y) x[!y], ms2_ints, dups, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    # rm(list = "dups")
+  }
+  else
+    ms2_moverzs <- lapply(ms2_moverzs, round, digits = digits)
+
   tibble::tibble(
     scan_title = scan_titles,
     raw_file = raw_files,
@@ -779,6 +853,8 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
     ms2_int = ms2_ints,
     ms2_n = lens, 
     # charge = charges, 
+    rptr_moverz = rptr_moverzs, 
+    rptr_int = rptr_ints, 
     )
 }
 
@@ -893,7 +969,72 @@ sub_mgftopn <- function (ms2_moverzs, ms2_ints, topn_ms2ions = 100L,
     rm(list = c("is_long"))
   }
   
+  # also handles MS2 intensity max-outs, which usually don't happen
+  ms2_ints <- integerize_ms2ints(ms2_ints)
+
   list(ms2_moverzs = ms2_moverzs, ms2_ints = ms2_ints, lens = lens)
+}
+
+
+#' Integerizes the MS2 intensities.
+#'
+#' Also guards against intensity integers above machine maximum (32-bit).
+#'
+#' @param ms2_ints Lists of MS2 intensities
+#' @param max_intdbl Maximum 32-bit integer as double:
+#'   \code{as.double(.Machine$integer.max)}.
+integerize_ms2ints <- function(ms2_ints, max_intdbl = 2147483647.0) 
+{
+  lapply(ms2_ints, function (x) {
+    x[x > max_intdbl] <- max_intdbl
+    as.integer(x)
+  })
+}
+
+
+#' Extracts reporter-ion data from MGF.
+#' 
+#' Also purges MS2 m-over-z and intensity when applicable.
+#' 
+#' @param ms2_moverzs Lists of MS2 m-over-z values.
+#' @param ms2_ints Lists of MS2 intensity values. 
+#' @inheritParams matchMS
+extract_mgf_rptrs <- function (ms2_moverzs, ms2_ints, quant = "none", 
+                               tmt_reporter_lower = 126.1, 
+                               tmt_reporter_upper = 135.2, 
+                               exclude_reporter_region = TRUE) 
+{
+  if (grepl("^tmt.*\\d+", quant)) {
+    ok_rptrs <- lapply(ms2_moverzs, function (x) x > tmt_reporter_lower & 
+                         x < tmt_reporter_upper)
+    
+    no_rptrs <- lapply(ok_rptrs, `!`)
+    
+    rptr_moverzs <- mapply(function (x, y) x[y], ms2_moverzs, ok_rptrs, 
+                           SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    
+    rptr_ints <- mapply(function (x, y) x[y], ms2_ints, ok_rptrs, 
+                        SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    
+    rptr_ints <- integerize_ms2ints(rptr_ints)
+    
+    if (exclude_reporter_region) {
+      ms2_moverzs <- mapply(function (x, y) x[y], ms2_moverzs, no_rptrs, 
+                            SIMPLIFY = FALSE, USE.NAMES = FALSE)
+      
+      ms2_ints <- mapply(function (x, y) x[y], ms2_ints, no_rptrs, 
+                         SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    }
+  }
+  else {
+    rptr_moverzs <- NA_real_
+    rptr_ints <- NA_integer_
+  }
+  
+  list(ms2_moverzs = ms2_moverzs, 
+       ms2_ints = ms2_ints,  
+       rptr_moverzs = rptr_moverzs, 
+       rptr_ints = rptr_ints)
 }
 
 
@@ -905,15 +1046,24 @@ sub_mgftopn <- function (ms2_moverzs, ms2_ints, topn_ms2ions = 100L,
 #' @inheritParams find_ms1_cutpoints
 #' @examples
 #' \donttest{
-#' find_ms1_interval(c(500, 800.1))
+#' library(proteoM)
+#' proteoM:::find_ms1_interval(c(500, 800.1))
 #' }
 #' @return Frame numbers.
 #' @seealso find_ms1_cutpoints
-find_ms1_interval <- function (mass = 1800.0, from = 350L, ppm = 10L) 
+find_ms1_interval <- function (mass = 1800.0, from = 115L, ppm = 10L) 
 {
-  d <- ppm/1e6
-  ceiling(log(unlist(mass, recursive = FALSE, use.names = FALSE)/from)/log(1+d))
+  ceiling(log(unlist(mass, recursive = FALSE, use.names = FALSE)/from)/log(1+ppm/1e6))
 }
+
+
+#' Converts ms2_moverz to integers.
+#'
+#' @param from Numeric; the starting MS1 mass.
+#' @param x Numeric; MS2 mass.
+#' @param d Numeric; \eqn{ppm * 10E-6}.
+#' @seealso find_ms1_interval
+index_mz <- function (x, from = 115L, d = 1E-5) ceiling(log(x/from)/log(1+d))
 
 
 #' Finds the type of MGF.
@@ -1151,9 +1301,13 @@ find_mgf_type <- function (file)
 readmzML <- function (filepath = NULL, filelist = NULL, 
                       min_mass = 700L, max_mass = 4500L, 
                       min_ms2mass = 115L, max_ms2mass = 4500L, 
-                      topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
+                      topn_ms2ions = 100L, quant = "none", 
+                      ms1_charge_range = c(2L, 6L), 
                       ms1_scan_range = c(1L, .Machine$integer.max), 
                       ret_range = c(0, Inf), ppm_ms1 = 10L, ppm_ms2 = 10L, 
+                      tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                      exclude_reporter_region = TRUE, 
+                      index_mgf_ms2 = FALSE, 
                       mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                       out_path, digits = 4L)
 {
@@ -1169,29 +1323,45 @@ readmzML <- function (filepath = NULL, filelist = NULL,
   if (n_cores == 1L) {
     for (i in 1:len) {
       out[[i]] <- proc_mzml(files[[i]], 
+                            topn_ms2ions = topn_ms2ions, 
                             ms1_charge_range = ms1_charge_range, 
                             ret_range = ret_range, 
                             min_mass = min_mass, 
                             max_mass = max_mass, 
-                            topn_ms2ions = topn_ms2ions, 
+                            ppm_ms1 = ppm_ms1, 
+                            ppm_ms2 = ppm_ms2, 
+                            min_ms2mass = min_ms2mass, 
+                            max_ms2mass = max_ms2mass, 
                             mgf_cutmzs = mgf_cutmzs, 
                             mgf_cutpercs = mgf_cutpercs, 
-                            min_ms2mass = min_ms2mass, 
-                            max_ms2mass = max_ms2mass)
+                            tmt_reporter_lower = tmt_reporter_lower, 
+                            tmt_reporter_upper = tmt_reporter_upper, 
+                            exclude_reporter_region = exclude_reporter_region, 
+                            index_mgf_ms2 = index_mgf_ms2, 
+                            quant = quant, 
+                            digits = digits)
     }
   }
   else {
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     out <- parallel::clusterApply(cl, files, proc_mzml, 
+                                  topn_ms2ions = topn_ms2ions, 
                                   ms1_charge_range = ms1_charge_range, 
                                   ret_range = ret_range, 
                                   min_mass = min_mass, 
                                   max_mass = max_mass, 
-                                  topn_ms2ions = topn_ms2ions, 
+                                  ppm_ms1 = ppm_ms1, 
+                                  ppm_ms2 = ppm_ms2, 
+                                  min_ms2mass = min_ms2mass, 
+                                  max_ms2mass = max_ms2mass, 
                                   mgf_cutmzs = mgf_cutmzs, 
                                   mgf_cutpercs = mgf_cutpercs, 
-                                  min_ms2mass = min_ms2mass, 
-                                  max_ms2mass = max_ms2mass)
+                                  tmt_reporter_lower = tmt_reporter_lower, 
+                                  tmt_reporter_upper = tmt_reporter_upper, 
+                                  exclude_reporter_region = exclude_reporter_region, 
+                                  index_mgf_ms2 = index_mgf_ms2, 
+                                  quant = quant, 
+                                  digits = digits)
     parallel::stopCluster(cl)
   }
   
@@ -1205,20 +1375,31 @@ readmzML <- function (filepath = NULL, filelist = NULL,
 
 #' Helper of \link{readmzML}
 #' 
+#' No scan range subsetting with PASEF timsTOF.
+#' 
 #' @param file A file name to mzML with a prepending path.
 #' @inheritParams readmzML
-proc_mzml <- function (file, ms1_charge_range = c(2L, 6L), ret_range = c(0, Inf), 
-                       min_mass = 700L, max_mass = 4500L, topn_ms2ions = 100L, 
+proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
+                       ret_range = c(0, Inf), min_mass = 200L, max_mass = 4500L, 
+                       ppm_ms1 = 10L, ppm_ms2 = 10L, 
+                       min_ms2mass = 115L, max_ms2mass = 4500L, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
-                       min_ms2mass = 115L, max_ms2mass = 4500L) 
+                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                       exclude_reporter_region = TRUE, index_mgf_ms2 = FALSE, 
+                       quant = "none", digits = 4L) 
 {
   message("Loading ", file)
   
-  df <- read_mzml(file)
+  df <- read_mzml(file, tmt_reporter_lower = tmt_reporter_lower, 
+                  tmt_reporter_upper = tmt_reporter_upper, 
+                  exclude_reporter_region = exclude_reporter_region, 
+                  index_mgf_ms2 = index_mgf_ms2, ppm_ms1 = ppm_ms1, 
+                  ppm_ms2 = ppm_ms2, min_ms2mass = min_ms2mass, 
+                  max_ms2mass = max_ms2mass, quant = quant, digits = digits)
   df <- df[with(df, !is.na(ms1_mass)), ]
   .Internal(gc(verbose = FALSE, reset = FALSE, full = TRUE))
   
-  if (! "charge" %in% names(df)) {
+  if (!"charge" %in% names(df)) {
     ms1_charges <- df[["ms1_charges"]]
     charges <- lapply(ms1_charges, stringi::stri_reverse)
     charges <- .Internal(unlist(charges, recursive = FALSE, use.names = FALSE))
@@ -1234,6 +1415,8 @@ proc_mzml <- function (file, ms1_charge_range = c(2L, 6L), ret_range = c(0, Inf)
   
   df[["charge"]] <- NULL
   
+  # subsets by top-n and min_ms2mass
+  # (also convert non reporter-ion MS2 intensities to integers)
   mz_n_int <- sub_mgftopn(ms2_moverzs = df[["ms2_moverz"]], 
                           ms2_ints = df[["ms2_int"]], 
                           topn_ms2ions = topn_ms2ions, 
@@ -1242,9 +1425,9 @@ proc_mzml <- function (file, ms1_charge_range = c(2L, 6L), ret_range = c(0, Inf)
                           min_ms2mass = min_ms2mass, 
                           max_ms2mass = max_ms2mass)
   
-  # no need of rounding ms2_moverzs, always 4L with Binary64 encoding
+  # can be integers if "index_mgf_ms2 = TRUE"
   df[["ms2_moverz"]] <- mz_n_int[["ms2_moverzs"]]
-  df[["ms2_int"]] <- lapply(mz_n_int[["ms2_ints"]], round, digits = 0L)
+  df[["ms2_int"]] <- mz_n_int[["ms2_ints"]]
   df[["ms2_n"]] <- mz_n_int[["lens"]]
 
   invisible(df)
@@ -1256,7 +1439,11 @@ proc_mzml <- function (file, ms1_charge_range = c(2L, 6L), ret_range = c(0, Inf)
 #' zlib compression need to be disabled when creating mzML from MSConvert.
 #' 
 #' @param xml_file A file name of mzML.
-read_mzml <- function (xml_file)
+#' @inheritParams matchMS
+read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                       exclude_reporter_region = TRUE, index_mgf_ms2 = FALSE, 
+                       ppm_ms1 = 10L, ppm_ms2 = 10L, min_ms2mass = 115L, 
+                       max_ms2mass = 4500L, quant = "none", digits = 4L)
 {
   ## spectrum
   xml_root <- xml2::read_xml(xml_file)
@@ -1334,7 +1521,7 @@ read_mzml <- function (xml_file)
     }
   }
   
-  rows <- !is.na(ms1_charges)
+  rows <- !(is.na(ms1_charges) | ms1_charges == "")
   scan_titles <- scan_titles[rows]
   raw_files <- raw_files[rows]
   ms1_moverzs <- ms1_moverzs[rows]
@@ -1349,10 +1536,31 @@ read_mzml <- function (xml_file)
   
   charges <- as.integer(ms1_charges)
   ms1_charges <- paste0(ms1_charges, "+") # assume always "+" for now
-  ms1_moverzs <- round(as.numeric(ms1_moverzs), digits = 4L)
-  ms1_masses <- round(ms1_moverzs * charges - charges * 1.00727647, digits = 4L)
-  ms1_ints <- round(as.numeric(ms1_ints), digits = 0L)
+  ms1_moverzs <- round(as.numeric(ms1_moverzs), digits = digits)
+  ms1_masses <- round(ms1_moverzs * charges - charges * 1.00727647, digits = digits)
+  # ms1_ints not "as.integer": may be > .Machine$integer.max (2147483647)
+  ms1_ints <- round(as.numeric(ms1_ints), digits = 1L)
   ret_times <- round(as.numeric(ret_times) * 60, digits = 2L)
+  
+  # extract the TMT region of MS2 moverz and intensity
+  # (also convert reporter-ion intensities to integers)
+  restmt <- extract_mgf_rptrs(ms2_moverzs = ms2_moverzs, 
+                              ms2_ints = ms2_ints, 
+                              quant = quant, 
+                              tmt_reporter_lower = tmt_reporter_lower, 
+                              tmt_reporter_upper = tmt_reporter_upper, 
+                              exclude_reporter_region = exclude_reporter_region)
+  
+  ms2_moverzs <- restmt[["ms2_moverzs"]]
+  ms2_ints <- restmt[["ms2_ints"]]
+  rptr_moverzs <- restmt[["rptr_moverzs"]]
+  rptr_ints <- restmt[["rptr_ints"]]
+  rm(list = "restmt")
+
+  ms2_moverzs <- if (index_mgf_ms2) 
+    lapply(ms2_moverzs, index_mz, min_ms2mass, ppm_ms2/1E6)
+  else
+    lapply(ms2_moverzs, round, digits = digits)
   
   tibble::tibble(
     scan_title = scan_titles,
@@ -1370,6 +1578,10 @@ read_mzml <- function (xml_file)
     ms2_n = ms2_ns, 
     
     # temporarily kept
-    charge = charges,)
+    charge = charges,
+    
+    rptr_moverz = rptr_moverzs, 
+    rptr_int = rptr_ints, )
 }
+
 

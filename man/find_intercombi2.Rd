@@ -18,6 +18,8 @@ Used after \link{make_ms1_vmodsets} across residues.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 ## Simple
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
 
@@ -37,11 +39,11 @@ maxn_sites_per_vmod <- 3L
 i <- 10L
 aa_masses <- aa_masses_all[[i]]
 
-vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses,
+vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses,
                               maxn_vmods_per_pep = maxn_vmods_per_pep,
                               maxn_sites_per_vmod = maxn_sites_per_vmod)
 
-ms1vmods <- find_intercombi2(vmodsets)
+ms1vmods <- proteoM:::find_intercombi2(vmodsets)
 
 ## More complex
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
@@ -63,11 +65,11 @@ maxn_sites_per_vmod <- 3L
 i <- 8L
 aa_masses <- aa_masses_all[[i]]
 
-vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses,
+vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses,
                               maxn_vmods_per_pep = maxn_vmods_per_pep,
                               maxn_sites_per_vmod = maxn_sites_per_vmod)
 
-ms1vmods <- find_intercombi2(vmodsets)
+ms1vmods <- proteoM:::find_intercombi2(vmodsets)
 
 ## `Oxidation (M)`, "Carbamidomethyl (M)"
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
@@ -87,11 +89,10 @@ maxn_sites_per_vmod <- 3L
 i <- 16L
 aa_masses <- aa_masses_all[[i]]
 
-vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses,
+vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses,
                               maxn_vmods_per_pep = maxn_vmods_per_pep,
                               maxn_sites_per_vmod = maxn_sites_per_vmod)
 
-ms1vmods <- find_intercombi2(vmodsets)
-
+ms1vmods <- proteoM:::find_intercombi2(vmodsets)
 }
 }

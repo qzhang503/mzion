@@ -25,7 +25,7 @@ The length of \code{acc_type} needs to match the length of \code{fasta};
 otherwise, the first value will be used for all \code{fasta} files.
 }
 \examples{
-\donttest{
+\dontrun{
 fasta_db <- load_fasta2(
               c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
                 "~/proteoM/dbs/fasta/crap/crap.fasta"),

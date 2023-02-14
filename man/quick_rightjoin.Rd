@@ -18,10 +18,13 @@ Rows ordered by \code{y}, which is different to \link[dplyr]{right_join}.
 }
 \examples{
 \donttest{
+library(proteoM)
+library(dplyr)
+
 df1 <- data.frame(A = c("a", "b", "c"), B = c(1, 1, 1))
 df2 <- data.frame(A = c("a", "c", "d"), C = c(2, 2, "3"))
 
-x1 <- quick_rightjoin(df1, df2, by = "A")
+x1 <- proteoM:::quick_rightjoin(df1, df2, by = "A")
 x1 <- x1[, c("A", "B", "C")]
 rownames(x1) <- seq_len(nrow(x1))
 
@@ -31,7 +34,7 @@ x2 <- x2[, c("A", "B", "C")]
 stopifnot(identical(x1, x2))
 
 # row order may be different
-x1 <- quick_rightjoin(df2, df1, by = "A")
+x1 <- proteoM:::quick_rightjoin(df2, df1, by = "A")
 x1 <- x1[, c("A", "B", "C")]
 rownames(x1) <- seq_len(nrow(x1))
 
@@ -39,6 +42,6 @@ x2 <- dplyr::right_join(df2, df1, by = "A")
 x2 <- x2[, c("A", "B", "C")]
 
 # FALSE
-identical(x1, x2)
+!identical(x1, x2)
 }
 }

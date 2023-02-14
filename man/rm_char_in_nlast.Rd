@@ -4,7 +4,7 @@
 \alias{rm_char_in_nlast}
 \title{Removes a trailing character from the last \code{n} entries.}
 \usage{
-rm_char_in_nlast(x, char = "-", n = (max_miss + 1L) * 2L)
+rm_char_in_nlast(x, char = "-", n = 6L)
 }
 \arguments{
 \item{x}{A list of character strings. Peptide sequences in names and masses
@@ -12,7 +12,8 @@ in values.}
 
 \item{char}{A trailing character to be removed.}
 
-\item{n}{The number of beginning entries to be considered.}
+\item{n}{The number of beginning entries to be considered.Should be \code{n =
+(max_miss + 1L) * 2L}.}
 }
 \description{
 The default value of \code{n} is for full-enzymatic peptides.

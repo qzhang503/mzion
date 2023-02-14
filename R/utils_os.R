@@ -517,8 +517,11 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
 #' @param new_args Named vector; new arguments that are not in earlier versions.
 #' @inheritParams find_callarg_vals
 #' @return An empty object if no matches.
-#' \donttest{
-#' .time_bin <- match_calltime(
+#' @examples
+#' \dontrun{
+#' library(proteoM)
+#' 
+#' .time_bin <- proteoM:::match_calltime(
 #'   path = file.path(.path_cache, "calc_pepmasses2", .time_stamp), 
 #'   fun = fun,
 #'   nms = c("min_mass", "max_mass", "ppm_ms1", "calib_ms1mass"), 
@@ -680,14 +683,16 @@ find_ms1_times <- function (out_path)
 #' Not yet used. The utility at first looks up the global environment then the
 #' indicated file.
 #'
-#' @param x Variable name
-#' @param file An file name as an alternative for looking up.
+#' @param val Variable name
+#' @param cache A cache file name.
 #' @seealso \link{find_ms1_times}
 #' @examples
-#' \donttest{
+#' \dontrun{
+#' library(proteoM)
+#' 
 #' out_path <- "~/proteoM/example/"
 #' cache <- file.path(out_path, "Calls/.cache_info.rds")
-#' get_globalvar(".time_stamp", cache)
+#' proteoM:::get_globalvar(".time_stamp", cache)
 #' }
 get_globalvar <- function (val = NULL, cache = NULL)
 {
@@ -722,16 +727,10 @@ get_globalvar <- function (val = NULL, cache = NULL)
 #' 
 #' Not yet used. 
 #' 
-#' @param file An file name as an alternative for looking up
+#' @param cache A cache file name.
 #' @param overwrite If TRUE, overwrite the pre-existed global values with the
 #'   cache values.
 #' @seealso \link{find_ms1_times}
-#' @examples
-#' \donttest{
-#' out_path <- "~/proteoM/example/"
-#' cache <- file.path(out_path, "Calls/.cache_info.rds")
-#' load_cache_info(cache)
-#' }
 load_cache_info <- function (cache = NULL, overwrite = TRUE)
 {
   if (is.null(cache))
@@ -761,15 +760,16 @@ load_cache_info <- function (cache = NULL, overwrite = TRUE)
 }
 
 
-#' Is a NULL list
+#' Is a NULL list?
 #' 
 #' @param x A list.
+#' 
 #' @examples 
-#' is_nullist(list(a = NULL))
-is_nulllist <- function (x)
-{
-  length(x) == 1L && is.null(x[[1]])
-}
+#' \dontrun{
+#' library(proteoM)
+#' proteoM:::is_nullist(list(a = NULL))
+#' }
+is_nulllist <- function (x) length(x) == 1L && is.null(x[[1]])
 
 
 #' Adds a plain NULL entry to a list.
@@ -778,10 +778,12 @@ is_nulllist <- function (x)
 #' 
 #' @param l A list.
 #' @param nm A character vector of name.
-#' @examples 
-#' l <- list(a = 2, b = 3)
-#' add_nulllist(l, "m")
 #' 
+#' @examples
+#' \dontrun{
+#' library(proteoM)
+#' proteoMadd_nulllist(list(a = 2, b = 3), "m")
+#' } 
 add_nulllist <- function (l, nm)
 {
   l <- c(l, list(NULL))

@@ -43,7 +43,9 @@ and y-ions.}
 Visualization of matched MS2 ions.
 }
 \examples{
-\donttest{
+\dontrun{
+library(proteoM)
+
 ans <- mapMS2ions(out_path = "a/proteoM/output/folder",
                   scan = 9933,
                   raw_file = "a-raw-file-name.raw",

@@ -48,6 +48,8 @@ Only for direct uses from an R console (with trade-offs in speed).
 }
 \examples{
 \donttest{
+library(proteoM)
+
 ## No variable modifications
 # (1)
 x <- calc_monopeptide(aa_seq = "MAKEMASSPECFUN",

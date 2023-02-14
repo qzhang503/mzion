@@ -29,6 +29,8 @@ mgen_ms2ions(
 \item{ms1s}{Lists of named values. Peptide sequences in names and precursor
 masses in values.}
 
+\item{aa_masses}{An amino-acid mass lookup.}
+
 \item{ms1vmods}{The set of all possible MS1 vmod labels at a given aa_masses.}
 
 \item{ms2vmods}{Matrices of labels of variable modifications. Each

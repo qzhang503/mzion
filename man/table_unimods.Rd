@@ -15,6 +15,8 @@ For convenience summary of the \code{title}, \code{site} and
 }
 \examples{
 \donttest{
+library(proteoM)
+
 ans <- table_unimods()
 
 ## TMT-6, -10 and -11 plexes 

@@ -37,8 +37,9 @@ searches of labeled residues.}
 \item{anywhere_coerce_sites}{The sites of coerced Anywhere modifications; for
 example, \code{K}.}
 
-\item{anywhere_f_to_v}{Anywhere modifications coerced from fixed to variable;
-for example, \code{TMT6plex (K)}.}
+\item{nt_coerce_site}{A N-terminal coerced site.}
+
+\item{ct_coerce_site}{A C-terminal coerced site.}
 }
 \value{
 Lists of of amino-acid residues with modified mono-isotopic masses

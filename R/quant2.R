@@ -8,9 +8,10 @@
 #'   compatible higher plexes, for example, \code{tmt16} for \code{tmt12} etc.
 #'   and \code{tmt10} for \code{tmt8} etc.
 #' @param ppm_reporters The mass tolerance of MS2 reporter ions.
+#' @inheritParams matchMS
 calc_tmtint <- function (data = NULL,
                          quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16"),
-                         ppm_reporters = 10L) 
+                         ppm_reporters = 10L, index_mgf_ms2 = FALSE) 
 {
   if (quant == "none") {
     out <- data
@@ -50,17 +51,20 @@ calc_tmtint <- function (data = NULL,
                  tmt16 = c(126.1, 134.2),
                  stop("Unknown TMt type.", call. = FALSE))
     
-    # stopifnot(all(c("ms2_moverz", "ms2_int") %in% names(data)))
+    # stopifnot(all(c("rptr_moverz", "rptr_int") %in% names(data)))
     
-    out <- mapply(find_reporter_ints, data[["ms2_moverz"]], data[["ms2_int"]], 
+    col_rptr_mzs <- "rptr_moverz"
+    col_rptr_int <- "rptr_int"
+
+    out <- mapply(find_reporter_ints, data[["rptr_moverz"]], data[["rptr_int"]], 
                   MoreArgs = list(
                     theos = theos,
                     ul = ul,
                     ppm_reporters = ppm_reporters,
                     len = length(theos),
                     nms = names(theos)
-                  ), USE.NAMES = FALSE, SIMPLIFY = FALSE) 
-    
+                  ), USE.NAMES = FALSE, SIMPLIFY = FALSE)
+      
     out <- dplyr::bind_rows(out)
 
     if (!nrow(out)) {
@@ -70,6 +74,8 @@ calc_tmtint <- function (data = NULL,
       for (i in seq_along(out)) 
         out[[i]] <- as.numeric(out[[i]])
     }
+
+    data[["rptr_moverz"]] <- data[["rptr_int"]] <- NULL
 
     out <- dplyr::bind_cols(data, out)
   }
@@ -119,6 +125,8 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ms2_moverzs <- c(112.0873, 126.1280, 127.1251, 127.1313, 128.1250,
 #'                  128.1284, 128.1347, 129.1317, 129.1380, 130.0654,
 #'                  130.1351, 130.1413, 131.1384)
@@ -137,10 +145,10 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
 #' len <- 10
 #' nms <- names(theos)
 #'
-#' x <- find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 10,
+#' x <- proteoM:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 10,
 #'                         len , nms)
 #'
-#' x <- find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
+#' x <- proteoM:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
 #'                         len , nms)
 #'
 #' # Two `129C`, no `127N` etc.
@@ -157,7 +165,7 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
 #'               1365.32, 1727.12, 2661.72, 1660.05, 5525.95, 1399.96, 4654.03,
 #'               1990.57, 1758.72, 1655.09, 1460.68, 1641.39, 1721.33)
 #'
-#' x <- find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
+#' x <- proteoM:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
 #'                         len , nms)
 #' }
 find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
@@ -335,7 +343,7 @@ add_prot_acc2 <- function (df = NULL, out_path = NULL, .path_cache = NULL,
   len_dirs <- length(sub_dirs)
   
   if (!len_dirs) {
-    warnning("Cached results not found for protein annotation.")
+    warning("Cached results not found for protein annotation.")
     return (df)
   }
 
@@ -447,6 +455,8 @@ hadd_prot_acc <- function (df, fwd_prps, rev_prps)
 #' 
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' df <- data.frame(prot_acc = character(2000), pep_seq = character(2000))
 #' set.seed(100)
 #' df$prot_acc <- sample(LETTERS[1:20], 2000, replace = TRUE)
@@ -457,17 +467,17 @@ hadd_prot_acc <- function (df, fwd_prps, rev_prps)
 #'
 #' # One peptide, multiple proteins
 #' df <- data.frame(prot_acc = LETTERS[1:3], pep_seq = rep("X", 3))
-#' out <- proteoM:::groupProts(df)
+#' out <- proteoM:::groupProts(df, "~")
 #' stopifnot(nrow(out) == 3L)
 #'
 #' # One peptide, one proteins
 #' df <- data.frame(prot_acc = "A", pep_seq = "X")
-#' out <- proteoM:::groupProts(df)
+#' out <- proteoM:::groupProts(df, "~")
 #' stopifnot(nrow(out) == 1L)
 #'
 #' # One proteins
 #' df <- data.frame(prot_acc = rep("A", 3), pep_seq = LETTERS[24:26])
-#' out <- proteoM:::groupProts(df)
+#' out <- proteoM:::groupProts(df, "~")
 #' stopifnot(nrow(out) == 3L)
 #' }
 groupProts <- function (df, out_path = NULL, fct = 4L, 
@@ -672,6 +682,8 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
 #' @param fct A factor for data splitting into chunks.
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' df <- data.frame(prot_acc = character(2000), pep_seq = character(2000))
 #' set.seed(100)
 #' df$prot_acc <- sample(LETTERS[1:20], 2000, replace = TRUE)
@@ -993,10 +1005,12 @@ chunksplit_spmat <- function (Mat, peps = NULL, n_chunks = 4L)
 #' @param n_chunks The number of chunks
 #' @examples 
 #' \donttest{
+#' library(proteoM)
+#' 
 #' vec <- rep(LETTERS[1:5], 1:5)
 #' vec <- sort(vec)
 #' 
-#' find_group_breaks(vec, 3)
+#' proteoM:::find_group_breaks(vec, 3)
 #' }
 find_group_breaks <- function (vec, n_chunks = 5L) 
 {
@@ -1142,15 +1156,18 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
 #' @param ncols_ur The number of columns for the matrix block on the upper
 #'   right.
 #' @examples 
-#' m <- sparseD_fourquad(ul, 6)
+#' \donttest{
+#' library(proteoM)
+#' # m <- proteoM:::sparseD_fourquad(ul, 6)
+#' }
 sparseD_fourquad <- function (M_ul, ncols_ur = 0L) 
 {
   nrows_ul <- ncols_ul <- ncol(M_ul)
   nrows_l <- ncols_ur
   ncols <- ncols_ul + ncols_ur
   
-  M_ur <- sparseMatrix(dims = c(nrows_ul, ncols_ur), i={}, j={})
-  m_lwr <- sparseMatrix(i = 1:nrows_l, j = (ncols_ul+1):ncols, x = 1)
+  M_ur <- Matrix::sparseMatrix(dims = c(nrows_ul, ncols_ur), i={}, j={})
+  m_lwr <- Matrix::sparseMatrix(i = 1:nrows_l, j = (ncols_ul+1):ncols, x = 1)
   
   list(upr = cbind2(M_ul, M_ur), lwr = m_lwr)
 }

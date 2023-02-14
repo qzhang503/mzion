@@ -16,8 +16,10 @@ Finds the coerced fixed sites that can be coerced back to fixed sites.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 mods <- c("TMT6plex (K)", "Carbamyl (M)", "Oxidation (M)", "Gln->pyro-Glu (N-term = Q)")
-res <- extract_umods(mods)
+res <- proteoM:::extract_umods(mods)
 positions_sites <- lapply(res, `[[`, "position_site")
 fixed_sites <- c("TMT6plex (K)" = "K", "Carbamyl (M)" = "M")
 }

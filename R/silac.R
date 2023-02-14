@@ -277,6 +277,7 @@ add_fixedlab_masses <- function (fixedlabs, aa_masses)
 #'   noenzyme.
 #' @param groups_noenzyme Logical; is the search a combination of group search
 #'   and noenzyme.
+#' @param sys_ram A tentative quantity of system RAM.
 #' @inheritParams matchMS
 matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L, 
                               fasta = NULL, out_path = NULL, mgf_path = NULL, 

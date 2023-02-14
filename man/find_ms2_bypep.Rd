@@ -11,7 +11,8 @@ find_ms2_bypep(
   d = NULL,
   ppm_ms2 = 10L,
   min_ms2mass = 115L,
-  minn_ms2 = 6L
+  minn_ms2 = 6L,
+  index_mgf_ms2 = FALSE
 )
 }
 \arguments{
@@ -30,6 +31,19 @@ interrogation. The default is 110.}
 
 \item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
 a hit.}
+
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
+
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
 }
 \value{
 Lists of (1) theo, (2) expt, (3) ith, (4) iex and (5) m.
@@ -39,6 +53,8 @@ Helper: matches between theoretical and experimental MS2 ions.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 ## Experimental 322.18704 fit to both b- and y- ions
 #  (one expt to multiple theos)
 expts <- c(101.07140,102.05540,107.04956,110.07165,111.07500,
@@ -78,7 +94,7 @@ nms <- unlist(stringr::str_split(pep, ""))
 names(theos) <- c(nms, rev(nms))
 theos <- list(`0000000` = theos)
 
-x1 <- find_ms2_bypep(theos, expts, ex, d)
+x1 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
 
 ## Both expts 74953 and 74955 fit to theos 74954
 #  (multiple expts to one theo)
@@ -123,7 +139,7 @@ min_ms2mass <- 115L
 d <- ppm_ms2/1E6
 ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 
-x2 <- find_ms2_bypep(theos, expts, ex, d)
+x2 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
 
 ## Experimental 317.20001 & 317.19315 match to theoreitcal 317.2022 & 317.1932;
 #  experimental 959.48468 is also multiple dipping
@@ -159,7 +175,7 @@ min_ms2mass <- 115L
 d <- ppm_ms2/1E6
 ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 
-x3 <- find_ms2_bypep(theos, expts, ex, d)
+x3 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
 
 ## 7 b-ions and 9 y-bios 
 #  (an even total, n_ps matched but identities off)
@@ -193,7 +209,7 @@ min_ms2mass <- 115L
 d <- ppm_ms2/1E6
 ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 
-x4 <- find_ms2_bypep(theos, expts, ex, d)
+x4 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
 
 
 ## fewer matches with "find_ppm_outer_bycombi" and check minn_ms2 again
@@ -231,7 +247,7 @@ min_ms2mass <- 115L
 d <- ppm_ms2/1E6
 ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 
-x5 <- find_ms2_bypep(theos, expts, ex, d, ppm_ms2)
+x5 <- proteoM:::find_ms2_bypep(theos, expts, ex, d, ppm_ms2)
 
 }
 

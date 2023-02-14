@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils_os.R
 \name{is_nulllist}
 \alias{is_nulllist}
-\title{Is a NULL list}
+\title{Is a NULL list?}
 \usage{
 is_nulllist(x)
 }
@@ -10,8 +10,11 @@ is_nulllist(x)
 \item{x}{A list.}
 }
 \description{
-Is a NULL list
+Is a NULL list?
 }
 \examples{
-is_nullist(list(a = NULL))
+\dontrun{
+library(proteoM)
+proteoM:::is_nullist(list(a = NULL))
+}
 }

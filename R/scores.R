@@ -69,10 +69,12 @@ add_seions <- function (ms2s, type_ms2ions = "by", digits = 5L)
 #' @param b The right vector.
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' a <- c(3, 4, 1, 2, 5)
 #' b <- 2
 #' 
-#' list_leftmatch(a, b)
+#' proteoM:::list_leftmatch(a, b)
 #' }
 list_leftmatch <- function (a, b) 
 {
@@ -126,6 +128,8 @@ list_leftmatch <- function (a, b)
 #' @importFrom tibble tibble
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ##
 #' pep <- "YGPQYGHPPPPPPPPDYGPHADSPVLMVYGLDQSK"
 #' nms <- unlist(stringr::str_split(pep, ""))
@@ -194,7 +198,7 @@ list_leftmatch <- function (a, b)
 #'                30824,12961,26805,31218,36352,49433,40495,31233,40643,18265,
 #'                12316,25125,202241,90877,20903,40353,15008,31908,22554,13634)
 #' 
-#' calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 404)
+#' proteoM:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 404)
 #' 
 #' ## 
 #' pep <- "LFEEDEREK"
@@ -249,20 +253,28 @@ list_leftmatch <- function (a, b)
 #'                12763,7125,7321,7483,31612,18050,26134,31474,11331,8789,
 #'                8672,65913,25918,17819,34367,15767,15221,14225,7419,7284)
 #' 
-#' calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 434)
-#' 
+#' proteoM:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 434)
 #' }
 calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, 
                                 N, type_ms2ions = "by", topn_ms2ions = 100L, 
                                 ppm_ms2 = 25L, soft_secions = FALSE, 
-                                burn_ins = c(1:2), digits = 5L) 
+                                burn_ins = c(1:2), min_ms2mass = 115L, 
+                                d2 = 1E-5, index_mgf_ms2 = FALSE, digits = 5L) 
 {
   df_theo <- df$theo
   m <- length(df_theo)
 
   ## df2
-  df2 <- add_seions(df_theo, type_ms2ions = type_ms2ions, digits = digits)
-  df2 <- find_ppm_outer_bycombi(expt_moverzs, df2, ppm_ms2)
+  tt2 <- add_seions(df_theo, type_ms2ions = type_ms2ions, digits = digits)
+  
+  if (index_mgf_ms2) {
+    # df2 <- find_ppm_outer_bycombi(expt_moverzs, index_mz(tt2, from = min_ms2mass, d = d2), 2L)
+    df2 <- match_ex2th2(expt_moverzs, tt2, min_ms2mass, d2, index_mgf_ms2)
+  }
+  else {
+    # df2 <- find_ppm_outer_bycombi(expt_moverzs, tt2, ppm_ms2)
+    df2 <- match_ex2th2(expt_moverzs, tt2, min_ms2mass, d2, index_mgf_ms2)
+  }
 
   ith2 <- df2[["ith"]]
   iex2 <- df2[["iex"]]
@@ -271,7 +283,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   ## 1. int2 (secondary intensities)
   len <- length(df2[["expt"]])
   df2[["int"]] <- rep(NA_real_, len)
-  df2[["int"]][ith2] <- expt_ints[iex2]
+  df2[["int"]][ith2] <- expt_ints[iex2] # works if iex2 contains NA
   
   facs <- rep(seq_len(len/m), each = m)
   int2 <- .Internal(split(df2[["int"]], as.factor(facs)))
@@ -353,7 +365,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   k_ <- k[-burn_ins]
   
   if (length(x_)) {
-    prs <- dhyper(x = x_, m = m, n = N, k = k_)
+    prs <- stats::dhyper(x = x_, m = m, n = N, k = k_)
     pr <- min(prs, na.rm = TRUE)
   }
   else 
@@ -378,7 +390,9 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
 #' @importFrom tibble tibble
 calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, 
                               N, type_ms2ions = "by", topn_ms2ions = 100L, 
-                              ppm_ms2 = 25L, soft_secions = FALSE, digits = 5L) 
+                              ppm_ms2 = 20L, soft_secions = FALSE, 
+                              min_ms2mass = 115L, d2 = 1E-5, 
+                              index_mgf_ms2 = FALSE, digits = 4L) 
 {
   ## for different positions: $TNLAMMR$`0000500`, $TNLAMMR$`0000050`
   #    the same `pep_seq`, `theo_ms1` for different mod positions
@@ -396,6 +410,9 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
                   ppm_ms2 = ppm_ms2, 
                   soft_secions = soft_secions, 
                   burn_ins = c(1:2),
+                  min_ms2mass = min_ms2mass, 
+                  d2 = d2, 
+                  index_mgf_ms2 = index_mgf_ms2, 
                   digits = digits
                 ), 
                 SIMPLIFY = FALSE,
@@ -429,13 +446,16 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
 #' @param expt_moverzs Nested list of match and unmatched experimental m-over-z.
 #' @param expt_ints Nested list of match and unmatched experimental intensity.
 #' @param N Numeric; the number of MS2 features in an MGF query.
+#' @param d2 Bin width in ppm divided by 1E6.
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 #' @import dplyr
 #' @importFrom purrr map
 calc_probi <- function (mts, expt_moverzs, expt_ints, 
                         N, type_ms2ions = "by", topn_ms2ions = 100L, 
-                        ppm_ms2 = 25L, soft_secions = FALSE, digits = 5L) 
+                        ppm_ms2 = 20L, soft_secions = FALSE, 
+                        min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE, 
+                        digits = 4L) 
 {
   out <- mapply(
     calc_probi_bypep, 
@@ -448,6 +468,9 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
       topn_ms2ions = topn_ms2ions, 
       soft_secions = soft_secions, 
       ppm_ms2 = ppm_ms2, 
+      min_ms2mass = min_ms2mass, 
+      d2 = d2, 
+      index_mgf_ms2 = index_mgf_ms2, 
       digits = digits
     ), 
     SIMPLIFY = FALSE,
@@ -462,11 +485,14 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
 #' Each entry corresponds to a row in \code{ion_matches.rds}.
 #' 
 #' @param entry A row of data.
+#' @param d2 Bin width in ppm divided by 1E6.
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 #' @import purrr
 scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by", 
-                            ppm_ms2 = 25L, soft_secions = FALSE, digits = 5L) 
+                            ppm_ms2 = 20L, soft_secions = FALSE, 
+                            min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE, 
+                            digits = 4L) 
 {
   # only one experimental set of values and thus `[[1]]`
   expt_moverzs <- entry$ms2_moverz[[1]]
@@ -516,6 +542,9 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
                     topn_ms2ions = topn_ms2ions, 
                     ppm_ms2 = ppm_ms2, 
                     soft_secions = soft_secions, 
+                    min_ms2mass = min_ms2mass, 
+                    d2 = d2, 
+                    index_mgf_ms2 = index_mgf_ms2, 
                     digits = digits)
 
   uniq_id <- .Internal(unlist(entry$uniq_id, recursive = FALSE, use.names = FALSE))
@@ -532,11 +561,14 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
 #' Calculates the scores of peptides at an \code{aa_masses}.
 #' 
 #' @param df Resulted data from ion matches.
+#' @param d2 Bin width in ppm divided by 1E6.
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by", 
-                             ppm_ms2 = 25L, soft_secions = FALSE, 
-                             out_path = "~/proteoM/outs", digits = 5L) 
+                             ppm_ms2 = 20L, soft_secions = FALSE, 
+                             out_path = "~/proteoM/outs", 
+                             min_ms2mass = 115L, d2 = 1E-5, 
+                             index_mgf_ms2 = FALSE, digits = 4L) 
 {
   n_rows <- nrow(df)
   
@@ -548,6 +580,9 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
                  type_ms2ions = type_ms2ions, 
                  ppm_ms2 = ppm_ms2, 
                  soft_secions = soft_secions, 
+                 min_ms2mass = min_ms2mass, 
+                 d2 = d2, 
+                 index_mgf_ms2 = index_mgf_ms2, 
                  digits = digits)
     
     df <- .Internal(unlist(df, recursive = FALSE, use.names = FALSE))
@@ -576,10 +611,11 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             min_len = 7L, max_len = 40L, ppm_ms2 = 25L, 
                             soft_secions = FALSE, 
                             out_path = "~/proteoM/outs", 
+                            min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
                             
                             mgf_path, maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
                             maxn_vmods_sitescombi_per_pep = 64L, minn_ms2 = 6L, 
-                            ppm_ms1 = 20L, min_ms2mass = 115L, quant = "none", 
+                            ppm_ms1 = 20L, quant = "none", 
                             ppm_reporters = 10L, fasta, acc_type, acc_pattern, 
                             fixedmods, varmods, 
                             enzyme = "trypsin_p", maxn_fasta_seqs = 200000L, 
@@ -651,13 +687,13 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   else {
     message("Calculating peptide scores.")
     dir.create(file.path(out_path, "temp"), recursive = TRUE, showWarnings = FALSE)
-    rm(list = c("args_except", "cache_pars", "call_pars"))
+    rm(list = c("cache_pars", "call_pars"))
   }
 
-  listi_td <- c(listi_t, listi_d)
   n_cores <- detect_cores(16L)
-  
+  listi_td <- c(listi_t, listi_d)
   len_td <- length(listi_td)
+  d2 <- calc_threeframe_ppm(ppm_ms2) * 1E-6
   
   for (fi in listi_td) {
     message("\tModule: ", fi)
@@ -668,6 +704,9 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
               ppm_ms2 = ppm_ms2, 
               soft_secions = soft_secions, 
               out_path = out_path, 
+              min_ms2mass = min_ms2mass, 
+              d2 = d2, 
+              index_mgf_ms2 = index_mgf_ms2, 
               add_ms2theos = add_ms2theos, 
               add_ms2theos2 = add_ms2theos2, 
               add_ms2moverzs = add_ms2moverzs, 
@@ -725,10 +764,12 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 #' Helper of \link{calc_pepscores}.
 #' 
 #' @param file A file name of \code{ion_matches_}.
+#' @param d2 Bin width in ppm divided by 1E6.
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by", 
                        ppm_ms2 = 25L, soft_secions = FALSE, out_path = NULL, 
+                       min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE, 
                        add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                        add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
                        digits = 4L) 
@@ -798,13 +839,16 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       ppm_ms2 = ppm_ms2,
       soft_secions = soft_secions, 
       out_path = out_path, 
+      min_ms2mass = min_ms2mass, 
+      d2 = d2, 
+      index_mgf_ms2 = index_mgf_ms2, 
       digits = digits)
   }
   else {
-    if (is.null(df))
-      dfs <- list(df)
+    dfs <- if (is.null(df))
+      list(df)
     else
-      dfs <- suppressWarnings(chunksplit(df, n_chunks, "row"))
+      suppressWarnings(chunksplit(df, n_chunks, "row"))
 
     path_df <- file.path(out_path, "df_sc_temp.rda")
     df <- df[, -which(names(df) == "matches"), drop = FALSE]
@@ -829,6 +873,9 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                                         ppm_ms2 = ppm_ms2,
                                         soft_secions = soft_secions, 
                                         out_path = out_path, 
+                                        min_ms2mass = min_ms2mass, 
+                                        d2 = d2, 
+                                        index_mgf_ms2 = index_mgf_ms2, 
                                         digits = digits)
       
       parallel::stopCluster(cl)
@@ -848,6 +895,9 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                       ppm_ms2 = ppm_ms2,
                       soft_secions = soft_secions, 
                       out_path = out_path, 
+                      min_ms2mass = min_ms2mass, 
+                      d2 = d2, 
+                      index_mgf_ms2 = index_mgf_ms2, 
                       digits = digits) 
       
       probs <- dplyr::bind_rows(probs)
@@ -895,7 +945,8 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       add_ms2theos = add_ms2theos, 
       add_ms2theos2 = add_ms2theos2, 
       add_ms2moverzs = add_ms2moverzs, 
-      add_ms2ints = add_ms2ints) 
+      add_ms2ints = add_ms2ints, 
+      index_mgf_ms2 = index_mgf_ms2) 
     
     df <- dplyr::bind_rows(df)
 
@@ -907,7 +958,8 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       add_ms2theos = add_ms2theos, 
       add_ms2theos2 = add_ms2theos2, 
       add_ms2moverzs = add_ms2moverzs, 
-      add_ms2ints = add_ms2ints)
+      add_ms2ints = add_ms2ints, 
+      index_mgf_ms2 = index_mgf_ms2)
   }
 
   # all(c(cols_b, cols_sc) %in% names(df))
@@ -926,7 +978,8 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @param df A data frame.
 #' @inheritParams matchMS
 add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
-                            add_ms2moverzs = FALSE, add_ms2ints = FALSE) 
+                            add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
+                            index_mgf_ms2 = FALSE) 
 {
   df <- dplyr::mutate(df, 
                       pep_ms2_moverzs = NA_character_, 
@@ -974,7 +1027,7 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
     ds1 <- (ex1[ps1] - th1[ps1]) * 1E3
     ds2 <- (ex2[ps2] - th2[ps2]) * 1E3
     me1 <- mean(ds1)
-    sd1 <- sd(ds1)
+    sd1 <- stats::sd(ds1)
     
     # delayed rounding
     ds1 <- round(ds1, digits = 2L)
@@ -999,12 +1052,23 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
     if (i %% 5000L == 0L) gc()
   }
   
-  df[["pep_ms2_deltas"]] <- do.call(rbind, d1s)
+  if (index_mgf_ms2) {
+    # need to convert theoretical m/z to integers; 
+    # even so the resolution is limited by bin with (e.g. 10 ppm)
+    pep_ms2_deltas <- NA_character_
+    pep_ms2_deltas2 <- NA_character_
+    pep_ms2_deltas_mean <- NA_real_
+    pep_ms2_deltas_sd <- NA_real_
+  }
+  else {
+    df[["pep_ms2_deltas"]] <- do.call(rbind, d1s)
+    df[["pep_ms2_deltas2"]] <- do.call(rbind, d2s)
+    df[["pep_ms2_deltas_mean"]] <- do.call(rbind, me1s)
+    df[["pep_ms2_deltas_sd"]] <- do.call(rbind, sd1s)
+  }
+
   df[["pep_ms2_ideltas"]] <- do.call(rbind, p1s)
-  df[["pep_ms2_deltas2"]] <- do.call(rbind, d2s)
   df[["pep_ms2_ideltas2"]] <- do.call(rbind, p2s)
-  df[["pep_ms2_deltas_mean"]] <- do.call(rbind, me1s)
-  df[["pep_ms2_deltas_sd"]] <- do.call(rbind, sd1s)
   df[["pep_n_matches"]] <- do.call(rbind, m1s)
   df[["pep_n_matches2"]] <- do.call(rbind, m2s)
   df[["pep_ms2_exptints"]] <- do.call(rbind, iys1)
@@ -1208,7 +1272,7 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01,
     if (max_pr <= target_fdr) {
       fit <- suppressWarnings(
         tryCatch(
-          nls(y ~ SSasymp(x, Asym, R0, lrc), data = df, 
+          stats::nls(y ~ SSasymp(x, Asym, R0, lrc), data = df, 
               control = list(tol = 1e-03, warnOnly = TRUE), 
               algorithm = "port"), 
           error = function (e) NA, 
@@ -1217,7 +1281,7 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01,
       if (all(is.na(fit))) {
         fit <- suppressWarnings(
           tryCatch(
-            nls(y ~ SSlogis(x, Asym, xmid, scal), data = df, 
+            stats::nls(y ~ SSlogis(x, Asym, xmid, scal), data = df, 
                 control = list(tol = 1e-03, warnOnly = TRUE), 
                 algorithm = "port"), 
             error = function (e) NA, 
@@ -1227,7 +1291,7 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01,
     else {
       fit <- suppressWarnings(
         tryCatch(
-          nls(y ~ SSlogis(x, Asym, xmid, scal), data = df, 
+          stats::nls(y ~ SSlogis(x, Asym, xmid, scal), data = df, 
               control = list(tol = 1e-03, warnOnly = TRUE), 
               algorithm = "port"), 
           error = function (e) NA, 
@@ -1236,7 +1300,7 @@ probco_bypeplen <- function (len, td, fdr_type = "psm", target_fdr = 0.01,
       if (all(is.na(fit))) {
         fit <- suppressWarnings(
           tryCatch(
-            nls(y ~ SSasymp(x, Asym, R0, lrc), data = df, 
+            stats::nls(y ~ SSasymp(x, Asym, R0, lrc), data = df, 
                 control = list(tol = 1e-03, warnOnly = TRUE), 
                 algorithm = "port"), 
             error = function (e) NA, 
@@ -1372,11 +1436,16 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 #' @inheritParams matchMS
 #' @examples 
 #' \donttest{
-#' prob_cos <- calc_pepfdr(target_fdr = .01, 
-#'                         fdr_type = "protein", 
-#'                         min_len = 7L, 
-#'                         max_len = 50L, 
-#'                         out_path = "~/proteoM/bi_1")
+#' library(proteoM)
+#' 
+#' if (FALSE) {
+#'   prob_cos <- calc_pepfdr(target_fdr = .01, 
+#'                           fdr_type = "protein", 
+#'                           min_len = 7L, 
+#'                           max_len = 50L, 
+#'                           out_path = "~/proteoM/bi_1")
+#' }
+#' 
 #' }
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm", 
                          min_len = 7L, max_len = 40L, 
@@ -1520,16 +1589,16 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     x <- -log10(prob_cos[start:end])
     
     # first pass
-    fit_lm <- lm(x ~ as.integer(names(x)))
-    res_lm <- residuals(fit_lm)
+    fit_lm <- stats::lm(x ~ as.integer(names(x)))
+    res_lm <- stats::residuals(fit_lm)
     bad_lm <- x[abs(res_lm) > 5]
     
     if (length(bad_lm)) {
       rm(list = c("fit_lm", "res_lm"))
       
       x_ok <- x[! names(x) %in% names(bad_lm)]
-      fit_lm <- lm(x_ok ~ as.integer(names(x_ok)))
-      coefs <- coef(fit_lm)
+      fit_lm <- stats::lm(x_ok ~ as.integer(names(x_ok)))
+      coefs <- stats::coef(fit_lm)
       slp <- coefs[[2]]
       
       if (is.na(slp)) slp <- 0
@@ -1571,12 +1640,12 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     else {
       local({
         fit_ns <- tryCatch(
-          lm(y ~ splines::ns(x, rank_left), df_left),
+          stats::lm(y ~ splines::ns(x, rank_left), df_left),
           error = function(e) NA
         )
         
         fit_bs <- tryCatch(
-          lm(y ~ splines::bs(x, rank_left), df_left),
+          stats::lm(y ~ splines::bs(x, rank_left), df_left),
           error = function(e) NA
         )
         
@@ -1609,12 +1678,12 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     if (nrow_right >= rank_right) {
       fit_right <- local({
         fit_ns <- tryCatch(
-          lm(y ~ splines::ns(x, rank_right), df_right),
+          stats::lm(y ~ splines::ns(x, rank_right), df_right),
           error = function(e) NA
         )
         
         fit_bs <- tryCatch(
-          lm(y ~ splines::bs(x, rank_right), df_right),
+          stats::lm(y ~ splines::bs(x, rank_right), df_right),
           error = function(e) NA
         )
         
@@ -1630,12 +1699,12 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     } 
     else {
       fit_right <- tryCatch(
-        lm(y ~ x, df_right),
+        stats::lm(y ~ x, df_right),
         error = function(e) NA
       )
       
       slope <- if (class(fit_right) == "lm") 
-        unname(coef(fit_right)[2])
+        unname(stats::coef(fit_right)[2])
       else 
         .1
       
@@ -2016,7 +2085,7 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
       
       fit <- suppressWarnings(
         tryCatch(
-          nls(y ~ SSlogis(x, Asym, xmid, scal), data = data, 
+          stats::nls(y ~ SSlogis(x, Asym, xmid, scal), data = data, 
               control = list(tol = 1e-03, warnOnly = TRUE), 
               algorithm = "port"), 
           error = function (e) NA)
@@ -2094,7 +2163,7 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
   
   fit <- suppressWarnings(
     tryCatch(
-      nls(y ~ f(x, m, s, a), data = df, 
+      stats::nls(y ~ f(x, m, s, a), data = df, 
           start = list(a = amp, m = elbow, s = sca), 
           control = list(tol = 1e-03, warnOnly = TRUE), 
           algorithm = "port"), 
@@ -2106,7 +2175,7 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
     fits <- suppressWarnings(
       purrr::map(seq_len(elbow-1), ~ {
         tryCatch(
-          nls(y ~ f(x, m, s, a), data = df, 
+          stats::nls(y ~ f(x, m, s, a), data = df, 
               start = list(a = amp, m = .x, s = sca), 
               control = list(tol = 1e-03, warnOnly = TRUE), 
               algorithm = "port"), 
@@ -2200,6 +2269,8 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
 #' 
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' expts <- c(101.0714, 102.0554, 110.0717, 115.0505, 126.1279, 127.0504,
 #'            127.1249, 127.1312, 128.1283, 128.1346, 129.0660, 129.1316,
 #'            129.1379, 130.1350, 130.1412, 131.1383, 133.0431, 133.0609,
@@ -2230,7 +2301,7 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
 #'                   "R", "P", "Q", "T", "L", "P", "G", "P", "L",
 #'                   "P", "E", "C", "P", "G", "Q", "S", "S", "D")
 #'
-#' find_ppm_outer_bycombi(theos, expts)
+#' proteoM:::find_ppm_outer_bycombi(theos, expts, ppm_ms2 = 25L)
 #' 
 #' # No secondary matches
 #' theos <- c(56.5233, 235.1522, 284.6864, 326.2050, 361.7235, 
@@ -2273,9 +2344,9 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
 #'            851.48267,852.48303,855.58301,899.52069,956.62952,
 #'            1027.66833,1230.73962,1232.75513,1233.75024)
 #' 
-#' find_ppm_outer_bycombi(theos, expts)
+#' proteoM:::find_ppm_outer_bycombi(theos, expts, ppm_ms2 = 25)
 #' }
-find_ppm_outer_bycombi <- function (X, Y, ppm_ms2 = 25L) 
+find_ppm_outer_bycombi <- function (X, Y, ppm_ms2 = 20L) 
 {
   d <- outer(X, Y, "find_ppm_error")
   row_cols <- which(abs(d) <= ppm_ms2, arr.ind = TRUE)
@@ -2287,6 +2358,60 @@ find_ppm_outer_bycombi <- function (X, Y, ppm_ms2 = 25L)
   es[iy] <- X[ix]
   
   list(theo = Y, expt = es, ith = iy, iex = ix, m = length(ix))
+}
+
+
+#' Matches between secondary experimentals and theoreticals.
+#' 
+#' At \code{index_mgf_ms2 = FALSE}.
+#' 
+#' @param expt A vector of experimental m-over-z values.
+#' @param theo A vector of theoretical m-over-z values.
+#' @param d Bin size, e.g., \eqn{20 ppm / 2 * 1E-6}.
+#' @inheritParams matchMS
+match_ex2th2 <- function (expt, theo, min_ms2mass = 115L, d = 1E-5, 
+                          index_mgf_ms2 = FALSE) 
+{
+  th <- index_mz(theo, from = min_ms2mass, d = d)
+  ex <- if (index_mgf_ms2) expt else index_mz(expt, from = min_ms2mass, d = d)
+  ith <- which(th %fin% ex | (th - 1L) %fin% ex | (th + 1L) %fin% ex)
+  
+  # if: e.g. th[ith+1] = th[ith] + 1 -> can have NA in iex:
+  #   th[ith+1] not in ex but th[ith+1] - 1
+  # OK to keep the NA:
+  #   es initiated as all NA, OK assign NA <- NA during es[ith] <- expt[iex]
+  # in intensity tally of experimental intensity: 
+  #   `%+%` default with na.rm = TRUE
+
+  thi <- th[ith]
+  iex <- fastmatch::fmatch(thi, ex)
+  
+  # indexes before and after
+  nas <- which(is.na(iex))
+  
+  if (length(nas)) {
+    bf <- fastmatch::fmatch(thi - 1L, ex)
+    
+    if (all(is.na(bf))) {
+      af <- fastmatch::fmatch(thi + 1L, ex)
+      iex[nas] <- af[nas]
+    }
+    else {
+      iex[nas] <- bf[nas]
+      nas <- which(is.na(iex))
+      
+      if (length(nas)) {
+        af <- fastmatch::fmatch(thi + 1L, ex)
+        iex[nas] <- af[nas]
+      }
+    }
+  }
+  
+  es <- rep(NA_real_, length(th))
+  names(es) <- names(th)
+  es[ith] <- expt[iex]
+  
+  list(theo = theo, expt = es, ith = ith, iex = iex, m = length(iex))
 }
 
 
@@ -2616,8 +2741,10 @@ calcpeprank_3 <- function (x0)
 #' 
 #' @examples 
 #' \donttest{
+#' library(proteoM)
+#' 
 #' vals <- c(rep("B", 6), rep("A", 6), rep("E", 5), rep("D", 5), rep("C", 7))
-#' brs <- find_chunkbreaks(vals, 3L)
+#' brs <- proteoM:::find_chunkbreaks(vals, 3L)
 #' split(vals, brs)
 #' }
 find_chunkbreaks <- function (vals, n_chunks) 
@@ -2662,36 +2789,40 @@ find_chunkbreaks <- function (vals, n_chunks)
 #' @param locmod_indexes A vector to the modification indexes.
 #'
 #' @examples
+#' library(proteoM)
+#' 
 #' locmod_indexes <- c("8", "9", "a")
 #' df <- data.frame(pep_ivmod2 = c("0080000", "0009000"), pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(1,2,3,4,5,6,8,9,10,11,12,13,14))
 #' df$pep_ms2_ideltas.[2] <- list(c(1,2,3,4,5,6,8,9,10,12,13,14))
-#' ans <- findLocFracsDF(df, locmod_indexes)
+#' ans <- proteoM:::findLocFracsDF(df, locmod_indexes)
 #'
 #' # Variable Acetyl (K) and fixed TMT6plex (K)
 #' locmod_indexes <- "4"
 #' df <- data.frame(pep_ivmod2 = c("04000000", "00000000"), pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(2,5,6,7,9,11,14,15,16))
 #' df$pep_ms2_ideltas.[2] <- list(c(1,2,5,6,7,9,11,14))
-#' ans <- findLocFracsDF(df, locmod_indexes)
+#' ans <- proteoM:::findLocFracsDF(df, locmod_indexes)
 #'
 #' df <- data.frame(pep_ivmod2 = c("0004000", "4000000"), pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(2,3,4,5,6,8,10,11,12,14))
 #' df$pep_ms2_ideltas.[2] <- list(c(4,5,6,8,10,14))
-#' ans <- findLocFracsDF(df, locmod_indexes)
+#' ans <- proteoM:::findLocFracsDF(df, locmod_indexes)
 #'
-#' df <- data.frame(pep_ivmod2 = c("00040402", "00040204", "00020202"), pep_ms2_ideltas. = NA)
+#' df <- data.frame(pep_ivmod2 = c("00040402", "00040204", "00020202"), 
+#'   pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(1,4,6,7,9,10,11,12,15,16))
 #' df$pep_ms2_ideltas.[2] <- list(c(1,4,11,12,15,16))
 #' df$pep_ms2_ideltas.[3] <- list(c(1,4,11,12,15,16))
-#' ans <- findLocFracsDF(df, locmod_indexes)
+#' ans <- proteoM:::findLocFracsDF(df, locmod_indexes)
 #'
 #' locmod_indexes <- c("2", "4")
-#' df <- data.frame(pep_ivmod2 = c("0004004000402", "0002004000402", "0004004000204"), pep_ms2_ideltas. = NA)
+#' df <- data.frame(pep_ivmod2 = c("0004004000402", "0002004000402", "0004004000204"), 
+#'   pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(1,3,4,5,6,7,8,10,14,15,16,17,18,19))
 #' df$pep_ms2_ideltas.[2] <- list(c(4,5,6,7,8,10,14,15,16,17,18,19))
 #' df$pep_ms2_ideltas.[3] <- list(c(1,3,4,5,6,7,8,10,14,16,17,18,19))
-#' ans <- findLocFracsDF(df, locmod_indexes)
+#' ans <- proteoM:::findLocFracsDF(df, locmod_indexes)
 #'
 #' # Variable Digly (K), TMT6plex+Digly (K) fixed TMT6plex (K)
 #' # 9 - TMT6plex+Digly (K)
@@ -2699,10 +2830,11 @@ find_chunkbreaks <- function (vals, n_chunks)
 #' # 2 - TMT6plex (K)
 #' # different lengths but equal mass: 26 and 9
 #' locmod_indexes <- c(2, 6, 9)
-#' df <- data.frame(pep_ivmod2 = c("000000020000000602", "000000090000000002"), pep_ms2_ideltas. = NA)
+#' df <- data.frame(pep_ivmod2 = c("000000020000000602", "000000090000000002"), 
+#'   pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(1,2,3,4,5,6,19,20,21,22,23))
 #' df$pep_ms2_ideltas.[2] <- list(c(1,2,3,4,5,6,19,20,      23))
-#' ans <- findLocFracsDF(df, locmod_indexes)
+#' ans <- proteoM:::findLocFracsDF(df, locmod_indexes)
 findLocFracsDF <- function (df, locmod_indexes = NULL) 
 {
   ivms <- df[["pep_ivmod2"]]
@@ -2793,19 +2925,23 @@ findLocFracsDF <- function (df, locmod_indexes = NULL)
 #' @param d A small positive number to handle value \eqn{0}.
 #'
 #' @examples
-#' concatFracs(c(3, 3, 5), c(2, 1, 3))
-#' concatFracs(c(0, 6), c(1, 3))
-#' concatFracs(c(0, 6), c(0, 3))
-#' concatFracs(c(0, 2), c(0, 2))
-#' concatFracs(c(1, 2), c(1, 2))
+#' \donttest{
+#' library(proteoM)
 #' 
-#' concatFracs(c(1, 2), c(1, 4))
-#' concatFracs(c(0, 2), c(0, 4))
-#' concatFracs(c(1, 2), c(0, 4)) # near 1 0 0 
+#' proteoM:::concatFracs(c(3, 3, 5), c(2, 1, 3))
+#' proteoM:::concatFracs(c(0, 6), c(1, 3))
+#' proteoM:::concatFracs(c(0, 6), c(0, 3))
+#' proteoM:::concatFracs(c(0, 2), c(0, 2))
+#' proteoM:::concatFracs(c(1, 2), c(1, 2))
 #' 
-#' concatFracs(0, 2)
-#' concatFracs(2, 0)
-#' concatFracs(0, 0) # should not occur
+#' proteoM:::concatFracs(c(1, 2), c(1, 4))
+#' proteoM:::concatFracs(c(0, 2), c(0, 4))
+#' proteoM:::concatFracs(c(1, 2), c(0, 4)) # near 1 0 0
+#' 
+#' proteoM:::concatFracs(0, 2)
+#' proteoM:::concatFracs(2, 0)
+#' proteoM:::concatFracs(0, 0) # should not occur
+#' }
 concatFracs <- function (x, y, d = .001) 
 {
   len <- length(x)
@@ -2835,6 +2971,7 @@ concatFracs <- function (x, y, d = .001)
 #'
 #' From \code{forecast}. 
 #' 
+#' @param linear Linear.
 #' @inheritParams tsoutliers
 na.interp <- function (x, lambda = NULL, 
                        linear = (frequency(x) <= 1 | 

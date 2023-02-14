@@ -16,8 +16,10 @@ Finds the break points
 }
 \examples{
 \donttest{
+library(proteoM)
+
 vals <- c(rep("B", 6), rep("A", 6), rep("E", 5), rep("D", 5), rep("C", 7))
-brs <- find_chunkbreaks(vals, 3L)
+brs <- proteoM:::find_chunkbreaks(vals, 3L)
 split(vals, brs)
 }
 }

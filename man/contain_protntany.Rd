@@ -37,6 +37,8 @@ Flowchart (4-ct): Amidated (C-term)
 }
 \examples{
 \donttest{
+library(proteoM)
+
 ## `Acetyl (Protein N-term)`
 sites <- list(`Acetyl (Protein N-term)` = "N-term", 
               `Oxidation (M)` = "M", 
@@ -48,9 +50,11 @@ vmods <- unname(vmods)
 vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 posns <- names(vmods)
 
-contain_protntany(vmods, posns, length(vmods))
+proteoM:::contain_protntany(vmods, posns, length(vmods))
 }
 \donttest{
+library(proteoM)
+
 ## `Acetyl (N-term)`
 sites <- list(`Acetyl (N-term)` = "N-term", 
               `Oxidation (M)` = "M", 
@@ -62,9 +66,11 @@ vmods <- unname(vmods)
 vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 posns <- names(vmods)
 
-contain_anyntany(vmods, posns, length(vmods))
+proteoM:::contain_anyntany(vmods, posns, length(vmods))
 }
 \donttest{
+library(proteoM)
+
 ## `Amidated (Protein C-term)`
 sites <- list(`Amidated (Protein C-term)` = "C-term", 
               `Oxidation (M)` = "M", 
@@ -76,9 +82,11 @@ vmods <- unname(vmods)
 vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 posns <- names(vmods)
 
-contain_protctany(vmods, posns, length(vmods))
+proteoM:::contain_protctany(vmods, posns, length(vmods))
 }
 \donttest{
+library(proteoM)
+
 ## `Amidated (C-term)`
 sites <- list(`Amidated (C-term)` = "C-term", 
               `Oxidation (M)` = "M", 
@@ -90,6 +98,6 @@ vmods <- unname(vmods)
 vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 posns <- names(vmods)
 
-contain_anyctany(vmods, posns, length(vmods))
+proteoM:::contain_anyctany(vmods, posns, length(vmods))
 }
 }

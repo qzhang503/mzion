@@ -31,13 +31,16 @@ subset_anyctsite(prps, site, motifs = NULL)
 subset_anyctany(peps)
 }
 \arguments{
-\item{prps}{Lists of peptide sequences with a one-letter representation of
-amino acid residues. Each list is named by protein accession.}
+\item{prps}{List of proteins.}
 
 \item{site}{A site. No need to specify "any terminal" sites.}
 
 \item{motifs}{A list of motifs of amino-acide residues. for example,
 "MN|NG". See also \link{matchMS}.}
+
+\item{peps}{List of peptides.}
+
+\item{sites}{Sites.}
 
 \item{min_n_res}{The minimum numbers of residues for a given set of sites.}
 
@@ -64,6 +67,9 @@ Flowchart (4-ct): Amidated (C-term)
 }
 \examples{
 \donttest{
+library(proteoM)
+library(purrr)
+
 ## Protein N-term (Site)
 sites <- list(`Dimethyl (Protein N-term = P)` = "P", 
               `Oxidation (M)` = "M", 
@@ -79,9 +85,11 @@ prps <- list(PROT_A = c("-MAKEMASSPECFUN", "-PAKEKASSPECFUN"),
              PROT_B = c("PAKEKASSPECFUN", "NKAKEKASSPECFU", 
                         "-NKAKEKASSPECFU"))
 
-subset_protntsite(prps, find_protntsite(vmods, posns))
+proteoM:::subset_protntsite(prps, proteoM:::find_protntsite(vmods, posns))
 } 
 \donttest{
+library(proteoM)
+
 ## Any N-term (Site)
 sites <- list(`Dimethyl (N-term = P)` = "P", 
               `Oxidation (M)` = "M", 
@@ -98,9 +106,11 @@ prps <- list(PROT_A = c("-MAKEMASSPECFUN", "-PAKEKASSPECFUN"),
                         "-NKAKEKASSPECFU"))
 
 # "-PAKEKASSPECFUN" went with `subset_protntsite` (see flow charts)
-subset_anyntsite(prps, find_anyntsite(vmods, posns))
+proteoM:::subset_anyntsite(prps, proteoM:::find_anyntsite(vmods, posns))
 }
 \donttest{
+library(proteoM)
+
 ## Anywhere
 min_n_res <- c(P = 1, M = 1, N = 1)
 
@@ -118,7 +128,7 @@ prps <- list(PROT_A = c("-MAKEMASSPECFUN", "-PAKEKASSPECFUN"),
                         "-NKAKEKASSPECFU"))
 
 # should contain both M and N
-subset_anysite(prps, sites, min_n_res)
+proteoM:::subset_anysite(prps, sites, min_n_res)
 
 ## Multiple mods to the same site
 # (mimic from aa_masses)
@@ -146,6 +156,6 @@ prps <- list(PROT_A = c("-MAKEMASSPECFUN", "-PAKEKASSPECFUN"),
              PROT_B = c("PAKEKASSPECFUN", "NKAKEKASSPECFU", 
                         "-NKAKEKASSPECFU"))
 
-ans <- subset_anysite(prps, sites, min_n_res)
+ans <- proteoM:::subset_anysite(prps, sites, min_n_res)
 }
 }

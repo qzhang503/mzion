@@ -16,7 +16,9 @@
 #' @inheritParams matchMS
 #' @rawNamespace import(ggplot2, except = c("%+%"))
 #' @examples
-#' \donttest{
+#' \dontrun{
+#' library(proteoM)
+#' 
 #' ans <- mapMS2ions(out_path = "a/proteoM/output/folder",
 #'                   scan = 9933,
 #'                   raw_file = "a-raw-file-name.raw",

@@ -16,15 +16,16 @@ Accumulates character strings.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 x <- c("aa", "bb", "cc")
-accumulate_char(x, paste0)
+proteoM:::accumulate_char(x, paste0)
 
 x <- c(a = 1, b = 2, c = 3)
-accumulate_char(x, paste0)
+proteoM:::accumulate_char(x, paste0)
 
 x <- "-EDEIQDXI-"
-accumulate_char(x, paste0)
-
+proteoM:::accumulate_char(x, paste0)
 }
 
 }

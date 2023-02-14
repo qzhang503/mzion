@@ -11,6 +11,9 @@ calcpepsc(
   ppm_ms2 = 25L,
   soft_secions = FALSE,
   out_path = NULL,
+  min_ms2mass = 115L,
+  d2 = 1e-05,
+  index_mgf_ms2 = FALSE,
   add_ms2theos = FALSE,
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
@@ -38,6 +41,24 @@ For instance, the signal of \code{b5^*} will be ignored if its primary ion
 \code{b5} is not matched.}
 
 \item{out_path}{A file path of outputs.}
+
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
+
+\item{d2}{Bin width in ppm divided by 1E6.}
+
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
+
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{add_ms2theos}{Logical. If true, adds the sequence of primary
   theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a

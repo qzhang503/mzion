@@ -20,18 +20,20 @@ Some overhead in making row vectors but can avoid the expensive row
 subsetting from a data.frame.
 }
 \examples{
+library(proteoM)
+
 x <- list(`Oxidation (M)` = c(0.000000, 63.998285),
           `Carbamidomethyl (M)` = c(0.000000, 105.024835),
           `Oxidation (M)` = c(0.000000, 63.998285))
 
-expand_grid_rows(x)
+proteoM:::expand_grid_rows(x)
 
 x <- list(`Bar (M)` = c(0, 3),
           `Foo (M)` = c(0, 5, 7),
           `Bar (M)` = c(0, 3))
 
-expand_grid_rows(x)
+proteoM:::expand_grid_rows(x)
 
 x <- list(`Bar (M)` = c(0, 3))
-expand_grid_rows(x)
+proteoM:::expand_grid_rows(x)
 }

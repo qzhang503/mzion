@@ -37,7 +37,9 @@ Helper of \link{bin_theoseqs}.
 }
 \examples{
 \donttest{
-res <- readRDS("~/proteoM/dbs/fasta/uniprot/pepmass/uniprot_hs_2020_05_2miss.rds")
-theopeps <- proteoM:::binTheoSeqs(res)
+library(proteoM)
+
+# res <- readRDS("~/proteoM/dbs/fasta/uniprot/pepmass/uniprot_hs_2020_05_2miss.rds")
+# theopeps <- proteoM:::binTheoSeqs(res)
 }
 }

@@ -14,13 +14,14 @@ calc_pepscores(
   ppm_ms2 = 25L,
   soft_secions = FALSE,
   out_path = "~/proteoM/outs",
+  min_ms2mass = 115L,
+  index_mgf_ms2 = FALSE,
   mgf_path,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 20L,
-  min_ms2mass = 115L,
   quant = "none",
   ppm_reporters = 10L,
   fasta,
@@ -73,6 +74,22 @@ For instance, the signal of \code{b5^*} will be ignored if its primary ion
 
 \item{out_path}{A file path of outputs.}
 
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
+
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
+
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
+
 \item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
   supply the files.
 
@@ -110,9 +127,6 @@ not part of the threshold.}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}
-
-\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
-interrogation. The default is 110.}
 
 \item{quant}{A character string; the quantitation method. The default is
 "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and

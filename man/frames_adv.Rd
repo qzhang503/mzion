@@ -26,6 +26,7 @@ frames_adv(
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
   min_ms2mass = 115L,
+  index_mgf_ms2 = FALSE,
   digits = 4L,
   FUN
 )
@@ -37,8 +38,7 @@ MGFs whose MS1 masses are in the same interval.}
 \item{theopeps}{Binned theoretical peptides corresponding to an i-th
 \code{aa_masses}.}
 
-\item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
-acid residues.}
+\item{aa_masses}{An amino-acid mass lookup.}
 
 \item{ms1vmods}{The set of all possible MS1 vmod labels at a given aa_masses.}
 
@@ -94,6 +94,19 @@ a hit.}
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
+
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
+
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

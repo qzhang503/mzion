@@ -16,9 +16,11 @@ Chunksplits by groups.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 vec <- rep(LETTERS[1:5], 1:5)
 vec <- sort(vec)
 
-find_group_breaks(vec, 3)
+proteoM:::find_group_breaks(vec, 3)
 }
 }

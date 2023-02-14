@@ -6,19 +6,30 @@
 \usage{
 proc_mzml(
   file,
+  topn_ms2ions = 100L,
   ms1_charge_range = c(2L, 6L),
   ret_range = c(0, Inf),
-  min_mass = 700L,
+  min_mass = 200L,
   max_mass = 4500L,
-  topn_ms2ions = 100L,
+  ppm_ms1 = 10L,
+  ppm_ms2 = 10L,
+  min_ms2mass = 115L,
+  max_ms2mass = 4500L,
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
-  min_ms2mass = 115L,
-  max_ms2mass = 4500L
+  tmt_reporter_lower = 126.1,
+  tmt_reporter_upper = 135.2,
+  exclude_reporter_region = TRUE,
+  index_mgf_ms2 = FALSE,
+  quant = "none",
+  digits = 4L
 )
 }
 \arguments{
 \item{file}{A file name to mzML with a prepending path.}
+
+\item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
+MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 
 \item{ms1_charge_range}{The range of MS1 charge states.}
 
@@ -29,19 +40,58 @@ match the one in  \link{binTheoSeqs}.}
 
 \item{max_mass}{A maximum mass of precursors for considerations.}
 
-\item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
-MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
+default is 20.}
+
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
+default is 20.}
+
+\item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
+
+\item{max_ms2mass}{A positive integer; the maximum MS2 mass for
+interrogation.}
 
 \item{mgf_cutmzs}{Cut points of MS1 moverz values in peak picking.}
 
 \item{mgf_cutpercs}{The counts of MS2 features in each region of
 \code{mgf_cutmzs}.}
 
-\item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
+\item{tmt_reporter_lower}{The lower bound of the region of TMT reporter ions.
+The default is \eqn{126.1}.}
 
-\item{max_ms2mass}{A positive integer; the maximum MS2 mass for
-interrogation.}
+\item{tmt_reporter_upper}{The upper bound of the region of TMT reporter ions.
+The default is \eqn{135.2}.}
+
+\item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
+region of TMT reporter ions. The default is TRUE. The argument affects only
+TMT data. The range of TMT reporter ions is given by
+\code{tmt_reporter_lower} and \code{tmt_reporter_upper}.}
+
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
+
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
+
+\item{quant}{A character string; the quantitation method. The default is
+"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
+15N)}. It is also possible that an experimenter may construct a
+\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
+\code{quant = tmt18} is suitable.}
+
+\item{digits}{A non-negative integer; the number of decimal places to be
+used. The default is 4.}
 }
 \description{
-Helper of \link{readmzML}
+No scan range subsetting with PASEF timsTOF.
 }

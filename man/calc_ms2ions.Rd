@@ -49,19 +49,20 @@ For a given type of fragmentation. Minimal error handling for speeds.
 }
 \examples{
 \donttest{
-## No variable modifications
-# (1)
+library(proteoM)
 library(magrittr)
 
-fixedmods = NULL
-varmods = NULL
+## No variable modifications
+# (1)
+fixedmods <- NULL
+varmods <- NULL
 
 mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
   as.hexmode() \%>\%
   `names<-`(c(fixedmods, varmods))
 aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
-x <- calc_ms2ions("MAKEMASSPECFUN", NULL, aa_masses_all[[1]], mod_indexes)
+x <- proteoM:::calc_ms2ions("MAKEMASSPECFUN", NULL, aa_masses_all[[1]], mod_indexes)
 
 }
 }

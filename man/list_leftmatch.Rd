@@ -16,9 +16,11 @@ Not currently used.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 a <- c(3, 4, 1, 2, 5)
 b <- 2
 
-list_leftmatch(a, b)
+proteoM:::list_leftmatch(a, b)
 }
 }

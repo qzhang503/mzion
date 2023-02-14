@@ -17,12 +17,14 @@ Calculates the masses of a chemical formula.
 }
 \examples{
 \donttest{
-# Error
-comp <- "N(+1) 15N(-1)"
-m <- calc_unimod_compmass(comp)
+library(proteoM)
 
-# Instead 
+## Error
+# comp <- "N(+1) 15N(-1)"
+# m <- proteoM:::calc_unimod_compmass(comp)
+
+## Instead 
 comp <- "N(1) 15N(-1)"
-m <- calc_unimod_compmass(comp)
+m <- proteoM:::calc_unimod_compmass(comp)
 }
 }

@@ -22,17 +22,21 @@ to the binomial model in A-score, which will lead to the finding that the
 probability of localization 2 at \eqn{x = 0; y = 6} is much more probable.
 }
 \examples{
-concatFracs(c(3, 3, 5), c(2, 1, 3))
-concatFracs(c(0, 6), c(1, 3))
-concatFracs(c(0, 6), c(0, 3))
-concatFracs(c(0, 2), c(0, 2))
-concatFracs(c(1, 2), c(1, 2))
+\donttest{
+library(proteoM)
 
-concatFracs(c(1, 2), c(1, 4))
-concatFracs(c(0, 2), c(0, 4))
-concatFracs(c(1, 2), c(0, 4)) # near 1 0 0 
+proteoM:::concatFracs(c(3, 3, 5), c(2, 1, 3))
+proteoM:::concatFracs(c(0, 6), c(1, 3))
+proteoM:::concatFracs(c(0, 6), c(0, 3))
+proteoM:::concatFracs(c(0, 2), c(0, 2))
+proteoM:::concatFracs(c(1, 2), c(1, 2))
 
-concatFracs(0, 2)
-concatFracs(2, 0)
-concatFracs(0, 0) # should not occur
+proteoM:::concatFracs(c(1, 2), c(1, 4))
+proteoM:::concatFracs(c(0, 2), c(0, 4))
+proteoM:::concatFracs(c(1, 2), c(0, 4)) # near 1 0 0
+
+proteoM:::concatFracs(0, 2)
+proteoM:::concatFracs(2, 0)
+proteoM:::concatFracs(0, 0) # should not occur
+}
 }

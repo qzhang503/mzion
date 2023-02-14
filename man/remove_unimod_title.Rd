@@ -13,7 +13,8 @@ remove_unimod_title(title = NULL)
 Removes an existing modification.
 }
 \examples{
-\donttest{
+\dontrun{
+library(proteoM)
 x <- remove_unimod_title("Oxi+Carbamidomethyl")
 }
 }

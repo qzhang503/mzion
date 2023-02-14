@@ -15,7 +15,7 @@ supply the files.}
 Not used in proteoM.
 }
 \examples{
-\donttest{
+\dontrun{
 fasta_db <- load_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 }
 }

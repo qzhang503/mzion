@@ -21,6 +21,8 @@ calc_aamasses(
 
 \item{varmods}{A character vector of variable modifications.}
 
+\item{aa_masses}{An amino-acid mass lookup.}
+
 \item{varlabs}{Character string(s) of variable isotopic labels. See examples
 of SILAC for details. Can be but not typically used in standard alone
 searches of labeled residues.}
@@ -45,6 +47,8 @@ Calculates molecular weight of a polypeptide ([MH]+).
 }
 \examples{
 \donttest{
+library(proteoM)
+
 x <- calc_aamasses()
 x_att <- lapply(x, attributes)
 names(x_att[[1]])
@@ -63,7 +67,7 @@ x[[1]][["N-term"]]
 # Fixed N-term mod (coerced to variable mod)
 x <- calc_aamasses(fixedmods = "TMT6plex (N-term)", varmods = "Acetyl (Protein N-term)")
 lapply(x, `[[`, "N-term")
-x[[1]][["TMT6plex (N-term)"]]
+x[[1]]["N-term"]
 x[[2]][["Acetyl (Protein N-term)"]]
 
 # No fixed mod
@@ -123,7 +127,7 @@ x <- calc_aamasses(fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)"),
 stopifnot(length(x) == 12L)
 
 # Fixed terminal coercion
-x <- calc_aamasses(fixedmos = c("TMT6plex (N-term)", "TMT6plex (K)", 
+x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
                      "Carbamidomethyl (C)"),
                    varmods = c("Acetyl (Protein N-term)", "Oxidation (M)"))
                    

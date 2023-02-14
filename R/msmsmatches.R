@@ -195,6 +195,27 @@
 #' @param minn_ms2 A positive integer; the minimum number of matched MS2 ions
 #'   for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
 #'   not part of the threshold.
+#' @param exclude_reporter_region Logical; if TRUE, excludes MS2 ions in the
+#'   region of TMT reporter ions. The default is TRUE. The argument affects only
+#'   TMT data. The range of TMT reporter ions is given by
+#'   \code{tmt_reporter_lower} and \code{tmt_reporter_upper}.
+#' @param tmt_reporter_lower The lower bound of the region of TMT reporter ions.
+#'   The default is \eqn{126.1}.
+#' @param tmt_reporter_upper The upper bound of the region of TMT reporter ions.
+#'   The default is \eqn{135.2}.
+#' @param index_mgf_ms2 Logical; if TRUE, converts upfrontly MS2 m-over-z values
+#'   from numeric to integers as opposed to in-situ conversion during ion
+#'   matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+#'   useful for very large MS files by reducing RAM footprints.
+#'
+#'   At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+#'   theoretical and experimental MS2 m-over-z values is limited by the
+#'   \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+#'   instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+#'   20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+#'   the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+#'   pep_ms2_deltas_sd} are nullified in the outputs.
+#'
 #' @param min_ms1_charge A positive integer; the minimum MS1 charge state for
 #'   considerations. The default is 2.
 #' @param max_ms1_charge A positive integer; the maximum MS1 charge state for
@@ -349,7 +370,6 @@
 #'   suggested. Occasionally experimenters may remove the file folder for disk
 #'   space or under infrequent events of modified framework incurred by the
 #'   developer.
-#' @param sys_ram Not used. The amount of system RAM in GB.
 #' @param digits A non-negative integer; the number of decimal places to be
 #'   used. The default is 4.
 #' @param ... Not currently used.
@@ -373,7 +393,7 @@
 #' @return A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in
 #'   \code{psmQ.txt}.
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' ## All examples are hypothetical
 #' ## (Users are responsible for supplying FASTA and peak lists in MGF or mzML)
 #'
@@ -417,6 +437,19 @@
 #'   fdr_type  = "protein",
 #'   out_path  = "~/proteoM/examples_pasef",
 #' )
+#'
+#' # Wrapper of matchMS(enzyme = noenzyme, ...) without sectional searches
+#' # by ranges of peptide lengths
+#' matchMS_NES(
+#'   fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+#'                "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+#'                "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'   acc_type = c("refseq_acc", "refseq_acc", "other"),
+#'   quant    = "tmt10",
+#'   fdr_type = "protein",
+#'   out_path = "~/proteoM/examples",
+#' )
+#'
 #'
 #' # Custom Unimod (Oxi+Carbamidomethyl)
 #' # (see also calc_unimod_compmass)
@@ -598,6 +631,10 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      max_ms2mass = 4500L, 
                      minn_ms2 = 6L, 
                      ppm_ms2 = 20L, 
+                     tmt_reporter_lower = 126.1, 
+                     tmt_reporter_upper = 135.2, 
+                     exclude_reporter_region = TRUE, 
+                     index_mgf_ms2 = FALSE, 
                      
                      ppm_reporters = 10L,
                      quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
@@ -630,7 +667,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                      add_ms2moverzs = FALSE, add_ms2ints = FALSE,
                      
-                     sys_ram = 24L, 
                      digits = 4L, ...) 
 {
   options(digits = 9L)
@@ -689,7 +725,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   # logical types 
   stopifnot(vapply(c(soft_secions, combine_tier_three, calib_ms1mass, 
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
-                     add_ms2ints), 
+                     add_ms2ints, exclude_reporter_region, index_mgf_ms2), 
                    is.logical, logical(1L)))
 
   # numeric types 
@@ -700,7 +736,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      ppm_ms1, ppm_ms2, ppm_reporters, max_n_prots, digits, 
                      target_fdr, max_pepscores_co, min_pepscores_co, 
                      max_protscores_co, max_protnpep_co, topn_mods_per_seq, 
-                     topn_seqs_per_query), 
+                     topn_seqs_per_query, tmt_reporter_lower, tmt_reporter_upper), 
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
@@ -756,7 +792,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
             maxn_vmods_per_pep >= maxn_sites_per_vmod, max_n_prots > 1000L, 
             min_ms1_charge >= 1L, max_ms1_charge >= min_ms1_charge, 
             min_scan_num >= 1L, max_scan_num >= min_scan_num, 
-            topn_mods_per_seq >= 1L, topn_seqs_per_query >= 1L)
+            topn_mods_per_seq >= 1L, topn_seqs_per_query >= 1L, 
+            tmt_reporter_lower < tmt_reporter_upper)
 
   # (b) doubles
   target_fdr <- round(as.double(target_fdr), digits = 2L)
@@ -986,7 +1023,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
            "The same applies to \"varlabs\".")
     }
     
-    matchMS_silac_mix(silac = silac_mix, 
+    matchMS_silac_mix(silac_mix = silac_mix, 
                       this_call = this_call, 
                       out_path = out_path, 
                       mgf_path = mgf_path, 
@@ -1069,7 +1106,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   ## MGFs
   bypass_mgf <- dots$bypass_mgf
   if (is.null(bypass_mgf)) bypass_mgf <- FALSE
-
+  
   if (!bypass_mgf) {
     load_mgfs(out_path = out_path, 
               mgf_path = mgf_path,
@@ -1089,6 +1126,11 @@ matchMS <- function (out_path = "~/proteoM/outs",
               mgf_cutmzs = mgf_cutmzs, 
               mgf_cutpercs = mgf_cutpercs, 
               enzyme = enzyme, 
+              exclude_reporter_region = exclude_reporter_region, 
+              tmt_reporter_lower = tmt_reporter_lower, 
+              tmt_reporter_upper = tmt_reporter_upper, 
+              index_mgf_ms2 = index_mgf_ms2, 
+              quant = quant, 
               digits = digits)
   }
 
@@ -1143,6 +1185,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
              ppm_reporters = ppm_reporters,
              use_first_rev = use_first_rev, 
              calib_ms1mass = calib_ms1mass, 
+             index_mgf_ms2 = index_mgf_ms2, 
 
              # dummy for argument matching
              fasta = fasta,
@@ -1157,7 +1200,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
              min_len = min_len,
              max_len = max_len,
              max_miss = max_miss,
-             
              digits = digits)
     
     if (calib_ms1mass) {
@@ -1193,6 +1235,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                    ppm_ms2 = ppm_ms2,
                    soft_secions = soft_secions, 
                    out_path = out_path,
+                   min_ms2mass = min_ms2mass,
+                   index_mgf_ms2 = index_mgf_ms2, 
 
                    # dummies
                    mgf_path = mgf_path,
@@ -1201,7 +1245,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
                    maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
                    minn_ms2 = minn_ms2,
                    ppm_ms1 = ppm_ms1,
-                   min_ms2mass = min_ms2mass,
                    quant = quant,
                    ppm_reporters = ppm_reporters,
                    fasta = fasta,
@@ -1256,7 +1299,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   if (bypass_from_protacc) 
     return(NULL)
   
-  if (enzyme != "noenzyme") {
+  if (enzyme != "noenzyme" || isTRUE(dots[["direct_prot_acc"]])) {
     df <- add_prot_acc(out_path = out_path, 
                        .path_cache = .path_cache, 
                        .path_fasta = .path_fasta)

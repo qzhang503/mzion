@@ -16,5 +16,8 @@ right.}
 Not yet used.
 }
 \examples{
-m <- sparseD_fourquad(ul, 6)
+\donttest{
+library(proteoM)
+# m <- proteoM:::sparseD_fourquad(ul, 6)
+}
 }

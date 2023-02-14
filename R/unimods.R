@@ -6,6 +6,8 @@
 #' @seealso \link{table_unimods}, \link{find_unimod}.
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' # "dot" for anywhere (either position or site)
 #' x1 <- parse_unimod("Carbamidomethyl (. = C)")
 #' x2 <- parse_unimod("Carbamidomethyl (Anywhere = C)")
@@ -151,6 +153,8 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
 #' @seealso \link{table_unimods}, \link{parse_unimod}.
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' x1 <- find_unimod("Carbamidomethyl (C)")
 #' x2 <- find_unimod("Carbamidomethyl (M)")
 #' x3 <- find_unimod("Acetyl (Protein N-term)")
@@ -275,6 +279,8 @@ hfind_unimod <- function (xml_files = c("master.xml", "custom.xml"), unimod)
 #' @seealso \link{find_unimod}, \link{parse_unimod}.
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ans <- table_unimods()
 #' 
 #' ## TMT-6, -10 and -11 plexes 
@@ -1036,7 +1042,9 @@ add_comp_elements <- function (node = NULL, composition = "0")
 #' @inheritParams add_unimod
 #' @seealso remove_unimod_title
 #' @examples 
-#' \donttest{
+#' \dontrun{
+#' library(proteoM)
+#' 
 #' # site `C`: Oxiation + Carbamidomethyl
 #' # (without neutral losses)
 #' x <- remove_unimod(header      = c(title       = "Oxi+Carbamidomethyl",
@@ -1297,7 +1305,8 @@ standardize_unimod_ps <- function (x)
 #'
 #' @param title The title of a modification.
 #' @examples 
-#' \donttest{
+#' \dontrun{
+#' library(proteoM)
 #' x <- remove_unimod_title("Oxi+Carbamidomethyl")
 #' }
 #' @export
@@ -1340,13 +1349,15 @@ remove_unimod_title <- function (title = NULL)
 #' @export
 #' @examples 
 #' \donttest{
-#' # Error
-#' comp <- "N(+1) 15N(-1)"
-#' m <- calc_unimod_compmass(comp)
+#' library(proteoM)
 #' 
-#' # Instead 
+#' ## Error
+#' # comp <- "N(+1) 15N(-1)"
+#' # m <- proteoM:::calc_unimod_compmass(comp)
+#' 
+#' ## Instead 
 #' comp <- "N(1) 15N(-1)"
-#' m <- calc_unimod_compmass(comp)
+#' m <- proteoM:::calc_unimod_compmass(comp)
 #' }
 calc_unimod_compmass <- function (composition = "H(4) C O S", digits = 6L) 
 {

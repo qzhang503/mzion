@@ -32,7 +32,9 @@ my_dist <- function (...)
 #' Vectors are in rows: mtcars[1, ].
 #' 
 #' @examples 
-#' sim <- cos_sim(as.matrix(mtcars[1:3, ]))
+#' library(proteoM)
+#' 
+#' sim <- proteoM:::cos_sim(as.matrix(mtcars[1:3, ]))
 #' 
 #' # distances (against normalized vectors)
 #' as.dist(1 - sim)
@@ -43,5 +45,35 @@ cos_sim <- function (M)
   L <- sqrt(rowSums(M * M)) # vector lengths; no `mean` subtraction
   Mn <- M / L # normalized M 
   Mn %*% t(Mn) # dot products; vectors in the rows of Mn
+}
+
+
+#' Match MS at no enzymatic specificity.
+#' 
+#' @param ... Variable arguments.
+#' @export
+matchMS_NES <- function (...)
+{
+  args <- as.list(substitute(...()))
+  nms <- names(args)
+  oks <- nms != ""
+  
+  args <- args[oks]
+  nms <- nms[oks]
+  
+  if ("max_miss" %in% nms)
+    warning("Argument \"max_miss\" has no effect at no enzymatic specificity.")
+  
+  if ("enzyme" %in% nms && tolower(args[["enzyme"]]) != "noenzyme") {
+    warning("Changed setting to `enzyme = Noenzyme`.")
+    args["enzyme"] <- NULL
+  }
+  
+  do.call(matchMS, c(list(enzyme = "noenzyme", 
+                          # bypass old matchMS_noenzyme
+                          bypass_noenzyme = TRUE, 
+                          # call add_prot_acc at enzyme = "noenzyme"
+                          direct_prot_acc = TRUE), 
+                     args))
 }
 

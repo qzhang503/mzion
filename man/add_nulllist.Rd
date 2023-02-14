@@ -15,7 +15,8 @@ add_nulllist(l, nm)
 This is different to, for example, \code{x[["a"]] <- list(NULL)}.
 }
 \examples{
-l <- list(a = 2, b = 3)
-add_nulllist(l, "m")
-
+\dontrun{
+library(proteoM)
+proteoMadd_nulllist(list(a = 2, b = 3), "m")
+} 
 }

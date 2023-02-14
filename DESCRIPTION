@@ -1,7 +1,7 @@
 Package: proteoM
 Type: Package
 Title: Database Searches of Proteomic Mass-spectrometrirc Data
-Version: 1.2.1.0
+Version: 1.2.1.4
 Authors@R: 
     person(given = "Qiang",
            family = "Zhang",
@@ -20,12 +20,15 @@ Suggests:
     testthat
 VignetteBuilder: knitr
 Imports: 
+    base64enc, 
     data.table,
+    digest,
     dplyr,
     fastmatch,
     ggplot2,
     purrr,
     readr,
+    rstudioapi,
     stringi,
     stringr,
     tibble,
@@ -39,7 +42,7 @@ Imports:
     xml2, 
     Matrix,
     Rcpp
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Remotes:
     qzhang503/proteoCpp
 LinkingTo: 

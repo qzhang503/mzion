@@ -70,6 +70,8 @@ the "additive" effect of modifications.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 ## `Protein N-term = P`
 sites <- list(`Dimethyl (Protein N-term = P)` = "P",
               `Acetyl (Protein N-term)` = "N-term", 
@@ -84,12 +86,14 @@ vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 posns <- names(vmods)
 # stopifnot(identical(positions, posns))
 
-stopifnot(contain_protntsite(vmods, names(vmods), length(vmods)))
+stopifnot(proteoM:::contain_protntsite(vmods, names(vmods), length(vmods)))
 
-ans <- find_protntsite(vmods, posns)
+ans <- proteoM:::find_protntsite(vmods, posns)
 stopifnot(identical(ans, vmods[1]))
 }
 \donttest{
+library(proteoM)
+
 ## Gln->pyro Glu (N-term = Q)
 sites <- list(`Gln->pyro Glu (N-term = Q)` = "Q",
               `Acetyl (N-term)` = "N-term",
@@ -102,12 +106,14 @@ vmods <- unname(vmods)
 vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 posns <- names(vmods)
 
-stopifnot(contain_anyntsite(vmods, posns, length(vmods)))
+stopifnot(proteoM:::contain_anyntsite(vmods, posns, length(vmods)))
 
-ans <- find_anyntsite(vmods, posns)
+ans <- proteoM:::find_anyntsite(vmods, posns)
 stopifnot(identical(ans, vmods[1])) # M and N
 }
 \donttest{
+library(proteoM)
+
 ## `Oxidation (M)` and `Deamidated (N)`
 sites <- list(`Acetyl (N-term)` = "N-term",
               `Oxidation (M)` = "M",
@@ -119,9 +125,9 @@ vmods <- unname(vmods)
 vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 posns <- names(vmods)
 
-stopifnot(contain_anysite(vmods, posns, length(vmods)))
+stopifnot(proteoM:::contain_anysite(vmods, posns, length(vmods)))
 
-ans <- find_anysite(vmods, posns)
+ans <- proteoM:::find_anysite(vmods, posns)
 stopifnot(length(ans) == 2L)
 
 
@@ -139,10 +145,12 @@ vmods <- vmods[!duplicated.default(vmods)]
 posns <- names(vmods)
 stopifnot(length(posns) < length(positions))
 
-ans <- find_anysite(vmods, posns)
+ans <- proteoM:::find_anysite(vmods, posns)
 stopifnot(length(ans) == 2L)
 }
 \donttest{
+library(proteoM)
+
 ## `Dehydrated (Protein C-term = N)`
 sites <- list(`Dehydrated (Protein C-term = N)` = "N", 
               `Acetyl (N-term)` = "N-term", 
@@ -155,12 +163,14 @@ vmods <- unname(vmods)
 vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 posns <- names(vmods)
 
-stopifnot(contain_protctsite(vmods, posns, length(vmods)))
+stopifnot(proteoM:::contain_protctsite(vmods, posns, length(vmods)))
 
-ans <- find_protctsite(vmods, posns)
+ans <- proteoM:::find_protctsite(vmods, posns)
 stopifnot(identical(ans, vmods[1]))
 }
 \donttest{
+library(proteoM)
+
 ## `Oxidation (C-term = G)`
 sites <- list(`Oxidation (C-term = G)` = "G", 
               `Acetyl (N-term)` = "N-term", 
@@ -173,9 +183,9 @@ vmods <- unname(vmods)
 vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 posns <- names(vmods)
 
-stopifnot(contain_anyctsite(vmods, posns, length(vmods)))
+stopifnot(proteoM:::contain_anyctsite(vmods, posns, length(vmods)))
 
-ans <- find_anyctsite(vmods, posns)
+ans <- proteoM:::find_anyctsite(vmods, posns)
 stopifnot(identical(ans, vmods[1]))
 }
 }

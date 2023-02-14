@@ -18,10 +18,13 @@ Left-joining of two data frames.
 }
 \examples{
 \donttest{
+library(proteoM)
+library(dplyr)
+
 df1 <- data.frame(A = c("a", "b", "c"), B = c(1, 1, 1))
 df2 <- data.frame(A = c("a", "c", "d"), C = c(2, 2, "3"))
 
-x1 <- quick_leftjoin(df1, df2, by = "A")
+x1 <- proteoM:::quick_leftjoin(df1, df2, by = "A")
 x1 <- x1[, c("A", "B", "C")]
 rownames(x1) <- seq_len(nrow(x1))
 

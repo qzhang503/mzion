@@ -24,7 +24,8 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
                            maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                            maxn_vmods_sitescombi_per_pep = 64L, 
                            minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                           min_ms2mass = 115L, df0 = NULL, digits = 4L) 
+                           min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
+                           df0 = NULL, digits = 4L) 
 {
   # note: split into 16^2 lists
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
@@ -83,6 +84,7 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
                     ppm_ms1 = ppm_ms1, 
                     ppm_ms2 = ppm_ms2, 
                     min_ms2mass = min_ms2mass, 
+                    index_mgf_ms2 = index_mgf_ms2, 
                     digits = digits, 
                     FUN = gen_ms2ions_base), 
     .scheduling = "dynamic")
@@ -126,7 +128,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
                         maxn_sites_per_vmod = 3L, 
                         maxn_vmods_sitescombi_per_pep = 64L, 
                         minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                        min_ms2mass = 115L, digits = 4L, FUN) 
+                        min_ms2mass = 115L, index_mgf_ms2 = FALSE, digits = 4L, 
+                        FUN) 
 {
   len <- length(mgf_frames)
   out <- vector("list", len) 
@@ -257,7 +260,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
         minn_ms2 = minn_ms2, 
         ppm_ms1 = ppm_ms1, 
         ppm_ms2 = ppm_ms2, 
-        min_ms2mass = min_ms2mass
+        min_ms2mass = min_ms2mass, 
+        index_mgf_ms2 = index_mgf_ms2
       ), 
       SIMPLIFY = FALSE,
       USE.NAMES = FALSE
@@ -401,6 +405,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
 #' 
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' # (2) "amods- tmod+ vnl- fnl-"
 #' fixedmods <- c("TMT6plex (K)", "Carbamidomethyl (C)")
 #' varmods <- c("TMT6plex (N-term)", "Acetyl (Protein N-term)", "Oxidation (M)",
@@ -417,13 +423,13 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
 #' ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 #' ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
 #'
-#' if (is_empty(ntmod)) {
+#' if (!length(ntmod)) {
 #'   ntmass <- aa_masses["N-term"] - 0.000549 # - electron
 #' } else {
 #'   ntmass <- aa_masses[names(ntmod)] + 1.00727647 # + proton
 #' }
 #'
-#' if (is_empty(ctmod)) {
+#' if (!length(ctmod)) {
 #'   ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
 #' } else {
 #'   ctmass <- aa_masses[names(ctmod)] + 2.01510147
@@ -431,7 +437,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
 #'
 #' aa_seq <- "MHQGVMNVGMGQKMNS"
 #'
-#' out <- gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+#' out <- proteoM:::gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
 #'                         aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
 #'                         ntmass = ntmass, ctmass = ctmass, 
 #'                         amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
@@ -452,13 +458,13 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
 #' ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 #' ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
 #'
-#' if (is_empty(ntmod)) {
+#' if (!length(ntmod)) {
 #'   ntmass <- aa_masses["N-term"] - 0.000549
 #' } else {
 #'   ntmass <- aa_masses[names(ntmod)] + 1.00727647
 #' }
 #'
-#' if (is_empty(ctmod)) {
+#' if (!length(ctmod)) {
 #'   ctmass <- aa_masses["C-term"] + 2.01510147
 #' } else {
 #'   ctmass <- aa_masses[names(ctmod)] + 2.01510147
@@ -466,7 +472,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
 #'
 #' aa_seq <- "MHQGVMNVGMGQKMNS"
 #'
-#' out <- gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+#' out <- proteoM:::gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
 #'                         aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
 #'                         ntmass = ntmass, ctmass = ctmass, 
 #'                         amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
@@ -507,8 +513,10 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
 #' @param y A vector to be matched against.
 #' @importFrom fastmatch fmatch %fin% 
 #' @examples 
-#' ans1 <- fuzzy_match_one(c(74953, 74955), rep(74954, 2))
-#' ans2 <- fuzzy_match_one(c(74953, 74955), 74954)
+#' library(proteoM)
+#' 
+#' ans1 <- proteoM:::fuzzy_match_one(c(74953, 74955), rep(74954, 2))
+#' ans2 <- proteoM:::fuzzy_match_one(c(74953, 74955), 74954)
 #' 
 #' stopifnot(identical(ans1, ans2))
 #' stopifnot(ans1 == c(TRUE, TRUE))
@@ -531,13 +539,15 @@ fuzzy_match_one <- function (x, y)
 #' @param y A vector to be matched against.
 #' @importFrom fastmatch fmatch %fin%
 #' @examples
-#' ans1 <- fuzzy_match_one2(c(74953, 74955), rep(74954, 2))
-#' ans2 <- fuzzy_match_one2(c(74953, 74955), 74954)
+#' library(proteoM)
+#' 
+#' ans1 <- proteoM:::fuzzy_match_one2(c(74953, 74955), rep(74954, 2))
+#' ans2 <- proteoM:::fuzzy_match_one2(c(74953, 74955), 74954)
 #'
 #' stopifnot(identical(ans1, ans2))
 #' stopifnot(ans1 == c(FALSE, TRUE))
 #'
-#' ans3 <- fuzzy_match_one2(c(74953, 74955, 80000), c(74955, 80000))
+#' ans3 <- proteoM:::fuzzy_match_one2(c(74953, 74955, 80000), c(74955, 80000))
 #' 
 #' ## The x3 example from "find_ms2_bypep"
 #' x <- c(-9185, -3369, -1973, -626, 59, 714, 3326, 7106, 7711, 7715, 8316, 8320, 
@@ -566,7 +576,7 @@ fuzzy_match_one <- function (x, y)
 #' d <- ppm_ms2/1E6
 #' y <- ceiling(log(y/min_ms2mass)/log(1+d))
 #' 
-#' ans <- fuzzy_match_one2(x, y)
+#' ans <- proteoM:::fuzzy_match_one2(x, y)
 fuzzy_match_one2 <- function (x, y) 
 {
   mi <- x %fin% y
@@ -594,6 +604,8 @@ fuzzy_match_one2 <- function (x, y)
 #' @importFrom fastmatch fmatch %fin%
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## Experimental 322.18704 fit to both b- and y- ions
 #' #  (one expt to multiple theos)
 #' expts <- c(101.07140,102.05540,107.04956,110.07165,111.07500,
@@ -633,7 +645,7 @@ fuzzy_match_one2 <- function (x, y)
 #' names(theos) <- c(nms, rev(nms))
 #' theos <- list(`0000000` = theos)
 #'
-#' x1 <- find_ms2_bypep(theos, expts, ex, d)
+#' x1 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
 #'
 #' ## Both expts 74953 and 74955 fit to theos 74954
 #' #  (multiple expts to one theo)
@@ -678,7 +690,7 @@ fuzzy_match_one2 <- function (x, y)
 #' d <- ppm_ms2/1E6
 #' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 #' 
-#' x2 <- find_ms2_bypep(theos, expts, ex, d)
+#' x2 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
 #' 
 #' ## Experimental 317.20001 & 317.19315 match to theoreitcal 317.2022 & 317.1932;
 #' #  experimental 959.48468 is also multiple dipping
@@ -714,7 +726,7 @@ fuzzy_match_one2 <- function (x, y)
 #' d <- ppm_ms2/1E6
 #' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 #' 
-#' x3 <- find_ms2_bypep(theos, expts, ex, d)
+#' x3 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
 #' 
 #' ## 7 b-ions and 9 y-bios 
 #' #  (an even total, n_ps matched but identities off)
@@ -748,7 +760,7 @@ fuzzy_match_one2 <- function (x, y)
 #' d <- ppm_ms2/1E6
 #' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 #' 
-#' x4 <- find_ms2_bypep(theos, expts, ex, d)
+#' x4 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
 #' 
 #' 
 #' ## fewer matches with "find_ppm_outer_bycombi" and check minn_ms2 again
@@ -786,13 +798,14 @@ fuzzy_match_one2 <- function (x, y)
 #' d <- ppm_ms2/1E6
 #' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 #' 
-#' x5 <- find_ms2_bypep(theos, expts, ex, d, ppm_ms2)
+#' x5 <- proteoM:::find_ms2_bypep(theos, expts, ex, d, ppm_ms2)
 #' 
 #' }
 #' 
 #' @return Lists of (1) theo, (2) expt, (3) ith, (4) iex and (5) m.
 find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL, 
-                            ppm_ms2 = 10L, min_ms2mass = 115L, minn_ms2 = 6L) 
+                            ppm_ms2 = 10L, min_ms2mass = 115L, minn_ms2 = 6L, 
+                            index_mgf_ms2 = FALSE) 
 {
   ##############################################################################
   # `theos` may be empty: 
@@ -832,19 +845,15 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
   
   for (i in 1:len) {
     theos_i <- theos[[i]]
-    th_i <- ceiling(log(theos_i/min_ms2mass)/log(1+d))
+    th_i <- index_mz(theos_i, min_ms2mass, d)
     
     ## forward matches
-    mi <- th_i %fin% ex
-    bf <- (th_i - 1L) %fin% ex
-    af <- (th_i + 1L) %fin% ex
-    ps <- mi | bf | af
+    ps <- th_i %fin% ex | (th_i - 1L) %fin% ex | (th_i + 1L) %fin% ex
     ips <- which(ps)
     
     ## "ith = ips" in ascending order, not "iex = ips_12"
 
     ## backward matches
-    # n_ps <- sum(ps)
     n_ps <- length(ips)
     
     if(n_ps >= minn_ms2) {
@@ -853,35 +862,25 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
       lth <- length(ps)
       mid <- lth/2L
       
-      # NA placeholder of theoretical values, 
-      # and at the end replaced the matched by experimental values
+      # experimental es initially filled by NA and matched theoretical values, 
+      # and at the end replaced with matched experimental values
       es <- theos_i
       es[!ps] <- NA_real_
-      # es <- rep(NA_real_, lth)
-      # es[ips] <- 1
-      
+
       ex_bf <- ex - 1L
       ex_af <- ex + 1L
       
-      # part 1 
+      # b-ions
       y_1 <- th_i[1:mid]
-      mi_1 <- ex %fin% y_1
-      bf_1 <- ex_bf %fin% y_1
-      af_1 <- ex_af %fin% y_1
-      ps_1 <- mi_1 | bf_1 | af_1
+      ps_1 <- ex %fin% y_1 | ex_bf %fin% y_1 | ex_af %fin% y_1
       ips_1 <- which(ps_1) 
       
-      # part 2
+      # y-ions
       y_2 <- th_i[(mid+1L):lth]
-      mi_2 <- ex %fin% y_2
-      bf_2 <- ex_bf %fin% y_2
-      af_2 <- ex_af %fin% y_2
-      ps_2 <- mi_2 | bf_2 | af_2
+      ps_2 <- ex %fin% y_2 | ex_bf %fin% y_2 | ex_af %fin% y_2
       ips_2 <- which(ps_2) 
       
-      # put together
-      # expt_1 <- expts[ps_1]
-      # expt_2 <- expts[ps_2]
+      # b- and y-ions
       expt_1 <- expts[ips_1]
       expt_2 <- expts[ips_2]
       expt_12 <- c(expt_1, expt_2)
@@ -894,12 +893,17 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
         # also ensure that "ith = ips" in ascending order, not "iex = ips_12"
         out_i <- find_ppm_outer_bycombi(expts, theos_i, ppm_ms2 * 2L)
 
-        if (sum(!is.na(out_i$expt)) < minn_ms2) 
-          return(out[[i]] <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL))
-        
+        if (sum(!is.na(out_i$expt)) < minn_ms2) {
+          out[[i]] <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL)
+          next
+          # return(out[[i]] <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL))
+        }
+
         out[[i]] <- out_i
-        names(out) <- names(theos)
-        return(out)
+        next
+        
+        # names(out) <- names(theos)
+        # return(out)
       }
       
       es[ps] <- expt_12
@@ -936,6 +940,9 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
 #' @inheritParams load_mgfs
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' library(fastmatch)
+#' 
 #' expt_ms2 <-
 #'   c(1628,3179,7677,9129,13950,14640,18571,19201,19205,19830,19833,20454,
 #'     20457,21030,21073,21077,21687,24644,25232,37146,42042,43910,43920,44811,
@@ -961,7 +968,7 @@ search_mgf <- function (expt_mass_ms1, expt_moverz_ms2,
                         theomasses_bf_ms1, theomasses_cr_ms1, theomasses_af_ms1, 
                         theos_bf_ms2, theos_cr_ms2, theos_af_ms2, 
                         minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                        min_ms2mass = 115L) 
+                        min_ms2mass = 115L, index_mgf_ms2 = FALSE) 
 {
   # --- subsets from the `before` and the `after` by MS1 mass tolerance 
   # d <- expt_mass_ms1 * ppm_ms1/1E6
@@ -976,15 +983,20 @@ search_mgf <- function (expt_mass_ms1, expt_moverz_ms2,
 
   # --- find MS2 matches ---
   d2 <- ppm_ms2/1E6
-  ex <- ceiling(log(expt_moverz_ms2/min_ms2mass)/log(1+d2))
   
+  ex <- if (index_mgf_ms2)
+    expt_moverz_ms2
+  else
+    index_mz(expt_moverz_ms2, min_ms2mass, d2)
+
   ans_bf <- if (length(theos_bf_ms2)) 
     lapply(theos_bf_ms2, find_ms2_bypep, 
            expts = expt_moverz_ms2, 
            ex = ex, d = d2, 
            ppm_ms2 = ppm_ms2, 
            min_ms2mass = min_ms2mass, 
-           minn_ms2 = minn_ms2)
+           minn_ms2 = minn_ms2, 
+           index_mgf_ms2 = index_mgf_ms2)
   else 
     theos_bf_ms2
   
@@ -995,7 +1007,8 @@ search_mgf <- function (expt_mass_ms1, expt_moverz_ms2,
            d = d2, 
            ppm_ms2 = ppm_ms2, 
            min_ms2mass = min_ms2mass, 
-           minn_ms2 = minn_ms2)
+           minn_ms2 = minn_ms2, 
+           index_mgf_ms2 = index_mgf_ms2)
   else 
     theos_cr_ms2
   
@@ -1006,7 +1019,8 @@ search_mgf <- function (expt_mass_ms1, expt_moverz_ms2,
            d = d2, 
            ppm_ms2 = ppm_ms2, 
            min_ms2mass = min_ms2mass, 
-           minn_ms2 = minn_ms2)
+           minn_ms2 = minn_ms2, 
+           index_mgf_ms2 = index_mgf_ms2)
   else 
     theos_af_ms2
   

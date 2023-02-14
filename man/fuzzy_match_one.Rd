@@ -15,8 +15,10 @@ fuzzy_match_one(x, y)
 Not used but called the codes inside directly.
 }
 \examples{
-ans1 <- fuzzy_match_one(c(74953, 74955), rep(74954, 2))
-ans2 <- fuzzy_match_one(c(74953, 74955), 74954)
+library(proteoM)
+
+ans1 <- proteoM:::fuzzy_match_one(c(74953, 74955), rep(74954, 2))
+ans2 <- proteoM:::fuzzy_match_one(c(74953, 74955), 74954)
 
 stopifnot(identical(ans1, ans2))
 stopifnot(ans1 == c(TRUE, TRUE))

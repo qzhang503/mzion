@@ -25,6 +25,8 @@ Finds the combinatorial MS2 variable modifications.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 ## One-to-one correspondence between Names and Sites
 #  (no need to permute MS1 labels)
 
@@ -42,11 +44,11 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 maxn_vmods_per_pep  <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 
-ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
 
 i <- 11L
 aa_masses <- aa_masses_all[[i]]
@@ -58,10 +60,10 @@ ms2vmods <- ms2vmods_all[[i]]
 aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 
 # Subset from ms1vmods by aas
-oks <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
+oks <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
 ms2vmods <- ms2vmods[oks]
 
-vmods_combi <- find_vmodscombi(aas, ms2vmods)
+vmods_combi <- proteoM:::find_vmodscombi(aas, ms2vmods)
 
 
 ## 'Carbamidomethyl (M)',  'Carbamyl (M)' and N
@@ -76,11 +78,11 @@ aa_masses_all <- calc_aamasses(fixedmods, varmods)
 maxn_vmods_per_pep  <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 
-ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
 
 i <- 16L
 aa_masses <- aa_masses_all[[i]]
@@ -95,10 +97,10 @@ aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 
 
 # Subset from ms1vmods by aas
-oks <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
+oks <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
 ms2vmods <- ms2vmods[oks]
 
-vmods_combi <- find_vmodscombi(aas, ms2vmods)
+vmods_combi <- proteoM:::find_vmodscombi(aas, ms2vmods)
 
 n_pos <- lapply(vmods_combi, function (x) names(x[x == "Deamidated (N)"]))
 stopifnot(all(sapply(n_pos, function (x) all(x \%in\% c("6", "14")))))

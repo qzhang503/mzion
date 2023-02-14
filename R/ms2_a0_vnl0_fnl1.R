@@ -12,7 +12,8 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    maxn_sites_per_vmod = 3L, 
                                    maxn_vmods_sitescombi_per_pep = 64L, 
                                    minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                                   min_ms2mass = 115L, df0 = NULL, digits = 4L) 
+                                   min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
+                                   df0 = NULL, digits = 4L) 
 {
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
@@ -73,6 +74,7 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
                     ppm_ms1 = ppm_ms1, 
                     ppm_ms2 = ppm_ms2, 
                     min_ms2mass = min_ms2mass, 
+                    index_mgf_ms2 = index_mgf_ms2, 
                     digits = digits, 
                     FUN = gen_ms2ions_a0_vnl0_fnl1), 
     .scheduling = "dynamic")
@@ -93,6 +95,9 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #' 
 #' @examples 
 #' \donttest{
+#' library(proteoM)
+#' library(magrittr)
+#' 
 #' # (5) "amods- tmod+ vnl- fnl+"
 #' fixedmods <- c("TMT6plex (N-term)", "Oxidation (M)", "dHex (S)")
 #' varmods <- c("Acetyl (Protein N-term)")
@@ -108,13 +113,13 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #' ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 #' ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
 #' 
-#' if (is_empty(ntmod)) {
+#' if (!length(ntmod)) {
 #'   ntmass <- aa_masses["N-term"] - 0.000549 # - electron
 #' } else {
 #'   ntmass <- aa_masses[names(ntmod)] - 0.000549
 #' }
 #' 
-#' if (is_empty(ctmod)) {
+#' if (!length(ctmod)) {
 #'   ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
 #' } else {
 #'   ctmass <- aa_masses[names(ctmod)] + 2.01510147
@@ -127,7 +132,7 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #' # variable `TMT6plex (N-term)` + `fixed Oxidation (M)`
 #' # (additive varmod on top of fixedmod allowed)
 #' 
-#' out <- gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = NULL, 
+#' out <- proteoM:::gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = NULL, 
 #'                                 aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
 #'                                 ntmass = ntmass, ctmass = ctmass, 
 #'                                 amods = NULL, vmods_nl = NULL, fmods_nl = fmods_nl, 

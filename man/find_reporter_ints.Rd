@@ -37,6 +37,8 @@ Finds the intensities of reporter-ions.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 ms2_moverzs <- c(112.0873, 126.1280, 127.1251, 127.1313, 128.1250,
                  128.1284, 128.1347, 129.1317, 129.1380, 130.0654,
                  130.1351, 130.1413, 131.1384)
@@ -55,10 +57,10 @@ ul <- c(126.1, 131.2)
 len <- 10
 nms <- names(theos)
 
-x <- find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 10,
+x <- proteoM:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 10,
                         len , nms)
 
-x <- find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
+x <- proteoM:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
                         len , nms)
 
 # Two `129C`, no `127N` etc.
@@ -75,7 +77,7 @@ ms2_ints <- c(1201.79, 1319.32, 1603.45, 1595.34, 2148.66, 1785.74, 1254.24,
               1365.32, 1727.12, 2661.72, 1660.05, 5525.95, 1399.96, 4654.03,
               1990.57, 1758.72, 1655.09, 1460.68, 1641.39, 1721.33)
 
-x <- find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
+x <- proteoM:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
                         len , nms)
 }
 }

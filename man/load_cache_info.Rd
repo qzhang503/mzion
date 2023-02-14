@@ -7,20 +7,13 @@
 load_cache_info(cache = NULL, overwrite = TRUE)
 }
 \arguments{
+\item{cache}{A cache file name.}
+
 \item{overwrite}{If TRUE, overwrite the pre-existed global values with the
 cache values.}
-
-\item{file}{An file name as an alternative for looking up}
 }
 \description{
 Not yet used.
-}
-\examples{
-\donttest{
-out_path <- "~/proteoM/example/"
-cache <- file.path(out_path, "Calls/.cache_info.rds")
-load_cache_info(cache)
-}
 }
 \seealso{
 \link{find_ms1_times}

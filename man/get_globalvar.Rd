@@ -7,19 +7,21 @@
 get_globalvar(val = NULL, cache = NULL)
 }
 \arguments{
-\item{x}{Variable name}
+\item{val}{Variable name}
 
-\item{file}{An file name as an alternative for looking up.}
+\item{cache}{A cache file name.}
 }
 \description{
 Not yet used. The utility at first looks up the global environment then the
 indicated file.
 }
 \examples{
-\donttest{
+\dontrun{
+library(proteoM)
+
 out_path <- "~/proteoM/example/"
 cache <- file.path(out_path, "Calls/.cache_info.rds")
-get_globalvar(".time_stamp", cache)
+proteoM:::get_globalvar(".time_stamp", cache)
 }
 }
 \seealso{

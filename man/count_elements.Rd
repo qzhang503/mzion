@@ -14,8 +14,10 @@ A faster alternative to \code{table}.
 }
 \examples{
 \donttest{
-vec <- c("Carbamidomethyl (M)", "Carbamyl (M)", "Carbamidomethyl (M)")
+library(proteoM)
+library(microbenchmark)
 
-microbenchmark::microbenchmark(count_elements(vec), table(vec))
+vec <- c("Carbamidomethyl (M)", "Carbamyl (M)", "Carbamidomethyl (M)")
+microbenchmark(proteoM:::count_elements(vec), table(vec))
 }
 }

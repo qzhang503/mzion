@@ -16,7 +16,8 @@ search_mgf(
   minn_ms2 = 6L,
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
-  min_ms2mass = 115L
+  min_ms2mass = 115L,
+  index_mgf_ms2 = FALSE
 )
 }
 \arguments{
@@ -54,12 +55,28 @@ default is 20.}
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
+
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
+
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
 }
 \description{
 Matches by indexes
 }
 \examples{
 \donttest{
+library(proteoM)
+library(fastmatch)
+
 expt_ms2 <-
   c(1628,3179,7677,9129,13950,14640,18571,19201,19205,19830,19833,20454,
     20457,21030,21073,21077,21687,24644,25232,37146,42042,43910,43920,44811,

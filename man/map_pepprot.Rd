@@ -24,6 +24,8 @@ The \code{lwr_left} and \code{lwr_right} can be NULL with early exit or
 }
 \examples{
 \donttest{
+library(proteoM)
+
 df <- data.frame(prot_acc = character(2000), pep_seq = character(2000))
 set.seed(100)
 df$prot_acc <- sample(LETTERS[1:20], 2000, replace = TRUE)

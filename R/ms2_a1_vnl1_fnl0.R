@@ -17,8 +17,8 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    maxn_sites_per_vmod = 3L, 
                                    maxn_vmods_sitescombi_per_pep = 64L, 
                                    minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                                   min_ms2mass = 115L, df0 = NULL, 
-                                   digits = 4L) 
+                                   min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
+                                   df0 = NULL, digits = 4L) 
 {
   tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
   mgf_frames <- tempdata$mgf_frames
@@ -91,6 +91,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
                     ppm_ms1 = ppm_ms1, 
                     ppm_ms2 = ppm_ms2, 
                     min_ms2mass = min_ms2mass, 
+                    index_mgf_ms2 = index_mgf_ms2, 
                     digits = digits, 
                     FUN = gen_ms2ions_a1_vnl1_fnl0), 
     .scheduling = "dynamic")
@@ -119,6 +120,9 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #'
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' library(magrittr)
+#' 
 #' # (10) "amods+ tmod+ vnl+ fnl-"
 #' fixedmods <- c("TMT6plex (K)")
 #' varmods <- c("dHex (S)", "Oxidation (M)", "Deamidated (N)", 
@@ -133,10 +137,10 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
 #'
 #' i <- 16L
 #' aa_masses <- aa_masses_all[[i]]
@@ -148,13 +152,13 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #' ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 #' ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
 #'
-#' if (is_empty(ntmod)) {
+#' if (!length(ntmod)) {
 #'   ntmass <- aa_masses["N-term"] - 0.000549 # - electron
 #' } else {
 #'   ntmass <- aa_masses[names(ntmod)] - 0.000549
 #' }
 #'
-#' if (is_empty(ctmod)) {
+#' if (!length(ctmod)) {
 #'   ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
 #' } else {
 #'   ctmass <- aa_masses[names(ctmod)] + 2.01510147
@@ -168,7 +172,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #'                                fixedmods, varmods)
 #' ms1_mass <- ms1_masses$mass[[16]][2] # 2197.9679
 #'
-#' out <- gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+#' out <- proteoM:::gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
 #'                                 aa_masses = aa_masses, 
 #'                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
 #'                                 ntmod = ntmod, ctmod = ctmod, 
@@ -203,10 +207,10 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods))
+#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
 #'
 #' i <- 8L
 #' aa_masses <- aa_masses_all[[i]]
@@ -237,7 +241,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #' 
 #' # No-matches at `ms1_mass = 2123.9424` as the matching index 
 #' # exceeds `maxn_vmods_sitescombi_per_pep`
-#' out <- gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = 2123.9424, 
+#' out <- proteoM:::gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = 2123.9424, 
 #'                                 aa_masses = aa_masses, 
 #'                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
 #'                                 ntmod = ntmod, ctmod = ctmod, 

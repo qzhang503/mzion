@@ -7,6 +7,8 @@
 #'
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## No variable modifications
 #' # (1)
 #' x <- calc_monopeptide(aa_seq = "MAKEMASSPECFUN",
@@ -150,7 +152,7 @@ calc_monopep <- function (aa_seq, aa_masses,
     sum() %>%
     `+`(aa_masses["N-term"]) %>%
     `+`(aa_masses["C-term"]) %>%
-    setNames(aa_seq) %>%
+    stats::setNames(aa_seq) %>%
     round(digits = digits)
   
   if (type == "amods- tmod- vnl- fnl-") {
@@ -272,6 +274,8 @@ check_aaseq <- function (aa_seq, aa_masses_all, fixedmods, varmods)
 #' @inheritParams calc_monopeptide
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## No variable modifications
 #' # (1)
 #' x <- calc_ms2ionseries("MAKEMASSPECFUN", 
@@ -417,19 +421,20 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
 #'
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' library(magrittr)
+#' 
 #' ## No variable modifications
 #' # (1)
-#' library(magrittr)
-#'
-#' fixedmods = NULL
-#' varmods = NULL
+#' fixedmods <- NULL
+#' varmods <- NULL
 #'
 #' mod_indexes <- seq_along(c(fixedmods, varmods)) %>%
 #'   as.hexmode() %>%
 #'   `names<-`(c(fixedmods, varmods))
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
-#' x <- calc_ms2ions("MAKEMASSPECFUN", NULL, aa_masses_all[[1]], mod_indexes)
+#' x <- proteoM:::calc_ms2ions("MAKEMASSPECFUN", NULL, aa_masses_all[[1]], mod_indexes)
 #'
 #' }
 calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL, 
@@ -679,9 +684,11 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
 #'
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## M
-#' fixedmods = c("TMT6plex (K)", "dHex (S)")
-#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)", "Acetyl (Protein N-term)")
+#' fixedmods <- c("TMT6plex (K)", "dHex (S)")
+#' varmods <- c("Carbamidomethyl (M)", "Carbamyl (M)", "Acetyl (Protein N-term)")
 #'
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
@@ -692,16 +699,16 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
 #'
 #' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 #'
-#' ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
+#' ans <- proteoM:::unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
 #'                      aa_masses = aa_masses, aas = aas)
 #'
 #' stopifnot(length(ans) == 1L,
 #'           length(ans[[1]]) == 3L)
 #'
 #' ## M and N
-#' fixedmods = c("TMT6plex (K)", "dHex (S)")
-#' varmods = c("Carbamidomethyl (M)", "Carbamyl (M)",
-#'             "Deamidated (N)", "Acetyl (Protein N-term)")
+#' fixedmods <- c("TMT6plex (K)", "dHex (S)")
+#' varmods <- c("Carbamidomethyl (M)", "Carbamyl (M)",
+#'              "Deamidated (N)", "Acetyl (Protein N-term)")
 #'
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
@@ -713,7 +720,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
 #'
 #' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 #'
-#' ans <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
+#' ans <- proteoM:::unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
 #'                      aa_masses = aa_masses, aas = aas)
 #'
 #' stopifnot(length(ans) == 2L,
@@ -762,6 +769,8 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
 #' @import purrr
 #' @examples 
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ntmod <- list(`Acetyl (Protein N-term)` = c(`Protein N-term` = "N-term"))
 #' 
 #' ctmod <- list()
@@ -770,7 +779,7 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
 #' aas <- unlist(strsplit("HQGVMNVGMGQKSMNS", ""))
 #' residue_mods <- c(`Carbamidomethyl (M)` = "M", `Carbamyl (M)` = "M")
 #' 
-#' x <- vmods_elements(aas, residue_mods, ntmod, ctmod)
+#' x <- proteoM:::vmods_elements(aas, residue_mods, ntmod, ctmod)
 #' }
 vmods_elements <- function (aas,
                             residue_mods,
@@ -853,6 +862,8 @@ vmods_elements <- function (aas,
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' C <- list(c("Carbamidomethyl (C)"),
 #'           rep("Carbamidomethyl (C)", 2))
 #'
@@ -861,7 +872,7 @@ vmods_elements <- function (aas,
 #'
 #' intra_combis <- list(C = C, N = N)
 #'
-#' ans <- find_intercombi(intra_combis)
+#' ans <- proteoM:::find_intercombi(intra_combis)
 #' 
 #' # three large lists
 #' S <- list(c("Carbamidomethyl (S)", "Phospho (S)", "Phospho (S)"),
@@ -873,7 +884,7 @@ vmods_elements <- function (aas,
 #' N <- list(c("Deamidated (N)"),
 #'           rep("Deamidated (N)", 2))
 #' 
-#' ans <- find_intercombi(list(S = S, M = M, N = N))
+#' ans <- proteoM:::find_intercombi(list(S = S, M = M, N = N))
 #' }
 find_intercombi <- function (intra_combis, maxn_vmods_per_pep = 5L) 
 {

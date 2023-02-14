@@ -47,7 +47,7 @@ preceeding, current and following.}
 
 \item{out_path}{A file path of outputs.}
 
-\item{sys_ram}{Not used. The amount of system RAM in GB.}
+\item{sys_ram}{A putative value of system RAM.}
 }
 \description{
 For target peptides.

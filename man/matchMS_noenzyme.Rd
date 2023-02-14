@@ -62,7 +62,7 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 \code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
 \code{quant = tmt18} is suitable.}
 
-\item{sys_ram}{Not used. The amount of system RAM in GB.}
+\item{sys_ram}{A tentative quantity of system RAM.}
 
 \item{silac_noenzyme}{Logical; is the search a combination of SILAC and
 noenzyme.}

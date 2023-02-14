@@ -8,10 +8,13 @@ calc_pepprobs_i(
   df,
   topn_ms2ions = 100L,
   type_ms2ions = "by",
-  ppm_ms2 = 25L,
+  ppm_ms2 = 20L,
   soft_secions = FALSE,
   out_path = "~/proteoM/outs",
-  digits = 5L
+  min_ms2mass = 115L,
+  d2 = 1e-05,
+  index_mgf_ms2 = FALSE,
+  digits = 4L
 )
 }
 \arguments{
@@ -34,6 +37,24 @@ For instance, the signal of \code{b5^*} will be ignored if its primary ion
 \code{b5} is not matched.}
 
 \item{out_path}{A file path of outputs.}
+
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
+
+\item{d2}{Bin width in ppm divided by 1E6.}
+
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
+
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

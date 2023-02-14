@@ -54,101 +54,104 @@ axions <- function (ntmass, ctmass, aas2, digits = 4L)
 #' @importFrom stringr str_split
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' library(stringr)
+#' 
 #' ## (1) "amods- tmod- vnl- fnl-"
 #' # (Fixed N-term mods; also for no N-term mod)
 #'
-#' fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
-#' varmods = c("Oxidation (M)", "Deamidated (N)")
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+#' varmods <- c("Oxidation (M)", "Deamidated (N)")
 #'
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
-#' aa_masses = aa_masses_all[[1]]
+#' aa_masses <- aa_masses_all[[1]]
 #'
 #' ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 #' ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
 #'
-#' if (is_empty(ntmod)) {
+#' if (!length(ntmod)) {
 #'   ntmass <- aa_masses["N-term"] - 0.000549 # - electron
 #' } else {
 #'   ntmass <- aa_masses[names(ntmod)] - 0.000549
 #' }
 #'
-#' if (is_empty(ctmod)) {
+#' if (!length(ctmod)) {
 #'   ctmass <- aa_masses["C-term"] + 2.01510147 # + (H) + (H+)
 #' } else {
 #'   ctmass <- aa_masses[names(ctmod)] + 2.01510147
 #' }
 #'
 #' aa_seq <- "MAKEMASSPECFUN"
-#' aas <- str_split(aa_seq, "", simplify = TRUE)
+#' aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
 #' aas2 <- aa_masses[aas]
 #'
-#' b <- bions_base(aas2, ntmass)
-#' y <- yions_base(aas2, ctmass)
+#' b <- proteoM:::bions_base(aas2, ntmass)
+#' y <- proteoM:::yions_base(aas2, ctmass)
 #'
 #'
 #' ## (2) "amods- tmod+ vnl- fnl-"
 #' # (2a, N-term)
-#' fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)")
-#' varmods = c("TMT6plex (N-term)", "Acetyl (Protein N-term)", "Oxidation (M)",
-#'             "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)")
+#' fixedmods <- c("TMT6plex (K)", "Carbamidomethyl (C)")
+#' varmods <- c("TMT6plex (N-term)", "Acetyl (Protein N-term)", "Oxidation (M)",
+#'              "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)")
 #'
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
-#' aa_masses = aa_masses_all[[3]]
+#' aa_masses <- aa_masses_all[[3]]
 #'
 #' # (Fixed or variable C-term mods +/- makes no difference on b-ions;
 #' # and vice versa for y-ions)
 #' ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 #' ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
 #'
-#' if (is_empty(ntmod)) {
+#' if (!length(ntmod)) {
 #'   ntmass <- aa_masses["N-term"] - 0.000549
 #' } else {
 #'   ntmass <- aa_masses[names(ntmod)] - 0.000549
 #' }
 #'
-#' if (is_empty(ctmod)) {
+#' if (!length(ctmod)) {
 #'   ctmass <- aa_masses["C-term"] + 2.01510147
 #' } else {
 #'   ctmass <- aa_masses[names(ctmod)] + 2.01510147
 #' }
 #'
 #' aa_seq <- "MAKEMASSPECFUN"
-#' aas <- str_split(aa_seq, "", simplify = TRUE)
+#' aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
 #' aas2 <- aa_masses[aas]
 #'
-#' b <- bions_base(aas2, ntmass)
-#' y <- yions_base(aas2, ctmass)
+#' b <- proteoM:::bions_base(aas2, ntmass)
+#' y <- proteoM:::yions_base(aas2, ctmass)
 #'
 #'
 #' # (2b, C-term)
-#' fixedmods = c("TMT6plex (K)", "Carbamidomethyl (C)")
-#' varmods = c("TMT6plex (N-term)", "Amidated (Protein C-term)", "Oxidation (M)",
-#'             "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)")
+#' fixedmods <- c("TMT6plex (K)", "Carbamidomethyl (C)")
+#' varmods <- c("TMT6plex (N-term)", "Amidated (Protein C-term)", "Oxidation (M)",
+#'              "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)")
 #'
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
 #' # `TMT6plex (N-term)`; `Amidated (Protein C-term)`
-#' aa_masses = aa_masses_all[[7]]
+#' aa_masses <- aa_masses_all[[7]]
 #'
 #' ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
 #' ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
 #'
-#' if (is_empty(ntmod)) {
+#' if (!length(ntmod)) {
 #'   ntmass <- aa_masses["N-term"] - 0.000549
 #' } else {
 #'   ntmass <- aa_masses[names(ntmod)] - 0.000549
 #' }
 #'
-#' if (is_empty(ctmod)) {
+#' if (!length(ctmod)) {
 #'   ctmass <- aa_masses["C-term"] + 2.01510147
 #' } else {
 #'   ctmass <- aa_masses[names(ctmod)] + 2.01510147
 #' }
 #'
-#' b <- bions_base(aas2, ntmass)
-#' y <- yions_base(aas2, ctmass)
+#' b <- proteoM:::bions_base(aas2, ntmass)
+#' y <- proteoM:::yions_base(aas2, ctmass)
 #'
 #' }
 bions_base <- function (aas2, tmass, digits = 4L) 
@@ -405,5 +408,5 @@ xions_base <- function (aas2, tmass, digits = 4L)
 #' @param n The charge state.
 #' @rdname bions_base
 x2ions <- function (aas2, tmass, digits = 4L, n = 2L) 
-  (xions(aas2, tmass, digits) + 1.00727647)/n
+  (xions_base(aas2, tmass, digits) + 1.00727647)/n
 

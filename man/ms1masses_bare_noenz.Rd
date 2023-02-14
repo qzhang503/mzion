@@ -13,29 +13,29 @@ ms1masses_bare_noenz(x, aa_masses, ftmass = 18.010565)
 
 \item{ftmass}{The sum of masses of \code{fixed} N-term and C-term
 modifications.}
-
-\item{digits}{The number of decimal places.}
 }
 \description{
 For no enzyme workflow.
 }
 \examples{
 \donttest{
-fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
-              "Carbamidomethyl (C)")
+library(proteoM)
 
-varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
-            "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
+fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
+               "Carbamidomethyl (C)")
+
+varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", 
+             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
 
 aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 aa_masses <- aa_masses_all[[1]]
 
 x <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL")
-masses1 <- ms1masses_bare_noenz(x, aa_masses)
+masses1 <- proteoM:::ms1masses_bare_noenz(x, aa_masses)
 
-x <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL-")
-masses2 <- ms1masses_bare_noenz(x, aa_masses)
-
-stopifnot(identical(unname(masses1), unname(masses2)))
+## input peptides should contain neither N- or C-term "-" tag
+# y <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL-")
+# masses2 <- proteoM:::ms1masses_bare_noenz(y, aa_masses)
+# stopifnot(identical(unname(masses1), unname(masses2)))
 }
 }

@@ -28,6 +28,8 @@ In addition, there is no duplicated entries.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 df <- data.frame(prot_acc = character(2000), pep_seq = character(2000))
 set.seed(100)
 df$prot_acc <- sample(LETTERS[1:20], 2000, replace = TRUE)
@@ -38,17 +40,17 @@ out <- proteoM:::groupProts(df, "~")
 
 # One peptide, multiple proteins
 df <- data.frame(prot_acc = LETTERS[1:3], pep_seq = rep("X", 3))
-out <- proteoM:::groupProts(df)
+out <- proteoM:::groupProts(df, "~")
 stopifnot(nrow(out) == 3L)
 
 # One peptide, one proteins
 df <- data.frame(prot_acc = "A", pep_seq = "X")
-out <- proteoM:::groupProts(df)
+out <- proteoM:::groupProts(df, "~")
 stopifnot(nrow(out) == 1L)
 
 # One proteins
 df <- data.frame(prot_acc = rep("A", 3), pep_seq = LETTERS[24:26])
-out <- proteoM:::groupProts(df)
+out <- proteoM:::groupProts(df, "~")
 stopifnot(nrow(out) == 3L)
 }
 }

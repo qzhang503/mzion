@@ -5,11 +5,38 @@ foo_combine_codes <- function (filepath = file.path("~/Github/proteoM/R"))
   filepath <- proteoM:::find_dir(filepath)
   filenames <- dir(filepath, pattern = ".R$")
 
-  dir.create(file.path(filepath, "temp"))
+  dir.create(file.path(filepath, "temp"), showWarnings = FALSE)
 
   ans <- lapply(file.path(filepath, filenames), readLines)
   ans <- purrr::reduce(ans, `c`, init = NULL)
   writeLines(ans, file.path(filepath, "temp/all - proteoM.R"))
+}
+
+
+foo_list_func <- function (filepath = file.path(file.path("~/Github/proteoM/R"))) 
+{
+  filepath <- proteoM:::find_dir(filepath)
+  filenames <- dir(filepath, pattern = ".R$")
+  
+  dir.create(file.path(filepath, "temp"), showWarnings = FALSE)
+  
+  lines <- lapply(file.path(filepath, filenames), readLines)
+  
+  fns_all <- lapply(lines, function (x) {
+    fn_lines <- x[grepl("<-\\s*function\\s*\\(", x)]
+    fns <- gsub("^(.*)\\s*<- function\\s*\\(.*", "\\1", fn_lines)
+    gsub("\\s*$", "", fns)
+  })
+  
+  names(fns_all) <- filenames
+  
+  sink(file.path(filepath, "temp/funs.txt"))
+  fns_all
+  sink()
+  
+  ans <- readLines(file.path(filepath, "temp/funs.txt"))
+  ans <- paste0("# ", ans)
+  writeLines(ans, file.path(filepath, "temp/funs.R"))
 }
 
 

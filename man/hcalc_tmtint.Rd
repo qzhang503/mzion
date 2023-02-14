@@ -4,208 +4,12 @@
 \alias{hcalc_tmtint}
 \title{Helper of calc_tmtint}
 \usage{
-hcalc_tmtint(df, quant, ppm_reporters, i, out_path)
+hcalc_tmtint(df, quant, ppm_reporters, i, out_path, index_mgf_ms2 = FALSE)
 }
 \arguments{
 \item{df}{A data frame.}
 
-\item{i}{The i-th module.}
-
-\item{...}{
-  Arguments passed on to \code{\link[=matchMS]{matchMS}}
-  \describe{
-    \item{\code{out_path}}{A file path of outputs.}
-    \item{\code{mgf_path}}{A file path to a list of MGF files. The experimenter needs to
-  supply the files.
-
-  The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
-  from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
-  Proteome Discoverer or (3) Bruker's DataAnalysis.
-
-  With MSConvert, the default \code{titleMaker} is required for correct
-  parsing (don't think it can be altered by users, but just in case).
-
-  Individuality in MGF files are slightly preferred to take advantage of
-  parallel reading of the files.}
-    \item{\code{fasta}}{Character string(s) to the name(s) of fasta file(s) with
-prepended directory path. The experimenter needs to supply the files.}
-    \item{\code{acc_type}}{Character string(s); the types of protein accessions in one
-of c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). For custom names,
-the corresponding regular expressions need to be supplied via argument
-\code{acc_pattern}.}
-    \item{\code{acc_pattern}}{Regular expression(s) describing the patterns in
-separating the header lines of fasta entries. At the \code{NULL} default,
-the pattern will be automated when \code{acc_type} are among
-c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
-\link{load_fasta2} for custom examples.}
-    \item{\code{fixedmods}}{Character string(s) of fixed modifications.}
-    \item{\code{varmods}}{Character string(s) of variable modifications. Multiple
-  modifications to the same residue are allowed, for example, both
-  \code{Carbamyl (M)} and \code{Oxidation (M)}.
-
-  For both \code{fixedmods} and \code{varmods}, the modification title,
-  \code{TMT6plex}, applies to all of TMT-6, TMT-10, TMT-11. It is also
-  possible to use aliased: (1) \code{TMT10plex} for TMT-10 and
-  \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
-  \link{parse_unimod} for grammars of modification \code{title},
-  \code{position} and \code{site}.}
-    \item{\code{fixedlabs}}{Character string(s) of fixed isotopic labels. See examples
-of SILAC for details. Can be but not typically used in standard alone
-searches of labeled residues.}
-    \item{\code{varlabs}}{Character string(s) of variable isotopic labels. See examples
-of SILAC for details. Can be but not typically used in standard alone
-searches of labeled residues.}
-    \item{\code{locmods}}{Among \code{varmods} for the consideration of localization
-probabilities; for instance, \code{locmods = NULL} for nothing,
-\code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
-phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
-\code{fixedmods} that were coerced to \code{varmods} will be added
-automatically to \code{locmods}. For convenience, the default is set to
-look for applicable peptide phosphorylation.}
-    \item{\code{mod_motifs}}{The motifs to restrict \code{Anywhere} variable
-  modification. For example, provided the \code{Anywhere} variable
-  modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
-
-  \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation (M)` =
-  c("NM", "MP"))}
-
-  variable modifications will only be considered at sites that satisfy the
-  motifs.}
-    \item{\code{enzyme}}{A character string; the proteolytic specificity of the assumed
-enzyme will be used to generate peptide sequences from protein entries. The
-default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
-    \item{\code{custom_enzyme}}{Regular expression(s) for custom enzyme specificity. The
-  default is NULL. Uses of custom enzyme specificity is probably rather
-  infrequent. Should there be such need, the argument \code{enzyme} will be
-  ignored and the following may be applied:
-
-  \cr ## Examples \cr \cr # Equivalent to Trypsin \cr # at the Cterm of K or
-  R but not followed by P \cr # (the quantifiers "\{1\}" can be skipped at a
-  small cost of speed) \cr custom_enzyme = c(Cterm =
-  "([KR]\{1\})([^P]\{1\})")
-
-  \cr # GluN again \cr custom_enzyme = c(Nterm = "([E]\{1\})")
-
-  \cr # Trypsin_P + GluN \cr custom_enzyme = c(Cterm = "([KR]\{1\})", Nterm =
-  "([E]\{1\})")
-
-  \cr # Faked: Trypsin, proline not allowed on neither Nterm or Cterm \cr
-  custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
-  "([^P]\{1\})([KR]\{1\})")}
-    \item{\code{noenzyme_maxn}}{Non-negative integer; the maximum number of peptide
-lengths for sectional searches at \code{noenzyme} specificity. The argument
-may be used to guard against RAM exhaustion. At the zero default, The
-peptide lengths from \code{min_len} to \code{max_len} will be broken
-automatically into continuous sections. At value 1, searches will be
-performed against individual peptide lengths; at value 2, two adjacent
-lengths will be taken at a time, etc.}
-    \item{\code{maxn_fasta_seqs}}{A positive integer; the maximum number of protein
-sequences in fasta files. The default is 200000.}
-    \item{\code{maxn_vmods_setscombi}}{A non-negative integer; the maximum number of
-sets of combinatorial variable modifications. The default is 512.}
-    \item{\code{maxn_vmods_per_pep}}{A non-negative integer; the maximum number of
-\code{Anywhere} (non-terminal) variable modifications per peptide. The
-default is 5.}
-    \item{\code{maxn_sites_per_vmod}}{A non-negative integer; the maximum number of
-  combinatorial \code{Anywhere} (non-terminal) variable modifications per
-  site in a peptide sequence. The default is 3.
-
-  For instance, variable modifications of \code{Carbamyl (M)} and
-  \code{Oxidation (M)} both have site \code{M}. In order to have a
-  combination of two \code{Carbamyl (M)} and two \code{Oxidation (M)} being
-  considered, the value of \code{maxn_sites_per_vmod} needs to be four or
-  greater.}
-    \item{\code{maxn_vmods_sitescombi_per_pep}}{A non-negative integer; the maximum
-number of combinatorial variable modifications per peptide sequence. The
-default is 64.}
-    \item{\code{min_len}}{A positive integer; the minimum length of peptide sequences
-for considerations. Shorter peptides will be excluded. The default is 7.}
-    \item{\code{max_len}}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded.}
-    \item{\code{max_miss}}{A non-negative integer; the maximum number of mis-cleavages
-per peptide sequence for considerations. The default is 2.}
-    \item{\code{min_mass}}{A positive integer; the minimum precursor mass for
-interrogation. The default is an arbitrarily low value. The primary guard
-against low molecular-weight precursors is \code{min_len}.}
-    \item{\code{max_mass}}{A positive integer; the maximum precursor mass for
-interrogation.}
-    \item{\code{min_ms2mass}}{A positive integer; the minimum MS2 mass for
-interrogation. The default is 110.}
-    \item{\code{max_ms2mass}}{A positive integer; the maximum MS2 mass for
-interrogation.}
-    \item{\code{n_13c}}{A non-negative integer; the maximum number of 13C off-sets for
-consideration in MS1 masses. The default is 0 with no off-sets.
-Peak-pickings by various MGF conversion tools may have attempted to adjust
-precursor masses to the corresponding mono-isotopic masses in isotope
-envelopes. Nevertheless, by setting \code{n_13c = 1}, some increases in the
-number of PSMs may be readily achieved at a relatively small cost of search
-time.}
-    \item{\code{par_groups}}{Parameter(s) of \code{matchMS} multiplied by sets of values
-in groups. Multiple searches will be performed separately against the
-parameter groups. For instance with one set of samples in SILAC light and
-the other in SILAC heavy, the experimenters may specify two arguments for
-parameter \code{mgf_path} and two arguments for parameter \code{fixedmods}
-that link to the respective samples. In this way, there is no need to
-search against, e.g. heavy-isotope-labeled K8R10 with the light samples and
-vice versa. Note that results will be combined at the end, with the group
-names indicated under column \code{pep_group}. The default is NULL without
-grouped searches. See the examples under SILAC and Group searches.}
-    \item{\code{silac_mix}}{A list of labels indicating SILAC groups in samples. The
-parameter is most relevant for SILAC experiments where peptides of heavy,
-light etc. were \emph{mixed} into one sample. The default is NULL
-indicating a none mixed-SILAC experiment. See also the examples under
-SILAC.}
-    \item{\code{type_ms2ions}}{Character; the type of
-\href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
-ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
-and y-ions.}
-    \item{\code{topn_ms2ions}}{A positive integer; the top-n species for uses in MS2 ion
-searches.}
-    \item{\code{topn_ms2ion_cuts}}{Advanced feature. Either \code{NA} or a named vector.
-  For instance, at \code{topn_ms2ions = 100} and \code{topn_ms2ion_cuts =
-  c(`1000` = 90, `1100` = 5, `4500` = 5)}, the maximum number of MS2 peaks
-  that can be used is \eqn{90} at \eqn{m/z \le 1000}, \eqn{5} at \eqn{1000 <
-  m/z < 1100} and \code{5} at \eqn{m/z > 1100}. The trailing \code{`4500` =
-  5} can be skipped.
-
-  To exclude MS2 features such as at \eqn{m/z > 4500}: \code{topn_ms2ion_cuts
-  = c(`4500` = 100)}.
-
-  It is also possible to make a zone of voids. For instance, features at
-  \eqn{1200 < m/z < 1250} can be excluded at \code{topn_ms2ion_cuts =
-  c(`1000` = 90, `1200` = 5, `1250` = 0)}.
-
-  The default is \code{NA} where \code{topn_ms2ions} are picked uniformly
-  across the entire m/z range.}
-    \item{\code{minn_ms2}}{A positive integer; the minimum number of matched MS2 ions
-for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
-not part of the threshold.}
-    \item{\code{min_ms1_charge}}{A positive integer; the minimum MS1 charge state for
-considerations. The default is 2.}
-    \item{\code{max_ms1_charge}}{A positive integer; the maximum MS1 charge state for
-considerations. The default is 6.}
-    \item{\code{min_scan_num}}{Depreciated. A positive integer; the minimum scan number
-for considerations. The default is 1. The setting only applies to MGFs with
-numeric scan numbers. For example, it has no effects on Bruker's timsTOF
-data.}
-    \item{\code{max_scan_num}}{Depreciated. A positive integer; the maximum scan number
-for considerations. The default is the maximum machine integer. The setting
-only applies to MGFs with numeric scan numbers.}
-    \item{\code{min_ret_time}}{A non-negative numeric; the minimum retention time in
-seconds for considerations. The default is 0.}
-    \item{\code{max_ret_time}}{A non-negative numeric; the maximum retention time in
-seconds for considerations. The default is \code{Inf}.}
-    \item{\code{ppm_ms1}}{A positive integer; the mass tolerance of MS1 species. The
-default is 20.}
-    \item{\code{ppm_ms2}}{A positive integer; the mass tolerance of MS2 species. The
-default is 20.}
-    \item{\code{calib_ms1mass}}{Logical; if TRUE, calibrates precursor masses.}
-    \item{\code{ppm_reporters}}{A positive integer; the mass tolerance of MS2 reporter
-ions. The default is 10.}
-    \item{\code{ppm_ms1calib}}{A positive integer; the mass tolerance of MS1 species for
-precursor mass calibration. The default is 10. The argument has no effect
-at \code{calib_ms1mass = FALSE}.}
-    \item{\code{quant}}{A character string; the quantitation method. The default is
+\item{quant}{A character string; the quantitation method. The default is
 "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
 tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
 plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
@@ -213,128 +17,26 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 15N)}. It is also possible that an experimenter may construct a
 \code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
 \code{quant = tmt18} is suitable.}
-    \item{\code{target_fdr}}{A numeric; the targeted false-discovery rate (FDR) at the
-levels of PSM, peptide or protein. The default is 0.01. See also argument
-\code{fdr_type}.}
-    \item{\code{fdr_type}}{A character string; the type of FDR control. The value is in
-  one of c("protein", "peptide", "psm"). The default is \code{protein}.
 
-  Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
-  peptide} with the additional filtration of data at \code{prot_tier == 1}.}
-    \item{\code{max_pepscores_co}}{A positive numeric; the upper limit in the cut-offs
-of peptide scores for discriminating significant and insignificant
-identities. The default is changed from \code{Inf} to 50 from version
-1.1.9.2 on.}
-    \item{\code{min_pepscores_co}}{A non-negative numeric; the lower limit in the
-cut-offs of peptide scores for discriminating significant and insignificant
-identities.}
-    \item{\code{max_protscores_co}}{A positive numeric; the upper limit in the cut-offs
-of protein scores for discriminating significant and insignificant
-identities.  For higher quality and data-driven thresholds, choose the
-default \code{max_protscores_co = Inf}.}
-    \item{\code{max_protnpep_co}}{A positive integer; the maximum number of peptides
-under a protein (\code{prot_n_pep}) to warrant the protein significance.
-For instance, proteins with \code{prot_n_pep > max_protnpep_co} will have a
-protein significance score cutoff of zero and thus are significant. Choose
-\code{max_protnpep_co = Inf} to learn automatically the cut-off from data.
-Note that the the value of \code{prot_n_pep} includes the counts of shared
-peptides.}
-    \item{\code{method_prot_es_co}}{A character string; the method to calculate the
-cut-offs of protein enrichment scores. The value is in one of \code{
-"median", "mean", "max", "min"} with the default of \code{"median"}. For
-instance at the default, the median of \code{peptide_score -
-pep_score_cutoff} under a protein will be used to represent the threshold
-of a protein enrichment score. For more conserved thresholds, the
-statistics of \code{"max"} may be considered.}
-    \item{\code{soft_secions}}{Logical; if TRUE, collapses the intensities of secondary
-ions to primary ions at the absence of the primaries. The default is FALSE.
-For instance, the signal of \code{b5^*} will be ignored if its primary ion
-\code{b5} is not matched.}
-    \item{\code{topn_seqs_per_query}}{Positive integer; a threshold to discard peptide
-  matches under the same MS query with scores beyond the top-n.
+\item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
+ions. The default is 10.}
 
-  The same \code{MS query} refers to the identity in \code{MS scan number}
-  and \code{MS raw file name}. Target and decoys matches are treated
-  separately.}
-    \item{\code{topn_mods_per_seq}}{Positive integer; a threshold to discard variable
-  modifications under the same peptide match with scores beyond the top-n.
+\item{i}{The i-th module.}
 
-  The same \code{peptide match} refers to matches with identities in \code{MS
-  scan number}, \code{MS raw file name} and \code{peptide sequence}. Target
-  and decoys matches are treated separately.
+\item{out_path}{A file path of outputs.}
 
-  For a variable modification with multiple neutral losses (NL), the
-  best-scored NL will be used in the ranking.}
-    \item{\code{combine_tier_three}}{Logical; if TRUE, combines search results at tiers
-  1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
-  that data will be segregated into the three quality tiers according to the
-  choice of \code{fdr_type}. The (convenience) parameter matters since
-  \href{http://github.com/qzhang503/proteoQ}{proteoQ} will only look for the
-  inputs of \code{psmQ[...].txt}.
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
 
-  For instance, if the aim is to bypass the constraint by protein FDR and
-  focus on PSMs that have met the cut-offs specified by \code{target_fdr}, an
-  experimenter may set \code{combine_tier_three = TRUE} and hence pool all
-  significant peptides in \code{psmQ.txt} for downstream proteoQ.
-
-  Tier-1: both proteins and peptides with scores above significance
-  thresholds.
-
-  Tier-2: \eqn{\ge} 2 significant peptides but protein scores below
-  significance thresholds.
-
-  Tier-3: one significant peptide per protein and protein scores below
-  significance thresholds.}
-    \item{\code{max_n_prots}}{A positive integer to threshold the maximum number of
-  protein entries before coercing \code{fdr_type} from \code{psm} or
-  \code{peptide} to \code{protein}. The argument has no effect if
-  \code{fdr_type} is already \code{protein}. In general, there is no need to
-  change the default.
-
-  Note that for memory efficiency proteins at tiers 1, 2 and 3 are grouped
-  separately. Further note that there is no tier-2 proteins at
-  \code{fdr_type} of \code{psm} or \code{peptide}. For very large data sets,
-  a lower value of \code{max_n_prots} can be used to reduce the chance of
-  memory exhaustion by setting aside some protein entries from tier 1 to 2.}
-    \item{\code{use_ms1_cache}}{Logical; at the TRUE default, use cached precursor
-  masses.
-
-  Set \code{use_ms1_cache = TRUE} for reprocessing of data, e.g., from
-  \code{fdr_type = psm} to \code{fdr_type = protein}.}
-    \item{\code{add_ms2theos}}{Logical. If true, adds the sequence of primary
-  theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a
-  given \code{type_ms2ions} is:
-
-  \tabular{ll}{ \strong{Type}   \tab \strong{Sequence}\cr by \tab \eqn{b1,
-  b2..., y1, y2...} \cr ax \tab \eqn{a1, a2..., x1, x2...} \cr cz \tab
-  \eqn{c1, c2..., z1, z2...} \cr }}
-    \item{\code{add_ms2theos2}}{Logical. If true, adds the sequence of secondary
-  theoretical MS2 m/z values (\code{pep_ms2_theos2}). The sequence order at a
-  given \code{type_ms2ions} is:
-
-  \tabular{ll}{ \strong{Type}   \tab \strong{Order of sequences}\cr by \tab
-  \eqn{b2, b*, b*2, b0, b02, y2, y*, y*2, y0, y02} \cr ax \tab \eqn{a2, a*,
-  a*2, a0, a02, x2} \cr cz \tab \eqn{c2, z2} \cr }}
-    \item{\code{add_ms2moverzs}}{Logical; if TRUE, adds the sequence of experimental
-\eqn{m/z} values (\code{pep_ms2_moverzs}).}
-    \item{\code{add_ms2ints}}{Logical; if TRUE, adds the sequence of experimental MS2
-intensity values (\code{pep_ms2_ints}).}
-    \item{\code{.path_cache}}{The file path of cached search parameters. The parameter
-is for the users' awareness of the underlying structure of file folders and
-the use of default is suggested. Occasionally experimenters may remove the
-file folder for disk space or under infrequent events of modified framework
-incurred by the developer.}
-    \item{\code{.path_fasta}}{The parent file path to the theoretical masses of MS1
-precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
-"\\1", get("fasta", envir = environment())[1])}. The parameter is for the
-users' awareness of the structure of file folders and the use of default is
-suggested. Occasionally experimenters may remove the file folder for disk
-space or under infrequent events of modified framework incurred by the
-developer.}
-    \item{\code{sys_ram}}{Not used. The amount of system RAM in GB.}
-    \item{\code{digits}}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
-  }}
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
 }
 \description{
 Helper of calc_tmtint

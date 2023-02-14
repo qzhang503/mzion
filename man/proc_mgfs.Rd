@@ -12,6 +12,7 @@ proc_mgfs(
   ret_range = c(0, Inf),
   min_mass = 700L,
   max_mass = 4500L,
+  ppm_ms1 = 10L,
   ppm_ms2 = 10L,
   min_ms2mass = 115L,
   max_ms2mass = 4500L,
@@ -31,7 +32,12 @@ proc_mgfs(
   sep_pepmass = " ",
   nfields_pepmass = 2L,
   raw_file = NULL,
-  digits = 5L
+  tmt_reporter_lower = 126.1,
+  tmt_reporter_upper = 135.2,
+  exclude_reporter_region = TRUE,
+  index_mgf_ms2 = FALSE,
+  quant = "none",
+  digits = 4L
 )
 }
 \arguments{
@@ -50,6 +56,9 @@ MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 match the one in  \link{binTheoSeqs}.}
 
 \item{max_mass}{A maximum mass of precursors for considerations.}
+
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
+default is 20.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
@@ -100,6 +109,39 @@ values.}
 \item{nfields_pepmass}{The number of fields in \code{PEPMASS}.}
 
 \item{raw_file}{The raw file name. Is NULL for PD and MSConvert.}
+
+\item{tmt_reporter_lower}{The lower bound of the region of TMT reporter ions.
+The default is \eqn{126.1}.}
+
+\item{tmt_reporter_upper}{The upper bound of the region of TMT reporter ions.
+The default is \eqn{135.2}.}
+
+\item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
+region of TMT reporter ions. The default is TRUE. The argument affects only
+TMT data. The range of TMT reporter ions is given by
+\code{tmt_reporter_lower} and \code{tmt_reporter_upper}.}
+
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
+
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
+
+\item{quant}{A character string; the quantitation method. The default is
+"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
+15N)}. It is also possible that an experimenter may construct a
+\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
+\code{quant = tmt18} is suitable.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

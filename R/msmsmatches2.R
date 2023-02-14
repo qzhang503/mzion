@@ -30,6 +30,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                       maxn_fasta_seqs, maxn_vmods_setscombi, 
                       min_len, max_len, max_miss, 
 
+                      index_mgf_ms2 = FALSE, 
                       digits) 
 {
   options(digits = 9L)
@@ -193,6 +194,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
           ppm_ms1 = ppm_ms1_bin, 
           ppm_ms2 = ppm_ms2_bin, 
           min_ms2mass = min_ms2mass, 
+          index_mgf_ms2 = index_mgf_ms2, 
           df0 = out0, 
           digits = digits)
       }
@@ -219,7 +221,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       obj_sizes[i] <- object.size(out)
       
       if (is_tmt) 
-        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path)
+        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
 
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
                   "ntmod", "ntmass", "ctmod", "ctmass"))
@@ -268,13 +270,14 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         ppm_ms1 = ppm_ms1_bin, 
         ppm_ms2 = ppm_ms2_bin, 
         min_ms2mass = min_ms2mass, 
+        index_mgf_ms2 = index_mgf_ms2, 
         df0 = out0, 
         digits = digits)
       
       obj_sizes[i] <- object.size(out)
       
       if (is_tmt) 
-        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path)
+        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
 
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
                   "ntmod", "ntmass", "ctmod", "ctmass"))
@@ -323,13 +326,14 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         ppm_ms1 = ppm_ms1_bin, 
         ppm_ms2 = ppm_ms2_bin, 
         min_ms2mass = min_ms2mass, 
+        index_mgf_ms2 = index_mgf_ms2, 
         df0 = out0, 
         digits = digits)
       
       obj_sizes[i] <- object.size(out)
       
       if (is_tmt) 
-        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path)
+        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
 
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
                   "ntmod", "ntmass", "ctmod", "ctmass"))
@@ -380,13 +384,14 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         ppm_ms1 = ppm_ms1_bin, 
         ppm_ms2 = ppm_ms2_bin, 
         min_ms2mass = min_ms2mass, 
+        index_mgf_ms2 = index_mgf_ms2, 
         df0 = out0, 
         digits = digits)
       
       obj_sizes[i] <- object.size(out)
       
       if (is_tmt) 
-        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path)
+        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
 
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
                   "ntmod", "ntmass", "ctmod", "ctmass"))
@@ -438,13 +443,14 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         ppm_ms1 = ppm_ms1_bin, 
         ppm_ms2 = ppm_ms2_bin, 
         min_ms2mass = min_ms2mass, 
+        index_mgf_ms2 = index_mgf_ms2, 
         df0 = out0, 
         digits = digits)
       
       obj_sizes[i] <- object.size(out)
       
       if (is_tmt) 
-        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path)
+        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
 
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
                   "ntmod", "ntmass", "ctmod", "ctmass"))
@@ -506,6 +512,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ppm_ms1 = ppm_ms1_bin, 
       ppm_ms2 = ppm_ms2_bin, 
       min_ms2mass = min_ms2mass, 
+      index_mgf_ms2 = index_mgf_ms2, 
       df0 = out0, 
       digits = digits)
   } 
@@ -528,6 +535,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ppm_ms1 = ppm_ms1_bin, 
       ppm_ms2 = ppm_ms2_bin, 
       min_ms2mass = min_ms2mass, 
+      index_mgf_ms2 = index_mgf_ms2, 
       df0 = out0, 
       digits = digits)
   }
@@ -548,11 +556,13 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
 #' 
 #' @param df A data frame.
 #' @param i The i-th module.
-#' @inheritDotParams matchMS
-hcalc_tmtint <- function (df, quant, ppm_reporters, i, out_path)
+#' @inheritParams matchMS
+hcalc_tmtint <- function (df, quant, ppm_reporters, i, out_path, 
+                          index_mgf_ms2 = FALSE)
 {
   df %>% 
-    calc_tmtint(quant = quant, ppm_reporters = ppm_reporters) %>% 
+    calc_tmtint(quant = quant, ppm_reporters = ppm_reporters, 
+                index_mgf_ms2 = index_mgf_ms2) %>% 
     tidyr::unite(uniq_id, raw_file, pep_mod_group, scan_num, sep = ".", 
                  remove = TRUE) %>% 
     dplyr::select(uniq_id, grep("^I[0-9]{3}[NC]{0,1}$", names(.))) %T>% 

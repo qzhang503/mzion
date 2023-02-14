@@ -15,6 +15,9 @@ calc_probi_byvmods(
   ppm_ms2 = 25L,
   soft_secions = FALSE,
   burn_ins = c(1:2),
+  min_ms2mass = 115L,
+  d2 = 1e-05,
+  index_mgf_ms2 = FALSE,
   digits = 5L
 )
 }
@@ -48,6 +51,24 @@ For instance, the signal of \code{b5^*} will be ignored if its primary ion
 
 \item{burn_ins}{The range of burn-ins where inputs will be excluded from
 probablity assessments.}
+
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
+
+\item{d2}{Bin width in ppm divided by 1E6.}
+
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
+
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
@@ -86,6 +107,8 @@ y$idx  - values: the indexes in theoretical sequence (df$ith)
 
 \examples{
 \donttest{
+library(proteoM)
+
 ##
 pep <- "YGPQYGHPPPPPPPPDYGPHADSPVLMVYGLDQSK"
 nms <- unlist(stringr::str_split(pep, ""))
@@ -154,7 +177,7 @@ expt_ints <- c(16921,29468,36904,28121,37829,23537,39307,36194,25192,33532,
                30824,12961,26805,31218,36352,49433,40495,31233,40643,18265,
                12316,25125,202241,90877,20903,40353,15008,31908,22554,13634)
 
-calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 404)
+proteoM:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 404)
 
 ## 
 pep <- "LFEEDEREK"
@@ -209,7 +232,6 @@ expt_ints <- c(8508,28501,194673,190890,160012,223742,147623,260388,198943,16458
                12763,7125,7321,7483,31612,18050,26134,31474,11331,8789,
                8672,65913,25918,17819,34367,15767,15221,14225,7419,7284)
 
-calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 434)
-
+proteoM:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 434)
 }
 }

@@ -24,27 +24,28 @@
 #' @import parallel
 #' @examples
 #' \donttest{
-#' res <- calc_pepmasses2()
-#'
+#' library(proteoM)
 #' library(purrr)
 #' library(magrittr)
-#'
-#' res_attrs <- lapply(res, attributes)
-#' lapply(res_attrs, names)
-#' lapply(res_attrs, `[[`, "vmods")
-#' res_mods <- lapply(res_attrs, `[`,
-#'                    c("fmods", "fmods_ps", "fmods_neuloss",
-#'                      "vmods", "vmods_ps", "vmods_neuloss"))
-#'
-#' res_data <- lapply(res_attrs, `[[`, "data")
-#' peps_combi_1 <- res_data[[1]]
-#'
-#' # base: fixedmods without neulosses
-#' length(unlist(res_data[[1]], use.names = FALSE))
-#'
-#' # fixedmods, fixedmods + fixedmods_neulosses, varmods, varmods_neulosses
-#' length(unlist(res_data, use.names = FALSE))
-#'
+#' 
+#' if (FALSE) {
+#'   res <- calc_pepmasses2()
+#'   res_attrs <- lapply(res, attributes)
+#'   lapply(res_attrs, names)
+#'   lapply(res_attrs, `[[`, "vmods")
+#'   res_mods <- lapply(res_attrs, `[`,
+#'                      c("fmods", "fmods_ps", "fmods_neuloss",
+#'                        "vmods", "vmods_ps", "vmods_neuloss"))
+#'   
+#'   res_data <- lapply(res_attrs, `[[`, "data")
+#'   peps_combi_1 <- res_data[[1]]
+#'   
+#'   # base: fixedmods without neulosses
+#'   length(unlist(res_data[[1]], use.names = FALSE))
+#'   
+#'   # fixedmods, fixedmods + fixedmods_neulosses, varmods, varmods_neulosses
+#'   length(unlist(res_data, use.names = FALSE))
+#' }
 #' }
 calc_pepmasses2 <- function (aa_masses = NULL, 
   fasta = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
@@ -434,9 +435,11 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     #   only one N- or C-term, simple summation makes no difference  
     #   either its under fixed or variable modifcations
     message("Adding variable terminal masses...")
-    fwd_peps <- mapply(add_term_mass, fwd_peps, aa_masses_ms1, 
-                       MoreArgs = list(min_mass = min_mass, max_mass = max_mass))
     
+    fwd_peps <- mapply(add_term_mass, fwd_peps, aa_masses_ms1, 
+                       MoreArgs = list(min_mass = min_mass, max_mass = max_mass), 
+                       SIMPLIFY = FALSE)
+
     # (1) aa_masses_ms1 are the interim coerced lookups
     #   e.g. K = 128.094963 and TMT6plex (K) = 229.1629
     # (2) aa_masses_all are the final back-coerced lookups 
@@ -448,7 +451,11 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     #   that are back-coerced to fixed from aa_masses_ms1 to aa_masses_all
     # (no effect on fwd_peps[[1]] since it is a "amod-")
     message("Adding back-coerced fixed \"Anywhere\" masses...")
-    fwd_peps <- mapply(adj_anywhere_masses, fwd_peps, aa_masses_ms1)
+    
+    if (length(varmods)) 
+      fwd_peps <- mapply(adj_anywhere_masses, fwd_peps, aa_masses_ms1, 
+                         SIMPLIFY = FALSE)
+    
     rm(list = "aa_masses_ms1")
 
     
@@ -461,8 +468,8 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     vmods_ps <- lapply(aa_masses_all, attr, "vmods_ps", exact = TRUE)
     fmods_nl <- lapply(aa_masses_all, attr, "fmods_nl", exact = TRUE)
     vmods_nl <- lapply(aa_masses_all, attr, "vmods_nl", exact = TRUE)
-    amods <- lapply(aa_masses_all, attr, "amods", exact = TRUE)
-    tmod <- lapply(aa_masses_all, attr, "tmod", exact = TRUE)
+    amods    <- lapply(aa_masses_all, attr, "amods",    exact = TRUE)
+    tmod     <- lapply(aa_masses_all, attr, "tmod",     exact = TRUE)
 
     # `amods-` and `fnl+` (must be vnl- since amods-)
     #
@@ -729,7 +736,8 @@ find_motif_pat <- function (aa_masses)
 #' @param path A file path.
 #' @examples
 #' \donttest{
-#' tbl_prots_peps(fwd_peps[[1]])
+#' # library(proteoM)
+#' # proteoM:::tbl_prots_peps(fwd_peps[[1]])
 #' }
 tbl_prots_peps <- function (seqs, path) 
 {
@@ -836,9 +844,12 @@ find_aa_site <- function (pos_site)
 #' @param maxn_vmods_setscombi Integer; the maximum number of combinatorial variable
 #'   modifications and neutral losses.
 #' @param out_path An output path.
+#' @param aa_masses An amino-acid mass lookup.
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' x <- calc_aamasses()
 #' x_att <- lapply(x, attributes)
 #' names(x_att[[1]])
@@ -857,7 +868,7 @@ find_aa_site <- function (pos_site)
 #' # Fixed N-term mod (coerced to variable mod)
 #' x <- calc_aamasses(fixedmods = "TMT6plex (N-term)", varmods = "Acetyl (Protein N-term)")
 #' lapply(x, `[[`, "N-term")
-#' x[[1]][["TMT6plex (N-term)"]]
+#' x[[1]]["N-term"]
 #' x[[2]][["Acetyl (Protein N-term)"]]
 #' 
 #' # No fixed mod
@@ -917,7 +928,7 @@ find_aa_site <- function (pos_site)
 #' stopifnot(length(x) == 12L)
 #' 
 #' # Fixed terminal coercion
-#' x <- calc_aamasses(fixedmos = c("TMT6plex (N-term)", "TMT6plex (K)", 
+#' x <- calc_aamasses(fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
 #'                      "Carbamidomethyl (C)"),
 #'                    varmods = c("Acetyl (Protein N-term)", "Oxidation (M)"))
 #'                    
@@ -1385,10 +1396,10 @@ find_aamasses_vmodscombi <- function (varmods = NULL, f_to_v = NULL,
 #' @param mods A list of modifications.
 #' @param aa_masses A named list containing the (mono-isotopic) masses of amino
 #'   acid residues.
-#' @param anywhere_f_to_v Anywhere modifications coerced from fixed to variable;
-#'   for example, \code{TMT6plex (K)}.
 #' @param anywhere_coerce_sites The sites of coerced Anywhere modifications; for
 #'   example, \code{K}.
+#' @param nt_coerce_site A N-terminal coerced site.
+#' @param ct_coerce_site A C-terminal coerced site.
 #' @inheritParams matchMS
 #' @return Lists of of amino-acid residues with modified mono-isotopic masses
 #'   being incorporated. Returns NULL if \code{is.null(varmods_comb)}.
@@ -1531,8 +1542,10 @@ add_fixed_masses <- function (mods, aa_masses, mod_motifs = NULL)
 #' @param fixed_sites Sites coerced from fixed to variable modifications.
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' mods <- c("TMT6plex (K)", "Carbamyl (M)", "Oxidation (M)", "Gln->pyro-Glu (N-term = Q)")
-#' res <- extract_umods(mods)
+#' res <- proteoM:::extract_umods(mods)
 #' positions_sites <- lapply(res, `[[`, "position_site")
 #' fixed_sites <- c("TMT6plex (K)" = "K", "Carbamyl (M)" = "M")
 #' }
@@ -1895,7 +1908,9 @@ parse_aamasses <- function (aa_masses)
 #' @return Two named list of "fwds" and "revs". List "fwds" contains peptide
 #'   sequences split from forward fasta and "revs" from reversed fasta.
 #' @examples 
-#' x <- split_fastaseqs("~/proteoM/dbs/fasta/uniprot/uniprot_mm_2020_11.fasta")
+#' if (FALSE) {
+#'   x <- split_fastaseqs("~/proteoM/dbs/fasta/uniprot/uniprot_mm_2020_11.fasta")
+#' }
 split_fastaseqs <- function (fasta = NULL, enzyme = "trypsin_p", 
                              custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
                              acc_type = "uniprot_acc", acc_pattern = NULL, 
@@ -2190,6 +2205,8 @@ mmake_noenzpeps <- function (fasta_db = NULL, min_len = 7L, max_len = 40L,
 #' @inheritParams calc_pepmasses2
 #' @examples 
 #' \donttest{
+#' library(proteoM)
+#' 
 #' prot <- paste0(
 #'   "MSSKQHCVKLNDGHLIPALGFGTYKPKEVPKSKSLEAACLA", 
 #'   "LDVGYRHVDTAYAYQVEEEIGQAIQSKIKAGVVKREDLFIT", 
@@ -2209,11 +2226,11 @@ mmake_noenzpeps <- function (fasta_db = NULL, min_len = 7L, max_len = 40L,
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 #' aa_masses <- aa_masses_all[[1]]
 #' 
-#' ans <- make_noenzpeps(prot, 7, 40, aa_masses)
+#' ans <- proteoM:::make_noenzpeps(prot, 7, 40, aa_masses)
 #' 
 #' # short FASTA (both N-term and C-term on a sequence)
 #' prot <- substring(prot, 1, 10)
-#' ans <- make_noenzpeps(prot, 7, 40, aa_masses)
+#' ans <- proteoM:::make_noenzpeps(prot, 7, 40, aa_masses)
 #' }
 make_noenzpeps <- function (prot = NULL, min_len = 7L, max_len = 40L, 
                             aa_masses = NULL, ftmass = 18.010565) 
@@ -2262,11 +2279,13 @@ make_noenzpeps <- function (prot = NULL, min_len = 7L, max_len = 40L,
 #' 
 #' @examples 
 #' \donttest{
-#' fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
-#'               "Carbamidomethyl (C)")
+#' library(proteoM)
 #' 
-#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
-#'             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
+#'                "Carbamidomethyl (C)")
+#' 
+#' varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", 
+#'              "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
 #' 
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 #' aa_masses <- aa_masses_all[[1]]
@@ -2274,7 +2293,7 @@ make_noenzpeps <- function (prot = NULL, min_len = 7L, max_len = 40L,
 #' aas <- LETTERS[LETTERS %in% names(aa_masses)]
 #' prot <- paste0(aas, collapse = "")
 #' len <- nchar(prot)
-#' masses <- hmake_noenzpeps(1, prot, 7, 40, len, aa_masses)
+#' masses <- proteoM:::hmake_noenzpeps(1, prot, 7, 40, len, aa_masses)
 #' }
 hmake_noenzpeps <- function (start = 1L, prot = NULL, min_len = 7L, max_len = 40L, 
                              len = NULL, aa_masses = NULL, ftmass = 18.010565) 
@@ -2303,25 +2322,26 @@ hmake_noenzpeps <- function (start = 1L, prot = NULL, min_len = 7L, max_len = 40
 #' @param aa_masses A lookup table of the masses of amino-acid residues.
 #' @param ftmass The sum of masses of \code{fixed} N-term and C-term
 #'   modifications.
-#' @param digits The number of decimal places.
 #' @examples
 #' \donttest{
-#' fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
-#'               "Carbamidomethyl (C)")
+#' library(proteoM)
 #' 
-#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
-#'             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
+#'                "Carbamidomethyl (C)")
+#' 
+#' varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", 
+#'              "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
 #' 
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 #' aa_masses <- aa_masses_all[[1]]
 #' 
 #' x <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL")
-#' masses1 <- ms1masses_bare_noenz(x, aa_masses)
+#' masses1 <- proteoM:::ms1masses_bare_noenz(x, aa_masses)
 #' 
-#' x <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL-")
-#' masses2 <- ms1masses_bare_noenz(x, aa_masses)
-#' 
-#' stopifnot(identical(unname(masses1), unname(masses2)))
+#' ## input peptides should contain neither N- or C-term "-" tag
+#' # y <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL-")
+#' # masses2 <- proteoM:::ms1masses_bare_noenz(y, aa_masses)
+#' # stopifnot(identical(unname(masses1), unname(masses2)))
 #' }
 ms1masses_bare_noenz <- function (x, aa_masses, ftmass = 18.010565) 
 {
@@ -2391,13 +2411,14 @@ str_exclude_count <- function (x, char = "-")
 
 
 #' Removes a starting character from the first \code{n} entries.
-#' 
+#'
 #' @param x A list of character strings. Peptide sequences in names and masses
 #'   in values.
 #' @param char A starting character to be removed.
-#' @param n The number of beginning entries to be considered.
+#' @param n The number of beginning entries to be considered.Should be \code{n =
+#'   (max_miss + 1L) * 2L}.
 #' @inheritParams matchMS
-rm_char_in_nfirst <- function (x, char = "-", n = (max_miss + 1L) * 2L, 
+rm_char_in_nfirst <- function (x, char = "-", n = 6L, 
                                max_len = 40L) 
 {
   nms <- names(x)
@@ -2432,7 +2453,7 @@ rm_char_in_nfirst <- function (x, char = "-", n = (max_miss + 1L) * 2L,
 #' 
 #' @param char A trailing character to be removed.
 #' @inheritParams rm_char_in_nfirst
-rm_char_in_nlast <- function (x, char = "-", n = (max_miss + 1L) * 2L) 
+rm_char_in_nlast <- function (x, char = "-", n = 6L) 
 {
   nms <- names(x)
   len <- length(nms)
@@ -2730,29 +2751,6 @@ add_ms1_13c <- function (peps, n_13c = 1L, max_mass = 4500L)
 }
 
 
-#' Adds Carbon-13 masses.
-#'
-#' @param peps A named vector of peptide sequences. Sequences in names and
-#'   masses in values.
-#' @inheritParams matchMS
-add_ms1_13c_orig <- function (peps, n_13c = 1L, max_mass = 4500L) 
-{
-  if (n_13c <= 0L) 
-    return(peps)
-  
-  len <- n_13c + 1L
-  out <- vector("list", len)
-  out[[1]] <- peps
-  
-  for (i in 2:len) 
-    out[[i]] <- out[[i-1]] + 1.00335483
-  
-  out <- .Internal(unlist(out, recursive = FALSE, use.names = TRUE))
-  
-  out[out <= max_mass]
-}
-
-
 #' Helper of \link{ms1masses_bare}.
 #'
 #' For either forward or reversed sequences.
@@ -3011,19 +3009,21 @@ distri_fpeps <- function (data = NULL, max_miss = 2L, is_fixed_protnt = FALSE,
 #'   starting residue \code{M}.
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' peps <- 1:26
 #' names(peps) <- LETTERS
-#' res1 <- roll_sum(peps, 2)
-#' res2 <- roll_sum(peps, 2, FALSE)
+#' res1 <- proteoM:::roll_sum(peps, 2)
+#' res2 <- proteoM:::roll_sum(peps, 2, FALSE)
 #' 
 #' # length shorter than n
 #' peps <- c(a = 1)
-#' res1 <- roll_sum(peps, 2)
-#' res2 <- roll_sum(peps, 2, FALSE)
+#' res1 <- proteoM:::roll_sum(peps, 2)
+#' res2 <- proteoM:::roll_sum(peps, 2, FALSE)
 #' 
 #' peps <- c(a = 1, b = 2, c = 3)
-#' res1 <- roll_sum(peps, 4)
-#' res2 <- roll_sum(peps, 4, FALSE)
+#' res1 <- proteoM:::roll_sum(peps, 4)
+#' res2 <- proteoM:::roll_sum(peps, 4, FALSE)
 #' }
 roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE) 
 {
@@ -3076,6 +3076,7 @@ roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE)
 #'   under a protein, the value is a mass and the name is a peptide sequence.
 #' @param min_len The minimum length of peptide sequences for consideration.
 #' @inheritParams add_var_masses
+#' @inheritParams matchMS
 hsemipeps_byprots <- function (prots, min_len = 7L, max_len = 40L, aa_masses) 
 {
   lapply(prots, semipeps_byprots, min_len, max_len, aa_masses)
@@ -3142,25 +3143,28 @@ semipeps_byprots <- function (vals, min_len = 7L, max_len = 40L, aa_masses)
 #' @param val A mass of a peptide.
 #' @param pep A character string of peptide.
 #' @param ct_offset Zero or one to account for the "-" in the C-term of pep.
+#' @param aa_masses An amino-acid mass lookup.
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
-#' fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)",
-#'               "Carbamidomethyl (C)")
+#' library(proteoM)
+#' 
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
+#'                "Carbamidomethyl (C)")
 #'
-#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
-#'             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
+#' varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)",
+#'              "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
 #'
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 #' aa_masses <- aa_masses_all[[1]]
 #'
 #' val <- 4237.89756
 #' pep <- "ALELNQSAEYYYEENEMNYTHDYSQYEVICIK"
-#' ans <- calc_semipepmasses(val, pep, 7, aa_masses)
+#' ans <- proteoM:::calc_semipepmasses(val, pep, min_len = 7, max_len = 40, aa_masses)
 #'
 #' val <- 2423.1017
 #' pep <- "QNVEEIPFDSEGPTEPTSSFTI-"
-#' ans <- calc_semipepmasses(val, pep, 7, aa_masses, 1L)
+#' ans <- proteoM:::calc_semipepmasses(val, pep, min_len = 7, max_len = 40, aa_masses, 1L)
 #' }
 calc_semipepmasses <- function (val, pep, min_len = 7L, max_len = 40L, aa_masses, 
                                 ct_offset = 0L) 
@@ -3315,6 +3319,8 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' 
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' m0 <- calc_monopeptide("HQGVMCNVGMGQKMNSC", NULL, NULL)
 #' stopifnot(unlist(m0$mass, use.names = FALSE) - 1822.7405 < 1e-4)
 #'
@@ -3330,7 +3336,7 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
 #'               `Carbamidomethyl (C)` = c("Anywhere" = "C"))
 #'
-#' x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[4]])
+#' x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[4]])
 #'
 #' stopifnot(x[[1]] - 2109.9089 < 1e-4,
 #'           x[[2]] - 2166.9304 < 1e-4,
@@ -3348,7 +3354,7 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
 #'               `Carbamidomethyl (S)` = c("Anywhere" = "S"))
 #'
-#' x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]])
+#' x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]])
 #'
 #' stopifnot(x[[1]] - 1990.9226 < 1e-4,
 #'           x[[2]] - 1991.9066 < 1e-4,
@@ -3357,27 +3363,28 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' 
 #' 
 #' # (8-b)
-#' .ms1_vmodsets <- make_ms1_vmodsets(aa_masses_all = aa_masses_all, 
+#' .ms1_vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses_all, 
 #'                                    maxn_vmods_per_pep = 5L, 
 #'                                    maxn_sites_per_vmod = 3L)
 #' .base_ent <- lapply(.ms1_vmodsets, `[[`, 1)
 #' 
-#'  x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]], 
-#'                       .ms1_vmodsets = .ms1_vmodsets, 
-#'                       .base_ent = .base_ent)
+#'  x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]], 
+#'                       # .ms1_vmodsets = .ms1_vmodsets, 
+#'                       # .base_ent = .base_ent
+#'                       )
 #' 
 #' # (8-c)
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
 #' 
-#' varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
-#'             "Gln->pyro-Glu (N-term = Q)")
+#' varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
+#'              "Gln->pyro-Glu (N-term = Q)")
 #' 
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 #'                                varmods = varmods,
 #'                                maxn_vmods_setscombi = 64,
 #'                                out_path = NULL)
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i)
+#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i)
 #' 
 #' i <- 10
 #' aa_masses <- aa_masses_all[[i]]
@@ -3386,10 +3393,10 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' pep <- c("HQGVMCNVGMGQKMNSC" = 2051.90346)
 #' amods <- attr(aa_masses, "amods")
 #' 
-#' x <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
+#' x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
 #'                       ms1vmods = ms1vmods)
 #' 
-#' # y <- ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
+#' # y <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
 #' #                       ms1vmods = NULL)
 #' 
 #' # identical(x, y)

@@ -4,7 +4,7 @@
 \alias{rm_char_in_nfirst}
 \title{Removes a starting character from the first \code{n} entries.}
 \usage{
-rm_char_in_nfirst(x, char = "-", n = (max_miss + 1L) * 2L, max_len = 40L)
+rm_char_in_nfirst(x, char = "-", n = 6L, max_len = 40L)
 }
 \arguments{
 \item{x}{A list of character strings. Peptide sequences in names and masses
@@ -12,7 +12,8 @@ in values.}
 
 \item{char}{A starting character to be removed.}
 
-\item{n}{The number of beginning entries to be considered.}
+\item{n}{The number of beginning entries to be considered.Should be \code{n =
+(max_miss + 1L) * 2L}.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
 for considerations. Longer peptides will be excluded.}

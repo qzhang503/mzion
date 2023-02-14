@@ -52,7 +52,7 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
   # Software settings
   load(file.path(out_path, "Calls", "proteoM.rda"))
   
-  proteom_info <- session_info$otherPkgs[[1]]
+  proteom_info <- devtools::session_info$otherPkgs[[1]]
   proteom_ver <- proteom_info$Version
 
   ans_software_1 <- local({

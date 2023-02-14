@@ -66,5 +66,7 @@ Prior to the calculation of peptide masses; for the base with fixed
 modification only.
 }
 \examples{
-x <- split_fastaseqs("~/proteoM/dbs/fasta/uniprot/uniprot_mm_2020_11.fasta")
+if (FALSE) {
+  x <- split_fastaseqs("~/proteoM/dbs/fasta/uniprot/uniprot_mm_2020_11.fasta")
+}
 }

@@ -60,6 +60,8 @@ same set.
 }
 \examples{
 \donttest{
+library(proteoM)
+
 ntmod <- list(`Acetyl (Protein N-term)` = c(`Protein N-term` = "N-term"))
 
 ctmod <- list()
@@ -68,6 +70,6 @@ names(ctmod) <- character()
 aas <- unlist(strsplit("HQGVMNVGMGQKSMNS", ""))
 residue_mods <- c(`Carbamidomethyl (M)` = "M", `Carbamyl (M)` = "M")
 
-x <- vmods_elements(aas, residue_mods, ntmod, ctmod)
+x <- proteoM:::vmods_elements(aas, residue_mods, ntmod, ctmod)
 }
 }

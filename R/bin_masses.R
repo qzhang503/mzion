@@ -5,6 +5,7 @@
 #' @param res The results from \link{calc_pepmasses2}.
 #' @param min_mass A minimum mass of precursors.
 #' @param max_mass A maximum mass of precursors.
+#' @param sys_ram A putative value of system RAM.
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
 #' @inheritParams calc_pepmasses2
@@ -274,8 +275,10 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 700L,
 #' @param out_path The output path.
 #' @examples
 #' \donttest{
-#' res <- readRDS("~/proteoM/dbs/fasta/uniprot/pepmass/uniprot_hs_2020_05_2miss.rds")
-#' theopeps <- proteoM:::binTheoSeqs(res)
+#' library(proteoM)
+#' 
+#' # res <- readRDS("~/proteoM/dbs/fasta/uniprot/pepmass/uniprot_hs_2020_05_2miss.rds")
+#' # theopeps <- proteoM:::binTheoSeqs(res)
 #' }
 #' @return Lists of theoretical peptides binned by MS1 masses. The lists
 #'   correspond to the lists of \code{res}.

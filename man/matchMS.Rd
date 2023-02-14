@@ -43,6 +43,10 @@ matchMS(
   max_ms2mass = 4500L,
   minn_ms2 = 6L,
   ppm_ms2 = 20L,
+  tmt_reporter_lower = 126.1,
+  tmt_reporter_upper = 135.2,
+  exclude_reporter_region = TRUE,
+  index_mgf_ms2 = FALSE,
   ppm_reporters = 10L,
   quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
   target_fdr = 0.01,
@@ -74,7 +78,6 @@ matchMS(
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
   add_ms2ints = FALSE,
-  sys_ram = 24L,
   digits = 4L,
   ...
 )
@@ -264,6 +267,30 @@ not part of the threshold.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
+
+\item{tmt_reporter_lower}{The lower bound of the region of TMT reporter ions.
+The default is \eqn{126.1}.}
+
+\item{tmt_reporter_upper}{The upper bound of the region of TMT reporter ions.
+The default is \eqn{135.2}.}
+
+\item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
+region of TMT reporter ions. The default is TRUE. The argument affects only
+TMT data. The range of TMT reporter ions is given by
+\code{tmt_reporter_lower} and \code{tmt_reporter_upper}.}
+
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
+
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
 ions. The default is 10.}
@@ -461,8 +488,6 @@ at \code{calib_ms1mass = FALSE}.}
 \item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
 intensity values (\code{pep_ms2_ints}).}
 
-\item{sys_ram}{Not used. The amount of system RAM in GB.}
-
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
 
@@ -533,7 +558,7 @@ Database searches of MSMS data.
 }
 
 \examples{
-\donttest{
+\dontrun{
 ## All examples are hypothetical
 ## (Users are responsible for supplying FASTA and peak lists in MGF or mzML)
 
@@ -577,6 +602,19 @@ matchMS(
   fdr_type  = "protein",
   out_path  = "~/proteoM/examples_pasef",
 )
+
+# Wrapper of matchMS(enzyme = noenzyme, ...) without sectional searches
+# by ranges of peptide lengths
+matchMS_NES(
+  fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+               "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+               "~/proteoM/dbs/fasta/crap/crap.fasta"),
+  acc_type = c("refseq_acc", "refseq_acc", "other"),
+  quant    = "tmt10",
+  fdr_type = "protein",
+  out_path = "~/proteoM/examples",
+)
+
 
 # Custom Unimod (Oxi+Carbamidomethyl)
 # (see also calc_unimod_compmass)

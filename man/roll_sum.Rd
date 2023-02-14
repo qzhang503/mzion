@@ -24,18 +24,20 @@ Concatenates adjacent peptides in a list (with mass).
 }
 \examples{
 \donttest{
+library(proteoM)
+
 peps <- 1:26
 names(peps) <- LETTERS
-res1 <- roll_sum(peps, 2)
-res2 <- roll_sum(peps, 2, FALSE)
+res1 <- proteoM:::roll_sum(peps, 2)
+res2 <- proteoM:::roll_sum(peps, 2, FALSE)
 
 # length shorter than n
 peps <- c(a = 1)
-res1 <- roll_sum(peps, 2)
-res2 <- roll_sum(peps, 2, FALSE)
+res1 <- proteoM:::roll_sum(peps, 2)
+res2 <- proteoM:::roll_sum(peps, 2, FALSE)
 
 peps <- c(a = 1, b = 2, c = 3)
-res1 <- roll_sum(peps, 4)
-res2 <- roll_sum(peps, 4, FALSE)
+res1 <- proteoM:::roll_sum(peps, 4)
+res2 <- proteoM:::roll_sum(peps, 4, FALSE)
 }
 }

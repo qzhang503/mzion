@@ -15,7 +15,7 @@ write_fasta(fasta_db, file)
 Writes a fasta file (Not yet used).
 }
 \examples{
-\donttest{
+\dontrun{
 fasta_db <- read_fasta(file = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 write_fasta(fasta_db, "~/proteoM/examples/my.fasta")
 }

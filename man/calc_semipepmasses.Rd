@@ -24,6 +24,8 @@ for considerations. Shorter peptides will be excluded. The default is 7.}
 \item{max_len}{A positive integer; the maximum length of peptide sequences
 for considerations. Longer peptides will be excluded.}
 
+\item{aa_masses}{An amino-acid mass lookup.}
+
 \item{ct_offset}{Zero or one to account for the "-" in the C-term of pep.}
 }
 \description{
@@ -39,21 +41,23 @@ function.
 }
 \examples{
 \donttest{
-fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)",
-              "Carbamidomethyl (C)")
+library(proteoM)
 
-varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
-            "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
+fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
+               "Carbamidomethyl (C)")
+
+varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)",
+             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
 
 aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 aa_masses <- aa_masses_all[[1]]
 
 val <- 4237.89756
 pep <- "ALELNQSAEYYYEENEMNYTHDYSQYEVICIK"
-ans <- calc_semipepmasses(val, pep, 7, aa_masses)
+ans <- proteoM:::calc_semipepmasses(val, pep, min_len = 7, max_len = 40, aa_masses)
 
 val <- 2423.1017
 pep <- "QNVEEIPFDSEGPTEPTSSFTI-"
-ans <- calc_semipepmasses(val, pep, 7, aa_masses, 1L)
+ans <- proteoM:::calc_semipepmasses(val, pep, min_len = 7, max_len = 40, aa_masses, 1L)
 }
 }

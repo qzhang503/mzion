@@ -12,11 +12,16 @@ readmzML(
   min_ms2mass = 115L,
   max_ms2mass = 4500L,
   topn_ms2ions = 100L,
+  quant = "none",
   ms1_charge_range = c(2L, 6L),
   ms1_scan_range = c(1L, .Machine$integer.max),
   ret_range = c(0, Inf),
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
+  tmt_reporter_lower = 126.1,
+  tmt_reporter_upper = 135.2,
+  exclude_reporter_region = TRUE,
+  index_mgf_ms2 = FALSE,
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
   out_path,
@@ -41,6 +46,15 @@ interrogation.}
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
 MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 
+\item{quant}{A character string; the quantitation method. The default is
+"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
+15N)}. It is also possible that an experimenter may construct a
+\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
+\code{quant = tmt18} is suitable.}
+
 \item{ms1_charge_range}{The range of MS1 charge states.}
 
 \item{ms1_scan_range}{The range of MS1 scan numbers.}
@@ -52,6 +66,30 @@ default is 20.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
+
+\item{tmt_reporter_lower}{The lower bound of the region of TMT reporter ions.
+The default is \eqn{126.1}.}
+
+\item{tmt_reporter_upper}{The upper bound of the region of TMT reporter ions.
+The default is \eqn{135.2}.}
+
+\item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
+region of TMT reporter ions. The default is TRUE. The argument affects only
+TMT data. The range of TMT reporter ions is given by
+\code{tmt_reporter_lower} and \code{tmt_reporter_upper}.}
+
+\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
+  from numeric to integers as opposed to in-situ conversion during ion
+  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
+  useful for very large MS files by reducing RAM footprints.
+
+  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
+  theoretical and experimental MS2 m-over-z values is limited by the
+  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
+  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
+  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
+  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
+  pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{mgf_cutmzs}{Cut points of MS1 moverz values in peak picking.}
 

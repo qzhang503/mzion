@@ -40,11 +40,13 @@ C-term tagged with "-" after the mass calculations (but not yet N-term).
 }
 \examples{
 \donttest{
-fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
-              "Carbamidomethyl (C)")
+library(proteoM)
 
-varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", 
-            "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
+fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
+               "Carbamidomethyl (C)")
+
+varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", 
+             "Deamidated (N)","Gln->pyro-Glu (N-term = Q)")
 
 aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 aa_masses <- aa_masses_all[[1]]
@@ -52,6 +54,6 @@ aa_masses <- aa_masses_all[[1]]
 aas <- LETTERS[LETTERS \%in\% names(aa_masses)]
 prot <- paste0(aas, collapse = "")
 len <- nchar(prot)
-masses <- hmake_noenzpeps(1, prot, 7, 40, len, aa_masses)
+masses <- proteoM:::hmake_noenzpeps(1, prot, 7, 40, len, aa_masses)
 }
 }

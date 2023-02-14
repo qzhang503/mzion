@@ -23,6 +23,7 @@ protein accessions, with the match to NP_002261 being inconsistent.
 }
 \examples{
 \donttest{
-tbl_prots_peps(fwd_peps[[1]])
+# library(proteoM)
+# proteoM:::tbl_prots_peps(fwd_peps[[1]])
 }
 }

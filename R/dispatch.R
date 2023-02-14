@@ -46,6 +46,8 @@ find_pos_site <- function (pos)
 #' @seealso contain_protntany
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## `Protein N-term = P`
 #' sites <- list(`Dimethyl (Protein N-term = P)` = "P",
 #'               `Acetyl (Protein N-term)` = "N-term", 
@@ -60,9 +62,9 @@ find_pos_site <- function (pos)
 #' posns <- names(vmods)
 #' # stopifnot(identical(positions, posns))
 #'
-#' stopifnot(contain_protntsite(vmods, names(vmods), length(vmods)))
+#' stopifnot(proteoM:::contain_protntsite(vmods, names(vmods), length(vmods)))
 #' 
-#' ans <- find_protntsite(vmods, posns)
+#' ans <- proteoM:::find_protntsite(vmods, posns)
 #' stopifnot(identical(ans, vmods[1]))
 #' }
 find_protntsite <- find_pos_site("Protein N-term")
@@ -75,6 +77,8 @@ find_protntsite <- find_pos_site("Protein N-term")
 #' @rdname  find_protntsite
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## Gln->pyro Glu (N-term = Q)
 #' sites <- list(`Gln->pyro Glu (N-term = Q)` = "Q",
 #'               `Acetyl (N-term)` = "N-term",
@@ -87,9 +91,9 @@ find_protntsite <- find_pos_site("Protein N-term")
 #' vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 #' posns <- names(vmods)
 #'
-#' stopifnot(contain_anyntsite(vmods, posns, length(vmods)))
+#' stopifnot(proteoM:::contain_anyntsite(vmods, posns, length(vmods)))
 #'
-#' ans <- find_anyntsite(vmods, posns)
+#' ans <- proteoM:::find_anyntsite(vmods, posns)
 #' stopifnot(identical(ans, vmods[1])) # M and N
 #' }
 find_anyntsite <- find_pos_site("Any N-term")
@@ -116,6 +120,8 @@ find_anyntsite <- find_pos_site("Any N-term")
 #'
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## `Oxidation (M)` and `Deamidated (N)`
 #' sites <- list(`Acetyl (N-term)` = "N-term",
 #'               `Oxidation (M)` = "M",
@@ -127,9 +133,9 @@ find_anyntsite <- find_pos_site("Any N-term")
 #' vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 #' posns <- names(vmods)
 #'
-#' stopifnot(contain_anysite(vmods, posns, length(vmods)))
+#' stopifnot(proteoM:::contain_anysite(vmods, posns, length(vmods)))
 #'
-#' ans <- find_anysite(vmods, posns)
+#' ans <- proteoM:::find_anysite(vmods, posns)
 #' stopifnot(length(ans) == 2L)
 #'
 #'
@@ -147,7 +153,7 @@ find_anyntsite <- find_pos_site("Any N-term")
 #' posns <- names(vmods)
 #' stopifnot(length(posns) < length(positions))
 #'
-#' ans <- find_anysite(vmods, posns)
+#' ans <- proteoM:::find_anysite(vmods, posns)
 #' stopifnot(length(ans) == 2L)
 #' }
 find_anysite <- find_pos_site("Anywhere")
@@ -161,6 +167,8 @@ find_anysite <- find_pos_site("Anywhere")
 #' 
 #' @examples 
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## `Dehydrated (Protein C-term = N)`
 #' sites <- list(`Dehydrated (Protein C-term = N)` = "N", 
 #'               `Acetyl (N-term)` = "N-term", 
@@ -173,9 +181,9 @@ find_anysite <- find_pos_site("Anywhere")
 #' vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 #' posns <- names(vmods)
 #' 
-#' stopifnot(contain_protctsite(vmods, posns, length(vmods)))
+#' stopifnot(proteoM:::contain_protctsite(vmods, posns, length(vmods)))
 #' 
-#' ans <- find_protctsite(vmods, posns)
+#' ans <- proteoM:::find_protctsite(vmods, posns)
 #' stopifnot(identical(ans, vmods[1]))
 #' }
 find_protctsite <- find_pos_site("Protein C-term")
@@ -188,6 +196,8 @@ find_protctsite <- find_pos_site("Protein C-term")
 #' @rdname  find_protntsite
 #' @examples 
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## `Oxidation (C-term = G)`
 #' sites <- list(`Oxidation (C-term = G)` = "G", 
 #'               `Acetyl (N-term)` = "N-term", 
@@ -200,9 +210,9 @@ find_protctsite <- find_pos_site("Protein C-term")
 #' vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 #' posns <- names(vmods)
 #' 
-#' stopifnot(contain_anyctsite(vmods, posns, length(vmods)))
+#' stopifnot(proteoM:::contain_anyctsite(vmods, posns, length(vmods)))
 #' 
-#' ans <- find_anyctsite(vmods, posns)
+#' ans <- proteoM:::find_anyctsite(vmods, posns)
 #' stopifnot(identical(ans, vmods[1]))
 #' }
 find_anyctsite <- find_pos_site("Any C-term")
@@ -309,6 +319,8 @@ contain_termpos_any <- function (pos)
 #' @inheritParams find_nmodtree
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## `Acetyl (Protein N-term)`
 #' sites <- list(`Acetyl (Protein N-term)` = "N-term", 
 #'               `Oxidation (M)` = "M", 
@@ -320,7 +332,7 @@ contain_termpos_any <- function (pos)
 #' vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 #' posns <- names(vmods)
 #' 
-#' contain_protntany(vmods, posns, length(vmods))
+#' proteoM:::contain_protntany(vmods, posns, length(vmods))
 #' }
 contain_protntany <- contain_termpos_any("Protein N-term")
 
@@ -332,6 +344,8 @@ contain_protntany <- contain_termpos_any("Protein N-term")
 #' @rdname contain_protntany
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## `Acetyl (N-term)`
 #' sites <- list(`Acetyl (N-term)` = "N-term", 
 #'               `Oxidation (M)` = "M", 
@@ -343,7 +357,7 @@ contain_protntany <- contain_termpos_any("Protein N-term")
 #' vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 #' posns <- names(vmods)
 #' 
-#' contain_anyntany(vmods, posns, length(vmods))
+#' proteoM:::contain_anyntany(vmods, posns, length(vmods))
 #' }
 contain_anyntany <- contain_termpos_any("Any N-term")
 
@@ -355,6 +369,8 @@ contain_anyntany <- contain_termpos_any("Any N-term")
 #' @rdname contain_protntany
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## `Amidated (Protein C-term)`
 #' sites <- list(`Amidated (Protein C-term)` = "C-term", 
 #'               `Oxidation (M)` = "M", 
@@ -366,7 +382,7 @@ contain_anyntany <- contain_termpos_any("Any N-term")
 #' vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 #' posns <- names(vmods)
 #' 
-#' contain_protctany(vmods, posns, length(vmods))
+#' proteoM:::contain_protctany(vmods, posns, length(vmods))
 #' }
 contain_protctany <- contain_termpos_any("Protein C-term")
 
@@ -378,6 +394,8 @@ contain_protctany <- contain_termpos_any("Protein C-term")
 #' @rdname contain_protntany
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## `Amidated (C-term)`
 #' sites <- list(`Amidated (C-term)` = "C-term", 
 #'               `Oxidation (M)` = "M", 
@@ -389,7 +407,7 @@ contain_protctany <- contain_termpos_any("Protein C-term")
 #' vmods <- unlist(vmods, recursive = FALSE, use.names = TRUE)
 #' posns <- names(vmods)
 #' 
-#' contain_anyctany(vmods, posns, length(vmods))
+#' proteoM:::contain_anyctany(vmods, posns, length(vmods))
 #' }
 contain_anyctany <- contain_termpos_any("Any C-term")
 
@@ -428,10 +446,16 @@ subset_by_prps <- function (ps, s, motifs)
 #'
 #' Flowchart (1-nt): Dimethyl (Protein N-term = P)
 #'
+#' @param prps List of proteins.
+#' @param peps List of peptides.
 #' @param site A site. No need to specify "any terminal" sites.
+#' @param sites Sites.
 #' @inheritParams find_nmodtree
 #' @examples
 #' \donttest{
+#' library(proteoM)
+#' library(purrr)
+#' 
 #' ## Protein N-term (Site)
 #' sites <- list(`Dimethyl (Protein N-term = P)` = "P", 
 #'               `Oxidation (M)` = "M", 
@@ -447,7 +471,7 @@ subset_by_prps <- function (ps, s, motifs)
 #'              PROT_B = c("PAKEKASSPECFUN", "NKAKEKASSPECFU", 
 #'                         "-NKAKEKASSPECFU"))
 #' 
-#' subset_protntsite(prps, find_protntsite(vmods, posns))
+#' proteoM:::subset_protntsite(prps, proteoM:::find_protntsite(vmods, posns))
 #' } 
 subset_protntsite <- function (prps, site, motifs = NULL) 
 {
@@ -472,6 +496,8 @@ subset_protntany <- function (prps, motifs = NULL)
 #' @rdname subset_protntsite
 #' @examples 
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## Any N-term (Site)
 #' sites <- list(`Dimethyl (N-term = P)` = "P", 
 #'               `Oxidation (M)` = "M", 
@@ -488,7 +514,7 @@ subset_protntany <- function (prps, motifs = NULL)
 #'                         "-NKAKEKASSPECFU"))
 #' 
 #' # "-PAKEKASSPECFUN" went with `subset_protntsite` (see flow charts)
-#' subset_anyntsite(prps, find_anyntsite(vmods, posns))
+#' proteoM:::subset_anyntsite(prps, proteoM:::find_anyntsite(vmods, posns))
 #' }
 subset_anyntsite <- function (prps, site = "Q", motifs = NULL) 
 {
@@ -512,6 +538,8 @@ subset_anyntany <- function (peps) peps
 #' @inheritParams find_nmodtree
 #' @examples 
 #' \donttest{
+#' library(proteoM)
+#' 
 #' ## Anywhere
 #' min_n_res <- c(P = 1, M = 1, N = 1)
 #' 
@@ -529,7 +557,7 @@ subset_anyntany <- function (peps) peps
 #'                         "-NKAKEKASSPECFU"))
 #' 
 #' # should contain both M and N
-#' subset_anysite(prps, sites, min_n_res)
+#' proteoM:::subset_anysite(prps, sites, min_n_res)
 #' 
 #' ## Multiple mods to the same site
 #' # (mimic from aa_masses)
@@ -557,7 +585,7 @@ subset_anyntany <- function (peps) peps
 #'              PROT_B = c("PAKEKASSPECFUN", "NKAKEKASSPECFU", 
 #'                         "-NKAKEKASSPECFU"))
 #' 
-#' ans <- subset_anysite(prps, sites, min_n_res)
+#' ans <- proteoM:::subset_anysite(prps, sites, min_n_res)
 #' }
 subset_anysite <- function (prps, sites, min_n_res, motifs = NULL, excepts = NULL) 
 {
