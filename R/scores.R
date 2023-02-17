@@ -826,7 +826,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   #   -> res[[i]] <- NULL 
   #   -> length(res) shortened by 1
   
-  n_cores <- detect_cores(16L)
+  n_cores <- detect_cores(32L)
   
   ## don't change (RAM)
   n_chunks <- n_cores^2
@@ -845,10 +845,19 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       digits = digits)
   }
   else {
+    if (n_rows > 100000L) {
+      n_cores2 <- ceiling(n_cores * 1.5)
+      n_chunks2 <- n_cores2^2
+    }
+    else {
+      n_cores2 <- n_cores
+      n_chunks2 <- n_chunks
+    }
+
     dfs <- if (is.null(df))
       list(df)
     else
-      suppressWarnings(chunksplit(df, n_chunks, "row"))
+      suppressWarnings(chunksplit(df, n_chunks2, "row"))
 
     path_df <- file.path(out_path, "df_sc_temp.rda")
     df <- df[, -which(names(df) == "matches"), drop = FALSE]
@@ -856,13 +865,13 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     rm(list = "df", envir = environment())
     gc()
     
-    if ((length(dfs) >= n_chunks)) {
-      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    if ((length(dfs) >= n_chunks2)) {
+      cl <- parallel::makeCluster(getOption("cl.cores", n_cores2))
 
       parallel::clusterExport(cl, list("calc_pepprobs_i", "scalc_pepprobs", 
                                        "calc_probi", "calc_probi_bypep", 
                                        "calc_probi_byvmods", "add_seions", 
-                                       "find_ppm_outer_bycombi", 
+                                       "find_ppm_outer_bycombi", "match_ex2th2", 
                                        "add_primatches"), 
                               envir = environment(proteoM:::scalc_pepprobs))
       
@@ -908,7 +917,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
 
     df <- qs::qread(path_df)
     unlink(path_df)
-    rm(list = c("path_df"))
+    rm(list = c("path_df", "n_cores2", "n_chunks2"))
     gc()
   }
   
@@ -936,11 +945,12 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   qs::qsave(df[, cols_lt, drop = FALSE], file_lt, preset = "fast")
   
   if (nrow(df) > 10000L) {
-    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    np_cores <- 8L
+    cl <- parallel::makeCluster(getOption("cl.cores", np_cores))
     
     df <- parallel::clusterApply(
       cl, 
-      suppressWarnings(chunksplit(df, n_chunks, "row")), 
+      suppressWarnings(chunksplit(df, np_cores^2, "row")), 
       add_primatches, 
       add_ms2theos = add_ms2theos, 
       add_ms2theos2 = add_ms2theos2, 
@@ -1037,6 +1047,7 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
     
     d1s[[i]] <- .Internal(paste0(list(ds1), collapse = ";", recycle0 = FALSE))
     d2s[[i]] <- .Internal(paste0(list(ds2), collapse = ";", recycle0 = FALSE))
+    
     p1s[[i]] <- .Internal(paste0(list(ps1), collapse = ";", recycle0 = FALSE))
     p2s[[i]] <- .Internal(paste0(list(ps2), collapse = ";", recycle0 = FALSE))
     iys1[[i]] <- .Internal(paste0(list(iy1[ps1]), collapse = ";", recycle0 = FALSE))
@@ -1044,12 +1055,12 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
     
     me1s[[i]] <- me1
     sd1s[[i]] <- sd1
+    
     m1s[[i]] <- mt1$m
     m2s[[i]] <- mt2$m
-    
     p1s.[[i]] <- ps1
 
-    if (i %% 5000L == 0L) gc()
+    # if (i %% 5000L == 0L) gc()
   }
   
   if (index_mgf_ms2) {

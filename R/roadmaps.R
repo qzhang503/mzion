@@ -33,6 +33,9 @@
 #      - proc_mgf_chunks
 #       - proc_mgfs
 #         - which_topx2
+#         - index_mz
+#         - sub_mgftopn
+#         - integerize_ms2ints
 #         - find_ms1_interval
 #     // END parallel
 # 
@@ -262,6 +265,7 @@
 #             calc_probi_byvmods
 #               add_seions
 #               find_ppm_outer_bycombi
+#               match_ex2th2
 #       add_primatches
 
 ## calc_protfdr (scores.R)

@@ -465,6 +465,8 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
     c("proc_mgf_chunks", 
       "proc_mgfs", 
       "which_topx2", 
+      "index_mz", 
+      "integerize_ms2ints", 
       "find_ms1_interval"), 
     envir = environment(proteoM:::proc_mgf_chunks)
   )
