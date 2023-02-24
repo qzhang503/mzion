@@ -10,7 +10,7 @@ extract_mgf_rptrs(
   quant = "none",
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
-  exclude_reporter_region = TRUE
+  exclude_reporter_region = FALSE
 )
 }
 \arguments{
@@ -34,7 +34,7 @@ The default is \eqn{126.1}.}
 The default is \eqn{135.2}.}
 
 \item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
-region of TMT reporter ions. The default is TRUE. The argument affects only
+region of TMT reporter ions. The default is FALSE. The argument affects only
 TMT data. The range of TMT reporter ions is given by
 \code{tmt_reporter_lower} and \code{tmt_reporter_upper}.}
 }

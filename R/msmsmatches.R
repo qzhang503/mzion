@@ -196,7 +196,7 @@
 #'   for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
 #'   not part of the threshold.
 #' @param exclude_reporter_region Logical; if TRUE, excludes MS2 ions in the
-#'   region of TMT reporter ions. The default is TRUE. The argument affects only
+#'   region of TMT reporter ions. The default is FALSE. The argument affects only
 #'   TMT data. The range of TMT reporter ions is given by
 #'   \code{tmt_reporter_lower} and \code{tmt_reporter_upper}.
 #' @param tmt_reporter_lower The lower bound of the region of TMT reporter ions.
@@ -633,7 +633,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      ppm_ms2 = 20L, 
                      tmt_reporter_lower = 126.1, 
                      tmt_reporter_upper = 135.2, 
-                     exclude_reporter_region = TRUE, 
+                     exclude_reporter_region = FALSE, 
                      index_mgf_ms2 = FALSE, 
                      
                      ppm_reporters = 10L,

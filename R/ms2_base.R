@@ -896,14 +896,10 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
         if (sum(!is.na(out_i$expt)) < minn_ms2) {
           out[[i]] <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL)
           next
-          # return(out[[i]] <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL))
         }
 
         out[[i]] <- out_i
         next
-        
-        # names(out) <- names(theos)
-        # return(out)
       }
       
       es[ps] <- expt_12

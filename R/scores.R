@@ -278,8 +278,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
 
   ith2 <- df2[["ith"]]
   iex2 <- df2[["iex"]]
-  # n <- N - m - length(iex2)
-  
+
   ## 1. int2 (secondary intensities)
   len <- length(df2[["expt"]])
   df2[["int"]] <- rep(NA_real_, len)
@@ -1975,13 +1974,12 @@ calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = Inf,
 }
 
 
-#' Helper for descriptive statstics
-#' 
-#' @param f One of \code{max, mean, median, min}. 
+#' Function factories for descriptive statistics.
+#'
+#' @param f One of \code{max, mean, median, min}. Data frame \code{df} is a PSM
+#'   table.
 aggr_prot_es <- function(f) 
-{
   function (df, ...) dplyr::summarise(df, prot_es = f(prot_es, ...))
-}
 
 
 #' Helper of \link{calc_protfdr}.

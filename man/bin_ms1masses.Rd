@@ -43,7 +43,7 @@ incurred by the developer.}
 precursors.}
 
 \item{is_ms1_three_frame}{Logical; is the searches by the three frames of
-preceeding, current and following.}
+preceding, current and following.}
 
 \item{out_path}{A file path of outputs.}
 

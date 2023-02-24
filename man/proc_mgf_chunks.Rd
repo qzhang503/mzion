@@ -34,7 +34,7 @@ proc_mgf_chunks(
   raw_file = NULL,
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
-  exclude_reporter_region = TRUE,
+  exclude_reporter_region = FALSE,
   index_mgf_ms2 = FALSE,
   quant = "none",
   digits = 5L
@@ -68,7 +68,7 @@ default is 20.}
 \item{max_ms2mass}{A positive integer; the maximum MS2 mass for
 interrogation.}
 
-\item{mgf_cutmzs}{Cut points of MS1 moverz values in peak picking.}
+\item{mgf_cutmzs}{Cut points of MS1 m-over-z values in peak picking.}
 
 \item{mgf_cutpercs}{The counts of MS2 features in each region of
 \code{mgf_cutmzs}.}
@@ -117,7 +117,7 @@ The default is \eqn{126.1}.}
 The default is \eqn{135.2}.}
 
 \item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
-region of TMT reporter ions. The default is TRUE. The argument affects only
+region of TMT reporter ions. The default is FALSE. The argument affects only
 TMT data. The range of TMT reporter ions is given by
 \code{tmt_reporter_lower} and \code{tmt_reporter_upper}.}
 

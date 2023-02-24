@@ -4,10 +4,10 @@
 #' @param max_mass A maximum mass of precursors for considerations.
 #' @param min_ms2mass A minimum m/z of MS2 ions for considerations.
 #' @param is_ms1_three_frame Logical; is the searches by the three frames of
-#'   preceeding, current and following.
+#'   preceding, current and following.
 #' @param is_ms2_three_frame Logical; is the searches by the three frames of
-#'   preceeding, current and following.
-#' @param mgf_cutmzs Cut points of MS1 moverz values in peak picking.
+#'   preceding, current and following.
+#' @param mgf_cutmzs Cut points of MS1 m-over-z values in peak picking.
 #' @param mgf_cutpercs The counts of MS2 features in each region of
 #'   \code{mgf_cutmzs}.
 #' @inheritParams matchMS
@@ -18,7 +18,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
                        min_ret_time = 0, max_ret_time = Inf, 
                        ppm_ms1 = 20L, ppm_ms2 = 20L, 
                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       exclude_reporter_region = TRUE, index_mgf_ms2 = FALSE, 
+                       exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
                        is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                        enzyme = "trypsin_p", quant = "none", digits = 5L) 
@@ -185,7 +185,7 @@ readMGF <- function (filepath = NULL, filelist = NULL,
                      ret_range = c(0, Inf), ppm_ms1 = 10L, ppm_ms2 = 10L, 
                      tmt_reporter_lower = 126.1, 
                      tmt_reporter_upper = 135.2, 
-                     exclude_reporter_region = TRUE, 
+                     exclude_reporter_region = FALSE, 
                      index_mgf_ms2 = FALSE, 
                      mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                      out_path = file.path(filepath, "mgf_queries.rds"), 
@@ -237,6 +237,7 @@ readMGF <- function (filepath = NULL, filelist = NULL,
   # (2) parallel five MGF files and parallel chunks in each
   len <- length(filelist)
   n_cores <- min(len, detect_cores(32L))
+  # n_cores <- min(detect_cores(32L), floor((find_free_mem()/1024)/(sizes * 8)), len)
   
   if (n_cores == 1L)
     raw_files <- readlineMGFs(1, filelist, filepath, raw_file)
@@ -437,7 +438,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                              sep_pepmass = " ", nfields_pepmass = 2L, 
                              raw_file = NULL, 
                              tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                             exclude_reporter_region = TRUE, index_mgf_ms2 = FALSE, 
+                             exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
                              quant = "none", digits = 5L) 
 {
   filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
@@ -613,7 +614,7 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                              raw_file = NULL, 
                              tmt_reporter_lower = 126.1, 
                              tmt_reporter_upper = 135.2, 
-                             exclude_reporter_region = TRUE, 
+                             exclude_reporter_region = FALSE, 
                              index_mgf_ms2 = FALSE, 
                              quant = "none", digits = 5L) 
 {
@@ -702,7 +703,7 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
                        n_to_charge = 4L, sep_ms2s = " ", nfields_ms2s = 2L, 
                        sep_pepmass = " ", nfields_pepmass = 2L, raw_file = NULL, 
                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       exclude_reporter_region = TRUE, index_mgf_ms2 = FALSE, 
+                       exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
                        quant = "none", digits = 4L) 
 {
   options(digits = 9L)
@@ -1004,7 +1005,7 @@ integerize_ms2ints <- function(ms2_ints, max_intdbl = 2147483647.0)
 extract_mgf_rptrs <- function (ms2_moverzs, ms2_ints, quant = "none", 
                                tmt_reporter_lower = 126.1, 
                                tmt_reporter_upper = 135.2, 
-                               exclude_reporter_region = TRUE) 
+                               exclude_reporter_region = FALSE) 
 {
   if (grepl("^tmt.*\\d+", quant)) {
     ok_rptrs <- lapply(ms2_moverzs, function (x) x > tmt_reporter_lower & 
@@ -1308,7 +1309,7 @@ readmzML <- function (filepath = NULL, filelist = NULL,
                       ms1_scan_range = c(1L, .Machine$integer.max), 
                       ret_range = c(0, Inf), ppm_ms1 = 10L, ppm_ms2 = 10L, 
                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                      exclude_reporter_region = TRUE, 
+                      exclude_reporter_region = FALSE, 
                       index_mgf_ms2 = FALSE, 
                       mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                       out_path, digits = 4L)
@@ -1319,7 +1320,8 @@ readmzML <- function (filepath = NULL, filelist = NULL,
   # parallel here
   files <- file.path(filepath, filelist)
   sizes <- max(unlist(lapply(files, file.size)))/1024^3
-  n_cores <- min(detect_cores(16L), floor((max_ram <- 32)/(sizes * 8)), len)
+  # n_cores <- min(detect_cores(16L), floor((max_ram <- 32)/(sizes * 8)), len)
+  n_cores <- min(detect_cores(32L), floor((find_free_mem()/1024)/(sizes * 8)), len)
   n_cores <- max(1L, n_cores)
   
   if (n_cores == 1L) {
@@ -1387,7 +1389,7 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L),
                        min_ms2mass = 115L, max_ms2mass = 4500L, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       exclude_reporter_region = TRUE, index_mgf_ms2 = FALSE, 
+                       exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
                        quant = "none", digits = 4L) 
 {
   message("Loading ", file)
@@ -1443,7 +1445,7 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L),
 #' @param xml_file A file name of mzML.
 #' @inheritParams matchMS
 read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       exclude_reporter_region = TRUE, index_mgf_ms2 = FALSE, 
+                       exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
                        ppm_ms1 = 10L, ppm_ms2 = 10L, min_ms2mass = 115L, 
                        max_ms2mass = 4500L, quant = "none", digits = 4L)
 {

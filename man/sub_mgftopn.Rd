@@ -22,7 +22,7 @@ sub_mgftopn(
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}
 
-\item{mgf_cutmzs}{Cut points of MS1 moverz values in peak picking.}
+\item{mgf_cutmzs}{Cut points of MS1 m-over-z values in peak picking.}
 
 \item{mgf_cutpercs}{The counts of MS2 features in each region of
 \code{mgf_cutmzs}.}

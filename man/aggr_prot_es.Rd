@@ -2,13 +2,14 @@
 % Please edit documentation in R/scores.R
 \name{aggr_prot_es}
 \alias{aggr_prot_es}
-\title{Helper for descriptive statstics}
+\title{Function factories for descriptive statistics.}
 \usage{
 aggr_prot_es(f)
 }
 \arguments{
-\item{f}{One of \code{max, mean, median, min}.}
+\item{f}{One of \code{max, mean, median, min}. Data frame \code{df} is a PSM
+table.}
 }
 \description{
-Helper for descriptive statstics
+Function factories for descriptive statistics.
 }
