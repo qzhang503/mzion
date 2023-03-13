@@ -19,14 +19,14 @@ calc_pepmasses2(
   enzyme = c("trypsin_p"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL),
   noenzyme_maxn = 0L,
-  maxn_fasta_seqs = 50000L,
+  maxn_fasta_seqs = 200000L,
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   min_len = 7L,
   max_len = 40L,
   max_miss = 2L,
-  min_mass = 700L,
+  min_mass = 200L,
   max_mass = 4500L,
   n_13c = 0L,
   out_path = NULL,
@@ -154,10 +154,14 @@ time.}
   \code{fdr_type = psm} to \code{fdr_type = protein}.}
 
 \item{.path_cache}{The file path of cached search parameters. The parameter
-is for the users' awareness of the underlying structure of file folders and
-the use of default is suggested. Occasionally experimenters may remove the
-file folder for disk space or under infrequent events of modified framework
-incurred by the developer.}
+  is for the users' awareness of the underlying structure of file folders and
+  the use of default is suggested. Occasionally experimenters may remove the
+  file folder for disk space or under infrequent events of modified framework
+  incurred by the developer.
+
+  Started from version 1.2.1.5, a new data structure of protein-peptide
+  lookups are used. Version 1.2.1.4.1 is the final version using the old data
+  structure.}
 
 \item{.path_fasta}{The parent file path to the theoretical masses of MS1
 precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",

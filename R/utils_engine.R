@@ -574,7 +574,7 @@ detect_cores <- function (max_n_cores = NULL)
 #' 
 #' Outputs of free RAM in the unit of MB.
 #' 
-#' @param sys_ram The amount of system RAM; only for uses with Linux or Mas OS.
+#' @param sys_ram The putative amount of system RAM.
 find_free_mem <- function (sys_ram = 32L) 
 {
   nm_os <- Sys.info()['sysname']
@@ -628,29 +628,24 @@ is_equal_sets <- function(x, y) all(x %in% y) && all(y %in% x)
 #' 
 #' Decoy sequences may be present in targets and thus removed.
 #' 
-#' @examples 
-#' ## found in both forward and reverse fastas
-#' # pep_seq  prot_acc
-#' # RQEEELR NP_064522
-#' # RQEEELR NP_997555
-#' # RQEEELR NP_997553
-#' # 
-#' # pep_seq      prot_acc
-#' # RQEEELR -NP_001073379
-#' # RQEEELR -NP_001157031
-#' # RQEEELR    -NP_796085
-#' # RQEEELR    -NP_083410
-#' 
 #' @param target A target data frame with column \code{pep_seq}.
 #' @param decoy A decoy data frame with column \code{pep_seq}.
-purge_decoys <- function (target, decoy) 
+#' @examples 
+#' \donttest{
+#' target <- 
+#'   data.frame(pep_seq  = rep("RQEEELR", 3), 
+#'              prot_acc = c("NP_064522", "NP_997555", "NP_997553"))
+#' decoy  <- 
+#'   data.frame(pep_seq  = c(rep("RQEEELR", 4), "PEPTIDE"), 
+#'              prot_acc = c("-NP_001073379", "-NP_001157031", "-NP_796085", 
+#'                           "-NP_083410", "-NP_xxxxx"))
+#' 
+#' purge_decoys(decoy, target)
+#' }
+purge_decoys <- function (decoy, target) 
 {
-  tpeps <- unique(target$pep_seq)
-  dpeps <- unique(decoy$pep_seq)
-  
-  oks <- dpeps[! dpeps %in% tpeps]
-  
-  dplyr::filter(decoy, pep_seq %in% oks)
+  mts <- fastmatch::fmatch(decoy[["pep_seq"]], target[["pep_seq"]])
+  decoy[is.na(mts), ]
 }
 
 
@@ -902,52 +897,6 @@ make_zero_df <- function (vec)
   invisible(df)
 }
 
-#' Makes hash table.
-#' 
-#' Not yet used.
-#' 
-#' @param data A named vector or list.
-#' @param r Numeric; bucket-to-key ratio.
-hash_frame_nums <- function (data, r = 1.5) 
-{
-  vals <- names(data)
-  
-  if (is.null(vals))
-    stop("Data need names.")
-  
-  n_bucks <- ceiling(r * length(vals))
-  keys <- unlist(lapply(vals, digest::digest2int), recursive = FALSE, use.names = FALSE)
-  coll_ids <- keys %% n_bucks + 1L
-  
-  ans <- vector("list", n_bucks)
-  
-  coll_data <- split(data, coll_ids) 
-  uniq_ids <- as.integer(names(coll_data)) 
-  
-  for (i in seq_along(coll_data))
-    ans[[uniq_ids[i]]] <- coll_data[[i]]
-
-  invisible(ans)
-}
-
-
-#' Finds a value through a hash table.
-#' 
-#' Not yet used.
-#' 
-#' @param ht A hash table.
-#' @param val A value.
-#' @param n_bucks The number of buckets in \code{ht}.
-#' @param offset An offset. Not yet used.
-find_from_hash <- function (ht, val, n_bucks = length(ht), offset = 0L) 
-{
-  key <- digest::digest2int(val)
-  coll_id <- key %% n_bucks + 1L
-  x <- ht[[coll_id]]
-  
-  x[[val]]
-}
-
 
 #' Calculates the three-frame ppm.
 #'
@@ -1005,6 +954,73 @@ get_ms1charges <- function (charges)
   charges <- .Internal(unlist(charges, recursive = FALSE, use.names = FALSE))
   
   as.integer(charges)
+}
+
+
+#' Finds unique elements including the same name in a vector.
+#' 
+#' The same value at different name will be treated as different elements.
+#' 
+#' @param x A named vector.
+finds_uniq_vec <- function (x)
+{
+  v <- .Internal(paste0(list(x, names(x)), collapse = NULL, recycle0 = FALSE))
+  oks <- !duplicated(v)
+  x[oks]
+}
+
+
+#' Makes a data frame from lists.
+#' 
+#' Not yet used.
+#' 
+#' @param l A list of named vectors.
+my_dataframe <- function (l)
+{
+  class(l) <- "data.frame"
+  attr(l, "row.names") <- .set_row_names(length(l[[1]]))
+  l
+}
+
+
+#' Alternative to \link[purrr]{flatten}
+#' 
+#' @param data A list of data.
+#' @param use_names Logical; to use names or not.
+flatten_list <- function (data, use_names = TRUE)
+{
+  len <- length(data)
+  
+  if (!len)
+    return(data)
+  
+  lens <- .Internal(unlist(lapply(data, length), recursive = FALSE, 
+                           use.names = FALSE))
+  oks  <- which(lens > 0L)
+  
+  if (!length(oks))
+    return(vector("list"))
+
+  data <- data[oks]
+  lens <- lens[oks]
+  len  <- length(data)
+  
+  if (len == 1L)
+    return(data[[1]])
+  
+  ends <- cumsum(lens)
+  stas <- c(1, ends + 1L)
+
+  ans <- vector("list", ends[len])
+  
+  for (i in 1:len) 
+    ans[stas[[i]]:ends[[i]]] <- data[[i]]
+  
+  if (use_names) 
+    names(ans) <- .Internal(unlist(lapply(data, names), recursive = FALSE, 
+                                   use.names = FALSE))
+
+  ans
 }
 
 

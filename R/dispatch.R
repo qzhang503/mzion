@@ -489,6 +489,7 @@ subset_protntany <- function (prps, motifs = NULL)
   lapply(prps, subset_by_prps, "^-", motifs)
 }
 
+
 #' Subsets proteins by variable modifications.
 #' 
 #' Flowchart (3-nt): Gln->pyro Glu (N-term = Q)
@@ -820,4 +821,5 @@ subpeps_by_vmods <- function(aa_masses, prps, motifs = NULL)
   prps <- find_nmodtree(prps, excepts, min_n_res, vmods, posns, len, motifs)
   prps <- find_cmodtree(prps, excepts, min_n_res, vmods, posns, len, motifs)
 }
+
 

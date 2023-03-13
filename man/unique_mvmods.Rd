@@ -14,7 +14,7 @@ unique_mvmods(
   maxn_sites_per_vmod = 3L,
   .ms1_vmodsets = NULL,
   .base_ent = NULL,
-  digits = 5L
+  digits = 4L
 )
 }
 \arguments{

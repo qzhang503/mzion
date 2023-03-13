@@ -11,7 +11,7 @@ calc_pepscores(
   fdr_type = "psm",
   min_len = 7L,
   max_len = 40L,
-  ppm_ms2 = 25L,
+  ppm_ms2 = 20L,
   soft_secions = FALSE,
   out_path = "~/proteoM/outs",
   min_ms2mass = 115L,
@@ -36,7 +36,7 @@ calc_pepscores(
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
   add_ms2ints = FALSE,
-  digits = 5L
+  digits = 4L
 )
 }
 \arguments{

@@ -8,7 +8,7 @@ adj_base_masses(
   fwd_peps_1,
   aa_masses_0,
   aa_masses_1,
-  min_mass = 700L,
+  min_mass = 200L,
   max_mass = 4500L,
   digits = 4L
 )

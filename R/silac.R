@@ -423,7 +423,7 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
   }
   else {
     this_call$bypass_noenzyme <- TRUE
-    this_call$silac_noenzyme <- TRUE # for regular add_prot_acc
+    this_call$silac_noenzyme <- TRUE # for regular add_protacc
     ans <- tryCatch(eval(this_call), error = function (e) NULL)
   }
   

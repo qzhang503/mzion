@@ -11,7 +11,7 @@ calc_monopep(
   maxn_sites_per_vmod = 3L,
   min_mass = 200L,
   max_mass = 4500L,
-  digits = 5L
+  digits = 4L
 )
 }
 \arguments{

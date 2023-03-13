@@ -37,7 +37,7 @@ ms2match(
   max_len,
   max_miss,
   index_mgf_ms2 = FALSE,
-  digits
+  digits = 4L
 )
 }
 \arguments{

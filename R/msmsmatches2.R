@@ -31,7 +31,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                       min_len, max_len, max_miss, 
 
                       index_mgf_ms2 = FALSE, 
-                      digits) 
+                      digits = 4L) 
 {
   options(digits = 9L)
   

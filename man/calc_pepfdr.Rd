@@ -11,6 +11,8 @@ calc_pepfdr(
   max_len = 40L,
   max_pepscores_co = 50,
   min_pepscores_co = 0,
+  enzyme = "trypsin_p",
+  use_nontryptic_fdr = FALSE,
   out_path
 )
 }
@@ -33,6 +35,15 @@ identities. The default is changed from \code{Inf} to 50 from version
 \item{min_pepscores_co}{A non-negative numeric; the lower limit in the
 cut-offs of peptide scores for discriminating significant and insignificant
 identities.}
+
+\item{enzyme}{A character string; the proteolytic specificity of the assumed
+enzyme will be used to generate peptide sequences from protein entries. The
+default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
+
+\item{use_nontryptic_fdr}{Logical; if TRUE, use only peptide sequences not
+ending with C-terminal K or R in peptide FDR estimates. The argument only
+affects searches at \code{enzyme = noenzyme}. The default is FALSE. May
+consider TRUE, which may lead to more hits of non-tryptic sequences.}
 
 \item{out_path}{A file path of outputs.}
 }

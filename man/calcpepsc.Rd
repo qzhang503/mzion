@@ -8,7 +8,7 @@ calcpepsc(
   file,
   topn_ms2ions = 100L,
   type_ms2ions = "by",
-  ppm_ms2 = 25L,
+  ppm_ms2 = 20L,
   soft_secions = FALSE,
   out_path = NULL,
   min_ms2mass = 115L,

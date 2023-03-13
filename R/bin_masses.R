@@ -181,7 +181,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
 #' 
 #' @param in_path An input path of \code{pepmasses_}.
 #' @inheritParams binTheoSeqs2
-binTheoSeqs_i <- function (idx = 1L, min_mass = 700L,max_mass = 4500L,
+binTheoSeqs_i <- function (idx = 1L, min_mass = 200L,max_mass = 4500L,
                            ppm_ms1 = 10L, in_path = NULL, out_path = NULL) 
 {
   if (is.null(in_path)) 
@@ -206,9 +206,8 @@ binTheoSeqs_i <- function (idx = 1L, min_mass = 700L,max_mass = 4500L,
 #' @param idx An index, e.g. "1" for \code{pepmasses_1.rds} and "rev_1" for
 #'   \code{pepmasses_rev_1.rds}.
 #' @inheritParams binTheoSeqs
-binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 700L,
-                          max_mass = 4500L, ppm_ms1 = 10L, 
-                          out_path = NULL) 
+binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 200L,
+                          max_mass = 4500L, ppm_ms1 = 10L, out_path = NULL) 
 {
   if (is.null(res)) 
     stop("`res` cannot be NULL.")
@@ -236,7 +235,7 @@ binTheoSeqs2 <- function (idx = 1L, res = NULL, min_mass = 700L,
 #' @param peps A list of theoretical peptides with masses.
 #' @param out_nm A output name with prepending file path.
 #' @inheritParams binTheoSeqs
-bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 700L, 
+bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 200L, 
                           max_mass = 4500L, ppm_ms1 = 10L) 
 {
   if (!length(peps)) {
@@ -283,7 +282,7 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 700L,
 #' @return Lists of theoretical peptides binned by MS1 masses. The lists
 #'   correspond to the lists of \code{res}.
 #' @import parallel
-binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 700L,
+binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 200L,
                          max_mass = 4500L, ppm_ms1 = 10L, out_path = NULL) 
 {
   if (is.null(res)) 
@@ -352,7 +351,7 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 700L,
 #' @param ppm Numeric; the ppm for data binning.
 #' @return Cut points.
 #' @seealso find_ms1_interval
-find_ms1_cutpoints <- function (from = 700L, to = 4500L, ppm = 10L) 
+find_ms1_cutpoints <- function (from = 200L, to = 4500L, ppm = 10L) 
 {
   d <- ppm/1e6
   n <- ceiling(log(to/from)/log(1+d))

@@ -23,6 +23,7 @@ matchMS(
     "SemiLysN", "SemiArgC", "SemiLysC_P", "SemiChymotrypsin", "SemiGluC", "SemiGluN",
     "SemiAspC", "SemiAspN", "Noenzyme", "Nodigest"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL),
+  use_nontryptic_fdr = FALSE,
   noenzyme_maxn = 0L,
   maxn_fasta_seqs = 200000L,
   maxn_vmods_setscombi = 512L,
@@ -62,7 +63,7 @@ matchMS(
   combine_tier_three = FALSE,
   max_n_prots = 60000L,
   use_ms1_cache = TRUE,
-  .path_cache = "~/proteoM/.MSearches (1.1.9.5)/Cache/Calls",
+  .path_cache = "~/proteoM/.MSearches (1.2.1.5)/Cache/Calls",
   .path_fasta = NULL,
   topn_ms2ions = 100L,
   topn_ms2ion_cuts = NA,
@@ -174,6 +175,11 @@ default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
   custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
   "([^P]\{1\})([KR]\{1\})")}
 
+\item{use_nontryptic_fdr}{Logical; if TRUE, use only peptide sequences not
+ending with C-terminal K or R in peptide FDR estimates. The argument only
+affects searches at \code{enzyme = noenzyme}. The default is FALSE. May
+consider TRUE, which may lead to more hits of non-tryptic sequences.}
+
 \item{noenzyme_maxn}{Non-negative integer; the maximum number of peptide
 lengths for sectional searches at \code{noenzyme} specificity. The argument
 may be used to guard against RAM exhaustion. At the zero default, The
@@ -275,8 +281,8 @@ The default is \eqn{126.1}.}
 The default is \eqn{135.2}.}
 
 \item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
-region of TMT reporter ions. The default is FALSE. The argument affects only
-TMT data. The range of TMT reporter ions is given by
+region of TMT reporter ions. The default is FALSE. The argument affects
+only TMT data. The range of TMT reporter ions is given by
 \code{tmt_reporter_lower} and \code{tmt_reporter_upper}.}
 
 \item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
@@ -406,10 +412,14 @@ For instance, the signal of \code{b5^*} will be ignored if its primary ion
   \code{fdr_type = psm} to \code{fdr_type = protein}.}
 
 \item{.path_cache}{The file path of cached search parameters. The parameter
-is for the users' awareness of the underlying structure of file folders and
-the use of default is suggested. Occasionally experimenters may remove the
-file folder for disk space or under infrequent events of modified framework
-incurred by the developer.}
+  is for the users' awareness of the underlying structure of file folders and
+  the use of default is suggested. Occasionally experimenters may remove the
+  file folder for disk space or under infrequent events of modified framework
+  incurred by the developer.
+
+  Started from version 1.2.1.5, a new data structure of protein-peptide
+  lookups are used. Version 1.2.1.4.1 is the final version using the old data
+  structure.}
 
 \item{.path_fasta}{The parent file path to the theoretical masses of MS1
 precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",

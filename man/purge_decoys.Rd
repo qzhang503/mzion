@@ -4,27 +4,26 @@
 \alias{purge_decoys}
 \title{Purges decoy pep_seq(s) that are also found in target fasta.}
 \usage{
-purge_decoys(target, decoy)
+purge_decoys(decoy, target)
 }
 \arguments{
-\item{target}{A target data frame with column \code{pep_seq}.}
-
 \item{decoy}{A decoy data frame with column \code{pep_seq}.}
+
+\item{target}{A target data frame with column \code{pep_seq}.}
 }
 \description{
 Decoy sequences may be present in targets and thus removed.
 }
 \examples{
-## found in both forward and reverse fastas
-# pep_seq  prot_acc
-# RQEEELR NP_064522
-# RQEEELR NP_997555
-# RQEEELR NP_997553
-# 
-# pep_seq      prot_acc
-# RQEEELR -NP_001073379
-# RQEEELR -NP_001157031
-# RQEEELR    -NP_796085
-# RQEEELR    -NP_083410
+\donttest{
+target <- 
+  data.frame(pep_seq  = rep("RQEEELR", 3), 
+             prot_acc = c("NP_064522", "NP_997555", "NP_997553"))
+decoy  <- 
+  data.frame(pep_seq  = c(rep("RQEEELR", 4), "PEPTIDE"), 
+             prot_acc = c("-NP_001073379", "-NP_001157031", "-NP_796085", 
+                          "-NP_083410", "-NP_xxxxx"))
 
+purge_decoys(decoy, target)
+}
 }

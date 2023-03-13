@@ -7,7 +7,7 @@
 #   calc_pepfdr
 #   post_pepfdr
 #   calc_peploc (scores)
-#   add_prot_acc (quant2.R)
+#   add_protacc (quant2.R)
 #   calc_protfdr (scores.R)
 #   add_rptrs (quant2.R)
 #   try_psmC2Q
@@ -94,7 +94,7 @@
 #           ...
 #       - rm_char_in_nfirst (ms1_precursors.R)
 #       - rm_char_in_nlast (ms1_precursors.R)
-#     - tbl_prots_peps
+#     - simple_prots_peps
 #     - flat_pepseqs
 #     - add_term_mass
 #     - helpers below

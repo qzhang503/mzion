@@ -2,7 +2,7 @@
 #' 
 #' @param ms2s A vector of theoretical MS2 m-over-z values.
 #' @inheritParams matchMS
-add_seions <- function (ms2s, type_ms2ions = "by", digits = 5L) 
+add_seions <- function (ms2s, type_ms2ions = "by", digits = 4L) 
 {
   len <- length(ms2s)
   
@@ -257,9 +257,9 @@ list_leftmatch <- function (a, b)
 #' }
 calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, 
                                 N, type_ms2ions = "by", topn_ms2ions = 100L, 
-                                ppm_ms2 = 25L, soft_secions = FALSE, 
+                                ppm_ms2 = 20L, soft_secions = FALSE, 
                                 burn_ins = c(1:2), min_ms2mass = 115L, 
-                                d2 = 1E-5, index_mgf_ms2 = FALSE, digits = 5L) 
+                                d2 = 1E-5, index_mgf_ms2 = FALSE, digits = 4L) 
 {
   df_theo <- df$theo
   m <- length(df_theo)
@@ -607,7 +607,7 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @import parallel
 calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by", 
                             target_fdr = 0.01, fdr_type = "psm", 
-                            min_len = 7L, max_len = 40L, ppm_ms2 = 25L, 
+                            min_len = 7L, max_len = 40L, ppm_ms2 = 20L, 
                             soft_secions = FALSE, 
                             out_path = "~/proteoM/outs", 
                             min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
@@ -621,7 +621,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             maxn_vmods_setscombi = 64L, 
                             add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                             add_ms2moverzs = FALSE, add_ms2ints = FALSE,
-                            digits = 5L) 
+                            digits = 4L) 
 {
   on.exit(
     if (exists(".savecall", envir = fun_env)) {
@@ -767,7 +767,7 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by", 
-                       ppm_ms2 = 25L, soft_secions = FALSE, out_path = NULL, 
+                       ppm_ms2 = 20L, soft_secions = FALSE, out_path = NULL, 
                        min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE, 
                        add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                        add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
@@ -1459,10 +1459,12 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 #' }
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm", 
                          min_len = 7L, max_len = 40L, 
-                         max_pepscores_co = 50, min_pepscores_co = 0, out_path) 
+                         max_pepscores_co = 50, min_pepscores_co = 0, 
+                         enzyme = "trypsin_p", use_nontryptic_fdr = FALSE, 
+                         out_path) 
 {
   message("Calculating peptide FDR.")
-  
+
   fct_score <- 10
   
   pat <- "^pepscores_"
@@ -1476,7 +1478,15 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   nm_t <- gsub("^rev_", "", nm_d)
   
   td <- local({
+    enzyme <- tolower(enzyme)
+    is_nontryptic <- enzyme == "noenzyme" || grepl("^semi", enzyme)
+    no_semi_full  <- use_nontryptic_fdr && is_nontryptic
+    
     decoy <- qs::qread(file.path(out_path, "temp", file_d))
+    
+    if (no_semi_full) 
+      decoy <- decoy[!grepl("[KR]$", decoy[["pep_seq"]]), ]
+
     decoy <- list(decoy)
     names(decoy) <- nm_d
     
@@ -1487,6 +1497,10 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
       stop("Target scores not found.", call. = FALSE)
     
     target <- qs::qread(file.path(out_path, "temp", file_t))
+    
+    if (no_semi_full) 
+      target <- target[!grepl("[KR]$", target[["pep_seq"]]), ]
+    
     target <- list(target)
     names(target) <- nm_t
     
@@ -1516,7 +1530,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   })
   
   # decoy sequences may be present in targets
-  td[[nm_d]] <- purge_decoys(target = td[[nm_t]], decoy = td[[nm_d]])
+  td[[nm_d]] <- purge_decoys(decoy = td[[nm_d]], target = td[[nm_t]])
   
   #  keeps the best hit for each `scan_num`
   td <- if (nrow(td[[nm_d]]))

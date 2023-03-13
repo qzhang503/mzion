@@ -14,7 +14,7 @@ ms1_a1_vnl0_fnl0(
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   ms1vmods = NULL,
-  min_mass = 700L,
+  min_mass = 200L,
   max_mass = 4500L,
   digits = 4L
 )

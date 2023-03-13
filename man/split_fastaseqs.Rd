@@ -65,6 +65,10 @@ Two named list of "fwds" and "revs". List "fwds" contains peptide
 Prior to the calculation of peptide masses; for the base with fixed
 modification only.
 }
+\details{
+Each entry in the outputs contains two lists: 1. terminal sequences without
+N-term methionine; 2. all sequences without methionine clipping.
+}
 \examples{
 if (FALSE) {
   x <- split_fastaseqs("~/proteoM/dbs/fasta/uniprot/uniprot_mm_2020_11.fasta")

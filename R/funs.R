@@ -38,7 +38,7 @@
 # [16] "proc_mzml"          "read_mzml"         
 # 
 # $ms1_precursors.R
-#  [1] "calc_pepmasses2"           "find_aa_masses"            "find_motif_pat"            "tbl_prots_peps"           
+#  [1] "calc_pepmasses2"           "find_aa_masses"            "find_motif_pat"            "simple_prots_peps"        
 #  [5] "flat_pepseqs"              "find_aa_site"              "calc_aamasses"             "finalize_aamasses"        
 #  [9] "save_mod_indexes"          "check_dupfvmods"           "coerce_fvmods"             "find_f_to_v"              
 # [13] "check_mod_motifs"          "find_aamasses_vmodscombi"  "add_var_masses"            "add_fixed_masses"         
@@ -72,8 +72,8 @@
 # [7] "search_mgf"      
 # 
 # $msmsmatches.R
-# [1] "matchMS"        "try_psmC2Q"     "reproc_psmC"    "psmC2Q"         "post_psmC2Q"    "check_tmt_pars"
-# [7] "checkMGF"       "check_locmods"  "map_raw_n_scan"
+# [1] "matchMS"        "try_psmC2Q"     "reproc_psmC"    "psmC2Q"         "post_psmC2Q"    "check_tmt_pars" "checkMGF"      
+# [8] "check_locmods"  "map_raw_n_scan"
 # 
 # $msmsmatches2.R
 # [1] "ms2match"              "hcalc_tmtint"          "reverse_peps_in_frame" "reverse_seqs"         
@@ -86,8 +86,8 @@
 # character(0)
 # 
 # $quant2.R
-#  [1] "calc_tmtint"        "add_rptrs"          "find_reporter_ints" "find_reporters_ppm" "add_prot_acc"      
-#  [6] "hfwd_prps"          "hrev_prps"          "add_prot_acc2"      "hadd_prot_acc"      "groupProts"        
+#  [1] "calc_tmtint"        "add_rptrs"          "find_reporter_ints" "find_reporters_ppm" "add_protacc"       
+#  [6] "msub_protpep"       "sub_protpep"        "add_protacc2"       "hadd_protacc"       "groupProts"        
 # [11] "map_pepprot"        "collapse_sortpeps"  "pcollapse_sortpeps" "chunksplit_spmat"   "find_group_breaks" 
 # [16] "cut_proteinGroups"  "sparseD_fourquad"   "as_dist"            "as_lgldist"         "greedysetcover3"   
 # 
@@ -125,8 +125,8 @@
 # [17] "quick_leftjoin"        "detect_cores"          "find_free_mem"         "find_mod_indexes"     
 # [21] "is_equal_sets"         "purge_decoys"          "expand_grid_rows"      "count_elements"       
 # [25] "vec_to_list"           "split_vec"             "accumulate_char"       "combi_mat"            
-# [29] "make_zero_df"          "hash_frame_nums"       "find_from_hash"        "calc_threeframe_ppm"  
-# [33] "check_ms1calib"        "save_ms1calib"         "get_ms1charges"       
+# [29] "make_zero_df"          "calc_threeframe_ppm"   "check_ms1calib"        "save_ms1calib"        
+# [33] "get_ms1charges"        "finds_uniq_vec"        "my_dataframe"          "flatten_list"         
 # 
 # $utils_os.R
 #  [1] "`names_pos<-`"          "find_int_cols"          "ins_cols_after"         "add_cols_at"           

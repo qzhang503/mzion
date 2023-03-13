@@ -7,7 +7,7 @@
 find_free_mem(sys_ram = 32L)
 }
 \arguments{
-\item{sys_ram}{The amount of system RAM; only for uses with Linux or Mas OS.}
+\item{sys_ram}{The putative amount of system RAM.}
 }
 \description{
 Outputs of free RAM in the unit of MB.

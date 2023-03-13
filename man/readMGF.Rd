@@ -7,7 +7,7 @@
 readMGF(
   filepath = NULL,
   filelist = NULL,
-  min_mass = 700L,
+  min_mass = 200L,
   max_mass = 4500L,
   min_ms2mass = 115L,
   max_ms2mass = 4500L,
@@ -25,7 +25,7 @@ readMGF(
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
   out_path = file.path(filepath, "mgf_queries.rds"),
-  digits = 5L
+  digits = 4L
 )
 }
 \arguments{
@@ -74,8 +74,8 @@ The default is \eqn{126.1}.}
 The default is \eqn{135.2}.}
 
 \item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
-region of TMT reporter ions. The default is FALSE. The argument affects only
-TMT data. The range of TMT reporter ions is given by
+region of TMT reporter ions. The default is FALSE. The argument affects
+only TMT data. The range of TMT reporter ions is given by
 \code{tmt_reporter_lower} and \code{tmt_reporter_upper}.}
 
 \item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values

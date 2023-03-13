@@ -12,13 +12,13 @@ calc_probi_byvmods(
   N,
   type_ms2ions = "by",
   topn_ms2ions = 100L,
-  ppm_ms2 = 25L,
+  ppm_ms2 = 20L,
   soft_secions = FALSE,
   burn_ins = c(1:2),
   min_ms2mass = 115L,
   d2 = 1e-05,
   index_mgf_ms2 = FALSE,
-  digits = 5L
+  digits = 4L
 )
 }
 \arguments{

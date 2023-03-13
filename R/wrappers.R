@@ -72,7 +72,7 @@ matchMS_NES <- function (...)
   do.call(matchMS, c(list(enzyme = "noenzyme", 
                           # bypass old matchMS_noenzyme
                           bypass_noenzyme = TRUE, 
-                          # call add_prot_acc at enzyme = "noenzyme"
+                          # call add_protacc at enzyme = "noenzyme"
                           direct_prot_acc = TRUE), 
                      args))
 }

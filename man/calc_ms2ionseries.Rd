@@ -14,7 +14,7 @@ calc_ms2ionseries(
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 32L,
-  digits = 5L
+  digits = 4L
 )
 }
 \arguments{

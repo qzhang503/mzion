@@ -7,7 +7,7 @@
 bin_theoseqs(
   peps = NULL,
   out_nm = NULL,
-  min_mass = 700L,
+  min_mass = 200L,
   max_mass = 4500L,
   ppm_ms1 = 10L
 )

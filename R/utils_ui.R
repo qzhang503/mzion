@@ -139,7 +139,7 @@ calc_monopep <- function (aa_seq, aa_masses,
                           maxn_sites_per_vmod = 3L,
                           min_mass = 200L, 
                           max_mass = 4500L, 
-                          digits = 5L) 
+                          digits = 4L) 
 {
   if (is.na(aa_seq)) return(NULL)
   
@@ -367,7 +367,7 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
                                maxn_vmods_per_pep = 5L, 
                                maxn_sites_per_vmod = 3L, 
                                maxn_vmods_sitescombi_per_pep = 32L, 
-                               digits = 5L) 
+                               digits = 4L) 
 {
   options(digits = 9L)
   
@@ -440,7 +440,7 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
 calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL, 
                           type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                           maxn_sites_per_vmod = 3L, 
-                          maxn_vmods_sitescombi_per_pep = 64L, digits = 5L) 
+                          maxn_vmods_sitescombi_per_pep = 64L, digits = 4L) 
 {
   # tmt6_mass <- 229.162932
   # tmtpro_mass <- 304.207146
@@ -732,7 +732,7 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
                            maxn_sites_per_vmod = 3L,
                            .ms1_vmodsets = NULL, 
                            .base_ent = NULL, 
-                           digits = 5L) 
+                           digits = 4L) 
 {
   # (6) "amods- tmod- vnl- fnl+"
   if (!length(amods)) 
@@ -789,7 +789,7 @@ vmods_elements <- function (aas,
                             maxn_sites_per_vmod = 3L,
                             .ms1_vmodsets = NULL, 
                             .base_ent = NULL, 
-                            digits = 5L) 
+                            digits = 4L) 
 {
   residue <- residue_mods[[1]]
   

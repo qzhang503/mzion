@@ -64,12 +64,12 @@ calc_pepmasses2 <- function (aa_masses = NULL,
   enzyme = c("trypsin_p"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
   noenzyme_maxn = 0L, 
-  maxn_fasta_seqs = 50000L,
+  maxn_fasta_seqs = 200000L,
   maxn_vmods_setscombi = 64L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   min_len = 7L, max_len = 40L, max_miss = 2L,
-  min_mass = 700L, max_mass = 4500L, 
+  min_mass = 200L, max_mass = 4500L, 
   n_13c = 0L,
   out_path = NULL,
   digits = 4L,
@@ -102,7 +102,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
   #     removes terminal tags of "-"
   # (4) hsemipeps_byprots:
   #     semi-enzyme only
-  # (5) tbl_prots_peps:
+  # (5) simple_prots_peps:
   #     records/sets aside the peptide-and-protein associations
   # (6) flat_pepseqs:
   #     removes the information of protein
@@ -331,6 +331,9 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     # --- Semi-enzymatic and distribution ---
     # Note 1-to-n expansion: 
     #   `length(fwd_peps) == length(aa_masses_all)` after the step.
+    # Note 1-to-n expansion: 
+    #   `length(fwd_peps) == length(aa_masses_all)` after the step.
+    # n_cores = 4L at noenzyme and 16L otherwise
     n_cores <- detect_cores(16L)
     
     if (isTRUE(enzyme == "noenzyme"))
@@ -367,8 +370,14 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     # (b) Distribution
     message("Distributing peptides by variable modifications.")
     motifs_all <- lapply(aa_masses_all, find_motif_pat)
-    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     
+    # maybe at noenzyme searches: 
+    #  flatten_list(fwd_peps)
+    #  n_cores2 <- min(16L, n_cores * 2L)
+    #  chunksplit(fwd_peps, n_cores2)
+    #  makeCluster(n_cores2)
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+
     parallel::clusterExport(
       cl,
       c("distri_peps", 
@@ -400,7 +409,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
       fwd_peps_i <- lapply(fwd_peps, `[[`, i)
       
       # combines i-th results across nodes
-      purrr::flatten(fwd_peps_i)
+      flatten_list(fwd_peps_i)
     })
     
     message("\tCompleted bare peptides distributions.")
@@ -408,13 +417,43 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     gc()
 
     # (c) Protein-peptide associations
-    tbl_prots_peps(fwd_peps[[1]], file.path(.path_ms1masses, .time_stamp))
+    message("Summarizing the association of proteins and peptides.")
+    
+    path_prp <- create_dir(file.path(.path_ms1masses, .time_stamp))
+    
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    
+    parallel::clusterExport(cl, c("simple_prots_peps"), 
+                            envir = environment(proteoM:::simple_prots_peps))
+                            
+    
+    prps <- parallel::clusterApply(
+      cl, 
+      chunksplit(fwd_peps[[1]], n_cores * 4L), 
+      simple_prots_peps)
+    
+    parallel::stopCluster(cl)
     gc()
     
+    prps_fwd <- lapply(prps, `[[`, "fwd")
+    prps_rev <- lapply(prps, `[[`, "rev")
+    rm(list = "prps")
+    gc()
+    
+    prps_fwd <- flatten_list(prps_fwd)
+    prps_rev <- flatten_list(prps_rev)
+
+    qs::qsave(prps_fwd, file.path(path_prp, "simple_prot_pep.rds"), preset = "fast")
+    qs::qsave(prps_rev, file.path(path_prp, "simple_prot_pep_rev.rds"), preset = "fast")
+    rm(list = c("prps_fwd", "prps_rev"))
+    gc()
+    
+
     # (d) Flattened peptide lists (prot_acc's removed)
     fwd_peps <- lapply(fwd_peps, flat_pepseqs)
     gc()
-
+    
+    
     # (e) Adjusted base masses if with fixed-to-variable coercion
     # fwd_peps[[1]] ties to the original user-supplied fixed and variable mods;
     #   adjusted against all of the coerced N-, C-term and Anywhere sites
@@ -680,8 +719,8 @@ calc_pepmasses2 <- function (aa_masses = NULL,
 #'
 #' @inheritParams calc_pepmasses2
 find_aa_masses <- function(aa_masses = NULL, out_path = NULL, fixedmods = NULL, 
-                           varmods = NULL, varlabs = NULL, 
-                           mod_motifs = NULL, maxn_vmods_setscombi = 64L) 
+                           varmods = NULL, varlabs = NULL, mod_motifs = NULL, 
+                           maxn_vmods_setscombi = 64L) 
 {
   file <- file.path(out_path, "aa_masses_all.rds")
   
@@ -722,7 +761,7 @@ find_motif_pat <- function (aa_masses)
 }
 
 
-#' A lookup table between prot_acc and pep_seqs.
+#' A lookup between prot_acc and pep_seqs.
 #'
 #' For both target and decoy peptides.
 #'
@@ -733,78 +772,36 @@ find_motif_pat <- function (aa_masses)
 #' protein accessions, with the match to NP_002261 being inconsistent.
 #'
 #' @param seqs Results from \link{distri_peps}.
-#' @param path A file path.
 #' @examples
 #' \donttest{
 #' # library(proteoM)
-#' # proteoM:::tbl_prots_peps(fwd_peps[[1]])
+#' # proteoM:::simple_prots_peps(fwd_peps[[1]])
 #' }
-tbl_prots_peps <- function (seqs, path) 
+simple_prots_peps <- function (seqs) 
 {
-  message("Tabling the association of proteins and peptides.")
-  
-  path <- create_dir(path)
-  
+  nms <- lapply(seqs, names)
   pnt_idxes <- lapply(seqs, attr, "pnt_idxes", exact = TRUE)
   pct_idxes <- lapply(seqs, attr, "pct_idxes", exact = TRUE)
   
-  seqs <- lapply(seqs, names)
-  lens <- lapply(seqs, length)
+  # efficient to remove duplicated peptides within a protein by "sub_protpep"
+  # on the contrary, not to remove duplicated sequences within proteins: 
+  #   otherwise pnt_idxes, pct_idxes and dup_idxes will be different
   
-  # Protein [NC]-term
-  len <- length(seqs)
-  cts <- nts <- vector("list", len)
+  # dups <- lapply(nms, duplicated.default)
+  # dups <- lapply(dups, which)
   
-  for (i in seq_len(len)) {
-    seq_i <- seqs[[i]]
-    pnt_i <- pnt_idxes[[i]]
-    pct_i <- pct_idxes[[i]]
-    ci <- ni <- rep(FALSE, lens[[i]])
-    ni[pnt_i] <- TRUE
-    ci[pct_i] <- TRUE
-    
-    nts[[i]] <- ni
-    cts[[i]] <- ci
-  }
+  ans <- mapply(function (nm, pnt, pct) {
+    attr(nm, "pnt_idxes") <- pnt
+    attr(nm, "pct_idxes") <- pct
+    nm
+  }, nms, pnt_idxes, pct_idxes, 
+  SIMPLIFY = FALSE, USE.NAMES = TRUE)
   
-  rm(list = c("seq_i", "pnt_i", "pct_i", "ni", "ci"))
+  # need no attributes for the reversed since identical to those in the forward
+  rev_ans <- lapply(ans, reverse_seqs)
+  names(rev_ans) <- paste0("-", names(ans))
   
-  nts <- .Internal(unlist(nts, recursive = FALSE, use.names = FALSE))
-  cts <- .Internal(unlist(cts, recursive = FALSE, use.names = FALSE))
-  
-  # Duplicated sequences within proteins
-  dups <- lapply(seqs, duplicated.default)
-  dups <- .Internal(unlist(dups, recursive = FALSE, use.names = FALSE))
-
-  # prot_accs
-  nms <- mapply(function (x, y) rep(x, y), 
-                names(seqs), lens,
-                SIMPLIFY = FALSE, USE.NAMES = FALSE) 
-  
-  nms <- .Internal(unlist(nms, recursive = FALSE, use.names = FALSE))
-  
-  # pep_seqs
-  seqs <- unlist(seqs, recursive = FALSE, use.names = FALSE)
-  
-  ans <- data.frame(pep_seq = seqs, 
-                    prot_acc = nms, 
-                    is_pnt = nts, 
-                    is_pct = cts, 
-                    is_unique = !dups)
-  
-  # removals of duplicated sequences
-  ans <- ans[with(ans, is_unique), ]
-  ans$is_unique <- NULL
-  
-  ## Should be all clean after `distri_peps`
-  # if (enzyme == "noenzyme") ans$pep_seq <- with(ans, gsub("-", "", pep_seq))
-  
-  qs::qsave(ans, file.path(path, "prot_pep_annots.rds"), 
-            preset = "fast")
-  qs::qsave(reverse_peps_in_frame(ans), file.path(path, "prot_pep_annots_rev.rds"), 
-            preset = "fast")
-  
-  invisible(NULL)
+  invisible(list(fwd = ans, rev = rev_ans))
 }
 
 
@@ -813,7 +810,7 @@ tbl_prots_peps <- function (seqs, path)
 #' @param x Lists of pep_seqs by prot_accs.
 flat_pepseqs <- function (x) 
 {
-  x <- purrr::flatten(x)
+  x <- flatten_list(x)
   x <- .Internal(unlist(x, recursive = FALSE, use.names = TRUE))
   
   x[!duplicated.default(names(x))]
@@ -965,10 +962,8 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
                                        "Oxidation (M)",
                                        "Deamidated (N)",
                                        "Gln->pyro-Glu (N-term = Q)"),
-                           aa_masses = NULL, 
-                           varlabs = NULL, mod_motifs = NULL, 
-                           maxn_vmods_setscombi = 64L,
-                           out_path = NULL) 
+                           aa_masses = NULL, varlabs = NULL, mod_motifs = NULL, 
+                           maxn_vmods_setscombi = 64L, out_path = NULL) 
 {
   # title (position = site);
   # . stands for (a) anywhere in position or (b) any residue in site or both
@@ -1098,7 +1093,8 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
 #' @param aa_masses_i The i-th aa_masses_all.
 #' @param aa_masses The original look-ups of AA masses.
 #' @inheritParams matchMS
-finalize_aamasses <- function (aa_masses_i, aa_masses, varlabs = NULL, mod_motifs = NULL)
+finalize_aamasses <- function (aa_masses_i, aa_masses, varlabs = NULL, 
+                               mod_motifs = NULL)
 {
   fixedmods <- names(attr(aa_masses_i, "fmods_ps", exact = TRUE))
   varmods <- names(attr(aa_masses_i, "vmods_ps", exact = TRUE))
@@ -1129,15 +1125,13 @@ finalize_aamasses <- function (aa_masses_i, aa_masses, varlabs = NULL, mod_motif
 }
 
 
-
 #' Saves mod_indexes.txt
 #' 
 #' @param out_path An output path
 #' @param fixedmods Fixed modifications
 #' @param varmods Variable modifications
 #' @param f_to_v Coerced fixed to variable modifications
-save_mod_indexes <- function (out_path = NULL, fixedmods, varmods, 
-                              f_to_v)
+save_mod_indexes <- function (out_path = NULL, fixedmods, varmods, f_to_v)
 {
   if (is.null(out_path))
     return(NULL)
@@ -1902,6 +1896,9 @@ parse_aamasses <- function (aa_masses)
 #'
 #' Prior to the calculation of peptide masses; for the base with fixed
 #' modification only.
+#' 
+#' Each entry in the outputs contains two lists: 1. terminal sequences without
+#' N-term methionine; 2. all sequences without methionine clipping.
 #'
 #' @inheritParams calc_pepmasses2
 #' @importFrom stringi stri_reverse
@@ -1924,6 +1921,7 @@ split_fastaseqs <- function (fasta = NULL, enzyme = "trypsin_p",
     stop("More than `", maxn_fasta_seqs, "` sequences in fasta files.\n",
          "  May consider a higher `maxn_fasta_seqs`.")
   
+  # slower with more cores
   n_cores <- detect_cores(16L)
 
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
@@ -1939,13 +1937,12 @@ split_fastaseqs <- function (fasta = NULL, enzyme = "trypsin_p",
 
   peps <- parallel::clusterApply(cl, chunksplit(fasta_db, n_cores), 
                                  make_fastapeps0, 
-                                 enzyme, custom_enzyme, max_miss) %>%
-    purrr::flatten()
-
+                                 enzyme, custom_enzyme, max_miss)
+  
   parallel::stopCluster(cl)
   
-  rm(list = c("fasta_db"))
-  gc()
+  # each peps has two lists
+  peps <- flatten_list(peps)
 
   invisible(peps)
 }
@@ -2147,9 +2144,16 @@ split_fastaseqs_noenz <- function (fasta = NULL, acc_type = "uniprot_acc",
   
   if (length(fasta_db) > maxn_fasta_seqs) 
     stop("More than `", maxn_fasta_seqs, "` sequences in fasta files.\n",
-         "  May consider a higher `maxn_fasta_seqs`.")
+         "  Consider a higher `maxn_fasta_seqs`.")
+  
+  message("Splitting fasta sequences.")
+  
+  # n_cores <= 64L, n_chunks = n_cores^2, LB = F: time = 15'22
+  # n_cores <= 16L, n_chunks = n_cores^2, LB = F: time = 16'33
+  # n_cores <= 64L, n_chunks = n_cores^2, LB = T: time = 15'08
+  # n_cores <= 64L, n_chunks = n_cores  , LB = T: time = 16'49
 
-  n_cores <- detect_cores(16L)
+  n_cores <- detect_cores(64L)
   
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
   
@@ -2161,17 +2165,18 @@ split_fastaseqs_noenz <- function (fasta = NULL, acc_type = "uniprot_acc",
       "ms1masses_bare_noenz"), 
     envir = environment(proteoM:::make_noenzpeps))
   
-  message("Splitting fasta sequences.")
-  
   peps <- parallel::clusterApply(cl, chunksplit(fasta_db, n_cores), 
                                  mmake_noenzpeps, 
                                  min_len = min_len, 
                                  max_len = max_len, 
                                  aa_masses = aa_masses, 
                                  ftmass = ftmass) 
-  peps <- purrr::flatten(peps)
   
   parallel::stopCluster(cl)
+
+  peps <- flatten_list(peps)
+  
+  message("Completed at: ", Sys.time())
   
   invisible(peps)
 }
@@ -2302,12 +2307,13 @@ hmake_noenzpeps <- function (start = 1L, prot = NULL, min_len = 7L, max_len = 40
   end_la <- min(max_len + start - 1L, len)
   ends <- end_fi:end_la
   
-  peps <- substring(prot, start, ends)
+  peps <- .Internal(substr(rep_len(prot, length.out = length(ends)), start, ends))
   masses <- ms1masses_bare_noenz(peps, aa_masses, ftmass)
-
+  
   if (end_la == len) {
     len_a <- length(peps)
-    names(masses)[len_a] <- paste0(peps[len_a], "-")
+    names(masses)[len_a] <- 
+      .Internal(paste0(list(peps[len_a], "-"), collapse = NULL, recycle0 = FALSE))
   }
   
   masses
@@ -2418,8 +2424,7 @@ str_exclude_count <- function (x, char = "-")
 #' @param n The number of beginning entries to be considered.Should be \code{n =
 #'   (max_miss + 1L) * 2L}.
 #' @inheritParams matchMS
-rm_char_in_nfirst <- function (x, char = "-", n = 6L, 
-                               max_len = 40L) 
+rm_char_in_nfirst <- function (x, char = "-", n = 6L, max_len = 40L) 
 {
   nms <- names(x)
   len <- length(nms)
@@ -2493,7 +2498,7 @@ rm_char_in_nlast <- function (x, char = "-", n = 6L)
 #'   of fixed to variable modification.
 #' @inheritParams matchMS
 adj_base_masses <- function (fwd_peps_1, aa_masses_0, aa_masses_1, 
-                             min_mass = 700L, max_mass = 4500L, digits = 4L)
+                             min_mass = 200L, max_mass = 4500L, digits = 4L)
 {
   nt_coerce_site <- attr(aa_masses_0, "nt_coerce_site", exact = TRUE)
   ct_coerce_site <- attr(aa_masses_0, "ct_coerce_site", exact = TRUE)
@@ -2597,7 +2602,7 @@ adj_anywhere_masses <- function (peps, aa_masses)
 #' @inheritParams add_var_masses
 #' @inheritParams distri_peps
 #' @inheritParams matchMS
-add_term_mass <- function (peps, aa_masses, min_mass = 700L, max_mass = 4500L) 
+add_term_mass <- function (peps, aa_masses, min_mass = 200L, max_mass = 4500L) 
 {
   type <- attr(aa_masses, "type", exact = TRUE)
   
@@ -2653,7 +2658,7 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
   data_2 <- attr(data_2, "data")
 
   # (2) rolling sum (not yet terminal masses, e.g, H2O)
-  n_cores <- detect_cores(16L)
+  n_cores <- detect_cores(64L)
   
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
@@ -2669,7 +2674,7 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
     include_cts = FALSE
   ) 
   
-  ms_1 <- purrr::flatten(ms_1)
+  ms_1 <- flatten_list(ms_1)
 
   if (is_fixed_protnt) {
     ms_2 <- parallel::clusterApply(
@@ -2681,7 +2686,7 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
       include_cts = FALSE
     ) 
     
-    ms_2 <- purrr::flatten(ms_2)
+    ms_2 <- flatten_list(ms_2)
   } 
   else {
     ms_2 <- parallel::clusterApply(
@@ -2693,7 +2698,7 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
       include_cts = TRUE
     ) 
     
-    ms_2 <- purrr::flatten(ms_2)
+    ms_2 <- flatten_list(ms_2)
   }
   
   parallel::stopCluster(cl)
@@ -2785,7 +2790,7 @@ ms1masses_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L,
   
   parallel::stopCluster(cl)
   
-  out <- purrr::flatten(out)
+  out <- flatten_list(out)
 
   attr(aa_masses, "data") <- out
 
@@ -3235,7 +3240,7 @@ delta_ms1_a0_fnl1 <- function (fnl_combi, aas, aa_masses)
 #' @inheritParams matchMS
 #' @inheritParams add_var_masses
 hms1_a0_vnl0_fnl1 <- function (masses, fnl_combi, aa_masses, 
-                               min_mass = 700, max_mass = 4500L, digits = 4L) 
+                               min_mass = 200L, max_mass = 4500L, digits = 4L) 
 {
   mapply(ms1_a0_vnl0_fnl1, 
          masses, names(masses), 
@@ -3259,7 +3264,7 @@ hms1_a0_vnl0_fnl1 <- function (masses, fnl_combi, aa_masses,
 #' @inheritParams hms1_a0_vnl0_fnl1
 #' @importFrom stringr str_split
 ms1_a0_vnl0_fnl1 <- function (mass, aa_seq, fnl_combi, aa_masses, 
-                              min_mass = 700, max_mass = 4500L,digits = 4L) 
+                              min_mass = 200L, max_mass = 4500L,digits = 4L) 
 {
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
                             useBytes = FALSE))
@@ -3287,7 +3292,7 @@ ms1_a0_vnl0_fnl1 <- function (mass, aa_seq, fnl_combi, aa_masses,
 hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
                                vmods_nl = NULL, fmods_nl = NULL,
                                maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
-                               ms1vmods = NULL, min_mass = 700L, max_mass = 4500L, 
+                               ms1vmods = NULL, min_mass = 200L, max_mass = 4500L, 
                                digits = 4L) 
 {
   mapply(ms1_a1_vnl0_fnl0, 
@@ -3406,7 +3411,7 @@ ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
                               maxn_vmods_per_pep = 5L,
                               maxn_sites_per_vmod = 3L,
                               ms1vmods = NULL, 
-                              min_mass = 700L, max_mass = 4500L, 
+                              min_mass = 200L, max_mass = 4500L, 
                               digits = 4L) 
 {
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))

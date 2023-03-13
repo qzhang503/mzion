@@ -8,7 +8,7 @@ hms1_a0_vnl0_fnl1(
   masses,
   fnl_combi,
   aa_masses,
-  min_mass = 700,
+  min_mass = 200L,
   max_mass = 4500L,
   digits = 4L
 )

@@ -4,7 +4,7 @@
 \alias{add_term_mass}
 \title{Helper in calculating peptide masses.}
 \usage{
-add_term_mass(peps, aa_masses, min_mass = 700L, max_mass = 4500L)
+add_term_mass(peps, aa_masses, min_mass = 200L, max_mass = 4500L)
 }
 \arguments{
 \item{peps}{A list of peptide sequences.}

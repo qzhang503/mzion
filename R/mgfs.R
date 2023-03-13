@@ -11,7 +11,7 @@
 #' @param mgf_cutpercs The counts of MS2 features in each region of
 #'   \code{mgf_cutmzs}.
 #' @inheritParams matchMS
-load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L, 
+load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L, 
                        min_ms2mass = 115L, max_ms2mass = 4500L, topn_ms2ions = 100L, 
                        min_ms1_charge = 2L, max_ms1_charge = 6L, 
                        min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
@@ -21,7 +21,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
                        exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
                        is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
-                       enzyme = "trypsin_p", quant = "none", digits = 5L) 
+                       enzyme = "trypsin_p", quant = "none", digits = 4L) 
 {
   old_opts <- options()
   options(warn = 1L)
@@ -177,7 +177,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 700L, max_mass = 4500L,
 #' @import readr
 #' @import fs
 readMGF <- function (filepath = NULL, filelist = NULL, 
-                     min_mass = 700L, max_mass = 4500L, 
+                     min_mass = 200L, max_mass = 4500L, 
                      min_ms2mass = 115L, max_ms2mass = 4500L, 
                      topn_ms2ions = 100L, quant = "none", 
                      ms1_charge_range = c(2L, 6L), 
@@ -189,7 +189,7 @@ readMGF <- function (filepath = NULL, filelist = NULL,
                      index_mgf_ms2 = FALSE, 
                      mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                      out_path = file.path(filepath, "mgf_queries.rds"), 
-                     digits = 5L) 
+                     digits = 4L) 
 {
   ## Parsing rules
   pat_mgf <- find_mgf_type(file.path(filepath, filelist[[1]]))
@@ -427,7 +427,7 @@ readlineMGFs <- function (i, file, filepath, raw_file)
 read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                              topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
-                             ret_range = c(0, Inf), min_mass = 700L, 
+                             ret_range = c(0, Inf), min_mass = 200L, 
                              max_mass = 4500L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                              min_ms2mass = 115L, max_ms2mass = 4500L, 
                              mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
@@ -439,7 +439,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                              raw_file = NULL, 
                              tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                              exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
-                             quant = "none", digits = 5L) 
+                             quant = "none", digits = 4L) 
 {
   filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
   len <- length(filelist)
@@ -602,7 +602,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
 proc_mgf_chunks <- function (file, topn_ms2ions = 100L, 
                              ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
-                             ret_range = c(0, Inf), min_mass = 700L, 
+                             ret_range = c(0, Inf), min_mass = 200L, 
                              max_mass = 4500L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                              min_ms2mass = 115L, max_ms2mass = 4500L, 
                              mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
@@ -616,7 +616,7 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                              tmt_reporter_upper = 135.2, 
                              exclude_reporter_region = FALSE, 
                              index_mgf_ms2 = FALSE, 
-                             quant = "none", digits = 5L) 
+                             quant = "none", digits = 4L) 
 {
   message("Parsing '", file, "'.")
   lines <- stringi::stri_read_lines(file)
@@ -693,7 +693,7 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
 proc_mgfs <- function (lines, topn_ms2ions = 100L, 
                        ms1_charge_range = c(2L, 6L), 
                        ms1_scan_range = c(1L, .Machine$integer.max), 
-                       ret_range = c(0, Inf), min_mass = 700L, max_mass = 4500L, 
+                       ret_range = c(0, Inf), min_mass = 200L, max_mass = 4500L, 
                        ppm_ms1 = 10L, ppm_ms2 = 10L, 
                        min_ms2mass = 115L, max_ms2mass = 4500L, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
@@ -1302,7 +1302,7 @@ find_mgf_type <- function (file)
 #'
 #' @inheritParams readMGF
 readmzML <- function (filepath = NULL, filelist = NULL, 
-                      min_mass = 700L, max_mass = 4500L, 
+                      min_mass = 200L, max_mass = 4500L, 
                       min_ms2mass = 115L, max_ms2mass = 4500L, 
                       topn_ms2ions = 100L, quant = "none", 
                       ms1_charge_range = c(2L, 6L), 

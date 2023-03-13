@@ -107,6 +107,10 @@
 #'   custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
 #'   "([^P]\{1\})([KR]\{1\})")
 #'
+#' @param use_nontryptic_fdr Logical; if TRUE, use only peptide sequences not
+#'   ending with C-terminal K or R in peptide FDR estimates. The argument only
+#'   affects searches at \code{enzyme = noenzyme}. The default is FALSE. May
+#'   consider TRUE, which may lead to more hits of non-tryptic sequences.
 #' @param noenzyme_maxn Non-negative integer; the maximum number of peptide
 #'   lengths for sectional searches at \code{noenzyme} specificity. The argument
 #'   may be used to guard against RAM exhaustion. At the zero default, The
@@ -196,8 +200,8 @@
 #'   for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
 #'   not part of the threshold.
 #' @param exclude_reporter_region Logical; if TRUE, excludes MS2 ions in the
-#'   region of TMT reporter ions. The default is FALSE. The argument affects only
-#'   TMT data. The range of TMT reporter ions is given by
+#'   region of TMT reporter ions. The default is FALSE. The argument affects
+#'   only TMT data. The range of TMT reporter ions is given by
 #'   \code{tmt_reporter_lower} and \code{tmt_reporter_upper}.
 #' @param tmt_reporter_lower The lower bound of the region of TMT reporter ions.
 #'   The default is \eqn{126.1}.
@@ -363,6 +367,10 @@
 #'   the use of default is suggested. Occasionally experimenters may remove the
 #'   file folder for disk space or under infrequent events of modified framework
 #'   incurred by the developer.
+#'
+#'   Started from version 1.2.1.5, a new data structure of protein-peptide
+#'   lookups are used. Version 1.2.1.4.1 is the final version using the old data
+#'   structure.
 #' @param .path_fasta The parent file path to the theoretical masses of MS1
 #'   precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
 #'   "\\1", get("fasta", envir = environment())[1])}. The parameter is for the
@@ -612,6 +620,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                                 "SemiGluN", "SemiAspC", "SemiAspN", "Noenzyme", 
                                 "Nodigest"),
                      custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
+                     use_nontryptic_fdr = FALSE, 
                      noenzyme_maxn = 0L, 
                      maxn_fasta_seqs = 200000L,
                      maxn_vmods_setscombi = 512L,
@@ -653,7 +662,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 60000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/proteoM/.MSearches (1.1.9.5)/Cache/Calls", 
+                     .path_cache = "~/proteoM/.MSearches (1.2.1.5)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,
@@ -680,6 +689,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
     },
     add = TRUE
   )
+  
+  message("Started at: ", Sys.time())
   
   this_call <- match.call()
   fun <- as.character(this_call[1])
@@ -1273,6 +1284,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                             max_len = max_len, 
                             max_pepscores_co = max_pepscores_co, 
                             min_pepscores_co = min_pepscores_co, 
+                            enzyme = enzyme, 
+                            use_nontryptic_fdr = use_nontryptic_fdr, 
                             out_path = out_path)
     
     post_pepfdr(prob_cos, out_path)
@@ -1300,24 +1313,24 @@ matchMS <- function (out_path = "~/proteoM/outs",
     return(NULL)
   
   if (enzyme != "noenzyme" || isTRUE(dots[["direct_prot_acc"]])) {
-    df <- add_prot_acc(out_path = out_path, 
-                       .path_cache = .path_cache, 
-                       .path_fasta = .path_fasta)
+    df <- add_protacc(out_path = out_path, 
+                      .path_cache = .path_cache, 
+                      .path_fasta = .path_fasta)
   }
   else {
     silac_noenzyme <- if (isTRUE(dots$silac_noenzyme)) TRUE else FALSE
     
     if (silac_noenzyme) {
       # see matchMS_noenzyme for nested silac under noenzyme
-      df <- add_prot_acc(out_path = out_path, 
-                         .path_cache = .path_cache, 
-                         .path_fasta = .path_fasta)
+      df <- add_protacc(out_path = out_path, 
+                        .path_cache = .path_cache, 
+                        .path_fasta = .path_fasta)
     }
     else {
       # with multiple subdirs (length ranges)
-      df <- add_prot_acc2(out_path = out_path, 
-                          .path_cache = .path_cache, 
-                          .path_fasta = .path_fasta)
+      df <- add_protacc2(out_path = out_path, 
+                         .path_cache = .path_cache, 
+                         .path_fasta = .path_fasta)
     }
     
     rm(list = "silac_noenzyme")
@@ -1395,6 +1408,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                    fdr_type = fdr_type, 
                    combine_tier_three = combine_tier_three, 
                    max_n_prots = max_n_prots)
+  
+  message("Completed at: ", Sys.time())
   
   .savecall <- TRUE
 

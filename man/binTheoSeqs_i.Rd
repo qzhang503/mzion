@@ -6,7 +6,7 @@
 \usage{
 binTheoSeqs_i(
   idx = 1L,
-  min_mass = 700L,
+  min_mass = 200L,
   max_mass = 4500L,
   ppm_ms1 = 10L,
   in_path = NULL,
