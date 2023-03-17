@@ -338,7 +338,8 @@ levels of PSM, peptide or protein. The default is 0.01. See also argument
 
 \item{fdr_group}{A character string; the modification group(s) for uses in
 peptide FDR controls. The value is in one of c("all", "base"). The
-\code{base} corresponds to the group of \emph{all-fixed} modifications.}
+\code{base} corresponds to the modification group with the largest number
+of matches.}
 
 \item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
 of peptide scores for discriminating significant and insignificant

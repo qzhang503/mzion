@@ -1456,10 +1456,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
                          max_pepscores_co = 50, min_pepscores_co = 0, 
                          enzyme = "trypsin_p", 
                          fdr_group = "all", 
-                         nes_fdr_group = c("all", "all_cterm_tryptic", 
-                                           "all_cterm_nontryptic", "base", 
-                                           "base_cterm_tryptic", 
-                                           "base_cterm_nontryptic"), 
+                         nes_fdr_group = "all", 
                          out_path) 
 {
   message("Calculating peptide FDR.")
@@ -1468,6 +1465,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   
   files <- list.files(path = file.path(out_path, "temp"), 
                       pattern = "^pepscores_", full.names = TRUE)
+  max_i <- which.max(file.size(files))[[1]]
   
   if (!length(files)) 
     stop("Score results not found.", call. = FALSE)
@@ -1489,22 +1487,22 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     else if (nes_fdr_group == "all_cterm_tryptic")
       td[grepl("[KR]$", td[["pep_seq"]]), ]
     else if (nes_fdr_group == "all_cterm_nontryptic")
-      td[!grepl("[KR]$", td[["pep_seq"]]), ] # also protein C-terminals
+      td[!grepl("[KR]$", td[["pep_seq"]]), ]
     else if (nes_fdr_group == "base")
-      td[td[["pep_mod_group"]] == 1L, ]
+      td[td[["pep_mod_group"]] == max_i, ]
     else if (nes_fdr_group == "base_cterm_tryptic")
-      td[td[["pep_mod_group"]] == 1L & grepl("[KR]$", td[["pep_seq"]]), ]
+      td[td[["pep_mod_group"]] == max_i & grepl("[KR]$", td[["pep_seq"]]), ]
     else if (nes_fdr_group == "base_cterm_nontryptic")
-      td[td[["pep_mod_group"]] == 1L & !grepl("[KR]$", td[["pep_seq"]]), ]
-    else 
+      td[td[["pep_mod_group"]] == max_i & !grepl("[KR]$", td[["pep_seq"]]), ]
+    else
       stop("Invalid argument for \"nes_fdr_group\".")
   }
   else {
     td <- if (fdr_group == "all")
       td
     else if (fdr_group == "base")
-      td[td[["pep_mod_group"]] == 1L, ]
-    else
+      td[td[["pep_mod_group"]] == max_i, ]
+    else 
       stop("Invalid argument for \"fdr_group\".")
   }
   

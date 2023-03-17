@@ -77,3 +77,38 @@ matchMS_NES <- function (...)
                      args))
 }
 
+
+#' Re-match MS at no enzymatic specificity.
+#' 
+#' Bypasses ion matches.
+#' 
+#' @param ... Variable arguments.
+#' @export
+rematchMS_NES <- function (...)
+{
+  args <- as.list(substitute(...()))
+  nms <- names(args)
+  oks <- nms != ""
+  
+  args <- args[oks]
+  nms <- nms[oks]
+  
+  if ("max_miss" %in% nms)
+    warning("Argument \"max_miss\" has no effect at no enzymatic specificity.")
+  
+  if ("enzyme" %in% nms && tolower(args[["enzyme"]]) != "noenzyme") {
+    warning("Changed setting to `enzyme = Noenzyme`.")
+    args["enzyme"] <- NULL
+  }
+  
+  do.call(matchMS, c(list(enzyme = "noenzyme", 
+                          # bypass old matchMS_noenzyme
+                          bypass_noenzyme = TRUE, 
+                          bypass_pepmasses = TRUE,
+                          bypass_bin_ms1 = TRUE,
+                          bypass_mgf = TRUE,
+                          bypass_ms2match = TRUE), 
+                     args))
+}
+
+

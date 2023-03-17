@@ -13,8 +13,7 @@ calc_pepfdr(
   min_pepscores_co = 0,
   enzyme = "trypsin_p",
   fdr_group = "all",
-  nes_fdr_group = c("all", "all_cterm_tryptic", "all_cterm_nontryptic", "base",
-    "base_cterm_tryptic", "base_cterm_nontryptic"),
+  nes_fdr_group = "all",
   out_path
 )
 }
@@ -44,7 +43,8 @@ default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
 
 \item{fdr_group}{A character string; the modification group(s) for uses in
 peptide FDR controls. The value is in one of c("all", "base"). The
-\code{base} corresponds to the group of \emph{all-fixed} modifications.}
+\code{base} corresponds to the modification group with the largest number
+of matches.}
 
 \item{nes_fdr_group}{A character string in one of \code{c("all",
 "all_cterm_tryptic", "all_cterm_nontryptic", "base", "base_cterm_tryptic",

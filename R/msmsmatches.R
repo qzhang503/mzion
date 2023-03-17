@@ -273,7 +273,8 @@
 #'   peptide} with the additional filtration of data at \code{prot_tier == 1}.
 #' @param fdr_group A character string; the modification group(s) for uses in
 #'   peptide FDR controls. The value is in one of c("all", "base"). The
-#'   \code{base} corresponds to the group of \emph{all-fixed} modifications.
+#'   \code{base} corresponds to the modification group with the largest number
+#'   of matches.
 #' @param max_pepscores_co A positive numeric; the upper limit in the cut-offs
 #'   of peptide scores for discriminating significant and insignificant
 #'   identities. The default is changed from \code{Inf} to 50 from version
