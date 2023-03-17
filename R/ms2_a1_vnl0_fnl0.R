@@ -18,10 +18,12 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
                                    min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
                                    df0 = NULL, digits = 4L) 
 {
-  tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
-  mgf_frames <- tempdata$mgf_frames
-  theopeps <- tempdata$theopeps
-  rm(list = c("tempdata"))
+  tempd <- purge_search_space(i, aa_masses = aa_masses, mgf_path = mgf_path, 
+                              n_cores = detect_cores(16L), ppm_ms1 = ppm_ms1)
+
+  mgf_frames <- tempd$mgf_frames
+  theopeps <- tempd$theopeps
+  rm(list = c("tempd"))
   
   if (!length(mgf_frames) || !length(theopeps)) {
     qs::qsave(df0, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")))
@@ -97,8 +99,7 @@ ms2match_a1_vnl0_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
   parallel::stopCluster(cl)
   
   out <- dplyr::bind_rows(out)
-  
-  out <- post_ms2match(out, i, aa_masses, out_path)
+  post_ms2match(out, i, aa_masses, out_path)
 }
 
 
@@ -243,12 +244,16 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
                                       mod_indexes = NULL, type_ms2ions = "by", 
                                       maxn_vmods_per_pep = 5L, 
                                       maxn_sites_per_vmod = 3L, 
+                                      
+                                      # dummy
+                                      maxn_fnl_per_seq = 64L, maxn_vnl_per_seq = 64L, 
+                                      
                                       maxn_vmods_sitescombi_per_pep = 64L, 
                                       digits = 4L) 
 {
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
-  aas2 <- aa_masses[aas]
+  aam <- aa_masses[aas]
   
   ms1vmods <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
   oks <- ms1vmods$inds
@@ -257,35 +262,31 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
   vmods_combi <- find_vmodscombi(aas = aas, ms2vmods = ms2vmods, 
                                  maxn_vmods_sitescombi_per_pep = 
                                    maxn_vmods_sitescombi_per_pep)
-
+  
   # filtered by `ms1_mass`; may be no match as
   # `idxes` may be beyond `maxn_vmods_sitescombi_per_pep`
   idxes <- check_ms1_mass_vmods2(vmods_combi = vmods_combi, 
-                                 aas2 = aas2, aa_masses = aa_masses, 
+                                 aam = aam, aa_masses = aa_masses, 
                                  ntmod = ntmod, ctmod = ctmod, 
                                  ms1_mass = ms1_mass)
   
-  if (!any(idxes)) 
-    return(NULL)
-  
   vmods_combi <- vmods_combi[idxes]
   
+  if (!length(vmods_combi))
+    return(NULL)
+  
   # outputs
-  len <- length(vmods_combi)
-  out <- vector("list", len)
+  af <- lapply(vmods_combi, calc_ms2ions_a1_vnl0_fnl0, 
+               aam = aam, 
+               aa_masses = aa_masses, 
+               ntmass = ntmass, 
+               ctmass = ctmass, 
+               type_ms2ions = type_ms2ions, 
+               digits = digits)
   
-  for (i in 1:len) 
-    out[[i]] <- calc_ms2ions_a1_vnl0_fnl0(vmods_combi = vmods_combi[[i]], 
-                                          aas2 = aas2, 
-                                          aa_masses = aa_masses, 
-                                          ntmass = ntmass, 
-                                          ctmass = ctmass, 
-                                          type_ms2ions = type_ms2ions, 
-                                          digits = digits)
-  
-  out <- add_hexcodes(out, vmods_combi, length(aas), mod_indexes)
-
-  invisible(out)
+  av <- lapply(af, calc_rev_ms2, aas)
+  names(av) <- NA_character_
+  c(add_hexcodes(af, vmods_combi, length(aas), mod_indexes), av)
 }
 
 
@@ -295,17 +296,15 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
 #' @inheritParams ms2ions_by_type
 #' @inheritParams add_var_masses
 #' @inheritParams ms2match_base
-calc_ms2ions_a1_vnl0_fnl0 <- function (vmods_combi, aas2, aa_masses, 
+calc_ms2ions_a1_vnl0_fnl0 <- function (vmods_combi, aam, aa_masses, 
                                        ntmass, ctmass, type_ms2ions = "by", 
                                        digits = 4L) 
 {
-  # mass delta
   delta <- aa_masses[vmods_combi]
+  idxes <- as.integer(names(vmods_combi))
+  aam[idxes] <- aam[idxes] + delta
   
-  idxes <- as.numeric(names(vmods_combi))
-  aas2[idxes] <- aas2[idxes] + delta
-  
-  ms2ions_by_type(aas2, ntmass, ctmass, type_ms2ions, digits)
+  ms2ions_by_type(aam, ntmass, ctmass, type_ms2ions, digits)
 }
 
 
@@ -325,7 +324,7 @@ calc_ms2ions_a1_vnl0_fnl0 <- function (vmods_combi, aas2, aa_masses,
 #' @inheritParams calc_ms2ions_a1_vnl0_fnl0
 #' @importFrom purrr is_empty
 #' @return A logical vector.
-check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod, 
+check_ms1_mass_vmods2 <- function (vmods_combi, aam, aa_masses, ntmod, ctmod, 
                                    ms1_mass, tol = 1e-3) 
 {
   len <- length(vmods_combi)
@@ -334,8 +333,8 @@ check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod,
     # (direct addition may be faster than introducing a new argument:
     # ftmass <- unname(aa_masses["N-term"] + aa_masses["C-term"]))
     
-    # bare <- sum(aas2) + 18.010565
-    bare <- sum(aas2) + aa_masses["N-term"] + aa_masses["C-term"]
+    # bare <- sum(aam) + 18.010565
+    bare <- sum(aam) + aa_masses["N-term"] + aa_masses["C-term"]
     
     len_n <- length(ntmod)
     len_c <- length(ctmod)
@@ -382,23 +381,23 @@ check_ms1_mass_vmods2 <- function (vmods_combi, aas2, aa_masses, ntmod, ctmod,
 #' @inheritParams ms2match
 add_hexcodes <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) 
 {
-  hex_mods = rep("0", len)
+  hexs <- rep("0", len)
   rows <- lapply(ms2ions, function (x) !is.null(x))
   rows <- .Internal(unlist(rows, recursive = FALSE, use.names = FALSE))
   
   vmods_combi <- vmods_combi[rows]
   ms2ions <- ms2ions[rows]
   
-  hex_mods2 <- lapply(vmods_combi, function (x) {
+  hexs2 <- lapply(vmods_combi, function (x) {
     idxes <- .Internal(unlist(x, recursive = FALSE, use.names = FALSE))
     nms <- names(x)
-    
-    hex_mods[as.numeric(nms)] <- mod_indexes[idxes]
-    hex_mods <- .Internal(paste0(list(hex_mods), collapse = "", recycle0 = FALSE))
+    hexs[as.integer(nms)] <- mod_indexes[idxes]
+    .Internal(paste0(list(hexs), collapse = "", recycle0 = FALSE))
   })
   
-  names(ms2ions) <- hex_mods2
+  names(ms2ions) <- hexs2
   
   invisible(ms2ions)
 }
+
 

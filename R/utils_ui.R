@@ -254,7 +254,7 @@ check_aaseq <- function (aa_seq, aa_masses_all, fixedmods, varmods)
     aa_seq <- paste0(aa_seq, "-")
   
   peps <- lapply(aa_masses_all, subpeps_by_vmods, aa_seq) %>%
-    purrr::flatten()
+    flatten_list()
   
   if (has_prot_nt) 
     peps <- purrr::map(peps, ~ gsub("^-", "", .x))
@@ -910,7 +910,7 @@ find_intercombi <- function (intra_combis, maxn_vmods_per_pep = 5L)
     
     # v_out <- lapply(v_out, function (x) x[1:min(length(x), maxn_vmods_per_pep)])
   } else {
-    v_out <- purrr::flatten(intra_combis)
+    v_out <- flatten_list(intra_combis)
   }
   
   invisible(v_out)

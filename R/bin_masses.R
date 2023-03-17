@@ -39,9 +39,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
   # checks pre-existed precursor masses
   .time_stamp <- get(".time_stamp", envir = .GlobalEnv, inherits = FALSE)
   .path_mass <- file.path(.path_ms1masses, .time_stamp)
-  
   masses <- list.files(path = .path_mass, pattern = paste0("^pepmasses_", "\\d+\\.rds$"))
-
   len_m <- length(masses)
   
   if (!len_m) 
@@ -172,6 +170,8 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
     
     qs::qsave(.cache_info, file, preset = "fast")
   })
+  
+  message("Completed precusor bins at: ", Sys.time())
   
   invisible(NULL)
 }

@@ -197,15 +197,12 @@ post_ms2match <- function (df, i, aa_masses, out_path)
 
   nm_fmods <- attr(aa_masses, "fmods", exact = TRUE)
   nm_vmods <- attr(aa_masses, "vmods", exact = TRUE)
-  is_decoy <- if (grepl("^rev", i)) TRUE else FALSE
 
   df <- df %>%
     dplyr::mutate(pep_fmod = nm_fmods,
                   pep_vmod = nm_vmods,
                   pep_mod_group = as.character(i), 
-                  scan_num = as.character(scan_num)) %>%
-    { if (is_decoy) dplyr::mutate(., pep_isdecoy = TRUE) else
-      dplyr::mutate(., pep_isdecoy = FALSE) }
+                  scan_num = as.character(scan_num))
 
   df %>%
     reloc_col_after("raw_file", "scan_num") %>%
@@ -213,6 +210,15 @@ post_ms2match <- function (df, i, aa_masses, out_path)
     qs::qsave(file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")), 
               preset = "fast")
 }
+
+
+#' Sums elements across lists.
+#'
+#' Each list has the same length. NA values are removed.
+#'
+#' @param x A numeric value.
+#' @param y A numeric value.
+`%+%` <- function(x, y) mapply(sum, x, y, MoreArgs = list(na.rm = TRUE))
 
 
 #' Post frame advancing.
@@ -224,8 +230,7 @@ post_ms2match <- function (df, i, aa_masses, out_path)
 #' @param mgf_frames Data of MGF frames.
 post_frame_adv <- function (res, mgf_frames) 
 {
-  res <- unlist(res, recursive = FALSE)
-
+  res  <- unlist(res, recursive = FALSE)
   lens <- lapply(res, length)
   lens <- unlist(lens, recursive = FALSE, use.names = FALSE)
   empties <- !lens
@@ -243,7 +248,8 @@ post_frame_adv <- function (res, mgf_frames)
 #' @inheritParams ms2match
 #' @inheritParams ms2match_base
 #' @inheritParams post_ms2match
-purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
+#' @importFrom fastmatch %fin% 
+purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L, 
                                 fmods_nl = NULL) 
 {
   # loads freshly mgfs (as will be modified)
@@ -258,7 +264,6 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
     labs   <- levels(cut(ranges, n_cores^2))
     lower  <- floor(as.numeric( sub("\\((.+),.*", "\\1", labs)))
     grps   <- findInterval(ranges, lower)
-
     split(mgf_frames, grps)
   })
 
@@ -276,12 +281,9 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
   .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
   theopeps  <- qs::qread(file.path(.path_bin, paste0("binned_theopeps_", i, ".rds")))
   
-  if (is.null(theopeps)) {
-    return(list(mgf_frames = mgf_frames, 
-                theopeps = NULL, 
-                theopeps2 = NULL))
-  }
-  
+  if (is.null(theopeps))
+    return(list(mgf_frames = mgf_frames, theopeps = NULL))
+
   theopeps <- lapply(theopeps, function (x) x[, c("pep_seq", "mass")])
 
   # (1) for a given aa_masses_all[[i]], some mgf_frames[[i]]
@@ -289,7 +291,7 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
   frames_theo <- names(theopeps)
   
   mgf_frames <- lapply(mgf_frames, function (x) {
-    oks <- names(x) %in% frames_theo
+    oks <- names(x) %fin% frames_theo
     x <- x[oks]
     
     empties <- purrr::map_lgl(x, purrr::is_empty)
@@ -302,14 +304,12 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
   #     preceding and following frames: (o)|range of mgf_frames[[1]]|(o)
   frames_mgf <- lapply(mgf_frames, function (x) as.integer(names(x)))
   
-  mins <- purrr::map_int(frames_mgf, function (x) {
-    if (length(x)) min(x, na.rm = TRUE) else 0L
-  })
-  
-  maxs <- purrr::map_int(frames_mgf, function (x) {
-    if (length(x)) max(x, na.rm = TRUE) else 0L
-  })
-  
+  mins <- purrr::map_int(frames_mgf, function (x) 
+    if (length(x)) min(x, na.rm = TRUE) else 0L)
+
+  maxs <- purrr::map_int(frames_mgf, function (x) 
+    if (length(x)) max(x, na.rm = TRUE) else 0L)
+
   frames_theo <- as.integer(names(theopeps))
   
   # separates into intervals
@@ -341,28 +341,6 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
   mgf_frames <- mgf_frames[seqs]
   theopeps <- theopeps[seqs]
   
-  if (FALSE) {
-    theopeps2 <- local({
-      .path_bin2 <- gsub("ms1masses/", "ms2masses/", .path_bin)
-      file <- file.path(.path_bin2, paste0("binned_ms2_", i, ".rds"))
-      
-      if (!file.exists(file))
-        return(NULL)
-      
-      tps2 <- qs::qread(file)
-      
-      frames <- lapply(theopeps, names)
-      frames <- lapply(frames, function (x) x[!is.na(x)])
-      
-      tps2 <- tps2[names(tps2) %in% unlist(frames)]
-      
-      # split by frames in accordance with theopeps
-      tps2 <- lapply(frames, function (x) tps2[names(tps2) %in% x])
-      
-      # lapply(tps2, hash_frame_nums)
-    })
-  }
-
   invisible(list(mgf_frames = mgf_frames, theopeps = theopeps))
 }
 
@@ -462,7 +440,11 @@ find_cterm_mass <- function (aa_masses)
 
 #' Right-joining of two data frames.
 #'
-#' Rows ordered by \code{y}, which is different to \link[dplyr]{right_join}.
+#' Not a general purpose utility. For simple circumstances that the number of
+#' rows in the output is equal to that in \code{y}, and can be use as an
+#' alternative to \link[dplyr]{right_join}.
+#' 
+#' Rows ordered by \code{y}, which is different to \link[dplyr]{right_join}. 
 #'
 #' @param x The left data frame (to be proliferated by rows).
 #' @param y The right data frame (the dominated one).
@@ -513,6 +495,10 @@ quick_rightjoin <- function (x, y, by = NULL)
 
 #' Left-joining of two data frames.
 #'
+#' Not a general purpose utility. For simple circumstances that the number of
+#' rows in the output is equal to that in \code{x}, and can be use as an
+#' alternative to \link[dplyr]{left_join}.
+#'
 #' @param x The left data frame.
 #' @param y The right data frame.
 #' @param by The key.
@@ -520,7 +506,7 @@ quick_rightjoin <- function (x, y, by = NULL)
 #' \donttest{
 #' library(proteoM)
 #' library(dplyr)
-#' 
+#'
 #' df1 <- data.frame(A = c("a", "b", "c"), B = c(1, 1, 1))
 #' df2 <- data.frame(A = c("a", "c", "d"), C = c(2, 2, "3"))
 #'
@@ -622,31 +608,6 @@ find_mod_indexes <- function (file)
 #' @param x A set.
 #' @param y Another set.
 is_equal_sets <- function(x, y) all(x %in% y) && all(y %in% x)
-
-
-#' Purges decoy pep_seq(s) that are also found in target fasta.
-#' 
-#' Decoy sequences may be present in targets and thus removed.
-#' 
-#' @param target A target data frame with column \code{pep_seq}.
-#' @param decoy A decoy data frame with column \code{pep_seq}.
-#' @examples 
-#' \donttest{
-#' target <- 
-#'   data.frame(pep_seq  = rep("RQEEELR", 3), 
-#'              prot_acc = c("NP_064522", "NP_997555", "NP_997553"))
-#' decoy  <- 
-#'   data.frame(pep_seq  = c(rep("RQEEELR", 4), "PEPTIDE"), 
-#'              prot_acc = c("-NP_001073379", "-NP_001157031", "-NP_796085", 
-#'                           "-NP_083410", "-NP_xxxxx"))
-#' 
-#' purge_decoys(decoy, target)
-#' }
-purge_decoys <- function (decoy, target) 
-{
-  mts <- fastmatch::fmatch(decoy[["pep_seq"]], target[["pep_seq"]])
-  decoy[is.na(mts), ]
-}
 
 
 #' Expands grids.
@@ -1021,6 +982,64 @@ flatten_list <- function (data, use_names = TRUE)
                                    use.names = FALSE))
 
   ans
+}
+
+
+#' Calculates the reversed MS2 from the forward
+#' 
+#' @param af An sequence of answer of the forward.
+#' @param l The number amino acid residues in a peptide.
+#' @param aas The sequence of amino acid residues.
+calc_rev_ms2 <- function (af, aas) {
+  l <- length(aas)
+  l1 <- l - 1L
+  l2 <- l - 2L
+  sb <- af[2:l1]
+  b <- c(af[1] + sb[l2] - sb[l2:1L], af[l1:l]) # 3.5 us
+  nb <- c(aas[1], aas[l1:2], aas[l]) # 2.2 us
+  names(b) <- nb
+  
+  ll <- l + l
+  l3 <- ll - 1L
+  sy <- af[(l+2L):l3]
+  y <- c(af[l+1L] + sy[l2] - sy[l2:1L], af[l3:ll]) # 3.5 us
+  names(y) <- nb[l:1L]
+  
+  c(b, y)
+}
+
+
+#' Binds data frames
+#'
+#' Assume identical column names across data frames. Also different to
+#' \link[dplyr]{bind_rows} by row names.
+#'
+#' @param dfs A list of data frames.
+bind_dfs <- function (dfs)
+{
+  nrs <- lapply(dfs, nrow)
+  oks <- nrs > 0L
+  dfs <- dfs[oks]
+  nrs <- nrs[oks]
+  
+  lens <- unlist(nrs)
+  tlen <- sum(lens)
+  lend <- length(dfs)
+  
+  if (tlen == 1L || lend == 1L)
+    return(dfs[[1]])
+  
+  cns <- colnames(dfs[[1]])
+  out <- data.frame(matrix(ncol = length(cns), nrow = tlen))
+  colnames(out) <- cns
+  
+  ends <- cumsum(lens)
+  stas <- c(1, ends + 1L)
+  
+  for (i in seq_along(dfs))
+    out[stas[[i]]:ends[[i]], ] <- dfs[[i]]
+
+  out
 }
 
 

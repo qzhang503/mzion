@@ -4,10 +4,10 @@
 \alias{ms2ions_by_type}
 \title{Helper: switches among ion types for calculating MS2 masses.}
 \usage{
-ms2ions_by_type(aas2, ntmass, ctmass, type_ms2ions = "by", digits = 4L)
+ms2ions_by_type(aam, ntmass, ctmass, type_ms2ions = "by", digits = 4L)
 }
 \arguments{
-\item{aas2}{A sequence of amino-acid residues with \emph{masses}. Residues
+\item{aam}{A sequence of amino-acid residues with \emph{masses}. Residues
 are in names and masses in values (note that argument \code{aas}
 corresponds to residues without masses).}
 

@@ -54,6 +54,6 @@ aa_masses <- aa_masses_all[[1]]
 aas <- LETTERS[LETTERS \%in\% names(aa_masses)]
 prot <- paste0(aas, collapse = "")
 len <- nchar(prot)
-masses <- proteoM:::hmake_noenzpeps(1, prot, 7, 40, len, aa_masses)
+masses <- proteoM:::hmake_noenzpeps(1L, prot, 7L, 40L, len, aa_masses)
 }
 }

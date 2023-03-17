@@ -365,7 +365,6 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
       sub_call$mgf_path <- mgf_path
       sub_call$bypass_noenzyme <- TRUE
       sub_call$bypass_from_pepscores <- TRUE
-      sub_call$use_first_rev <- TRUE
       sub_call$silac_noenzyme <- silac_noenzyme # silac + noenzyme
       
       ans <- tryCatch(eval(sub_call), error = function (e) NULL)

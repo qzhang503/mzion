@@ -28,10 +28,12 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
                            df0 = NULL, digits = 4L) 
 {
   # note: split into 16^2 lists
-  tempdata <- purge_search_space(i, aa_masses, mgf_path, detect_cores(16L), ppm_ms1)
-  mgf_frames <- tempdata$mgf_frames
-  theopeps <- tempdata$theopeps
-  rm(list = c("tempdata"))
+  tempd <- purge_search_space(i, aa_masses = aa_masses, mgf_path = mgf_path, 
+                              n_cores = detect_cores(16L), ppm_ms1 = ppm_ms1)
+  
+  mgf_frames <- tempd$mgf_frames
+  theopeps <- tempd$theopeps
+  rm(list = c("tempd"))
   gc()
   
   if (!length(mgf_frames) || !length(theopeps)) {
@@ -92,8 +94,7 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
   parallel::stopCluster(cl)
   
   out <- dplyr::bind_rows(out)
-  
-  out <- post_ms2match(out, i, aa_masses, out_path)
+  post_ms2match(out, i, aa_masses, out_path)
 }
 
 
@@ -124,8 +125,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
                         amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
                         mod_indexes = NULL, 
                         type_ms2ions = "by", 
-                        maxn_vmods_per_pep = 5L, 
-                        maxn_sites_per_vmod = 3L, 
+                        maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
+                        maxn_fnl_per_seq = 64L, maxn_vnl_per_seq = 64L, 
                         maxn_vmods_sitescombi_per_pep = 64L, 
                         minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                         min_ms2mass = 115L, index_mgf_ms2 = FALSE, digits = 4L, 
@@ -148,6 +149,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
   theopeps_cr_ms1 <- theos_cr_ms1$pep_seq
   theomasses_cr_ms1 <- theos_cr_ms1$mass
   
+  # generate both target and decoy MS2
   theos_bf_ms2 <- mapply(
     FUN, 
     aa_seq = theopeps_bf_ms1, 
@@ -165,12 +167,16 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       type_ms2ions = type_ms2ions, 
       maxn_vmods_per_pep = maxn_vmods_per_pep, 
       maxn_sites_per_vmod = maxn_sites_per_vmod, 
+      maxn_fnl_per_seq = maxn_fnl_per_seq, 
+      maxn_vnl_per_seq = maxn_vnl_per_seq, 
       maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
       digits = digits
     ), 
     SIMPLIFY = FALSE,
     USE.NAMES = FALSE
   )
+  # temporarily share peptide names between targets and decoys; 
+  # later is.na(pep_ivmod) -> decoys -> add "-" to prot_acc -> reverse sequence
   names(theos_bf_ms2) <- theopeps_bf_ms1
   
   theos_cr_ms2 <- mapply(
@@ -190,6 +196,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       type_ms2ions = type_ms2ions, 
       maxn_vmods_per_pep = maxn_vmods_per_pep, 
       maxn_sites_per_vmod = maxn_sites_per_vmod, 
+      maxn_fnl_per_seq = maxn_fnl_per_seq, 
+      maxn_vnl_per_seq = maxn_vnl_per_seq, 
       maxn_vmods_sitescombi_per_pep = 
         maxn_vmods_sitescombi_per_pep, 
       digits = digits
@@ -232,6 +240,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
         type_ms2ions = type_ms2ions, 
         maxn_vmods_per_pep = maxn_vmods_per_pep, 
         maxn_sites_per_vmod = maxn_sites_per_vmod, 
+        maxn_fnl_per_seq = maxn_fnl_per_seq, 
+        maxn_vnl_per_seq = maxn_vnl_per_seq, 
         maxn_vmods_sitescombi_per_pep = 
           maxn_vmods_sitescombi_per_pep, 
         digits = digits
@@ -311,6 +321,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
           type_ms2ions = type_ms2ions, 
           maxn_vmods_per_pep = maxn_vmods_per_pep, 
           maxn_sites_per_vmod = maxn_sites_per_vmod, 
+          maxn_fnl_per_seq = maxn_fnl_per_seq, 
+          maxn_vnl_per_seq = maxn_vnl_per_seq, 
           maxn_vmods_sitescombi_per_pep = 
             maxn_vmods_sitescombi_per_pep, 
           digits = digits
@@ -348,6 +360,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
           type_ms2ions = type_ms2ions, 
           maxn_vmods_per_pep = maxn_vmods_per_pep, 
           maxn_sites_per_vmod = maxn_sites_per_vmod, 
+          maxn_fnl_per_seq = maxn_fnl_per_seq, 
+          maxn_vnl_per_seq = maxn_vnl_per_seq, 
           maxn_vmods_sitescombi_per_pep = 
             maxn_vmods_sitescombi_per_pep, 
           digits = digits
@@ -373,6 +387,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
           type_ms2ions = type_ms2ions, 
           maxn_vmods_per_pep = maxn_vmods_per_pep, 
           maxn_sites_per_vmod = maxn_sites_per_vmod, 
+          maxn_fnl_per_seq = maxn_fnl_per_seq, 
+          maxn_vnl_per_seq = maxn_vnl_per_seq, 
           maxn_vmods_sitescombi_per_pep = 
             maxn_vmods_sitescombi_per_pep, 
           digits = digits
@@ -486,22 +502,27 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
                               mod_indexes = NULL, 
                               type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                               maxn_sites_per_vmod = 3L, 
+                              
+                              # dummy
+                              maxn_fnl_per_seq = 64L, maxn_vnl_per_seq = 64L, 
+                              
                               maxn_vmods_sitescombi_per_pep = 64L, 
                               digits = 4L) 
 {
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
-  aas2 <- aa_masses[aas]
+  aam <- aa_masses[aas]
   
+  l <- length(aas)
+  nm <- .Internal(paste0(list(rep("0", l)), collapse = "", recycle0 = FALSE))
   # currently no subsetting by ms1_mass
-  out <- ms2ions_by_type(aas2, ntmass, ctmass, type_ms2ions, digits)
+  af <- ms2ions_by_type(aam, ntmass, ctmass, type_ms2ions, digits)
   
-  len_a <- length(aas)
-  nm <- .Internal(paste0(list(rep("0", len_a)), collapse = "", recycle0 = FALSE))
-  out <- list(out)
-  names(out) <- nm
-  
-  invisible(out)
+  av <- list(calc_rev_ms2(af, aas))
+  names(av) <- NA_character_
+  af <- list(af)
+  names(af) <- nm
+  c(af, av)
 }
 
 

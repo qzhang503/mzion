@@ -30,66 +30,66 @@
 \alias{x2ions}
 \title{Masses of singly-charged b- and y-ions.}
 \usage{
-byions(ntmass, ctmass, aas2, digits = 4L)
+byions(ntmass, ctmass, aam, digits = 4L)
 
-czions(ntmass, ctmass, aas2, digits = 4L)
+czions(ntmass, ctmass, aam, digits = 4L)
 
-axions(ntmass, ctmass, aas2, digits = 4L)
+axions(ntmass, ctmass, aam, digits = 4L)
 
-bions_base(aas2, tmass, digits = 4L)
+bions_base(aam, tmass, digits = 4L)
 
-yions_base(aas2, tmass, digits = 4L)
+yions_base(aam, tmass, digits = 4L)
 
-b2ions_base(aas2, tmass, digits = 4L, n = 2L)
+b2ions_base(aam, tmass, digits = 4L, n = 2L)
 
-bstarions(aas2, tmass, digits = 4L)
+bstarions(aam, tmass, digits = 4L)
 
-bstar2ions(aas2, tmass, digits = 4L, n = 2L)
+bstar2ions(aam, tmass, digits = 4L, n = 2L)
 
-b0ions(aas2, tmass, digits = 4L)
+b0ions(aam, tmass, digits = 4L)
 
-b02ions(aas2, tmass, digits = 4L, n = 2L)
+b02ions(aam, tmass, digits = 4L, n = 2L)
 
-y2ions(aas2, tmass, digits = 4L, n = 2L)
+y2ions(aam, tmass, digits = 4L, n = 2L)
 
-ystarions(aas2, tmass, digits = 4L)
+ystarions(aam, tmass, digits = 4L)
 
-ystar2ions(aas2, tmass, digits = 4L, n = 2L)
+ystar2ions(aam, tmass, digits = 4L, n = 2L)
 
-y0ions(aas2, tmass, digits = 4L)
+y0ions(aam, tmass, digits = 4L)
 
-y02ions(aas2, tmass, digits = 4L, n = 2L)
+y02ions(aam, tmass, digits = 4L, n = 2L)
 
-cions_base(aas2, tmass, digits = 4L)
+cions_base(aam, tmass, digits = 4L)
 
-c2ions(aas2, tmass, digits = 4L, n = 2L)
+c2ions(aam, tmass, digits = 4L, n = 2L)
 
-zions_base(aas2, tmass, digits = 4L)
+zions_base(aam, tmass, digits = 4L)
 
-z2ions(aas2, tmass, digits = 4L, n = 2L)
+z2ions(aam, tmass, digits = 4L, n = 2L)
 
-aions_base(aas2, tmass, digits = 4L)
+aions_base(aam, tmass, digits = 4L)
 
-a2ions(aas2, tmass, digits = 4L, n = 2L)
+a2ions(aam, tmass, digits = 4L, n = 2L)
 
-astarions(aas2, tmass, digits = 4L)
+astarions(aam, tmass, digits = 4L)
 
-astar2ions(aas2, tmass, digits = 4L, n = 2L)
+astar2ions(aam, tmass, digits = 4L, n = 2L)
 
-a0ions(aas2, tmass, digits = 4L)
+a0ions(aam, tmass, digits = 4L)
 
-a02ions(aas2, tmass, digits = 4L, n = 2L)
+a02ions(aam, tmass, digits = 4L, n = 2L)
 
-xions_base(aas2, tmass, digits = 4L)
+xions_base(aam, tmass, digits = 4L)
 
-x2ions(aas2, tmass, digits = 4L, n = 2L)
+x2ions(aam, tmass, digits = 4L, n = 2L)
 }
 \arguments{
 \item{ntmass}{The mass of a fixed or variable N-term modification.}
 
 \item{ctmass}{The mass of a fixed or variable C-term modification.}
 
-\item{aas2}{A sequence of amino-acid residues with \emph{masses}. Residues
+\item{aam}{A sequence of amino-acid residues with \emph{masses}. Residues
   are in names and masses in values.
 
   The masses reflects fixed/variable modifications, and/or fixed/variable
@@ -138,10 +138,10 @@ if (!length(ctmod)) {
 
 aa_seq <- "MAKEMASSPECFUN"
 aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
-aas2 <- aa_masses[aas]
+aam <- aa_masses[aas]
 
-b <- proteoM:::bions_base(aas2, ntmass)
-y <- proteoM:::yions_base(aas2, ctmass)
+b <- proteoM:::bions_base(aam, ntmass)
+y <- proteoM:::yions_base(aam, ctmass)
 
 
 ## (2) "amods- tmod+ vnl- fnl-"
@@ -173,10 +173,10 @@ if (!length(ctmod)) {
 
 aa_seq <- "MAKEMASSPECFUN"
 aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
-aas2 <- aa_masses[aas]
+aam <- aa_masses[aas]
 
-b <- proteoM:::bions_base(aas2, ntmass)
-y <- proteoM:::yions_base(aas2, ctmass)
+b <- proteoM:::bions_base(aam, ntmass)
+y <- proteoM:::yions_base(aam, ctmass)
 
 
 # (2b, C-term)
@@ -204,8 +204,8 @@ if (!length(ctmod)) {
   ctmass <- aa_masses[names(ctmod)] + 2.01510147
 }
 
-b <- proteoM:::bions_base(aas2, ntmass)
-y <- proteoM:::yions_base(aas2, ctmass)
+b <- proteoM:::bions_base(aam, ntmass)
+y <- proteoM:::yions_base(aam, ctmass)
 
 }
 }

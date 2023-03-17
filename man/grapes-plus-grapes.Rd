@@ -5,6 +5,8 @@
 \title{Sums elements across lists.}
 \usage{
 x \%+\% y
+
+x \%+\% y
 }
 \arguments{
 \item{x}{A numeric value.}
@@ -12,5 +14,7 @@ x \%+\% y
 \item{y}{A numeric value.}
 }
 \description{
+Each list has the same length. NA values are removed.
+
 Each list has the same length. NA values are removed.
 }

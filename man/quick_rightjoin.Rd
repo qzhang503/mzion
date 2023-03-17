@@ -14,6 +14,11 @@ quick_rightjoin(x, y, by = NULL)
 \item{by}{The key.}
 }
 \description{
+Not a general purpose utility. For simple circumstances that the number of
+rows in the output is equal to that in \code{y}, and can be use as an
+alternative to \link[dplyr]{right_join}.
+}
+\details{
 Rows ordered by \code{y}, which is different to \link[dplyr]{right_join}.
 }
 \examples{

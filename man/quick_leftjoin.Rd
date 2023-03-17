@@ -14,7 +14,9 @@ quick_leftjoin(x, y, by = NULL)
 \item{by}{The key.}
 }
 \description{
-Left-joining of two data frames.
+Not a general purpose utility. For simple circumstances that the number of
+rows in the output is equal to that in \code{x}, and can be use as an
+alternative to \link[dplyr]{left_join}.
 }
 \examples{
 \donttest{

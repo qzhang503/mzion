@@ -8,7 +8,7 @@ calc_ms2ions_a1_vnl0_fnl1(
   vmods_combi,
   fnl_combi,
   fnl_idxes,
-  aas2,
+  aam,
   aa_masses,
   ntmass,
   ctmass,
@@ -26,7 +26,7 @@ corresponds to the combination without NLs (all zeros).}
 \item{fnl_idxes}{The position indexes of amino acids containing fixed neutral
 losses.}
 
-\item{aas2}{A sequence of amino-acid residues with \emph{masses}. Residues
+\item{aam}{A sequence of amino-acid residues with \emph{masses}. Residues
 are in names and masses in values (note that argument \code{aas}
 corresponds to residues without masses).}
 

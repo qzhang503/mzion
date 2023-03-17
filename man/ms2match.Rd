@@ -12,6 +12,8 @@ ms2match(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
+  maxn_fnl_per_seq = 64L,
+  maxn_vnl_per_seq = 64L,
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 20L,
@@ -22,7 +24,6 @@ ms2match(
   min_ms2mass = 115L,
   quant = "none",
   ppm_reporters = 10L,
-  use_first_rev = FALSE,
   calib_ms1mass = FALSE,
   fasta,
   acc_type,
@@ -81,6 +82,12 @@ default is 5.}
   considered, the value of \code{maxn_sites_per_vmod} needs to be four or
   greater.}
 
+\item{maxn_fnl_per_seq}{A non-negative integer; the maximum number of
+permutative neutral losses per peptide sequence for fixed modifications.}
+
+\item{maxn_vnl_per_seq}{A non-negative integer; the maximum number of
+permutative neutral losses per peptide sequence for variable modifications.}
+
 \item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
 number of combinatorial variable modifications per peptide sequence. The
 default is 64.}
@@ -120,9 +127,6 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
 ions. The default is 10.}
-
-\item{use_first_rev}{Logical; if TRUE, uses the first set of \code{aa_masses}
-for reversed searches; otherwise, uses the set with the maximum output.}
 
 \item{calib_ms1mass}{Logical; if TRUE, calibrates precursor masses.}
 

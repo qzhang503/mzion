@@ -132,7 +132,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
   new_args <- local({
     args <- c("noenzyme_maxn")
     fmls <- formals(fun)[args]
-    
+
     # for example `custom_enzyme` (should be NULL after eval)
     nargs <- lapply(fmls, function (x) if (is.call(x)) eval(x) else x)
     
@@ -142,10 +142,9 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     c(unlist(nargs), nargs[def_nulls])
   })
   
-  ### currently not new argument to bypass
-  # new_args <- NULL
-  ###
-  
+  # toggle this if no new arguments to bypass
+  new_args <- NULL
+
   .time_stamp <- match_calltime(
     path = .path_cache,
     fun = fun,
@@ -425,8 +424,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     
     parallel::clusterExport(cl, c("simple_prots_peps"), 
                             envir = environment(proteoM:::simple_prots_peps))
-                            
-    
+
     prps <- parallel::clusterApply(
       cl, 
       chunksplit(fwd_peps[[1]], n_cores * 4L), 
@@ -435,17 +433,9 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     parallel::stopCluster(cl)
     gc()
     
-    prps_fwd <- lapply(prps, `[[`, "fwd")
-    prps_rev <- lapply(prps, `[[`, "rev")
-    rm(list = "prps")
-    gc()
-    
-    prps_fwd <- flatten_list(prps_fwd)
-    prps_rev <- flatten_list(prps_rev)
-
-    qs::qsave(prps_fwd, file.path(path_prp, "simple_prot_pep.rds"), preset = "fast")
-    qs::qsave(prps_rev, file.path(path_prp, "simple_prot_pep_rev.rds"), preset = "fast")
-    rm(list = c("prps_fwd", "prps_rev"))
+    prps <- flatten_list(prps)
+    qs::qsave(prps, file.path(path_prp, "simple_prot_pep.rds"), preset = "fast")
+    rm(list = c("prps"))
     gc()
     
 
@@ -514,7 +504,6 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     #
     # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
     
-    # in-source fragmentation
     if (FALSE) {
       n_cores <- detect_cores(32L)
 
@@ -561,7 +550,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
             max_mass = max_mass, 
             digits = digits
           ) %>% 
-            purrr::flatten() %>% 
+            flatten_list() %>% 
             unlist(recursive = FALSE, use.names = TRUE)
 
           parallel::stopCluster(cl)
@@ -649,7 +638,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
           max_mass = max_mass, 
           digits = digits
         ) %>% 
-          purrr::flatten() %>% 
+          flatten_list() %>% 
           unlist(recursive = FALSE, use.names = TRUE)
 
         parallel::stopCluster(cl)
@@ -763,7 +752,7 @@ find_motif_pat <- function (aa_masses)
 
 #' A lookup between prot_acc and pep_seqs.
 #'
-#' For both target and decoy peptides.
+#' For targets peptides.
 #'
 #' Columns: \code{is_pnt}, is Protein N-term; \code{is_pct}, is Protein C-term.
 #' For example, MEYEWKPDEQGLQQILQLLK: NP_002261, pep_start 9; NP_694858:
@@ -790,18 +779,12 @@ simple_prots_peps <- function (seqs)
   # dups <- lapply(nms, duplicated.default)
   # dups <- lapply(dups, which)
   
-  ans <- mapply(function (nm, pnt, pct) {
+  mapply(function (nm, pnt, pct) {
     attr(nm, "pnt_idxes") <- pnt
     attr(nm, "pct_idxes") <- pct
     nm
   }, nms, pnt_idxes, pct_idxes, 
   SIMPLIFY = FALSE, USE.NAMES = TRUE)
-  
-  # need no attributes for the reversed since identical to those in the forward
-  rev_ans <- lapply(ans, reverse_seqs)
-  names(rev_ans) <- paste0("-", names(ans))
-  
-  invisible(list(fwd = ans, rev = rev_ans))
 }
 
 
@@ -1311,7 +1294,7 @@ find_aamasses_vmodscombi <- function (varmods = NULL, f_to_v = NULL,
 
   vmods_ps_combi <- seq_along(vmods_ps) %>%
     lapply(function (x) sim_combn(vmods_ps, x)) %>%
-    purrr::flatten()
+    flatten_list()
 
   ## Remove the combinations without anywhere_coerce_sites
   # [x] e.g. "TMT6plex (K)" coerced from fixedmod to varmod, 
@@ -1572,7 +1555,7 @@ find_modps <- function (mods)
 {
   ans <- lapply(mods, find_unimod) 
   ps <- lapply(ans, `[[`, "position_site")
-  purrr::flatten(ps)
+  flatten_list(ps)
 }
 
 
@@ -2298,7 +2281,7 @@ make_noenzpeps <- function (prot = NULL, min_len = 7L, max_len = 40L,
 #' aas <- LETTERS[LETTERS %in% names(aa_masses)]
 #' prot <- paste0(aas, collapse = "")
 #' len <- nchar(prot)
-#' masses <- proteoM:::hmake_noenzpeps(1, prot, 7, 40, len, aa_masses)
+#' masses <- proteoM:::hmake_noenzpeps(1L, prot, 7L, 40L, len, aa_masses)
 #' }
 hmake_noenzpeps <- function (start = 1L, prot = NULL, min_len = 7L, max_len = 40L, 
                              len = NULL, aa_masses = NULL, ftmass = 18.010565) 

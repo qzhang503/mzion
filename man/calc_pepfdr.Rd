@@ -12,7 +12,9 @@ calc_pepfdr(
   max_pepscores_co = 50,
   min_pepscores_co = 0,
   enzyme = "trypsin_p",
-  use_nontryptic_fdr = FALSE,
+  fdr_group = "all",
+  nes_fdr_group = c("all", "all_cterm_tryptic", "all_cterm_nontryptic", "base",
+    "base_cterm_tryptic", "base_cterm_nontryptic"),
   out_path
 )
 }
@@ -40,10 +42,20 @@ identities.}
 enzyme will be used to generate peptide sequences from protein entries. The
 default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
 
-\item{use_nontryptic_fdr}{Logical; if TRUE, use only peptide sequences not
-ending with C-terminal K or R in peptide FDR estimates. The argument only
-affects searches at \code{enzyme = noenzyme}. The default is FALSE. May
-consider TRUE, which may lead to more hits of non-tryptic sequences.}
+\item{fdr_group}{A character string; the modification group(s) for uses in
+peptide FDR controls. The value is in one of c("all", "base"). The
+\code{base} corresponds to the group of \emph{all-fixed} modifications.}
+
+\item{nes_fdr_group}{A character string in one of \code{c("all",
+"all_cterm_tryptic", "all_cterm_nontryptic", "base", "base_cterm_tryptic",
+"base_cterm_nontryptic")}. All peptides will be used in the classifications
+of targets and decoys at \code{"all"}. Peptides with the chemistry of
+C-terminal K or R will be used at \code{"all_cterm_tryptic"} (peptides from
+protein C-terminals being excluded). Peptides without C-terminal K or R
+will be used at \code{"all_cterm_nontryptic"}. The same applied to
+\code{"base_cterm_tryptic"} and \code{"base_cterm_nontryptic"} with the
+difference of only peptides from the \code{base} group being used. See also
+parameter \code{fdr_group}.}
 
 \item{out_path}{A file path of outputs.}
 }

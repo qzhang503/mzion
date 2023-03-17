@@ -21,6 +21,8 @@ frames_adv(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
+  maxn_fnl_per_seq = 64L,
+  maxn_vnl_per_seq = 64L,
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 10L,
@@ -80,6 +82,12 @@ default is 5.}
   combination of two \code{Carbamyl (M)} and two \code{Oxidation (M)} being
   considered, the value of \code{maxn_sites_per_vmod} needs to be four or
   greater.}
+
+\item{maxn_fnl_per_seq}{A non-negative integer; the maximum number of
+permutative neutral losses per peptide sequence for fixed modifications.}
+
+\item{maxn_vnl_per_seq}{A non-negative integer; the maximum number of
+permutative neutral losses per peptide sequence for variable modifications.}
 
 \item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
 number of combinatorial variable modifications per peptide sequence. The

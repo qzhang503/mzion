@@ -7,31 +7,29 @@
 #'   fixed and variable modifications.
 #' @param mod_indexes Integer; the indexes of fixed and/or variable
 #'   modifications.
-#' @param use_first_rev Logical; if TRUE, uses the first set of \code{aa_masses}
-#'   for reversed searches; otherwise, uses the set with the maximum output.
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
 #' @inheritParams frames_adv
 #' @inheritParams add_var_masses
 #' @import parallel
 ms2match <- function (mgf_path, aa_masses_all, out_path, 
-                      mod_indexes, type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
-                      maxn_sites_per_vmod = 3L, maxn_vmods_sitescombi_per_pep = 64L, 
-                      minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms1calib = 10L, ppm_ms2 = 20L, 
-                      min_mass = 200L, max_mass = 4500L, 
-                      min_ms2mass = 115L, quant = "none", ppm_reporters = 10L, 
-                      use_first_rev = FALSE, 
-                      calib_ms1mass = FALSE, 
-
-                      # dummies
-                      fasta, acc_type, acc_pattern,
-                      topn_ms2ions, fixedmods, varmods, 
-                      enzyme, 
-                      maxn_fasta_seqs, maxn_vmods_setscombi, 
-                      min_len, max_len, max_miss, 
-
-                      index_mgf_ms2 = FALSE, 
-                      digits = 4L) 
+                       mod_indexes, type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
+                       maxn_sites_per_vmod = 3L, maxn_fnl_per_seq = 64L, 
+                       maxn_vnl_per_seq = 64L, maxn_vmods_sitescombi_per_pep = 64L, 
+                       minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms1calib = 10L, 
+                       ppm_ms2 = 20L, min_mass = 200L, max_mass = 4500L, 
+                       min_ms2mass = 115L, quant = "none", ppm_reporters = 10L, 
+                       calib_ms1mass = FALSE, 
+                       
+                       # dummies
+                       fasta, acc_type, acc_pattern,
+                       topn_ms2ions, fixedmods, varmods, 
+                       enzyme, 
+                       maxn_fasta_seqs, maxn_vmods_setscombi, 
+                       min_len, max_len, max_miss, 
+                       
+                       index_mgf_ms2 = FALSE, 
+                       digits = 4L) 
 {
   options(digits = 9L)
   
@@ -47,11 +45,11 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   fun     <- as.character(match.call()[[1]])
   fun_env <- environment()
   fml_nms <- names(formals(fun))
-
-  # (OK as `use_first_rev` is not for users)
+  
+  # (OK as `argument` not for users)
   # min_mass and max_mass only for calib_ms1mass, not to be changed by users
-  args_except <- c("use_first_rev", "quant", "min_mass", "max_mass", "calib_ms1mass")
-
+  args_except <- c("quant", "min_mass", "max_mass", "calib_ms1mass")
+  
   fml_incl    <- fml_nms[!fml_nms %in% args_except]
   
   cache_pars  <- find_callarg_vals(time = NULL, 
@@ -73,7 +71,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       qs::qread(file_ms1calib)
     else 
       c(`ppm_ms1_bf` = ppm_ms1, `ppm_ms1_af` = ppm_ms1)
-
+    
     if (calib_ms1mass) { # first match
       if (ppm_ms1_calib[["ppm_ms1_bf"]] == call_pars[["ppm_ms1"]]) 
         cache_pars[["ppm_ms1"]] <- call_pars[["ppm_ms1"]] <- NULL
@@ -83,7 +81,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         cache_pars[["ppm_ms1"]] <- call_pars[["ppm_ms1"]] <- NULL
     }
   }
-
+  
   if (identical(cache_pars, call_pars)) {
     len     <- length(aa_masses_all)
     
@@ -99,7 +97,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
     } 
     else 
       TRUE
-  
+    
     if (ok_ions && ok_tmt) {
       message("Found cached ion matches.")
       .savecall <- FALSE
@@ -129,20 +127,19 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   # For three-frame searches
   # (matches of secondary ions using `outer` and no adjustments)
   
-  ppm_precsr <- if (calib_ms1mass) ppm_ms1calib else ppm_ms1
+  ppm_precsr  <- if (calib_ms1mass) ppm_ms1calib else ppm_ms1
   ppm_ms1_bin <- calc_threeframe_ppm(ppm_precsr)
   ppm_ms2_bin <- calc_threeframe_ppm(ppm_ms2)
-
+  
   ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
                          maxn_vmods_per_pep = maxn_vmods_per_pep,
                          maxn_sites_per_vmod = maxn_sites_per_vmod)
   
   ms2vmods_all <- lapply(ms1vmods_all, lapply, make_ms2vmods)
-
+  
   message("\n===  MS2 ion searches started at ", Sys.time(), ". ===\n")
   
   ## Targets 
-  obj_sizes <- numeric(length(aa_masses_all))
   types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
   is_tmt <- grepl("^tmt[0-9]+$", quant)
   
@@ -170,13 +167,12 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
       ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
       ntmass <- find_nterm_mass(aa_masses)
       ctmass <- find_cterm_mass(aa_masses)
-
-      if ((!calib_ms1mass) && isTRUE(passed_ms1calib) && i == 1L && 
-          file.exists(file_first)) {
-        out <- qs::qread(file_first)
-      }
+      
+      out <- if ((!calib_ms1mass) && isTRUE(passed_ms1calib) && i == 1L && 
+                 file.exists(file_first))
+        qs::qread(file_first)
       else {
-        out <- ms2match_base(
+        ms2match_base(
           i = i, 
           aa_masses = aa_masses, 
           ms1vmods = ms1vmods, 
@@ -198,7 +194,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
           df0 = out0, 
           digits = digits)
       }
-
+      
       # calibrates and updates ms1_mass in MGF and `out`
       if (calib_ms1mass && !isTRUE(passed_ms1calib) && i == 1L) {
         out <- calib_ms1masses(df = out, mgf_path = mgf_path, 
@@ -217,12 +213,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         
         return(NULL)
       }
-
-      obj_sizes[i] <- object.size(out)
       
       if (is_tmt) 
         out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
-
+      
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
                   "ntmod", "ntmass", "ctmod", "ctmass"))
       gc()
@@ -265,6 +259,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         type_ms2ions = type_ms2ions, 
         maxn_vmods_per_pep = maxn_vmods_per_pep, 
         maxn_sites_per_vmod = maxn_sites_per_vmod, 
+        maxn_fnl_per_seq = maxn_fnl_per_seq, 
         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
         minn_ms2 = minn_ms2, 
         ppm_ms1 = ppm_ms1_bin, 
@@ -274,11 +269,9 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         df0 = out0, 
         digits = digits)
       
-      obj_sizes[i] <- object.size(out)
-      
       if (is_tmt) 
         out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
-
+      
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
                   "ntmod", "ntmass", "ctmod", "ctmass"))
       gc()
@@ -330,11 +323,9 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         df0 = out0, 
         digits = digits)
       
-      obj_sizes[i] <- object.size(out)
-      
       if (is_tmt) 
         out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
-
+      
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
                   "ntmod", "ntmass", "ctmod", "ctmass"))
       gc()
@@ -379,6 +370,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         type_ms2ions = type_ms2ions, 
         maxn_vmods_per_pep = maxn_vmods_per_pep, 
         maxn_sites_per_vmod = maxn_sites_per_vmod, 
+        maxn_vnl_per_seq = maxn_vnl_per_seq, 
         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
         minn_ms2 = minn_ms2, 
         ppm_ms1 = ppm_ms1_bin, 
@@ -388,11 +380,9 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         df0 = out0, 
         digits = digits)
       
-      obj_sizes[i] <- object.size(out)
-      
       if (is_tmt) 
         out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
-
+      
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
                   "ntmod", "ntmass", "ctmod", "ctmass"))
       gc()
@@ -438,6 +428,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         type_ms2ions = type_ms2ions, 
         maxn_vmods_per_pep = maxn_vmods_per_pep, 
         maxn_sites_per_vmod = maxn_sites_per_vmod, 
+        maxn_fnl_per_seq = maxn_fnl_per_seq, 
         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
         minn_ms2 = minn_ms2, 
         ppm_ms1 = ppm_ms1_bin, 
@@ -447,107 +438,19 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
         df0 = out0, 
         digits = digits)
       
-      obj_sizes[i] <- object.size(out)
-      
       if (is_tmt) 
         out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
-
+      
       rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
                   "ntmod", "ntmass", "ctmod", "ctmass"))
       gc()
     }
   }
   
-  ## Decoys
-  # (1) makes binned_theopeps_rev_[i_max].rds
-  i_max  <- if (use_first_rev) 1L else which.max(obj_sizes)
-  i_max2 <- paste0("rev_", i_max)
-
-  .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
-  bin_file  <- file.path(.path_bin, paste0("binned_theopeps_", i_max, ".rds"))
-  bin_file2 <- file.path(.path_bin, paste0("binned_theopeps_", i_max2, ".rds"))
-  
-  if (!file.exists(bin_file2)) {
-    rev_peps <- 
-      qs::qread(bin_file) %>% 
-      lapply(reverse_peps_in_frame) %T>% 
-      qs::qsave(bin_file2, preset = "fast")
-
-    rm(list = c("rev_peps"))
-  }
-  
-  rm(list = c("bin_file", "bin_file2"))
-  
-  # (2) makes MS2 ions 
-  aa_masses <- aa_masses_all[[i_max]]
-  ms1vmods  <- ms1vmods_all[[i_max]]
-  ms2vmods  <- ms2vmods_all[[i_max]]
-
-  ntmod  <- attr(aa_masses, "ntmod", exact = TRUE)
-  ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
-  ntmass <- find_nterm_mass(aa_masses)
-  ctmass <- find_cterm_mass(aa_masses)
-
-  amods  <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
-  
-  if (length(amods)) { # (7, 8)
-    out <- ms2match_a1_vnl0_fnl0(
-      i = i_max2, 
-      aa_masses = aa_masses, 
-      ms1vmods = ms1vmods, 
-      ms2vmods = ms2vmods, 
-      ntmod = ntmod, 
-      ctmod = ctmod, 
-      ntmass = ntmass, 
-      ctmass = ctmass, 
-      amods = amods, 
-      mod_indexes = mod_indexes, 
-      mgf_path = mgf_path, 
-      out_path = out_path, 
-      type_ms2ions = type_ms2ions, 
-      maxn_vmods_per_pep = maxn_vmods_per_pep, 
-      maxn_sites_per_vmod = maxn_sites_per_vmod, 
-      maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-      minn_ms2 = minn_ms2, 
-      ppm_ms1 = ppm_ms1_bin, 
-      ppm_ms2 = ppm_ms2_bin, 
-      min_ms2mass = min_ms2mass, 
-      index_mgf_ms2 = index_mgf_ms2, 
-      df0 = out0, 
-      digits = digits)
-  } 
-  else { # (1, 2)
-    out <- ms2match_base(
-      i = i_max2, 
-      aa_masses = aa_masses, 
-      ms1vmods = ms1vmods, 
-      ms2vmods = ms2vmods, 
-      ntmass = ntmass, 
-      ctmass = ctmass, 
-      mod_indexes = mod_indexes, 
-      mgf_path = mgf_path, 
-      out_path = out_path, 
-      type_ms2ions = type_ms2ions, 
-      maxn_vmods_per_pep = maxn_vmods_per_pep, 
-      maxn_sites_per_vmod = maxn_sites_per_vmod, 
-      maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-      minn_ms2 = minn_ms2, 
-      ppm_ms1 = ppm_ms1_bin, 
-      ppm_ms2 = ppm_ms2_bin, 
-      min_ms2mass = min_ms2mass, 
-      index_mgf_ms2 = index_mgf_ms2, 
-      df0 = out0, 
-      digits = digits)
-  }
-  
-  # if (is.null(out)) out <- out0
-  qs::qsave(out, file.path(out_path, "temp", paste0("ion_matches_", i_max2, ".rds")), 
-            preset = "fast") 
-  
   .savecall <- TRUE
   
   message("\n===  MS2 ion searches completed at ", Sys.time(), ". ===\n")
-
+  
   invisible(NULL)
 }
 
@@ -599,10 +502,15 @@ reverse_peps_in_frame <- function (pep_frame)
 #' Reverses peptide sequences.
 #' 
 #' @param seqs Lists of peptide sequences.
+#' @examples 
+#' \donttest{
+#' seqs = c(paste0(LETTERS[1:10], collapse = ""), paste0(letters[1:10], collapse = ""))
+#' 
+#' }
 reverse_seqs <- function (seqs) 
 {
-  fis  <- stringi::stri_sub(seqs, 1, 1)
-  las  <- stringi::stri_sub(seqs, -1, -1)
+  fis  <- stringi::stri_sub(seqs, 1L, 1L, use_matrix = FALSE)
+  las  <- stringi::stri_sub(seqs, -1L, -1L, use_matrix = FALSE)
   lens <- stringi::stri_length(seqs)
   revs <- stringi::stri_reverse(seqs)
   

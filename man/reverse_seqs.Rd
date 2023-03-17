@@ -12,3 +12,9 @@ reverse_seqs(seqs)
 \description{
 Reverses peptide sequences.
 }
+\examples{
+\donttest{
+seqs = c(paste0(LETTERS[1:10], collapse = ""), paste0(letters[1:10], collapse = ""))
+
+}
+}

@@ -633,20 +633,14 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   )
   
   # Check priors
-  pati <- "^ion_matches_"
+  pat_i <- "^ion_matches_"
   
-  listi_t <- find_targets(out_path, pattern = pati)$files
-  leni_t <- length(listi_t)
+  list_i <- find_targets(out_path, pattern = pat_i)$files
+  len_i  <- length(list_i)
   
-  if (!leni_t) 
-    stop("No target results with pattern '", pati, "'.")
+  if (!len_i) 
+    stop("No target results with pattern '", pat_i, "'.")
   
-  listi_d <- find_decoy(out_path, pattern = pati)$files
-  leni_d <- length(listi_d)
-  
-  if (!leni_d) 
-    stop("No decoy results with pattern '", pati, "'.")
-
   ## Check cached current
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
@@ -670,17 +664,17 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   
   if (identical(cache_pars, call_pars)) {
     ok_scores <- find_targets(out_path, pattern = "^pepscores_")
-    listsc_t <- ok_scores$files
-    lensc_t <- length(listsc_t)
+    listsc <- ok_scores$files
+    lensc  <- length(listsc)
     
-    if (lensc_t == leni_t) {
+    if (lensc == len_i) {
       message("Found cached 'pepscores_[...]'.")
       .savecall <- FALSE
       return(NULL)
     } 
     else {
       message("Recalculating peptide scores (not all 'pepscores_' found).")
-      rm(list = c("listsc_t"))
+      rm(list = c("listsc"))
     }
   } 
   else {
@@ -688,13 +682,11 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     dir.create(file.path(out_path, "temp"), recursive = TRUE, showWarnings = FALSE)
     rm(list = c("cache_pars", "call_pars"))
   }
-
+  
   n_cores <- detect_cores(16L)
-  listi_td <- c(listi_t, listi_d)
-  len_td <- length(listi_td)
   d2 <- calc_threeframe_ppm(ppm_ms2) * 1E-6
   
-  for (fi in listi_td) {
+  for (fi in list_i) {
     message("\tModule: ", fi)
     
     calcpepsc(file = fi, 
@@ -719,6 +711,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   
   invisible(NULL)
 }
+
 
 
 #' Find the index or name of decoy results.
@@ -810,7 +803,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
     
     return (dfb)
   }
-  
+
   df[["uniq_id"]] <- paste(df[["scan_num"]], df[["raw_file"]], sep = "@")
   esscols <- c("ms2_moverz", "ms2_int", "matches", "ms2_n", "uniq_id")
   path_df2 <- file.path(out_path, "df2_sc_temp.rda")
@@ -971,10 +964,11 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       index_mgf_ms2 = index_mgf_ms2)
   }
 
-  # all(c(cols_b, cols_sc) %in% names(df))
+  df[["pep_isdecoy"]] <- ifelse(is.na(df[["pep_ivmod"]]), TRUE, FALSE)
+  
   if (!all(cols_sc %in% names(df)))
     stop("Developer needs to update the columns of peptide scores.")
-
+  
   df <- df[, cols_sc, drop = FALSE]
   qs::qsave(df, file_sc, preset = "fast")
   
@@ -1460,95 +1454,103 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm", 
                          min_len = 7L, max_len = 40L, 
                          max_pepscores_co = 50, min_pepscores_co = 0, 
-                         enzyme = "trypsin_p", use_nontryptic_fdr = FALSE, 
+                         enzyme = "trypsin_p", 
+                         fdr_group = "all", 
+                         nes_fdr_group = c("all", "all_cterm_tryptic", 
+                                           "all_cterm_nontryptic", "base", 
+                                           "base_cterm_tryptic", 
+                                           "base_cterm_nontryptic"), 
                          out_path) 
 {
   message("Calculating peptide FDR.")
-
+  
   fct_score <- 10
   
-  pat <- "^pepscores_"
-  ok_decoy <- find_decoy(out_path, pattern = pat)
-  nm_d <- ok_decoy$idxes
-  file_d <- ok_decoy$files
+  files <- list.files(path = file.path(out_path, "temp"), 
+                      pattern = "^pepscores_", full.names = TRUE)
   
-  if (!length(file_d)) 
-    stop("No decoy results with pattern '", pat, "'.")
-
-  nm_t <- gsub("^rev_", "", nm_d)
+  if (!length(files)) 
+    stop("Score results not found.", call. = FALSE)
   
-  td <- local({
-    enzyme <- tolower(enzyme)
-    is_nontryptic <- enzyme == "noenzyme" || grepl("^semi", enzyme)
-    no_semi_full  <- use_nontryptic_fdr && is_nontryptic
-    
-    decoy <- qs::qread(file.path(out_path, "temp", file_d))
-    
-    if (no_semi_full) 
-      decoy <- decoy[!grepl("[KR]$", decoy[["pep_seq"]]), ]
+  td <- lapply(files, qs::qread)
+  td <- td[lapply(td, nrow) > 0L] # otherwise, error with bind_rows
+  td <- dplyr::bind_rows(td)
 
-    decoy <- list(decoy)
-    names(decoy) <- nm_d
-    
-    file_t <- list.files(path = file.path(out_path, "temp"), 
-                         pattern = paste0(pat, nm_t, ".rds$"))
-    
-    if (!length(file_t)) 
-      stop("Target scores not found.", call. = FALSE)
-    
-    target <- qs::qread(file.path(out_path, "temp", file_t))
-    
-    if (no_semi_full) 
-      target <- target[!grepl("[KR]$", target[["pep_seq"]]), ]
-    
-    target <- list(target)
-    names(target) <- nm_t
-    
-    c(target, decoy)
-  })
+  enzyme <- tolower(enzyme)
+  is_nes <- enzyme == "noenzyme" || grepl("^semi", enzyme)
   
-  if (!nrow(td[[nm_t]])) {
-    stop("No target peptides found.")
-
-    # never run
-    if (!nrow(td[[nm_d]]))
-      stop("Found nothing: empty targets and decoys.")
-    
-    seqs <- min_len:max(td[[nm_d]]$pep_len, na.rm = TRUE)
+  if (!is_nes)
+    if (!nes_fdr_group %in% c("all", "base")) 
+      nes_fdr_group <- fdr_group
+  
+  if (is_nes) {
+    td  <- if (nes_fdr_group == "all")
+      td
+    else if (nes_fdr_group == "all_cterm_tryptic")
+      td[grepl("[KR]$", td[["pep_seq"]]), ]
+    else if (nes_fdr_group == "all_cterm_nontryptic")
+      td[!grepl("[KR]$", td[["pep_seq"]]), ] # also protein C-terminals
+    else if (nes_fdr_group == "base")
+      td[td[["pep_mod_group"]] == 1L, ]
+    else if (nes_fdr_group == "base_cterm_tryptic")
+      td[td[["pep_mod_group"]] == 1L & grepl("[KR]$", td[["pep_seq"]]), ]
+    else if (nes_fdr_group == "base_cterm_nontryptic")
+      td[td[["pep_mod_group"]] == 1L & !grepl("[KR]$", td[["pep_seq"]]), ]
+    else 
+      stop("Invalid argument for \"nes_fdr_group\".")
+  }
+  else {
+    td <- if (fdr_group == "all")
+      td
+    else if (fdr_group == "base")
+      td[td[["pep_mod_group"]] == 1L, ]
+    else
+      stop("Invalid argument for \"fdr_group\".")
+  }
+  
+  if (!nrow(td))
+    stop("Found nothing: empty targets and decoys.")
+  
+  if (!sum(td[["pep_isdecoy"]])) {
+    warning("No decoys found.")
+    seqs <- min_len:max(td[["pep_len"]], na.rm = TRUE)
     prob_cos <- rep(.5, length(seqs))
     
     return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
   }
   
   # keeps separated best hits for targets and decoys
+  # two lists of "TRUE" and "FALSE"
+  td <- split(td, td[["pep_isdecoy"]])
+  
   td <- lapply(td, function (x) {
-    x %>% 
-      dplyr::group_by(scan_num, raw_file) %>% 
-      dplyr::arrange(pep_prob) %>% 
-      dplyr::filter(row_number() == 1L) %>% 
-      dplyr::ungroup()
+    x <- dplyr::group_by(x, scan_num, raw_file)
+    x <- dplyr::arrange(x, pep_prob)
+    x <- dplyr::filter(x, row_number() == 1L)
+    x <- dplyr::ungroup(x)
   })
   
   # decoy sequences may be present in targets
-  td[[nm_d]] <- purge_decoys(decoy = td[[nm_d]], target = td[[nm_t]])
-  
-  #  keeps the best hit for each `scan_num`
-  td <- if (nrow(td[[nm_d]]))
-    dplyr::bind_rows(td[c(nm_t, nm_d)])
-  else
-    td[[nm_t]]
+  ok <- is.na(fastmatch::fmatch(reverse_seqs(td[["FALSE"]][["pep_seq"]]), 
+                                td[["TRUE"]][["pep_seq"]]))
+  td[["FALSE"]] <- td[["FALSE"]][ok, ]
 
-  td <- td %>% 
-    dplyr::group_by(scan_num, raw_file) %>% 
-    dplyr::arrange(pep_prob) %>% 
-    dplyr::filter(row_number() == 1L) %>% 
-    dplyr::ungroup()
+  #  keeps the best hit for each `scan_num`
+  td <- if (nrow(td[["FALSE"]]))
+    dplyr::bind_rows(td[c("TRUE", "FALSE")])
+  else
+    td[["TRUE"]]
+  
+  td <- dplyr::group_by(td, scan_num, raw_file)
+  td <- dplyr::arrange(td, pep_prob)
+  td <- dplyr::filter(td, row_number() == 1L)
+  td <- dplyr::ungroup(td)
   
   gc()
   
   # --- 
   all_lens <- sort(unique(td$pep_len))
-
+  
   prob_cos <- lapply(all_lens, probco_bypeplen, 
                      td = td, 
                      fdr_type = fdr_type, 
@@ -1567,7 +1569,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     
     return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
   } 
-
+  
   counts <- as.numeric(names(prob_cos))
   names(counts) <- all_lens
   names(prob_cos) <- all_lens
@@ -1596,7 +1598,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     return(fill_probco_nas(prob_nas = prob_nas, prob_no_uses = prob_no_uses, 
                            prob_cos = prob_cos, target_fdr = target_fdr))
   }
-
+  
   # quality ones for fittings
   ok_lens <- names(prob_cos) %in% lens
   prob_no_uses <- prob_cos[!ok_lens]
@@ -1630,7 +1632,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
       x[names(bad_lm)] <- slp * as.integer(names(bad_lm)) + coefs[[1]]
       rm(list = c("x_ok", "fit_lm", "coefs", "bad_lm"))
     }
-
+    
     # second pass
     ans <- tsoutliers(x)
     x[ans$index] <- ans$replacements
@@ -1648,7 +1650,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
   nrow_left <- nrow(df_left)
   rank_left <- 4L # often results in: originals == fitted <-> no fitting
   # rank_left <- min(nrow_left, 4L)
-
+  
   if (nrow_left == 0L) {
     newx_left <- NULL
     newy_left <- NULL
@@ -1684,12 +1686,12 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     newy_left <- predict(fit_left, data.frame(x = newx_left))
     names(newy_left) <- newx_left
   }
-
+  
   # valley right (small rank to down-weight wiggly high `pep_len` points)
   df_right <- df[df$x > valley, ]
   nrow_right <- nrow(df_right)
   rank_right <- 4L # changed from 3 to 4
-
+  
   if (nrow_right == 0L) {
     newx_right <- NULL
     newy_right <- NULL
@@ -1741,7 +1743,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
       newy_right <- newy_right[-1]
     }
   }
-    
+  
   # left + right
   newx <- c(newx_left, newx_right)
   newy <- c(newy_left, newy_right)
@@ -1779,7 +1781,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "psm",
     # with `find_optlens`, some length in newy may not be in prob_cos
     prob_cos[!is.na(names(prob_cos))]
   })
-
+  
   prob_cos <- fill_probco_nas(prob_nas, prob_no_uses, prob_cos, target_fdr) %T>% 
     qs::qsave(file.path(out_path, "temp", "pep_probco.rds"), preset = "fast")
 }
@@ -1853,39 +1855,20 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
     else 
       stop("File not found: ", file_prob)
   }
-
+  
   fct_score <- 10
   
-  td <- local({
-    pat <- "^pepscores_"
-    
-    ok_targets <- find_targets(out_path, pat)
-    list_t <- ok_targets$files
-    nms_t <- ok_targets$idxes
-    
-    if (!length(list_t)) 
-      stop("No target results with pattern '", pat, "'.")
-
-    targets <- lapply(list_t, function (x) qs::qread(file.path(out_path, "temp", x)))
-    names(targets) <- nms_t
-    
-    # decoy
-    ok_decoy <- find_decoy(out_path, pat)
-    list_d <- ok_decoy$files
-    nm_d <- ok_decoy$idxes
-    
-    if (!length(list_d)) 
-      stop("No decoy results with pattern '", pat, "'.")
-
-    decoy <- qs::qread(file.path(out_path, "temp", list_d)) %>% 
-      list() %>% 
-      `names<-`(nm_d)
-    
-    c(targets, decoy)
-  })
+  ok_targets <- find_targets(out_path, "^pepscores_")
+  files <- ok_targets$files
   
-  oks <- purrr::map_lgl(td, function (x) nrow(x) > 0L)
-  td <- dplyr::bind_rows(td[oks])
+  if (!length(files)) 
+    stop("Results of peptide scores not found.")
+  
+  td <- lapply(files, function (x) qs::qread(file.path(out_path, "temp", x)))
+  names(td) <- ok_targets$idxes
+  ok <- lapply(td, nrow) > 0L
+  td <- dplyr::bind_rows(td[ok])
+  rm(list = c("ok_targets", "files", "ok"))
   
   if (!nrow(td)) 
     stop("No PSM matches for scoring. Consider different search parameters.")
@@ -1909,7 +1892,7 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
                   pep_score = ifelse(pep_score > 250, 250, pep_score), 
                   pep_score_co = -log10(pep_adjp_co) * fct_score) %>% 
     dplyr::select(-c("pep_prob", "pep_adjp", "pep_prob_co", "pep_adjp_co"))
-
+  
   qs::qsave(td, file.path(out_path, "temp", "pepfdr.rds"), preset = "fast")
   
   invisible(td)
@@ -1928,29 +1911,22 @@ calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = Inf,
 {
   message("Calculating peptide-protein FDR.")
   
-  # target-decoy pair
-  nms_d <- unique(df$pep_mod_group) %>% 
-    .[grepl("^rev_\\d+", .)]
-  
-  nms_t <- gsub("^rev_", "", nms_d)
-  
-  td <- dplyr::filter(df, pep_mod_group %in% c(nms_t, nms_d), pep_issig)
-
   # score cut-offs as a function of prot_n_pep
   max_n_pep <- max(df$prot_n_pep, na.rm = TRUE)
   all_n_peps <- unique(df$prot_n_pep)
-
-  # protein enrichment score cut-offs at each `prot_n_pep`
-  score_co <- td %>% 
-    split(.$prot_n_pep) %>% 
-    purrr::map_dbl(calc_protfdr_i, 
-                   target_fdr = target_fdr, 
-                   max_protnpep_co = max_protnpep_co, 
-                   method_prot_es_co = method_prot_es_co, 
-                   out_path = out_path) 
   
+  # protein enrichment score cut-offs at each `prot_n_pep`
+  td <- df[with(df, pep_issig), ]
+  
+  score_co <- split(td, td[["prot_n_pep"]])
+  score_co <- lapply(score_co, calc_protfdr_i, 
+                     target_fdr = target_fdr, 
+                     max_protnpep_co = max_protnpep_co, 
+                     method_prot_es_co = method_prot_es_co, 
+                     out_path = out_path)
+  score_co <- unlist(score_co, recursive = FALSE, use.names = TRUE)
   score_co[score_co > max_protscores_co] <- max_protscores_co
-
+  
   # fitted score cut-offs
   score_co_bf <- data.frame(prot_n_pep = as.integer(names(score_co)), 
                             prot_score_co_bf = score_co)
@@ -1977,7 +1953,7 @@ calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = Inf,
   # puts together
   df <- df %>% 
     dplyr::left_join(prot_es, by = "prot_acc")
-
+  
   df <- df %>% 
     dplyr::left_join(score_co, by = "prot_n_pep") %>% 
     dplyr::mutate(prot_issig = ifelse(prot_es >= prot_es_co, TRUE, FALSE)) %>% 
@@ -2665,6 +2641,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   rm(list = c("x1"))
   
   # 4.4 adds back z0
+  # ok to replace dplyr::left_join here:
+  #   the same number of rows between the new and the old z0
   z0 <- quick_leftjoin(z0, x0[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
                        by = "uniq_id2")
   x0 <- data.table::rbindlist(list(x0, z0), use.names = FALSE)

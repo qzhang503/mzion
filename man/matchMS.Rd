@@ -23,12 +23,15 @@ matchMS(
     "SemiLysN", "SemiArgC", "SemiLysC_P", "SemiChymotrypsin", "SemiGluC", "SemiGluN",
     "SemiAspC", "SemiAspN", "Noenzyme", "Nodigest"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL),
-  use_nontryptic_fdr = FALSE,
+  nes_fdr_group = c("all", "all_cterm_tryptic", "all_cterm_nontryptic", "base",
+    "base_cterm_tryptic", "base_cterm_nontryptic"),
   noenzyme_maxn = 0L,
   maxn_fasta_seqs = 200000L,
   maxn_vmods_setscombi = 512L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
+  maxn_fnl_per_seq = 64L,
+  maxn_vnl_per_seq = 64L,
   maxn_vmods_sitescombi_per_pep = 64L,
   min_len = 7L,
   max_len = 40L,
@@ -52,6 +55,7 @@ matchMS(
   quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
   target_fdr = 0.01,
   fdr_type = c("protein", "peptide", "psm"),
+  fdr_group = c("all", "base"),
   max_pepscores_co = 50,
   min_pepscores_co = 0,
   max_protscores_co = Inf,
@@ -63,7 +67,7 @@ matchMS(
   combine_tier_three = FALSE,
   max_n_prots = 60000L,
   use_ms1_cache = TRUE,
-  .path_cache = "~/proteoM/.MSearches (1.2.1.5)/Cache/Calls",
+  .path_cache = "~/proteoM/.MSearches (1.2.2.0)/Cache/Calls",
   .path_fasta = NULL,
   topn_ms2ions = 100L,
   topn_ms2ion_cuts = NA,
@@ -175,10 +179,16 @@ default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
   custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
   "([^P]\{1\})([KR]\{1\})")}
 
-\item{use_nontryptic_fdr}{Logical; if TRUE, use only peptide sequences not
-ending with C-terminal K or R in peptide FDR estimates. The argument only
-affects searches at \code{enzyme = noenzyme}. The default is FALSE. May
-consider TRUE, which may lead to more hits of non-tryptic sequences.}
+\item{nes_fdr_group}{A character string in one of \code{c("all",
+"all_cterm_tryptic", "all_cterm_nontryptic", "base", "base_cterm_tryptic",
+"base_cterm_nontryptic")}. All peptides will be used in the classifications
+of targets and decoys at \code{"all"}. Peptides with the chemistry of
+C-terminal K or R will be used at \code{"all_cterm_tryptic"} (peptides from
+protein C-terminals being excluded). Peptides without C-terminal K or R
+will be used at \code{"all_cterm_nontryptic"}. The same applied to
+\code{"base_cterm_tryptic"} and \code{"base_cterm_nontryptic"} with the
+difference of only peptides from the \code{base} group being used. See also
+parameter \code{fdr_group}.}
 
 \item{noenzyme_maxn}{Non-negative integer; the maximum number of peptide
 lengths for sectional searches at \code{noenzyme} specificity. The argument
@@ -207,6 +217,12 @@ default is 5.}
   combination of two \code{Carbamyl (M)} and two \code{Oxidation (M)} being
   considered, the value of \code{maxn_sites_per_vmod} needs to be four or
   greater.}
+
+\item{maxn_fnl_per_seq}{A non-negative integer; the maximum number of
+permutative neutral losses per peptide sequence for fixed modifications.}
+
+\item{maxn_vnl_per_seq}{A non-negative integer; the maximum number of
+permutative neutral losses per peptide sequence for variable modifications.}
 
 \item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
 number of combinatorial variable modifications per peptide sequence. The
@@ -319,6 +335,10 @@ levels of PSM, peptide or protein. The default is 0.01. See also argument
 
   Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
   peptide} with the additional filtration of data at \code{prot_tier == 1}.}
+
+\item{fdr_group}{A character string; the modification group(s) for uses in
+peptide FDR controls. The value is in one of c("all", "base"). The
+\code{base} corresponds to the group of \emph{all-fixed} modifications.}
 
 \item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
 of peptide scores for discriminating significant and insignificant

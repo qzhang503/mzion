@@ -236,66 +236,6 @@ find_reporters_ppm <- function (theos, expts, ppm_reporters = 10L, len, nms)
 }
 
 
-#' Adds prot_acc to a peptide table.
-#'
-#' Decoys being kept.
-#'
-#' @param out_path An output path.
-#' @param df The results after scoring.
-#' @inheritParams matchMS
-#' @importFrom fastmatch fmatch %fin% 
-add_protacc <- function (df = NULL, out_path = NULL, .path_cache = NULL, 
-                          .path_fasta = NULL) 
-{
-  message("Adding protein accessions.")
-  
-  if (is.null(df)) {
-    file <- file.path(out_path, "temp", "peploc.rds")
-    
-    if (file.exists(file))
-      df <- qs::qread(file)
-    else
-      stop("File not found: ", file)
-    
-    rm(list = c("file"))
-  }
-
-  .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
-  .time_stamp <- find_ms1_times(out_path)
-  
-  file_fwd <- file.path(.path_ms1masses, .time_stamp, "simple_prot_pep.rds")
-  file_rev <- file.path(.path_ms1masses, .time_stamp, "simple_prot_pep_rev.rds")
-  uniq_peps <- unique(df[["pep_seq"]])
-  
-  if (length(.time_stamp) == 1L) {
-    prps_fwd <- qs::qread(file_fwd)
-    prps_fwd <- msub_protpep(prps_fwd, uniq_peps)
-    
-    prps_rev <- qs::qread(file_rev)
-    prps_rev <- msub_protpep(prps_rev, uniq_peps)
-    prps_rev <- purge_decoys(prps_rev, prps_fwd)
-  }
-  else {
-    # when would this occur? intended for sectional searches but never used?
-    warning("Multiple protein-peptide lookup tables found:\n\n", 
-            paste(file_fwd, collapse = "\n"))
-    
-    prps_fwd <- lapply(file_fwd, qs::qread)
-    prps_fwd <- lapply(prps_fwd, msub_protpep, uniq_peps)
-    prps_fwd <- dplyr::bind_rows(prps_fwd)
-    prps_fwd <- unique(prps_fwd)
-    
-    prps_rev <- lapply(file_rev, qs::qread)
-    prps_rev <- lapply(prps_rev, msub_protpep, uniq_peps)
-    prps_rev <- lapply(prps_rev, purge_decoys, prps_fwd)
-    prps_rev <- dplyr::bind_rows(prps_rev)
-    prps_rev <- unique(prps_rev)
-  }
-  
-  hadd_protacc(df, prps_fwd, prps_rev)
-}
-
-
 #' Helper of \link{sub_protpep}
 #'
 #' Subsets the protein-peptide lookup (prps) against the uniq_peps list from
@@ -388,10 +328,7 @@ add_protacc2 <- function (df = NULL, out_path = NULL, .path_cache = NULL,
     return (df)
   }
   
-  uniq_peps <- unique(df$pep_seq)
-  
-  # Theoretical targets and decoys
-  prps_fwd <- prps_rev <- vector("list", len_dirs)
+  prps <- vector("list", len_dirs)
   
   for (i in seq_along(sub_dirs)) {
     cache_file <- file.path(sub_dirs[[i]], "Calls/.cache_info.rds")
@@ -403,38 +340,80 @@ add_protacc2 <- function (df = NULL, out_path = NULL, .path_cache = NULL,
     .time_stamp <- cache_info[[".time_stamp"]]
     .path_ms1masses <- cache_info[[".path_ms1masses"]]
     
-    file_fwd <- file.path(.path_ms1masses, .time_stamp, "simple_prot_pep.rds")
-    file_rev <- file.path(.path_ms1masses, .time_stamp, "simple_prot_pep_rev.rds")
-    
-    prps_fwd[[i]] <- if (file.exists(file_fwd)) qs::qread(file_fwd) else NULL
-    prps_rev[[i]] <- if (file.exists(file_rev)) qs::qread(file_rev) else NULL
+    file <- file.path(.path_ms1masses, .time_stamp, "simple_prot_pep.rds")
+    prps[[i]] <- if (file.exists(file)) qs::qread(file) else NULL
   }
   
-  prps_fwd <- lapply(prps_fwd, msub_protpep, uniq_peps)
-  prps_fwd <- dplyr::bind_rows(prps_fwd) # may avoid bind_rows
-
-  prps_rev <- lapply(prps_rev, msub_protpep, uniq_peps)
-  prps_rev <- lapply(prps_rev, purge_decoys, prps_fwd)
-  prps_rev <- dplyr::bind_rows(prps_rev) # may avoid bind_rows
-
-  hadd_protacc(df, prps_fwd, prps_rev)
+  upeps <- unique(df$pep_seq)
+  prps <- lapply(prps, msub_protpep, upeps)
+  prps <- dplyr::bind_rows(prps)
+  
+  df <- hannot_decoys(df, prps)
 }
 
 
-#' Helper of \link{add_protacc}.
+#' Adds prot_acc to a peptide table.
+#'
+#' Decoys being kept.
+#'
+#' @param out_path An output path.
+#' @param df The results after scoring.
+#' @inheritParams matchMS
+#' @importFrom fastmatch fmatch %fin% 
+add_protacc <- function (df = NULL, out_path = NULL, .path_cache = NULL, 
+                         .path_fasta = NULL) 
+{
+  message("Adding protein accessions.")
+  
+  if (is.null(df)) {
+    file <- file.path(out_path, "temp", "peploc.rds")
+    
+    if (file.exists(file))
+      df <- qs::qread(file)
+    else
+      stop("File not found: ", file)
+    
+    rm(list = c("file"))
+  }
+  
+  # need to inverse the sequence at NA pep_ivmod: 
+  # decoy MS2 are appended to targets and share the same pep_seq name as targets 
+  #   where the pep_ivmod values are NA with the decoys
+  
+  .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
+  .time_stamp <- find_ms1_times(out_path)
+  
+  if (length(.time_stamp) > 1L)
+    stop("Multiple matches in time stamps in annotating protein acccessions.")
+  
+  prps <- qs::qread(file.path(.path_ms1masses, .time_stamp, "simple_prot_pep.rds"))
+  prps <- msub_protpep(prps, unique(df[["pep_seq"]]))
+  
+  df <- hannot_decoys(df, prps)
+}
+
+
+#' Helper of annotating decoy peptides.
 #' 
 #' @param df A data frame.
 #' @param prps_fwd The look-ups of forward protein and peptides.
 #' @param prps_rev The look-ups of reversed protein and peptides.
-hadd_protacc <- function (df, prps_fwd, prps_rev) 
+hannot_decoys <- function (df, prps)
 {
-  # Adds `prot_acc` (with decoys being kept)
-  out <- dplyr::bind_rows(prps_fwd, prps_rev)
-  out <- dplyr::right_join(out, df, by = "pep_seq")
-  rm(list = c("prps_fwd", "prps_rev"))
-
-  # Adds prot_n_psm, prot_n_pep for protein FDR
-  x <- out[out[["pep_issig"]], ]
+  # keep prot_acc be the first column
+  df <- dplyr::right_join(prps, df, by = "pep_seq")
+  rows <- is.na(df[["pep_ivmod"]])
+  tars <- df[!rows, ]
+  
+  decs <- df[rows, ]
+  decs[["pep_seq"]] <- reverse_seqs(decs[["pep_seq"]])
+  oks <- fastmatch::fmatch(decs[["pep_seq"]], tars[["pep_seq"]])
+  decs <- decs[is.na(oks), ]
+  decs[["prot_acc"]] <- paste0("-", decs[["prot_acc"]])
+  df <- dplyr::bind_rows(tars, decs)
+  
+  # Adds prot_n_psm, prot_n_pep for protein FDR estimates
+  x <- df[df[["pep_issig"]], ]
   
   prot_n_psm <- x %>%
     dplyr::select(prot_acc) %>%
@@ -449,26 +428,17 @@ hadd_protacc <- function (df, prps_fwd, prps_rev)
     dplyr::summarise(prot_n_pep = n())
   
   # inconsistent Protein[NC]-term
-  out <- local({
-    pnt_nots <- grepl("Protein N-term", out[["pep_vmod"]], fixed = TRUE) & !out[["is_pnt"]]
-    pct_nots <- grepl("Protein C-term", out[["pep_vmod"]], fixed = TRUE) & !out[["is_pct"]]
-    
-    if (sum(pnt_nots, na.rm = TRUE) > 0L) 
-      out <- out[!pnt_nots, ]
-    
-    if (sum(pct_nots, na.rm = TRUE) > 0L) 
-      out <- out[!pct_nots, ]
-    
-    # peptide `is_pnt` and `is_pct` are not EXACT facts
-    # but preference of terminal over interior matches
-    # so remove them to avoid misleading uses or interpretations
-    out[["is_pnt"]] <- NULL
-    out[["is_pct"]] <- NULL
-    
-    out
-  })
-
-  list(out, prot_n_psm, prot_n_pep) %>%
+  pnt_nots <- grepl("Protein N-term", df[["pep_vmod"]], fixed = TRUE) & !df[["is_pnt"]]
+  pct_nots <- grepl("Protein C-term", df[["pep_vmod"]], fixed = TRUE) & !df[["is_pct"]]
+  df <- df[(!pnt_nots) & (!pct_nots), ]
+  
+  # peptide `is_pnt` and `is_pct` are not EXACT facts
+  # but preference of terminal over interior matches
+  # so remove them to avoid misleading uses or interpretations
+  df[["is_pnt"]] <- NULL
+  df[["is_pct"]] <- NULL
+  
+  list(df, prot_n_psm, prot_n_pep) %>%
     purrr::reduce(dplyr::left_join, by = "prot_acc") %>%
     dplyr::arrange(-prot_n_pep, -prot_n_psm)
 }

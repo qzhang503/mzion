@@ -23,6 +23,7 @@ ms2match_a0_vnl0_fnl1(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
+  maxn_fnl_per_seq = 64L,
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 10L,
@@ -76,6 +77,7 @@ ms2match_a1_vnl0_fnl1(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
+  maxn_fnl_per_seq = 64L,
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 10L,
@@ -103,6 +105,7 @@ ms2match_a1_vnl1_fnl0(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
+  maxn_vnl_per_seq = 64L,
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 10L,
@@ -190,6 +193,9 @@ default is 5.}
   considered, the value of \code{maxn_sites_per_vmod} needs to be four or
   greater.}
 
+\item{maxn_fnl_per_seq}{A non-negative integer; the maximum number of
+permutative neutral losses per peptide sequence for fixed modifications.}
+
 \item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
 number of combinatorial variable modifications per peptide sequence. The
 default is 64.}
@@ -235,6 +241,9 @@ calculations).}
 \item{amods}{The attribute of \code{amods} from an \code{aa_masses}.}
 
 \item{vmods_nl}{The attribute of \code{vmods_nl} from an \code{aa_masses}.}
+
+\item{maxn_vnl_per_seq}{A non-negative integer; the maximum number of
+permutative neutral losses per peptide sequence for variable modifications.}
 }
 \description{
 (5) "amods- tmod- vnl- fnl+", (6) "amods- tmod+ vnl- fnl+"

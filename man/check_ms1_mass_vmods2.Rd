@@ -6,7 +6,7 @@
 \usage{
 check_ms1_mass_vmods2(
   vmods_combi,
-  aas2,
+  aam,
   aa_masses,
   ntmod,
   ctmod,
@@ -17,7 +17,7 @@ check_ms1_mass_vmods2(
 \arguments{
 \item{vmods_combi}{Lists of variable modifications.}
 
-\item{aas2}{A sequence of amino-acid residues with \emph{masses}. Residues
+\item{aam}{A sequence of amino-acid residues with \emph{masses}. Residues
 are in names and masses in values (note that argument \code{aas}
 corresponds to residues without masses).}
 

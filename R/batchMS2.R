@@ -189,7 +189,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
         
         parallel::stopCluster(cl)
         
-        ms2s <- purrr::flatten(ms2s)
+        ms2s <- flatten_list(ms2s)
         qs::qsave(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")), 
                   preset = "fast")
       }
@@ -264,7 +264,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
         
         parallel::stopCluster(cl)
         
-        ms2s <- purrr::flatten(ms2s)
+        ms2s <- flatten_list(ms2s)
         qs::qsave(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")), 
                   preset = "fast")
       }
@@ -343,7 +343,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
         
         parallel::stopCluster(cl)
         
-        ms2s <- purrr::flatten(ms2s)
+        ms2s <- flatten_list(ms2s)
         qs::qsave(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")), 
                   preset = "fast")
       }
@@ -422,7 +422,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
         
         parallel::stopCluster(cl)
         
-        ms2s <- purrr::flatten(ms2s)
+        ms2s <- flatten_list(ms2s)
         qs::qsave(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")), 
                   preset = "fast")
       }
@@ -500,7 +500,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
         
         parallel::stopCluster(cl)
         
-        ms2s <- purrr::flatten(ms2s)
+        ms2s <- flatten_list(ms2s)
         qs::qsave(ms2s, file.path(path_ms2time, paste0("ms2masses_", i, ".rds")), 
                   preset = "fast")
       }

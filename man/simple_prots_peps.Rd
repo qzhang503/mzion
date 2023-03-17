@@ -10,7 +10,7 @@ simple_prots_peps(seqs)
 \item{seqs}{Results from \link{distri_peps}.}
 }
 \description{
-For both target and decoy peptides.
+For targets peptides.
 }
 \details{
 Columns: \code{is_pnt}, is Protein N-term; \code{is_pct}, is Protein C-term.

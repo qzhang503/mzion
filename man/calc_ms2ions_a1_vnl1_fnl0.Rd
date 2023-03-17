@@ -7,7 +7,7 @@
 calc_ms2ions_a1_vnl1_fnl0(
   vmods_combi,
   vnl_combi,
-  aas2,
+  aam,
   aa_masses,
   ntmass,
   ctmass,
@@ -23,7 +23,7 @@ calc_ms2ions_a1_vnl1_fnl0(
 corresponds to a set of neutral loss. The first column corresponds to the
 combination without NLs.}
 
-\item{aas2}{A sequence of amino-acid residues with \emph{masses}. Residues
+\item{aam}{A sequence of amino-acid residues with \emph{masses}. Residues
 are in names and masses in values (note that argument \code{aas}
 corresponds to residues without masses).}
 

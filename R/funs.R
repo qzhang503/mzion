@@ -1,6 +1,6 @@
 # $batchMS2.R
-# [1] "batch_ms2ions"         "hbatch_ms2ions"        "mgen_ms2ions"          "make_ms2frames"       
-# [5] "make_ms2frames_bypars" "check_ms2frames"      
+# [1] "batch_ms2ions"         "hbatch_ms2ions"        "mgen_ms2ions"          "make_ms2frames"        "make_ms2frames_bypars"
+# [6] "check_ms2frames"      
 # 
 # $bin_masses.R
 # [1] "bin_ms1masses"      "binTheoSeqs_i"      "binTheoSeqs2"       "bin_theoseqs"       "binTheoSeqs"       
@@ -76,8 +76,7 @@
 # [8] "check_locmods"  "map_raw_n_scan"
 # 
 # $msmsmatches2.R
-# [1] "ms2match"              "hcalc_tmtint"          "reverse_peps_in_frame" "reverse_seqs"         
-# [5] "calib_ms1masses"      
+# [1] "ms2match"              "hcalc_tmtint"          "reverse_peps_in_frame" "reverse_seqs"          "calib_ms1masses"      
 # 
 # $mztab.R
 # [1] "make_mztab"
@@ -86,8 +85,8 @@
 # character(0)
 # 
 # $quant2.R
-#  [1] "calc_tmtint"        "add_rptrs"          "find_reporter_ints" "find_reporters_ppm" "add_protacc"       
-#  [6] "msub_protpep"       "sub_protpep"        "add_protacc2"       "hadd_protacc"       "groupProts"        
+#  [1] "calc_tmtint"        "add_rptrs"          "find_reporter_ints" "find_reporters_ppm" "msub_protpep"      
+#  [6] "sub_protpep"        "add_protacc2"       "add_protacc"        "hannot_decoys"      "groupProts"        
 # [11] "map_pepprot"        "collapse_sortpeps"  "pcollapse_sortpeps" "chunksplit_spmat"   "find_group_breaks" 
 # [16] "cut_proteinGroups"  "sparseD_fourquad"   "as_dist"            "as_lgldist"         "greedysetcover3"   
 # 
@@ -118,15 +117,14 @@
 # [17] "parse_unimod_composition"
 # 
 # $utils_engine.R
-#  [1] "which_topx"            "which_topx2"           "get_topn_vals"         "insVal"               
-#  [5] "topx"                  "find_ppm_error"        "find_mass_error_range" "`%+%`"                
-#  [9] "post_ms2match"         "post_frame_adv"        "purge_search_space"    "subset_theoframes"    
-# [13] "subset_neuloss_peps"   "find_nterm_mass"       "find_cterm_mass"       "quick_rightjoin"      
-# [17] "quick_leftjoin"        "detect_cores"          "find_free_mem"         "find_mod_indexes"     
-# [21] "is_equal_sets"         "purge_decoys"          "expand_grid_rows"      "count_elements"       
-# [25] "vec_to_list"           "split_vec"             "accumulate_char"       "combi_mat"            
-# [29] "make_zero_df"          "calc_threeframe_ppm"   "check_ms1calib"        "save_ms1calib"        
-# [33] "get_ms1charges"        "finds_uniq_vec"        "my_dataframe"          "flatten_list"         
+#  [1] "which_topx"            "which_topx2"           "get_topn_vals"         "insVal"                "topx"                 
+#  [6] "find_ppm_error"        "find_mass_error_range" "`%+%`"                 "post_ms2match"         "`%+%`"                
+# [11] "post_frame_adv"        "purge_search_space"    "subset_theoframes"     "subset_neuloss_peps"   "find_nterm_mass"      
+# [16] "find_cterm_mass"       "quick_rightjoin"       "quick_leftjoin"        "detect_cores"          "find_free_mem"        
+# [21] "find_mod_indexes"      "is_equal_sets"         "expand_grid_rows"      "count_elements"        "vec_to_list"          
+# [26] "split_vec"             "accumulate_char"       "combi_mat"             "make_zero_df"          "calc_threeframe_ppm"  
+# [31] "check_ms1calib"        "save_ms1calib"         "get_ms1charges"        "finds_uniq_vec"        "my_dataframe"         
+# [36] "flatten_list"          "calc_rev_ms2"          "bind_dfs"             
 # 
 # $utils_os.R
 #  [1] "`names_pos<-`"          "find_int_cols"          "ins_cols_after"         "add_cols_at"           
@@ -138,17 +136,17 @@
 # [25] "is_nulllist"            "add_nulllist"          
 # 
 # $utils_ui.R
-# [1] "calc_monopeptide"  "calc_monopep"      "check_aaseq"       "calc_ms2ionseries" "calc_ms2ions"     
-# [6] "unique_mvmods"     "vmods_elements"    "find_intercombi"  
+# [1] "calc_monopeptide"  "calc_monopep"      "check_aaseq"       "calc_ms2ionseries" "calc_ms2ions"      "unique_mvmods"    
+# [7] "vmods_elements"    "find_intercombi"  
 # 
 # $vmod_ms1_labels.R
-#  [1] "match_mvmods"      "make_ms1vmod_i"    "make_ms1_vmodsets" "bacth_vmods_combi" "make_unique_sets" 
-#  [6] "find_unique_sets"  "gtools_combn"      "    sub"           "  else sub"        "find_intercombi2" 
+#  [1] "match_mvmods"      "make_ms1vmod_i"    "make_ms1_vmodsets" "bacth_vmods_combi" "make_unique_sets"  "find_unique_sets" 
+#  [7] "gtools_combn"      "    sub"           "  else sub"        "find_intercombi2" 
 # 
 # $vmod_ms2_labels.R
-#  [1] "find_vmodscombi"   "combi_namesiteU"   "find_vmodposU"     "combi_namesiteM"   "find_vmodposM"    
-#  [6] "match_aas_indexes" "make_ms2vmods"     "find_ms2resids"    "find_perm_sets"    "add_one_permlab"  
-# [11] "add_one_label"     "ins_permlab"       "sim_combn"        
+#  [1] "find_vmodscombi"   "combi_namesiteU"   "find_vmodposU"     "combi_namesiteM"   "find_vmodposM"     "match_aas_indexes"
+#  [7] "make_ms2vmods"     "find_ms2resids"    "find_perm_sets"    "add_one_permlab"   "add_one_label"     "ins_permlab"      
+# [13] "sim_combn"        
 # 
 # $wrappers.R
 # [1] "my_dist"     "cos_sim"     "matchMS_NES"

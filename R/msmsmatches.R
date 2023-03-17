@@ -107,10 +107,16 @@
 #'   custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
 #'   "([^P]\{1\})([KR]\{1\})")
 #'
-#' @param use_nontryptic_fdr Logical; if TRUE, use only peptide sequences not
-#'   ending with C-terminal K or R in peptide FDR estimates. The argument only
-#'   affects searches at \code{enzyme = noenzyme}. The default is FALSE. May
-#'   consider TRUE, which may lead to more hits of non-tryptic sequences.
+#' @param nes_fdr_group A character string in one of \code{c("all",
+#'   "all_cterm_tryptic", "all_cterm_nontryptic", "base", "base_cterm_tryptic",
+#'   "base_cterm_nontryptic")}. All peptides will be used in the classifications
+#'   of targets and decoys at \code{"all"}. Peptides with the chemistry of
+#'   C-terminal K or R will be used at \code{"all_cterm_tryptic"} (peptides from
+#'   protein C-terminals being excluded). Peptides without C-terminal K or R
+#'   will be used at \code{"all_cterm_nontryptic"}. The same applied to
+#'   \code{"base_cterm_tryptic"} and \code{"base_cterm_nontryptic"} with the
+#'   difference of only peptides from the \code{base} group being used. See also
+#'   parameter \code{fdr_group}.
 #' @param noenzyme_maxn Non-negative integer; the maximum number of peptide
 #'   lengths for sectional searches at \code{noenzyme} specificity. The argument
 #'   may be used to guard against RAM exhaustion. At the zero default, The
@@ -134,6 +140,10 @@
 #'   combination of two \code{Carbamyl (M)} and two \code{Oxidation (M)} being
 #'   considered, the value of \code{maxn_sites_per_vmod} needs to be four or
 #'   greater.
+#' @param maxn_fnl_per_seq A non-negative integer; the maximum number of
+#'   permutative neutral losses per peptide sequence for fixed modifications.
+#' @param maxn_vnl_per_seq A non-negative integer; the maximum number of
+#'   permutative neutral losses per peptide sequence for variable modifications.
 #' @param maxn_vmods_sitescombi_per_pep A non-negative integer; the maximum
 #'   number of combinatorial variable modifications per peptide sequence. The
 #'   default is 64.
@@ -261,6 +271,9 @@
 #'
 #'   Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
 #'   peptide} with the additional filtration of data at \code{prot_tier == 1}.
+#' @param fdr_group A character string; the modification group(s) for uses in
+#'   peptide FDR controls. The value is in one of c("all", "base"). The
+#'   \code{base} corresponds to the group of \emph{all-fixed} modifications.
 #' @param max_pepscores_co A positive numeric; the upper limit in the cut-offs
 #'   of peptide scores for discriminating significant and insignificant
 #'   identities. The default is changed from \code{Inf} to 50 from version
@@ -620,12 +633,17 @@ matchMS <- function (out_path = "~/proteoM/outs",
                                 "SemiGluN", "SemiAspC", "SemiAspN", "Noenzyme", 
                                 "Nodigest"),
                      custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
-                     use_nontryptic_fdr = FALSE, 
+                     nes_fdr_group = c("all", "all_cterm_tryptic", 
+                                       "all_cterm_nontryptic", "base", 
+                                       "base_cterm_tryptic", 
+                                       "base_cterm_nontryptic"), 
                      noenzyme_maxn = 0L, 
                      maxn_fasta_seqs = 200000L,
                      maxn_vmods_setscombi = 512L,
                      maxn_vmods_per_pep = 5L,
                      maxn_sites_per_vmod = 3L,
+                     maxn_fnl_per_seq = 64L, 
+                     maxn_vnl_per_seq = 64L, 
                      maxn_vmods_sitescombi_per_pep = 64L,
                      min_len = 7L, max_len = 40L, max_miss = 2L, 
                      min_mass = 200L, max_mass = 4500L, 
@@ -650,6 +668,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      
                      target_fdr = 0.01,
                      fdr_type = c("protein", "peptide", "psm"),
+                     fdr_group = c("all", "base"), 
                      max_pepscores_co = 50, min_pepscores_co = 0, 
                      max_protscores_co = Inf, 
                      max_protnpep_co = 10L, 
@@ -662,7 +681,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 60000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/proteoM/.MSearches (1.2.1.5)/Cache/Calls", 
+                     .path_cache = "~/proteoM/.MSearches (1.2.2.0)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,
@@ -720,8 +739,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   suppressWarnings(
     rm(list = c(".path_cache", ".path_fasta", ".path_ms1masses", 
                 ".time_stamp", ".time_bin", ".path_bin"), 
-       envir = .GlobalEnv)
-  )
+       envir = .GlobalEnv))
 
   ## Preparation
   # modifications
@@ -741,7 +759,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   # numeric types 
   stopifnot(vapply(c(maxn_fasta_seqs, maxn_vmods_setscombi, maxn_vmods_per_pep, 
-                     maxn_sites_per_vmod, maxn_vmods_sitescombi_per_pep, 
+                     maxn_sites_per_vmod, maxn_fnl_per_seq, maxn_vnl_per_seq, 
+                     maxn_vmods_sitescombi_per_pep, 
                      min_len, max_len, max_miss, topn_ms2ions, minn_ms2, 
                      min_mass, max_mass, min_ms2mass, max_ms2mass, n_13c, 
                      ppm_ms1, ppm_ms2, ppm_reporters, max_n_prots, digits, 
@@ -773,6 +792,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
   maxn_vmods_per_pep <- as.integer(maxn_vmods_per_pep)
   maxn_sites_per_vmod <- as.integer(maxn_sites_per_vmod)
   maxn_vmods_sitescombi_per_pep <- as.integer(maxn_vmods_sitescombi_per_pep)
+  maxn_fnl_per_seq <- as.integer(maxn_fnl_per_seq)
+  maxn_vnl_per_seq <- as.integer(maxn_vnl_per_seq)
   min_len <- as.integer(min_len)
   max_len <- as.integer(max_len)
   max_miss <- as.integer(max_miss)
@@ -908,8 +929,32 @@ matchMS <- function (out_path = "~/proteoM/outs",
       stop("Incorrect `fdr_type`.")
   }
   
-  rm(list = c("oks"))
-
+  # fdr_group
+  oks <- eval(this_fml[["fdr_group"]])
+  fdr_group <- substitute(fdr_group)
+  
+  if (length(fdr_group) > 1L)
+    fdr_group <- oks[1]
+  else {
+    fdr_group <- as.character(fdr_group) 
+    
+    if (!fdr_group %in% oks)
+      stop("Incorrect `fdr_group`.")
+  }
+  
+  # nes_fdr_group
+  oks <- eval(this_fml[["nes_fdr_group"]])
+  nes_fdr_group <- substitute(nes_fdr_group)
+  
+  if (length(nes_fdr_group) > 1L)
+    nes_fdr_group <- oks[1]
+  else {
+    nes_fdr_group <- as.character(nes_fdr_group) 
+    
+    if (!nes_fdr_group %in% oks)
+      stop("Incorrect `nes_fdr_group`.")
+  }
+  
   # Quantitation method
   oks <- eval(this_fml[["quant"]])
   quant <- substitute(quant)
@@ -1149,9 +1194,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
   bypass_ms2match <- dots$bypass_ms2match
   if (is.null(bypass_ms2match)) bypass_ms2match <- FALSE
   
-  use_first_rev <- dots$use_first_rev
-  if (is.null(use_first_rev)) use_first_rev <- FALSE
-  
   .time_stamp <- find_ms1_times(out_path)
   
   if (length(.time_stamp) == 1L) {
@@ -1182,6 +1224,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
              type_ms2ions = type_ms2ions,
              maxn_vmods_per_pep = maxn_vmods_per_pep,
              maxn_sites_per_vmod = maxn_sites_per_vmod,
+             maxn_fnl_per_seq = maxn_fnl_per_seq, 
+             maxn_vnl_per_seq = maxn_vnl_per_seq, 
              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
              minn_ms2 = minn_ms2,
              
@@ -1194,7 +1238,6 @@ matchMS <- function (out_path = "~/proteoM/outs",
              min_ms2mass = min_ms2mass,
              quant = quant,
              ppm_reporters = ppm_reporters,
-             use_first_rev = use_first_rev, 
              calib_ms1mass = calib_ms1mass, 
              index_mgf_ms2 = index_mgf_ms2, 
 
@@ -1285,7 +1328,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
                             max_pepscores_co = max_pepscores_co, 
                             min_pepscores_co = min_pepscores_co, 
                             enzyme = enzyme, 
-                            use_nontryptic_fdr = use_nontryptic_fdr, 
+                            fdr_group = fdr_group, 
+                            nes_fdr_group = nes_fdr_group, 
                             out_path = out_path)
     
     post_pepfdr(prob_cos, out_path)
@@ -1374,9 +1418,8 @@ matchMS <- function (out_path = "~/proteoM/outs",
     df[grepl("^prot_", nms)],
     df[grepl("^pep_", nms)],
     df[grepl("^psm_", nms)],
-    df[!grepl("^prot_|^pep_|^psm_", nms)],
-  )
-  
+    df[!grepl("^prot_|^pep_|^psm_", nms)], )
+
   rm(list = "nms")
   
   df <- reloc_col_after(df, "pep_exp_z", "pep_exp_mr")
