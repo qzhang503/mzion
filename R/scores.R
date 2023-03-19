@@ -682,6 +682,9 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     rm(list = c("cache_pars", "call_pars"))
   }
   
+  # to be deleted
+  # n_cores <- detect_cores(16L)
+  
   d2 <- calc_threeframe_ppm(ppm_ms2) * 1E-6
   
   for (fi in list_i) {
@@ -817,6 +820,9 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   #   -> res[[i]] <- NULL 
   #   -> length(res) shortened by 1
   
+  # will be used again later
+  n_cores <- detect_cores(48L)
+  
   if (n_rows <= 5000L) {
     probs <- calc_pepprobs_i(
       df,
@@ -833,8 +839,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   else {
     path_df <- file.path(tempdir, "df_sc_temp.rda")
     max_rows <- 100000L
-    
-    n_cores <- detect_cores(48L)
+
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     parallel::clusterExport(cl, list("calc_pepprobs_i", "scalc_pepprobs", 
                                      "calc_probi", "calc_probi_bypep", 
