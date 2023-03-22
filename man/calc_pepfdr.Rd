@@ -6,14 +6,14 @@
 \usage{
 calc_pepfdr(
   target_fdr = 0.01,
-  fdr_type = "psm",
+  fdr_type = "protein",
   min_len = 7L,
   max_len = 40L,
   max_pepscores_co = 50,
   min_pepscores_co = 0,
   enzyme = "trypsin_p",
-  fdr_group = "all",
-  nes_fdr_group = "all",
+  fdr_group = "base",
+  nes_fdr_group = "base",
   out_path
 )
 }
@@ -30,8 +30,7 @@ for considerations. Longer peptides will be excluded.}
 
 \item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
 of peptide scores for discriminating significant and insignificant
-identities. The default is changed from \code{Inf} to 50 from version
-1.1.9.2 on.}
+identities.}
 
 \item{min_pepscores_co}{A non-negative numeric; the lower limit in the
 cut-offs of peptide scores for discriminating significant and insignificant

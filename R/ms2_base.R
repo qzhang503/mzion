@@ -870,7 +870,7 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
     
     ## forward matches
     ps <- th_i %fin% ex | (th_i - 1L) %fin% ex | (th_i + 1L) %fin% ex
-    ips <- which(ps)
+    ips <- .Internal(which(ps))
     
     ## "ith = ips" in ascending order, not "iex = ips_12"
 
@@ -894,12 +894,12 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
       # b-ions
       y_1 <- th_i[1:mid]
       ps_1 <- ex %fin% y_1 | ex_bf %fin% y_1 | ex_af %fin% y_1
-      ips_1 <- which(ps_1) 
-      
+      ips_1 <- .Internal(which(ps_1))
+
       # y-ions
       y_2 <- th_i[(mid+1L):lth]
       ps_2 <- ex %fin% y_2 | ex_bf %fin% y_2 | ex_af %fin% y_2
-      ips_2 <- which(ps_2) 
+      ips_2 <- .Internal(which(ps_2))
       
       # b- and y-ions
       expt_1 <- expts[ips_1]

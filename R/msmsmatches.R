@@ -269,7 +269,7 @@
 #' @param fdr_type A character string; the type of FDR control. The value is in
 #'   one of c("protein", "peptide", "psm"). The default is \code{protein}.
 #'
-#'   Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
+#'   Note that \code{fdr_type = protein} is comparable to \code{fdr_type =
 #'   peptide} with the additional filtration of data at \code{prot_tier == 1}.
 #' @param fdr_group A character string; the modification group(s) for uses in
 #'   peptide FDR controls. The value is in one of c("all", "base"). The
@@ -277,8 +277,7 @@
 #'   of matches.
 #' @param max_pepscores_co A positive numeric; the upper limit in the cut-offs
 #'   of peptide scores for discriminating significant and insignificant
-#'   identities. The default is changed from \code{Inf} to 50 from version
-#'   1.1.9.2 on.
+#'   identities.
 #' @param min_pepscores_co A non-negative numeric; the lower limit in the
 #'   cut-offs of peptide scores for discriminating significant and insignificant
 #'   identities.
@@ -300,10 +299,10 @@
 #'   pep_score_cutoff} under a protein will be used to represent the threshold
 #'   of a protein enrichment score. For more conserved thresholds, the
 #'   statistics of \code{"max"} may be considered.
-#' @param soft_secions Logical; if TRUE, collapses the intensities of secondary
-#'   ions to primary ions at the absence of the primaries. The default is FALSE.
-#'   For instance, the signal of \code{b5^*} will be ignored if its primary ion
-#'   \code{b5} is not matched.
+#' @param soft_secions Depreciated. Logical; if TRUE, collapses the intensities
+#'   of secondary ions to primary ions at the absence of the primaries. The
+#'   default is FALSE. For instance, the signal of \code{b5^*} will be ignored
+#'   if its primary ion \code{b5} is not matched.
 #' @param topn_seqs_per_query Positive integer; a threshold to discard peptide
 #'   matches under the same MS query with scores beyond the top-n.
 #'
@@ -319,17 +318,20 @@
 #'
 #'   For a variable modification with multiple neutral losses (NL), the
 #'   best-scored NL will be used in the ranking.
-#' @param combine_tier_three Logical; if TRUE, combines search results at tiers
-#'   1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
-#'   that data will be segregated into the three quality tiers according to the
-#'   choice of \code{fdr_type}. The (convenience) parameter matters since
-#'   \href{http://github.com/qzhang503/proteoQ}{proteoQ} will only look for the
-#'   inputs of \code{psmQ[...].txt}.
+#' @param combine_tier_three Logical; if TRUE, combines search results at tier-3
+#'   to tier-1 to form the single output of \code{psmQ.txt}. The default is
+#'   FALSE in that data will be segregated into the three quality tiers (shown
+#'   below) by the choice of \code{fdr_type}. Note that the argument affects
+#'   only at the \code{fdr_type} of \code{psm} or \code{peptide} where there are
+#'   no tier-2 outputs. In general, the tier-3 results correspond to
+#'   one-hit-wonders and setting \code{combine_tier_three = TRUE} is
+#'   discouraged.
 #'
-#'   For instance, if the aim is to bypass the constraint by protein FDR and
-#'   focus on PSMs that have met the cut-offs specified by \code{target_fdr}, an
-#'   experimenter may set \code{combine_tier_three = TRUE} and hence pool all
-#'   significant peptides in \code{psmQ.txt} for downstream proteoQ.
+#'   In subproteome analysis, such as phosphoproteome analysis, some proteins
+#'   may be well established globally, but fail the significance assessment by
+#'   protein FDR on the local scale. In situations like this, it may be suitable
+#'   to apply \code{fdr_type = "peptide"} or \code{fdr_type = "psm"} other than
+#'   incurring \code{combine_tier_three = TRUE}.
 #'
 #'   Tier-1: both proteins and peptides with scores above significance
 #'   thresholds.
@@ -382,9 +384,6 @@
 #'   file folder for disk space or under infrequent events of modified framework
 #'   incurred by the developer.
 #'
-#'   Started from version 1.2.1.5, a new data structure of protein-peptide
-#'   lookups are used. Version 1.2.1.4.1 is the final version using the old data
-#'   structure.
 #' @param .path_fasta The parent file path to the theoretical masses of MS1
 #'   precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
 #'   "\\1", get("fasta", envir = environment())[1])}. The parameter is for the
@@ -634,17 +633,19 @@ matchMS <- function (out_path = "~/proteoM/outs",
                                 "SemiGluN", "SemiAspC", "SemiAspN", "Noenzyme", 
                                 "Nodigest"),
                      custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
-                     nes_fdr_group = c("all", "all_cterm_tryptic", 
-                                       "all_cterm_nontryptic", "base", 
-                                       "base_cterm_tryptic", 
-                                       "base_cterm_nontryptic"), 
+                     nes_fdr_group = c("base", "base_cterm_tryptic", 
+                                       "base_cterm_nontryptic", 
+                                       "all", "all_cterm_tryptic", 
+                                       "all_cterm_nontryptic", 
+                                       "top3", "top3_cterm_tryptic", 
+                                       "top3_cterm_nontryptic"), 
                      noenzyme_maxn = 0L, 
                      maxn_fasta_seqs = 200000L,
                      maxn_vmods_setscombi = 512L,
                      maxn_vmods_per_pep = 5L,
                      maxn_sites_per_vmod = 3L,
-                     maxn_fnl_per_seq = 64L, 
-                     maxn_vnl_per_seq = 64L, 
+                     maxn_fnl_per_seq = 8L, 
+                     maxn_vnl_per_seq = 8L, 
                      maxn_vmods_sitescombi_per_pep = 64L,
                      min_len = 7L, max_len = 40L, max_miss = 2L, 
                      min_mass = 200L, max_mass = 4500L, 
@@ -669,7 +670,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      
                      target_fdr = 0.01,
                      fdr_type = c("protein", "peptide", "psm"),
-                     fdr_group = c("all", "base"), 
+                     fdr_group = c("base", "all", "top3"), 
                      max_pepscores_co = 50, min_pepscores_co = 0, 
                      max_protscores_co = Inf, 
                      max_protnpep_co = 10L, 
@@ -931,10 +932,13 @@ matchMS <- function (out_path = "~/proteoM/outs",
   }
   
   # fdr_group
+  
+  # for future supports of character strings or integers (mod_groups)
+  # fdr_group <- check_fdr_group(fdr_group, eval(this_fml[["fdr_group"]]))
   oks <- eval(this_fml[["fdr_group"]])
   fdr_group <- substitute(fdr_group)
   
-  if (length(fdr_group) > 1L)
+  if (length(fdr_group) > 1L && identical(eval(fdr_group), oks))
     fdr_group <- oks[1]
   else {
     fdr_group <- as.character(fdr_group) 
@@ -942,12 +946,12 @@ matchMS <- function (out_path = "~/proteoM/outs",
     if (!fdr_group %in% oks)
       stop("Incorrect `fdr_group`.")
   }
-  
+
   # nes_fdr_group
   oks <- eval(this_fml[["nes_fdr_group"]])
   nes_fdr_group <- substitute(nes_fdr_group)
   
-  if (length(nes_fdr_group) > 1L)
+  if (length(nes_fdr_group) > 1L && identical(eval(nes_fdr_group), oks))
     nes_fdr_group <- oks[1]
   else {
     nes_fdr_group <- as.character(nes_fdr_group) 
@@ -1284,7 +1288,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
     calc_pepscores(topn_ms2ions = topn_ms2ions,
                    type_ms2ions = type_ms2ions,
                    target_fdr = target_fdr,
-                   fdr_type = fdr_type,
+                   # fdr_type = fdr_type, # not used
                    min_len = min_len,
                    max_len = max_len,
                    ppm_ms2 = ppm_ms2,
@@ -1449,7 +1453,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   df <- try_psmC2Q(df, 
                    out_path = out_path,
-                   fdr_type = fdr_type, 
+                   fdr_type = fdr_type, # for workflow controls 
                    combine_tier_three = combine_tier_three, 
                    max_n_prots = max_n_prots)
   
@@ -1587,6 +1591,7 @@ reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
 #' @param fct A factor for data splitting into chunks. May consider a greater
 #'   value for a larger data set.
 #' @inheritParams matchMS
+#' @importFrom fastmatch %fin%
 psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
                     combine_tier_three = FALSE, max_n_prots = 60000L, 
                     fct = 4L) 
@@ -1595,7 +1600,7 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
   
   # if (!all(df[["pep_issig"]])) stop("Developer: filter data by \"pep_issig\" first.")
   # if (any(df[["pep_isdecoy"]])) stop("Developer: remove decoy peptide first.")
-  # if (any(grepl("^-", df["prot_acc"]))) stop("Developr: remove decoy proteins first.")
+  # if (any(grepl("^-", df["prot_acc"]))) stop("Developer: remove decoy proteins first.")
 
   message("\n=================================\n",
           "prot_tier  prot_issig  prot_n_pep \n",
@@ -1605,26 +1610,22 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
           "=================================\n")
   
   # Set aside one-hit wonders
-  df3 <- df %>%
-    dplyr::filter(!prot_issig, prot_n_pep == 1L) %>%
-    dplyr::mutate(prot_tier = 3L)
-  
+  df3 <- dplyr::filter(df, !prot_issig, prot_n_pep == 1L)
+  df3 <- dplyr::mutate(df3, prot_tier = 3L)
+
   df <- dplyr::bind_rows(
     dplyr::filter(df, prot_issig),
-    dplyr::filter(df, !prot_issig, prot_n_pep >= 2L)
-  ) %>%
-    dplyr::mutate(prot_tier = ifelse(prot_issig, 1L, 2L))
-  
+    dplyr::filter(df, !prot_issig, prot_n_pep >= 2L))
+
+  df <- dplyr::mutate(df, prot_tier = ifelse(prot_issig, 1L, 2L))
+
   # the same peptide can be present in all three protein tiers; 
   # steps up if pep_seq(s) in tier 3 also in tiers 1, 2
   if (FALSE) {
     rows <- df3$pep_seq %in% df$pep_seq
-    
     df <- dplyr::bind_rows(df, df3[rows, ])
     df3 <- df3[!rows, ]
-    
     rm(list = "rows")
-    gc()
   }
   
   # Protein groups
@@ -1641,12 +1642,12 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
     fdr_type <- "protein"
     
     df2 <- dplyr::filter(df, prot_tier == 2L)
-    df <- dplyr::filter(df, prot_tier == 1L)
+    df  <- dplyr::filter(df, prot_tier == 1L)
   } 
   else {
     if (fdr_type == "protein") {
       df2 <- dplyr::filter(df, prot_tier == 2L)
-      df <- dplyr::filter(df, prot_tier == 1L)
+      df  <- dplyr::filter(df, prot_tier == 1L)
     } 
     else {
       message("No tier-2 outputs at `fdr_type = ", fdr_type, "`.")
@@ -1665,7 +1666,7 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
   # df may have both prot_tier 1 and 2 if fdr_type != "protein"
   df_tier12 <- unique(df[, c("prot_acc", "prot_tier")])
   
-  df <- unique(df[, c("prot_acc", "pep_seq")])
+  df  <- unique(df [, c("prot_acc", "pep_seq")])
   df2 <- unique(df2[, c("prot_acc", "pep_seq")])
   df3 <- unique(df3[, c("prot_acc", "pep_seq")])
   gc()
@@ -1680,26 +1681,25 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
   else
     df <- make_zero_df(nms)
 
-  if (nrow(df2)) 
-    df2 <- groupProts(df2, out_path = file.path(out_path, "temp2"), fct = fct)
+  df2 <- if (nrow(df2)) 
+    groupProts(df2, out_path = file.path(out_path, "temp2"), fct = fct)
   else 
-    df2 <- make_zero_df(nms)
+    make_zero_df(nms)
   
-  if (nrow(df3)) 
-    df3 <- groupProts(df3, out_path = file.path(out_path, "temp3"), fct = fct)
+  df3 <- if (nrow(df3)) 
+    groupProts(df3, out_path = file.path(out_path, "temp3"), fct = fct)
   else 
-    df3 <- make_zero_df(nms)
+    make_zero_df(nms)
   
   rm(list = c("nms", "df_tier12"))
 
   # Cleanup
   dfC <- suppressWarnings(
-    read_tsv(file.path(out_path, "psmC.txt"), col_types = get_proteoM_coltypes())
-  ) %>% 
-    dplyr::filter(pep_issig, !pep_isdecoy, !grepl("^-", prot_acc)) %>% 
-    tidyr::unite(uniq_id, prot_acc, pep_seq, sep = ".", remove = FALSE)
-  
-  df <- post_psmC2Q(df, dfC, tier = NULL)
+    read_tsv(file.path(out_path, "psmC.txt"), col_types = get_proteoM_coltypes()))
+  dfC <- dplyr::filter(dfC, pep_issig, !pep_isdecoy, !grepl("^-", prot_acc))
+  dfC <- tidyr::unite(dfC, uniq_id, prot_acc, pep_seq, sep = ".", remove = FALSE)
+
+  df  <- post_psmC2Q(df,  dfC, tier = NULL)
   df2 <- post_psmC2Q(df2, dfC, tier = 2L)
   df3 <- post_psmC2Q(df3, dfC, tier = 3L)
   
@@ -1721,11 +1721,11 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
   }
   
   if (combine_tier_three) {
-    df <- list(df, df2, df3) %>%
-      dplyr::bind_rows() %>%
-      dplyr::arrange(prot_acc, pep_seq) %T>%
-      readr::write_tsv(file.path(out_path, "psmQ.txt"))
-    
+    df3 <- df3[!df3[["pep_seq"]] %fin% df[["pep_seq"]], ]
+    df <- dplyr::bind_rows(list(df, df3)) # df2 should have no rows
+    df <- dplyr::arrange(df, prot_acc, pep_seq)
+    readr::write_tsv(df, file.path(out_path, "psmQ.txt"))
+
     local({
       file_t2 <- file.path(out_path, "psmT2.txt")
       file_t3 <- file.path(out_path, "psmT3.txt")
@@ -1742,22 +1742,18 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
     })
   } 
   else {
-    df <- df %>%
-      dplyr::arrange(prot_acc, pep_seq) %T>%
-      readr::write_tsv(file.path(out_path, "psmQ.txt"))
-    
+    df <- dplyr::arrange(df, prot_acc, pep_seq)
+    readr::write_tsv(df, file.path(out_path, "psmQ.txt"))
+
     if (nrow(df2)) {
-      df2 <- df2[names(df)] %>%
-        dplyr::mutate(prot_hit_num = prot_hit_num + max)  %T>%
-        readr::write_tsv(file.path(out_path, "psmT2.txt"))
-      
-      max <- max(df2$prot_hit_num, na.rm = TRUE)
+      df2 <- dplyr::mutate(df2[names(df)], prot_hit_num = prot_hit_num + max)
+      readr::write_tsv(df2, file.path(out_path, "psmT2.txt"))
+      max <- max(df2[["prot_hit_num"]], na.rm = TRUE)
     }
     
     if (nrow(df3)) {
-      df3 <- df3[names(df)] %>%
-        dplyr::mutate(prot_hit_num = prot_hit_num + max)  %T>%
-        readr::write_tsv(file.path(out_path, "psmT3.txt"))
+      df3 <- dplyr::mutate(df3[names(df)], prot_hit_num = prot_hit_num + max)
+      readr::write_tsv(df3, file.path(out_path, "psmT3.txt"))
     }
   }
   
@@ -1776,11 +1772,10 @@ post_psmC2Q <- function (df, dfC, tier = NULL)
   if (!is.null(tier))
     df <- dplyr::mutate(df, prot_tier = tier)
 
-  df <- df %>% 
-    tidyr::unite(uniq_id, prot_acc, pep_seq, sep = ".", remove = TRUE) %>% 
-    dplyr::left_join(dfC, by = "uniq_id") %>% 
-    dplyr::select(-uniq_id)
-  
+  df <- tidyr::unite(df, uniq_id, prot_acc, pep_seq, sep = ".", remove = TRUE)
+  df <- dplyr::left_join(df, dfC, by = "uniq_id")
+  df <- dplyr::select(df, -uniq_id)
+
   ord_prots <- c("prot_acc", "prot_issig")
   
   df <- dplyr::bind_cols(
@@ -1797,14 +1792,13 @@ post_psmC2Q <- function (df, dfC, tier = NULL)
   )
   
   df <- dplyr::bind_cols(
-    df %>% .[grepl("^prot_", names(.))],
-    df %>% .[grepl("^pep_", names(.))],
-    df %>% .[grepl("^psm_", names(.))],
-    df %>% .[!grepl("^prot_|^pep_|^psm_", names(.))],
+    df[grepl("^prot_", names(df))],
+    df[grepl("^pep_", names(df))],
+    df[grepl("^psm_", names(df))],
+    df[!grepl("^prot_|^pep_|^psm_", names(df))],
   )
   
-  df <- df %>% 
-    dplyr::select(-which(names(.) %in% c("prot_n_psm", "prot_n_pep")))
+  df <- dplyr::select(df, -which(names(df) %in% c("prot_n_psm", "prot_n_pep")))
 }
 
 
@@ -1989,6 +1983,35 @@ map_raw_n_scan <- function (df, mgf_path)
   }
   
   invisible(df)
+}
+
+
+#' Checks the values of \code{fdr_group}
+#' 
+#' Not yet used. Takes values of integers or character strings.
+#' 
+#' @inheritParams matchMS
+check_fdr_group <- function (fdr_group = c("base", "all", "top3"), 
+                             oks = c("base", "all"))
+{
+  is_trivial <- all(is.null(fdr_group)) || all(is.na(fdr_group)) || 
+    all(fdr_group == "")
+  
+  if (is_trivial)
+    return(oks[[1]])
+  
+  fdr_group <- unique(fdr_group)
+  
+  len <- length(fdr_group)
+  
+  if (len > 1L) {
+    if (all(fdr_group %in% oks))
+      fdr_group <- oks[1]
+    else
+      fdr_group <- fdr_group[!fdr_group %in% oks]
+  }
+  
+  as.character(fdr_group)
 }
 
 

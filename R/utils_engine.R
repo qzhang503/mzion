@@ -26,7 +26,7 @@ which_topx <- function(x, n = 50L, ...)
   
   xp <- sort(x, partial = p, ...)[p]
   
-  which(x > xp)
+  .Internal(which(x > xp))
 }
 
 
@@ -85,8 +85,8 @@ which_topx2 <- function(x, n = 50L, ...)
   # or:  xp <- sort(x, partial = p, na.last = TRUE)[p]
   xp <- sort(x, partial = p, ...)[p]
   
-  inds <- which(x > xp)
-  
+  inds <- .Internal(which(x > xp))
+
   # in case of ties -> length(inds) < n
   # detrimental e.g. ms2_n = 500 and n = 100
   #   -> expect 100 `ms2_moverzs` guaranteed but may be only 99
@@ -98,7 +98,7 @@ which_topx2 <- function(x, n = 50L, ...)
   
   if (d) {
     # must exist and length(ties) >= length(d)
-    ties <- which(x == xp)
+    ties <- .Internal(which(x == xp))
     for (i in seq_len(d)) inds <- insVal(ties[i], inds)
   }
   
@@ -253,11 +253,11 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
                                 fmods_nl = NULL) 
 {
   # loads freshly mgfs (as will be modified)
-  mgf_frames <- 
-    qs::qread(file.path(mgf_path, "mgf_queries.rds")) %>% 
-    dplyr::group_by(frame) %>%
-    dplyr::group_split() %>%
-    setNames(purrr::map_dbl(., function (x) x$frame[1]))
+  mgf_frames <- qs::qread(file.path(mgf_path, "mgf_queries.rds"))
+  mgf_frames <- dplyr::group_by(mgf_frames, frame)
+  mgf_frames <- dplyr::group_split(mgf_frames)
+  frs <- lapply(mgf_frames, function (x) x[["frame"]][1])
+  names(mgf_frames) <- unlist(frs, recursive = FALSE, use.names = FALSE)
 
   mgf_frames <- local({
     ranges <- seq_along(mgf_frames)
@@ -270,12 +270,8 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
   # parses aa_masses
   nm_fmods <- attr(aa_masses, "fmods", exact = TRUE)
   nm_vmods <- attr(aa_masses, "vmods", exact = TRUE)
-  msg_end  <- if (grepl("^rev_", i)) " (decoy)." else "."
-
-  message("Matching against: ",
-          paste0(nm_fmods,
-                 nm_vmods %>% { if (nchar(.) > 0L) paste0(" | ", .) else . },
-                 msg_end))
+  message("Matching against: ", 
+          if (nchar(nm_vmods) == 0L) nm_fmods else paste0(nm_fmods, " | ", nm_vmods))
 
   # reads theoretical peptide data
   .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
@@ -294,8 +290,10 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
     oks <- names(x) %fin% frames_theo
     x <- x[oks]
     
-    empties <- purrr::map_lgl(x, purrr::is_empty)
-    x[!empties]
+    ans <- .Internal(unlist(lapply(x, function (y) length(x) > 0L), 
+                            recursive = FALSE, use.names = FALSE))
+    
+    x[ans]
   })
   
   rm(list = "frames_theo")
@@ -304,11 +302,11 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
   #     preceding and following frames: (o)|range of mgf_frames[[1]]|(o)
   frames_mgf <- lapply(mgf_frames, function (x) as.integer(names(x)))
   
-  mins <- purrr::map_int(frames_mgf, function (x) 
-    if (length(x)) min(x, na.rm = TRUE) else 0L)
+  mins <- lapply(frames_mgf, function (x) if (length(x)) min(x, na.rm = TRUE) else 0L)
+  mins <- .Internal(unlist(mins, recursive = FALSE, use.names = FALSE))
 
-  maxs <- purrr::map_int(frames_mgf, function (x) 
-    if (length(x)) max(x, na.rm = TRUE) else 0L)
+  maxs <- lapply(frames_mgf, function (x) if (length(x)) max(x, na.rm = TRUE) else 0L)
+  maxs <- .Internal(unlist(maxs, recursive = FALSE, use.names = FALSE))
 
   frames_theo <- as.integer(names(theopeps))
   
@@ -329,9 +327,11 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
                      SIMPLIFY = FALSE, USE.NAMES = FALSE)
 
   # (4) removes empties (zero overlap between mgf_frames and theopeps)
-  oks <- purrr::map_lgl(mgf_frames, function (x) length(x) > 0L) |
-    purrr::map_lgl(theopeps, function (x) length(x) > 0L)
-
+  ok_mgfs <- lapply(mgf_frames, function (x) length(x) > 0L)
+  ok_mgfs <- .Internal(unlist(ok_mgfs, recursive = FALSE, use.names = FALSE))
+  ok_theos <- lapply(theopeps, function (x) length(x) > 0L)
+  ok_theos <- .Internal(unlist(ok_theos, recursive = FALSE, use.names = FALSE))
+  oks <- ok_mgfs | ok_theos
   mgf_frames <- mgf_frames[oks]
   theopeps <- theopeps[oks]
 

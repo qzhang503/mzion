@@ -237,8 +237,7 @@ readMGF <- function (filepath = NULL, filelist = NULL,
   # (2) parallel five MGF files and parallel chunks in each
   len <- length(filelist)
   n_cores <- min(len, detect_cores(32L))
-  # n_cores <- min(detect_cores(32L), floor((find_free_mem()/1024)/(sizes * 8)), len)
-  
+
   if (n_cores == 1L)
     raw_files <- readlineMGFs(1, filelist, filepath, raw_file)
   else {
@@ -323,10 +322,9 @@ readMGF <- function (filepath = NULL, filelist = NULL,
 post_readmgf <- function (df, min_mass = 200L, max_mass = 4500L, ppm_ms1 = 10L, 
                           filepath, out_path) 
 {
-  df <- df %>%
-    dplyr::arrange(ms1_mass) %>%
-    # dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass) %>%
-    dplyr::mutate(frame = find_ms1_interval(ms1_mass, from = min_mass, ppm = ppm_ms1))
+  df <- dplyr::arrange(df, ms1_mass)
+  # df <- dplyr::filter(df, ms1_mass >= min_mass, ms1_mass <= max_mass)
+  df <- dplyr::mutate(df, frame = find_ms1_interval(ms1_mass, from = min_mass, ppm = ppm_ms1))
 
   raws_files <- df$raw_file
   raws <- raws_files[!duplicated.default(raws_files)]
@@ -450,8 +448,6 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
   n_cores <- min(detect_cores(32L), len)
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
-  parallel::clusterExport(cl, list("%>%"), envir = environment(magrittr::`%>%`))
-  
   parallel::clusterExport(
     cl, 
     c("stri_startswith_fixed", 
@@ -508,7 +504,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
                                 digits = digits)
   
   parallel::stopCluster(cl)
-  gc()
+  # gc()
 
   out <- dplyr::bind_rows(out)
 
@@ -536,9 +532,10 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
     
     # perfect case of no gaps: two lines of "" and ""
     if (length(ab) > 2L) ab else NULL
-  }) %>%
-    unlist(use.names = FALSE) %T>%
-    write(file.path(filepath, "gaps.mgf"))
+  })
+  
+  gaps <- unlist(gaps, use.names = FALSE)
+  write(gaps, file.path(filepath, "gaps.mgf"))
 
   local({
     nms <- list.files(path = file.path(filepath), pattern = "^.*\\_[ab]f.mgf$")
@@ -620,11 +617,10 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
 {
   message("Parsing '", file, "'.")
   lines <- stringi::stri_read_lines(file)
-
   basename <- gsub("\\.[^.]*$", "", file)
-
-  begins <- which(stringi::stri_startswith_fixed(lines, "BEGIN IONS"))
-  ends <- which(stringi::stri_endswith_fixed(lines, "END IONS"))
+  
+  begins <- .Internal(which(stringi::stri_startswith_fixed(lines, "BEGIN IONS")))
+  ends   <- .Internal(which(stringi::stri_endswith_fixed(lines, "END IONS")))
 
   af <- local({
     le <- ends[length(ends)]
@@ -708,8 +704,8 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
 {
   options(digits = 9L)
 
-  begins <- which(stringi::stri_startswith_fixed(lines, "BEGIN IONS"))
-  ends <- which(stringi::stri_endswith_fixed(lines, "END IONS"))
+  begins <- .Internal(which(stringi::stri_startswith_fixed(lines, "BEGIN IONS")))
+  ends <- .Internal(which(stringi::stri_endswith_fixed(lines, "END IONS")))
 
   ## MS1 
   # (1) m-over-z and intensity
@@ -751,7 +747,7 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
              !is.na(ms1_masses))
   
   # timsTOF data may have undetermined charge states
-  na_rows <- which(is.na(rows))
+  na_rows <- .Internal(which(is.na(rows)))
   if (length(na_rows)) rows[na_rows] <- FALSE
 
   begins <- begins[rows]
@@ -1452,7 +1448,7 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
   ## spectrum
   xml_root <- xml2::read_xml(xml_file)
   mzML <- xml2::xml_child(xml_root)
-  idx_run <- which(xml2::xml_name(xml2::xml_children(mzML)) == "run") # 8
+  idx_run <- which(xml2::xml_name(xml2::xml_children(mzML)) == "run")
   run <- xml2::xml_children(mzML)[[idx_run]]
   idx_specs <- which(xml2::xml_name(xml2::xml_children(run)) == "spectrumList")
   spec <- xml2::xml_children(xml2::xml_children(run)[[idx_specs]])
@@ -1468,14 +1464,14 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
     x <- spec[[i]]
     scan_nums[i] <- gsub(".* scan=(.*)$", "\\1", xml2::xml_attr(x, "id"))
     xc <- xml2::xml_children(x)
-    idx_precursor <- grep("precursorList", xc) # 12
+    idx_precursor <- grep("precursorList", xc)
     rm(list = c("x"))
     
     if (length(idx_precursor)) {
       nms <- xml2::xml_attr(xc, "name")
-      idx_title <- which(nms == "spectrum title") # 10
+      idx_title <- .Internal(which(nms == "spectrum title"))
       idx_scanList <- grep("scanList", xc) # 11
-      idx_bin <- grep("binaryDataArrayList", xc) # 13
+      idx_bin <- grep("binaryDataArrayList", xc)
       
       ## title
       title <- xml2::xml_attr(xc[[idx_title]], "value")
@@ -1486,7 +1482,8 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
       scanList <- xml2::xml_children(xc[[idx_scanList]])
       idx_rt <- grep("scan", scanList) # 2
       scanList_scan <- xml2::xml_children(scanList[[idx_rt]])
-      idx_scan_start <- which(xml2::xml_attr(scanList_scan, "name") == "scan start time") # 1
+      idx_scan_start <- 
+        .Internal(which(xml2::xml_attr(scanList_scan, "name") == "scan start time"))
       ret_times[i] <- xml2::xml_attr(scanList_scan[[idx_scan_start]], "value")
       rm(list = c("nms", "title", "scanList_scan", "scanList"))
       

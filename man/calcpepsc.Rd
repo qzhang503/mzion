@@ -18,6 +18,7 @@ calcpepsc(
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
   add_ms2ints = FALSE,
+  n_cores = 16L,
   digits = 4L
 )
 }
@@ -35,10 +36,10 @@ and y-ions.}
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
 
-\item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
-ions to primary ions at the absence of the primaries. The default is FALSE.
-For instance, the signal of \code{b5^*} will be ignored if its primary ion
-\code{b5} is not matched.}
+\item{soft_secions}{Depreciated. Logical; if TRUE, collapses the intensities
+of secondary ions to primary ions at the absence of the primaries. The
+default is FALSE. For instance, the signal of \code{b5^*} will be ignored
+if its primary ion \code{b5} is not matched.}
 
 \item{out_path}{A file path of outputs.}
 
@@ -81,6 +82,8 @@ interrogation. The default is 110.}
 
 \item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
 intensity values (\code{pep_ms2_ints}).}
+
+\item{n_cores}{The number of CPU cores.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

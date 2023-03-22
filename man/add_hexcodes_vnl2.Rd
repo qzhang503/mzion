@@ -2,7 +2,7 @@
 % Please edit documentation in R/ms2_a1_vnl1_fnl0.R
 \name{add_hexcodes_vnl2}
 \alias{add_hexcodes_vnl2}
-\title{Adds hex codes (with variable NLs).}
+\title{Adds hexcodes (with variable NLs).}
 \usage{
 add_hexcodes_vnl2(ms2ions, vmods_combi, len, mod_indexes = NULL)
 }

@@ -23,15 +23,16 @@ matchMS(
     "SemiLysN", "SemiArgC", "SemiLysC_P", "SemiChymotrypsin", "SemiGluC", "SemiGluN",
     "SemiAspC", "SemiAspN", "Noenzyme", "Nodigest"),
   custom_enzyme = c(Cterm = NULL, Nterm = NULL),
-  nes_fdr_group = c("all", "all_cterm_tryptic", "all_cterm_nontryptic", "base",
-    "base_cterm_tryptic", "base_cterm_nontryptic"),
+  nes_fdr_group = c("base", "base_cterm_tryptic", "base_cterm_nontryptic", "all",
+    "all_cterm_tryptic", "all_cterm_nontryptic", "top3", "top3_cterm_tryptic",
+    "top3_cterm_nontryptic"),
   noenzyme_maxn = 0L,
   maxn_fasta_seqs = 200000L,
   maxn_vmods_setscombi = 512L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_fnl_per_seq = 64L,
-  maxn_vnl_per_seq = 64L,
+  maxn_fnl_per_seq = 8L,
+  maxn_vnl_per_seq = 8L,
   maxn_vmods_sitescombi_per_pep = 64L,
   min_len = 7L,
   max_len = 40L,
@@ -55,7 +56,7 @@ matchMS(
   quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
   target_fdr = 0.01,
   fdr_type = c("protein", "peptide", "psm"),
-  fdr_group = c("all", "base"),
+  fdr_group = c("base", "all", "top3"),
   max_pepscores_co = 50,
   min_pepscores_co = 0,
   max_protscores_co = Inf,
@@ -333,7 +334,7 @@ levels of PSM, peptide or protein. The default is 0.01. See also argument
 \item{fdr_type}{A character string; the type of FDR control. The value is in
   one of c("protein", "peptide", "psm"). The default is \code{protein}.
 
-  Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
+  Note that \code{fdr_type = protein} is comparable to \code{fdr_type =
   peptide} with the additional filtration of data at \code{prot_tier == 1}.}
 
 \item{fdr_group}{A character string; the modification group(s) for uses in
@@ -343,8 +344,7 @@ of matches.}
 
 \item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
 of peptide scores for discriminating significant and insignificant
-identities. The default is changed from \code{Inf} to 50 from version
-1.1.9.2 on.}
+identities.}
 
 \item{min_pepscores_co}{A non-negative numeric; the lower limit in the
 cut-offs of peptide scores for discriminating significant and insignificant
@@ -371,10 +371,10 @@ pep_score_cutoff} under a protein will be used to represent the threshold
 of a protein enrichment score. For more conserved thresholds, the
 statistics of \code{"max"} may be considered.}
 
-\item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
-ions to primary ions at the absence of the primaries. The default is FALSE.
-For instance, the signal of \code{b5^*} will be ignored if its primary ion
-\code{b5} is not matched.}
+\item{soft_secions}{Depreciated. Logical; if TRUE, collapses the intensities
+of secondary ions to primary ions at the absence of the primaries. The
+default is FALSE. For instance, the signal of \code{b5^*} will be ignored
+if its primary ion \code{b5} is not matched.}
 
 \item{topn_mods_per_seq}{Positive integer; a threshold to discard variable
   modifications under the same peptide match with scores beyond the top-n.
@@ -393,17 +393,19 @@ For instance, the signal of \code{b5^*} will be ignored if its primary ion
   and \code{MS raw file name}. Target and decoys matches are treated
   separately.}
 
-\item{combine_tier_three}{Logical; if TRUE, combines search results at tiers
-  1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
-  that data will be segregated into the three quality tiers according to the
-  choice of \code{fdr_type}. The (convenience) parameter matters since
-  \href{http://github.com/qzhang503/proteoQ}{proteoQ} will only look for the
-  inputs of \code{psmQ[...].txt}.
-
-  For instance, if the aim is to bypass the constraint by protein FDR and
-  focus on PSMs that have met the cut-offs specified by \code{target_fdr}, an
-  experimenter may set \code{combine_tier_three = TRUE} and hence pool all
-  significant peptides in \code{psmQ.txt} for downstream proteoQ.
+\item{combine_tier_three}{Logical; if TRUE, combines search results at tier-3
+  to tier-1 to form the single output of \code{psmQ.txt}. The default is
+  FALSE in that data will be segregated into the three quality tiers shown
+  below by the choice of \code{fdr_type}. Note that the argument affects only
+  at the \code{fdr_type} of \code{psm} or \code{peptide} and there is no
+  tier-2 outputs at the \code{fdr_type} of \code{psm} or \code{peptide}. In
+  general, the one-hit-wonders from the tier-3 should not be used.
+  
+  In subproteome analysis, such as phosphoproteome analysis, some proteins
+  may be well established globally, but fail the significance assessment by
+  protein FDR on the local scale. In situations like this, it may be suitable
+  to use \code{fdr_type = "peptide"} or \code{fdr_type = "psm"} and not to
+  incur \code{combine_tier_three = TRUE}.
 
   Tier-1: both proteins and peptides with scores above significance
   thresholds.
@@ -433,14 +435,10 @@ For instance, the signal of \code{b5^*} will be ignored if its primary ion
   \code{fdr_type = psm} to \code{fdr_type = protein}.}
 
 \item{.path_cache}{The file path of cached search parameters. The parameter
-  is for the users' awareness of the underlying structure of file folders and
-  the use of default is suggested. Occasionally experimenters may remove the
-  file folder for disk space or under infrequent events of modified framework
-  incurred by the developer.
-
-  Started from version 1.2.1.5, a new data structure of protein-peptide
-  lookups are used. Version 1.2.1.4.1 is the final version using the old data
-  structure.}
+is for the users' awareness of the underlying structure of file folders and
+the use of default is suggested. Occasionally experimenters may remove the
+file folder for disk space or under infrequent events of modified framework
+incurred by the developer.}
 
 \item{.path_fasta}{The parent file path to the theoretical masses of MS1
 precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",

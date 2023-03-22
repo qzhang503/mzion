@@ -277,7 +277,7 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
   aam <- aa_masses[aas]
   
   ms1vmods <- match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
-  oks <- ms1vmods$inds
+  oks <- ms1vmods[["inds"]]
   ms2vmods <- ms2vmods[oks]
   
   vmods_combi <- find_vmodscombi(aas = aas, ms2vmods = ms2vmods, 
@@ -295,20 +295,11 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
     return(NULL)
   
   vnl_combi <- lapply(vmods_combi, function (x) expand_grid_rows(vmods_nl[x]))
+  
   vnl_combi <- lapply(vnl_combi, function (x) 
     if (length(x) > maxn_vnl_per_seq) x[1:maxn_vnl_per_seq] else x)
 
-  ## --- (tentative) to restricts the total number of vnl_combi's
-  # nrows <- lapply(vnl_combi, function (x) length(attributes(x)$row.names)) # faster than nrow
-  # nrows <- .Internal(unlist(nrows, recursive = FALSE, use.names = FALSE))
-  # counts <- cumsum(nrows)
-  
-  # oks <- which(counts <= maxn_vmods_sitescombi_per_pep)
-  # vnl_combi <- vnl_combi[oks]
-  # vmods_combi <- vmods_combi[oks]
-  ## ---
-  
-  # 725 us
+  # theoretical MS2 of forward sequences
   af <- mapply(
     calc_ms2ions_a1_vnl1_fnl0, 
     vmods_combi = vmods_combi, 
@@ -324,15 +315,12 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
     SIMPLIFY = FALSE, 
     USE.NAMES = FALSE)
   
-  # 360 us
-  len <- length(aas)
-  
   af <- mapply(
     add_hexcodes_vnl2, 
     ms2ions = af, 
     vmods_combi = vmods_combi, 
     MoreArgs = list(
-      len = len, 
+      len = length(aas), 
       mod_indexes  = mod_indexes), 
     SIMPLIFY = FALSE, 
     USE.NAMES = FALSE)
@@ -342,8 +330,9 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
   if (length(af) > maxn_vmods_sitescombi_per_pep) 
     af <- af[1:maxn_vmods_sitescombi_per_pep]
   
-  # need to fix hex tags which will not be used; 
-  # for time efficiency just leave as
+  # hexcodes of the reversed entries are not yet reversed; 
+  #  they are not used and for time efficiency just leave them as are
+  # names are `pep_ivmod`; NA is the indicator for reversed entries
   av <- lapply(af, calc_rev_ms2, aas)
   names(av) <- NA_character_
   c(af, av)
@@ -366,25 +355,30 @@ calc_ms2ions_a1_vnl1_fnl0 <- function (vmods_combi, vnl_combi, aam, aa_masses,
 {
   # updates vmod masses
   delta_amod <- aa_masses[vmods_combi]
-  idxes <- as.numeric(names(vmods_combi))
+  idxes <- as.integer(names(vmods_combi))
   aam[idxes] <- aam[idxes] + delta_amod
   
   # updates vnl masses
   len <- length(vnl_combi)
   out <- vector("list", len)
   
-  for (i in 1:len) {
-    aam_i <- aam
-    delta_nl <- .Internal(unlist(vnl_combi[[i]], recursive = FALSE, use.names = FALSE))
-    aam_i[idxes] <- aam_i[idxes] - delta_nl
-    out[[i]] <- ms2ions_by_type(aam_i, ntmass, ctmass, type_ms2ions, digits)
+  # the first vnl masses are always all zeros
+  out[[1]] <- ms2ions_by_type(aam, ntmass, ctmass, type_ms2ions, digits)
+  
+  if (len > 1L) {
+    for (i in 2:len) {
+      aam_i <- aam
+      delta_nl <- .Internal(unlist(vnl_combi[[i]], recursive = FALSE, use.names = FALSE))
+      aam_i[idxes] <- aam_i[idxes] - delta_nl
+      out[[i]] <- ms2ions_by_type(aam_i, ntmass, ctmass, type_ms2ions, digits)
+    }
   }
 
   invisible(out)
 }
 
 
-#' Adds hex codes (with variable NLs).
+#' Adds hexcodes (with variable NLs).
 #' 
 #' To indicate the variable modifications of an amino acid sequence.
 #' 
@@ -393,11 +387,9 @@ calc_ms2ions_a1_vnl1_fnl0 <- function (vmods_combi, vnl_combi, aam, aa_masses,
 #' @inheritParams ms2match
 add_hexcodes_vnl2 <- function (ms2ions, vmods_combi, len, mod_indexes = NULL) 
 {
-  # idxes <- .Internal(unlist(vmods_combi, recursive = FALSE, use.names = FALSE))
   nms <- names(vmods_combi)
   
   hexs <- rep("0", len)
-  # hexs[as.integer(nms)] <- mod_indexes[idxes]
   hexs[as.integer(nms)] <- mod_indexes[vmods_combi]
   hexs <- .Internal(paste0(list(hexs), collapse = "", recycle0 = FALSE))
 

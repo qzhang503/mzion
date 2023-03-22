@@ -18,20 +18,22 @@ reproc_psmC(
 \item{fdr_type}{A character string; the type of FDR control. The value is in
   one of c("protein", "peptide", "psm"). The default is \code{protein}.
 
-  Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
+  Note that \code{fdr_type = protein} is comparable to \code{fdr_type =
   peptide} with the additional filtration of data at \code{prot_tier == 1}.}
 
-\item{combine_tier_three}{Logical; if TRUE, combines search results at tiers
-  1, 2 and 3 to the single output of \code{psmQ.txt}. The default is FALSE in
-  that data will be segregated into the three quality tiers according to the
-  choice of \code{fdr_type}. The (convenience) parameter matters since
-  \href{http://github.com/qzhang503/proteoQ}{proteoQ} will only look for the
-  inputs of \code{psmQ[...].txt}.
-
-  For instance, if the aim is to bypass the constraint by protein FDR and
-  focus on PSMs that have met the cut-offs specified by \code{target_fdr}, an
-  experimenter may set \code{combine_tier_three = TRUE} and hence pool all
-  significant peptides in \code{psmQ.txt} for downstream proteoQ.
+\item{combine_tier_three}{Logical; if TRUE, combines search results at tier-3
+  to tier-1 to form the single output of \code{psmQ.txt}. The default is
+  FALSE in that data will be segregated into the three quality tiers shown
+  below by the choice of \code{fdr_type}. Note that the argument affects only
+  at the \code{fdr_type} of \code{psm} or \code{peptide} and there is no
+  tier-2 outputs at the \code{fdr_type} of \code{psm} or \code{peptide}. In
+  general, the one-hit-wonders from the tier-3 should not be used.
+  
+  In subproteome analysis, such as phosphoproteome analysis, some proteins
+  may be well established globally, but fail the significance assessment by
+  protein FDR on the local scale. In situations like this, it may be suitable
+  to use \code{fdr_type = "peptide"} or \code{fdr_type = "psm"} and not to
+  incur \code{combine_tier_three = TRUE}.
 
   Tier-1: both proteins and peptides with scores above significance
   thresholds.

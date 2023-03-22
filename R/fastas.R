@@ -120,15 +120,13 @@ load_fasta <- function (fasta = NULL)
   
   oks <- file.exists(fasta)
 
-  if (!all(oks)) {
-    bads <- fasta[!oks]
-    stop("Missing FASTA file(s): \n", paste(bads, collapse = "\n"))
-  }
+  if (!all(oks))
+    stop("Missing FASTA file(s): \n", paste(fasta[!oks], collapse = "\n"))
 
-  lapply(fasta, function (x) read_fasta(x)) %>%
-    do.call(`c`, .) %>%
-    `names<-`(gsub(">", "", names(.))) %>%
-    .[!duplicated(names(.))]
+  ans <- lapply(fasta, function (x) read_fasta(x))
+  ans <- flatten_list(ans)
+  names(ans) <- gsub(">", "", names(ans))
+  ans <- ans[!duplicated(names(ans))]
 }
 
 ### End of also in proteoQ
@@ -155,30 +153,26 @@ load_fasta <- function (fasta = NULL)
 #' fasta_db <- load_fasta2(
 #'               c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
 #'                 "~/proteoM/dbs/fasta/crap/crap.fasta"),
-#'               c("uniprot_acc", "other")
-#' )
+#'               c("uniprot_acc", "other"))
 #'
 #' # Need `acc_pattern` as "crap" is not one of the default acc_type
 #' load_fasta2(
 #'    c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
 #'      "~/proteoM/dbs/fasta/crap/crap.fasta"),
-#'    c("uniprot_acc", "crap")
-#' )
+#'    c("uniprot_acc", "crap"))
 #'
 #' # ok
 #' fasta_db2 <- load_fasta2(
 #'                c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
 #'                  "~/proteoM/dbs/fasta/crap/crap.fasta"),
 #'                c("uniprot_acc", "crap"),
-#'                c("^>..\\|([^\\|]+)\\|[^\\|]+", "(.*)")
-#' )
+#'                c("^>..\\|([^\\|]+)\\|[^\\|]+", "(.*)"))
 #'
 #' fasta_db3 <- load_fasta2(
 #'                c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
 #'                  "~/proteoM/dbs/fasta/crap/crap.fasta"),
 #'                c("my_acc", "crap"),
-#'                c("^>..\\|([^\\|]+)\\|[^\\|]+", "(.*)")
-#' )
+#'                c("^>..\\|([^\\|]+)\\|[^\\|]+", "(.*)"))
 #'
 #' stopifnot(identical(fasta_db, fasta_db2),
 #'           identical(fasta_db, fasta_db3))
@@ -191,10 +185,8 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL)
 
   oks <- file.exists(fasta)
   
-  if (!all(oks)) {
-    bads <- fasta[!oks]
-    stop("Missing FASTA file(s): \n", paste(bads, collapse = "\n"))
-  }
+  if (!all(oks))
+    stop("Missing FASTA file(s): \n", paste(fasta[!oks], collapse = "\n"))
 
   len_f <- length(fasta)
   len_a <- length(acc_type)
@@ -204,8 +196,7 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL)
     stop("More accession types than fasta files.")
 
   if (len_f < len_p) 
-    stop("More acc_pattern types than fasta files.",
-         call. = FALSE)
+    stop("More acc_pattern types than fasta files.")
 
   if (len_a && (len_a < len_f)) {
     warning("More fasta files than accession types; ",
@@ -219,7 +210,7 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL)
     acc_pattern <- rep(acc_pattern[1], len_f)
   }
 
-  if (! (is.null(acc_type) || is.null(acc_pattern))) {
+  if (!(is.null(acc_type) || is.null(acc_pattern))) {
     acc_type <- acc_type
     acc_pattern <- acc_pattern
   } 
@@ -228,10 +219,12 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL)
     acc_pattern <- rep("(.*)", len_f)
   } 
   else if (!is.null(acc_type)) {
-    acc_pattern <- purrr::map_chr(acc_type, find_acc_pattern)
+    acc_pattern <- lapply(acc_type, find_acc_pattern)
+    acc_pattern <- unlist(acc_pattern, recursive = FALSE, use.names = FALSE)
   } 
   else {
-    acc_type <- purrr::map_chr(acc_pattern, find_acc_type)
+    acc_type <- lapply(acc_pattern, find_acc_type)
+    acc_type <- unlist(acc_type, recursive = FALSE, use.names = FALSE)
   }
 
   if (length(acc_pattern) != len_f)
@@ -239,11 +232,11 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL)
   
   # Not to USE.NAMES; otherwise fasta names prefix to accession names
   # this is different to map2 where names are NULL for each fasta_db
-  mapply(function (x, y) read_fasta(x, y), fasta, acc_pattern, 
-         SIMPLIFY = FALSE, USE.NAMES = FALSE) %>%
-    do.call(`c`, .) %>%
-    `names<-`(gsub(">", "", names(.))) %>%
-    .[!duplicated(names(.))]
+  ans <- mapply(function (x, y) read_fasta(x, y), fasta, acc_pattern, 
+                SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  ans <- flatten_list(ans)
+  names(ans) <- gsub(">", "", names(ans))
+  ans <- ans[!duplicated(names(ans))]
 }
 
 
@@ -262,23 +255,16 @@ find_acc_pattern <- function (acc_type)
   if (!acc_type %in% oks)
     stop("`acc_type` is not one of ", paste(oks, collapse = ", "))
 
-  acc_pattern <- if (acc_type == "uniprot_acc") {
+  if (acc_type == "uniprot_acc")
     "^>..\\|([^\\|]+)\\|[^\\|]+"
-  } 
-  else if (acc_type == "uniprot_id") {
+  else if (acc_type == "uniprot_id")
     "^>..\\|[^\\|]+\\|([^ ]+) .*"
-  } 
-  else if (acc_type == "refseq_acc") {
+  else if (acc_type == "refseq_acc")
     "^>([^ ]+?) .*"
-  } 
-  else if (acc_type == "other") {
+  else if (acc_type == "other")
     "(.*)"
-  } 
-  else {
+  else
     stop("Unknown `acc_type`.")
-  }
-
-  invisible(acc_pattern)
 }
 
 
@@ -302,22 +288,16 @@ find_acc_type <- function (acc_pattern)
   pat_rsacc <- "^>([^ ]+?) "
   pat_other <- "(.*)"
 
-  acc_type <- if (acc_pattern == pat_upacc) {
+  if (acc_pattern == pat_upacc)
     "uniprot_acc"
-  } 
-  else if (acc_pattern == pat_upid) {
+  else if (acc_pattern == pat_upid)
     "uniprot_id"
-  } 
-  else if (acc_pattern == pat_rsacc) {
+  else if (acc_pattern == pat_rsacc)
     "refseq_acc"
-  } 
-  else if (acc_pattern == pat_other) {
+  else if (acc_pattern == pat_other)
     "other"
-  } 
-  else {
+  else
     stop("Unknown `acc_pattern`.")
-  }
-
-  invisible(acc_type)
 }
+
 

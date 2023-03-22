@@ -29,30 +29,26 @@ otherwise, the first value will be used for all \code{fasta} files.
 fasta_db <- load_fasta2(
               c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
                 "~/proteoM/dbs/fasta/crap/crap.fasta"),
-              c("uniprot_acc", "other")
-)
+              c("uniprot_acc", "other"))
 
 # Need `acc_pattern` as "crap" is not one of the default acc_type
 load_fasta2(
    c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
      "~/proteoM/dbs/fasta/crap/crap.fasta"),
-   c("uniprot_acc", "crap")
-)
+   c("uniprot_acc", "crap"))
 
 # ok
 fasta_db2 <- load_fasta2(
                c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
                  "~/proteoM/dbs/fasta/crap/crap.fasta"),
                c("uniprot_acc", "crap"),
-               c("^>..\\\\|([^\\\\|]+)\\\\|[^\\\\|]+", "(.*)")
-)
+               c("^>..\\\\|([^\\\\|]+)\\\\|[^\\\\|]+", "(.*)"))
 
 fasta_db3 <- load_fasta2(
                c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
                  "~/proteoM/dbs/fasta/crap/crap.fasta"),
                c("my_acc", "crap"),
-               c("^>..\\\\|([^\\\\|]+)\\\\|[^\\\\|]+", "(.*)")
-)
+               c("^>..\\\\|([^\\\\|]+)\\\\|[^\\\\|]+", "(.*)"))
 
 stopifnot(identical(fasta_db, fasta_db2),
           identical(fasta_db, fasta_db3))

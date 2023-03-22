@@ -549,11 +549,12 @@ calc_pepmasses2 <- function (aa_masses = NULL,
             min_mass = min_mass, 
             max_mass = max_mass, 
             digits = digits
-          ) %>% 
-            flatten_list() %>% 
-            unlist(recursive = FALSE, use.names = TRUE)
-
+          )
+          
           parallel::stopCluster(cl)
+          
+          fwd_peps[[i]] <- flatten_list(fwd_peps[[i]])
+          fwd_peps[[i]] <- unlist(fwd_peps[[i]], recursive = FALSE, use.names = TRUE)
           gc()
         }
       }
@@ -591,6 +592,18 @@ calc_pepmasses2 <- function (aa_masses = NULL,
                                "amods+ tmod+ vnl+ fnl+"))
 
     if (length(inds)) {
+      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+      
+      parallel::clusterExport(
+        cl,
+        c("hms1_a1_vnl0_fnl0", 
+          "ms1_a1_vnl0_fnl0", 
+          "match_mvmods", 
+          "expand_grid_rows", 
+          "recur_flatten", 
+          "delta_ms1_a0_fnl1"), 
+        envir = environment(proteoM:::ms1_a1_vnl0_fnl0))
+
       for (i in inds) {
         amods_i <- amods[[i]]
         aa_masses_i <- aa_masses_all[[i]]
@@ -610,19 +623,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
 
         vmods_nl_i = vmods_nl[[i]]
         fmods_nl_i = fmods_nl[[i]]
-        
-        cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-        
-        parallel::clusterExport(
-          cl,
-          c("hms1_a1_vnl0_fnl0", 
-            "ms1_a1_vnl0_fnl0", 
-            "match_mvmods", 
-            "expand_grid_rows", 
-            "recur_flatten", 
-            "delta_ms1_a0_fnl1"), 
-          envir = environment(proteoM:::ms1_a1_vnl0_fnl0))
-        
+
         fwd_peps[[i]] <- parallel::clusterApply(
           cl, 
           chunksplit(fwd_peps_i, n_cores, "list"), 
@@ -636,19 +637,19 @@ calc_pepmasses2 <- function (aa_masses = NULL,
           ms1vmods = ms1vmods_i, 
           min_mass = min_mass, 
           max_mass = max_mass, 
-          digits = digits
-        ) %>% 
-          flatten_list() %>% 
-          unlist(recursive = FALSE, use.names = TRUE)
-
-        parallel::stopCluster(cl)
-        gc()
+          digits = digits)
+        
+        fwd_peps[[i]] <- flatten_list(fwd_peps[[i]])
+        fwd_peps[[i]] <- unlist(fwd_peps[[i]], recursive = FALSE, use.names = TRUE)
 
         message("\tCompleted peptide masses: ",
                 paste(attributes(aa_masses_i)$fmods, "|", 
                       attributes(aa_masses_i)$vmods,
                       collapse = ", "))
       }
+      
+      parallel::stopCluster(cl)
+      gc()
     }
 
     suppressWarnings(
@@ -1062,6 +1063,15 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
     save_mod_indexes(out_path, fixedmods, varmods, f_to_v)
     qs::qsave(aa_masses_ms1, file.path(out_path, "aa_masses_ms1.rds"), preset = "fast")
     qs::qsave(aa_masses_all, file.path(out_path, "aa_masses_all.rds"), preset = "fast")
+    
+    fmods <- lapply(aa_masses_all, attr, "fmods", exact = TRUE)
+    vmods <- lapply(aa_masses_all, attr, "vmods", exact = TRUE)
+    
+    readr::write_tsv(
+      data.frame(pep_fmod = unlist(fmods, recursive = FALSE), 
+                 pep_vmod = unlist(vmods, recursive = FALSE), 
+                 pep_mod_group = seq_along(aa_masses_all)), 
+      file.path(out_path, "summary_mod_groups.txt"))
   }
   
   invisible(aa_masses_all)
@@ -1119,10 +1129,10 @@ save_mod_indexes <- function (out_path = NULL, fixedmods, varmods, f_to_v)
   if (is.null(out_path))
     return(NULL)
   
-  mod_indexes <- seq_along(c(fixedmods, varmods)) %>%
-    as.hexmode() %>%
-    `names<-`(c(fixedmods, varmods))
-  
+  mod_indexes <- seq_along(c(fixedmods, varmods))
+  mod_indexes <- as.hexmode(mod_indexes)
+  names(mod_indexes) <- c(fixedmods, varmods)
+
   is_coerced <- if (length(f_to_v)) 
     names(mod_indexes) %in% f_to_v
   else 
@@ -1253,12 +1263,13 @@ find_f_to_v <- function (fixedmods, fmods_ps, vmods_ps)
   
   # e.g. "N-term" can be matched by both site and position
   # (no guarantee in the order of coerce_sites; so match names one at a time)
-  coerce_sites <- unique(c(coerce_asites, coerce_tsites)) %>% 
-    lapply(function (x) {
-      names(x) <- fixedmods[fmods_ps == x]
-      x
-    })
+  coerce_sites <- unique(c(coerce_asites, coerce_tsites))
   
+  coerce_sites <- lapply(coerce_sites, function (x) {
+    names(x) <- fixedmods[fmods_ps == x]
+    x
+  })
+
   unlist(coerce_sites)
 }
 
@@ -1292,9 +1303,9 @@ find_aamasses_vmodscombi <- function (varmods = NULL, f_to_v = NULL,
   varmods_comb <- unlist(varmods_comb, recursive = FALSE)
   vmods_ps <- find_modps(varmods)
 
-  vmods_ps_combi <- seq_along(vmods_ps) %>%
-    lapply(function (x) sim_combn(vmods_ps, x)) %>%
-    flatten_list()
+  vmods_ps_combi <- seq_along(vmods_ps)
+  vmods_ps_combi <- lapply(vmods_ps_combi, function (x) sim_combn(vmods_ps, x))
+  vmods_ps_combi <- flatten_list(vmods_ps_combi)
 
   ## Remove the combinations without anywhere_coerce_sites
   # [x] e.g. "TMT6plex (K)" coerced from fixedmod to varmod, 
@@ -1598,9 +1609,9 @@ check_resunimod <- function (res)
 check_fmods_pos_site <- function (positions_sites)
 {
   if (length(positions_sites) > 1L) {
-    dups <- purrr::reduce(positions_sites, `c`) %>%
-      .[duplicated(.)]
-    
+    dups <- purrr::reduce(positions_sites, `c`)
+    dups <- dups[duplicated(dups)]
+
     if (length(dups)) {
       dups_in_each <- lapply(positions_sites, function (x) x == dups)
       dup_mods <- names(positions_sites[unlist(dups_in_each)])

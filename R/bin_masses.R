@@ -296,14 +296,11 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 200L,
   
   out_dir <- create_dir(gsub("(^.*/).*$", "\\1", out_path))
   
-  out_nms <- gsub("^.*/(.*)\\.[^\\.].*$", "\\1", out_path) %>%
-    paste(idxes, sep = "_") %>%
-    paste0(".rds")
+  out_nms <- gsub("^.*/(.*)\\.[^\\.].*$", "\\1", out_path)
+  out_nms <- paste0(out_nms, "_", idxes, ".rds")
   
-  res <- res %>%
-    lapply(attributes) %>%
-    lapply(`[[`, "data")
-  
+  res <- lapply(res, attributes)
+  res <- lapply(res, `[[`, "data")
   gc()
   
   n_cores <- local({

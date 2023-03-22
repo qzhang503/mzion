@@ -8,7 +8,7 @@ calc_pepscores(
   topn_ms2ions = 100L,
   type_ms2ions = "by",
   target_fdr = 0.01,
-  fdr_type = "psm",
+  fdr_type = "protein",
   min_len = 7L,
   max_len = 40L,
   ppm_ms2 = 20L,
@@ -55,7 +55,7 @@ levels of PSM, peptide or protein. The default is 0.01. See also argument
 \item{fdr_type}{A character string; the type of FDR control. The value is in
   one of c("protein", "peptide", "psm"). The default is \code{protein}.
 
-  Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
+  Note that \code{fdr_type = protein} is comparable to \code{fdr_type =
   peptide} with the additional filtration of data at \code{prot_tier == 1}.}
 
 \item{min_len}{A positive integer; the minimum length of peptide sequences
@@ -67,10 +67,10 @@ for considerations. Longer peptides will be excluded.}
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
 
-\item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
-ions to primary ions at the absence of the primaries. The default is FALSE.
-For instance, the signal of \code{b5^*} will be ignored if its primary ion
-\code{b5} is not matched.}
+\item{soft_secions}{Depreciated. Logical; if TRUE, collapses the intensities
+of secondary ions to primary ions at the absence of the primaries. The
+default is FALSE. For instance, the signal of \code{b5^*} will be ignored
+if its primary ion \code{b5} is not matched.}
 
 \item{out_path}{A file path of outputs.}
 

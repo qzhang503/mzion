@@ -7,7 +7,7 @@
 probco_bypeplen(
   len,
   td,
-  fdr_type = "psm",
+  fdr_type = "protein",
   target_fdr = 0.01,
   min_pepscores_co = 0,
   out_path
@@ -21,7 +21,7 @@ probco_bypeplen(
 \item{fdr_type}{A character string; the type of FDR control. The value is in
   one of c("protein", "peptide", "psm"). The default is \code{protein}.
 
-  Note that \code{fdr_type = protein} is equivalent to \code{fdr_type =
+  Note that \code{fdr_type = protein} is comparable to \code{fdr_type =
   peptide} with the additional filtration of data at \code{prot_tier == 1}.}
 
 \item{target_fdr}{A numeric; the targeted false-discovery rate (FDR) at the

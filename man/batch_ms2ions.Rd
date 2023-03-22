@@ -64,14 +64,10 @@ number of combinatorial variable modifications per peptide sequence. The
 default is 64.}
 
 \item{.path_cache}{The file path of cached search parameters. The parameter
-  is for the users' awareness of the underlying structure of file folders and
-  the use of default is suggested. Occasionally experimenters may remove the
-  file folder for disk space or under infrequent events of modified framework
-  incurred by the developer.
-
-  Started from version 1.2.1.5, a new data structure of protein-peptide
-  lookups are used. Version 1.2.1.4.1 is the final version using the old data
-  structure.}
+is for the users' awareness of the underlying structure of file folders and
+the use of default is suggested. Occasionally experimenters may remove the
+file folder for disk space or under infrequent events of modified framework
+incurred by the developer.}
 
 \item{.path_fasta}{The parent file path to the theoretical masses of MS1
 precursors. At the NULL default, the path is \code{gsub("(.*)\\.[^\\.]*$",
