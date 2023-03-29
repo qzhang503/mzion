@@ -17,7 +17,7 @@ Not yet used.
 }
 \examples{
 \donttest{
-library(proteoM)
-# m <- proteoM:::sparseD_fourquad(ul, 6)
+library(mzion)
+# m <- mzion:::sparseD_fourquad(ul, 6)
 }
 }

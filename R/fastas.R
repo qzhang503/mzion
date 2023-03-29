@@ -15,21 +15,21 @@
 #' @examples
 #' \dontrun{
 #' # assume the file and location of "uniprot_hs_2020_05.fasta"
-#' fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
+#' fasta <- read_fasta("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 #' head(names(fasta))
 #'
 #' # use the first fifty characters
-#' fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#' fasta <- read_fasta("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
 #'                     ">(.{50}).*")
 #' head(names(fasta))
 #'
 #' # uniprot_acc
-#' fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#' fasta <- read_fasta("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
 #'                     ">..\\|([^\\|]+)\\|.*")
 #' head(names(fasta))
 #'
 #' # use all characters in the header
-#' fasta <- read_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#' fasta <- read_fasta("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
 #'                     ">(.*)")
 #' head(names(fasta))
 #' }
@@ -85,8 +85,8 @@ read_fasta <- function (file = NULL, acc_pattern = ">([^ ]+?) .*",
 #' @inheritParams read_fasta
 #' @examples
 #' \dontrun{
-#' fasta_db <- read_fasta(file = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
-#' write_fasta(fasta_db, "~/proteoM/examples/my.fasta")
+#' fasta_db <- read_fasta(file = "~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
+#' write_fasta(fasta_db, "~/mzion/examples/my.fasta")
 #' }
 #'
 #' @import dplyr purrr
@@ -104,14 +104,14 @@ write_fasta <- function (fasta_db, file)
 
 #' Loads fasta
 #' 
-#' Not used in proteoM.
+#' Not used in mzion.
 #'
 #' @param fasta Character string(s) to the name(s) of fasta file(s) with
 #'   prepended directory path. There is no default and the experimenters need to
 #'   supply the files.
 #' @examples
 #' \dontrun{
-#' fasta_db <- load_fasta("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
+#' fasta_db <- load_fasta("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 #' }
 load_fasta <- function (fasta = NULL) 
 {
@@ -151,26 +151,26 @@ load_fasta <- function (fasta = NULL)
 #' @examples
 #' \dontrun{
 #' fasta_db <- load_fasta2(
-#'               c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-#'                 "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'               c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#'                 "~/mzion/dbs/fasta/crap/crap.fasta"),
 #'               c("uniprot_acc", "other"))
 #'
 #' # Need `acc_pattern` as "crap" is not one of the default acc_type
 #' load_fasta2(
-#'    c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-#'      "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'    c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#'      "~/mzion/dbs/fasta/crap/crap.fasta"),
 #'    c("uniprot_acc", "crap"))
 #'
 #' # ok
 #' fasta_db2 <- load_fasta2(
-#'                c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-#'                  "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'                c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#'                  "~/mzion/dbs/fasta/crap/crap.fasta"),
 #'                c("uniprot_acc", "crap"),
 #'                c("^>..\\|([^\\|]+)\\|[^\\|]+", "(.*)"))
 #'
 #' fasta_db3 <- load_fasta2(
-#'                c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-#'                  "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'                c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+#'                  "~/mzion/dbs/fasta/crap/crap.fasta"),
 #'                c("my_acc", "crap"),
 #'                c("^>..\\|([^\\|]+)\\|[^\\|]+", "(.*)"))
 #'

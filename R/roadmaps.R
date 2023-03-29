@@ -305,7 +305,7 @@
 # find_mgf_query
 # combine_prisec_matches
 # check_existed_psms
-# get_proteoM_coltypes
+# get_mzion_coltypes
 
 # batch_ms2ions
 #   hbatch_ms2ions

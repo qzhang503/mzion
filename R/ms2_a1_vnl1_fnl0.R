@@ -66,7 +66,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
       "fuzzy_match_one", 
       "fuzzy_match_one2", 
       "post_frame_adv"), 
-    envir = environment(proteoM:::frames_adv)
+    envir = environment(mzion:::frames_adv)
   )
 
   out <- parallel::clusterMap(
@@ -124,7 +124,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #'
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' library(magrittr)
 #' 
 #' # (10) "amods+ tmod+ vnl+ fnl-"
@@ -141,10 +141,10 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
+#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, mzion:::make_ms2vmods))
 #'
 #' i <- 16L
 #' aa_masses <- aa_masses_all[[i]]
@@ -176,7 +176,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #'                                fixedmods, varmods)
 #' ms1_mass <- ms1_masses$mass[[16]][2] # 2197.9679
 #'
-#' out <- proteoM:::gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+#' out <- mzion:::gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
 #'                                 aa_masses = aa_masses, 
 #'                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
 #'                                 ntmod = ntmod, ctmod = ctmod, 
@@ -211,10 +211,10 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
+#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, mzion:::make_ms2vmods))
 #'
 #' i <- 8L
 #' aa_masses <- aa_masses_all[[i]]
@@ -245,7 +245,7 @@ ms2match_a1_vnl1_fnl0 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #' 
 #' # No-matches at `ms1_mass = 2123.9424` as the matching index 
 #' # exceeds `maxn_vmods_sitescombi_per_pep`
-#' out <- proteoM:::gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = 2123.9424, 
+#' out <- mzion:::gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = 2123.9424, 
 #'                                 aa_masses = aa_masses, 
 #'                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
 #'                                 ntmod = ntmod, ctmod = ctmod, 

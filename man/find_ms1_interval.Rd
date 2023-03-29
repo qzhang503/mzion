@@ -22,8 +22,8 @@ Needs correct \code{from}.
 }
 \examples{
 \donttest{
-library(proteoM)
-proteoM:::find_ms1_interval(c(500, 800.1))
+library(mzion)
+mzion:::find_ms1_interval(c(500, 800.1))
 }
 }
 \seealso{

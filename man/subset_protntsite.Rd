@@ -67,7 +67,7 @@ Flowchart (4-ct): Amidated (C-term)
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 library(purrr)
 
 ## Protein N-term (Site)
@@ -85,10 +85,10 @@ prps <- list(PROT_A = c("-MAKEMASSPECFUN", "-PAKEKASSPECFUN"),
              PROT_B = c("PAKEKASSPECFUN", "NKAKEKASSPECFU", 
                         "-NKAKEKASSPECFU"))
 
-proteoM:::subset_protntsite(prps, proteoM:::find_protntsite(vmods, posns))
+mzion:::subset_protntsite(prps, mzion:::find_protntsite(vmods, posns))
 } 
 \donttest{
-library(proteoM)
+library(mzion)
 
 ## Any N-term (Site)
 sites <- list(`Dimethyl (N-term = P)` = "P", 
@@ -106,10 +106,10 @@ prps <- list(PROT_A = c("-MAKEMASSPECFUN", "-PAKEKASSPECFUN"),
                         "-NKAKEKASSPECFU"))
 
 # "-PAKEKASSPECFUN" went with `subset_protntsite` (see flow charts)
-proteoM:::subset_anyntsite(prps, proteoM:::find_anyntsite(vmods, posns))
+mzion:::subset_anyntsite(prps, mzion:::find_anyntsite(vmods, posns))
 }
 \donttest{
-library(proteoM)
+library(mzion)
 
 ## Anywhere
 min_n_res <- c(P = 1, M = 1, N = 1)
@@ -128,7 +128,7 @@ prps <- list(PROT_A = c("-MAKEMASSPECFUN", "-PAKEKASSPECFUN"),
                         "-NKAKEKASSPECFU"))
 
 # should contain both M and N
-proteoM:::subset_anysite(prps, sites, min_n_res)
+mzion:::subset_anysite(prps, sites, min_n_res)
 
 ## Multiple mods to the same site
 # (mimic from aa_masses)
@@ -156,6 +156,6 @@ prps <- list(PROT_A = c("-MAKEMASSPECFUN", "-PAKEKASSPECFUN"),
              PROT_B = c("PAKEKASSPECFUN", "NKAKEKASSPECFU", 
                         "-NKAKEKASSPECFU"))
 
-ans <- proteoM:::subset_anysite(prps, sites, min_n_res)
+ans <- mzion:::subset_anysite(prps, sites, min_n_res)
 }
 }

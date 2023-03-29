@@ -14,10 +14,10 @@ A faster alternative to \code{table}.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 library(microbenchmark)
 
 vec <- c("Carbamidomethyl (M)", "Carbamyl (M)", "Carbamidomethyl (M)")
-microbenchmark(proteoM:::count_elements(vec), table(vec))
+microbenchmark(mzion:::count_elements(vec), table(vec))
 }
 }

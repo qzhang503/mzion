@@ -4,8 +4,8 @@
 #' 
 #' @inheritParams matchMS
 #' @export
-batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-                                     "~/proteoM/dbs/fasta/crap/crap.fasta"),
+batch_ms2ions <- function (fasta = c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+                                     "~/mzion/dbs/fasta/crap/crap.fasta"),
                            fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
                                          "Carbamidomethyl (C)"),
                            varmods = c("Acetyl (Protein N-term)",
@@ -26,7 +26,7 @@ batch_ms2ions <- function (fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_202
   
   # ---
   if (is.null(.path_cache)) {
-    .path_cache <- "~/proteoM/.MSearches/Cache/Calls/"
+    .path_cache <- "~/mzion/.MSearches/Cache/Calls/"
   }
   
   .path_cache <- find_dir(.path_cache, create = FALSE)
@@ -162,7 +162,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
           c("gen_ms2ions_base", 
             "ms2ions_by_type", 
             "byions", "czions", "axions"), 
-          envir = environment(proteoM:::gen_ms2ions_base)
+          envir = environment(mzion:::gen_ms2ions_base)
         )
         
         ms2s <- parallel::clusterApply(
@@ -237,7 +237,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
             "gen_ms2ions_base", 
             "ms2ions_by_type", 
             "byions", "czions", "axions"), 
-          envir = environment(proteoM:::gen_ms2ions_a0_vnl0_fnl1)
+          envir = environment(mzion:::gen_ms2ions_a0_vnl0_fnl1)
         )
         
         ms2s <- parallel::clusterApply(
@@ -316,7 +316,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
             "ms2ions_by_type", 
             "byions", "czions", "axions", 
             "add_hexcodes"), 
-          envir = environment(proteoM:::gen_ms2ions_a1_vnl0_fnl0)
+          envir = environment(mzion:::gen_ms2ions_a1_vnl0_fnl0)
         )
         
         ms2s <- parallel::clusterApply(
@@ -395,7 +395,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
             "ms2ions_by_type", 
             "byions", "czions", "axions", 
             "add_hexcodes_vnl2"), 
-          envir = environment(proteoM:::gen_ms2ions_a1_vnl1_fnl0)
+          envir = environment(mzion:::gen_ms2ions_a1_vnl1_fnl0)
         )
         
         ms2s <- parallel::clusterApply(
@@ -475,7 +475,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
             "ms2ions_by_type", 
             "byions", "czions", "axions", 
             "add_hexcodes_fnl2"), 
-          envir = environment(proteoM:::gen_ms2ions_a1_vnl0_fnl1)
+          envir = environment(mzion:::gen_ms2ions_a1_vnl0_fnl1)
         )
         
         ms2s <- parallel::clusterApply(
@@ -588,7 +588,7 @@ mgen_ms2ions <- function (ms1s = NULL, aa_masses = NULL,
 #' @inheritParams hbatch_ms2ions
 #' @inheritParams mgen_ms2ions
 make_ms2frames <- function (ms1_time = NULL, ms1s, ms2s, 
-                            .path_cache = "~/proteoM/.MSearches/Cache/Calls", 
+                            .path_cache = "~/mzion/.MSearches/Cache/Calls", 
                             path_bin2, i) 
 {
   path_time_cache <- file.path(.path_cache, "calc_pepmasses2", ms1_time, 
@@ -684,9 +684,9 @@ make_ms2frames_bypars <- function (pars, ms1s, ms2s, path_bin2, i,
 #' @inheritParams make_ms2frames
 #' @return Time stamps of MS2 that are yet to be binned.
 check_ms2frames <- function (.path_fasta = 
-                               "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05", 
+                               "~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05", 
                              ms1_time = NULL, 
-                             .path_cache = "~/proteoM/.MSearches/Cache/Calls", 
+                             .path_cache = "~/mzion/.MSearches/Cache/Calls", 
                              path_bin2 = 
                                file.path(.path_fasta, "ms2masses", ms1_time, "bin_ms2masses")) 
 {

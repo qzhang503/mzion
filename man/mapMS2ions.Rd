@@ -44,9 +44,9 @@ Visualization of matched MS2 ions.
 }
 \examples{
 \dontrun{
-library(proteoM)
+library(mzion)
 
-ans <- mapMS2ions(out_path = "a/proteoM/output/folder",
+ans <- mapMS2ions(out_path = "a/mzion/output/folder",
                   scan = 9933,
                   raw_file = "a-raw-file-name.raw",
                   rank = 1L,

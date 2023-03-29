@@ -47,7 +47,7 @@ the combination of \code{Anywhere} can be further reduced.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 ## Simple
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
@@ -65,7 +65,7 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 
@@ -94,7 +94,7 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 
@@ -127,10 +127,10 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
+ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, mzion:::make_ms2vmods))
 
 i <- 6L
 aa_masses <- aa_masses_all[[i]]
@@ -142,10 +142,10 @@ ms2vmods <- ms2vmods_all[[i]]
 aas <- unlist(strsplit("MHQGVMNVGMGQKNS", ""))
 
 # Subset from ms1vmods by aas
-oks <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
+oks <- mzion:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
 ms2vmods <- ms2vmods[oks]
 
-vmods_combi <- proteoM:::find_vmodscombi(aas, ms2vmods)
+vmods_combi <- mzion:::find_vmodscombi(aas, ms2vmods)
 
 # "Oxidation (M)" on N-term kept in the label space
 lapply(vmods_combi, function (x) any(names(x) == 1))

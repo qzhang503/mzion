@@ -16,8 +16,8 @@ At least one occupancy for each balls in \code{ns}.
 }
 \examples{
 \donttest{
-library(proteoM)
-proteoM:::find_unique_sets(5, c("Oxidation (M)", 
+library(mzion)
+mzion:::find_unique_sets(5, c("Oxidation (M)", 
                            "Carbamidomethyl (M)", 
                            "Carbamyl (M)"))
 }

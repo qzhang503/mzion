@@ -39,6 +39,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
   # ---
   this_call <- match.call()
   fun <- as.character(this_call[[1]])
+  fun <- fun[length(fun)] # may be called as mzion:::load_mgfs
   fun_env <- environment()
   
   args_except <- c("out_path")
@@ -84,10 +85,13 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
     delete_files(
       out_path, 
       ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
-                  "\\.xls$", "\\.csv$", "\\.txt$", 
-                  "^mgf$", "^mgfs$", "Calls")
-    )
-    
+                  "\\.xls$", "\\.csv$", "\\.txt$", "\\.tsv$", 
+                  "^mgf$", "^mgfs$", "Calls", 
+                  
+                  # in case calling from proteoQ with MSGF workflows
+                  "fraction_scheme.rda", "label_scheme.rda", 
+                  "label_scheme_full.rda"))
+
     fi_mgf <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mgf$")
     fi_mzml <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mzML$")
     len_mgf <- length(fi_mgf)
@@ -422,7 +426,7 @@ readlineMGFs <- function (i, file, filepath, raw_file)
 #' @param raw_file The raw file name. Is NULL for PD and MSConvert.
 #' @inheritParams readMGF
 #' @inheritParams matchMS
-read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
+read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
                              topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
                              ret_range = c(0, Inf), min_mass = 200L, 
@@ -465,7 +469,7 @@ read_mgf_chunks <- function (filepath = "~/proteoM/mgf/temp_1",
       "index_mz", 
       "integerize_ms2ints", 
       "find_ms1_interval"), 
-    envir = environment(proteoM:::proc_mgf_chunks)
+    envir = environment(mzion:::proc_mgf_chunks)
   )
 
   out <- parallel::clusterApply(cl, file.path(filepath, filelist),
@@ -1045,8 +1049,8 @@ extract_mgf_rptrs <- function (ms2_moverzs, ms2_ints, quant = "none",
 #' @inheritParams find_ms1_cutpoints
 #' @examples
 #' \donttest{
-#' library(proteoM)
-#' proteoM:::find_ms1_interval(c(500, 800.1))
+#' library(mzion)
+#' mzion:::find_ms1_interval(c(500, 800.1))
 #' }
 #' @return Frame numbers.
 #' @seealso find_ms1_cutpoints

@@ -21,12 +21,12 @@ At length(x) >= n, the length of output may be shorter than n with ties.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
-proteoM:::which_topx(c(1:5), 50)
+mzion:::which_topx(c(1:5), 50)
 
-length(proteoM:::which_topx(sample(5000, 500), 100))
+length(mzion:::which_topx(sample(5000, 500), 100))
 
-length(proteoM:::which_topx(sample(100, 100, replace = TRUE), 100))
+length(mzion:::which_topx(sample(100, 100, replace = TRUE), 100))
 }
 }

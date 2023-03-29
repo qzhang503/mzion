@@ -145,9 +145,9 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
   if (!is.list(par_groups)) {
     stop("Supply `par_groups` as list, e.g., \n\n", 
          "par_groups = list(\n", 
-         "  list(mgf_path  = \"~/proteoM/my_proj/mgfs/grp_1\"", ",\n", 
+         "  list(mgf_path  = \"~/mzion/my_proj/mgfs/grp_1\"", ",\n", 
          "       fixedmods = c(\"Carbamidomethyl (C)\")", "),\n", 
-         "  list(mgf_path  = \"~/proteoM/my_proj/mgfs/grp_2\"", ",\n", 
+         "  list(mgf_path  = \"~/mzion/my_proj/mgfs/grp_2\"", ",\n", 
          "       fixedmods = c(\"Carbamidomethyl (C)\", \"K8 (K)\", \"R10 (R)\")", ")\n", 
          "  )", 
          call. = FALSE)

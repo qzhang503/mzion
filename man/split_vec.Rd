@@ -15,40 +15,40 @@ Split a vector by values
 \examples{
 \donttest{
 ## M
-library(proteoM)
+library(mzion)
 library(microbenchmark)
 
 vec <- c(`Carbamidomethyl (M)` = "M", 
          `Carbamyl (M)` = "M")
 
-x <- proteoM:::split_vec(vec)
+x <- mzion:::split_vec(vec)
 y <- split(vec, vec)
 
 stopifnot(identical(x, y))
 
-microbenchmark(proteoM:::split_vec(vec), split(vec, vec))
+microbenchmark(mzion:::split_vec(vec), split(vec, vec))
 
 ## N
 vec <- c(`Deamidated (N)` = "N")
 
-x <- proteoM:::split_vec(vec)
+x <- mzion:::split_vec(vec)
 y <- split(vec, vec)
 
 stopifnot(identical(x, y))
 
-microbenchmark(proteoM:::split_vec(vec), split(vec, vec))
+microbenchmark(mzion:::split_vec(vec), split(vec, vec))
 
 ## M, N
 vec <- c(`Carbamidomethyl (M)` = "M", 
          `Carbamyl (M)` = "M", 
          `Deamidated (N)` = "N")
 
-x <- proteoM:::split_vec(vec)
+x <- mzion:::split_vec(vec)
 y <- split(vec, vec)
 
 stopifnot(identical(x, y))
 
-microbenchmark(proteoM:::split_vec(vec), split(vec, vec))
+microbenchmark(mzion:::split_vec(vec), split(vec, vec))
 }
 
 }

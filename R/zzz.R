@@ -1,6 +1,6 @@
 
 .onAttach <- function(libname, pkgname) {
-  packageStartupMessage("Welcome to proteoM.\n\n",
+  packageStartupMessage("Welcome to mzion.\n\n",
                         "============================================================================================\n",
                         # "NEW features (v1.1.9.0):\n",
                         # "[x] Incompatible with cached results from previous versions.\n\n",

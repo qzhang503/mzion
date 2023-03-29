@@ -130,7 +130,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
           "binTheoSeqs2", 
           "bin_theoseqs", 
           "find_ms1_cutpoints"), 
-        envir = environment(proteoM:::binTheoSeqs_i))
+        envir = environment(mzion:::binTheoSeqs_i))
       
       # No need of flatten() as saveRDS by INDIVIDUAL idx (and return NULL)
       parallel::clusterApplyLB(
@@ -274,10 +274,10 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 200L,
 #' @param out_path The output path.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
-#' # res <- readRDS("~/proteoM/dbs/fasta/uniprot/pepmass/uniprot_hs_2020_05_2miss.rds")
-#' # theopeps <- proteoM:::binTheoSeqs(res)
+#' # res <- readRDS("~/mzion/dbs/fasta/uniprot/pepmass/uniprot_hs_2020_05_2miss.rds")
+#' # theopeps <- mzion:::binTheoSeqs(res)
 #' }
 #' @return Lists of theoretical peptides binned by MS1 masses. The lists
 #'   correspond to the lists of \code{res}.
@@ -320,7 +320,7 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 200L,
   parallel::clusterExport(cl, list("qread", "qsave"), envir = environment(qs::qsave))
   
   parallel::clusterExport(cl, c("bin_theoseqs", "find_ms1_cutpoints"), 
-                          envir = environment(proteoM:::bin_theoseqs))
+                          envir = environment(mzion:::bin_theoseqs))
   
   out <- parallel::clusterMap(cl, bin_theoseqs, 
                               res, file.path(out_dir, out_nms), 

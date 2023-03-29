@@ -8,7 +8,7 @@ make_ms2frames(
   ms1_time = NULL,
   ms1s,
   ms2s,
-  .path_cache = "~/proteoM/.MSearches/Cache/Calls",
+  .path_cache = "~/mzion/.MSearches/Cache/Calls",
   path_bin2,
   i
 )

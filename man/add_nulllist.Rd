@@ -16,7 +16,7 @@ This is different to, for example, \code{x[["a"]] <- list(NULL)}.
 }
 \examples{
 \dontrun{
-library(proteoM)
-proteoMadd_nulllist(list(a = 2, b = 3), "m")
+library(mzion)
+mzion::add_nulllist(list(a = 2, b = 3), "m")
 } 
 }

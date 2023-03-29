@@ -5,8 +5,8 @@
 \title{Batch processing of MS2 ions}
 \usage{
 batch_ms2ions(
-  fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-    "~/proteoM/dbs/fasta/crap/crap.fasta"),
+  fasta = c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+    "~/mzion/dbs/fasta/crap/crap.fasta"),
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),

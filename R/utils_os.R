@@ -519,15 +519,15 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
 #' @return An empty object if no matches.
 #' @examples
 #' \dontrun{
-#' library(proteoM)
+#' library(mzion)
 #' 
-#' .time_bin <- proteoM:::match_calltime(
+#' .time_bin <- mzion:::match_calltime(
 #'   path = file.path(.path_cache, "calc_pepmasses2", .time_stamp), 
 #'   fun = fun,
 #'   nms = c("min_mass", "max_mass", "ppm_ms1", "calib_ms1mass"), 
 #'   new_args = c(`calib_ms1mass` = calib_ms1mass)) 
 #' }
-match_calltime <- function (path = "~/proteoM/.MSearches/Cache/Calls",
+match_calltime <- function (path = "~/mzion/.MSearches/Cache/Calls",
                             fun = "calc_pepmasses2",
                             nms = c("parallel", "out_path"),
                             type = c(TRUE, FALSE), 
@@ -688,11 +688,11 @@ find_ms1_times <- function (out_path)
 #' @seealso \link{find_ms1_times}
 #' @examples
 #' \dontrun{
-#' library(proteoM)
+#' library(mzion)
 #' 
-#' out_path <- "~/proteoM/example/"
+#' out_path <- "~/mzion/example/"
 #' cache <- file.path(out_path, "Calls/.cache_info.rds")
-#' proteoM:::get_globalvar(".time_stamp", cache)
+#' mzion:::get_globalvar(".time_stamp", cache)
 #' }
 get_globalvar <- function (val = NULL, cache = NULL)
 {
@@ -766,8 +766,8 @@ load_cache_info <- function (cache = NULL, overwrite = TRUE)
 #' 
 #' @examples 
 #' \dontrun{
-#' library(proteoM)
-#' proteoM:::is_nullist(list(a = NULL))
+#' library(mzion)
+#' mzion:::is_nullist(list(a = NULL))
 #' }
 is_nulllist <- function (x) length(x) == 1L && is.null(x[[1]])
 
@@ -781,8 +781,8 @@ is_nulllist <- function (x) length(x) == 1L && is.null(x[[1]])
 #' 
 #' @examples
 #' \dontrun{
-#' library(proteoM)
-#' proteoMadd_nulllist(list(a = 2, b = 3), "m")
+#' library(mzion)
+#' mzion::add_nulllist(list(a = 2, b = 3), "m")
 #' } 
 add_nulllist <- function (l, nm)
 {

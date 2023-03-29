@@ -1,6 +1,6 @@
 #' Makes an mzTab file.
 #'
-#' With proteoM searches and proteoQ preprocessing.
+#' With \code{mzion} searches and proteoQ preprocessing.
 #'
 #' @param out_path A parent path where the outputs of \code{PSM}, \code{Peptide}
 #'   and \code{Protein} files and folders are.
@@ -50,14 +50,14 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
   })
   
   # Software settings
-  load(file.path(out_path, "Calls", "proteoM.rda"))
+  load(file.path(out_path, "Calls", "mzion.rda"))
   
   proteom_info <- devtools::session_info$otherPkgs[[1]]
   proteom_ver <- proteom_info$Version
 
   ans_software_1 <- local({
     ln_software_1 <- data.frame(nm = "software[1]", 
-                                val = paste0("[MS, MS:0000000, proteoM,", 
+                                val = paste0("[MS, MS:0000000, mzion,", 
                                              proteom_ver, "]"))
     
     idxes <- which(unlist(lapply(call_pars, is.null)))
@@ -66,8 +66,8 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
     
     fixedmods <- call_pars$fixedmods
     varmods <- call_pars$varmods
-    fixedmods <- lapply(fixedmods, proteoM::find_unimod)
-    varmods <- lapply(varmods, proteoM::find_unimod)
+    fixedmods <- lapply(fixedmods, mzion::find_unimod)
+    varmods <- lapply(varmods, mzion::find_unimod)
     
     call_pars <- lapply(call_pars, paste, collapse = ", ")
     call_pars <- data.frame(do.call(rbind, call_pars))
@@ -184,7 +184,7 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
                   species = df_prots$species, 
                   database = "null", 
                   database_version = "null", 
-                  search_engine = "proteoM", 
+                  search_engine = "mzion", 
                   "best_search_engine_score[1]" = df_prots$prot_es, 
                   ) %>% 
     dplyr::left_join(df_shared_prot_accs, by = c("accession" = "prot_acc")) %>% 
@@ -259,7 +259,7 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
                   unique = df_peps$pep_isunique, 
                   database = "null", 
                   database_version = "null", 
-                  search_engine = "proteoM", 
+                  search_engine = "mzion", 
                   "best_search_engine_score[1]" = df_peps$pep_score, 
                   modifications = df_peps$pep_vmod, 
 
@@ -313,7 +313,7 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
                   unique = df_psms$pep_isunique, 
                   database = "null", 
                   database_version = "null", 
-                  search_engine = "proteoM", 
+                  search_engine = "mzion", 
                   "best_search_engine_score[1]" = df_psms$pep_score, 
                   modifications = df_psms$pep_vmod, 
                   retention_time = df_psms$pep_ret_range, 

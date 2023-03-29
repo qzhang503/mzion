@@ -47,7 +47,7 @@ Calculates molecular weight of a polypeptide ([MH]+).
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 x <- calc_aamasses()
 x_att <- lapply(x, attributes)

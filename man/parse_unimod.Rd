@@ -14,7 +14,7 @@ The general format: \code{parse_unimod("title (position = site)")}.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 # "dot" for anywhere (either position or site)
 x1 <- parse_unimod("Carbamidomethyl (. = C)")

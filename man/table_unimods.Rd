@@ -4,7 +4,7 @@
 \alias{table_unimods}
 \title{Tabulates \href{https://www.unimod.org/}{Unimod} entries.}
 \usage{
-table_unimods(out_nm = "~/proteoM/unimods.txt")
+table_unimods(out_nm = "~/mzion/unimods.txt")
 }
 \arguments{
 \item{out_nm}{A name to outputs.}
@@ -15,7 +15,7 @@ For convenience summary of the \code{title}, \code{site} and
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 ans <- table_unimods()
 

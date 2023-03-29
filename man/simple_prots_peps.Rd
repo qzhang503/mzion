@@ -21,7 +21,7 @@ protein accessions, with the match to NP_002261 being inconsistent.
 }
 \examples{
 \donttest{
-# library(proteoM)
-# proteoM:::simple_prots_peps(fwd_peps[[1]])
+# library(mzion)
+# mzion:::simple_prots_peps(fwd_peps[[1]])
 }
 }

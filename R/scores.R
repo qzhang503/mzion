@@ -69,12 +69,12 @@ add_seions <- function (ms2s, type_ms2ions = "by", digits = 4L)
 #' @param b The right vector.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' a <- c(3, 4, 1, 2, 5)
 #' b <- 2
 #' 
-#' proteoM:::list_leftmatch(a, b)
+#' mzion:::list_leftmatch(a, b)
 #' }
 list_leftmatch <- function (a, b) 
 {
@@ -128,7 +128,7 @@ list_leftmatch <- function (a, b)
 #' @importFrom tibble tibble
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' ##
 #' pep <- "YGPQYGHPPPPPPPPDYGPHADSPVLMVYGLDQSK"
@@ -198,7 +198,7 @@ list_leftmatch <- function (a, b)
 #'                30824,12961,26805,31218,36352,49433,40495,31233,40643,18265,
 #'                12316,25125,202241,90877,20903,40353,15008,31908,22554,13634)
 #' 
-#' proteoM:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 404)
+#' mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 404)
 #' 
 #' ## 
 #' pep <- "LFEEDEREK"
@@ -253,7 +253,7 @@ list_leftmatch <- function (a, b)
 #'                12763,7125,7321,7483,31612,18050,26134,31474,11331,8789,
 #'                8672,65913,25918,17819,34367,15767,15221,14225,7419,7284)
 #' 
-#' proteoM:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 434)
+#' mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 434)
 #' }
 calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, 
                                 N, type_ms2ions = "by", topn_ms2ions = 100L, 
@@ -557,7 +557,7 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @inheritParams calc_pepscores
 calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by", 
                              ppm_ms2 = 20L, soft_secions = FALSE, 
-                             out_path = "~/proteoM/outs", 
+                             out_path = "~/mzion/outs", 
                              min_ms2mass = 115L, d2 = 1E-5, 
                              index_mgf_ms2 = FALSE, digits = 4L) 
 {
@@ -605,7 +605,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             
                             min_len = 7L, max_len = 40L, ppm_ms2 = 20L, 
                             soft_secions = FALSE, 
-                            out_path = "~/proteoM/outs", 
+                            out_path = "~/mzion/outs", 
                             min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
                             
                             mgf_path, maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
@@ -837,7 +837,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                                      "calc_probi_byvmods", "add_seions", 
                                      "find_ppm_outer_bycombi", "match_ex2th2", 
                                      "add_primatches"), 
-                            envir = environment(proteoM:::scalc_pepprobs))
+                            envir = environment(mzion:::scalc_pepprobs))
 
     if (n_rows > max_rows) {
       dfs <- suppressWarnings(chunksplit(df, ceiling(n_rows/max_rows), "row"))
@@ -857,9 +857,9 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       for (i in seq_len(len)) {
         dfi <- suppressWarnings(
           # * 4L of smaller hashes for some slow phospho scoring
-          chunksplit(qs::qread(file.path(tempdir, nms[[i]])), n_cores * 4L, "row"))
+          chunksplit(qs::qread(file.path(tempdir, nms[[i]])), n_cores, "row"))
 
-        probs[[i]] <- parallel::clusterApplyLB(cl, dfi, 
+        probs[[i]] <- parallel::clusterApply(cl, dfi, 
                                              calc_pepprobs_i, 
                                              topn_ms2ions = topn_ms2ions, 
                                              type_ms2ions = type_ms2ions, 
@@ -882,7 +882,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       df <- qs::qread(path_df)
     }
     else {
-      dfs <- suppressWarnings(chunksplit(df, n_cores * 4L, "row"))
+      dfs <- suppressWarnings(chunksplit(df, n_cores, "row"))
       
       # a case that `chunksplit` did not successfully split
       if (is.data.frame(dfs)) {
@@ -899,7 +899,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
           digits = digits)
       }
       else {
-        probs <- parallel::clusterApplyLB(cl, dfs, 
+        probs <- parallel::clusterApply(cl, dfs, 
                                         calc_pepprobs_i, 
                                         topn_ms2ions = topn_ms2ions, 
                                         type_ms2ions = type_ms2ions, 
@@ -956,7 +956,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   else {
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     parallel::clusterExport(cl, list("add_primatches"), 
-                            envir = environment(proteoM:::add_primatches))
+                            envir = environment(mzion:::add_primatches))
     
     max_theos <- 500000L
 
@@ -1502,14 +1502,14 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 #' @inheritParams matchMS
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' if (FALSE) {
 #'   prob_cos <- calc_pepfdr(target_fdr = .01, 
 #'                           fdr_type = "protein", 
 #'                           min_len = 7L, 
 #'                           max_len = 50L, 
-#'                           out_path = "~/proteoM/bi_1")
+#'                           out_path = "~/mzion/bi_1")
 #' }
 #' 
 #' }
@@ -2340,7 +2340,7 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
 #' 
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' expts <- c(101.0714, 102.0554, 110.0717, 115.0505, 126.1279, 127.0504,
 #'            127.1249, 127.1312, 128.1283, 128.1346, 129.0660, 129.1316,
@@ -2372,7 +2372,7 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
 #'                   "R", "P", "Q", "T", "L", "P", "G", "P", "L",
 #'                   "P", "E", "C", "P", "G", "Q", "S", "S", "D")
 #'
-#' proteoM:::find_ppm_outer_bycombi(theos, expts, ppm_ms2 = 25L)
+#' mzion:::find_ppm_outer_bycombi(theos, expts, ppm_ms2 = 25L)
 #' 
 #' # No secondary matches
 #' theos <- c(56.5233, 235.1522, 284.6864, 326.2050, 361.7235, 
@@ -2415,7 +2415,7 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
 #'            851.48267,852.48303,855.58301,899.52069,956.62952,
 #'            1027.66833,1230.73962,1232.75513,1233.75024)
 #' 
-#' proteoM:::find_ppm_outer_bycombi(theos, expts, ppm_ms2 = 25)
+#' mzion:::find_ppm_outer_bycombi(theos, expts, ppm_ms2 = 25)
 #' }
 find_ppm_outer_bycombi <- function (X, Y, ppm_ms2 = 20L) 
 {
@@ -2814,10 +2814,10 @@ calcpeprank_3 <- function (x0)
 #' 
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' vals <- c(rep("B", 6), rep("A", 6), rep("E", 5), rep("D", 5), rep("C", 7))
-#' brs <- proteoM:::find_chunkbreaks(vals, 3L)
+#' brs <- mzion:::find_chunkbreaks(vals, 3L)
 #' split(vals, brs)
 #' }
 find_chunkbreaks <- function (vals, n_chunks) 
@@ -2862,32 +2862,32 @@ find_chunkbreaks <- function (vals, n_chunks)
 #' @param locmod_indexes A vector to the modification indexes.
 #'
 #' @examples
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' locmod_indexes <- c("8", "9", "a")
 #' df <- data.frame(pep_ivmod2 = c("0080000", "0009000"), pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(1,2,3,4,5,6,8,9,10,11,12,13,14))
 #' df$pep_ms2_ideltas.[2] <- list(c(1,2,3,4,5,6,8,9,10,12,13,14))
-#' ans <- proteoM:::findLocFracsDF(df, locmod_indexes)
+#' ans <- mzion:::findLocFracsDF(df, locmod_indexes)
 #'
 #' # Variable Acetyl (K) and fixed TMT6plex (K)
 #' locmod_indexes <- "4"
 #' df <- data.frame(pep_ivmod2 = c("04000000", "00000000"), pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(2,5,6,7,9,11,14,15,16))
 #' df$pep_ms2_ideltas.[2] <- list(c(1,2,5,6,7,9,11,14))
-#' ans <- proteoM:::findLocFracsDF(df, locmod_indexes)
+#' ans <- mzion:::findLocFracsDF(df, locmod_indexes)
 #'
 #' df <- data.frame(pep_ivmod2 = c("0004000", "4000000"), pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(2,3,4,5,6,8,10,11,12,14))
 #' df$pep_ms2_ideltas.[2] <- list(c(4,5,6,8,10,14))
-#' ans <- proteoM:::findLocFracsDF(df, locmod_indexes)
+#' ans <- mzion:::findLocFracsDF(df, locmod_indexes)
 #'
 #' df <- data.frame(pep_ivmod2 = c("00040402", "00040204", "00020202"), 
 #'   pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(1,4,6,7,9,10,11,12,15,16))
 #' df$pep_ms2_ideltas.[2] <- list(c(1,4,11,12,15,16))
 #' df$pep_ms2_ideltas.[3] <- list(c(1,4,11,12,15,16))
-#' ans <- proteoM:::findLocFracsDF(df, locmod_indexes)
+#' ans <- mzion:::findLocFracsDF(df, locmod_indexes)
 #'
 #' locmod_indexes <- c("2", "4")
 #' df <- data.frame(pep_ivmod2 = c("0004004000402", "0002004000402", "0004004000204"), 
@@ -2895,7 +2895,7 @@ find_chunkbreaks <- function (vals, n_chunks)
 #' df$pep_ms2_ideltas.[1] <- list(c(1,3,4,5,6,7,8,10,14,15,16,17,18,19))
 #' df$pep_ms2_ideltas.[2] <- list(c(4,5,6,7,8,10,14,15,16,17,18,19))
 #' df$pep_ms2_ideltas.[3] <- list(c(1,3,4,5,6,7,8,10,14,16,17,18,19))
-#' ans <- proteoM:::findLocFracsDF(df, locmod_indexes)
+#' ans <- mzion:::findLocFracsDF(df, locmod_indexes)
 #'
 #' # Variable Digly (K), TMT6plex+Digly (K) fixed TMT6plex (K)
 #' # 9 - TMT6plex+Digly (K)
@@ -2907,7 +2907,7 @@ find_chunkbreaks <- function (vals, n_chunks)
 #'   pep_ms2_ideltas. = NA)
 #' df$pep_ms2_ideltas.[1] <- list(c(1,2,3,4,5,6,19,20,21,22,23))
 #' df$pep_ms2_ideltas.[2] <- list(c(1,2,3,4,5,6,19,20,      23))
-#' ans <- proteoM:::findLocFracsDF(df, locmod_indexes)
+#' ans <- mzion:::findLocFracsDF(df, locmod_indexes)
 findLocFracsDF <- function (df, locmod_indexes = NULL) 
 {
   ivms <- df[["pep_ivmod2"]]
@@ -2999,21 +2999,21 @@ findLocFracsDF <- function (df, locmod_indexes = NULL)
 #'
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
-#' proteoM:::concatFracs(c(3, 3, 5), c(2, 1, 3))
-#' proteoM:::concatFracs(c(0, 6), c(1, 3))
-#' proteoM:::concatFracs(c(0, 6), c(0, 3))
-#' proteoM:::concatFracs(c(0, 2), c(0, 2))
-#' proteoM:::concatFracs(c(1, 2), c(1, 2))
+#' mzion:::concatFracs(c(3, 3, 5), c(2, 1, 3))
+#' mzion:::concatFracs(c(0, 6), c(1, 3))
+#' mzion:::concatFracs(c(0, 6), c(0, 3))
+#' mzion:::concatFracs(c(0, 2), c(0, 2))
+#' mzion:::concatFracs(c(1, 2), c(1, 2))
 #' 
-#' proteoM:::concatFracs(c(1, 2), c(1, 4))
-#' proteoM:::concatFracs(c(0, 2), c(0, 4))
-#' proteoM:::concatFracs(c(1, 2), c(0, 4)) # near 1 0 0
+#' mzion:::concatFracs(c(1, 2), c(1, 4))
+#' mzion:::concatFracs(c(0, 2), c(0, 4))
+#' mzion:::concatFracs(c(1, 2), c(0, 4)) # near 1 0 0
 #' 
-#' proteoM:::concatFracs(0, 2)
-#' proteoM:::concatFracs(2, 0)
-#' proteoM:::concatFracs(0, 0) # should not occur
+#' mzion:::concatFracs(0, 2)
+#' mzion:::concatFracs(2, 0)
+#' mzion:::concatFracs(0, 0) # should not occur
 #' }
 concatFracs <- function (x, y, d = .001) 
 {

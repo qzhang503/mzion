@@ -16,8 +16,8 @@ Writes a fasta file (Not yet used).
 }
 \examples{
 \dontrun{
-fasta_db <- read_fasta(file = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
-write_fasta(fasta_db, "~/proteoM/examples/my.fasta")
+fasta_db <- read_fasta(file = "~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
+write_fasta(fasta_db, "~/mzion/examples/my.fasta")
 }
 
 }

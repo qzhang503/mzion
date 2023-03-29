@@ -65,7 +65,7 @@ a given \code{aa_masses}.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 ## M
 fixedmods <- c("TMT6plex (K)", "dHex (S)")
@@ -80,7 +80,7 @@ amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"),
 
 aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 
-ans <- proteoM:::unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
+ans <- mzion:::unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
                      aa_masses = aa_masses, aas = aas)
 
 stopifnot(length(ans) == 1L,
@@ -101,7 +101,7 @@ amods <- list(`Carbamidomethyl (M)` = c(Anywhere = "M"),
 
 aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 
-ans <- proteoM:::unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
+ans <- mzion:::unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
                      aa_masses = aa_masses, aas = aas)
 
 stopifnot(length(ans) == 2L,

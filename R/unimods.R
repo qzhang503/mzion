@@ -6,7 +6,7 @@
 #' @seealso \link{table_unimods}, \link{find_unimod}.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' # "dot" for anywhere (either position or site)
 #' x1 <- parse_unimod("Carbamidomethyl (. = C)")
@@ -148,12 +148,12 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
 #' \code{site} is the value.
 #'
 #' @param xml_files Name(s) of Unimod ".xml" files. The file path is a system
-#'   setting of \code{system.file("extdata", xml_file, package = "proteoM")}.
+#'   setting of \code{system.file("extdata", xml_file, package = "mzion")}.
 #' @inheritParams parse_unimod
 #' @seealso \link{table_unimods}, \link{parse_unimod}.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' x1 <- find_unimod("Carbamidomethyl (C)")
 #' x2 <- find_unimod("Carbamidomethyl (M)")
@@ -247,7 +247,7 @@ hfind_unimod <- function (xml_files = c("master.xml", "custom.xml"), unimod)
   for (xml_file in xml_files) {
     title <- gsub("^([^ ]+?) .*", "\\1", unimod)
     
-    xml_root <- xml2::read_xml(system.file("extdata", xml_file, package = "proteoM"))
+    xml_root <- xml2::read_xml(system.file("extdata", xml_file, package = "mzion"))
     nodes_lev1_four <- xml2::xml_children(xml_root)
     node_modif <- xml2::xml_find_all(nodes_lev1_four, "//umod:modifications")
     modifications <- xml2::xml_children(node_modif)
@@ -279,7 +279,7 @@ hfind_unimod <- function (xml_files = c("master.xml", "custom.xml"), unimod)
 #' @seealso \link{find_unimod}, \link{parse_unimod}.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' ans <- table_unimods()
 #' 
@@ -313,7 +313,7 @@ hfind_unimod <- function (xml_files = c("master.xml", "custom.xml"), unimod)
 #' 
 #' }
 #' @export
-table_unimods <- function (out_nm = "~/proteoM/unimods.txt") 
+table_unimods <- function (out_nm = "~/mzion/unimods.txt") 
 {
   files <- c("master.xml", "custom.xml")
   
@@ -330,7 +330,7 @@ table_unimods <- function (out_nm = "~/proteoM/unimods.txt")
 #' @param file A file path to a Unimod ".xml".
 htable_unimods <- function (file) 
 {
-  xml_root <- xml2::read_xml(system.file("extdata", file, package = "proteoM"))
+  xml_root <- xml2::read_xml(system.file("extdata", file, package = "mzion"))
   nodes_lev1_four <- xml2::xml_children(xml_root)
   node_modif <- xml2::xml_find_all(nodes_lev1_four, "//umod:modifications")
   modifications <- xml2::xml_children(node_modif)
@@ -385,7 +385,7 @@ htable_unimods <- function (file)
 #'   The precision of \code{mono_mass} is typically set with a decimal place of
 #'   \eqn{\ge 5}.
 #' @param neuloss The mass and composition \emph{loss} of a neutral species atop
-#'   of the \code{delta}. Like many other search engines, \code{proteoM} adapts
+#'   of the \code{delta}. Like many other search engines, \code{mzion} adapts
 #'   the common convention where the losses of masses and compositions are
 #'   expressed in \emph{positive} forms for both the masses and the
 #'   compositions.
@@ -398,15 +398,15 @@ htable_unimods <- function (file)
 #' @return An xml object.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #'
-#' ## To avoid unsound chemistries, proteoM prohibits
+#' ## To avoid unsound chemistries, mzion prohibits
 #' ##   additive modifications to the same site.
 #' ## To enable cumulative effects, the solution is to
 #' ##   devise a "merged" modification (e.g. TMT + K8).
 #'
-#' (system.file("extdata", "master.xml", package = "proteoM"))
-#' (system.file("extdata", "custom.xml", package = "proteoM"))
+#' (system.file("extdata", "master.xml", package = "mzion"))
+#' (system.file("extdata", "custom.xml", package = "mzion"))
 #'
 #' ## Additive N-terminal modifications 
 #' # (1) TMT + Gln->pyro-Glu (though not chemically sound)
@@ -613,7 +613,7 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
   neuloss_avge_mass <- neuloss[["avge_mass"]]
   neuloss_composition <- neuloss[["composition"]]
   
-  xml_file <- system.file("extdata", "master.xml", package = "proteoM")
+  xml_file <- system.file("extdata", "master.xml", package = "mzion")
   xml_root <- xml2::read_xml(xml_file)
   nodes_lev1_four <- xml2::xml_children(xml_root)
   node_modif <- xml2::xml_find_all(nodes_lev1_four, "//umod:modifications")
@@ -624,7 +624,7 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
   
   # not in master
   if (!len_title) {
-    xml_file <- system.file("extdata", "custom.xml", package = "proteoM")
+    xml_file <- system.file("extdata", "custom.xml", package = "mzion")
     xml_root <- xml2::read_xml(xml_file)
     nodes_lev1_four <- xml2::xml_children(xml_root)
     node_modif <- xml2::xml_find_all(nodes_lev1_four, "//umod:modifications")
@@ -1043,7 +1043,7 @@ add_comp_elements <- function (node = NULL, composition = "0")
 #' @seealso remove_unimod_title
 #' @examples 
 #' \dontrun{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' # site `C`: Oxiation + Carbamidomethyl
 #' # (without neutral losses)
@@ -1108,7 +1108,7 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
   neuloss_avge_mass <- neuloss[["avge_mass"]]
   neuloss_composition <- neuloss[["composition"]]
   
-  xml_file <- system.file("extdata", "custom.xml", package = "proteoM")
+  xml_file <- system.file("extdata", "custom.xml", package = "mzion")
   xml_root <- xml2::read_xml(xml_file)
   nodes_lev1_four <- xml2::xml_children(xml_root)
   node_modif <- xml2::xml_find_all(nodes_lev1_four, "//umod:modifications")
@@ -1306,7 +1306,7 @@ standardize_unimod_ps <- function (x)
 #' @param title The title of a modification.
 #' @examples 
 #' \dontrun{
-#' library(proteoM)
+#' library(mzion)
 #' x <- remove_unimod_title("Oxi+Carbamidomethyl")
 #' }
 #' @export
@@ -1315,7 +1315,7 @@ remove_unimod_title <- function (title = NULL)
   if (isFALSE(title) || nchar(title) == 0L)
     stop("Provide a `title`.", call. = FALSE)
   
-  xml_file <- system.file("extdata", "custom.xml", package = "proteoM")
+  xml_file <- system.file("extdata", "custom.xml", package = "mzion")
   xml_root <- xml2::read_xml(xml_file)
   
   nodes_lev1_four <- xml2::xml_children(xml_root)
@@ -1349,21 +1349,21 @@ remove_unimod_title <- function (title = NULL)
 #' @export
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' ## Error
 #' # comp <- "N(+1) 15N(-1)"
-#' # m <- proteoM:::calc_unimod_compmass(comp)
+#' # m <- mzion:::calc_unimod_compmass(comp)
 #' 
 #' ## Instead 
 #' comp <- "N(1) 15N(-1)"
-#' m <- proteoM:::calc_unimod_compmass(comp)
+#' m <- mzion:::calc_unimod_compmass(comp)
 #' }
 calc_unimod_compmass <- function (composition = "H(4) C O S", digits = 6L) 
 {
   options(digits = 9L)
   
-  nm <- system.file("extdata", "elem_masses.txt", package = "proteoM")
+  nm <- system.file("extdata", "elem_masses.txt", package = "mzion")
   
   if (file.exists(nm))
     lookup <- read.delim(file = nm, sep = "\t")
@@ -1406,7 +1406,7 @@ parse_unimod_composition <- function (composition = "H(4) C O S")
     stringr::str_match_all("(.*?)\\((-*[0-9]+)\\)") %>% 
     `[[`(1)
   
-  df <- df[, -1]
+  df <- df[, -1, drop = FALSE]
   colnames(df) <- c("symbol", "number")
   
   data.frame(df)

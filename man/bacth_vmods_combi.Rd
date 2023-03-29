@@ -34,8 +34,8 @@ For the same residue (M) at different names of modifications.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 resmods <- c(`Oxidation (M)` = "M", `Carbamidomethyl (M)` = "M")
-ans <- proteoM:::bacth_vmods_combi(resmods)
+ans <- mzion:::bacth_vmods_combi(resmods)
 }
 }

@@ -14,7 +14,7 @@ Removes an existing modification.
 }
 \examples{
 \dontrun{
-library(proteoM)
+library(mzion)
 x <- remove_unimod_title("Oxi+Carbamidomethyl")
 }
 }

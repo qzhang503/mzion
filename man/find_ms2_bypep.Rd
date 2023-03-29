@@ -53,7 +53,7 @@ Helper: matches between theoretical and experimental MS2 ions.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 ## Experimental 322.18704 fit to both b- and y- ions
 #  (one expt to multiple theos)
@@ -94,7 +94,7 @@ nms <- unlist(stringr::str_split(pep, ""))
 names(theos) <- c(nms, rev(nms))
 theos <- list(`0000000` = theos)
 
-x1 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
+x1 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 
 ## Both expts 74953 and 74955 fit to theos 74954
 #  (multiple expts to one theo)
@@ -139,7 +139,7 @@ min_ms2mass <- 115L
 d <- ppm_ms2/1E6
 ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 
-x2 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
+x2 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 
 ## Experimental 317.20001 & 317.19315 match to theoreitcal 317.2022 & 317.1932;
 #  experimental 959.48468 is also multiple dipping
@@ -175,7 +175,7 @@ min_ms2mass <- 115L
 d <- ppm_ms2/1E6
 ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 
-x3 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
+x3 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 
 ## 7 b-ions and 9 y-bios 
 #  (an even total, n_ps matched but identities off)
@@ -209,7 +209,7 @@ min_ms2mass <- 115L
 d <- ppm_ms2/1E6
 ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 
-x4 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
+x4 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 
 
 ## fewer matches with "find_ppm_outer_bycombi" and check minn_ms2 again
@@ -247,7 +247,7 @@ min_ms2mass <- 115L
 d <- ppm_ms2/1E6
 ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 
-x5 <- proteoM:::find_ms2_bypep(theos, expts, ex, d, ppm_ms2)
+x5 <- mzion:::find_ms2_bypep(theos, expts, ex, d, ppm_ms2)
 
 }
 

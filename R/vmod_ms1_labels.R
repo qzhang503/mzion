@@ -10,7 +10,7 @@
 #' @param amods \code{Anywhere} variable modifications.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
 #'                "Carbamidomethyl (C)")
@@ -27,7 +27,7 @@
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
@@ -38,7 +38,7 @@
 #'
 #' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 #'
-#' vmods_combi <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
+#' vmods_combi <- mzion:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
 #'
 #' ## M and N
 #' fixedmods = c("TMT6plex (K)", "dHex (S)")
@@ -50,7 +50,7 @@
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
@@ -64,7 +64,7 @@
 #'
 #' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 #'
-#' vmods_combi <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
+#' vmods_combi <- mzion:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
 #'
 #' stopifnot(sapply(vmods_combi$ms1, function (x) all(names(amods) %in% x)),
 #'           length(vmods_combi$ms1) == 6L)
@@ -118,7 +118,7 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' ## Simple
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
@@ -136,7 +136,7 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
@@ -165,7 +165,7 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
@@ -198,10 +198,10 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' maxn_vmods_per_pep <- 5L
 #' maxn_sites_per_vmod <- 3L
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+#' ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
 #'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
+#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, mzion:::make_ms2vmods))
 #'
 #' i <- 6L
 #' aa_masses <- aa_masses_all[[i]]
@@ -213,10 +213,10 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
 #' aas <- unlist(strsplit("MHQGVMNVGMGQKNS", ""))
 #'
 #' # Subset from ms1vmods by aas
-#' oks <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
+#' oks <- mzion:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
 #' ms2vmods <- ms2vmods[oks]
 #'
-#' vmods_combi <- proteoM:::find_vmodscombi(aas, ms2vmods)
+#' vmods_combi <- mzion:::find_vmodscombi(aas, ms2vmods)
 #'
 #' # "Oxidation (M)" on N-term kept in the label space
 #' lapply(vmods_combi, function (x) any(names(x) == 1))
@@ -295,9 +295,9 @@ make_ms1_vmodsets <- function (aa_masses_all = NULL, maxn_vmods_per_pep = 5L,
 #' @inheritParams matchMS
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' resmods <- c(`Oxidation (M)` = "M", `Carbamidomethyl (M)` = "M")
-#' ans <- proteoM:::bacth_vmods_combi(resmods)
+#' ans <- mzion:::bacth_vmods_combi(resmods)
 #' }
 bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L, 
                                maxn_sites_per_vmod = 3L) 
@@ -325,7 +325,7 @@ bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L,
 #' @inheritParams matchMS
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' # multiple outs
 #' p <- 5
@@ -333,8 +333,8 @@ bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L,
 #' n <- length(labs)
 #' stopifnot(n == length(labs))
 #' 
-#' ans5 <- proteoM:::make_unique_sets(5, n, labs)
-#' ans7 <- proteoM:::make_unique_sets(7, n, labs)
+#' ans5 <- mzion:::make_unique_sets(5, n, labs)
+#' ans7 <- mzion:::make_unique_sets(7, n, labs)
 #' 
 #' stopifnot(identical(ans5, ans7))
 #' 
@@ -344,7 +344,7 @@ bacth_vmods_combi <- function (resmods = NULL, maxn_vmods_per_pep = 5L,
 #' n <- length(labs)
 #' stopifnot(n == length(labs))
 #' 
-#' ans <- proteoM:::make_unique_sets(p, n, labs)
+#' ans <- mzion:::make_unique_sets(p, n, labs)
 #' }
 make_unique_sets <- function (p = 5L, n = 2L, labs = c("X", "Y"), 
                               maxn_vmods_per_pep = 5L, 
@@ -388,8 +388,8 @@ make_unique_sets <- function (p = 5L, n = 2L, labs = c("X", "Y"),
 #' @param labs The names to be filled into the \code{p}-number of positions.
 #' @examples 
 #' \donttest{
-#' library(proteoM)
-#' proteoM:::find_unique_sets(5, c("Oxidation (M)", 
+#' library(mzion)
+#' mzion:::find_unique_sets(5, c("Oxidation (M)", 
 #'                            "Carbamidomethyl (M)", 
 #'                            "Carbamyl (M)"))
 #' }
@@ -467,7 +467,7 @@ gtools_combn <- function (n, r, v = 1:n, set = TRUE, repeats.allowed = FALSE)
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' ## Simple
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
@@ -488,11 +488,11 @@ gtools_combn <- function (n, r, v = 1:n, set = TRUE, repeats.allowed = FALSE)
 #' i <- 10L
 #' aa_masses <- aa_masses_all[[i]]
 #'
-#' vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses,
+#' vmodsets <- mzion:::make_ms1_vmodsets(aa_masses_all = aa_masses,
 #'                               maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                               maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
-#' ms1vmods <- proteoM:::find_intercombi2(vmodsets)
+#' ms1vmods <- mzion:::find_intercombi2(vmodsets)
 #' 
 #' ## More complex
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
@@ -514,11 +514,11 @@ gtools_combn <- function (n, r, v = 1:n, set = TRUE, repeats.allowed = FALSE)
 #' i <- 8L
 #' aa_masses <- aa_masses_all[[i]]
 #'
-#' vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses,
+#' vmodsets <- mzion:::make_ms1_vmodsets(aa_masses_all = aa_masses,
 #'                               maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                               maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
-#' ms1vmods <- proteoM:::find_intercombi2(vmodsets)
+#' ms1vmods <- mzion:::find_intercombi2(vmodsets)
 #' 
 #' ## `Oxidation (M)`, "Carbamidomethyl (M)"
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)")
@@ -538,11 +538,11 @@ gtools_combn <- function (n, r, v = 1:n, set = TRUE, repeats.allowed = FALSE)
 #' i <- 16L
 #' aa_masses <- aa_masses_all[[i]]
 #'
-#' vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses,
+#' vmodsets <- mzion:::make_ms1_vmodsets(aa_masses_all = aa_masses,
 #'                               maxn_vmods_per_pep = maxn_vmods_per_pep,
 #'                               maxn_sites_per_vmod = maxn_sites_per_vmod)
 #'
-#' ms1vmods <- proteoM:::find_intercombi2(vmodsets)
+#' ms1vmods <- mzion:::find_intercombi2(vmodsets)
 #' }
 find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L) 
 {

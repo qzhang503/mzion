@@ -25,7 +25,7 @@ contains at least one of the residues.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 ## with a bare vector
 # One-to-one correspondence between Names and Sites
@@ -33,7 +33,7 @@ vec <- c(M = "Oxidation (M)", N = "Deamidated (N)")
 attr(vec, "ps")   <- c(M = 3L, N = 2L)
 attr(vec, "labs") <- c(`Oxidation (M)` = 3L, `Deamidated (N)` = 2L)
 
-ans <- proteoM:::make_ms2vmods(vec)
+ans <- mzion:::make_ms2vmods(vec)
 
 # Multiple Names to the same Site (S)
 vec <- c(M = "Oxidation (M)",
@@ -44,7 +44,7 @@ attr(vec, "labs") <- c(`Oxidation (M)` = 2L,
                        `Carbamidomethyl (S)` = 2L,
                        `Phospho (S)` = 1L)
 
-ans <- proteoM:::make_ms2vmods(vec)
+ans <- mzion:::make_ms2vmods(vec)
 stopifnot(nrow(ans) == 6L, ncol(ans) == length(vec))
 
 # Another one-to-multiple
@@ -56,7 +56,7 @@ attr(vec, "labs") <- c(`Oxidation (M)` = 2L,
                        `Carbamidomethyl (S)` = 1L,
                        `Phospho (S)` = 1L)
 
-ans <- proteoM:::make_ms2vmods(vec)
+ans <- mzion:::make_ms2vmods(vec)
 stopifnot(nrow(ans) == 24L, ncol(ans) == length(vec),
           nrow(ans) == nrow(unique(ans)))
 
@@ -76,7 +76,7 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 
@@ -93,7 +93,7 @@ len_ps <- lapply(ms1vmods_all[[4]], function (x) attr(x, "ps"))
 x <- ms1vmods_all[[12]] # list of 8
 # x <- ms1vmods_all[[1]] # empty list
 
-ans <- lapply(x, proteoM:::make_ms2vmods) # list of 8 matrices
+ans <- lapply(x, mzion:::make_ms2vmods) # list of 8 matrices
 
 
 ## More complex
@@ -111,7 +111,7 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 
@@ -137,8 +137,8 @@ x <- ms1vmods_all[[64]] # list of 10 vectors
 # [[3]]
 # ...
 
-ans <- lapply(x, proteoM:::make_ms2vmods) # list of 10 matrices
+ans <- lapply(x, mzion:::make_ms2vmods) # list of 10 matrices
 
-ans_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
+ans_all <- lapply(ms1vmods_all, function (x) lapply(x, mzion:::make_ms2vmods))
 }
 }

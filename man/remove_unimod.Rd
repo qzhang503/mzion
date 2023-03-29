@@ -34,7 +34,7 @@ allowed in \code{title}.}
   \eqn{\ge 5}.}
 
 \item{neuloss}{The mass and composition \emph{loss} of a neutral species atop
-  of the \code{delta}. Like many other search engines, \code{proteoM} adapts
+  of the \code{delta}. Like many other search engines, \code{mzion} adapts
   the common convention where the losses of masses and compositions are
   expressed in \emph{positive} forms for both the masses and the
   compositions.
@@ -48,7 +48,7 @@ Removes an existing modification.
 }
 \examples{
 \dontrun{
-library(proteoM)
+library(mzion)
 
 # site `C`: Oxiation + Carbamidomethyl
 # (without neutral losses)

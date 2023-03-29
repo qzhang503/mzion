@@ -21,7 +21,7 @@ with indexes in aas for exact exclusion of certain permutations.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
                "Carbamidomethyl (C)")
@@ -38,7 +38,7 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 
@@ -49,7 +49,7 @@ ms1vmods <- ms1vmods_all[[i]]
 
 aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 
-vmods_combi <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
+vmods_combi <- mzion:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
 
 ## M and N
 fixedmods = c("TMT6plex (K)", "dHex (S)")
@@ -61,7 +61,7 @@ aa_masses_all <- calc_aamasses(fixedmods, varmods)
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 
@@ -75,7 +75,7 @@ ms1vmods <- ms1vmods_all[[i]]
 
 aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 
-vmods_combi <- proteoM:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
+vmods_combi <- mzion:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)
 
 stopifnot(sapply(vmods_combi$ms1, function (x) all(names(amods) \%in\% x)),
           length(vmods_combi$ms1) == 6L)

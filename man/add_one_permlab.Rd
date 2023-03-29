@@ -16,7 +16,7 @@ Helper in making permuation table.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 library(gtools)
 library(dplyr)
 
@@ -26,7 +26,7 @@ nu <- length(unilabs)
 G <- gtools::permutations(nu, nu, unilabs)
 
 M  <- matrix(unilabs[1])
-for (ulab in unilabs[-1]) M <- proteoM:::add_one_permlab(M, ulab)
+for (ulab in unilabs[-1]) M <- mzion:::add_one_permlab(M, ulab)
 
 cns <- paste0("p", 1:nu)
 M <- data.frame(M)

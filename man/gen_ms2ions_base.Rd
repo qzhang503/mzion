@@ -202,7 +202,7 @@ used. The default is 4.}
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 library(magrittr)
 
 # (5) "amods- tmod+ vnl- fnl+"
@@ -239,7 +239,7 @@ aa_seq <- "MHQGVMNVGMGQKMNS"
 # variable `TMT6plex (N-term)` + `fixed Oxidation (M)`
 # (additive varmod on top of fixedmod allowed)
 
-out <- proteoM:::gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = NULL, 
+out <- mzion:::gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = NULL, 
                                 aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
                                 ntmass = ntmass, ctmass = ctmass, 
                                 amods = NULL, vmods_nl = NULL, fmods_nl = fmods_nl, 
@@ -247,7 +247,7 @@ out <- proteoM:::gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = NULL,
 
 }
 \donttest{
-library(proteoM)
+library(mzion)
 library(magrittr)
 
 # (8a) "amods+ tmod+ vnl- fnl-"
@@ -264,11 +264,11 @@ aa_masses_all <- calc_aamasses(fixedmods, varmods)
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
                        
-ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
+ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, mzion:::make_ms2vmods))
 
 i <- 8L
 aa_masses <- aa_masses_all[[i]]
@@ -298,7 +298,7 @@ ms1_masses <- calc_monopeptide("MHQGVMNVGMGQKMNS",
 ms1_mass <- ms1_masses$mass[[8]][2] # 2077.9256
 
 # 379 us
-out <- proteoM:::gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+out <- mzion:::gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                                 aa_masses = aa_masses, 
                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
                                 ntmod = ntmod, ctmod = ctmod,
@@ -323,11 +323,11 @@ aa_masses_all <- calc_aamasses(fixedmods, varmods)
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
                        
-ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
+ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, mzion:::make_ms2vmods))
 
 i <- 4L
 aa_masses <- aa_masses_all[[i]]
@@ -355,7 +355,7 @@ aa_seq <- "EKNALVNEADSADVLQVANTDDEGGPENHRENFNNNNNNSVAVSSLNNGR"
 ms1_masses <- calc_monopeptide(aa_seq, fixedmods, varmods)
 ms1_mass <- ms1_masses$mass[[3]][1] # 5824.7551
 
-out <- proteoM:::gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+out <- mzion:::gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                                 aa_masses = aa_masses, 
                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
                                 ntmod = ntmod, ctmod = ctmod,
@@ -365,7 +365,7 @@ out <- proteoM:::gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass,
                                 mod_indexes = mod_indexes)
 }
 \donttest{
-library(proteoM)
+library(mzion)
 library(magrittr)
 
 # (12) "amods+ tmod+ vnl- fnl+"
@@ -380,11 +380,11 @@ aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
 
-ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
+ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, mzion:::make_ms2vmods))
 
 i <- 2L
 aa_masses <- aa_masses_all[[i]]
@@ -414,7 +414,7 @@ ms1_masses <- calc_monopeptide(aa_seq, fixedmods, varmods)
 
 ms1_mass <- ms1_masses$mass[[2]][2] # 2041.8958
 
-out <- proteoM:::gen_ms2ions_a1_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+out <- mzion:::gen_ms2ions_a1_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                                 aa_masses = aa_masses, 
                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
                                 ntmod = ntmod, ctmod = ctmod,
@@ -430,7 +430,7 @@ ms1_mass <- ms1_masses$mass[[2]][2] # 1367.6996
 
 }
 \donttest{
-library(proteoM)
+library(mzion)
 library(magrittr)
 
 # (10) "amods+ tmod+ vnl+ fnl-"
@@ -447,10 +447,10 @@ aa_masses_all <- calc_aamasses(fixedmods, varmods)
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
+ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, mzion:::make_ms2vmods))
 
 i <- 16L
 aa_masses <- aa_masses_all[[i]]
@@ -482,7 +482,7 @@ ms1_masses <- calc_monopeptide("HQGVMNVGMGQKMNS",
                                fixedmods, varmods)
 ms1_mass <- ms1_masses$mass[[16]][2] # 2197.9679
 
-out <- proteoM:::gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+out <- mzion:::gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                                 aa_masses = aa_masses, 
                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
                                 ntmod = ntmod, ctmod = ctmod, 
@@ -517,10 +517,10 @@ aa_masses_all <- calc_aamasses(fixedmods, varmods)
 maxn_vmods_per_pep <- 5L
 maxn_sites_per_vmod <- 3L
 
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i,
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
                        maxn_vmods_per_pep = maxn_vmods_per_pep,
                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, proteoM:::make_ms2vmods))
+ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, mzion:::make_ms2vmods))
 
 i <- 8L
 aa_masses <- aa_masses_all[[i]]
@@ -551,7 +551,7 @@ aa_seq <- "MHQGVMNVGMGQKMNS"
 
 # No-matches at `ms1_mass = 2123.9424` as the matching index 
 # exceeds `maxn_vmods_sitescombi_per_pep`
-out <- proteoM:::gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = 2123.9424, 
+out <- mzion:::gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = 2123.9424, 
                                 aa_masses = aa_masses, 
                                 ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
                                 ntmod = ntmod, ctmod = ctmod, 
@@ -561,7 +561,7 @@ out <- proteoM:::gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = 2123.9424,
                                 mod_indexes = mod_indexes)
 }
 \donttest{
-library(proteoM)
+library(mzion)
 
 # (2) "amods- tmod+ vnl- fnl-"
 fixedmods <- c("TMT6plex (K)", "Carbamidomethyl (C)")
@@ -593,7 +593,7 @@ if (!length(ctmod)) {
 
 aa_seq <- "MHQGVMNVGMGQKMNS"
 
-out <- proteoM:::gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+out <- mzion:::gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                         aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
                         ntmass = ntmass, ctmass = ctmass, 
                         amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
@@ -628,7 +628,7 @@ if (!length(ctmod)) {
 
 aa_seq <- "MHQGVMNVGMGQKMNS"
 
-out <- proteoM:::gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+out <- mzion:::gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
                         aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
                         ntmass = ntmass, ctmass = ctmass, 
                         amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 

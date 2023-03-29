@@ -15,10 +15,10 @@ insVal(x, sv)
 Inserts a value.
 }
 \examples{
-library(proteoM)
+library(mzion)
 sv <- c(4, 10)
 
-sv <- proteoM:::insVal(2, sv)
-sv <- proteoM:::insVal(6, sv)
-sv <- proteoM:::insVal(20, sv)
+sv <- mzion:::insVal(2, sv)
+sv <- mzion:::insVal(6, sv)
+sv <- mzion:::insVal(20, sv)
 }

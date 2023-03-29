@@ -64,14 +64,14 @@ cover all \code{pep_len} values.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 if (FALSE) {
   prob_cos <- calc_pepfdr(target_fdr = .01, 
                           fdr_type = "protein", 
                           min_len = 7L, 
                           max_len = 50L, 
-                          out_path = "~/proteoM/bi_1")
+                          out_path = "~/mzion/bi_1")
 }
 
 }

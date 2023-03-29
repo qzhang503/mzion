@@ -15,14 +15,14 @@ A (faster alternative) to \link[gtools]{permutations} with duplicated labels.
 \examples{
 \donttest{
 library(gtools)
-library(proteoM)
+library(mzion)
 library(dplyr)
 
 # four positions for four balls in three colors
 labs  <- c("A", "A", "B", "C")
 len   <- length(labs)
 g <- unique(permutations(len, len, labs, set = FALSE, repeats.allowed = FALSE))
-m <- proteoM:::find_perm_sets(labs)
+m <- mzion:::find_perm_sets(labs)
 
 cns <- paste0("p", 1:len)
 g <- data.frame(g)
@@ -33,7 +33,7 @@ stopifnot(identical(dplyr::arrange_all(g), dplyr::arrange_all(m)))
 
 # example-2
 labs <- c("A", "A", "A", "B", "B", "C")
-m <- proteoM:::find_perm_sets(labs)
+m <- mzion:::find_perm_sets(labs)
 
 # Compares to gtools::permutations
 len <- length(labs)
@@ -48,11 +48,11 @@ stopifnot(identical(dplyr::arrange_all(g), dplyr::arrange_all(m)))
 
 # Compares to the theoretical number of entries
 len_labs <- length(labs)
-ns <- proteoM:::count_elements(labs)
+ns <- mzion:::count_elements(labs)
 theo_cts <- factorial(len_labs)/prod(factorial(ns))
 stopifnot(nrow(m) == theo_cts)
 
 ## Others
-x <- proteoM:::find_perm_sets(rep("A", 3))
+x <- mzion:::find_perm_sets(rep("A", 3))
 }
 }

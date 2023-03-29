@@ -5,10 +5,10 @@
 \title{Searches for MS ions.}
 \usage{
 matchMS(
-  out_path = "~/proteoM/outs",
+  out_path = "~/mzion/outs",
   mgf_path = file.path(out_path, "mgf"),
-  fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-    "~/proteoM/dbs/fasta/crap/crap.fasta"),
+  fasta = c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+    "~/mzion/dbs/fasta/crap/crap.fasta"),
   acc_type = c("uniprot_acc", "other"),
   acc_pattern = NULL,
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
@@ -68,7 +68,7 @@ matchMS(
   combine_tier_three = FALSE,
   max_n_prots = 60000L,
   use_ms1_cache = TRUE,
-  .path_cache = "~/proteoM/.MSearches (1.2.2.0)/Cache/Calls",
+  .path_cache = "~/mzion/.MSearches (1.2.2.0)/Cache/Calls",
   .path_fasta = NULL,
   topn_ms2ions = 100L,
   topn_ms2ion_cuts = NA,
@@ -395,17 +395,18 @@ if its primary ion \code{b5} is not matched.}
 
 \item{combine_tier_three}{Logical; if TRUE, combines search results at tier-3
   to tier-1 to form the single output of \code{psmQ.txt}. The default is
-  FALSE in that data will be segregated into the three quality tiers shown
-  below by the choice of \code{fdr_type}. Note that the argument affects only
-  at the \code{fdr_type} of \code{psm} or \code{peptide} and there is no
-  tier-2 outputs at the \code{fdr_type} of \code{psm} or \code{peptide}. In
-  general, the one-hit-wonders from the tier-3 should not be used.
-  
+  FALSE in that data will be segregated into the three quality tiers (shown
+  below) by the choice of \code{fdr_type}. Note that the argument affects
+  only at the \code{fdr_type} of \code{psm} or \code{peptide} where there are
+  no tier-2 outputs. In general, the tier-3 results correspond to
+  one-hit-wonders and setting \code{combine_tier_three = TRUE} is
+  discouraged.
+
   In subproteome analysis, such as phosphoproteome analysis, some proteins
   may be well established globally, but fail the significance assessment by
   protein FDR on the local scale. In situations like this, it may be suitable
-  to use \code{fdr_type = "peptide"} or \code{fdr_type = "psm"} and not to
-  incur \code{combine_tier_three = TRUE}.
+  to apply \code{fdr_type = "peptide"} or \code{fdr_type = "psm"} other than
+  incurring \code{combine_tier_three = TRUE}.
 
   Tier-1: both proteins and peptides with scores above significance
   thresholds.
@@ -531,7 +532,7 @@ Database searches of MSMS data.
 }
 \section{\code{Output columns}}{
  \code{system.file("extdata",
-  "column_keys.txt", package = "proteoM")} \cr
+  "column_keys.txt", package = "mzion")} \cr
 }
 
 \section{\code{Notes}}{
@@ -551,10 +552,10 @@ Database searches of MSMS data.
 
   When there is no evidence to distinguish, e.g. distinct primary sequences
   of \code{P[EMPTY]EPTIDE} and \code{P[MTYPE]EPTIDE}, both will be reported
-  by proteoM and further kept by proteoQ. For peptides under the same primary
-  sequence, the redundancy in the positions and/or neutral losses of
+  by \code{mzion} and further kept by proteoQ. For peptides under the same
+  primary sequence, the redundancy in the positions and/or neutral losses of
   \code{Anywhere} variable modifications are also kept in the outputs of
-  proteoM but removed with proteoQ.
+  \code{mzion} but removed with proteoQ.
 }
 
 \section{\code{FASTA}}{
@@ -582,7 +583,7 @@ Database searches of MSMS data.
 }
 
 \section{\code{mzTab}}{
- \link{make_mztab} converts outputs from the proteoM ->
+ \link{make_mztab} converts outputs from the mzion ->
   proteoQ pipeline to mzTab files.
 }
 
@@ -593,18 +594,18 @@ Database searches of MSMS data.
 
 # TMT-10plex
 matchMS(
-  fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-               "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-               "~/proteoM/dbs/fasta/crap/crap.fasta"),
+  fasta    = c("~/mzion/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+               "~/mzion/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+               "~/mzion/dbs/fasta/crap/crap.fasta"),
   acc_type = c("refseq_acc", "refseq_acc", "other"),
   max_miss = 2,
   quant    = "tmt10",
   fdr_type = "protein",
-  out_path = "~/proteoM/examples",
+  out_path = "~/mzion/examples",
 )
 
 # (from protein to PSM FDR)
-reproc_psmC(out_path = "~/proteoM/examples", fdr_type = "psm",
+reproc_psmC(out_path = "~/mzion/examples", fdr_type = "psm",
             combine_tier_three = TRUE)
 
 # TMT-16plex, phospho
@@ -617,7 +618,7 @@ matchMS(
   quant     = "tmt16",
   fdr_type  = "psm",
   combine_tier_three = TRUE,
-  out_path  = "~/proteoM/examples",
+  out_path  = "~/mzion/examples",
 )
 
 # Bruker's PASEF
@@ -629,19 +630,19 @@ matchMS(
   ppm_ms2   = 40,
   quant     = "none",
   fdr_type  = "protein",
-  out_path  = "~/proteoM/examples_pasef",
+  out_path  = "~/mzion/examples_pasef",
 )
 
 # Wrapper of matchMS(enzyme = noenzyme, ...) without sectional searches
 # by ranges of peptide lengths
 matchMS_NES(
-  fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-               "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-               "~/proteoM/dbs/fasta/crap/crap.fasta"),
+  fasta    = c("~/mzion/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+               "~/mzion/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+               "~/mzion/dbs/fasta/crap/crap.fasta"),
   acc_type = c("refseq_acc", "refseq_acc", "other"),
   quant    = "tmt10",
   fdr_type = "protein",
-  out_path = "~/proteoM/examples",
+  out_path = "~/mzion/examples",
 )
 
 
@@ -772,9 +773,9 @@ matchMS(
 # (i) SILAC but low throughput since no sample mixing
 matchMS(
   par_groups = list(
-    light = list(mgf_path  = "~/proteoM/my_project/mgf/light",
+    light = list(mgf_path  = "~/mzion/my_project/mgf/light",
                  fixedmods = "Carbamidomethyl (C)"),
-    heavy = list(mgf_path  = "~/proteoM/my_project/mgf/heavy",
+    heavy = list(mgf_path  = "~/mzion/my_project/mgf/heavy",
                  fixedmods = c("Carbamidomethyl (C)", "K8 (K)", "R10 (R)"))
   ),
   quant = "none",

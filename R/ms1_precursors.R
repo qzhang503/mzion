@@ -24,7 +24,7 @@
 #' @import parallel
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' library(purrr)
 #' library(magrittr)
 #' 
@@ -48,7 +48,7 @@
 #' }
 #' }
 calc_pepmasses2 <- function (aa_masses = NULL, 
-  fasta = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+  fasta = "~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
   acc_type = "uniprot_acc",
   acc_pattern = NULL,
   fixedmods = c("TMT6plex (N-term)", 
@@ -351,7 +351,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
         c("hsemipeps_byprots", 
           "semipeps_byprots", 
           "calc_semipepmasses"), 
-        envir = environment(proteoM:::calc_semipepmasses)
+        envir = environment(mzion:::calc_semipepmasses)
       )
       
       fwd_peps <- parallel::clusterApply(
@@ -383,7 +383,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
         "ct_counts", 
         "rm_char_in_nfirst", 
         "rm_char_in_nlast"), 
-      envir = environment(proteoM:::distri_peps)
+      envir = environment(mzion:::distri_peps)
     )
 
     # aa_masses_all[[1]] is for the original all-fixed mode not for the coerced,
@@ -423,7 +423,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     
     parallel::clusterExport(cl, c("simple_prots_peps"), 
-                            envir = environment(proteoM:::simple_prots_peps))
+                            envir = environment(mzion:::simple_prots_peps))
 
     prps <- parallel::clusterApply(
       cl, 
@@ -538,7 +538,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
               "ms1_a0_vnl0_fnl1", 
               "expand_grid_rows", 
               "delta_ms1_a0_fnl1"), 
-            envir = environment(proteoM:::ms1_a0_vnl0_fnl1))
+            envir = environment(mzion:::ms1_a0_vnl0_fnl1))
           
           fwd_peps[[i]] <- parallel::clusterApply(
             cl, 
@@ -602,7 +602,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
           "expand_grid_rows", 
           "recur_flatten", 
           "delta_ms1_a0_fnl1"), 
-        envir = environment(proteoM:::ms1_a1_vnl0_fnl0))
+        envir = environment(mzion:::ms1_a1_vnl0_fnl0))
 
       for (i in inds) {
         amods_i <- amods[[i]]
@@ -764,8 +764,8 @@ find_motif_pat <- function (aa_masses)
 #' @param seqs Results from \link{distri_peps}.
 #' @examples
 #' \donttest{
-#' # library(proteoM)
-#' # proteoM:::simple_prots_peps(fwd_peps[[1]])
+#' # library(mzion)
+#' # mzion:::simple_prots_peps(fwd_peps[[1]])
 #' }
 simple_prots_peps <- function (seqs) 
 {
@@ -829,7 +829,7 @@ find_aa_site <- function (pos_site)
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' x <- calc_aamasses()
 #' x_att <- lapply(x, attributes)
@@ -1530,10 +1530,10 @@ add_fixed_masses <- function (mods, aa_masses, mod_motifs = NULL)
 #' @param fixed_sites Sites coerced from fixed to variable modifications.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' mods <- c("TMT6plex (K)", "Carbamyl (M)", "Oxidation (M)", "Gln->pyro-Glu (N-term = Q)")
-#' res <- proteoM:::extract_umods(mods)
+#' res <- mzion:::extract_umods(mods)
 #' positions_sites <- lapply(res, `[[`, "position_site")
 #' fixed_sites <- c("TMT6plex (K)" = "K", "Carbamyl (M)" = "M")
 #' }
@@ -1900,7 +1900,7 @@ parse_aamasses <- function (aa_masses)
 #'   sequences split from forward fasta and "revs" from reversed fasta.
 #' @examples 
 #' if (FALSE) {
-#'   x <- split_fastaseqs("~/proteoM/dbs/fasta/uniprot/uniprot_mm_2020_11.fasta")
+#'   x <- split_fastaseqs("~/mzion/dbs/fasta/uniprot/uniprot_mm_2020_11.fasta")
 #' }
 split_fastaseqs <- function (fasta = NULL, enzyme = "trypsin_p", 
                              custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
@@ -1924,7 +1924,7 @@ split_fastaseqs <- function (fasta = NULL, enzyme = "trypsin_p",
     cl,
     c("make_fastapeps0", 
       "keep_n_misses"), 
-    envir = environment(proteoM:::make_fastapeps0))
+    envir = environment(mzion:::make_fastapeps0))
 
   # ---
   message("Splitting fasta sequences.")
@@ -2157,7 +2157,7 @@ split_fastaseqs_noenz <- function (fasta = NULL, acc_type = "uniprot_acc",
       "mmake_noenzpeps", 
       "hmake_noenzpeps", 
       "ms1masses_bare_noenz"), 
-    envir = environment(proteoM:::make_noenzpeps))
+    envir = environment(mzion:::make_noenzpeps))
   
   peps <- parallel::clusterApply(cl, chunksplit(fasta_db, n_cores), 
                                  mmake_noenzpeps, 
@@ -2204,7 +2204,7 @@ mmake_noenzpeps <- function (fasta_db = NULL, min_len = 7L, max_len = 40L,
 #' @inheritParams calc_pepmasses2
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' prot <- paste0(
 #'   "MSSKQHCVKLNDGHLIPALGFGTYKPKEVPKSKSLEAACLA", 
@@ -2225,11 +2225,11 @@ mmake_noenzpeps <- function (fasta_db = NULL, min_len = 7L, max_len = 40L,
 #' aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 #' aa_masses <- aa_masses_all[[1]]
 #' 
-#' ans <- proteoM:::make_noenzpeps(prot, 7, 40, aa_masses)
+#' ans <- mzion:::make_noenzpeps(prot, 7, 40, aa_masses)
 #' 
 #' # short FASTA (both N-term and C-term on a sequence)
 #' prot <- substring(prot, 1, 10)
-#' ans <- proteoM:::make_noenzpeps(prot, 7, 40, aa_masses)
+#' ans <- mzion:::make_noenzpeps(prot, 7, 40, aa_masses)
 #' }
 make_noenzpeps <- function (prot = NULL, min_len = 7L, max_len = 40L, 
                             aa_masses = NULL, ftmass = 18.010565) 
@@ -2278,7 +2278,7 @@ make_noenzpeps <- function (prot = NULL, min_len = 7L, max_len = 40L,
 #' 
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
 #'                "Carbamidomethyl (C)")
@@ -2292,7 +2292,7 @@ make_noenzpeps <- function (prot = NULL, min_len = 7L, max_len = 40L,
 #' aas <- LETTERS[LETTERS %in% names(aa_masses)]
 #' prot <- paste0(aas, collapse = "")
 #' len <- nchar(prot)
-#' masses <- proteoM:::hmake_noenzpeps(1L, prot, 7L, 40L, len, aa_masses)
+#' masses <- mzion:::hmake_noenzpeps(1L, prot, 7L, 40L, len, aa_masses)
 #' }
 hmake_noenzpeps <- function (start = 1L, prot = NULL, min_len = 7L, max_len = 40L, 
                              len = NULL, aa_masses = NULL, ftmass = 18.010565) 
@@ -2324,7 +2324,7 @@ hmake_noenzpeps <- function (start = 1L, prot = NULL, min_len = 7L, max_len = 40
 #'   modifications.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
 #'                "Carbamidomethyl (C)")
@@ -2336,11 +2336,11 @@ hmake_noenzpeps <- function (start = 1L, prot = NULL, min_len = 7L, max_len = 40
 #' aa_masses <- aa_masses_all[[1]]
 #' 
 #' x <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL")
-#' masses1 <- proteoM:::ms1masses_bare_noenz(x, aa_masses)
+#' masses1 <- mzion:::ms1masses_bare_noenz(x, aa_masses)
 #' 
 #' ## input peptides should contain neither N- or C-term "-" tag
 #' # y <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL-")
-#' # masses2 <- proteoM:::ms1masses_bare_noenz(y, aa_masses)
+#' # masses2 <- mzion:::ms1masses_bare_noenz(y, aa_masses)
 #' # stopifnot(identical(unname(masses1), unname(masses2)))
 #' }
 ms1masses_bare_noenz <- function (x, aa_masses, ftmass = 18.010565) 
@@ -2657,7 +2657,7 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
   parallel::clusterExport(cl, c("roll_sum", "accumulate_char"), 
-                          envir = environment(proteoM:::roll_sum))
+                          envir = environment(mzion:::roll_sum))
 
   ms_1 <- parallel::clusterApply(
     cl = cl, 
@@ -2775,7 +2775,7 @@ ms1masses_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L,
     c("calcms1mass_noterm", 
       "calcms1mass_noterm_byprot", 
       "calcms1mass_noterm_bypep"), 
-    envir = environment(proteoM:::calcms1mass_noterm))
+    envir = environment(mzion:::calcms1mass_noterm))
 
   out <- parallel::clusterApply(cl, aa_seqs, calcms1mass_noterm,
                                 aa_masses = aa_masses,
@@ -3008,21 +3008,21 @@ distri_fpeps <- function (data = NULL, max_miss = 2L, is_fixed_protnt = FALSE,
 #'   starting residue \code{M}.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' peps <- 1:26
 #' names(peps) <- LETTERS
-#' res1 <- proteoM:::roll_sum(peps, 2)
-#' res2 <- proteoM:::roll_sum(peps, 2, FALSE)
+#' res1 <- mzion:::roll_sum(peps, 2)
+#' res2 <- mzion:::roll_sum(peps, 2, FALSE)
 #' 
 #' # length shorter than n
 #' peps <- c(a = 1)
-#' res1 <- proteoM:::roll_sum(peps, 2)
-#' res2 <- proteoM:::roll_sum(peps, 2, FALSE)
+#' res1 <- mzion:::roll_sum(peps, 2)
+#' res2 <- mzion:::roll_sum(peps, 2, FALSE)
 #' 
 #' peps <- c(a = 1, b = 2, c = 3)
-#' res1 <- proteoM:::roll_sum(peps, 4)
-#' res2 <- proteoM:::roll_sum(peps, 4, FALSE)
+#' res1 <- mzion:::roll_sum(peps, 4)
+#' res2 <- mzion:::roll_sum(peps, 4, FALSE)
 #' }
 roll_sum <- function (peps = NULL, n = 2L, include_cts = TRUE) 
 {
@@ -3146,7 +3146,7 @@ semipeps_byprots <- function (vals, min_len = 7L, max_len = 40L, aa_masses)
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
 #'                "Carbamidomethyl (C)")
@@ -3159,11 +3159,11 @@ semipeps_byprots <- function (vals, min_len = 7L, max_len = 40L, aa_masses)
 #'
 #' val <- 4237.89756
 #' pep <- "ALELNQSAEYYYEENEMNYTHDYSQYEVICIK"
-#' ans <- proteoM:::calc_semipepmasses(val, pep, min_len = 7, max_len = 40, aa_masses)
+#' ans <- mzion:::calc_semipepmasses(val, pep, min_len = 7, max_len = 40, aa_masses)
 #'
 #' val <- 2423.1017
 #' pep <- "QNVEEIPFDSEGPTEPTSSFTI-"
-#' ans <- proteoM:::calc_semipepmasses(val, pep, min_len = 7, max_len = 40, aa_masses, 1L)
+#' ans <- mzion:::calc_semipepmasses(val, pep, min_len = 7, max_len = 40, aa_masses, 1L)
 #' }
 calc_semipepmasses <- function (val, pep, min_len = 7L, max_len = 40L, aa_masses, 
                                 ct_offset = 0L) 
@@ -3318,7 +3318,7 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' 
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' m0 <- calc_monopeptide("HQGVMCNVGMGQKMNSC", NULL, NULL)
 #' stopifnot(unlist(m0$mass, use.names = FALSE) - 1822.7405 < 1e-4)
@@ -3335,7 +3335,7 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
 #'               `Carbamidomethyl (C)` = c("Anywhere" = "C"))
 #'
-#' x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[4]])
+#' x <- mzion:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[4]])
 #'
 #' stopifnot(x[[1]] - 2109.9089 < 1e-4,
 #'           x[[2]] - 2166.9304 < 1e-4,
@@ -3353,7 +3353,7 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
 #'               `Carbamidomethyl (S)` = c("Anywhere" = "S"))
 #'
-#' x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]])
+#' x <- mzion:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]])
 #'
 #' stopifnot(x[[1]] - 1990.9226 < 1e-4,
 #'           x[[2]] - 1991.9066 < 1e-4,
@@ -3362,12 +3362,12 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' 
 #' 
 #' # (8-b)
-#' .ms1_vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses_all, 
+#' .ms1_vmodsets <- mzion:::make_ms1_vmodsets(aa_masses_all = aa_masses_all, 
 #'                                    maxn_vmods_per_pep = 5L, 
 #'                                    maxn_sites_per_vmod = 3L)
 #' .base_ent <- lapply(.ms1_vmodsets, `[[`, 1)
 #' 
-#'  x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]], 
+#'  x <- mzion:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]], 
 #'                       # .ms1_vmodsets = .ms1_vmodsets, 
 #'                       # .base_ent = .base_ent
 #'                       )
@@ -3383,7 +3383,7 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #'                                maxn_vmods_setscombi = 64,
 #'                                out_path = NULL)
 #'
-#' ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i)
+#' ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i)
 #' 
 #' i <- 10
 #' aa_masses <- aa_masses_all[[i]]
@@ -3392,10 +3392,10 @@ hms1_a1_vnl0_fnl0 <- function (masses, amods, aa_masses,
 #' pep <- c("HQGVMCNVGMGQKMNSC" = 2051.90346)
 #' amods <- attr(aa_masses, "amods")
 #' 
-#' x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
+#' x <- mzion:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
 #'                       ms1vmods = ms1vmods)
 #' 
-#' # y <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
+#' # y <- mzion:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
 #' #                       ms1vmods = NULL)
 #' 
 #' # identical(x, y)

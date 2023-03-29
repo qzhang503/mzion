@@ -34,7 +34,7 @@ allowed in \code{title}.}
   \eqn{\ge 5}.}
 
 \item{neuloss}{The mass and composition \emph{loss} of a neutral species atop
-  of the \code{delta}. Like many other search engines, \code{proteoM} adapts
+  of the \code{delta}. Like many other search engines, \code{mzion} adapts
   the common convention where the losses of masses and compositions are
   expressed in \emph{positive} forms for both the masses and the
   compositions.
@@ -51,15 +51,15 @@ Changes are made to system files.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
-## To avoid unsound chemistries, proteoM prohibits
+## To avoid unsound chemistries, mzion prohibits
 ##   additive modifications to the same site.
 ## To enable cumulative effects, the solution is to
 ##   devise a "merged" modification (e.g. TMT + K8).
 
-(system.file("extdata", "master.xml", package = "proteoM"))
-(system.file("extdata", "custom.xml", package = "proteoM"))
+(system.file("extdata", "master.xml", package = "mzion"))
+(system.file("extdata", "custom.xml", package = "mzion"))
 
 ## Additive N-terminal modifications 
 # (1) TMT + Gln->pyro-Glu (though not chemically sound)

@@ -3,7 +3,7 @@
 #' Database searches of MSMS data.
 #'
 #' @section \code{Output columns}: \code{system.file("extdata",
-#'   "column_keys.txt", package = "proteoM")} \cr
+#'   "column_keys.txt", package = "mzion")} \cr
 #'
 #' @section \code{Notes}: The annotation of protein attributes, including
 #'   percent coverage, will be performed with \link[proteoQ]{normPSM} given that
@@ -21,10 +21,10 @@
 #'
 #'   When there is no evidence to distinguish, e.g. distinct primary sequences
 #'   of \code{P[EMPTY]EPTIDE} and \code{P[MTYPE]EPTIDE}, both will be reported
-#'   by proteoM and further kept by proteoQ. For peptides under the same primary
-#'   sequence, the redundancy in the positions and/or neutral losses of
+#'   by \code{mzion} and further kept by proteoQ. For peptides under the same
+#'   primary sequence, the redundancy in the positions and/or neutral losses of
 #'   \code{Anywhere} variable modifications are also kept in the outputs of
-#'   proteoM but removed with proteoQ.
+#'   \code{mzion} but removed with proteoQ.
 #'
 #' @param out_path A file path of outputs.
 #' @param mgf_path A file path to a list of MGF files. The experimenter needs to
@@ -409,7 +409,7 @@
 #'   \link{remove_unimod_title} removes a Unimod entry by title.
 #' @section \code{Visualization}: \link{mapMS2ions} visualizes the MS2 ion
 #'   ladders.
-#' @section \code{mzTab}: \link{make_mztab} converts outputs from the proteoM ->
+#' @section \code{mzTab}: \link{make_mztab} converts outputs from the mzion ->
 #'   proteoQ pipeline to mzTab files.
 #' @return A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in
 #'   \code{psmQ.txt}.
@@ -420,18 +420,18 @@
 #'
 #' # TMT-10plex
 #' matchMS(
-#'   fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-#'                "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-#'                "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'   fasta    = c("~/mzion/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+#'                "~/mzion/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+#'                "~/mzion/dbs/fasta/crap/crap.fasta"),
 #'   acc_type = c("refseq_acc", "refseq_acc", "other"),
 #'   max_miss = 2,
 #'   quant    = "tmt10",
 #'   fdr_type = "protein",
-#'   out_path = "~/proteoM/examples",
+#'   out_path = "~/mzion/examples",
 #' )
 #'
 #' # (from protein to PSM FDR)
-#' reproc_psmC(out_path = "~/proteoM/examples", fdr_type = "psm",
+#' reproc_psmC(out_path = "~/mzion/examples", fdr_type = "psm",
 #'             combine_tier_three = TRUE)
 #'
 #' # TMT-16plex, phospho
@@ -444,7 +444,7 @@
 #'   quant     = "tmt16",
 #'   fdr_type  = "psm",
 #'   combine_tier_three = TRUE,
-#'   out_path  = "~/proteoM/examples",
+#'   out_path  = "~/mzion/examples",
 #' )
 #'
 #' # Bruker's PASEF
@@ -456,19 +456,19 @@
 #'   ppm_ms2   = 40,
 #'   quant     = "none",
 #'   fdr_type  = "protein",
-#'   out_path  = "~/proteoM/examples_pasef",
+#'   out_path  = "~/mzion/examples_pasef",
 #' )
 #'
 #' # Wrapper of matchMS(enzyme = noenzyme, ...) without sectional searches
 #' # by ranges of peptide lengths
 #' matchMS_NES(
-#'   fasta    = c("~/proteoM/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
-#'                "~/proteoM/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
-#'                "~/proteoM/dbs/fasta/crap/crap.fasta"),
+#'   fasta    = c("~/mzion/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
+#'                "~/mzion/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
+#'                "~/mzion/dbs/fasta/crap/crap.fasta"),
 #'   acc_type = c("refseq_acc", "refseq_acc", "other"),
 #'   quant    = "tmt10",
 #'   fdr_type = "protein",
-#'   out_path = "~/proteoM/examples",
+#'   out_path = "~/mzion/examples",
 #' )
 #'
 #'
@@ -599,9 +599,9 @@
 #' # (i) SILAC but low throughput since no sample mixing
 #' matchMS(
 #'   par_groups = list(
-#'     light = list(mgf_path  = "~/proteoM/my_project/mgf/light",
+#'     light = list(mgf_path  = "~/mzion/my_project/mgf/light",
 #'                  fixedmods = "Carbamidomethyl (C)"),
-#'     heavy = list(mgf_path  = "~/proteoM/my_project/mgf/heavy",
+#'     heavy = list(mgf_path  = "~/mzion/my_project/mgf/heavy",
 #'                  fixedmods = c("Carbamidomethyl (C)", "K8 (K)", "R10 (R)"))
 #'   ),
 #'   quant = "none",
@@ -610,10 +610,10 @@
 #'
 #' }
 #' @export
-matchMS <- function (out_path = "~/proteoM/outs",
+matchMS <- function (out_path = "~/mzion/outs",
                      mgf_path = file.path(out_path, "mgf"),
-                     fasta = c("~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
-                               "~/proteoM/dbs/fasta/crap/crap.fasta"),
+                     fasta = c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+                               "~/mzion/dbs/fasta/crap/crap.fasta"),
                      acc_type = c("uniprot_acc", "other"),
                      acc_pattern = NULL,
                      fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", 
@@ -683,7 +683,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 60000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/proteoM/.MSearches (1.2.2.0)/Cache/Calls", 
+                     .path_cache = "~/mzion/.MSearches (1.2.2.0)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,
@@ -980,7 +980,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
 
   # system paths
   if (is.null(.path_cache)) {
-    .path_cache <- "~/proteoM/.MSearches/Cache/Calls/"
+    .path_cache <- "~/mzion/.MSearches/Cache/Calls/"
   }
   
   .path_cache <- create_dir(.path_cache)
@@ -1441,7 +1441,7 @@ matchMS <- function (out_path = "~/proteoM/outs",
   
   local({
     session_info <- sessionInfo()
-    save(session_info, file = file.path(out_path, "Calls", "proteoM.rda"))
+    save(session_info, file = file.path(out_path, "Calls", "mzion.rda"))
   })
   
   ## psmC to psmQ
@@ -1503,7 +1503,7 @@ try_psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
   if (length(df) == 1L && is.na(df)) {
     message("Retry with a new R session: \n\n",
             "Manual execution of the following codes if not start automatically.\n\n", 
-            "proteoM::reproc_psmC(\n",
+            "mzion::reproc_psmC(\n",
             "  out_path = \"", out_path, "\",\n",
             "  fdr_type = \"", fdr_type, "\",\n",
             "  combine_tier_three  = ", combine_tier_three, ",\n",
@@ -1513,8 +1513,8 @@ try_psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
     fileConn <- file(file.path("~/post_psmC.R"))
     
     lines <- c(
-      "library(proteoM)\n",
-      "proteoM::reproc_psmC(",
+      "library(mzion)\n",
+      "mzion::reproc_psmC(",
       paste0("  out_path = \"", out_path, "\","),
       paste0("  fdr_type = \"", fdr_type, "\","),
       paste0("  combine_tier_three = ", combine_tier_three, ","),
@@ -1563,7 +1563,7 @@ reproc_psmC <- function (out_path = NULL, fdr_type = "protein",
 
   df <- suppressWarnings(
     readr::read_tsv(file.path(out_path, "psmC.txt"), 
-                    col_types = get_proteoM_coltypes()))
+                    col_types = get_mzion_coltypes()))
 
   df <- df[, c("pep_seq", "prot_acc", "prot_issig", "prot_n_pep",
                "pep_issig", "pep_isdecoy")]
@@ -1695,7 +1695,7 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
 
   # Cleanup
   dfC <- suppressWarnings(
-    read_tsv(file.path(out_path, "psmC.txt"), col_types = get_proteoM_coltypes()))
+    read_tsv(file.path(out_path, "psmC.txt"), col_types = get_mzion_coltypes()))
   dfC <- dplyr::filter(dfC, pep_issig, !pep_isdecoy, !grepl("^-", prot_acc))
   dfC <- tidyr::unite(dfC, uniq_id, prot_acc, pep_seq, sep = ".", remove = FALSE)
 
@@ -1756,7 +1756,9 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
       readr::write_tsv(df3, file.path(out_path, "psmT3.txt"))
     }
   }
-  
+
+  #  No pepQ.txt and prnQ.txt; use proteoQ for data mining
+
   invisible(df)
 }
 

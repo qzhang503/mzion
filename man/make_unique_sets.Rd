@@ -38,7 +38,7 @@ Makes the unique sets of modifications by individual AA residues.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 # multiple outs
 p <- 5
@@ -46,8 +46,8 @@ labs <- c("Oxidation (M)", "Carbamidomethyl (M)", "Carbamyl (M)")
 n <- length(labs)
 stopifnot(n == length(labs))
 
-ans5 <- proteoM:::make_unique_sets(5, n, labs)
-ans7 <- proteoM:::make_unique_sets(7, n, labs)
+ans5 <- mzion:::make_unique_sets(5, n, labs)
+ans7 <- mzion:::make_unique_sets(7, n, labs)
 
 stopifnot(identical(ans5, ans7))
 
@@ -57,6 +57,6 @@ labs <- c("Oxidation (M)", "Carbamidomethyl (M)", "Carbamyl (M)")
 n <- length(labs)
 stopifnot(n == length(labs))
 
-ans <- proteoM:::make_unique_sets(p, n, labs)
+ans <- mzion:::make_unique_sets(p, n, labs)
 }
 }

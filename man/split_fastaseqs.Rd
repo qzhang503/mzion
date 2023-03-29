@@ -71,6 +71,6 @@ N-term methionine; 2. all sequences without methionine clipping.
 }
 \examples{
 if (FALSE) {
-  x <- split_fastaseqs("~/proteoM/dbs/fasta/uniprot/uniprot_mm_2020_11.fasta")
+  x <- split_fastaseqs("~/mzion/dbs/fasta/uniprot/uniprot_mm_2020_11.fasta")
 }
 }

@@ -40,7 +40,7 @@ C-term tagged with "-" after the mass calculations (but not yet N-term).
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
                "Carbamidomethyl (C)")
@@ -54,6 +54,6 @@ aa_masses <- aa_masses_all[[1]]
 aas <- LETTERS[LETTERS \%in\% names(aa_masses)]
 prot <- paste0(aas, collapse = "")
 len <- nchar(prot)
-masses <- proteoM:::hmake_noenzpeps(1L, prot, 7L, 40L, len, aa_masses)
+masses <- mzion:::hmake_noenzpeps(1L, prot, 7L, 40L, len, aa_masses)
 }
 }

@@ -18,6 +18,9 @@
 # $funs.R
 # character(0)
 # 
+# $hello.R
+# [1] "hello"
+# 
 # $ion_ladder.R
 #  [1] "ms2ions_by_type" "byions"          "czions"          "axions"          "bions_base"      "yions_base"     
 #  [7] "b2ions_base"     "bstarions"       "bstar2ions"      "b0ions"          "b02ions"         "y2ions"         
@@ -29,7 +32,7 @@
 #  [1] "mapMS2ions"             "match_mgf_path"         "match_raw_id"           "add_raw_ids"           
 #  [5] "find_secion_types"      "find_psm_rows"          "find_psm_rows1"         "find_psm_rows2"        
 #  [9] "find_theoexpt_pair"     "find_mgf_query"         "combine_prisec_matches" "check_existed_psms"    
-# [13] "get_proteoM_coltypes"  
+# [13] "get_mzion_coltypes"  
 # 
 # $mgfs.R
 #  [1] "load_mgfs"          "readMGF"            "post_readmgf"       "readlineMGFs"       "  f"               
@@ -72,8 +75,8 @@
 # [7] "search_mgf"      
 # 
 # $msmsmatches.R
-# [1] "matchMS"        "try_psmC2Q"     "reproc_psmC"    "psmC2Q"         "post_psmC2Q"    "check_tmt_pars" "checkMGF"      
-# [8] "check_locmods"  "map_raw_n_scan"
+#  [1] "matchMS"         "try_psmC2Q"      "reproc_psmC"     "psmC2Q"          "post_psmC2Q"     "check_tmt_pars" 
+#  [7] "checkMGF"        "check_locmods"   "map_raw_n_scan"  "check_fdr_group"
 # 
 # $msmsmatches2.R
 # [1] "ms2match"              "hcalc_tmtint"          "reverse_peps_in_frame" "reverse_seqs"          "calib_ms1masses"      
@@ -81,7 +84,7 @@
 # $mztab.R
 # [1] "make_mztab"
 # 
-# $proteoM.R
+# $mzion.R
 # character(0)
 # 
 # $quant2.R
@@ -149,7 +152,7 @@
 # [13] "sim_combn"        
 # 
 # $wrappers.R
-# [1] "my_dist"     "cos_sim"     "matchMS_NES"
+# [1] "my_dist"       "cos_sim"       "matchMS_NES"   "rematchMS_NES"
 # 
 # $zzz.R
 # [1] ".onAttach"

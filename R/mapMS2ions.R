@@ -17,9 +17,9 @@
 #' @rawNamespace import(ggplot2, except = c("%+%"))
 #' @examples
 #' \dontrun{
-#' library(proteoM)
+#' library(mzion)
 #' 
-#' ans <- mapMS2ions(out_path = "a/proteoM/output/folder",
+#' ans <- mapMS2ions(out_path = "a/mzion/output/folder",
 #'                   scan = 9933,
 #'                   raw_file = "a-raw-file-name.raw",
 #'                   rank = 1L,
@@ -298,17 +298,17 @@ find_psm_rows1 <- function (file_t1, file_t2, file_t3, scan, raw_file,
   }
   else {
     psms_1 <- readr::read_tsv(file_t1, show_col_types = FALSE, 
-                              col_types = get_proteoM_coltypes())
+                              col_types = get_mzion_coltypes())
     
     if (length(file_t2)) 
       psms_2 <- readr::read_tsv(file_t2, show_col_types = FALSE, 
-                                col_types = get_proteoM_coltypes())
+                                col_types = get_mzion_coltypes())
     else 
       psms_2 <- NULL
     
     if (length(file_t3)) 
       psms_3 <- readr::read_tsv(file_t3, show_col_types = FALSE, 
-                                col_types = get_proteoM_coltypes())
+                                col_types = get_mzion_coltypes())
     else 
       psms_3 <- NULL
     
@@ -624,7 +624,7 @@ check_existed_psms <- function (x)
 #' Gets column types.
 #' 
 #' @import readr
-get_proteoM_coltypes <- function () 
+get_mzion_coltypes <- function () 
 {
   col_types_pq <- cols(
     prot_acc = col_character(), 

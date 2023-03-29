@@ -1,21 +1,21 @@
 # combine all .R files into one
 # foo_combine_codes(filepath = file.path("C:/Results/R/proteoQ/inst/extdata/examples"))
-foo_combine_codes <- function (filepath = file.path("~/Github/proteoM/R")) 
+foo_combine_codes <- function (filepath = file.path("~/Github/mzion/R")) 
 {
-  filepath <- proteoM:::find_dir(filepath)
+  filepath <- mzion:::find_dir(filepath)
   filenames <- dir(filepath, pattern = ".R$")
 
   dir.create(file.path(filepath, "temp"), showWarnings = FALSE)
 
   ans <- lapply(file.path(filepath, filenames), readLines)
   ans <- purrr::reduce(ans, `c`, init = NULL)
-  writeLines(ans, file.path(filepath, "temp/all - proteoM.R"))
+  writeLines(ans, file.path(filepath, "temp/all - mzion.R"))
 }
 
 
-foo_list_func <- function (filepath = file.path(file.path("~/Github/proteoM/R"))) 
+foo_list_func <- function (filepath = file.path(file.path("~/Github/mzion/R"))) 
 {
-  filepath <- proteoM:::find_dir(filepath)
+  filepath <- mzion:::find_dir(filepath)
   filenames <- dir(filepath, pattern = ".R$")
   
   dir.create(file.path(filepath, "temp"), showWarnings = FALSE)
@@ -44,7 +44,7 @@ foo_find_fmlmass <- function ()
 {
   options(digits = 9L)
   
-  xml_file <- system.file("extdata", "master.xml", package = "proteoM")
+  xml_file <- system.file("extdata", "master.xml", package = "mzion")
   xml_root <- xml2::read_xml(xml_file)
   nodes_lev1_four <- xml2::xml_children(xml_root)
   node_elem <- xml2::xml_find_all(nodes_lev1_four, "//umod:elements")
@@ -62,8 +62,8 @@ foo_find_fmlmass <- function ()
   
   colnames(ans)[col_title] <- "symbol"
   
-  saveRDS(ans, "~/proteoM/elem_masses.rds")
+  saveRDS(ans, "~/mzion/elem_masses.rds")
   
-  write.table(ans, file = "~/proteoM/elem_masses.txt", sep = "\t", 
+  write.table(ans, file = "~/mzion/elem_masses.txt", sep = "\t", 
               row.names = FALSE)
 }

@@ -51,7 +51,7 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
       "fuzzy_match_one", 
       "fuzzy_match_one2", 
       "post_frame_adv"), 
-    envir = environment(proteoM:::frames_adv)
+    envir = environment(mzion:::frames_adv)
   )
 
   out <- parallel::clusterMap(
@@ -99,7 +99,7 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #' 
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' library(magrittr)
 #' 
 #' # (5) "amods- tmod+ vnl- fnl+"
@@ -136,7 +136,7 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
 #' # variable `TMT6plex (N-term)` + `fixed Oxidation (M)`
 #' # (additive varmod on top of fixedmod allowed)
 #' 
-#' out <- proteoM:::gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = NULL, 
+#' out <- mzion:::gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = NULL, 
 #'                                 aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
 #'                                 ntmass = ntmass, ctmass = ctmass, 
 #'                                 amods = NULL, vmods_nl = NULL, fmods_nl = fmods_nl, 

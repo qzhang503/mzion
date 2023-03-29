@@ -61,7 +61,7 @@ ms2match_base <- function (i, aa_masses, ms1vmods, ms2vmods, ntmass, ctmass,
       "fuzzy_match_one", 
       "fuzzy_match_one2", 
       "post_frame_adv"), 
-    envir = environment(proteoM:::frames_adv)
+    envir = environment(mzion:::frames_adv)
   )
 
   out <- parallel::clusterMap(
@@ -421,7 +421,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
 #' 
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' # (2) "amods- tmod+ vnl- fnl-"
 #' fixedmods <- c("TMT6plex (K)", "Carbamidomethyl (C)")
@@ -453,7 +453,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
 #'
 #' aa_seq <- "MHQGVMNVGMGQKMNS"
 #'
-#' out <- proteoM:::gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+#' out <- mzion:::gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
 #'                         aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
 #'                         ntmass = ntmass, ctmass = ctmass, 
 #'                         amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
@@ -488,7 +488,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
 #'
 #' aa_seq <- "MHQGVMNVGMGQKMNS"
 #'
-#' out <- proteoM:::gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+#' out <- mzion:::gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
 #'                         aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
 #'                         ntmass = ntmass, ctmass = ctmass, 
 #'                         amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
@@ -534,10 +534,10 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
 #' @param y A vector to be matched against.
 #' @importFrom fastmatch fmatch %fin% 
 #' @examples 
-#' library(proteoM)
+#' library(mzion)
 #' 
-#' ans1 <- proteoM:::fuzzy_match_one(c(74953, 74955), rep(74954, 2))
-#' ans2 <- proteoM:::fuzzy_match_one(c(74953, 74955), 74954)
+#' ans1 <- mzion:::fuzzy_match_one(c(74953, 74955), rep(74954, 2))
+#' ans2 <- mzion:::fuzzy_match_one(c(74953, 74955), 74954)
 #' 
 #' stopifnot(identical(ans1, ans2))
 #' stopifnot(ans1 == c(TRUE, TRUE))
@@ -560,15 +560,15 @@ fuzzy_match_one <- function (x, y)
 #' @param y A vector to be matched against.
 #' @importFrom fastmatch fmatch %fin%
 #' @examples
-#' library(proteoM)
+#' library(mzion)
 #' 
-#' ans1 <- proteoM:::fuzzy_match_one2(c(74953, 74955), rep(74954, 2))
-#' ans2 <- proteoM:::fuzzy_match_one2(c(74953, 74955), 74954)
+#' ans1 <- mzion:::fuzzy_match_one2(c(74953, 74955), rep(74954, 2))
+#' ans2 <- mzion:::fuzzy_match_one2(c(74953, 74955), 74954)
 #'
 #' stopifnot(identical(ans1, ans2))
 #' stopifnot(ans1 == c(FALSE, TRUE))
 #'
-#' ans3 <- proteoM:::fuzzy_match_one2(c(74953, 74955, 80000), c(74955, 80000))
+#' ans3 <- mzion:::fuzzy_match_one2(c(74953, 74955, 80000), c(74955, 80000))
 #' 
 #' ## The x3 example from "find_ms2_bypep"
 #' x <- c(-9185, -3369, -1973, -626, 59, 714, 3326, 7106, 7711, 7715, 8316, 8320, 
@@ -597,7 +597,7 @@ fuzzy_match_one <- function (x, y)
 #' d <- ppm_ms2/1E6
 #' y <- ceiling(log(y/min_ms2mass)/log(1+d))
 #' 
-#' ans <- proteoM:::fuzzy_match_one2(x, y)
+#' ans <- mzion:::fuzzy_match_one2(x, y)
 fuzzy_match_one2 <- function (x, y) 
 {
   mi <- x %fin% y
@@ -625,7 +625,7 @@ fuzzy_match_one2 <- function (x, y)
 #' @importFrom fastmatch fmatch %fin%
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' ## Experimental 322.18704 fit to both b- and y- ions
 #' #  (one expt to multiple theos)
@@ -666,7 +666,7 @@ fuzzy_match_one2 <- function (x, y)
 #' names(theos) <- c(nms, rev(nms))
 #' theos <- list(`0000000` = theos)
 #'
-#' x1 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
+#' x1 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 #'
 #' ## Both expts 74953 and 74955 fit to theos 74954
 #' #  (multiple expts to one theo)
@@ -711,7 +711,7 @@ fuzzy_match_one2 <- function (x, y)
 #' d <- ppm_ms2/1E6
 #' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 #' 
-#' x2 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
+#' x2 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 #' 
 #' ## Experimental 317.20001 & 317.19315 match to theoreitcal 317.2022 & 317.1932;
 #' #  experimental 959.48468 is also multiple dipping
@@ -747,7 +747,7 @@ fuzzy_match_one2 <- function (x, y)
 #' d <- ppm_ms2/1E6
 #' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 #' 
-#' x3 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
+#' x3 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 #' 
 #' ## 7 b-ions and 9 y-bios 
 #' #  (an even total, n_ps matched but identities off)
@@ -781,7 +781,7 @@ fuzzy_match_one2 <- function (x, y)
 #' d <- ppm_ms2/1E6
 #' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 #' 
-#' x4 <- proteoM:::find_ms2_bypep(theos, expts, ex, d)
+#' x4 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 #' 
 #' 
 #' ## fewer matches with "find_ppm_outer_bycombi" and check minn_ms2 again
@@ -819,7 +819,7 @@ fuzzy_match_one2 <- function (x, y)
 #' d <- ppm_ms2/1E6
 #' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 #' 
-#' x5 <- proteoM:::find_ms2_bypep(theos, expts, ex, d, ppm_ms2)
+#' x5 <- mzion:::find_ms2_bypep(theos, expts, ex, d, ppm_ms2)
 #' 
 #' }
 #' 
@@ -957,7 +957,7 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
 #' @inheritParams load_mgfs
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' library(fastmatch)
 #' 
 #' expt_ms2 <-

@@ -65,7 +65,7 @@ used. The default is 4.}
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 m0 <- calc_monopeptide("HQGVMCNVGMGQKMNSC", NULL, NULL)
 stopifnot(unlist(m0$mass, use.names = FALSE) - 1822.7405 < 1e-4)
@@ -82,7 +82,7 @@ pep <- c("HQGVMCNVGMGQKMNSC" = 2051.90346)
 amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
               `Carbamidomethyl (C)` = c("Anywhere" = "C"))
 
-x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[4]])
+x <- mzion:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[4]])
 
 stopifnot(x[[1]] - 2109.9089 < 1e-4,
           x[[2]] - 2166.9304 < 1e-4,
@@ -100,7 +100,7 @@ pep <- c("HQGVMNVGMGQKSMNS" = 1932.9171) # + TMT6plex (K)
 amods <- list(`Deamidated (N)` = c("Anywhere" = "N"),
               `Carbamidomethyl (S)` = c("Anywhere" = "S"))
 
-x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]])
+x <- mzion:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]])
 
 stopifnot(x[[1]] - 1990.9226 < 1e-4,
           x[[2]] - 1991.9066 < 1e-4,
@@ -109,12 +109,12 @@ stopifnot(x[[1]] - 1990.9226 < 1e-4,
 
 
 # (8-b)
-.ms1_vmodsets <- proteoM:::make_ms1_vmodsets(aa_masses_all = aa_masses_all, 
+.ms1_vmodsets <- mzion:::make_ms1_vmodsets(aa_masses_all = aa_masses_all, 
                                    maxn_vmods_per_pep = 5L, 
                                    maxn_sites_per_vmod = 3L)
 .base_ent <- lapply(.ms1_vmodsets, `[[`, 1)
 
- x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]], 
+ x <- mzion:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[8]], 
                       # .ms1_vmodsets = .ms1_vmodsets, 
                       # .base_ent = .base_ent
                       )
@@ -130,7 +130,7 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
                                maxn_vmods_setscombi = 64,
                                out_path = NULL)
 
-ms1vmods_all <- lapply(aa_masses_all, proteoM:::make_ms1vmod_i)
+ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i)
 
 i <- 10
 aa_masses <- aa_masses_all[[i]]
@@ -139,10 +139,10 @@ ms1vmods <- ms1vmods_all[[i]]
 pep <- c("HQGVMCNVGMGQKMNSC" = 2051.90346)
 amods <- attr(aa_masses, "amods")
 
-x <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
+x <- mzion:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
                       ms1vmods = ms1vmods)
 
-# y <- proteoM:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
+# y <- mzion:::ms1_a1_vnl0_fnl0(pep, names(pep), amods, aa_masses_all[[i]], 
 #                       ms1vmods = NULL)
 
 # identical(x, y)

@@ -7,7 +7,7 @@
 #'
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' ## No variable modifications
 #' # (1)
@@ -274,7 +274,7 @@ check_aaseq <- function (aa_seq, aa_masses_all, fixedmods, varmods)
 #' @inheritParams calc_monopeptide
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' ## No variable modifications
 #' # (1)
@@ -421,7 +421,7 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
 #'
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' library(magrittr)
 #' 
 #' ## No variable modifications
@@ -434,7 +434,7 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
 #'   `names<-`(c(fixedmods, varmods))
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
-#' x <- proteoM:::calc_ms2ions("MAKEMASSPECFUN", NULL, aa_masses_all[[1]], mod_indexes)
+#' x <- mzion:::calc_ms2ions("MAKEMASSPECFUN", NULL, aa_masses_all[[1]], mod_indexes)
 #'
 #' }
 calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL, 
@@ -684,7 +684,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
 #'
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' ## M
 #' fixedmods <- c("TMT6plex (K)", "dHex (S)")
@@ -699,7 +699,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
 #'
 #' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 #'
-#' ans <- proteoM:::unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
+#' ans <- mzion:::unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
 #'                      aa_masses = aa_masses, aas = aas)
 #'
 #' stopifnot(length(ans) == 1L,
@@ -720,7 +720,7 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
 #'
 #' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
 #'
-#' ans <- proteoM:::unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
+#' ans <- mzion:::unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
 #'                      aa_masses = aa_masses, aas = aas)
 #'
 #' stopifnot(length(ans) == 2L,
@@ -769,7 +769,7 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
 #' @import purrr
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' ntmod <- list(`Acetyl (Protein N-term)` = c(`Protein N-term` = "N-term"))
 #' 
@@ -779,7 +779,7 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
 #' aas <- unlist(strsplit("HQGVMNVGMGQKSMNS", ""))
 #' residue_mods <- c(`Carbamidomethyl (M)` = "M", `Carbamyl (M)` = "M")
 #' 
-#' x <- proteoM:::vmods_elements(aas, residue_mods, ntmod, ctmod)
+#' x <- mzion:::vmods_elements(aas, residue_mods, ntmod, ctmod)
 #' }
 vmods_elements <- function (aas,
                             residue_mods,
@@ -862,7 +862,7 @@ vmods_elements <- function (aas,
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' C <- list(c("Carbamidomethyl (C)"),
 #'           rep("Carbamidomethyl (C)", 2))
@@ -872,7 +872,7 @@ vmods_elements <- function (aas,
 #'
 #' intra_combis <- list(C = C, N = N)
 #'
-#' ans <- proteoM:::find_intercombi(intra_combis)
+#' ans <- mzion:::find_intercombi(intra_combis)
 #' 
 #' # three large lists
 #' S <- list(c("Carbamidomethyl (S)", "Phospho (S)", "Phospho (S)"),
@@ -884,7 +884,7 @@ vmods_elements <- function (aas,
 #' N <- list(c("Deamidated (N)"),
 #'           rep("Deamidated (N)", 2))
 #' 
-#' ans <- proteoM:::find_intercombi(list(S = S, M = M, N = N))
+#' ans <- mzion:::find_intercombi(list(S = S, M = M, N = N))
 #' }
 find_intercombi <- function (intra_combis, maxn_vmods_per_pep = 5L) 
 {

@@ -108,7 +108,7 @@ For (1) "amods- tmod- vnl- fnl-", (2) "amods- tmod+ vnl- fnl-".
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 library(stringr)
 
 ## (1) "amods- tmod- vnl- fnl-"
@@ -140,8 +140,8 @@ aa_seq <- "MAKEMASSPECFUN"
 aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
 aam <- aa_masses[aas]
 
-b <- proteoM:::bions_base(aam, ntmass)
-y <- proteoM:::yions_base(aam, ctmass)
+b <- mzion:::bions_base(aam, ntmass)
+y <- mzion:::yions_base(aam, ctmass)
 
 
 ## (2) "amods- tmod+ vnl- fnl-"
@@ -175,8 +175,8 @@ aa_seq <- "MAKEMASSPECFUN"
 aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
 aam <- aa_masses[aas]
 
-b <- proteoM:::bions_base(aam, ntmass)
-y <- proteoM:::yions_base(aam, ctmass)
+b <- mzion:::bions_base(aam, ntmass)
+y <- mzion:::yions_base(aam, ctmass)
 
 
 # (2b, C-term)
@@ -204,8 +204,8 @@ if (!length(ctmod)) {
   ctmass <- aa_masses[names(ctmod)] + 2.01510147
 }
 
-b <- proteoM:::bions_base(aam, ntmass)
-y <- proteoM:::yions_base(aam, ctmass)
+b <- mzion:::bions_base(aam, ntmass)
+y <- mzion:::yions_base(aam, ctmass)
 
 }
 }

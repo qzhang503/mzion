@@ -54,7 +54,7 @@ axions <- function (ntmass, ctmass, aam, digits = 4L)
 #' @importFrom stringr str_split
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' library(stringr)
 #' 
 #' ## (1) "amods- tmod- vnl- fnl-"
@@ -86,8 +86,8 @@ axions <- function (ntmass, ctmass, aam, digits = 4L)
 #' aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
 #' aam <- aa_masses[aas]
 #'
-#' b <- proteoM:::bions_base(aam, ntmass)
-#' y <- proteoM:::yions_base(aam, ctmass)
+#' b <- mzion:::bions_base(aam, ntmass)
+#' y <- mzion:::yions_base(aam, ctmass)
 #'
 #'
 #' ## (2) "amods- tmod+ vnl- fnl-"
@@ -121,8 +121,8 @@ axions <- function (ntmass, ctmass, aam, digits = 4L)
 #' aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
 #' aam <- aa_masses[aas]
 #'
-#' b <- proteoM:::bions_base(aam, ntmass)
-#' y <- proteoM:::yions_base(aam, ctmass)
+#' b <- mzion:::bions_base(aam, ntmass)
+#' y <- mzion:::yions_base(aam, ctmass)
 #'
 #'
 #' # (2b, C-term)
@@ -150,8 +150,8 @@ axions <- function (ntmass, ctmass, aam, digits = 4L)
 #'   ctmass <- aa_masses[names(ctmod)] + 2.01510147
 #' }
 #'
-#' b <- proteoM:::bions_base(aam, ntmass)
-#' y <- proteoM:::yions_base(aam, ctmass)
+#' b <- mzion:::bions_base(aam, ntmass)
+#' y <- mzion:::yions_base(aam, ctmass)
 #'
 #' }
 bions_base <- function (aam, tmass, digits = 4L) 

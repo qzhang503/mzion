@@ -10,7 +10,7 @@ calc_pepprobs_i(
   type_ms2ions = "by",
   ppm_ms2 = 20L,
   soft_secions = FALSE,
-  out_path = "~/proteoM/outs",
+  out_path = "~/mzion/outs",
   min_ms2mass = 115L,
   d2 = 1e-05,
   index_mgf_ms2 = FALSE,

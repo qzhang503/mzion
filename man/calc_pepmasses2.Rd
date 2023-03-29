@@ -7,7 +7,7 @@ database.}
 \usage{
 calc_pepmasses2(
   aa_masses = NULL,
-  fasta = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
+  fasta = "~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
   acc_type = "uniprot_acc",
   acc_pattern = NULL,
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
@@ -176,7 +176,7 @@ database.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 library(purrr)
 library(magrittr)
 

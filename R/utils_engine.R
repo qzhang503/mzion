@@ -8,13 +8,13 @@
 #' @return The indexes of the top-n entries.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
-#' proteoM:::which_topx(c(1:5), 50)
+#' mzion:::which_topx(c(1:5), 50)
 #'
-#' length(proteoM:::which_topx(sample(5000, 500), 100))
+#' length(mzion:::which_topx(sample(5000, 500), 100))
 #'
-#' length(proteoM:::which_topx(sample(100, 100, replace = TRUE), 100))
+#' length(mzion:::which_topx(sample(100, 100, replace = TRUE), 100))
 #' }
 which_topx <- function(x, n = 50L, ...) 
 {
@@ -37,7 +37,7 @@ which_topx <- function(x, n = 50L, ...)
 #' @inheritParams which_topx
 #' @return The indexes of the top-n entries.
 #' @examples 
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' p <- 100
 #' set.seed(1)
@@ -57,18 +57,18 @@ which_topx <- function(x, n = 50L, ...)
 #' 
 #' ## more NA values (3) than n (2)
 #' x <- c(0.11, 0.11, NA, rep(0.11, 7), NA, NA)
-#' ans <- proteoM:::which_topx2(x, 2L, na.last = FALSE)
+#' ans <- mzion:::which_topx2(x, 2L, na.last = FALSE)
 #' 
 #' # OK
-#' ans <- proteoM:::which_topx2(x, 8L, na.last = FALSE)
+#' ans <- mzion:::which_topx2(x, 8L, na.last = FALSE)
 #' 
 #' # Bad
-#' ans <- proteoM:::which_topx2(x, 9L, na.last = FALSE)
+#' ans <- mzion:::which_topx2(x, 9L, na.last = FALSE)
 #' # OK
-#' ans <- proteoM:::which_topx2(x, 9L, na.last = TRUE)
+#' ans <- mzion:::which_topx2(x, 9L, na.last = TRUE)
 #'  
 #' \donttest{
-#' proteoM:::which_topx2(5000, NA_integer_)
+#' mzion:::which_topx2(5000, NA_integer_)
 #' }
 which_topx2 <- function(x, n = 50L, ...) 
 {
@@ -119,12 +119,12 @@ get_topn_vals <- function (vals, n) vals[which_topx2(vals, n)]
 #' @param sv A sorted vector of indexes(thus without ties).
 #' 
 #' @examples
-#' library(proteoM)
+#' library(mzion)
 #' sv <- c(4, 10)
 #' 
-#' sv <- proteoM:::insVal(2, sv)
-#' sv <- proteoM:::insVal(6, sv)
-#' sv <- proteoM:::insVal(20, sv)
+#' sv <- mzion:::insVal(2, sv)
+#' sv <- mzion:::insVal(6, sv)
+#' sv <- mzion:::insVal(20, sv)
 insVal <- function (x, sv) 
 {
   grs <- sv > x
@@ -451,13 +451,13 @@ find_cterm_mass <- function (aa_masses)
 #' @param by The key.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' library(dplyr)
 #' 
 #' df1 <- data.frame(A = c("a", "b", "c"), B = c(1, 1, 1))
 #' df2 <- data.frame(A = c("a", "c", "d"), C = c(2, 2, "3"))
 #'
-#' x1 <- proteoM:::quick_rightjoin(df1, df2, by = "A")
+#' x1 <- mzion:::quick_rightjoin(df1, df2, by = "A")
 #' x1 <- x1[, c("A", "B", "C")]
 #' rownames(x1) <- seq_len(nrow(x1))
 #'
@@ -467,7 +467,7 @@ find_cterm_mass <- function (aa_masses)
 #' stopifnot(identical(x1, x2))
 #'
 #' # row order may be different
-#' x1 <- proteoM:::quick_rightjoin(df2, df1, by = "A")
+#' x1 <- mzion:::quick_rightjoin(df2, df1, by = "A")
 #' x1 <- x1[, c("A", "B", "C")]
 #' rownames(x1) <- seq_len(nrow(x1))
 #'
@@ -504,13 +504,13 @@ quick_rightjoin <- function (x, y, by = NULL)
 #' @param by The key.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' library(dplyr)
 #'
 #' df1 <- data.frame(A = c("a", "b", "c"), B = c(1, 1, 1))
 #' df2 <- data.frame(A = c("a", "c", "d"), C = c(2, 2, "3"))
 #'
-#' x1 <- proteoM:::quick_leftjoin(df1, df2, by = "A")
+#' x1 <- mzion:::quick_leftjoin(df1, df2, by = "A")
 #' x1 <- x1[, c("A", "B", "C")]
 #' rownames(x1) <- seq_len(nrow(x1))
 #'
@@ -621,22 +621,22 @@ is_equal_sets <- function(x, y) all(x %in% y) && all(y %in% x)
 #' @param use.names Logical; uses names or not.
 #' @param ... Lists of data.
 #' @examples
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' x <- list(`Oxidation (M)` = c(0.000000, 63.998285),
 #'           `Carbamidomethyl (M)` = c(0.000000, 105.024835),
 #'           `Oxidation (M)` = c(0.000000, 63.998285))
 #'
-#' proteoM:::expand_grid_rows(x)
+#' mzion:::expand_grid_rows(x)
 #'
 #' x <- list(`Bar (M)` = c(0, 3),
 #'           `Foo (M)` = c(0, 5, 7),
 #'           `Bar (M)` = c(0, 3))
 #'
-#' proteoM:::expand_grid_rows(x)
+#' mzion:::expand_grid_rows(x)
 #'
 #' x <- list(`Bar (M)` = c(0, 3))
-#' proteoM:::expand_grid_rows(x)
+#' mzion:::expand_grid_rows(x)
 expand_grid_rows <- function (..., use.names = TRUE) 
 {
   args <- list(...)[[1]]
@@ -682,11 +682,11 @@ expand_grid_rows <- function (..., use.names = TRUE)
 #' @param vec A named vector.
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' library(microbenchmark)
 #' 
 #' vec <- c("Carbamidomethyl (M)", "Carbamyl (M)", "Carbamidomethyl (M)")
-#' microbenchmark(proteoM:::count_elements(vec), table(vec))
+#' microbenchmark(mzion:::count_elements(vec), table(vec))
 #' }
 count_elements <- function (vec) 
 {
@@ -709,12 +709,12 @@ count_elements <- function (vec)
 #' @param x A named character vector.
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' library(microbenchmark)
 #' 
 #' x <- c(`Deamidated (N)` = "N", `Carbamidomethyl (S)` = "S")
-#' identical(proteoM:::vec_to_list(x), split(x, x))
-#' microbenchmark(proteoM:::vec_to_list(x), split(x, x))
+#' identical(mzion:::vec_to_list(x), split(x, x))
+#' microbenchmark(mzion:::vec_to_list(x), split(x, x))
 #' }
 vec_to_list <- function (x) 
 {
@@ -736,40 +736,40 @@ vec_to_list <- function (x)
 #' @examples
 #' \donttest{
 #' ## M
-#' library(proteoM)
+#' library(mzion)
 #' library(microbenchmark)
 #' 
 #' vec <- c(`Carbamidomethyl (M)` = "M", 
 #'          `Carbamyl (M)` = "M")
 #' 
-#' x <- proteoM:::split_vec(vec)
+#' x <- mzion:::split_vec(vec)
 #' y <- split(vec, vec)
 #' 
 #' stopifnot(identical(x, y))
 #' 
-#' microbenchmark(proteoM:::split_vec(vec), split(vec, vec))
+#' microbenchmark(mzion:::split_vec(vec), split(vec, vec))
 #' 
 #' ## N
 #' vec <- c(`Deamidated (N)` = "N")
 #' 
-#' x <- proteoM:::split_vec(vec)
+#' x <- mzion:::split_vec(vec)
 #' y <- split(vec, vec)
 #' 
 #' stopifnot(identical(x, y))
 #' 
-#' microbenchmark(proteoM:::split_vec(vec), split(vec, vec))
+#' microbenchmark(mzion:::split_vec(vec), split(vec, vec))
 #' 
 #' ## M, N
 #' vec <- c(`Carbamidomethyl (M)` = "M", 
 #'          `Carbamyl (M)` = "M", 
 #'          `Deamidated (N)` = "N")
 #' 
-#' x <- proteoM:::split_vec(vec)
+#' x <- mzion:::split_vec(vec)
 #' y <- split(vec, vec)
 #' 
 #' stopifnot(identical(x, y))
 #' 
-#' microbenchmark(proteoM:::split_vec(vec), split(vec, vec))
+#' microbenchmark(mzion:::split_vec(vec), split(vec, vec))
 #' }
 #' 
 split_vec <- function (vec) 
@@ -795,16 +795,16 @@ split_vec <- function (vec)
 #' 
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' x <- c("aa", "bb", "cc")
-#' proteoM:::accumulate_char(x, paste0)
+#' mzion:::accumulate_char(x, paste0)
 #' 
 #' x <- c(a = 1, b = 2, c = 3)
-#' proteoM:::accumulate_char(x, paste0)
+#' mzion:::accumulate_char(x, paste0)
 #' 
 #' x <- "-EDEIQDXI-"
-#' proteoM:::accumulate_char(x, paste0)
+#' mzion:::accumulate_char(x, paste0)
 #' }
 #' 
 #' @export

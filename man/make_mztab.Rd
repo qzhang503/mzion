@@ -11,5 +11,5 @@ make_mztab(out_path = stop("Provide the path.", call. = FALSE))
 and \code{Protein} files and folders are.}
 }
 \description{
-With proteoM searches and proteoQ preprocessing.
+With \code{mzion} searches and proteoQ preprocessing.
 }

@@ -14,7 +14,7 @@ Is a NULL list?
 }
 \examples{
 \dontrun{
-library(proteoM)
-proteoM:::is_nullist(list(a = NULL))
+library(mzion)
+mzion:::is_nullist(list(a = NULL))
 }
 }

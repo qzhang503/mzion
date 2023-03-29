@@ -15,9 +15,9 @@ Vectors are in rows: mtcars[1, ].}
 Cosine similarity.
 }
 \examples{
-library(proteoM)
+library(mzion)
 
-sim <- proteoM:::cos_sim(as.matrix(mtcars[1:3, ]))
+sim <- mzion:::cos_sim(as.matrix(mtcars[1:3, ]))
 
 # distances (against normalized vectors)
 as.dist(1 - sim)

@@ -31,7 +31,7 @@ For \code{no enzyme} searches.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 prot <- paste0(
   "MSSKQHCVKLNDGHLIPALGFGTYKPKEVPKSKSLEAACLA", 
@@ -52,10 +52,10 @@ varmods = c("Acetyl (Protein N-term)", "Oxidation (M)",
 aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 aa_masses <- aa_masses_all[[1]]
 
-ans <- proteoM:::make_noenzpeps(prot, 7, 40, aa_masses)
+ans <- mzion:::make_noenzpeps(prot, 7, 40, aa_masses)
 
 # short FASTA (both N-term and C-term on a sequence)
 prot <- substring(prot, 1, 10)
-ans <- proteoM:::make_noenzpeps(prot, 7, 40, aa_masses)
+ans <- mzion:::make_noenzpeps(prot, 7, 40, aa_masses)
 }
 }

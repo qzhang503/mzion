@@ -13,7 +13,7 @@ find_unimod(
 \item{unimod}{The name of a \href{https://www.unimod.org/}{Unimod} modification.}
 
 \item{xml_files}{Name(s) of Unimod ".xml" files. The file path is a system
-setting of \code{system.file("extdata", xml_file, package = "proteoM")}.}
+setting of \code{system.file("extdata", xml_file, package = "mzion")}.}
 }
 \description{
 Finds the mono-isotopic mass, position, site and neutral losses of a
@@ -25,7 +25,7 @@ In the field of \code{position_site}, \code{position} is the name and
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 x1 <- find_unimod("Carbamidomethyl (C)")
 x2 <- find_unimod("Carbamidomethyl (M)")

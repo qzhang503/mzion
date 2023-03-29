@@ -23,20 +23,20 @@ probability of localization 2 at \eqn{x = 0; y = 6} is much more probable.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
-proteoM:::concatFracs(c(3, 3, 5), c(2, 1, 3))
-proteoM:::concatFracs(c(0, 6), c(1, 3))
-proteoM:::concatFracs(c(0, 6), c(0, 3))
-proteoM:::concatFracs(c(0, 2), c(0, 2))
-proteoM:::concatFracs(c(1, 2), c(1, 2))
+mzion:::concatFracs(c(3, 3, 5), c(2, 1, 3))
+mzion:::concatFracs(c(0, 6), c(1, 3))
+mzion:::concatFracs(c(0, 6), c(0, 3))
+mzion:::concatFracs(c(0, 2), c(0, 2))
+mzion:::concatFracs(c(1, 2), c(1, 2))
 
-proteoM:::concatFracs(c(1, 2), c(1, 4))
-proteoM:::concatFracs(c(0, 2), c(0, 4))
-proteoM:::concatFracs(c(1, 2), c(0, 4)) # near 1 0 0
+mzion:::concatFracs(c(1, 2), c(1, 4))
+mzion:::concatFracs(c(0, 2), c(0, 4))
+mzion:::concatFracs(c(1, 2), c(0, 4)) # near 1 0 0
 
-proteoM:::concatFracs(0, 2)
-proteoM:::concatFracs(2, 0)
-proteoM:::concatFracs(0, 0) # should not occur
+mzion:::concatFracs(0, 2)
+mzion:::concatFracs(2, 0)
+mzion:::concatFracs(0, 0) # should not occur
 }
 }

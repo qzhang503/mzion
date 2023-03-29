@@ -17,11 +17,11 @@ indicated file.
 }
 \examples{
 \dontrun{
-library(proteoM)
+library(mzion)
 
-out_path <- "~/proteoM/example/"
+out_path <- "~/mzion/example/"
 cache <- file.path(out_path, "Calls/.cache_info.rds")
-proteoM:::get_globalvar(".time_stamp", cache)
+mzion:::get_globalvar(".time_stamp", cache)
 }
 }
 \seealso{

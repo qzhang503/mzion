@@ -74,7 +74,7 @@ Matches by indexes
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 library(fastmatch)
 
 expt_ms2 <-

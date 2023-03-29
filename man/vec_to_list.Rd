@@ -14,11 +14,11 @@ Split a named character vector to lists.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 library(microbenchmark)
 
 x <- c(`Deamidated (N)` = "N", `Carbamidomethyl (S)` = "S")
-identical(proteoM:::vec_to_list(x), split(x, x))
-microbenchmark(proteoM:::vec_to_list(x), split(x, x))
+identical(mzion:::vec_to_list(x), split(x, x))
+microbenchmark(mzion:::vec_to_list(x), split(x, x))
 }
 }

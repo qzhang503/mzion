@@ -5,7 +5,7 @@
 \title{Finds the time stamp of a matched call from cached results.}
 \usage{
 match_calltime(
-  path = "~/proteoM/.MSearches/Cache/Calls",
+  path = "~/mzion/.MSearches/Cache/Calls",
   fun = "calc_pepmasses2",
   nms = c("parallel", "out_path"),
   type = c(TRUE, FALSE),
@@ -32,9 +32,9 @@ Finds the time stamp of a matched call from cached results.
 }
 \examples{
 \dontrun{
-library(proteoM)
+library(mzion)
 
-.time_bin <- proteoM:::match_calltime(
+.time_bin <- mzion:::match_calltime(
   path = file.path(.path_cache, "calc_pepmasses2", .time_stamp), 
   fun = fun,
   nms = c("min_mass", "max_mass", "ppm_ms1", "calib_ms1mass"), 

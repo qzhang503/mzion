@@ -125,7 +125,7 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' ms2_moverzs <- c(112.0873, 126.1280, 127.1251, 127.1313, 128.1250,
 #'                  128.1284, 128.1347, 129.1317, 129.1380, 130.0654,
@@ -145,10 +145,10 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
 #' len <- 10
 #' nms <- names(theos)
 #'
-#' x <- proteoM:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 10,
+#' x <- mzion:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 10,
 #'                         len , nms)
 #'
-#' x <- proteoM:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
+#' x <- mzion:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
 #'                         len , nms)
 #'
 #' # Two `129C`, no `127N` etc.
@@ -165,7 +165,7 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
 #'               1365.32, 1727.12, 2661.72, 1660.05, 5525.95, 1399.96, 4654.03,
 #'               1990.57, 1758.72, 1655.09, 1460.68, 1641.39, 1721.33)
 #'
-#' x <- proteoM:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
+#' x <- mzion:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
 #'                         len , nms)
 #' }
 find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
@@ -462,7 +462,7 @@ hannot_decoys <- function (df, prps)
 #' 
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' df <- data.frame(prot_acc = character(2000), pep_seq = character(2000))
 #' set.seed(100)
@@ -470,21 +470,21 @@ hannot_decoys <- function (df, prps)
 #' df$pep_seq <- sample(letters[1:26], 20, replace = TRUE)
 #' df <- df[!duplicated(df), ]
 #'
-#' out <- proteoM:::groupProts(df, "~")
+#' out <- mzion:::groupProts(df, "~")
 #'
 #' # One peptide, multiple proteins
 #' df <- data.frame(prot_acc = LETTERS[1:3], pep_seq = rep("X", 3))
-#' out <- proteoM:::groupProts(df, "~")
+#' out <- mzion:::groupProts(df, "~")
 #' stopifnot(nrow(out) == 3L)
 #'
 #' # One peptide, one proteins
 #' df <- data.frame(prot_acc = "A", pep_seq = "X")
-#' out <- proteoM:::groupProts(df, "~")
+#' out <- mzion:::groupProts(df, "~")
 #' stopifnot(nrow(out) == 1L)
 #'
 #' # One proteins
 #' df <- data.frame(prot_acc = rep("A", 3), pep_seq = LETTERS[24:26])
-#' out <- proteoM:::groupProts(df, "~")
+#' out <- mzion:::groupProts(df, "~")
 #' stopifnot(nrow(out) == 3L)
 #' }
 groupProts <- function (df, out_path = NULL, fct = 4L, 
@@ -689,7 +689,7 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
 #' @param fct A factor for data splitting into chunks.
 #' @examples
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' df <- data.frame(prot_acc = character(2000), pep_seq = character(2000))
 #' set.seed(100)
@@ -697,21 +697,21 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
 #' df$pep_seq <- sample(letters[1:26], 20, replace = TRUE)
 #' df <- df[!duplicated(df), ]
 #'
-#' out <- proteoM:::map_pepprot(df)
+#' out <- mzion:::map_pepprot(df)
 #'
 #' # One peptide, multiple proteins
 #' df <- data.frame(prot_acc = LETTERS[1:3], pep_seq = rep("X", 3))
-#' out <- proteoM:::map_pepprot(df)
+#' out <- mzion:::map_pepprot(df)
 #' stopifnot(rownames(out[[1]]) == "X", colnames(out[[1]]) == LETTERS[1:3])
 #'
 #' # One peptide, one proteins
 #' df <- data.frame(prot_acc = "A", pep_seq = "X")
-#' out <- proteoM:::map_pepprot(df)
+#' out <- mzion:::map_pepprot(df)
 #' stopifnot(rownames(out[[1]]) == "X", colnames(out[[1]]) == "A")
 #'
 #' # One proteins
 #' df <- data.frame(prot_acc = rep("A", 3), pep_seq = LETTERS[24:26])
-#' out <- proteoM:::map_pepprot(df)
+#' out <- mzion:::map_pepprot(df)
 #' stopifnot(rownames(out[[1]]) == LETTERS[24:26], colnames(out[[1]]) == "A")
 #' }
 map_pepprot <- function (df, out_path = NULL, fct = 4L) 
@@ -1012,12 +1012,12 @@ chunksplit_spmat <- function (Mat, peps = NULL, n_chunks = 4L)
 #' @param n_chunks The number of chunks
 #' @examples 
 #' \donttest{
-#' library(proteoM)
+#' library(mzion)
 #' 
 #' vec <- rep(LETTERS[1:5], 1:5)
 #' vec <- sort(vec)
 #' 
-#' proteoM:::find_group_breaks(vec, 3)
+#' mzion:::find_group_breaks(vec, 3)
 #' }
 find_group_breaks <- function (vec, n_chunks = 5L) 
 {
@@ -1164,8 +1164,8 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
 #'   right.
 #' @examples 
 #' \donttest{
-#' library(proteoM)
-#' # m <- proteoM:::sparseD_fourquad(ul, 6)
+#' library(mzion)
+#' # m <- mzion:::sparseD_fourquad(ul, 6)
 #' }
 sparseD_fourquad <- function (M_ul, ncols_ur = 0L) 
 {

@@ -107,7 +107,7 @@ y$idx  - values: the indexes in theoretical sequence (df$ith)
 
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 ##
 pep <- "YGPQYGHPPPPPPPPDYGPHADSPVLMVYGLDQSK"
@@ -177,7 +177,7 @@ expt_ints <- c(16921,29468,36904,28121,37829,23537,39307,36194,25192,33532,
                30824,12961,26805,31218,36352,49433,40495,31233,40643,18265,
                12316,25125,202241,90877,20903,40353,15008,31908,22554,13634)
 
-proteoM:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 404)
+mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 404)
 
 ## 
 pep <- "LFEEDEREK"
@@ -232,6 +232,6 @@ expt_ints <- c(8508,28501,194673,190890,160012,223742,147623,260388,198943,16458
                12763,7125,7321,7483,31612,18050,26134,31474,11331,8789,
                8672,65913,25918,17819,34367,15767,15221,14225,7419,7284)
 
-proteoM:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 434)
+mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 434)
 }
 }

@@ -41,7 +41,7 @@ function.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
                "Carbamidomethyl (C)")
@@ -54,10 +54,10 @@ aa_masses <- aa_masses_all[[1]]
 
 val <- 4237.89756
 pep <- "ALELNQSAEYYYEENEMNYTHDYSQYEVICIK"
-ans <- proteoM:::calc_semipepmasses(val, pep, min_len = 7, max_len = 40, aa_masses)
+ans <- mzion:::calc_semipepmasses(val, pep, min_len = 7, max_len = 40, aa_masses)
 
 val <- 2423.1017
 pep <- "QNVEEIPFDSEGPTEPTSSFTI-"
-ans <- proteoM:::calc_semipepmasses(val, pep, min_len = 7, max_len = 40, aa_masses, 1L)
+ans <- mzion:::calc_semipepmasses(val, pep, min_len = 7, max_len = 40, aa_masses, 1L)
 }
 }

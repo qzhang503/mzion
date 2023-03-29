@@ -19,7 +19,7 @@ default is 20.}
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 expts <- c(101.0714, 102.0554, 110.0717, 115.0505, 126.1279, 127.0504,
            127.1249, 127.1312, 128.1283, 128.1346, 129.0660, 129.1316,
@@ -51,7 +51,7 @@ names(theos) <- c("D", "S", "S", "Q", "G", "P", "C", "E", "P",
                   "R", "P", "Q", "T", "L", "P", "G", "P", "L",
                   "P", "E", "C", "P", "G", "Q", "S", "S", "D")
 
-proteoM:::find_ppm_outer_bycombi(theos, expts, ppm_ms2 = 25L)
+mzion:::find_ppm_outer_bycombi(theos, expts, ppm_ms2 = 25L)
 
 # No secondary matches
 theos <- c(56.5233, 235.1522, 284.6864, 326.2050, 361.7235, 
@@ -94,6 +94,6 @@ expts <- c(101.01134,110.07162,112.03947,116.01675,118.83968,
            851.48267,852.48303,855.58301,899.52069,956.62952,
            1027.66833,1230.73962,1232.75513,1233.75024)
 
-proteoM:::find_ppm_outer_bycombi(theos, expts, ppm_ms2 = 25)
+mzion:::find_ppm_outer_bycombi(theos, expts, ppm_ms2 = 25)
 }
 }

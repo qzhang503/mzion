@@ -20,7 +20,7 @@ The indexes of the top-n entries.
 Handles ties.
 }
 \examples{
-library(proteoM)
+library(mzion)
 
 p <- 100
 set.seed(1)
@@ -40,17 +40,17 @@ p <- 4L
 
 ## more NA values (3) than n (2)
 x <- c(0.11, 0.11, NA, rep(0.11, 7), NA, NA)
-ans <- proteoM:::which_topx2(x, 2L, na.last = FALSE)
+ans <- mzion:::which_topx2(x, 2L, na.last = FALSE)
 
 # OK
-ans <- proteoM:::which_topx2(x, 8L, na.last = FALSE)
+ans <- mzion:::which_topx2(x, 8L, na.last = FALSE)
 
 # Bad
-ans <- proteoM:::which_topx2(x, 9L, na.last = FALSE)
+ans <- mzion:::which_topx2(x, 9L, na.last = FALSE)
 # OK
-ans <- proteoM:::which_topx2(x, 9L, na.last = TRUE)
+ans <- mzion:::which_topx2(x, 9L, na.last = TRUE)
  
 \donttest{
-proteoM:::which_topx2(5000, NA_integer_)
+mzion:::which_topx2(5000, NA_integer_)
 }
 }

@@ -48,7 +48,7 @@ Only for direct uses from an R console (with trade-offs in speed).
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 ## No variable modifications
 # (1)

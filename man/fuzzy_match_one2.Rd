@@ -16,15 +16,15 @@ No multiple dipping of \code{y} matches. A \code{y} value will be removed (or
 became 0) if matched,
 }
 \examples{
-library(proteoM)
+library(mzion)
 
-ans1 <- proteoM:::fuzzy_match_one2(c(74953, 74955), rep(74954, 2))
-ans2 <- proteoM:::fuzzy_match_one2(c(74953, 74955), 74954)
+ans1 <- mzion:::fuzzy_match_one2(c(74953, 74955), rep(74954, 2))
+ans2 <- mzion:::fuzzy_match_one2(c(74953, 74955), 74954)
 
 stopifnot(identical(ans1, ans2))
 stopifnot(ans1 == c(FALSE, TRUE))
 
-ans3 <- proteoM:::fuzzy_match_one2(c(74953, 74955, 80000), c(74955, 80000))
+ans3 <- mzion:::fuzzy_match_one2(c(74953, 74955, 80000), c(74955, 80000))
 
 ## The x3 example from "find_ms2_bypep"
 x <- c(-9185, -3369, -1973, -626, 59, 714, 3326, 7106, 7711, 7715, 8316, 8320, 
@@ -53,5 +53,5 @@ min_ms2mass <- 115L
 d <- ppm_ms2/1E6
 y <- ceiling(log(y/min_ms2mass)/log(1+d))
 
-ans <- proteoM:::fuzzy_match_one2(x, y)
+ans <- mzion:::fuzzy_match_one2(x, y)
 }

@@ -49,7 +49,7 @@ For a given type of fragmentation. Minimal error handling for speeds.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 library(magrittr)
 
 ## No variable modifications
@@ -62,7 +62,7 @@ mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
   `names<-`(c(fixedmods, varmods))
 aa_masses_all <- calc_aamasses(fixedmods, varmods)
 
-x <- proteoM:::calc_ms2ions("MAKEMASSPECFUN", NULL, aa_masses_all[[1]], mod_indexes)
+x <- mzion:::calc_ms2ions("MAKEMASSPECFUN", NULL, aa_masses_all[[1]], mod_indexes)
 
 }
 }

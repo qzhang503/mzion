@@ -27,17 +27,18 @@ or decoy peptides, as well as decoy proteins.}
 
 \item{combine_tier_three}{Logical; if TRUE, combines search results at tier-3
   to tier-1 to form the single output of \code{psmQ.txt}. The default is
-  FALSE in that data will be segregated into the three quality tiers shown
-  below by the choice of \code{fdr_type}. Note that the argument affects only
-  at the \code{fdr_type} of \code{psm} or \code{peptide} and there is no
-  tier-2 outputs at the \code{fdr_type} of \code{psm} or \code{peptide}. In
-  general, the one-hit-wonders from the tier-3 should not be used.
-  
+  FALSE in that data will be segregated into the three quality tiers (shown
+  below) by the choice of \code{fdr_type}. Note that the argument affects
+  only at the \code{fdr_type} of \code{psm} or \code{peptide} where there are
+  no tier-2 outputs. In general, the tier-3 results correspond to
+  one-hit-wonders and setting \code{combine_tier_three = TRUE} is
+  discouraged.
+
   In subproteome analysis, such as phosphoproteome analysis, some proteins
   may be well established globally, but fail the significance assessment by
   protein FDR on the local scale. In situations like this, it may be suitable
-  to use \code{fdr_type = "peptide"} or \code{fdr_type = "psm"} and not to
-  incur \code{combine_tier_three = TRUE}.
+  to apply \code{fdr_type = "peptide"} or \code{fdr_type = "psm"} other than
+  incurring \code{combine_tier_three = TRUE}.
 
   Tier-1: both proteins and peptides with scores above significance
   thresholds.

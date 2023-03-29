@@ -19,7 +19,7 @@ multiple modifications).
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 C <- list(c("Carbamidomethyl (C)"),
           rep("Carbamidomethyl (C)", 2))
@@ -29,7 +29,7 @@ N <- list(c("Deamidated (N)"),
 
 intra_combis <- list(C = C, N = N)
 
-ans <- proteoM:::find_intercombi(intra_combis)
+ans <- mzion:::find_intercombi(intra_combis)
 
 # three large lists
 S <- list(c("Carbamidomethyl (S)", "Phospho (S)", "Phospho (S)"),
@@ -41,6 +41,6 @@ M <- list(c("Oxidation (M)", "Carbamidomethyl (M)"),
 N <- list(c("Deamidated (N)"),
           rep("Deamidated (N)", 2))
 
-ans <- proteoM:::find_intercombi(list(S = S, M = M, N = N))
+ans <- mzion:::find_intercombi(list(S = S, M = M, N = N))
 }
 }

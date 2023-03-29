@@ -5,9 +5,9 @@
 \title{Checks for pre-existed MS2 bins.}
 \usage{
 check_ms2frames(
-  .path_fasta = "~/proteoM/dbs/fasta/uniprot/uniprot_hs_2020_05",
+  .path_fasta = "~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05",
   ms1_time = NULL,
-  .path_cache = "~/proteoM/.MSearches/Cache/Calls",
+  .path_cache = "~/mzion/.MSearches/Cache/Calls",
   path_bin2 = file.path(.path_fasta, "ms2masses", ms1_time, "bin_ms2masses")
 )
 }

@@ -19,7 +19,7 @@ For no enzyme workflow.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", 
                "Carbamidomethyl (C)")
@@ -31,11 +31,11 @@ aa_masses_all <- calc_aamasses(fixedmods = fixedmods, varmods = varmods)
 aa_masses <- aa_masses_all[[1]]
 
 x <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL")
-masses1 <- proteoM:::ms1masses_bare_noenz(x, aa_masses)
+masses1 <- mzion:::ms1masses_bare_noenz(x, aa_masses)
 
 ## input peptides should contain neither N- or C-term "-" tag
 # y <- c("MSSKQHC", "MSSKQHCV", "MSSKQHCVK", "MSSKQHCVKL-")
-# masses2 <- proteoM:::ms1masses_bare_noenz(y, aa_masses)
+# masses2 <- mzion:::ms1masses_bare_noenz(y, aa_masses)
 # stopifnot(identical(unname(masses1), unname(masses2)))
 }
 }

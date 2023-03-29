@@ -16,11 +16,11 @@ Not currently used.
 }
 \examples{
 \donttest{
-library(proteoM)
+library(mzion)
 
 a <- c(3, 4, 1, 2, 5)
 b <- 2
 
-proteoM:::list_leftmatch(a, b)
+mzion:::list_leftmatch(a, b)
 }
 }
