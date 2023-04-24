@@ -2,7 +2,7 @@
 % Please edit documentation in R/msmsmatches.R
 \name{matchMS}
 \alias{matchMS}
-\title{Searches for MS ions.}
+\title{An integrated facility for searches of mass spectrometry data.}
 \usage{
 matchMS(
   out_path = "~/mzion/outs",
@@ -84,6 +84,15 @@ matchMS(
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
   add_ms2ints = FALSE,
+  svm_reproc = FALSE,
+  svm_kernel = "radial",
+  svm_feats = c("pep_score", "pep_ret_range", "pep_delta", "pep_n_ms2", "pep_expect",
+    "pep_exp_mz", "pep_exp_mr", "pep_tot_int", "pep_n_matches2", "pep_ms2_deltas_mean"),
+  svm_cv = TRUE,
+  svm_k = 3L,
+  svm_costs = c(0.1, 0.3, 1, 3, 10),
+  svm_def_cost = 1,
+  svm_iters = 10L,
   digits = 4L,
   ...
 )
@@ -99,10 +108,7 @@ matchMS(
   Proteome Discoverer or (3) Bruker's DataAnalysis.
 
   With MSConvert, the default \code{titleMaker} is required for correct
-  parsing (don't think it can be altered by users, but just in case).
-
-  Individuality in MGF files are slightly preferred to take advantage of
-  parallel reading of the files.}
+  parsing (don't think it can be altered by users, but just in case).}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}
@@ -140,22 +146,23 @@ of SILAC for details. Can be but not typically used in standard alone
 searches of labeled residues.}
 
 \item{locmods}{Among \code{varmods} for the consideration of localization
-probabilities; for instance, \code{locmods = NULL} for nothing,
-\code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
-phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
-\code{fixedmods} that were coerced to \code{varmods} will be added
-automatically to \code{locmods}. For convenience, the default is set to
-look for applicable peptide phosphorylation.}
+  probabilities; for instance, \code{locmods = NULL} for nothing,
+  \code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
+  phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
+  \code{fixedmods} that were coerced to \code{varmods} will be added
+  automatically to \code{locmods}.
+
+  For convenience, the default is set to look for applicable peptide
+  phosphorylation (and may encounter warning messages if the data type is
+  different to the default).}
 
 \item{mod_motifs}{The motifs to restrict \code{Anywhere} variable
-  modification. For example, provided the \code{Anywhere} variable
-  modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
-
-  \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation (M)` =
-  c("NM", "MP"))}
-
-  variable modifications will only be considered at sites that satisfy the
-  motifs.}
+modification. For example, provided the \code{Anywhere} variable
+modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
+\code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation (M)` =
+c("NM", "MP"))},
+variable modifications will only be considered at sites that satisfy the
+motifs.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from protein entries. The
@@ -233,14 +240,14 @@ default is 64.}
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded.}
+for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{max_miss}{A non-negative integer; the maximum number of mis-cleavages
 per peptide sequence for considerations. The default is 2.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
-interrogation. The default is an arbitrarily low value. The primary guard
-against low molecular-weight precursors is \code{min_len}.}
+interrogation. The default is an arbitrarily low value (the primary guard
+against low molecular-weight precursors is \code{min_len}).}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation.}
@@ -256,16 +263,17 @@ envelopes. Nevertheless, by setting \code{n_13c = 1}, some increases in the
 number of PSMs may be readily achieved at a relatively small cost of search
 time.}
 
-\item{par_groups}{Parameter(s) of \code{matchMS} multiplied by sets of values
-in groups. Multiple searches will be performed separately against the
-parameter groups. For instance with one set of samples in SILAC light and
-the other in SILAC heavy, the experimenters may specify two arguments for
-parameter \code{mgf_path} and two arguments for parameter \code{fixedmods}
-that link to the respective samples. In this way, there is no need to
-search against, e.g. heavy-isotope-labeled K8R10 with the light samples and
-vice versa. Note that results will be combined at the end, with the group
-names indicated under column \code{pep_group}. The default is NULL without
-grouped searches. See the examples under SILAC and Group searches.}
+\item{par_groups}{A low -priority feature. Parameter(s) of \code{matchMS}
+multiplied by sets of values in groups. Multiple searches will be performed
+separately against the parameter groups. For instance with one set of
+samples in SILAC light and the other in SILAC heavy, the experimenters may
+specify two arguments for parameter \code{mgf_path} and two arguments for
+parameter \code{fixedmods} that link to the respective samples. In this
+way, there is no need to search against, e.g. heavy-isotope-labeled K8R10
+with the light samples and vice versa. Note that results will be combined
+at the end, with the group names indicated under column \code{pep_group}.
+The default is NULL without grouped searches. See the examples under SILAC
+and Group searches.}
 
 \item{silac_mix}{A list of labels indicating SILAC groups in samples. The
 parameter is most relevant for SILAC experiments where peptides of heavy,
@@ -298,14 +306,15 @@ The default is \eqn{126.1}.}
 The default is \eqn{135.2}.}
 
 \item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
-region of TMT reporter ions. The default is FALSE. The argument affects
-only TMT data. The range of TMT reporter ions is given by
-\code{tmt_reporter_lower} and \code{tmt_reporter_upper}.}
+region of TMT reporter ions. The default is FALSE. The corresponding range
+of TMT reporter ions is informed by \code{tmt_reporter_lower} and
+\code{tmt_reporter_upper}. The argument affects only TMT data.}
 
-\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
-  from numeric to integers as opposed to in-situ conversion during ion
-  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
-  useful for very large MS files by reducing RAM footprints.
+\item{index_mgf_ms2}{A low-priority feature. Logical; if TRUE, converts
+  upfrontly MS2 m-over-z values from numeric to integers as opposed to
+  \emph{in-situ} conversion during ion matches. The default is FALSE. The
+  \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
+  reducing RAM footprints.
 
   At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
   theoretical and experimental MS2 m-over-z values is limited by the
@@ -338,7 +347,7 @@ levels of PSM, peptide or protein. The default is 0.01. See also argument
   peptide} with the additional filtration of data at \code{prot_tier == 1}.}
 
 \item{fdr_group}{A character string; the modification group(s) for uses in
-peptide FDR controls. The value is in one of c("all", "base"). The
+peptide FDR controls. The value is in one of \code{c("all", "base")}. The
 \code{base} corresponds to the modification group with the largest number
 of matches.}
 
@@ -371,10 +380,11 @@ pep_score_cutoff} under a protein will be used to represent the threshold
 of a protein enrichment score. For more conserved thresholds, the
 statistics of \code{"max"} may be considered.}
 
-\item{soft_secions}{Depreciated. Logical; if TRUE, collapses the intensities
-of secondary ions to primary ions at the absence of the primaries. The
-default is FALSE. For instance, the signal of \code{b5^*} will be ignored
-if its primary ion \code{b5} is not matched.}
+\item{soft_secions}{Impacts on search performance not yet assessed. Logical;
+if TRUE, collapses the intensities of secondary ions to primary ions even
+when the primaries are absent. The default is FALSE. For instance, the
+signal of \code{b5^*} will be ignored if its primary ion \code{b5} is not
+matched.}
 
 \item{topn_mods_per_seq}{Positive integer; a threshold to discard variable
   modifications under the same peptide match with scores beyond the top-n.
@@ -417,11 +427,11 @@ if its primary ion \code{b5} is not matched.}
   Tier-3: one significant peptide per protein and protein scores below
   significance thresholds.}
 
-\item{max_n_prots}{A positive integer to threshold the maximum number of
-  protein entries before coercing \code{fdr_type} from \code{psm} or
-  \code{peptide} to \code{protein}. The argument has no effect if
-  \code{fdr_type} is already \code{protein}. In general, there is no need to
-  change the default.
+\item{max_n_prots}{Softly depreciated. A positive integer to threshold the
+  maximum number of protein entries before coercing \code{fdr_type} from
+  \code{psm} or \code{peptide} to \code{protein}. The argument has no effect
+  if \code{fdr_type} is already \code{protein}. In general, there is no need
+  to change the default.
 
   Note that for memory efficiency proteins at tiers 1, 2 and 3 are grouped
   separately. Further note that there is no tier-2 proteins at
@@ -518,6 +528,26 @@ at \code{calib_ms1mass = FALSE}.}
 \item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
 intensity values (\code{pep_ms2_ints}).}
 
+\item{svm_reproc}{Logical; if TRUE, reprocesses peptide data for significance
+thresholds with a support vector machine (SVM) approach analogous to
+\href{https://www.nature.com/articles/nmeth1113}{Percolator}.}
+
+\item{svm_kernel}{The SVM kernel. See also \link[e1071]{svm}.}
+
+\item{svm_feats}{Features used for SVM classifications.}
+
+\item{svm_cv}{Logical; if TRUE, performs cross validation for the
+regularization cost.}
+
+\item{svm_k}{A positive integer; specifies the k-number of folds in cross
+validation.}
+
+\item{svm_costs}{The cost constraints for k-fold cross validation.}
+
+\item{svm_def_cost}{The default cost for SVM.}
+
+\item{svm_iters}{The number of iteration in SVM learning.}
+
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
 
@@ -528,7 +558,7 @@ A list of complete PSMs in \code{psmC.txt}; a list of quality PSMs in
   \code{psmQ.txt}.
 }
 \description{
-Database searches of MSMS data.
+Database searches of MS/MS data (DDA).
 }
 \section{\code{Output columns}}{
  \code{system.file("extdata",
@@ -604,9 +634,6 @@ matchMS(
   out_path = "~/mzion/examples",
 )
 
-# (from protein to PSM FDR)
-reproc_psmC(out_path = "~/mzion/examples", fdr_type = "psm",
-            combine_tier_three = TRUE)
 
 # TMT-16plex, phospho
 matchMS(
@@ -617,7 +644,6 @@ matchMS(
   locmods   = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
   quant     = "tmt16",
   fdr_type  = "psm",
-  combine_tier_three = TRUE,
   out_path  = "~/mzion/examples",
 )
 
@@ -630,11 +656,11 @@ matchMS(
   ppm_ms2   = 40,
   quant     = "none",
   fdr_type  = "protein",
-  out_path  = "~/mzion/examples_pasef",
+  out_path  = "~/mzion/examples",
 )
 
 # Wrapper of matchMS(enzyme = noenzyme, ...) without sectional searches
-# by ranges of peptide lengths
+#   by ranges of peptide lengths
 matchMS_NES(
   fasta    = c("~/mzion/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
                "~/mzion/dbs/fasta/refseq/refseq_mm_2013_07.fasta",

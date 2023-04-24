@@ -9,7 +9,7 @@ foo_combine_codes <- function (filepath = file.path("~/Github/mzion/R"))
 
   ans <- lapply(file.path(filepath, filenames), readLines)
   ans <- purrr::reduce(ans, `c`, init = NULL)
-  writeLines(ans, file.path(filepath, "temp/all - mzion.R"))
+  writeLines(ans, file.path(filepath, "temp/all_mzion.R"))
 }
 
 

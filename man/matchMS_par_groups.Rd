@@ -13,16 +13,17 @@ matchMS_par_groups(
 )
 }
 \arguments{
-\item{par_groups}{Parameter(s) of \code{matchMS} multiplied by sets of values
-in groups. Multiple searches will be performed separately against the
-parameter groups. For instance with one set of samples in SILAC light and
-the other in SILAC heavy, the experimenters may specify two arguments for
-parameter \code{mgf_path} and two arguments for parameter \code{fixedmods}
-that link to the respective samples. In this way, there is no need to
-search against, e.g. heavy-isotope-labeled K8R10 with the light samples and
-vice versa. Note that results will be combined at the end, with the group
-names indicated under column \code{pep_group}. The default is NULL without
-grouped searches. See the examples under SILAC and Group searches.}
+\item{par_groups}{A low -priority feature. Parameter(s) of \code{matchMS}
+multiplied by sets of values in groups. Multiple searches will be performed
+separately against the parameter groups. For instance with one set of
+samples in SILAC light and the other in SILAC heavy, the experimenters may
+specify two arguments for parameter \code{mgf_path} and two arguments for
+parameter \code{fixedmods} that link to the respective samples. In this
+way, there is no need to search against, e.g. heavy-isotope-labeled K8R10
+with the light samples and vice versa. Note that results will be combined
+at the end, with the group names indicated under column \code{pep_group}.
+The default is NULL without grouped searches. See the examples under SILAC
+and Group searches.}
 
 \item{grp_args}{The names of arguments in \code{par_groups}.}
 

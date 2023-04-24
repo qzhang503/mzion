@@ -45,11 +45,11 @@ reproc_psmC(
   Tier-3: one significant peptide per protein and protein scores below
   significance thresholds.}
 
-\item{max_n_prots}{A positive integer to threshold the maximum number of
-  protein entries before coercing \code{fdr_type} from \code{psm} or
-  \code{peptide} to \code{protein}. The argument has no effect if
-  \code{fdr_type} is already \code{protein}. In general, there is no need to
-  change the default.
+\item{max_n_prots}{Softly depreciated. A positive integer to threshold the
+  maximum number of protein entries before coercing \code{fdr_type} from
+  \code{psm} or \code{peptide} to \code{protein}. The argument has no effect
+  if \code{fdr_type} is already \code{protein}. In general, there is no need
+  to change the default.
 
   Note that for memory efficiency proteins at tiers 1, 2 and 3 are grouped
   separately. Further note that there is no tier-2 proteins at
@@ -66,4 +66,8 @@ Protein grouping from \code{psmC.txt} to \code{psmQ.txt}.
 \details{
 May solve some memory shortage issues for large data sets by restarting An
 Rstudio session.
+
+The score cut-offs are different among the \code{fdr_type} of "psm",
+"peptide" and "protein". An experimenter need to match the value of
+\code{fdr_type}.
 }

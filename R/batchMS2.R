@@ -162,7 +162,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
           c("gen_ms2ions_base", 
             "ms2ions_by_type", 
             "byions", "czions", "axions"), 
-          envir = environment(mzion:::gen_ms2ions_base)
+          envir = environment(mzion::matchMS)
         )
         
         ms2s <- parallel::clusterApply(
@@ -237,7 +237,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
             "gen_ms2ions_base", 
             "ms2ions_by_type", 
             "byions", "czions", "axions"), 
-          envir = environment(mzion:::gen_ms2ions_a0_vnl0_fnl1)
+          envir = environment(mzion::matchMS)
         )
         
         ms2s <- parallel::clusterApply(
@@ -316,7 +316,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
             "ms2ions_by_type", 
             "byions", "czions", "axions", 
             "add_hexcodes"), 
-          envir = environment(mzion:::gen_ms2ions_a1_vnl0_fnl0)
+          envir = environment(mzion::matchMS)
         )
         
         ms2s <- parallel::clusterApply(
@@ -395,7 +395,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
             "ms2ions_by_type", 
             "byions", "czions", "axions", 
             "add_hexcodes_vnl2"), 
-          envir = environment(mzion:::gen_ms2ions_a1_vnl1_fnl0)
+          envir = environment(mzion::matchMS)
         )
         
         ms2s <- parallel::clusterApply(
@@ -475,7 +475,7 @@ hbatch_ms2ions <- function (ms1_time = NULL, type_ms2ions = "by",
             "ms2ions_by_type", 
             "byions", "czions", "axions", 
             "add_hexcodes_fnl2"), 
-          envir = environment(mzion:::gen_ms2ions_a1_vnl0_fnl1)
+          envir = environment(mzion::matchMS)
         )
         
         ms2s <- parallel::clusterApply(

@@ -17,10 +17,7 @@ map_raw_n_scan(df, mgf_path)
   Proteome Discoverer or (3) Bruker's DataAnalysis.
 
   With MSConvert, the default \code{titleMaker} is required for correct
-  parsing (don't think it can be altered by users, but just in case).
-
-  Individuality in MGF files are slightly preferred to take advantage of
-  parallel reading of the files.}
+  parsing (don't think it can be altered by users, but just in case).}
 }
 \description{
 Maps raw_file and scan_title from indexes to real values.

@@ -351,7 +351,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
         c("hsemipeps_byprots", 
           "semipeps_byprots", 
           "calc_semipepmasses"), 
-        envir = environment(mzion:::calc_semipepmasses)
+        envir = environment(mzion::matchMS)
       )
       
       fwd_peps <- parallel::clusterApply(
@@ -383,7 +383,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
         "ct_counts", 
         "rm_char_in_nfirst", 
         "rm_char_in_nlast"), 
-      envir = environment(mzion:::distri_peps)
+      envir = environment(mzion::matchMS)
     )
 
     # aa_masses_all[[1]] is for the original all-fixed mode not for the coerced,
@@ -423,7 +423,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     
     parallel::clusterExport(cl, c("simple_prots_peps"), 
-                            envir = environment(mzion:::simple_prots_peps))
+                            envir = environment(mzion::matchMS))
 
     prps <- parallel::clusterApply(
       cl, 
@@ -538,7 +538,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
               "ms1_a0_vnl0_fnl1", 
               "expand_grid_rows", 
               "delta_ms1_a0_fnl1"), 
-            envir = environment(mzion:::ms1_a0_vnl0_fnl1))
+            envir = environment(mzion::matchMS))
           
           fwd_peps[[i]] <- parallel::clusterApply(
             cl, 
@@ -602,7 +602,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
           "expand_grid_rows", 
           "recur_flatten", 
           "delta_ms1_a0_fnl1"), 
-        envir = environment(mzion:::ms1_a1_vnl0_fnl0))
+        envir = environment(mzion::matchMS))
 
       for (i in inds) {
         amods_i <- amods[[i]]
@@ -1924,7 +1924,7 @@ split_fastaseqs <- function (fasta = NULL, enzyme = "trypsin_p",
     cl,
     c("make_fastapeps0", 
       "keep_n_misses"), 
-    envir = environment(mzion:::make_fastapeps0))
+    envir = environment(mzion::matchMS))
 
   # ---
   message("Splitting fasta sequences.")
@@ -2157,7 +2157,7 @@ split_fastaseqs_noenz <- function (fasta = NULL, acc_type = "uniprot_acc",
       "mmake_noenzpeps", 
       "hmake_noenzpeps", 
       "ms1masses_bare_noenz"), 
-    envir = environment(mzion:::make_noenzpeps))
+    envir = environment(mzion::matchMS))
   
   peps <- parallel::clusterApply(cl, chunksplit(fasta_db, n_cores), 
                                  mmake_noenzpeps, 
@@ -2657,7 +2657,7 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
 
   parallel::clusterExport(cl, c("roll_sum", "accumulate_char"), 
-                          envir = environment(mzion:::roll_sum))
+                          envir = environment(mzion::matchMS))
 
   ms_1 <- parallel::clusterApply(
     cl = cl, 
@@ -2775,7 +2775,7 @@ ms1masses_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L,
     c("calcms1mass_noterm", 
       "calcms1mass_noterm_byprot", 
       "calcms1mass_noterm_bypep"), 
-    envir = environment(mzion:::calcms1mass_noterm))
+    envir = environment(mzion::matchMS))
 
   out <- parallel::clusterApply(cl, aa_seqs, calcms1mass_noterm,
                                 aa_masses = aa_masses,

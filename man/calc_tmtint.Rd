@@ -21,10 +21,11 @@ and \code{tmt10} for \code{tmt8} etc.}
 
 \item{ppm_reporters}{The mass tolerance of MS2 reporter ions.}
 
-\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
-  from numeric to integers as opposed to in-situ conversion during ion
-  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
-  useful for very large MS files by reducing RAM footprints.
+\item{index_mgf_ms2}{A low-priority feature. Logical; if TRUE, converts
+  upfrontly MS2 m-over-z values from numeric to integers as opposed to
+  \emph{in-situ} conversion during ion matches. The default is FALSE. The
+  \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
+  reducing RAM footprints.
 
   At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
   theoretical and experimental MS2 m-over-z values is limited by the

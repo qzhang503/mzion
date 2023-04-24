@@ -105,7 +105,7 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
   reporters <- dplyr::bind_rows(reporters)
   
   df <- df %>%
-    tidyr::unite(uniq_id, raw_file, pep_mod_group, scan_num, sep = ".",
+    tidyr::unite(uniq_id, raw_file, pep_mod_group, pep_scan_num, sep = ".",
                  remove = FALSE) %>%
     dplyr::left_join(reporters, by = "uniq_id") %>%
     dplyr::select(-uniq_id)
@@ -396,8 +396,7 @@ add_protacc <- function (df = NULL, out_path = NULL, .path_cache = NULL,
 #' Helper of annotating decoy peptides.
 #' 
 #' @param df A data frame.
-#' @param prps_fwd The look-ups of forward protein and peptides.
-#' @param prps_rev The look-ups of reversed protein and peptides.
+#' @param prps The look-ups of protein and peptides.
 hannot_decoys <- function (df, prps)
 {
   # keep prot_acc be the first column

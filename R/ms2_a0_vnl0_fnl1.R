@@ -41,6 +41,7 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
       "gen_ms2ions_a0_vnl0_fnl1", 
       "expand_grid_rows", 
       "gen_ms2ions_base", 
+      "calc_rev_ms2", 
       "ms2ions_by_type", 
       "byions", "czions", "axions", 
       "bions_base", "yions_base",
@@ -51,7 +52,7 @@ ms2match_a0_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
       "fuzzy_match_one", 
       "fuzzy_match_one2", 
       "post_frame_adv"), 
-    envir = environment(mzion:::frames_adv)
+    envir = environment(mzion::matchMS)
   )
 
   out <- parallel::clusterMap(

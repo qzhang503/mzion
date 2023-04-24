@@ -9,9 +9,7 @@ hannot_decoys(df, prps)
 \arguments{
 \item{df}{A data frame.}
 
-\item{prps_fwd}{The look-ups of forward protein and peptides.}
-
-\item{prps_rev}{The look-ups of reversed protein and peptides.}
+\item{prps}{The look-ups of protein and peptides.}
 }
 \description{
 Helper of annotating decoy peptides.

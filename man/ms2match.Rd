@@ -50,10 +50,7 @@ ms2match(
   Proteome Discoverer or (3) Bruker's DataAnalysis.
 
   With MSConvert, the default \code{titleMaker} is required for correct
-  parsing (don't think it can be altered by users, but just in case).
-
-  Individuality in MGF files are slightly preferred to take advantage of
-  parallel reading of the files.}
+  parsing (don't think it can be altered by users, but just in case).}
 
 \item{aa_masses_all}{A list of amino acid lookups for all the combination of
 fixed and variable modifications.}
@@ -107,8 +104,8 @@ at \code{calib_ms1mass = FALSE}.}
 default is 20.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
-interrogation. The default is an arbitrarily low value. The primary guard
-against low molecular-weight precursors is \code{min_len}.}
+interrogation. The default is an arbitrarily low value (the primary guard
+against low molecular-weight precursors is \code{min_len}).}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation.}
@@ -174,15 +171,16 @@ sets of combinatorial variable modifications. The default is 512.}
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded.}
+for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{max_miss}{A non-negative integer; the maximum number of mis-cleavages
 per peptide sequence for considerations. The default is 2.}
 
-\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
-  from numeric to integers as opposed to in-situ conversion during ion
-  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
-  useful for very large MS files by reducing RAM footprints.
+\item{index_mgf_ms2}{A low-priority feature. Logical; if TRUE, converts
+  upfrontly MS2 m-over-z values from numeric to integers as opposed to
+  \emph{in-situ} conversion during ion matches. The default is FALSE. The
+  \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
+  reducing RAM footprints.
 
   At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
   theoretical and experimental MS2 m-over-z values is limited by the

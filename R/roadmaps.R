@@ -128,6 +128,7 @@
 #         gen_ms2ions_base (for specific pep_seq)
 #           ms2ions_by_type (ion_ladder.R)
 #             byions, czions, axions (ion_ladder.R)
+#           calc_rev_ms2 (utils_engine.R)
 #         search_mgf
 #           find_ms2_bypep2
 #             fuzzy_match_one
@@ -143,8 +144,10 @@
 #         gen_ms2ions_a0_vnl0_fnl1
 #           // early return
 #           gen_ms2ions_base (ms2base.R)
+#             calc_rev_ms2 (utils_engine.R)
 #             ms2ions_by_type (ion_ladder.R)
 #               byions, czions, axions (ion_ladder.R)
+#             calc_rev_ms2 (utils_engine.R)
 #           // regular return
 #           ms2ions_by_type (ion_ladder.R)
 #             byions, czions, axions (ion_ladder.R)
@@ -175,6 +178,7 @@
 #                 "sim_combn" (vmod_ms2_labels.R)
 #               "match_aas_indexes" (vmods_ms2_labels.R)
 #           "check_ms1_mass_vmods2" (ms2_a1_vnl0_fnl0.R)
+#           "calc_rev_ms2" (utils_engine.R)
 #           "calc_ms2ions_a1_vnl0_fnl0" (ms2_a1_vnl0_fnl0.R)
 #             "ms2ions_by_type" (ion_ladder.R)
 #               "byions", "czions", "axions"
@@ -212,6 +216,7 @@
 #               "match_aas_indexes" (vmods_ms2_labels.R)
 #           "check_ms1_mass_vmods2" (ms2_a1_vnl0_fnl0.R)
 #           "expand_grid_rows" (utils_engine.R)
+#           "calc_rev_ms2" (utils_engine.R)
 #           "calc_ms2ions_a1_vnl1_fnl0"
 #             "ms2ions_by_type" (ion_ladder.R)
 #               "byions", "czions", "axions"
@@ -243,6 +248,7 @@
 #                 - "sim_combn" (vmod_ms2_labels.R)
 #               - match_aas_indexes
 #           check_ms1_mass_vmods2 (ms2_a1_vnl0_fnl0.R)
+#           calc_rev_ms2 (utils_engine.R)
 #           calc_ms2ions_a1_vnl0_fnl1
 #             ms2ions_by_type (ion_ladder.R)
 #               byions, czions, axions

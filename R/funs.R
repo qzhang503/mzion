@@ -18,9 +18,6 @@
 # $funs.R
 # character(0)
 # 
-# $hello.R
-# [1] "hello"
-# 
 # $ion_ladder.R
 #  [1] "ms2ions_by_type" "byions"          "czions"          "axions"          "bions_base"      "yions_base"     
 #  [7] "b2ions_base"     "bstarions"       "bstar2ions"      "b0ions"          "b02ions"         "y2ions"         
@@ -32,7 +29,7 @@
 #  [1] "mapMS2ions"             "match_mgf_path"         "match_raw_id"           "add_raw_ids"           
 #  [5] "find_secion_types"      "find_psm_rows"          "find_psm_rows1"         "find_psm_rows2"        
 #  [9] "find_theoexpt_pair"     "find_mgf_query"         "combine_prisec_matches" "check_existed_psms"    
-# [13] "get_mzion_coltypes"  
+# [13] "get_mzion_coltypes"    
 # 
 # $mgfs.R
 #  [1] "load_mgfs"          "readMGF"            "post_readmgf"       "readlineMGFs"       "  f"               
@@ -81,11 +78,14 @@
 # $msmsmatches2.R
 # [1] "ms2match"              "hcalc_tmtint"          "reverse_peps_in_frame" "reverse_seqs"          "calib_ms1masses"      
 # 
+# $mzion.R
+# character(0)
+# 
 # $mztab.R
 # [1] "make_mztab"
 # 
-# $mzion.R
-# character(0)
+# $percolator.R
+# [1] "creat_folds"        "cv_svm"             "perco_svm"          "probco_bypepcharge" "calc_z_pepfdr"     
 # 
 # $quant2.R
 #  [1] "calc_tmtint"        "add_rptrs"          "find_reporter_ints" "find_reporters_ppm" "msub_protpep"      
@@ -101,12 +101,13 @@
 #  [5] "calc_probi"             "scalc_pepprobs"         "calc_pepprobs_i"        "calc_pepscores"        
 #  [9] "find_decoy"             "find_targets"           "calcpepsc"              "add_primatches"        
 # [13] "collapse_vecs"          "post_pepscores"         "find_pepscore_co1"      "find_pepscore_co2"     
-# [17] "probco_bypeplen"        "find_optlens"           "find_probco_valley"     "calc_pepfdr"           
-# [21] "fill_probco_nas"        "fill_probs"             "post_pepfdr"            "calc_protfdr"          
-# [25] "aggr_prot_es"           "calc_protfdr_i"         "fit_protfdr"            "  f"                   
-# [29] "find_ppm_outer_bycombi" "match_ex2th2"           "calc_peploc"            "calcpeprank_1"         
-# [33] "calcpeprank_2"          "calcpeprank_3"          "find_chunkbreaks"       "findLocFracsDF"        
-# [37] "concatFracs"            "na.interp"              "is.constant"            "tsoutliers"            
+# [17] "probco_bypeplen"        "sub_td_byfdrtype"       "find_optlens"           "find_probco_valley"    
+# [21] "prep_pepfdr_td"         "keep_pepfdr_best"       "calc_pepfdr"            "fill_probco_nas"       
+# [25] "fill_probs"             "post_pepfdr"            "calc_protfdr"           "aggr_prot_es"          
+# [29] "calc_protfdr_i"         "fit_protfdr"            "  f"                    "find_ppm_outer_bycombi"
+# [33] "match_ex2th2"           "calc_peploc"            "calcpeprank_1"          "calcpeprank_2"         
+# [37] "calcpeprank_3"          "find_chunkbreaks"       "findLocFracsDF"         "concatFracs"           
+# [41] "na.interp"              "is.constant"            "tsoutliers"            
 # 
 # $silac.R
 # [1] "matchMS_silac_mix"   "matchMS_par_groups"  "add_fixedlab_masses" "matchMS_noenzyme"    "combine_ion_matches"

@@ -16,7 +16,7 @@ in values.}
 (max_miss + 1L) * 2L}.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded.}
+for considerations. Longer peptides will be excluded. The default is 40.}
 }
 \description{
 Removes a starting character from the first \code{n} entries.

@@ -21,12 +21,15 @@ check_locmods(fixedmods, varmods, locmods)
   \code{position} and \code{site}.}
 
 \item{locmods}{Among \code{varmods} for the consideration of localization
-probabilities; for instance, \code{locmods = NULL} for nothing,
-\code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
-phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
-\code{fixedmods} that were coerced to \code{varmods} will be added
-automatically to \code{locmods}. For convenience, the default is set to
-look for applicable peptide phosphorylation.}
+  probabilities; for instance, \code{locmods = NULL} for nothing,
+  \code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
+  phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
+  \code{fixedmods} that were coerced to \code{varmods} will be added
+  automatically to \code{locmods}.
+
+  For convenience, the default is set to look for applicable peptide
+  phosphorylation (and may encounter warning messages if the data type is
+  different to the default).}
 }
 \description{
 Coerced \code{fixedmods} not considered.

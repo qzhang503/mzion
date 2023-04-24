@@ -8,9 +8,11 @@ check_fdr_group(fdr_group = c("base", "all", "top3"), oks = c("base", "all"))
 }
 \arguments{
 \item{fdr_group}{A character string; the modification group(s) for uses in
-peptide FDR controls. The value is in one of c("all", "base"). The
+peptide FDR controls. The value is in one of \code{c("all", "base")}. The
 \code{base} corresponds to the modification group with the largest number
 of matches.}
+
+\item{oks}{A vector of allowed modification groups.}
 }
 \description{
 Not yet used. Takes values of integers or character strings.

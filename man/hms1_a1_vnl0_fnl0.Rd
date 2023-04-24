@@ -47,8 +47,8 @@ default is 5.}
 \item{ms1vmods}{The set of all possible MS1 vmod labels at a given aa_masses.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
-interrogation. The default is an arbitrarily low value. The primary guard
-against low molecular-weight precursors is \code{min_len}.}
+interrogation. The default is an arbitrarily low value (the primary guard
+against low molecular-weight precursors is \code{min_len}).}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation.}

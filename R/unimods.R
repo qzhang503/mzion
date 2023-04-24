@@ -315,6 +315,7 @@ hfind_unimod <- function (xml_files = c("master.xml", "custom.xml"), unimod)
 #' @export
 table_unimods <- function (out_nm = "~/mzion/unimods.txt") 
 {
+  dir.create("~/mzion")
   files <- c("master.xml", "custom.xml")
   
   lapply(files, htable_unimods) %>% 

@@ -528,7 +528,7 @@ find_ms2resids <- function (M, vec)
 #' @param labs A vector of labels.
 #'
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' library(gtools)
 #' library(mzion)
 #' library(dplyr)
@@ -611,7 +611,7 @@ find_perm_sets <- function (labs = c("A", "A", "A", "B", "B", "C"))
 #' @param x A new label not in M for permutation.
 #' 
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' library(mzion)
 #' library(gtools)
 #' library(dplyr)

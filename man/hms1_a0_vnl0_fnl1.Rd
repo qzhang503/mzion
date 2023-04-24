@@ -24,8 +24,8 @@ corresponds to the combination without NLs (all zeros).}
 acid residues.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
-interrogation. The default is an arbitrarily low value. The primary guard
-against low molecular-weight precursors is \code{min_len}.}
+interrogation. The default is an arbitrarily low value (the primary guard
+against low molecular-weight precursors is \code{min_len}).}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation.}

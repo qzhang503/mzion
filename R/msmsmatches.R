@@ -1,6 +1,6 @@
-#' Searches for MS ions.
+#' An integrated facility for searches of mass spectrometry data.
 #'
-#' Database searches of MSMS data.
+#' Database searches of MS/MS data (DDA).
 #'
 #' @section \code{Output columns}: \code{system.file("extdata",
 #'   "column_keys.txt", package = "mzion")} \cr
@@ -36,9 +36,6 @@
 #'
 #'   With MSConvert, the default \code{titleMaker} is required for correct
 #'   parsing (don't think it can be altered by users, but just in case).
-#'
-#'   Individuality in MGF files are slightly preferred to take advantage of
-#'   parallel reading of the files.
 #' @param fasta Character string(s) to the name(s) of fasta file(s) with
 #'   prepended directory path. The experimenter needs to supply the files.
 #' @param acc_type Character string(s); the types of protein accessions in one
@@ -73,15 +70,16 @@
 #'   \code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
 #'   phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
 #'   \code{fixedmods} that were coerced to \code{varmods} will be added
-#'   automatically to \code{locmods}. For convenience, the default is set to
-#'   look for applicable peptide phosphorylation.
+#'   automatically to \code{locmods}.
+#'
+#'   For convenience, the default is set to look for applicable peptide
+#'   phosphorylation (and may encounter warning messages if the data type is
+#'   different to the default).
 #' @param mod_motifs The motifs to restrict \code{Anywhere} variable
 #'   modification. For example, provided the \code{Anywhere} variable
 #'   modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
-#'
 #'   \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation (M)` =
-#'   c("NM", "MP"))}
-#'
+#'   c("NM", "MP"))},
 #'   variable modifications will only be considered at sites that satisfy the
 #'   motifs.
 #' @param enzyme A character string; the proteolytic specificity of the assumed
@@ -150,12 +148,12 @@
 #' @param min_len A positive integer; the minimum length of peptide sequences
 #'   for considerations. Shorter peptides will be excluded. The default is 7.
 #' @param max_len A positive integer; the maximum length of peptide sequences
-#'   for considerations. Longer peptides will be excluded.
+#'   for considerations. Longer peptides will be excluded. The default is 40.
 #' @param max_miss A non-negative integer; the maximum number of mis-cleavages
 #'   per peptide sequence for considerations. The default is 2.
 #' @param min_mass A positive integer; the minimum precursor mass for
-#'   interrogation. The default is an arbitrarily low value. The primary guard
-#'   against low molecular-weight precursors is \code{min_len}.
+#'   interrogation. The default is an arbitrarily low value (the primary guard
+#'   against low molecular-weight precursors is \code{min_len}).
 #' @param max_mass A positive integer; the maximum precursor mass for
 #'   interrogation.
 #' @param min_ms2mass A positive integer; the minimum MS2 mass for
@@ -169,16 +167,17 @@
 #'   envelopes. Nevertheless, by setting \code{n_13c = 1}, some increases in the
 #'   number of PSMs may be readily achieved at a relatively small cost of search
 #'   time.
-#' @param par_groups Parameter(s) of \code{matchMS} multiplied by sets of values
-#'   in groups. Multiple searches will be performed separately against the
-#'   parameter groups. For instance with one set of samples in SILAC light and
-#'   the other in SILAC heavy, the experimenters may specify two arguments for
-#'   parameter \code{mgf_path} and two arguments for parameter \code{fixedmods}
-#'   that link to the respective samples. In this way, there is no need to
-#'   search against, e.g. heavy-isotope-labeled K8R10 with the light samples and
-#'   vice versa. Note that results will be combined at the end, with the group
-#'   names indicated under column \code{pep_group}. The default is NULL without
-#'   grouped searches. See the examples under SILAC and Group searches.
+#' @param par_groups A low -priority feature. Parameter(s) of \code{matchMS}
+#'   multiplied by sets of values in groups. Multiple searches will be performed
+#'   separately against the parameter groups. For instance with one set of
+#'   samples in SILAC light and the other in SILAC heavy, the experimenters may
+#'   specify two arguments for parameter \code{mgf_path} and two arguments for
+#'   parameter \code{fixedmods} that link to the respective samples. In this
+#'   way, there is no need to search against, e.g. heavy-isotope-labeled K8R10
+#'   with the light samples and vice versa. Note that results will be combined
+#'   at the end, with the group names indicated under column \code{pep_group}.
+#'   The default is NULL without grouped searches. See the examples under SILAC
+#'   and Group searches.
 #' @param silac_mix A list of labels indicating SILAC groups in samples. The
 #'   parameter is most relevant for SILAC experiments where peptides of heavy,
 #'   light etc. were \emph{mixed} into one sample. The default is NULL
@@ -210,17 +209,18 @@
 #'   for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
 #'   not part of the threshold.
 #' @param exclude_reporter_region Logical; if TRUE, excludes MS2 ions in the
-#'   region of TMT reporter ions. The default is FALSE. The argument affects
-#'   only TMT data. The range of TMT reporter ions is given by
-#'   \code{tmt_reporter_lower} and \code{tmt_reporter_upper}.
+#'   region of TMT reporter ions. The default is FALSE. The corresponding range
+#'   of TMT reporter ions is informed by \code{tmt_reporter_lower} and
+#'   \code{tmt_reporter_upper}. The argument affects only TMT data.
 #' @param tmt_reporter_lower The lower bound of the region of TMT reporter ions.
 #'   The default is \eqn{126.1}.
 #' @param tmt_reporter_upper The upper bound of the region of TMT reporter ions.
 #'   The default is \eqn{135.2}.
-#' @param index_mgf_ms2 Logical; if TRUE, converts upfrontly MS2 m-over-z values
-#'   from numeric to integers as opposed to in-situ conversion during ion
-#'   matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
-#'   useful for very large MS files by reducing RAM footprints.
+#' @param index_mgf_ms2 A low-priority feature. Logical; if TRUE, converts
+#'   upfrontly MS2 m-over-z values from numeric to integers as opposed to
+#'   \emph{in-situ} conversion during ion matches. The default is FALSE. The
+#'   \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
+#'   reducing RAM footprints.
 #'
 #'   At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
 #'   theoretical and experimental MS2 m-over-z values is limited by the
@@ -272,7 +272,7 @@
 #'   Note that \code{fdr_type = protein} is comparable to \code{fdr_type =
 #'   peptide} with the additional filtration of data at \code{prot_tier == 1}.
 #' @param fdr_group A character string; the modification group(s) for uses in
-#'   peptide FDR controls. The value is in one of c("all", "base"). The
+#'   peptide FDR controls. The value is in one of \code{c("all", "base")}. The
 #'   \code{base} corresponds to the modification group with the largest number
 #'   of matches.
 #' @param max_pepscores_co A positive numeric; the upper limit in the cut-offs
@@ -299,10 +299,11 @@
 #'   pep_score_cutoff} under a protein will be used to represent the threshold
 #'   of a protein enrichment score. For more conserved thresholds, the
 #'   statistics of \code{"max"} may be considered.
-#' @param soft_secions Depreciated. Logical; if TRUE, collapses the intensities
-#'   of secondary ions to primary ions at the absence of the primaries. The
-#'   default is FALSE. For instance, the signal of \code{b5^*} will be ignored
-#'   if its primary ion \code{b5} is not matched.
+#' @param soft_secions Impacts on search performance not yet assessed. Logical;
+#'   if TRUE, collapses the intensities of secondary ions to primary ions even
+#'   when the primaries are absent. The default is FALSE. For instance, the
+#'   signal of \code{b5^*} will be ignored if its primary ion \code{b5} is not
+#'   matched.
 #' @param topn_seqs_per_query Positive integer; a threshold to discard peptide
 #'   matches under the same MS query with scores beyond the top-n.
 #'
@@ -342,11 +343,11 @@
 #'   Tier-3: one significant peptide per protein and protein scores below
 #'   significance thresholds.
 #'
-#' @param max_n_prots A positive integer to threshold the maximum number of
-#'   protein entries before coercing \code{fdr_type} from \code{psm} or
-#'   \code{peptide} to \code{protein}. The argument has no effect if
-#'   \code{fdr_type} is already \code{protein}. In general, there is no need to
-#'   change the default.
+#' @param max_n_prots Softly depreciated. A positive integer to threshold the
+#'   maximum number of protein entries before coercing \code{fdr_type} from
+#'   \code{psm} or \code{peptide} to \code{protein}. The argument has no effect
+#'   if \code{fdr_type} is already \code{protein}. In general, there is no need
+#'   to change the default.
 #'
 #'   Note that for memory efficiency proteins at tiers 1, 2 and 3 are grouped
 #'   separately. Further note that there is no tier-2 proteins at
@@ -378,6 +379,22 @@
 #'   \eqn{m/z} values (\code{pep_ms2_moverzs}).
 #' @param add_ms2ints Logical; if TRUE, adds the sequence of experimental MS2
 #'   intensity values (\code{pep_ms2_ints}).
+#'
+#' @param svm_reproc Logical; if TRUE, reprocesses peptide data for significance
+#'   thresholds with a support vector machine (SVM) approach analogous to
+#'   \href{https://www.nature.com/articles/nmeth1113}{Percolator}.
+#' @param svm_kernel The SVM kernel. See also \link[e1071]{svm}.
+#' @param svm_feats Features used for SVM classifications.
+#' @param svm_iters A positive integer; the number of iterations in
+#'   \link[e1071]{svm}.
+#' @param svm_cv Logical; if TRUE, performs cross validation for the
+#'   regularization cost.
+#' @param svm_k A positive integer; specifies the k-number of folds in cross
+#'   validation.
+#' @param svm_costs The cost constraints for k-fold cross validation.
+#' @param svm_def_cost The default cost for SVM.
+#' @param svm_iters The number of iteration in SVM learning.
+#'
 #' @param .path_cache The file path of cached search parameters. The parameter
 #'   is for the users' awareness of the underlying structure of file folders and
 #'   the use of default is suggested. Occasionally experimenters may remove the
@@ -430,9 +447,6 @@
 #'   out_path = "~/mzion/examples",
 #' )
 #'
-#' # (from protein to PSM FDR)
-#' reproc_psmC(out_path = "~/mzion/examples", fdr_type = "psm",
-#'             combine_tier_three = TRUE)
 #'
 #' # TMT-16plex, phospho
 #' matchMS(
@@ -443,7 +457,6 @@
 #'   locmods   = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
 #'   quant     = "tmt16",
 #'   fdr_type  = "psm",
-#'   combine_tier_three = TRUE,
 #'   out_path  = "~/mzion/examples",
 #' )
 #'
@@ -456,11 +469,11 @@
 #'   ppm_ms2   = 40,
 #'   quant     = "none",
 #'   fdr_type  = "protein",
-#'   out_path  = "~/mzion/examples_pasef",
+#'   out_path  = "~/mzion/examples",
 #' )
 #'
 #' # Wrapper of matchMS(enzyme = noenzyme, ...) without sectional searches
-#' # by ranges of peptide lengths
+#' #   by ranges of peptide lengths
 #' matchMS_NES(
 #'   fasta    = c("~/mzion/dbs/fasta/refseq/refseq_hs_2013_07.fasta",
 #'                "~/mzion/dbs/fasta/refseq/refseq_mm_2013_07.fasta",
@@ -697,6 +710,17 @@ matchMS <- function (out_path = "~/mzion/outs",
                      add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                      add_ms2moverzs = FALSE, add_ms2ints = FALSE,
                      
+                     svm_reproc = FALSE,
+                     svm_kernel = "radial",
+                     svm_feats  = c("pep_score", "pep_ret_range", 
+                                    "pep_delta", "pep_n_ms2", 
+                                    "pep_expect", "pep_exp_mz", # "pep_exp_z", 
+                                    "pep_exp_mr", "pep_tot_int", 
+                                    "pep_n_matches2", "pep_ms2_deltas_mean"), 
+                     svm_cv = TRUE, svm_k  = 3L, 
+                     svm_costs = c(.1, .3, 1, 3, 10), svm_def_cost = 1, 
+                     svm_iters  = 10L, 
+                     
                      digits = 4L, ...) 
 {
   options(digits = 9L)
@@ -756,7 +780,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   # logical types 
   stopifnot(vapply(c(soft_secions, combine_tier_three, calib_ms1mass, 
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
-                     add_ms2ints, exclude_reporter_region, index_mgf_ms2), 
+                     add_ms2ints, exclude_reporter_region, index_mgf_ms2, 
+                     svm_cv), 
                    is.logical, logical(1L)))
 
   # numeric types 
@@ -1285,6 +1310,9 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (is.null(bypass_pepscores)) bypass_pepscores <- FALSE
   
   if (!bypass_pepscores) {
+    tally_ms2ints <- dots$tally_ms2ints
+    if (is.null(tally_ms2ints)) tally_ms2ints <- TRUE
+    
     calc_pepscores(topn_ms2ions = topn_ms2ions,
                    type_ms2ions = type_ms2ions,
                    target_fdr = target_fdr,
@@ -1296,6 +1324,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                    out_path = out_path,
                    min_ms2mass = min_ms2mass,
                    index_mgf_ms2 = index_mgf_ms2, 
+                   tally_ms2ints = tally_ms2ints, 
 
                    # dummies
                    mgf_path = mgf_path,
@@ -1337,8 +1366,28 @@ matchMS <- function (out_path = "~/mzion/outs",
                             nes_fdr_group = nes_fdr_group, 
                             out_path = out_path)
     
-    post_pepfdr(prob_cos, out_path)
-    rm(list = "prob_cos")
+    ans <- post_pepfdr(prob_cos, out_path)
+
+    if (svm_reproc) {
+      message("SVM reprocessing of peptide probabilities.")
+      
+      prob_cos <- perco_svm(out_path = out_path, df = ans, prob_cos = prob_cos, 
+                            target_fdr = target_fdr, fdr_type = fdr_type, 
+                            min_len = min_len, max_len = max_len, 
+                            max_pepscores_co = max_pepscores_co, 
+                            min_pepscores_co = min_pepscores_co, enzyme = enzyme, 
+                            fdr_group = fdr_group, nes_fdr_group = nes_fdr_group, 
+                            svm_kernel = svm_kernel, svm_feats = svm_feats, 
+                            cross_valid = svm_cv, k  = svm_k, 
+                            costs = svm_costs, 
+                            def_cost = svm_def_cost, 
+                            svm_iters = svm_iters)
+
+      # post_pepfdr(prob_cos, out_path)
+      message("Completed SVM reprocessing.")
+    }
+
+    rm(list = c("ans", "prob_cos"))
   }
 
   ## Peptide ranks and score deltas between `pep_ivmod`
@@ -1354,43 +1403,64 @@ matchMS <- function (out_path = "~/mzion/outs",
     gc()
   }
 
-  ## Protein accessions, score cut-offs and optional reporter ions
+  ## Protein accessions
   bypass_from_protacc <- dots$bypass_from_protacc
   if (is.null(bypass_from_protacc)) bypass_from_protacc <- FALSE
   
   if (bypass_from_protacc) 
     return(NULL)
   
-  if (enzyme != "noenzyme" || isTRUE(dots[["direct_prot_acc"]])) {
-    df <- add_protacc(out_path = out_path, 
-                      .path_cache = .path_cache, 
-                      .path_fasta = .path_fasta)
-  }
+  bypass_protacc <- dots$bypass_protacc
+  if (is.null(bypass_protacc)) bypass_protacc <- FALSE
+  temp_dir <- file.path(out_path, "temp")
+  file_protacc <- file.path(temp_dir, "df_protacc.rds")
+  
+  if (bypass_protacc && file.exists(file_protacc))
+    df <- qs::qread(file_protacc)
   else {
-    silac_noenzyme <- if (isTRUE(dots$silac_noenzyme)) TRUE else FALSE
-    
-    if (silac_noenzyme) {
-      # see matchMS_noenzyme for nested silac under noenzyme
+    if (enzyme != "noenzyme" || isTRUE(dots[["direct_prot_acc"]]))
       df <- add_protacc(out_path = out_path, 
                         .path_cache = .path_cache, 
                         .path_fasta = .path_fasta)
-    }
     else {
-      # with multiple subdirs (length ranges)
-      df <- add_protacc2(out_path = out_path, 
-                         .path_cache = .path_cache, 
-                         .path_fasta = .path_fasta)
+      silac_noenzyme <- if (isTRUE(dots$silac_noenzyme)) TRUE else FALSE
+      
+      # see matchMS_noenzyme for nested silac under noenzyme
+      df <- if (silac_noenzyme)
+        add_protacc(out_path = out_path, 
+                    .path_cache = .path_cache, 
+                    .path_fasta = .path_fasta)
+      else
+        add_protacc2(out_path = out_path, 
+                     .path_cache = .path_cache, 
+                     .path_fasta = .path_fasta)
+      
+      rm(list = c("silac_noenzyme"))
     }
     
-    rm(list = "silac_noenzyme")
+    qs::qsave(df, file_protacc, preset = "fast")
   }
-
-  df <- calc_protfdr(df = df, 
-                     target_fdr = target_fdr, 
-                     max_protscores_co = max_protscores_co, 
-                     max_protnpep_co = max_protnpep_co, 
-                     method_prot_es_co = method_prot_es_co, 
-                     out_path = out_path)
+  
+  rm(list = "file_protacc")
+  
+  ## Protein FDR
+  bypass_protfdr <- dots$bypass_protfdr
+  if (is.null(bypass_protfdr)) bypass_protfdr <- FALSE
+  
+  file_protfdr <- file.path(temp_dir, "df_protfdr.rds")
+  
+  if (bypass_protfdr && file.exists(file_protfdr)) {
+    df <- qs::qread(file_protfdr)
+  }
+  else {
+    df <- calc_protfdr(df = df, 
+                       target_fdr = target_fdr, 
+                       max_protscores_co = max_protscores_co, 
+                       max_protnpep_co = max_protnpep_co, 
+                       method_prot_es_co = method_prot_es_co, 
+                       out_path = out_path)
+    qs::qsave(df, file_protfdr, preset = "fast")
+  }
   
   df <- add_rptrs(df, quant, out_path)
   gc()
@@ -1402,29 +1472,14 @@ matchMS <- function (out_path = "~/mzion/outs",
   
   df <- dplyr::mutate(df, pep_expect = 10^((pep_score_co - pep_score)/10) * target_fdr)
   df[["pep_score_co"]] <- NULL
-  df$pep_ms1_delta <- df$ms1_mass - df$theo_ms1
-
-  df <- dplyr::rename(df, 
-    pep_scan_title = scan_title,
-    pep_exp_mz = ms1_moverz,
-    pep_exp_mr = ms1_mass,
-    pep_exp_z = ms1_charge,
-    pep_calc_mr = theo_ms1,
-    pep_delta = pep_ms1_delta,
-    pep_tot_int = ms1_int,
-    pep_ret_range = ret_time,
-    pep_scan_num = scan_num,
-    pep_n_ms2 = ms2_n,
-    pep_frame = frame)
-
-  nms <- names(df)
+  df$pep_delta <- df$pep_exp_mr - df$pep_calc_mr
   
-  df <- dplyr::bind_cols(
+  nms <- names(df)
+  df  <- dplyr::bind_cols(
     df[grepl("^prot_", nms)],
     df[grepl("^pep_", nms)],
     df[grepl("^psm_", nms)],
     df[!grepl("^prot_|^pep_|^psm_", nms)], )
-
   rm(list = "nms")
   
   df <- reloc_col_after(df, "pep_exp_z", "pep_exp_mr")
@@ -1443,7 +1498,7 @@ matchMS <- function (out_path = "~/mzion/outs",
     session_info <- sessionInfo()
     save(session_info, file = file.path(out_path, "Calls", "mzion.rda"))
   })
-  
+
   ## psmC to psmQ
   df <- df[, c("prot_acc", "pep_seq", "pep_issig", "pep_isdecoy", 
                "prot_issig", "prot_n_pep")]
@@ -1547,7 +1602,11 @@ try_psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
 #'
 #' May solve some memory shortage issues for large data sets by restarting An
 #' Rstudio session.
-#' 
+#'
+#' The score cut-offs are different among the \code{fdr_type} of "psm",
+#' "peptide" and "protein". An experimenter need to match the value of
+#' \code{fdr_type}.
+#'
 #' @param fct A factor for data splitting into chunks. May consider a greater
 #'   value for a larger data set.
 #' @inheritParams matchMS
@@ -1978,7 +2037,7 @@ map_raw_n_scan <- function (df, mgf_path)
     scans <- qs::qread(file_scan)
     scans2 <- names(scans)
     names(scans2) <- scans
-    df$scan_title <- unname(scans2[df$scan_title])
+    df$pep_scan_title <- unname(scans2[df$pep_scan_title])
   }
   else {
     stop("File not found: ", file_scan)
@@ -1992,6 +2051,7 @@ map_raw_n_scan <- function (df, mgf_path)
 #' 
 #' Not yet used. Takes values of integers or character strings.
 #' 
+#' @param oks A vector of allowed modification groups.
 #' @inheritParams matchMS
 check_fdr_group <- function (fdr_group = c("base", "all", "top3"), 
                              oks = c("base", "all"))

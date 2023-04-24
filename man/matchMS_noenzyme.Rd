@@ -25,7 +25,7 @@ matchMS_noenzyme(
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded.}
+for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}
@@ -40,10 +40,7 @@ prepended directory path. The experimenter needs to supply the files.}
   Proteome Discoverer or (3) Bruker's DataAnalysis.
 
   With MSConvert, the default \code{titleMaker} is required for correct
-  parsing (don't think it can be altered by users, but just in case).
-
-  Individuality in MGF files are slightly preferred to take advantage of
-  parallel reading of the files.}
+  parsing (don't think it can be altered by users, but just in case).}
 
 \item{noenzyme_maxn}{Non-negative integer; the maximum number of peptide
 lengths for sectional searches at \code{noenzyme} specificity. The argument

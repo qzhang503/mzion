@@ -13,7 +13,7 @@ count_elements(vec)
 A faster alternative to \code{table}.
 }
 \examples{
-\donttest{
+\dontrun{
 library(mzion)
 library(microbenchmark)
 

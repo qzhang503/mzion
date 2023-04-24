@@ -13,7 +13,7 @@ under a protein, the value is a mass and the name is a peptide sequence.}
 \item{min_len}{The minimum length of peptide sequences for consideration.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded.}
+for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}

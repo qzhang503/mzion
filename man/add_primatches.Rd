@@ -38,10 +38,11 @@ add_primatches(
 \item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
 intensity values (\code{pep_ms2_ints}).}
 
-\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
-  from numeric to integers as opposed to in-situ conversion during ion
-  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
-  useful for very large MS files by reducing RAM footprints.
+\item{index_mgf_ms2}{A low-priority feature. Logical; if TRUE, converts
+  upfrontly MS2 m-over-z values from numeric to integers as opposed to
+  \emph{in-situ} conversion during ion matches. The default is FALSE. The
+  \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
+  reducing RAM footprints.
 
   At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
   theoretical and experimental MS2 m-over-z values is limited by the
@@ -52,5 +53,6 @@ intensity values (\code{pep_ms2_ints}).}
   pep_ms2_deltas_sd} are nullified in the outputs.}
 }
 \description{
-Adds sequences of primary and secondary matches.
+Applied to both targets and decoys as feature "pep_ms2_deltas_mean" may be
+used in SVM-Percolator.
 }

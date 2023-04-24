@@ -681,7 +681,7 @@ expand_grid_rows <- function (..., use.names = TRUE)
 #' 
 #' @param vec A named vector.
 #' @examples 
-#' \donttest{
+#' \dontrun{
 #' library(mzion)
 #' library(microbenchmark)
 #' 
@@ -708,7 +708,7 @@ count_elements <- function (vec)
 #' 
 #' @param x A named character vector.
 #' @examples 
-#' \donttest{
+#' \dontrun{
 #' library(mzion)
 #' library(microbenchmark)
 #' 
@@ -734,7 +734,7 @@ vec_to_list <- function (x)
 #' @param vec A vector.
 #' 
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' ## M
 #' library(mzion)
 #' library(microbenchmark)
@@ -988,9 +988,9 @@ flatten_list <- function (data, use_names = TRUE)
 #' Calculates the reversed MS2 from the forward
 #' 
 #' @param af An sequence of answer of the forward.
-#' @param l The number amino acid residues in a peptide.
 #' @param aas The sequence of amino acid residues.
-calc_rev_ms2 <- function (af, aas) {
+calc_rev_ms2 <- function (af, aas) 
+{
   l <- length(aas)
   l1 <- l - 1L
   l2 <- l - 2L

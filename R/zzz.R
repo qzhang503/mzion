@@ -2,12 +2,12 @@
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage("Welcome to mzion.\n\n",
                         "============================================================================================\n",
-                        # "NEW features (v1.1.9.0):\n",
+                        # "NEW features (v1.2.4):\n",
                         # "[x] Incompatible with cached results from previous versions.\n\n",
                         "[x] For examples, enter \"?matchMS\".\n", 
-                        # "[x] Optimized under R.4.1.3 (tested with R.4.2).\n",
+                        # "[x] Please delete cached \"\temp\pep_score.rds\" for reprocessing wither older versions.\n",
 
-                        # "[x] Updated SILAC utility for custom chemistry.\n",
+                        # "[x] Added Percolator utility.\n",
                         # "[x] See also package `proteoQ` for downstream data QA and informatics.\n", 
                         # "\n",
                         

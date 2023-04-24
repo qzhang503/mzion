@@ -22,12 +22,15 @@ calc_peploc(
 modifications.}
 
 \item{locmods}{Among \code{varmods} for the consideration of localization
-probabilities; for instance, \code{locmods = NULL} for nothing,
-\code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
-phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
-\code{fixedmods} that were coerced to \code{varmods} will be added
-automatically to \code{locmods}. For convenience, the default is set to
-look for applicable peptide phosphorylation.}
+  probabilities; for instance, \code{locmods = NULL} for nothing,
+  \code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
+  phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
+  \code{fixedmods} that were coerced to \code{varmods} will be added
+  automatically to \code{locmods}.
+
+  For convenience, the default is set to look for applicable peptide
+  phosphorylation (and may encounter warning messages if the data type is
+  different to the default).}
 
 \item{topn_mods_per_seq}{Positive integer; a threshold to discard variable
   modifications under the same peptide match with scores beyond the top-n.

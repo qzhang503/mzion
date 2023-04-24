@@ -68,14 +68,12 @@ of SILAC for details. Can be but not typically used in standard alone
 searches of labeled residues.}
 
 \item{mod_motifs}{The motifs to restrict \code{Anywhere} variable
-  modification. For example, provided the \code{Anywhere} variable
-  modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
-
-  \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation (M)` =
-  c("NM", "MP"))}
-
-  variable modifications will only be considered at sites that satisfy the
-  motifs.}
+modification. For example, provided the \code{Anywhere} variable
+modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
+\code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation (M)` =
+c("NM", "MP"))},
+variable modifications will only be considered at sites that satisfy the
+motifs.}
 
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from proteins. The enzyme
@@ -129,8 +127,8 @@ be excluded.}
 \item{max_miss}{The maximum number of mis-cleavages per peptide sequence.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
-interrogation. The default is an arbitrarily low value. The primary guard
-against low molecular-weight precursors is \code{min_len}.}
+interrogation. The default is an arbitrarily low value (the primary guard
+against low molecular-weight precursors is \code{min_len}).}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation.}

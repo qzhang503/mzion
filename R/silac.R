@@ -377,8 +377,7 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
     file.copy(file.path(out_paths[[1]], "Calls"), out_path, recursive = TRUE)
     combine_ion_matches(out_path, out_paths, type = "ion_matches_")
     combine_ion_matches(out_path, out_paths, type = "reporters_")
-    combine_ion_matches(out_path, out_paths, type = "ion_matches_rev_")
-    
+
     this_call$bypass_noenzyme <- TRUE
     this_call$bypass_pepmasses <- TRUE
     this_call$bypass_bin_ms1 <- TRUE
@@ -440,19 +439,16 @@ combine_ion_matches <- function (out_path, out_paths, type = "ion_matches_")
   out_path_temp <- create_dir(file.path(out_path, "temp"))
   out_paths_temp <- lapply(out_paths, function(x) file.path(x, "temp"))
   
-  pat <- paste0(type, "[0-9]+\\.rds$")
+  pat  <- paste0(type, "[0-9]+\\.rds$")
   pat2 <- paste0(type, "([0-9]+)\\.rds$")
   
   files_mts <- local({
     xs <- list.files(out_paths_temp[[1]], pattern = pat)
     
-    if (length(xs)) {
-      idxes <- sort(as.integer(gsub(pat2, "\\1", xs)))
-      files <- paste0(type, idxes, ".rds")
-    }
-    else {
-      files <- NULL
-    }
+    files <- if (length(xs)) 
+      paste0(type, sort(as.integer(gsub(pat2, "\\1", xs))), ".rds")
+    else 
+      NULL
   })
   
   len_mts <- length(files_mts)
@@ -515,8 +511,7 @@ comine_PSMsubs <- function (sub_paths, groups, out_path)
   file.copy(file.path(sub_paths[[1]], "Calls"), out_path, recursive = TRUE)
   combine_ion_matches(out_path, sub_paths, type = "ion_matches_")
   suppressWarnings(combine_ion_matches(out_path, sub_paths, type = "reporters_"))
-  combine_ion_matches(out_path, sub_paths, type = "ion_matches_rev_")
-  
+
   invisible(NULL)
 }
 

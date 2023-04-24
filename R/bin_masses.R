@@ -130,7 +130,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
           "binTheoSeqs2", 
           "bin_theoseqs", 
           "find_ms1_cutpoints"), 
-        envir = environment(mzion:::binTheoSeqs_i))
+        envir = environment(mzion::matchMS))
       
       # No need of flatten() as saveRDS by INDIVIDUAL idx (and return NULL)
       parallel::clusterApplyLB(
@@ -320,7 +320,7 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 200L,
   parallel::clusterExport(cl, list("qread", "qsave"), envir = environment(qs::qsave))
   
   parallel::clusterExport(cl, c("bin_theoseqs", "find_ms1_cutpoints"), 
-                          envir = environment(mzion:::bin_theoseqs))
+                          envir = environment(mzion::matchMS))
   
   out <- parallel::clusterMap(cl, bin_theoseqs, 
                               res, file.path(out_dir, out_nms), 

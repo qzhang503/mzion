@@ -14,6 +14,7 @@ calcpepsc(
   min_ms2mass = 115L,
   d2 = 1e-05,
   index_mgf_ms2 = FALSE,
+  tally_ms2ints = TRUE,
   add_ms2theos = FALSE,
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
@@ -36,10 +37,11 @@ and y-ions.}
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
 
-\item{soft_secions}{Depreciated. Logical; if TRUE, collapses the intensities
-of secondary ions to primary ions at the absence of the primaries. The
-default is FALSE. For instance, the signal of \code{b5^*} will be ignored
-if its primary ion \code{b5} is not matched.}
+\item{soft_secions}{Impacts on search performance not yet assessed. Logical;
+if TRUE, collapses the intensities of secondary ions to primary ions even
+when the primaries are absent. The default is FALSE. For instance, the
+signal of \code{b5^*} will be ignored if its primary ion \code{b5} is not
+matched.}
 
 \item{out_path}{A file path of outputs.}
 
@@ -48,10 +50,11 @@ interrogation. The default is 110.}
 
 \item{d2}{Bin width in ppm divided by 1E6.}
 
-\item{index_mgf_ms2}{Logical; if TRUE, converts upfrontly MS2 m-over-z values
-  from numeric to integers as opposed to in-situ conversion during ion
-  matches. The default is FALSE. The \code{index_mgf_ms2 = TRUE} might be
-  useful for very large MS files by reducing RAM footprints.
+\item{index_mgf_ms2}{A low-priority feature. Logical; if TRUE, converts
+  upfrontly MS2 m-over-z values from numeric to integers as opposed to
+  \emph{in-situ} conversion during ion matches. The default is FALSE. The
+  \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
+  reducing RAM footprints.
 
   At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
   theoretical and experimental MS2 m-over-z values is limited by the
@@ -60,6 +63,8 @@ interrogation. The default is 110.}
   20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
   the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
   pep_ms2_deltas_sd} are nullified in the outputs.}
+
+\item{tally_ms2ints}{Logical; tally MS2 intensities or not.}
 
 \item{add_ms2theos}{Logical. If true, adds the sequence of primary
   theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a

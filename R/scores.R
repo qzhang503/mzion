@@ -259,15 +259,15 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
                                 N, type_ms2ions = "by", topn_ms2ions = 100L, 
                                 ppm_ms2 = 20L, soft_secions = FALSE, 
                                 burn_ins = c(1:2), min_ms2mass = 115L, 
-                                d2 = 1E-5, index_mgf_ms2 = FALSE, digits = 4L) 
+                                d2 = 1E-5, index_mgf_ms2 = FALSE, 
+                                tally_ms2ints = TRUE, digits = 4L) 
 {
   df_theo <- df$theo
   m <- length(df_theo)
 
   ## df2
-  tt2 <- add_seions(df_theo, type_ms2ions = type_ms2ions, digits = digits)
-  df2 <- match_ex2th2(expt_moverzs, tt2, min_ms2mass, d2, index_mgf_ms2)
-  
+  tt2  <- add_seions(df_theo, type_ms2ions = type_ms2ions, digits = digits)
+  df2  <- match_ex2th2(expt_moverzs, tt2, min_ms2mass, d2, index_mgf_ms2)
   ith2 <- df2[["ith"]]
   iex2 <- df2[["iex"]]
 
@@ -303,16 +303,18 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   y[["theo"]][iex] <- df_theo[ith]
   y[["idx"]][iex] <- ith
   
-  ## 3. join `int2` to `y`
-  y_idx <- y[["idx"]]
-  ok_iex <- .Internal(which(!is.na(y_idx)))
-  y_ith <- y_idx[ok_iex]
-  y[["int2"]][ok_iex] <- int2[y_ith]
-  
-  ## 4. collapses `int2` to `int`
-  y[["int"]] <- y[["int"]] %+% y[["int2"]]
-  y[["idx"]] <- y[["int2"]] <- NULL
-  
+  # if (tally_ms2ints) {
+    ## 3. join `int2` to `y`
+    y_idx  <- y[["idx"]]
+    ok_iex <- .Internal(which(!is.na(y_idx)))
+    y_ith  <- y_idx[ok_iex]
+    y[["int2"]][ok_iex] <- int2[y_ith]
+    
+    ## 4. collapses `int2` to `int`
+    y[["int"]] <- y[["int"]] %+% y[["int2"]]
+    y[["idx"]] <- y[["int2"]] <- NULL
+  # }
+
   ###
   if (soft_secions) {
     ok_int2 <- .Internal(which(int2 > 0L & is.na(df[["int"]])))
@@ -321,17 +323,19 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
       ok_iex2 <- iex2[match(ok_int2, ith2 %% m)]
       ok_iex2 <- ifelse(is.na(ok_iex2), m, ok_iex2)
       y[["int"]][ok_iex2] <- int2[ok_int2]
-      y[["theo"]][ok_iex2] <- df_theo[ok_int2]
+      # need to adjust the theoreticals, e.g., (df_theo[ok_int2] + 1.0078)/2; 
+      # for simplicity use expt_moverzs, as long as they are not NA
+      y[["theo"]][ok_iex2] <- expt_moverzs[ok_iex2]
     }
   }
   ###
 
   ## 5. arrange by "-int"
   ord_int <- order(y[["int"]], decreasing = TRUE, method = "radix", na.last = TRUE)
-  y_theo <- y[["theo"]][ord_int]
-  maxi <- .Internal(which(!is.na(y_theo)))
-  maxi <- maxi[length(maxi)]
-  y_theo <- y_theo[1:maxi]
+  y_theo  <- y[["theo"]][ord_int]
+  maxi    <- .Internal(which(!is.na(y_theo)))
+  maxi    <- maxi[length(maxi)]
+  y_theo  <- y_theo[1:maxi]
 
   ## 6. mutate(k = row_number(), x = k - cumsum(is.na(theo)))
   k <- 1:maxi
@@ -340,8 +344,8 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   ## 7. filter(!is.na(theo))
   # note: x <= k <= x + n
   ok_y <- !is.na(y_theo)
-  k <- k[ok_y]
-  x <- x[ok_y]
+  k    <- k[ok_y]
+  x    <- x[ok_y]
 
   ## 8. Probability
   # (to have sufficient counts of noise)
@@ -357,14 +361,15 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   
   if (length(x_)) {
     prs <- stats::dhyper(x = x_, m = m, n = N, k = k_)
-    pr <- min(prs, na.rm = TRUE)
+    pr  <- min(prs, na.rm = TRUE)
   }
-  else 
+  else {
     pr <- .5
-  
+  }
+
   ## outputs
   list(pep_ivmod = nms, 
-       pep_prob = pr, 
+       pep_prob  = pr, 
        pri_matches = list(df), 
        sec_matches = list(df2))
 }
@@ -383,10 +388,11 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
                               N, type_ms2ions = "by", topn_ms2ions = 100L, 
                               ppm_ms2 = 20L, soft_secions = FALSE, 
                               min_ms2mass = 115L, d2 = 1E-5, 
-                              index_mgf_ms2 = FALSE, digits = 4L) 
+                              index_mgf_ms2 = FALSE, tally_ms2ints = TRUE, 
+                              digits = 4L) 
 {
   ## for different positions: $TNLAMMR$`0000500`, $TNLAMMR$`0000050`
-  #    the same `pep_seq`, `theo_ms1` for different mod positions
+  #    the same `pep_seq`, `pep_calc_mr` for different mod positions
   #    different `pep_ivmod`, `pep_prob`, `pri_matches`, `sec_matches`
   
   # NAMES are hexcodes: 0000000
@@ -404,6 +410,7 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
                   min_ms2mass = min_ms2mass, 
                   d2 = d2, 
                   index_mgf_ms2 = index_mgf_ms2, 
+                  tally_ms2ints = tally_ms2ints, 
                   digits = digits
                 ), 
                 SIMPLIFY = FALSE,
@@ -446,7 +453,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
                         N, type_ms2ions = "by", topn_ms2ions = 100L, 
                         ppm_ms2 = 20L, soft_secions = FALSE, 
                         min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE, 
-                        digits = 4L) 
+                        tally_ms2ints = TRUE, digits = 4L) 
 {
   out <- mapply(
     calc_probi_bypep, 
@@ -462,6 +469,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
       min_ms2mass = min_ms2mass, 
       d2 = d2, 
       index_mgf_ms2 = index_mgf_ms2, 
+      tally_ms2ints = tally_ms2ints, 
       digits = digits
     ), 
     SIMPLIFY = FALSE,
@@ -483,11 +491,11 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
 scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by", 
                             ppm_ms2 = 20L, soft_secions = FALSE, 
                             min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE, 
-                            digits = 4L) 
+                            tally_ms2ints = TRUE, digits = 4L) 
 {
   # only one experimental set of values and thus `[[1]]`
-  expt_moverzs <- entry$ms2_moverz[[1]]
-  expt_ints <- entry[["ms2_int"]][[1]]
+  expt_moverzs <- entry[["pep_ms2_moverzs"]][[1]]
+  expt_ints <- entry[["pep_ms2_ints"]][[1]]
 
   ## matches between theoreticals and experimentals
   
@@ -520,9 +528,7 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
   
   # (flattens by one level as is a list-column)
   mts <- entry[["matches"]][[1]]
-
-  # N <- entry$ms2_n[[1]]
-  topn_ms2ions <- min(topn_ms2ions, entry$ms2_n[[1]])
+  topn_ms2ions <- min(topn_ms2ions, entry$pep_n_ms2[[1]])
   N <- min(topn_ms2ions * 5L, 500L)
   
   out <- calc_probi(mts = mts, 
@@ -536,6 +542,7 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
                     min_ms2mass = min_ms2mass, 
                     d2 = d2, 
                     index_mgf_ms2 = index_mgf_ms2, 
+                    tally_ms2ints = tally_ms2ints, 
                     digits = digits)
 
   uniq_id <- .Internal(unlist(entry$uniq_id, recursive = FALSE, use.names = FALSE))
@@ -559,7 +566,8 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
                              ppm_ms2 = 20L, soft_secions = FALSE, 
                              out_path = "~/mzion/outs", 
                              min_ms2mass = 115L, d2 = 1E-5, 
-                             index_mgf_ms2 = FALSE, digits = 4L) 
+                             index_mgf_ms2 = FALSE, tally_ms2ints = TRUE, 
+                             digits = 4L) 
 {
   n_rows <- nrow(df)
   
@@ -574,6 +582,7 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
                  min_ms2mass = min_ms2mass, 
                  d2 = d2, 
                  index_mgf_ms2 = index_mgf_ms2, 
+                 tally_ms2ints = tally_ms2ints, 
                  digits = digits)
     
     df <- .Internal(unlist(df, recursive = FALSE, use.names = FALSE))
@@ -586,7 +595,7 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
       pep_prob = as.numeric(), 
       pri_matches = list(), 
       sec_matches = list(), 
-      scan_num = as.integer())
+      pep_scan_num = as.integer())
   }
   
   invisible(df)
@@ -594,7 +603,8 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
 
 
 #' Calculates the scores of peptides.
-#'
+#' 
+#' @param tally_ms2ints Logical; tally MS2 intensities or not.
 #' @inheritParams matchMS
 #' @import parallel
 calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by", 
@@ -607,6 +617,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             soft_secions = FALSE, 
                             out_path = "~/mzion/outs", 
                             min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
+                            tally_ms2ints = TRUE, 
                             
                             mgf_path, maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
                             maxn_vmods_sitescombi_per_pep = 64L, minn_ms2 = 6L, 
@@ -693,6 +704,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
               min_ms2mass = min_ms2mass, 
               d2 = d2, 
               index_mgf_ms2 = index_mgf_ms2, 
+              tally_ms2ints = tally_ms2ints, 
               add_ms2theos = add_ms2theos, 
               add_ms2theos2 = add_ms2theos2, 
               add_ms2moverzs = add_ms2moverzs, 
@@ -755,7 +767,8 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 #' @inheritParams calc_pepscores
 calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by", 
                        ppm_ms2 = 20L, soft_secions = FALSE, out_path = NULL, 
-                       min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE, 
+                       min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE,
+                       tally_ms2ints = TRUE, 
                        add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                        add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
                        n_cores = 16L, digits = 4L) 
@@ -766,14 +779,14 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   file_lt <- file.path(out_path, "temp", paste0("list_table_", idx, ".rds"))
   file_sc <- file.path(out_path, "temp", paste0("pepscores_", idx, ".rds"))
   
-  cols_a  <- c("scan_num", "raw_file")
-  cols_b  <- c("ms2_moverz", "ms2_int", "pri_matches", "sec_matches")
+  cols_a  <- c("pep_scan_num", "raw_file")
+  cols_b  <- c("pep_ms2_moverzs", "pep_ms2_ints", "pri_matches", "sec_matches")
   cols_lt <- c(cols_a, cols_b)
   
-  cols_sc <- c("pep_seq", "ms2_n", "scan_title", "ms1_moverz", "ms1_mass", 
-               "ms1_int", "ms1_charge", "ret_time", "scan_num", "raw_file", 
-               "pep_mod_group", "frame", "pep_fmod", "pep_vmod", "pep_isdecoy", 
-               "theo_ms1", "pep_ivmod", "pep_prob", "pep_len", 
+  cols_sc <- c("pep_seq", "pep_n_ms2", "pep_scan_title", "pep_exp_mz", "pep_exp_mr", 
+               "pep_tot_int", "pep_exp_z", "pep_ret_range", "pep_scan_num", "raw_file", 
+               "pep_mod_group", "pep_frame", "pep_fmod", "pep_vmod", "pep_isdecoy", 
+               "pep_calc_mr", "pep_ivmod", "pep_prob", "pep_len", 
                "pep_ms2_moverzs", "pep_ms2_ints", 
                "pep_ms2_theos", "pep_ms2_theos2", 
                "pep_ms2_exptints", "pep_ms2_exptints2", 
@@ -784,9 +797,23 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                # for localization scores
                "pep_ms2_ideltas.")
   
+  
   df <- qs::qread(file.path(out_path, "temp", file))
   n_rows <- nrow(df)
   
+  df <- dplyr::rename(df, 
+                      pep_ret_range = ret_time, 
+                      pep_scan_title = scan_title,
+                      pep_exp_mz = ms1_moverz, 
+                      pep_n_ms2 = ms2_n, 
+                      pep_exp_mr = ms1_mass, 
+                      pep_tot_int = ms1_int, 
+                      pep_scan_num = scan_num, 
+                      pep_exp_z = ms1_charge, 
+                      pep_ms2_moverzs = ms2_moverz, 
+                      pep_ms2_ints = ms2_int, 
+                      pep_frame = frame)
+
   if (!n_rows) {
     dfa <- data.frame(matrix(ncol = length(cols_lt), nrow = 0L))
     colnames(dfa) <- cols_lt
@@ -801,8 +828,8 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
 
   tempdir <- create_dir(file.path(out_path, "sc_temp"))
   
-  df[["uniq_id"]] <- paste(df[["scan_num"]], df[["raw_file"]], sep = "@")
-  esscols <- c("ms2_moverz", "ms2_int", "matches", "ms2_n", "uniq_id")
+  df[["uniq_id"]] <- paste(df[["pep_scan_num"]], df[["raw_file"]], sep = "@")
+  esscols <- c("pep_ms2_moverzs", "pep_ms2_ints", "matches", "pep_n_ms2", "uniq_id")
   path_df2 <- file.path(tempdir, "df2_sc_temp.rda")
   df2 <- df[, -which(names(df) %in% esscols), drop = FALSE]
   qs::qsave(df2, path_df2, preset = "fast")
@@ -825,6 +852,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
       min_ms2mass = min_ms2mass, 
       d2 = d2, 
       index_mgf_ms2 = index_mgf_ms2, 
+      tally_ms2ints = tally_ms2ints, 
       digits = digits)
   }
   else {
@@ -837,7 +865,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                                      "calc_probi_byvmods", "add_seions", 
                                      "find_ppm_outer_bycombi", "match_ex2th2", 
                                      "add_primatches"), 
-                            envir = environment(mzion:::scalc_pepprobs))
+                            envir = environment(mzion::matchMS))
 
     if (n_rows > max_rows) {
       dfs <- suppressWarnings(chunksplit(df, ceiling(n_rows/max_rows), "row"))
@@ -869,6 +897,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                                              min_ms2mass = min_ms2mass, 
                                              d2 = d2, 
                                              index_mgf_ms2 = index_mgf_ms2, 
+                                             tally_ms2ints = tally_ms2ints, 
                                              digits = digits)
         probs[[i]] <- dplyr::bind_rows(probs[[i]])
       }
@@ -896,6 +925,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
           min_ms2mass = min_ms2mass, 
           d2 = d2, 
           index_mgf_ms2 = index_mgf_ms2, 
+          tally_ms2ints = tally_ms2ints, 
           digits = digits)
       }
       else {
@@ -909,6 +939,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                                         min_ms2mass = min_ms2mass, 
                                         d2 = d2, 
                                         index_mgf_ms2 = index_mgf_ms2, 
+                                        tally_ms2ints = tally_ms2ints, 
                                         digits = digits)
         
         parallel::stopCluster(cl)
@@ -956,7 +987,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   else {
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     parallel::clusterExport(cl, list("add_primatches"), 
-                            envir = environment(mzion:::add_primatches))
+                            envir = environment(mzion::matchMS))
     
     max_theos <- 500000L
 
@@ -1011,6 +1042,7 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   message("\tCompleted theoretical MS2 m/z and intensity values: ", Sys.time())
 
   df[["pep_isdecoy"]] <- ifelse(is.na(df[["pep_ivmod"]]), TRUE, FALSE)
+  df <- dplyr::rename(df, pep_calc_mr = theo_ms1)
   
   if (!all(cols_sc %in% names(df)))
     stop("Developer needs to update the columns of peptide scores.")
@@ -1025,6 +1057,9 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
 
 
 #' Adds sequences of primary and secondary matches.
+#'
+#' Applied to both targets and decoys as feature "pep_ms2_deltas_mean" may be
+#' used in SVM-Percolator.
 #'
 #' @param df A data frame.
 #' @inheritParams matchMS
@@ -1089,19 +1124,19 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
     d1s[[i]] <- .Internal(paste0(list(ds1), collapse = ";", recycle0 = FALSE))
     d2s[[i]] <- .Internal(paste0(list(ds2), collapse = ";", recycle0 = FALSE))
     
-    p1s[[i]] <- .Internal(paste0(list(ps1), collapse = ";", recycle0 = FALSE))
-    p2s[[i]] <- .Internal(paste0(list(ps2), collapse = ";", recycle0 = FALSE))
+    p1s[[i]]  <- .Internal(paste0(list(ps1), collapse = ";", recycle0 = FALSE))
+    p2s[[i]]  <- .Internal(paste0(list(ps2), collapse = ";", recycle0 = FALSE))
     iys1[[i]] <- .Internal(paste0(list(iy1[ps1]), collapse = ";", recycle0 = FALSE))
     iys2[[i]] <- .Internal(paste0(list(iy2[ps2]), collapse = ";", recycle0 = FALSE))
     
     me1s[[i]] <- me1
     sd1s[[i]] <- sd1
     
-    m1s[[i]] <- mt1$m
-    m2s[[i]] <- mt2$m
+    m1s[[i]]  <- mt1$m
+    m2s[[i]]  <- mt2$m
     p1s.[[i]] <- ps1
 
-    if (i %% 5000L == 0L) gc()
+    # if (i %% 5000L == 0L) gc()
   }
   
   if (index_mgf_ms2) {
@@ -1157,15 +1192,15 @@ collapse_vecs <- function (vecs, nm = "theo", sep = ";")
 #' @param df A results after pep_scores.
 post_pepscores <- function (df) 
 {
-  df[["scan_num"]] <- as.character(df[["scan_num"]])
+  df[["pep_scan_num"]] <- as.character(df[["pep_scan_num"]])
   df[["pep_len"]] <- stringr::str_length(df[["pep_seq"]])
-  df[["scan_title"]] <- as.character(df[["scan_title"]])
-  df[["ms1_moverz"]] <- as.numeric(df[["ms1_moverz"]])
-  df[["ms1_mass"]] <- as.numeric(df[["ms1_mass"]])
-  df[["ms1_int"]] <- as.numeric(df[["ms1_int"]])
-  df[["ms1_charge"]] <- as.character(df[["ms1_charge"]])
-  df[["ret_time"]] <- as.integer(df[["ret_time"]])
-  df[["ms2_n"]] <- as.integer(df[["ms2_n"]])
+  df[["pep_scan_title"]] <- as.character(df[["pep_scan_title"]])
+  df[["pep_exp_mz"]] <- as.numeric(df[["pep_exp_mz"]])
+  df[["pep_exp_mz"]] <- as.numeric(df[["pep_exp_mz"]])
+  df[["pep_tot_int"]] <- as.numeric(df[["pep_tot_int"]])
+  df[["pep_exp_z"]] <- as.character(df[["pep_exp_z"]])
+  df[["pep_ret_range"]] <- as.integer(df[["pep_ret_range"]])
+  df[["pep_n_ms2"]] <- as.integer(df[["pep_n_ms2"]])
   df[["pep_fmod"]] <- as.character(df[["pep_fmod"]])
   df[["pep_vmod"]] <- as.character(df[["pep_vmod"]])
   
@@ -1182,29 +1217,32 @@ post_pepscores <- function (df)
 find_pepscore_co1 <- function (td, target_fdr = 0.01) 
 {
   target <- dplyr::filter(td, !pep_isdecoy)
-  decoy <- dplyr::filter(td, pep_isdecoy)
+  decoy  <- dplyr::filter(td, pep_isdecoy)
   
   nt <- nrow(target)
   nd <- nrow(decoy)
   
-  if (nd <= 5L) return(NA)
+  if (nd <= 5L) 
+    return(NA_real_)
   
   n <- nt + nd
-  lambt <- nt/(n)
+  lambt <- nt / n
   lambd <- 1 - lambt
   
   vecd <- log2(decoy$pep_score)
   sigmad <- sd(vecd, na.rm = TRUE)
   mud <- mean(vecd, na.rm = TRUE)
   
-  if (is.na(sigmad)) return(NA)
+  if (is.na(sigmad)) 
+    return(NA_real_)
   
   xs <- seq(mud + sigmad, mud + 3*sigmad, 0.014355293)
   
   for (i in seq_along(xs)) {
     y <- (1 - pnorm(xs[i], mud, sigmad)) * nd / n
     
-    if (y <= target_fdr) break
+    if (y <= target_fdr) 
+      break
   }
   
   2^(xs[i])
@@ -1220,29 +1258,32 @@ find_pepscore_co1 <- function (td, target_fdr = 0.01)
 find_pepscore_co2 <- function (td, target_fdr = 0.01) 
 {
   target <- dplyr::filter(td, !pep_isdecoy)
-  decoy <- dplyr::filter(td, pep_isdecoy)
+  decoy  <- dplyr::filter(td, pep_isdecoy)
   
   nt <- nrow(target)
   nd <- nrow(decoy)
   
-  if (nd <= 5L) return(NA)
+  if (nd <= 5L) 
+    return(NA_real_)
   
   n <- nt + nd
-  lambt <- nt/(n)
+  lambt <- nt / n
   lambd <- 1 - lambt
   
   vecd <- decoy$pep_score
   sigmad <- sd(vecd, na.rm = TRUE)
   mud <- mean(vecd, na.rm = TRUE)
   
-  if (is.na(sigmad)) return(NA)
+  if (is.na(sigmad)) 
+    return(NA_real_)
   
   xs <- seq( mud + 4*sigmad, mud + sigmad, -.1)
   
   for (i in seq_along(xs)) {
     y <- (1 - plnorm(xs[i], mud, sigmad, lower.tail = FALSE)) * nd / n
     
-    if (y >= target_fdr) break
+    if (y >= target_fdr) 
+      break
   }
   
   xs[i]
@@ -1261,40 +1302,13 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
                              min_pepscores_co = 0, out_path) 
 {
   td <- dplyr::filter(td, pep_len == len)
+  td <- sub_td_byfdrtype(td, fdr_type)
   
-  if (fdr_type %in% c("peptide", "protein")) {
-    if (fdr_type == "protein") {
-      td <- dplyr::arrange(td, pep_seq, pep_prob)
-      td <- dplyr::group_by(td, pep_seq)
-      td <- dplyr::filter(td, row_number() == 1L)
-      td <- dplyr::ungroup(td)
-    }
-    else {
-      # td[["pep_ivmod2"]] <- gsub(" [\\(\\[]\\d+[\\)\\[]$", "", td[["pep_ivmod"]])
-      td[["pep_ivmod2"]] <- gsub(" .*", "", td[["pep_ivmod"]])
-      td[["pep_seq_mod"]] <- ifelse(is.na(td[["pep_ivmod2"]]), td[["pep_seq"]], 
-                                    paste0(td[["pep_seq"]], ".", td[["pep_ivmod2"]]))
-      td <- dplyr::arrange(td, pep_seq_mod, pep_prob)
-      td <- dplyr::group_by(td, pep_seq_mod)
-      td <- dplyr::filter(td, row_number() == 1L)
-      td <- dplyr::ungroup(td)
-      td[["pep_ivmod2"]] <- NULL
-      td[["pep_seq_mod"]] <- NULL
-    }
-  }
-
-  td <- dplyr::select(td, pep_prob, pep_isdecoy)
-  td <- dplyr::arrange(td, pep_prob)
-  td <- dplyr::mutate(td, total = row_number())
-  td <- dplyr::mutate(td, decoy = cumsum(pep_isdecoy))
-  td <- dplyr::mutate(td, fdr = decoy/total)
-  td <- dplyr::mutate(td, pep_score = -log10(pep_prob) * 10)
-
   count <- nrow(td)
   
   if (count < (1 / target_fdr)) {
-    if (count <= 10L) # changed from 20L
-      return(NA)
+    if (count <= 10L)
+      return(NA_real_)
     
     best_co <- tryCatch(
       (find_pepscore_co1(td, target_fdr) + find_pepscore_co2(td, target_fdr))/2,
@@ -1426,19 +1440,54 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
     rm(list = c("df", "fit"))
     
     prob_co <- 10^(-best_co/10)
-  } 
+  }
   else {
     best_co <- tryCatch(
       (find_pepscore_co1(td, target_fdr) + find_pepscore_co2(td, target_fdr))/2,
-      error = function(e) NA
-    )
-    
+      error = function(e) NA)
+
     prob_co <- 10^(-best_co/10)
   }
   
   names(prob_co) <- count
 
   invisible(prob_co)
+}
+
+
+#' Subsets targets and decoys by fdr_type.
+#' 
+#' @param td A data frame of targets and decoys.
+#' @inheritParams matchMS
+sub_td_byfdrtype <- function (td, fdr_type)
+{
+  if (fdr_type %in% c("peptide", "protein")) {
+    if (fdr_type == "protein") {
+      td <- dplyr::arrange(td, pep_seq, pep_prob)
+      td <- dplyr::group_by(td, pep_seq)
+      td <- dplyr::filter(td, row_number() == 1L)
+      td <- dplyr::ungroup(td)
+    }
+    else {
+      # td[["pep_ivmod2"]] <- gsub(" [\\(\\[]\\d+[\\)\\[]$", "", td[["pep_ivmod"]])
+      td[["pep_ivmod2"]] <- gsub(" .*", "", td[["pep_ivmod"]])
+      td[["pep_seq_mod"]] <- ifelse(is.na(td[["pep_ivmod2"]]), td[["pep_seq"]], 
+                                    paste0(td[["pep_seq"]], ".", td[["pep_ivmod2"]]))
+      td <- dplyr::arrange(td, pep_seq_mod, pep_prob)
+      td <- dplyr::group_by(td, pep_seq_mod)
+      td <- dplyr::filter(td, row_number() == 1L)
+      td <- dplyr::ungroup(td)
+      td[["pep_ivmod2"]] <- NULL
+      td[["pep_seq_mod"]] <- NULL
+    }
+  }
+  
+  td <- dplyr::select(td, pep_prob, pep_isdecoy)
+  td <- dplyr::arrange(td, pep_prob)
+  td <- dplyr::mutate(td, total = row_number())
+  td <- dplyr::mutate(td, decoy = cumsum(pep_isdecoy))
+  td <- dplyr::mutate(td, fdr = decoy/total)
+  td <- dplyr::mutate(td, pep_score = -log10(pep_prob) * 10)
 }
 
 
@@ -1492,54 +1541,31 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 }
 
 
-#' Calculates the cut-off score at a peptide FDR.
-#'
-#' Needs \code{min_len} and \code{max_len} since the target-decoy pair may not
-#' cover all \code{pep_len} values.
-#'
-#' @param target_fdr Numeric; the levels of false-discovery rate (FDR).
-#' @param fdr_type Character string; the type of FDR for controlling.
+#' Prepares target-decoy data.
+#' 
+#' @param td A data frame of targets and decoys (for Percolator).
 #' @inheritParams matchMS
-#' @examples 
-#' \donttest{
-#' library(mzion)
-#' 
-#' if (FALSE) {
-#'   prob_cos <- calc_pepfdr(target_fdr = .01, 
-#'                           fdr_type = "protein", 
-#'                           min_len = 7L, 
-#'                           max_len = 50L, 
-#'                           out_path = "~/mzion/bi_1")
-#' }
-#' 
-#' }
-calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein", 
-                         min_len = 7L, max_len = 40L, 
-                         max_pepscores_co = 50, min_pepscores_co = 0, 
-                         enzyme = "trypsin_p", 
-                         fdr_group = "base", 
-                         nes_fdr_group = "base", 
-                         out_path) 
+prep_pepfdr_td <- function (td = NULL, out_path, enzyme = "trypsin_p", 
+                            nes_fdr_group = "base", fdr_group = "base")
 {
-  message("Calculating peptide FDR.")
-  
-  fct_score <- 10
-  
   files <- list.files(path = file.path(out_path, "temp"), 
                       pattern = "^pepscores_", full.names = TRUE)
-  
-  top3s <- gsub(paste0("^.*pepscores_", "(\\d+)\\.rds$"), "\\1", 
-                files[which_topx2(file.size(files), 3L)[1:3]])
-
-  max_i <- gsub(paste0("^.*pepscores_", "(\\d+)\\.rds$"), "\\1", 
-                files[which.max(file.size(files))[[1]]])
   
   if (!length(files)) 
     stop("Score results not found.", call. = FALSE)
   
-  td <- lapply(files, qs::qread)
-  td <- td[lapply(td, nrow) > 0L] # otherwise, error with bind_rows
-  td <- dplyr::bind_rows(td)
+  top3s <- gsub(paste0("^.*pepscores_", "(\\d+)\\.rds$"), "\\1", 
+                files[which_topx2(file.size(files), 3L)[1:3]])
+  top3s <- top3s[!is.na(top3s)]
+  
+  max_i <- gsub(paste0("^.*pepscores_", "(\\d+)\\.rds$"), "\\1", 
+                files[which.max(file.size(files))[[1]]])
+  
+  if (is.null(td)) {
+    td <- lapply(files, qs::qread)
+    td <- td[lapply(td, nrow) > 0L] # otherwise, error with bind_rows
+    td <- dplyr::bind_rows(td)
+  }
 
   enzyme <- tolower(enzyme)
   is_nes <- enzyme == "noenzyme" || grepl("^semi", enzyme)
@@ -1584,20 +1610,22 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   if (!nrow(td))
     stop("Found nothing: empty targets and decoys.")
   
-  if (!sum(td[["pep_isdecoy"]])) {
-    warning("No decoys found.")
-    seqs <- min_len:max(td[["pep_len"]], na.rm = TRUE)
-    prob_cos <- rep(.5, length(seqs))
-    
-    return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
-  }
-  
+  td
+}
+
+
+#' Keeps the best entries of targets and decoys.
+#' 
+#' @param td A data frame of targets and decoys.
+#' @param cols Columns for grouping.
+keep_pepfdr_best <- function (td, cols = c("pep_scan_num", "raw_file"))
+{
   # keeps separated best hits for targets and decoys
   # two lists of "TRUE" and "FALSE"
   td <- split(td, td[["pep_isdecoy"]])
   
   td <- lapply(td, function (x) {
-    x <- dplyr::group_by(x, scan_num, raw_file)
+    x <- dplyr::group_by_at(x, cols)
     x <- dplyr::arrange(x, pep_prob)
     x <- dplyr::filter(x, row_number() == 1L)
     x <- dplyr::ungroup(x)
@@ -1607,19 +1635,74 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   ok <- is.na(fastmatch::fmatch(reverse_seqs(td[["FALSE"]][["pep_seq"]]), 
                                 td[["TRUE"]][["pep_seq"]]))
   td[["FALSE"]] <- td[["FALSE"]][ok, ]
-
+  
   #  keeps the best hit for each `scan_num`
   td <- if (nrow(td[["FALSE"]]))
     dplyr::bind_rows(td[c("TRUE", "FALSE")])
   else
     td[["TRUE"]]
   
-  td <- dplyr::group_by(td, scan_num, raw_file)
+  td <- dplyr::group_by_at(td, cols)
   td <- dplyr::arrange(td, pep_prob)
   td <- dplyr::filter(td, row_number() == 1L)
   td <- dplyr::ungroup(td)
-  gc()
+}
+
+
+#' Calculates the cut-off score at a peptide FDR.
+#'
+#' Needs \code{min_len} and \code{max_len} since the target-decoy pair may not
+#' cover all \code{pep_len} values.
+#' 
+#' @param target_fdr Numeric; the levels of false-discovery rate (FDR).
+#' @param fdr_type Character string; the type of FDR for controlling.
+#' @param fct_score A trivial factor converting p-values to scores.
+#' @inheritParams matchMS
+#' @examples 
+#' \donttest{
+#' library(mzion)
+#' 
+#' if (FALSE) {
+#'   prob_cos <- calc_pepfdr(target_fdr = .01, 
+#'                           fdr_type = "protein", 
+#'                           min_len = 7L, 
+#'                           max_len = 50L, 
+#'                           out_path = "~/mzion/bi_1")
+#' }
+#' 
+#' }
+calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein", 
+                         min_len = 7L, max_len = 40L, 
+                         max_pepscores_co = 50, min_pepscores_co = 0, 
+                         enzyme = "trypsin_p", 
+                         fdr_group = "base", 
+                         nes_fdr_group = "base", 
+                         fct_score = 10, 
+                         out_path) 
+{
+  message("Calculating peptide FDR.")
   
+  td <- prep_pepfdr_td(out_path = out_path, 
+                       enzyme = enzyme, 
+                       nes_fdr_group = nes_fdr_group, 
+                       fdr_group = fdr_group)
+  
+  # back-compatibility to new column keys (e.g. scan_num -> pep_scan_num)
+  if (!"pep_scan_num" %in% names(td)) 
+    stop("Seems like reprocessing of results from an earlier version.\n", 
+         "  Please delete old \"temp\\pep_score[...].rds\".")
+  
+  if (!sum(td[["pep_isdecoy"]])) {
+    warning("No decoys found.")
+    seqs <- min_len:max(td[["pep_len"]], na.rm = TRUE)
+    prob_cos <- rep(.5, length(seqs))
+    
+    return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
+  }
+  
+  td <- keep_pepfdr_best(td)
+  qs::qsave(td, file.path(out_path, "temp", "td_pepfdr.rds"), preset = "fast")
+
   # --- 
   all_lens <- sort(unique(td$pep_len))
   
@@ -2530,7 +2613,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   
   # For simplicity `pep_seq` uses interchangeably with `uniq_id` and 
   # `pep_seq_mod` with `uniq_id2` where everything is on top of the same 
-  # pep_isdecoy, scan_num, raw_file.
+  # pep_isdecoy, pep_scan_num, raw_file.
   # 
   # uniq_id --- can differentiate the same `pep_seq` at different mod locations & NL 
   # uniq_id2 --- can differentiate the same `pep_seq_mod` at different NLs
@@ -2546,7 +2629,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   message("\tRank peptides by neutral losses.")
   
   x[, pep_isdecoy := as.integer(pep_isdecoy)]
-  x[, uniq_id := paste(pep_isdecoy, scan_num, raw_file, pep_seq, sep = ".")]
+  x[, uniq_id := paste(pep_isdecoy, pep_scan_num, raw_file, pep_seq, sep = ".")]
   x[, "pep_ivmod2" := gsub(" [\\(\\[]\\d+[\\)\\[]$", "", pep_ivmod)]
   x[, uniq_id2 := paste(uniq_id, pep_ivmod2, sep = ".")]
   
@@ -2746,7 +2829,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   message("\tSubset peptide sequences by query: \"topn_seqs_per_query <= ", 
           topn_seqs_per_query, "\".")
   
-  x0[, uniq_id3 := paste(pep_isdecoy, scan_num, raw_file, sep = ".")]
+  x0[, uniq_id3 := paste(pep_isdecoy, pep_scan_num, raw_file, sep = ".")]
   
   if (para) {
     x0 <- x0[order(x0[["uniq_id3"]]), ]

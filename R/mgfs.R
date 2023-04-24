@@ -469,7 +469,7 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
       "index_mz", 
       "integerize_ms2ints", 
       "find_ms1_interval"), 
-    envir = environment(mzion:::proc_mgf_chunks)
+    envir = environment(mzion::matchMS)
   )
 
   out <- parallel::clusterApply(cl, file.path(filepath, filelist),

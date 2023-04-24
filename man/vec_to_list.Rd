@@ -13,7 +13,7 @@ vec_to_list(x)
 Split a named character vector to lists.
 }
 \examples{
-\donttest{
+\dontrun{
 library(mzion)
 library(microbenchmark)
 

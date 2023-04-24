@@ -13,7 +13,7 @@ split_vec(vec)
 Split a vector by values
 }
 \examples{
-\donttest{
+\dontrun{
 ## M
 library(mzion)
 library(microbenchmark)

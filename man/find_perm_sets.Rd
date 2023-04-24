@@ -13,7 +13,7 @@ find_perm_sets(labs = c("A", "A", "A", "B", "B", "C"))
 A (faster alternative) to \link[gtools]{permutations} with duplicated labels.
 }
 \examples{
-\donttest{
+\dontrun{
 library(gtools)
 library(mzion)
 library(dplyr)

@@ -17,10 +17,7 @@ add_raw_ids(df, mgf_path)
   Proteome Discoverer or (3) Bruker's DataAnalysis.
 
   With MSConvert, the default \code{titleMaker} is required for correct
-  parsing (don't think it can be altered by users, but just in case).
-
-  Individuality in MGF files are slightly preferred to take advantage of
-  parallel reading of the files.}
+  parsing (don't think it can be altered by users, but just in case).}
 }
 \description{
 Currently only used with psmC.txt during matchMS. An inverse function of

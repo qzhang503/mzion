@@ -15,7 +15,7 @@ add_one_permlab(M, x)
 Helper in making permuation table.
 }
 \examples{
-\donttest{
+\dontrun{
 library(mzion)
 library(gtools)
 library(dplyr)

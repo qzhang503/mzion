@@ -46,6 +46,7 @@ ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
     c("frames_adv", 
       "gen_ms2ions_a1_vnl0_fnl1", 
       "gen_ms2ions_a1_vnl0_fnl0",
+      "calc_rev_ms2", 
       "match_mvmods", 
       "expand_grid_rows", 
       "find_vmodscombi", 
@@ -69,7 +70,7 @@ ms2match_a1_vnl0_fnl1 <- function (i, aa_masses, ms1vmods, ms2vmods,
       "fuzzy_match_one", 
       "fuzzy_match_one2", 
       "post_frame_adv"), 
-    envir = environment(mzion:::frames_adv)
+    envir = environment(mzion::matchMS)
   )
   
   out <- parallel::clusterMap(

@@ -10,8 +10,6 @@ calc_rev_ms2(af, aas)
 \item{af}{An sequence of answer of the forward.}
 
 \item{aas}{The sequence of amino acid residues.}
-
-\item{l}{The number amino acid residues in a peptide.}
 }
 \description{
 Calculates the reversed MS2 from the forward

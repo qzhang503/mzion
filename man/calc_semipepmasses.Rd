@@ -22,7 +22,7 @@ calc_semipepmasses(
 for considerations. Shorter peptides will be excluded. The default is 7.}
 
 \item{max_len}{A positive integer; the maximum length of peptide sequences
-for considerations. Longer peptides will be excluded.}
+for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{aa_masses}{An amino-acid mass lookup.}
 

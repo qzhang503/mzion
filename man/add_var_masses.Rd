@@ -25,14 +25,12 @@ of SILAC for details. Can be but not typically used in standard alone
 searches of labeled residues.}
 
 \item{mod_motifs}{The motifs to restrict \code{Anywhere} variable
-  modification. For example, provided the \code{Anywhere} variable
-  modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
-
-  \code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation (M)` =
-  c("NM", "MP"))}
-
-  variable modifications will only be considered at sites that satisfy the
-  motifs.}
+modification. For example, provided the \code{Anywhere} variable
+modifications containing \code{c("Oxidation (M)", "Deamidated (N)")} and
+\code{mod_motifs = list(`Deamidated (N)` = c("NG", "NM"), `Oxidation (M)` =
+c("NM", "MP"))},
+variable modifications will only be considered at sites that satisfy the
+motifs.}
 
 \item{anywhere_coerce_sites}{The sites of coerced Anywhere modifications; for
 example, \code{K}.}
