@@ -1354,11 +1354,6 @@ matchMS <- function (out_path = "~/mzion/outs",
                    add_ms2moverzs = add_ms2moverzs, 
                    add_ms2ints = add_ms2ints,
                    digits = digits)
-    
-    hadd_primatches(out_path = out_path, 
-                    add_ms2theos = add_ms2theos, add_ms2theos2 = add_ms2theos2, 
-                    add_ms2moverzs = add_ms2moverzs, add_ms2ints = add_ms2ints, 
-                    index_mgf_ms2 = index_mgf_ms2)
   }
   
   ## Peptide FDR 

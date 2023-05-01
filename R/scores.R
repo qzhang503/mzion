@@ -713,6 +713,11 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
               n_cores = detect_cores(16L), 
               digits = digits)
     
+  hadd_primatches(out_path = out_path, 
+                  add_ms2theos = add_ms2theos, add_ms2theos2 = add_ms2theos2, 
+                  add_ms2moverzs = add_ms2moverzs, add_ms2ints = add_ms2ints, 
+                  index_mgf_ms2 = index_mgf_ms2)
+  
   .savecall <- TRUE
   
   invisible(NULL)
