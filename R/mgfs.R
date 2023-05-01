@@ -213,6 +213,9 @@ readMGF <- function (filepath = NULL, filelist = NULL,
   nfields_pepmass <- pat_mgf$nfields_pepmass
   raw_file <- pat_mgf$raw_file
   
+  if (type_mgf == "default_pasef")
+    mprepBrukerMGF(filepath)
+  
   local({
     if (type_mgf == "msconv_thermo") {
       data_format <- "Thermo-RAW"
@@ -1587,6 +1590,74 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
     
     rptr_moverz = rptr_moverzs, 
     rptr_int = rptr_ints, )
+}
+
+
+#' Preprocessing Bruker's MGF
+#' 
+#' Some entries may have no CHARGE line
+#'
+#' @param file A file name
+#' @param begin_offset The number of lines before a BEGIN line.
+#' @param charge_offset The number lines after a BEGIN line to a following
+#'   CHARGE line.
+prepBrukerMGF <- function (file = NULL, begin_offset = 5L, charge_offset = 5L)
+{
+  if (is.null(file))
+    stop("`file` cannot be NULL.")
+  
+  message("Processing: ", file)
+  
+  lines <- readLines(file)
+  
+  begins <- .Internal(which(stringi::stri_startswith_fixed(lines, "BEGIN IONS")))
+  ends   <- .Internal(which(stringi::stri_endswith_fixed(lines, "END IONS")))
+  hdrs   <- 1:(begins[1]-begin_offset-1L)
+  
+  zls <- lines[begins+5L]
+  oks <- grepl("^CHARGE", zls) & (zls != "CHARGE=1+")
+  rm(list = "zls")
+  
+  b_oks <- begins[oks] - begin_offset
+  e_oks <- ends[oks]
+  
+  ranges <- mapply(function (x, y) x:y, b_oks, e_oks, SIMPLIFY = TRUE)
+  ranges <- do.call(`c`, ranges)
+  ranges <- c(hdrs, ranges)
+  
+  writeLines(lines[ranges], file)
+}
+
+
+#' Parallel \link{prepBrukerMGF}
+#' 
+#' @param filepath A file path to MGF.
+#' @param n_cores The number of CPU cores.
+#' @export
+mprepBrukerMGF <- function (filepath, n_cores = 48L) 
+{
+  message("Preparing Bruker's MGFs.")
+  
+  files <- list.files(filepath, pattern = "\\.mgf$", full.names = TRUE, 
+                      recursive = TRUE)
+  
+  len <- length(files)
+  
+  if (!len)
+    stop("No MGF files found.")
+  
+  if (n_cores > 1L)
+    n_cores <- min(parallel::detectCores(), n_cores, len)
+  
+  if (n_cores > 1L) {
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    parallel::clusterApply(cl, files, prepBrukerMGF)
+    parallel::stopCluster(cl)
+  }
+  else 
+    lapply(files, prepBrukerMGF)
+  
+  message("Done preparing Bruker's MGFs.")
 }
 
 

@@ -61,7 +61,7 @@ add_seions <- function (ms2s, type_ms2ions = "by", digits = 4L)
 }
 
 
-#' Matches two lists without making a data frame..
+#' Matches two lists without making a data frame
 #' 
 #' Not currently used. 
 #' 
@@ -640,7 +640,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   )
   
   ## Check priors
-  pat_i <- "^ion_matches_"
+  pat_i  <- "^ion_matches_"
   list_i <- find_targets(out_path, pattern = pat_i)$files
   len_i  <- length(list_i)
   
@@ -693,7 +693,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   }
   
   d2 <- calc_threeframe_ppm(ppm_ms2) * 1E-6
-  
+
   for (fi in list_i)
     calcpepsc(file = fi, 
               topn_ms2ions = topn_ms2ions, 
@@ -712,7 +712,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
               # slower with 48 cores
               n_cores = detect_cores(16L), 
               digits = digits)
-
+    
   .savecall <- TRUE
   
   invisible(NULL)
@@ -777,8 +777,8 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   
   idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
   file_lt <- file.path(out_path, "temp", paste0("list_table_", idx, ".rds"))
-  file_sc <- file.path(out_path, "temp", paste0("pepscores_", idx, ".rds"))
-  
+  file_sc <- file.path(out_path, "temp", paste0("pepscores_",  idx, ".rds"))
+
   cols_a  <- c("pep_scan_num", "raw_file")
   cols_b  <- c("pep_ms2_moverzs", "pep_ms2_ints", "pri_matches", "sec_matches")
   cols_lt <- c(cols_a, cols_b)
@@ -796,7 +796,6 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                
                # for localization scores
                "pep_ms2_ideltas.")
-  
   
   df <- qs::qread(file.path(out_path, "temp", file))
   n_rows <- nrow(df)
@@ -966,93 +965,98 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
   
   df <- df[, -which(names(df) == "uniq_id"), drop = FALSE]
   df <- post_pepscores(df)
-
-  
-  ## Add MS2 m/z and intensity values 
   qs::qsave(df[, cols_lt, drop = FALSE], file_lt, preset = "fast")
   
-  message("\tAdding theoretical MS2 m/z and intensity values: ", Sys.time())
-  
+  ## scores
   n_rows <- nrow(df)
+  max_rows <- 100000L
+  n_chunks <- n_rows %/% max_rows + 1L
+
+  if (n_chunks > 1L)
+    mapply(function (x, i) qs::qsave(x, 
+      file.path(tempdir, paste0("tempscores_", idx, "_", i, ".rds")), 
+      preset = "fast"), chunksplit(df, n_chunks, "row"), 1:n_chunks)
+  else
+    qs::qsave(df, file.path(tempdir, paste0("tempscores_", idx, "_1", ".rds")), 
+              preset = "fast")
+
+  invisible(NULL)
+}
+
+
+#' Helper of \link{add_primatches}
+#' 
+#' @inheritParams matchMS
+hadd_primatches <- function (out_path = NULL, 
+                             add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
+                             add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
+                             index_mgf_ms2 = FALSE) 
+{
+  # the same as those in calcpepsc
+  cols_sc <- c("pep_seq", "pep_n_ms2", "pep_scan_title", "pep_exp_mz", "pep_exp_mr", 
+               "pep_tot_int", "pep_exp_z", "pep_ret_range", "pep_scan_num", "raw_file", 
+               "pep_mod_group", "pep_frame", "pep_fmod", "pep_vmod", "pep_isdecoy", 
+               "pep_calc_mr", "pep_ivmod", "pep_prob", "pep_len", 
+               "pep_ms2_moverzs", "pep_ms2_ints", 
+               "pep_ms2_theos", "pep_ms2_theos2", 
+               "pep_ms2_exptints", "pep_ms2_exptints2", 
+               "pep_n_matches", "pep_n_matches2", "pep_ms2_deltas", 
+               "pep_ms2_ideltas", "pep_ms2_deltas2", "pep_ms2_ideltas2", 
+               "pep_ms2_deltas_mean", "pep_ms2_deltas_sd", 
+               
+               # for localization scores
+               "pep_ms2_ideltas.")
   
-  if (n_rows <= 10000L) {
-    df <- add_primatches(
-      df = df, 
-      add_ms2theos = add_ms2theos, 
-      add_ms2theos2 = add_ms2theos2, 
-      add_ms2moverzs = add_ms2moverzs, 
-      add_ms2ints = add_ms2ints, 
-      index_mgf_ms2 = index_mgf_ms2)
-  }
-  else {
-    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-    parallel::clusterExport(cl, list("add_primatches"), 
-                            envir = environment(mzion::matchMS))
+  tempdir <- file.path(out_path, "sc_temp")
+  files <- list.files(path = tempdir, pattern = "^tempscores_\\d+_\\d+\\.rds$")
+  n_cores <- min(detect_cores(48L), length(files))
+  
+  message("Adding theoretical MS2 m/z and intensity values: ", Sys.time())
+  
+  cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+  parallel::clusterExport(cl, list("add_primatches"), 
+                          envir = environment(mzion::matchMS))
+  parallel::clusterApplyLB(cl, files, 
+                           add_primatches, 
+                           tempdir = tempdir, 
+                           add_ms2theos = add_ms2theos, 
+                           add_ms2theos2 = add_ms2theos2, 
+                           add_ms2moverzs = add_ms2moverzs, 
+                           add_ms2ints = add_ms2ints, 
+                           index_mgf_ms2 = index_mgf_ms2)
+  parallel::stopCluster(cl)
+  
+  ms_files <- gsub("^tempscores", "tempms2info", files)
+  # ms_files <- sort(ms_files)
+  idxes <- as.integer(gsub("^tempms2info_(\\d+).*", "\\1", ms_files))
+  fracs <- as.integer(gsub("^tempms2info_\\d+_(\\d+).*", "\\1", ms_files))
+  fracs <- split(fracs, idxes)
+  ms_files <- split(ms_files, idxes)
+  idxes <- split(idxes, idxes)
+  
+  ords <- lapply(fracs, order)
+  ms_files <- mapply(function (x, y) x[y], ms_files, ords)
+  idxes <- names(ms_files)
+  
+  mapply(function (fis, idx) {
+    df <- lapply(fis, function (x) qs::qread(file.path(tempdir, x)))
+    df <- dplyr::bind_rows(df)
+    df[["pep_isdecoy"]] <- ifelse(is.na(df[["pep_ivmod"]]), TRUE, FALSE)
+    df <- dplyr::rename(df, pep_calc_mr = theo_ms1)
     
-    max_theos <- 500000L
-
-    if (n_rows > max_theos) {
-      dfs <- suppressWarnings(chunksplit(df, ceiling(n_rows/max_theos), "row"))
-      rm(list = c("df"), envir = environment())
-      gc()
-      
-      len <- length(dfs)
-      nms <- paste0("ms2theos", 1:len, ".rds")
-      mapply(qs::qsave, dfs, file.path(tempdir, nms), MoreArgs = list(preset = "fast"))
-      rm(list = c("dfs"), envir = environment())
-      gc()
-
-      df <- vector("list", len)
-      
-      for (i in seq_len(len)) {
-        df[[i]] <- suppressWarnings(
-          chunksplit(qs::qread(file.path(tempdir, nms[[i]])), n_cores, "row"))
-        
-        df[[i]] <- parallel::clusterApply(cl, df[[i]], 
-                                            add_primatches, 
-                                            add_ms2theos = add_ms2theos, 
-                                            add_ms2theos2 = add_ms2theos2, 
-                                            add_ms2moverzs = add_ms2moverzs, 
-                                            add_ms2ints = add_ms2ints, 
-                                            index_mgf_ms2 = index_mgf_ms2)
-        df[[i]] <- dplyr::bind_rows(df[[i]])
-      }
-      
-      parallel::stopCluster(cl)
-      gc()
-      
-      df <- dplyr::bind_rows(df)
-    }
-    else {
-      df <- parallel::clusterApply(cl, 
-                                   suppressWarnings(chunksplit(df, n_cores, "row")), 
-                                   add_primatches, 
-                                   add_ms2theos = add_ms2theos, 
-                                   add_ms2theos2 = add_ms2theos2, 
-                                   add_ms2moverzs = add_ms2moverzs, 
-                                   add_ms2ints = add_ms2ints, 
-                                   index_mgf_ms2 = index_mgf_ms2)
-      parallel::stopCluster(cl)
-      gc()
-      
-      df <- dplyr::bind_rows(df)
-    }
-  }
-
-  message("\tCompleted theoretical MS2 m/z and intensity values: ", Sys.time())
-
-  df[["pep_isdecoy"]] <- ifelse(is.na(df[["pep_ivmod"]]), TRUE, FALSE)
-  df <- dplyr::rename(df, pep_calc_mr = theo_ms1)
+    if (!all(cols_sc %in% names(df)))
+      stop("Developer needs to update the columns of peptide scores.")
+    
+    df <- df[, cols_sc, drop = FALSE]
+    
+    qs::qsave(df, file.path(out_path, "temp", paste0("pepscores_", idx, ".rds")), 
+              preset = "fast")
+  }, ms_files, idxes)
   
-  if (!all(cols_sc %in% names(df)))
-    stop("Developer needs to update the columns of peptide scores.")
-  
-  df <- df[, cols_sc, drop = FALSE]
-  qs::qsave(df, file_sc, preset = "fast")
-  
+  message("Completed theoretical MS2 m/z and intensity values: ", Sys.time())
   unlink(tempdir, recursive = TRUE)
   
-  invisible(df)
+  invisible(NULL)
 }
 
 
@@ -1061,12 +1065,15 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
 #' Applied to both targets and decoys as feature "pep_ms2_deltas_mean" may be
 #' used in SVM-Percolator.
 #'
-#' @param df A data frame.
+#' @param file The file name of a temporary score file.
+#' @param tempdir The temporary directory for score results.
 #' @inheritParams matchMS
-add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
-                            add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
-                            index_mgf_ms2 = FALSE) 
+add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE, 
+                            add_ms2theos2 = FALSE, add_ms2moverzs = FALSE, 
+                            add_ms2ints = FALSE, index_mgf_ms2 = FALSE) 
 {
+  df <- qs::qread(file.path(tempdir, file))
+  
   df <- dplyr::mutate(df, 
                       pep_ms2_moverzs = NA_character_, 
                       pep_ms2_ints = NA_character_, 
@@ -1135,8 +1142,6 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
     m1s[[i]]  <- mt1$m
     m2s[[i]]  <- mt2$m
     p1s.[[i]] <- ps1
-
-    # if (i %% 5000L == 0L) gc()
   }
   
   if (index_mgf_ms2) {
@@ -1168,7 +1173,10 @@ add_primatches <- function (df, add_ms2theos = FALSE, add_ms2theos2 = FALSE,
   if (add_ms2moverzs) df$pep_ms2_moverzs <- collapse_vecs(df$ms2_moverz)
   if (add_ms2ints) df$pep_ms2_ints <- collapse_vecs(df$ms2_int)
   
-  invisible(df)
+  qs::qsave(df, file.path(tempdir, gsub("^tempscores", "tempms2info", file)), 
+            preset = "fast")
+
+  invisible(NULL)
 }
 
 

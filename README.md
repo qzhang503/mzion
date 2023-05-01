@@ -1,17 +1,21 @@
 Mzion
 ================
 true
-2023-03-25
+2023-04-30
 
 - <a href="#installation" id="toc-installation">Installation</a>
 - <a href="#peaklist-formats" id="toc-peaklist-formats">Peaklist
   formats</a>
 - <a href="#help-documents" id="toc-help-documents">Help documents</a>
+- <a href="#specifications-of-fixed-and-variable-modifications"
+  id="toc-specifications-of-fixed-and-variable-modifications">Specifications
+  of fixed and variable modifications</a>
 - <a href="#database-searches" id="toc-database-searches">Database
   searches</a>
 - <a href="#data-qc-and-mining" id="toc-data-qc-and-mining">Data QC and
   mining</a>
 - <a href="#other-utilities" id="toc-other-utilities">Other utilities</a>
+- <a href="#cite-mzion" id="toc-cite-mzion">Cite Mzion</a>
 
 ## Installation
 
@@ -46,6 +50,25 @@ devtools::install_github("qzhang503/mzion")
 
 Enter `?mzion::matchMS` from an R console.
 
+## Specifications of fixed and variable modifications
+
+The Unimod definition of positions and sites were adopted by Mzion for
+specifying fixed and variable modifications. The value of a position is
+in one of “Anywhere”, “Protein N-term”, “Protein C-term”, “Any N-term”
+or “Any C-term”. The last two position labels can be shorthanded as
+“N-term” and “C-term”. A site is a one-letter representation of the
+twenty amino-acid residues, as well as the terminal sites of “N-term”
+and “C-term”. The general format in specifying a fixed or variable
+modification is `title (position = site)` where title is a unique
+character string without space. At a position of “Anywhere”, the
+modification can be shorthanded as `title (site)`, for example,
+`TMT10plex (K)`. For a terminal modification at any site, it can be
+abbreviated as `title (position)`, for example,
+`Acetyl (Protein N-term)` and `TMT10plex (N-term)`. There are
+circumstances that both position and site are needed for specifying a
+modification, for instance, `Gln->pyro-Glu (N-term = Q)`. More examples
+are available in the help document of Mzion utility of `parse_unimod`.
+
 ## Database searches
 
 ``` r
@@ -77,7 +100,6 @@ matchMS(
 matchMS(
   out_path  = "~/mzion/examples_p", 
   mgf_path  = "~/mzion/examples_p/mgfs",
-  
   fasta     = c("~/mzion/dbs/fasta/uniprot/uniprot_hsmm_2020_03.fasta", 
                 "~/mzion/dbs/fasta/crap/crap.fasta"), 
   acc_type  = c("uniprot_acc", "other"), 
@@ -88,8 +110,7 @@ matchMS(
   locmods   = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
   max_miss  = 4, 
   quant     = "tmt10", 
-  
-  fdr_type  = "protein",
+  fdr_type  = "psm",
 )
 
 ## See also ?matchMS for SILAC, acetylome workflows and more.
@@ -110,3 +131,8 @@ matchMS(
 - `remove_unimod`: removes a Unimod entry
 - `remove_unimod_title`: removes a Unimod entry by title
 - `make_mztab`: prepares a mzTab file from the search results
+
+## Cite Mzion
+
+Zhang, Q. Mzion enables deep and precise identification of peptides in
+data-dependent acquisition proteomics. Sci. Rep. 13, 7056 (2023).

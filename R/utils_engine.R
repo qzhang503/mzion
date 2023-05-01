@@ -788,6 +788,55 @@ split_vec <- function (vec)
 }
 
 
+#' Folds a vector evenly
+#' 
+#' @param vec A vector
+#' @param fold The number of folds
+fold_vec <- function (vec, fold) 
+{
+  ans <- vector("list", fold)
+  r <- length(vec)/fold
+  
+  sta <- 1L
+  end <- r
+  
+  for (i in 1:fold) {
+    ans[[i]] <- vec[sta:end]
+    sta <- sta + r
+    end <- end + r
+  }
+
+  ans
+}
+
+
+#' Replicates a vector
+#' 
+#' Slower than rep
+#' 
+#' @param vec A vector
+#' @param fold The number of folds
+rep_vec <- function (vec, fold) 
+{
+  l <- length(vec)
+  r <- l * fold
+  ans <- vector("character", r)
+
+  sta <- 1L
+  end <- l
+  
+  for (i in 1:fold) {
+    ans[sta:end] <- vec
+    sta <- sta + l
+    end <- end + l
+  }
+  
+  ans
+}
+
+
+
+
 #' Accumulates character strings.
 #' 
 #' @param x A vector of character strings.

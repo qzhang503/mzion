@@ -34,8 +34,10 @@ frames_adv(
 )
 }
 \arguments{
-\item{mgf_frames}{A group of mgf frames. Each frame contains one to multiple
-MGFs whose MS1 masses are in the same interval.}
+\item{mgf_frames}{A group of mgf frames (from chunk splitting). A
+\code{mgf_frames[[i]]} contains one to multiple MGFs whose MS1 masses are
+in the same interval. The \code{mgf_frames} are ordered by increasing
+values in \code{frame} for progressive searches.}
 
 \item{theopeps}{Binned theoretical peptides corresponding to an i-th
 \code{aa_masses}.}

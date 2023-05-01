@@ -2,17 +2,13 @@
 % Please edit documentation in R/ms2_base.R
 \name{search_mgf}
 \alias{search_mgf}
-\title{Matches by indexes}
+\title{Matches an MGF query}
 \usage{
 search_mgf(
-  expt_mass_ms1,
-  expt_moverz_ms2,
-  theomasses_bf_ms1,
-  theomasses_cr_ms1,
-  theomasses_af_ms1,
-  theos_bf_ms2,
-  theos_cr_ms2,
-  theos_af_ms2,
+  expt_mass_ms1 = NULL,
+  expt_moverz_ms2 = NULL,
+  theomasses_ms1 = NULL,
+  theomasses_ms2 = NULL,
   minn_ms2 = 6L,
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
@@ -25,23 +21,11 @@ search_mgf(
 
 \item{expt_moverz_ms2}{A numeric list; the experimental MS2 m/z's.}
 
-\item{theomasses_bf_ms1}{Numeric vector; the theoretical MS1 masses at the
-preceding \code{-1} frame.}
+\item{theomasses_ms1}{Numeric vector; the theoretical MS1 masses at the
+preceding \code{-1}, the current and the following \code{+1} frames.}
 
-\item{theomasses_cr_ms1}{Numeric vector; the theoretical MS1 masses at the
-current frame.}
-
-\item{theomasses_af_ms1}{Numeric vector; the theoretical MS1 masses at the
-following \code{+1} frame.}
-
-\item{theos_bf_ms2}{Numeric vector; the theoretical MS2 m/z's at the
-preceding \code{-1} frame.}
-
-\item{theos_cr_ms2}{Numeric vector; the theoretical MS2 m/z's at the current
-frame.}
-
-\item{theos_af_ms2}{Numeric vector; the theoretical MS2 m/z's at the
-following \code{+1} frame.}
+\item{theomasses_ms2}{Numeric vector; the theoretical MS2 m/z's at the
+preceding \code{-1}, the current and the following \code{+1} frames.}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
 for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
@@ -71,7 +55,7 @@ interrogation. The default is 110.}
   pep_ms2_deltas_sd} are nullified in the outputs.}
 }
 \description{
-Matches by indexes
+Matches an MGF query
 }
 \examples{
 \donttest{

@@ -108,7 +108,6 @@ matchMS(
 matchMS(
   out_path  = "~/mzion/examples_p", 
   mgf_path  = "~/mzion/examples_p/mgfs",
-  
   fasta     = c("~/mzion/dbs/fasta/uniprot/uniprot_hsmm_2020_03.fasta", 
                 "~/mzion/dbs/fasta/crap/crap.fasta"), 
   acc_type  = c("uniprot_acc", "other"), 
@@ -119,8 +118,7 @@ matchMS(
   locmods   = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
   max_miss  = 4, 
   quant     = "tmt10", 
-  
-  fdr_type  = "protein",
+  fdr_type  = "psm",
 )
 
 ## See also ?matchMS for SILAC, acetylome workflows and more.
@@ -140,4 +138,5 @@ matchMS(
 -   `remove_unimod_title`: removes a Unimod entry by title
 -   `make_mztab`: prepares a mzTab file from the search results
 
-
+## Cite Mzion
+Zhang, Q. Mzion enables deep and precise identification of peptides in data-dependent acquisition proteomics. Sci. Rep. 13, 7056 (2023).

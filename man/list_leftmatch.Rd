@@ -2,7 +2,7 @@
 % Please edit documentation in R/scores.R
 \name{list_leftmatch}
 \alias{list_leftmatch}
-\title{Matches two lists without making a data frame..}
+\title{Matches two lists without making a data frame}
 \usage{
 list_leftmatch(a, b)
 }

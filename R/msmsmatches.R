@@ -773,6 +773,12 @@ matchMS <- function (out_path = "~/mzion/outs",
   varmods <- sort(varmods)
   locmods <- check_locmods(fixedmods, varmods, locmods)
   
+  db_ord <- order(fasta)
+  fasta  <- fasta[db_ord]
+  acc_type <- acc_type[db_ord]
+  if (!is.null(acc_pattern)) acc_pattern <- acc_pattern[db_ord]
+  rm(list = "db_ord")
+  
   # accession pattern
   if ((!is.null(acc_pattern)) && (acc_pattern == "")) 
     acc_pattern <- NULL
@@ -1348,6 +1354,11 @@ matchMS <- function (out_path = "~/mzion/outs",
                    add_ms2moverzs = add_ms2moverzs, 
                    add_ms2ints = add_ms2ints,
                    digits = digits)
+    
+    hadd_primatches(out_path = out_path, 
+                    add_ms2theos = add_ms2theos, add_ms2theos2 = add_ms2theos2, 
+                    add_ms2moverzs = add_ms2moverzs, add_ms2ints = add_ms2ints, 
+                    index_mgf_ms2 = index_mgf_ms2)
   }
   
   ## Peptide FDR 
