@@ -31,8 +31,8 @@ matchMS(
   maxn_vmods_setscombi = 512L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_fnl_per_seq = 8L,
-  maxn_vnl_per_seq = 8L,
+  maxn_fnl_per_seq = 3L,
+  maxn_vnl_per_seq = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
   min_len = 7L,
   max_len = 40L,
@@ -500,7 +500,8 @@ seconds for considerations. The default is 0.}
 \item{max_ret_time}{A non-negative numeric; the maximum retention time in
 seconds for considerations. The default is \code{Inf}.}
 
-\item{calib_ms1mass}{Logical; if TRUE, calibrates precursor masses.}
+\item{calib_ms1mass}{Temporarily diabled. Logical; if TRUE, calibrates
+precursor masses.}
 
 \item{ppm_ms1calib}{A positive integer; the mass tolerance of MS1 species for
 precursor mass calibration. The default is 10. The argument has no effect

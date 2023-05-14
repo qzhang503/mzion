@@ -134,7 +134,6 @@
 #             fuzzy_match_one
 #             fuzzy_match_one2
 #       post_frame_adv (utils_engine.R)
-#     post_ms2match (utils_engine.R)
 # 
 # ms2_a0_vnl0_fnl1.R: (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
 #   ms2match_a0_vnl0_fnl1 
@@ -156,7 +155,6 @@
 #             fuzzy_match_one (ms2base.R)
 #             fuzzy_match_one2 (ms2base.R)
 #       post_frame_adv (utils_engine.R)
-#     post_ms2match (utils_engine.R)
 # 
 # ms2_a1_vnl0_fnl0.R: (7, 8) "amods+ tmod+ vnl- fnl-", "amods+ tmod- vnl- fnl-"
 #   "ms2match_a1_vnl0_fnl0"
@@ -192,7 +190,6 @@
 #             "fuzzy_match_one2" (ms2base.R)
 #       "post_frame_adv" (utils_engine.R)
 #     // END parallel
-#     "post_ms2match" (utils_engine.R)
 #       (saveRDS ion_matches_[i].rds)
 # 
 # ms2_a1_vnl1_fnl0.R: (9, 10) "amods+ tmod+ vnl+ fnl-", "amods+ tmod- vnl+ fnl-"
@@ -230,7 +227,6 @@
 #             "fuzzy_match_one2" (ms2base.R)
 #       "post_frame_adv" (utils_engine.R)
 #     // END parallel
-#     "post_ms2match" (utils_engine.R)
 # 
 # ms2_a1_vnl0_fnl1.R: (11, 12) "amods+ tmod+ vnl- fnl+", "amods+ tmod- vnl- fnl+"
 #   ms2match_a1_vnl0_fnl1 
@@ -258,7 +254,6 @@
 #             fuzzy_match_one (ms2base.R)
 #             fuzzy_match_one2 (ms2base.R)
 #       post_frame_adv (utils_engine.R)
-#     post_ms2match (utils_engine.R)
 # 
 
 ## calc_pepscores (scores.R)
@@ -335,7 +330,6 @@
 # find_ppm_error
 # find_mass_error_range
 # `%+%`
-# post_ms2match
 # post_frame_adv
 # purge_search_space
 # subset_theoframes

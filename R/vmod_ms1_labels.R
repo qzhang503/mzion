@@ -563,8 +563,8 @@ find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L)
   vmod_nms <- lapply(vmodsets, lapply, names)
   len_ps   <- lapply(vmodsets, lapply, length)
   
-  v_out  <- expand_grid_rows(vmodsets, use.names = FALSE)
-  nm_out <- expand_grid_rows(vmod_nms, use.names = FALSE)
+  v_out  <- expand_grid_rows0(vmodsets, use.names = FALSE)
+  nm_out <- expand_grid_rows0(vmod_nms, use.names = FALSE)
 
   v_out <- mapply(function (x, y) {
     names(x) <- y
@@ -572,7 +572,7 @@ find_intercombi2 <- function (vmodsets = NULL, maxn_vmods_per_pep = 5L)
   }, v_out, nm_out, 
   SIMPLIFY = FALSE, USE.NAMES = FALSE)
 
-  ps <- expand_grid_rows(len_ps, use.names = TRUE)
+  ps <- expand_grid_rows0(len_ps, use.names = TRUE)
   
   ## Characteristics of expand grids: 
   # (residues will be in sections, e.g. M, M, M, N)

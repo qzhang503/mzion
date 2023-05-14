@@ -1,3 +1,29 @@
+#' Helper of calc_tmtint
+#' 
+#' @param df A data frame.
+#' @param idx The i-th chunk
+#' @inheritParams matchMS
+hcalc_tmtint <- function (df, quant = "tmt10", ppm_reporters = 10L, idx = 1L, 
+                          out_path = NULL, index_mgf_ms2 = FALSE)
+{
+  df <- df[, c("raw_file", "pep_mod_group", "pep_scan_num", "rptr_moverz", 
+               "rptr_int")]
+  df <- unique(df)
+  
+  df <- calc_tmtint(df, quant = quant, ppm_reporters = ppm_reporters, 
+                    index_mgf_ms2 = index_mgf_ms2)
+  df[["uniq_id"]] <- with(df, paste(raw_file, pep_mod_group, pep_scan_num, 
+                                    sep = "."))
+  df[["raw_file"]] <- df[["pep_mod_group"]] <- df[["pep_scan_num"]] <- NULL
+  
+  qs::qsave(df, file.path(out_path, paste0("reporters_", idx, ".rds")), 
+            preset = "fast")
+  
+  invisible(df)
+}
+
+
+
 #' Reporter-ion quantitation.
 #' 
 #' Not yet used: \code{`134C` = 134.154565}, \code{`135N` = 135.15160}
@@ -1122,7 +1148,6 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
   # NP_000007        TRUE      TRUE     FALSE
   
   # --- finds protein groups
-  # d <- as_lgldist(dm, diag = FALSE, upper = FALSE) # logical distance
   d <- as.dist(dm)
   rm(list = "dm")
   gc()
@@ -1208,30 +1233,6 @@ as_dist <- function (m, diag = FALSE, upper = FALSE)
     attr(ans, "Upper") <- upper
 
   ans
-}
-
-
-#' Simplified \link[stats]{as.dist} for memory efficiency.
-#' 
-#' Assumed the input is already a symmetric matrix.
-#' 
-#' @inheritParams stats::as.dist
-as_lgldist <- function(m, diag = FALSE, upper = FALSE) 
-{
-  d <- proteoCpp::to_lgldistC(m)
-  
-  if (!is.null(rownames(m))) 
-    attr(d, "Labels") <- rownames(m)
-  else if (!is.null(colnames(m))) 
-    attr(d, "Labels") <- colnames(m)
-
-  attr(d, "class") <- "dist"
-  attr(d, "Size") <- nrow(m)
-  attr(d, "call") <- match.call()
-  attr(d, "Diag") <- diag
-  attr(d, "Upper") <- upper
-
-  d
 }
 
 

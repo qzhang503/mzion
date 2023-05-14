@@ -313,8 +313,8 @@ find_psm_rows1 <- function (file_t1, file_t2, file_t3, scan, raw_file,
       psms_3 <- NULL
     
     cols_excl <- c("pep_ms2_moverzs", "pep_ms2_ints", "pep_ms2_theos", 
-                  "pep_ms2_theos2", "pep_ms2_deltas", "pep_ms2_ideltas", 
-                  "pep_ms2_deltas2", "pep_ms2_ideltas2")
+                   "pep_ms2_theos2", "pep_ms2_deltas", "pep_ms2_ideltas", 
+                   "pep_ms2_deltas2", "pep_ms2_ideltas2")
 
     if (!is.null(psms_1)) psms_1 <- psms_1 %>% dplyr::select(-which(names(.) %in% cols_excl))
     if (!is.null(psms_2)) psms_2 <- psms_2 %>% dplyr::select(-which(names(.) %in% cols_excl))
@@ -377,6 +377,7 @@ find_psm_rows2 <- function (file_t0, scan, raw_file, rank = 1L,
 #' @inheritParams mapMS2ions
 find_theoexpt_pair <- function (psm, out_path, scan, raw_id, is_decoy = FALSE) 
 {
+  tempdir <- file.path(out_path, "temp")
   col_nms <- names(psm)
   
   lapply(c("pep_seq", "pep_ivmod", "pep_mod_group"), function (x) {
@@ -400,22 +401,28 @@ find_theoexpt_pair <- function (psm, out_path, scan, raw_id, is_decoy = FALSE)
     .list_table <- get(nm2, envir = .GlobalEnv)
   }
   else {
-    file <- file.path(out_path, "temp", paste0("ion_matches_", mod, ".rds"))
-    file2 <- file.path(out_path, "temp", paste0("list_table_", mod, ".rds"))
+    file  <- file.path(tempdir, paste0("ion_matches_", mod, ".rds"))
+    file2 <- file.path(tempdir, paste0("list_table_",  mod, ".rds"))
     
     if (!file.exists(file))
       stop("Ion matches not found: ", file, call. = FALSE)
     
-    if (!file.exists(file2))
-      stop("Secondary ion matches not found: ", file, call. = FALSE)
-    
+    if (!file.exists(file2)) {
+      fs_mod <- order_fracs("list_table", tempdir)[[mod]]
+      
+      if (!length(fs_mod))
+        stop("Secondary ion matches not found: ", file)
+      else
+        combine_fracs(fs_mod, tempdir, tempdir)
+    }
+
     .ion_matches <- 
       qs::qread(file) %>% 
-      dplyr::mutate(scan_num = as.character(scan_num))
+      dplyr::mutate(pep_scan_num = as.character(pep_scan_num))
     
     .list_table <- 
       qs::qread(file2) %>%
-      dplyr::mutate(scan_num = as.character(scan_num))
+      dplyr::mutate(pep_scan_num = as.character(pep_scan_num))
     
     if (! "pep_mod_group" %in% names(.list_table))
       .list_table$pep_mod_group <- mod
@@ -425,12 +432,13 @@ find_theoexpt_pair <- function (psm, out_path, scan, raw_id, is_decoy = FALSE)
   }
   
   ion_match <- .ion_matches %>% 
-    dplyr::filter(scan_num == scan, 
+    dplyr::filter(pep_scan_num == scan, 
                   raw_file == raw_id, 
-                  pep_isdecoy == is_decoy)
+                  # pep_isdecoy == is_decoy, 
+                  )
   
   list_table <- .list_table %>% 
-    dplyr::filter(scan_num == scan, 
+    dplyr::filter(pep_scan_num == scan, 
                   raw_file == raw_id, )
   
   nrow <- nrow(ion_match)

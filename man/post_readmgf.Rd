@@ -4,14 +4,7 @@
 \alias{post_readmgf}
 \title{Post-processing of MGF or mzML}
 \usage{
-post_readmgf(
-  df,
-  min_mass = 200L,
-  max_mass = 4500L,
-  ppm_ms1 = 10L,
-  filepath,
-  out_path
-)
+post_readmgf(df, min_mass = 200L, max_mass = 4500L, ppm_ms1 = 10L, filepath)
 }
 \arguments{
 \item{df}{A data frame of processed peak lists.}
@@ -25,8 +18,6 @@ match the one in  \link{binTheoSeqs}.}
 default is 20.}
 
 \item{filepath}{The file path to a list of MGF or mzML files.}
-
-\item{out_path}{An output path.}
 }
 \description{
 Calculates mass \code{frame}s etc.

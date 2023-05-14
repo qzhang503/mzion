@@ -9,7 +9,8 @@ check_ms1calib(out_path = NULL, calib_ms1mass = FALSE)
 \arguments{
 \item{out_path}{A file path of outputs.}
 
-\item{calib_ms1mass}{Logical; if TRUE, calibrates precursor masses.}
+\item{calib_ms1mass}{Temporarily diabled. Logical; if TRUE, calibrates
+precursor masses.}
 }
 \value{
 TRUE if without precursor mass calibration.

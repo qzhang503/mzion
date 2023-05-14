@@ -175,7 +175,7 @@ calc_monopep <- function (aa_seq, aa_masses,
   # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
   if (TRUE) {
     if (type %in% c("amods- tmod- vnl- fnl+", "amods- tmod+ vnl- fnl+")) {
-      fnl_combi <- expand_grid_rows(fmods_nl)
+      fnl_combi <- expand_grid_rows0(fmods_nl)
       deltas <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
       masses <- round(mass - deltas, digits = digits)
     }
@@ -896,7 +896,7 @@ find_intercombi <- function (intra_combis, maxn_vmods_per_pep = 5L)
                                   recursive = FALSE, use.names = FALSE)))) { # list
     v_out <- list()
   } else if (len > 1L) {
-    v_out <- expand_grid_rows(intra_combis, use.names = FALSE)
+    v_out <- expand_grid_rows0(intra_combis, use.names = FALSE)
     
     lens <- lapply(v_out, length)
     lens <- .Internal(unlist(lens, recursive = FALSE, use.names = FALSE))

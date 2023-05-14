@@ -1,5 +1,4 @@
 # combine all .R files into one
-# foo_combine_codes(filepath = file.path("C:/Results/R/proteoQ/inst/extdata/examples"))
 foo_combine_codes <- function (filepath = file.path("~/Github/mzion/R")) 
 {
   filepath <- mzion:::find_dir(filepath)

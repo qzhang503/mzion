@@ -6,6 +6,9 @@
 \usage{
 calcpepsc(
   file,
+  im_path,
+  pep_fmod_all,
+  pep_vmod_all,
   topn_ms2ions = 100L,
   type_ms2ions = "by",
   ppm_ms2 = 20L,
@@ -19,12 +22,21 @@ calcpepsc(
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
   add_ms2ints = FALSE,
-  n_cores = 16L,
+  quant = "none",
+  ppm_reporters = 10,
+  by_modules = TRUE,
   digits = 4L
 )
 }
 \arguments{
-\item{file}{A file name of \code{ion_matches_}.}
+\item{file}{A file name of \code{ion_matches_}}
+
+\item{im_path}{A temporary file path to \code{ion_matches_}; \code{sc_temp}
+at \code{by_modules = TRUE} or \code{temp} at \code{by_modules = FALSE}}
+
+\item{pep_fmod_all}{Attributes of \code{pep_fmod} from \code{aa_masses_all}}
+
+\item{pep_vmod_all}{Attributes of \code{pep_vmod} from \code{aa_masses_all}}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}
@@ -48,7 +60,7 @@ matched.}
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
 
-\item{d2}{Bin width in ppm divided by 1E6.}
+\item{d2}{Bin width in ppm divided by 1E6}
 
 \item{index_mgf_ms2}{A low-priority feature. Logical; if TRUE, converts
   upfrontly MS2 m-over-z values from numeric to integers as opposed to
@@ -88,10 +100,22 @@ interrogation. The default is 110.}
 \item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
 intensity values (\code{pep_ms2_ints}).}
 
-\item{n_cores}{The number of CPU cores.}
+\item{quant}{A character string; the quantitation method. The default is
+"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
+15N)}. It is also possible that an experimenter may construct a
+\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
+\code{quant = tmt18} is suitable.}
+
+\item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
+ions. The default is 10.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
+
+\item{n_cores}{The number of CPU cores}
 }
 \description{
 Helper of \link{calc_pepscores}.

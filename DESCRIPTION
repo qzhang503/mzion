@@ -1,7 +1,7 @@
 Package: mzion
 Type: Package
 Title: Database Searches of Proteomic Mass-spectrometrirc Data
-Version: 1.2.4.1
+Version: 1.2.5
 Authors@R: 
     person(given = "Qiang",
            family = "Zhang",
@@ -37,14 +37,8 @@ Imports:
     fs,
     magrittr,
     parallel,
-    proteoCpp, 
     proxyC,
     qs,
     xml2, 
-    Matrix,
-    Rcpp
+    Matrix
 RoxygenNote: 7.2.3
-Remotes:
-    qzhang503/proteoCpp
-LinkingTo: 
-    Rcpp

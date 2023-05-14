@@ -249,7 +249,8 @@
 #'   default is 20.
 #' @param ppm_ms2 A positive integer; the mass tolerance of MS2 species. The
 #'   default is 20.
-#' @param calib_ms1mass Logical; if TRUE, calibrates precursor masses.
+#' @param calib_ms1mass Temporarily diabled. Logical; if TRUE, calibrates
+#'   precursor masses.
 #' @param ppm_reporters A positive integer; the mass tolerance of MS2 reporter
 #'   ions. The default is 10.
 #' @param ppm_ms1calib A positive integer; the mass tolerance of MS1 species for
@@ -657,8 +658,8 @@ matchMS <- function (out_path = "~/mzion/outs",
                      maxn_vmods_setscombi = 512L,
                      maxn_vmods_per_pep = 5L,
                      maxn_sites_per_vmod = 3L,
-                     maxn_fnl_per_seq = 8L, 
-                     maxn_vnl_per_seq = 8L, 
+                     maxn_fnl_per_seq = 3L, 
+                     maxn_vnl_per_seq = 3L, 
                      maxn_vmods_sitescombi_per_pep = 64L,
                      min_len = 7L, max_len = 40L, max_miss = 2L, 
                      min_mass = 200L, max_mass = 4500L, 
@@ -734,6 +735,10 @@ matchMS <- function (out_path = "~/mzion/outs",
     },
     add = TRUE
   )
+  
+  ## Experimenting
+  by_modules <- TRUE
+  ##
   
   message("Started at: ", Sys.time())
   
@@ -1249,6 +1254,27 @@ matchMS <- function (out_path = "~/mzion/outs",
     mod_indexes <- NULL
   }
   
+  if (FALSE || calib_ms1mass)
+    calib_mgf(mgf_path = mgf_path, aa_masses_all = aa_masses_all[1], # base
+              out_path = out_path, mod_indexes = mod_indexes, 
+              type_ms2ions = type_ms2ions, 
+              maxn_vmods_per_pep = maxn_vmods_per_pep,
+              maxn_sites_per_vmod = maxn_sites_per_vmod, 
+              maxn_fnl_per_seq = maxn_fnl_per_seq, 
+              maxn_vnl_per_seq = maxn_vnl_per_seq, 
+              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
+              minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms1calib = ppm_ms1calib, 
+              ppm_ms2 = ppm_ms2, min_mass = min_mass, max_mass = max_mass, 
+              min_ms2mass = min_ms2mass, quant = quant, 
+              ppm_reporters = ppm_reporters, index_mgf_ms2 = index_mgf_ms2, 
+              by_modules = by_modules, fasta = fasta, acc_type = acc_type, 
+              acc_pattern = acc_pattern, topn_ms2ions = topn_ms2ions, 
+              fixedmods = fixedmods, varmods = NULL, # the first search
+              enzyme = enzyme, maxn_fasta_seqs = maxn_fasta_seqs, 
+              maxn_vmods_setscombi = maxn_vmods_setscombi,
+              min_len = min_len, max_len = max_len, max_miss = max_miss, 
+              knots = 50L, digits = digits)
+
   if (!bypass_ms2match) {
     if (min_ms2mass < 5L) 
       warning("Maybe out of RAM at \"min_ms2mass < 5L\".")
@@ -1269,13 +1295,14 @@ matchMS <- function (out_path = "~/mzion/outs",
              ppm_ms1calib = ppm_ms1calib,
              
              ppm_ms2 = ppm_ms2,
-             min_mass = 200L, 
-             max_mass = 4500L, 
+             min_mass = min_mass, 
+             max_mass = max_mass, 
              min_ms2mass = min_ms2mass,
              quant = quant,
              ppm_reporters = ppm_reporters,
              calib_ms1mass = calib_ms1mass, 
              index_mgf_ms2 = index_mgf_ms2, 
+             by_modules = by_modules, 
 
              # dummy for argument matching
              fasta = fasta,
@@ -1291,18 +1318,6 @@ matchMS <- function (out_path = "~/mzion/outs",
              max_len = max_len,
              max_miss = max_miss,
              digits = digits)
-    
-    if (calib_ms1mass) {
-      ppm_ms1_calib <- qs::qread(file.path(mgf_path, "ppm_ms1calib.rds"))
-      this_call$ppm_ms1 <- ppm_ms1_calib[["ppm_ms1_af"]]
-      this_call$bypass_mgf <- TRUE
-      this_call$calib_ms1mass <- FALSE
-      df <- tryCatch(eval(this_call), error = function (e) NULL)
-
-      .savecall <- TRUE
-      
-      return(invisible(df))
-    }
   }
 
   ## Peptide scores
@@ -1322,7 +1337,6 @@ matchMS <- function (out_path = "~/mzion/outs",
     calc_pepscores(topn_ms2ions = topn_ms2ions,
                    type_ms2ions = type_ms2ions,
                    target_fdr = target_fdr,
-                   # fdr_type = fdr_type, # not used
                    min_len = min_len,
                    max_len = max_len,
                    ppm_ms2 = ppm_ms2,
@@ -1331,12 +1345,13 @@ matchMS <- function (out_path = "~/mzion/outs",
                    min_ms2mass = min_ms2mass,
                    index_mgf_ms2 = index_mgf_ms2, 
                    tally_ms2ints = tally_ms2ints, 
-
+                   
                    # dummies
                    mgf_path = mgf_path,
                    maxn_vmods_per_pep = maxn_vmods_per_pep,
                    maxn_sites_per_vmod = maxn_sites_per_vmod,
-                   maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
+                   maxn_vmods_sitescombi_per_pep = 
+                     maxn_vmods_sitescombi_per_pep,
                    minn_ms2 = minn_ms2,
                    ppm_ms1 = ppm_ms1,
                    quant = quant,
@@ -1353,9 +1368,21 @@ matchMS <- function (out_path = "~/mzion/outs",
                    add_ms2theos2 = add_ms2theos2, 
                    add_ms2moverzs = add_ms2moverzs, 
                    add_ms2ints = add_ms2ints,
+                   by_modules = by_modules, 
                    digits = digits)
   }
   
+  bypass_primatches <- dots$bypass_primatches
+  if (is.null(bypass_primatches)) bypass_primatches <- FALSE
+  
+  if (!bypass_primatches)
+    hadd_primatches(out_path = out_path, 
+                    add_ms2theos = add_ms2theos, 
+                    add_ms2theos2 = add_ms2theos2, 
+                    add_ms2moverzs = add_ms2moverzs, 
+                    add_ms2ints = add_ms2ints, 
+                    index_mgf_ms2 = index_mgf_ms2)
+
   ## Peptide FDR 
   bypass_pepfdr <- dots$bypass_pepfdr
   if (is.null(bypass_pepfdr)) bypass_pepfdr <- FALSE

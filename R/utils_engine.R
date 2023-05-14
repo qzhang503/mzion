@@ -181,37 +181,6 @@ find_mass_error_range <- function (x = 500L, ppm = 20L)
 `%+%` <- function(x, y) mapply(sum, x, y, MoreArgs = list(na.rm = TRUE))
 
 
-#' Post processing after ms2match.
-#'
-#' @param df An output from various ms2match(es).
-#' @inheritParams ms2match_base
-post_ms2match <- function (df, i, aa_masses, out_path) 
-{
-  create_dir(file.path(out_path, "temp"))
-  
-  if (is.null(df)) {
-    qs::qsave(df, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")), 
-              preset = "fast")
-    return(NULL)
-  }
-
-  nm_fmods <- attr(aa_masses, "fmods", exact = TRUE)
-  nm_vmods <- attr(aa_masses, "vmods", exact = TRUE)
-
-  df <- df %>%
-    dplyr::mutate(pep_fmod = nm_fmods,
-                  pep_vmod = nm_vmods,
-                  pep_mod_group = as.character(i), 
-                  scan_num = as.character(scan_num))
-
-  df %>%
-    reloc_col_after("raw_file", "scan_num") %>%
-    reloc_col_after("pep_mod_group", "raw_file") %T>%
-    qs::qsave(file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")), 
-              preset = "fast")
-}
-
-
 #' Sums elements across lists.
 #'
 #' Each list has the same length. NA values are removed.
@@ -242,109 +211,6 @@ post_frame_adv <- function (res, mgf_frames)
 }
 
 
-#' Subsets the search space.
-#' 
-#' @param n_cores The number of CPU cores.
-#' @inheritParams ms2match
-#' @inheritParams ms2match_base
-#' @inheritParams post_ms2match
-#' @importFrom fastmatch %fin% 
-purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L, 
-                                fmods_nl = NULL) 
-{
-  # loads freshly mgfs (as will be modified)
-  mgf_frames <- qs::qread(file.path(mgf_path, "mgf_queries.rds"))
-  mgf_frames <- dplyr::group_by(mgf_frames, frame)
-  mgf_frames <- dplyr::group_split(mgf_frames)
-  frs <- lapply(mgf_frames, function (x) x[["frame"]][1])
-  names(mgf_frames) <- unlist(frs, recursive = FALSE, use.names = FALSE)
-
-  mgf_frames <- local({
-    ranges <- seq_along(mgf_frames)
-    labs   <- levels(cut(ranges, n_cores^2))
-    lower  <- floor(as.numeric( sub("\\((.+),.*", "\\1", labs)))
-    grps   <- findInterval(ranges, lower)
-    split(mgf_frames, grps)
-  })
-
-  # parses aa_masses
-  nm_fmods <- attr(aa_masses, "fmods", exact = TRUE)
-  nm_vmods <- attr(aa_masses, "vmods", exact = TRUE)
-  message("Matching against: ", 
-          if (nchar(nm_vmods) == 0L) nm_fmods else paste0(nm_fmods, " | ", nm_vmods))
-
-  # reads theoretical peptide data
-  .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
-  theopeps  <- qs::qread(file.path(.path_bin, paste0("binned_theopeps_", i, ".rds")))
-  
-  if (is.null(theopeps))
-    return(list(mgf_frames = mgf_frames, theopeps = NULL))
-
-  theopeps <- lapply(theopeps, function (x) x[, c("pep_seq", "mass")])
-
-  # (1) for a given aa_masses_all[[i]], some mgf_frames[[i]]
-  #     may not be found in theopeps[[i]]
-  frames_theo <- names(theopeps)
-  
-  mgf_frames <- lapply(mgf_frames, function (x) {
-    oks <- names(x) %fin% frames_theo
-    x <- x[oks]
-    
-    ans <- .Internal(unlist(lapply(x, function (y) length(x) > 0L), 
-                            recursive = FALSE, use.names = FALSE))
-    
-    x[ans]
-  })
-  
-  rm(list = "frames_theo")
-  
-  # (2) splits `theopeps` in accordance to `mgf_frames` with
-  #     preceding and following frames: (o)|range of mgf_frames[[1]]|(o)
-  frames_mgf <- lapply(mgf_frames, function (x) as.integer(names(x)))
-  
-  mins <- lapply(frames_mgf, function (x) if (length(x)) min(x, na.rm = TRUE) else 0L)
-  mins <- .Internal(unlist(mins, recursive = FALSE, use.names = FALSE))
-
-  maxs <- lapply(frames_mgf, function (x) if (length(x)) max(x, na.rm = TRUE) else 0L)
-  maxs <- .Internal(unlist(maxs, recursive = FALSE, use.names = FALSE))
-
-  frames_theo <- as.integer(names(theopeps))
-  
-  # separates into intervals
-  # (NAMEs are trivial node indexes from parallel processes)
-  
-  # DON'T: may cause uneven length between `mgf_frames` and `theopeps`
-  # empties <- map_lgl(theopeps, is_empty)
-  # theopeps[!empties]
-  
-  theopeps <- mapply(function (x, y) {
-    theopeps[which(frames_theo >= (x - 1L) & frames_theo <= (y + 1L))]
-  }, mins, maxs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  
-  # (3) removes unused frames of `theopeps`
-  # (NAMEs are trivial cluster node indexes...)
-  theopeps <- mapply(subset_theoframes, mgf_frames, theopeps, 
-                     SIMPLIFY = FALSE, USE.NAMES = FALSE)
-
-  # (4) removes empties (zero overlap between mgf_frames and theopeps)
-  ok_mgfs <- lapply(mgf_frames, function (x) length(x) > 0L)
-  ok_mgfs <- .Internal(unlist(ok_mgfs, recursive = FALSE, use.names = FALSE))
-  ok_theos <- lapply(theopeps, function (x) length(x) > 0L)
-  ok_theos <- .Internal(unlist(ok_theos, recursive = FALSE, use.names = FALSE))
-  oks <- ok_mgfs | ok_theos
-  mgf_frames <- mgf_frames[oks]
-  theopeps <- theopeps[oks]
-
-  # (6) reverses the order (longer/heavier peptides towards the beginning)
-  #     do the difficult ones first when paralleling with LB
-  seqs <- rev(seq_along(theopeps))
-  mgf_frames <- mgf_frames[seqs]
-  theopeps <- theopeps[seqs]
-  
-  invisible(list(mgf_frames = mgf_frames, theopeps = theopeps))
-}
-
-
 #' Subsets the frames of theoretical peptides.
 #' 
 #' @param mgf_frames MGFs in frames. Each frame contains one to multiple MGFs
@@ -353,18 +219,20 @@ purge_search_space <- function (i, aa_masses, mgf_path, n_cores, ppm_ms1 = 10L,
 #'   and variable.
 subset_theoframes <- function (mgf_frames = NULL, theopeps = NULL) 
 {
-  if (!(length(mgf_frames) && length(theopeps))) 
+  if ((!length(mgf_frames)) || (!length(theopeps)))
     return(NULL)
-
+  
   frames <- as.integer(names(mgf_frames))
   breaks <- which(diff(frames) != 1L) + 1L
-  grps   <- findInterval(frames, frames[breaks])
-  frames <- split(frames, grps)
+  groups <- findInterval(frames, frames[breaks])
+  frames <- split(frames, groups)
   
   frames <- lapply(frames, function (x) c(x[1] - 1, x, x[length(x)] + 1))
   frames <- unlist(frames, recursive = FALSE, use.names = FALSE)
   frames <- frames[!duplicated(frames)]
-  
+
+  # NA names and NULL contents if br_frames not in theopeps
+  # (length determined by `br_frames`)
   theopeps[as.character(frames)]
 }
 
@@ -617,7 +485,8 @@ is_equal_sets <- function(x, y) all(x %in% y) && all(y %in% x)
 #'
 #' Some overhead in making row vectors but can avoid the expensive row
 #' subsetting from a data.frame.
-#'
+#' 
+#' @param nmax The maximum number of combinations allowed.
 #' @param use.names Logical; uses names or not.
 #' @param ... Lists of data.
 #' @examples
@@ -637,13 +506,85 @@ is_equal_sets <- function(x, y) all(x %in% y) && all(y %in% x)
 #'
 #' x <- list(`Bar (M)` = c(0, 3))
 #' mzion:::expand_grid_rows(x)
-expand_grid_rows <- function (..., use.names = TRUE) 
+expand_grid_rows <- function (..., nmax = 8L, use.names = TRUE) 
+{
+  args <- list(...)[[1]]
+  nargs <- length(args)
+  tot <- nargs * nmax
+  cargs <- vector("integer", )
+  
+  rep.fac <- 1L
+  ds <- lengths(args)
+  orep <- prod(ds)
+  nmax <- min(nmax, orep)
+  
+  sta <- 1L
+  end <- nmax
+  
+  for (i in seq_len(nargs)) {
+    x <- args[[i]]
+    
+    nx <- length(x)
+    orep <- orep/nx
+    x <- x[rep_len(rep.int(seq_len(nx), rep.int(rep.fac, nx)), nmax)]
+    
+    cargs[sta:end] <- x
+    sta <- sta + nmax
+    end <- end + nmax
+    rep.fac <- rep.fac * nx
+  }
+  
+  # vectors by rows
+  len <- length(x)
+  ans <- vector("list", len)
+  nms <- names(args)
+  
+  seqs <- 0:(nargs-1L)
+  
+  for (i in 1:len) {
+    y <- cargs[seqs * nmax + i]
+    names(y) <- nms
+    ans[[i]] <- y
+  }
+  
+  ans
+}
+
+
+#' Expands grids.
+#'
+#' Outputs are vectors corresponding to rows in the the data.frame from the
+#' original expand.grid.
+#'
+#' Some overhead in making row vectors but can avoid the expensive row
+#' subsetting from a data.frame.
+#'
+#' @param use.names Logical; uses names or not.
+#' @param ... Lists of data.
+#' @examples
+#' library(mzion)
+#' 
+#' x <- list(`Oxidation (M)` = c(0.000000, 63.998285),
+#'           `Carbamidomethyl (M)` = c(0.000000, 105.024835),
+#'           `Oxidation (M)` = c(0.000000, 63.998285))
+#'
+#' mzion:::expand_grid_rows0(x)
+#'
+#' x <- list(`Bar (M)` = c(0, 3),
+#'           `Foo (M)` = c(0, 5, 7),
+#'           `Bar (M)` = c(0, 3))
+#'
+#' mzion:::expand_grid_rows0(x)
+#'
+#' x <- list(`Bar (M)` = c(0, 3))
+#' mzion:::expand_grid_rows0(x)
+expand_grid_rows0 <- function (..., use.names = TRUE) 
 {
   args <- list(...)[[1]]
   nargs <- length(args)
   
   # if (!nargs) return(NULL)
-
+  
   cargs <- vector("list", nargs)
   names(cargs) <- names(args)
   
@@ -657,7 +598,7 @@ expand_grid_rows <- function (..., use.names = TRUE)
     nx <- length(x)
     orep <- orep/nx
     x <- x[rep.int(rep.int(seq_len(nx), rep.int(rep.fac, nx)), orep)]
-                                                
+    
     cargs[[i]] <- x
     rep.fac <- rep.fac * nx
   }
@@ -670,9 +611,10 @@ expand_grid_rows <- function (..., use.names = TRUE)
     x <- .Internal(unlist(x, recursive = FALSE, use.names = use.names))
     ans[[i]] <- x
   }
-
+  
   ans
 }
+
 
 
 #' A simplified table utility.
@@ -835,8 +777,6 @@ rep_vec <- function (vec, fold)
 }
 
 
-
-
 #' Accumulates character strings.
 #' 
 #' @param x A vector of character strings.
@@ -936,10 +876,9 @@ check_ms1calib <- function(out_path = NULL, calib_ms1mass = FALSE)
     else 
       FALSE
   }
-  else {
+  else
     TRUE
-  }
-  
+
   if (is.null(passed_ms1calib)) FALSE else passed_ms1calib
 }
 

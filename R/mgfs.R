@@ -44,16 +44,15 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
   
   args_except <- c("out_path")
   args <- names(formals(fun))
-  args_must <- args[! args %in% args_except]
+  args_must <- args[!args %in% args_except]
   
   cache_pars <- find_callarg_vals(
     time = NULL, 
     path = file.path(out_path, "Calls"), 
     fun = paste0(fun, ".rda"), 
     args = args_must, 
-    new_args = unlist(formals(load_mgfs)[c("enzyme")])
-  ) 
-  
+    new_args = unlist(formals(load_mgfs)[c("enzyme")]))
+
   cache_pars <- cache_pars[sort(names(cache_pars))]
   call_pars <- mget(args_must, envir = fun_env, inherits = FALSE)
   call_pars <- call_pars[sort(names(call_pars))]
@@ -63,100 +62,111 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
   if ((!ok_pars) && enzyme == "noenzyme") 
     ok_pars <- TRUE
   
-  rds <- file.path(mgf_path, "mgf_queries.rds")
+  # checks processed mgfs
+  raws_indexes <- file.path(mgf_path, "raw_indexes.rds")
   
-  if (ok_pars && file.exists(rds)) {
-    message("Found cached MGFs: `", rds, "`.")
-    .savecall <- FALSE
-  } 
-  else {
-    message("Processing raw MGFs.")
-    
-    ppm_ms1_new <- if (is_ms1_three_frame) 
-      as.integer(ceiling(ppm_ms1 * .5))
-    else 
-      ppm_ms1
-
-    ppm_ms2_new <- if (is_ms2_three_frame) 
-      as.integer(ceiling(ppm_ms2 * .5))
-    else 
-      ppm_ms2
-
-    delete_files(
-      out_path, 
-      ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
-                  "\\.xls$", "\\.csv$", "\\.txt$", "\\.tsv$", 
-                  "^mgf$", "^mgfs$", "Calls", 
-                  
-                  # in case calling from proteoQ with MSGF workflows
-                  "fraction_scheme.rda", "label_scheme.rda", 
-                  "label_scheme_full.rda"))
-
-    fi_mgf <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mgf$")
-    fi_mzml <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mzML$")
-    len_mgf <- length(fi_mgf)
-    len_mzml <- length(fi_mzml)
-    
-    if (len_mgf && len_mzml)
-      stop("Peak lists need to be in either MGF or mzML, but not both.")
-    
-    filelist <- if (len_mgf) fi_mgf else fi_mzml
-    
-    if (len_mgf) {
-      readMGF(filepath = mgf_path,
-              filelist = filelist, 
-              min_mass = min_mass,
-              max_mass = max_mass, 
-              min_ms2mass = min_ms2mass,
-              max_ms2mass = max_ms2mass, 
-              topn_ms2ions = topn_ms2ions,
-              quant = quant, 
-              ms1_charge_range = c(min_ms1_charge, max_ms1_charge), 
-              ms1_scan_range = c(min_scan_num, max_scan_num), 
-              ret_range = c(min_ret_time, max_ret_time),
-              ppm_ms1 = ppm_ms1_new,
-              ppm_ms2 = ppm_ms2_new,
-              tmt_reporter_lower = tmt_reporter_lower, 
-              tmt_reporter_upper = tmt_reporter_upper, 
-              exclude_reporter_region = exclude_reporter_region, 
-              index_mgf_ms2 = index_mgf_ms2, 
-              mgf_cutmzs = mgf_cutmzs, 
-              mgf_cutpercs = mgf_cutpercs, 
-              out_path = rds, 
-              digits = digits)
-    }
-    else if (len_mzml) {
-      warning("Please uncheck \"Use zlib compression\" with mzML from MSConvert.", 
-              call. = FALSE)
-      
-      readmzML(filepath = mgf_path,
-               filelist = filelist, 
-               min_mass = min_mass,
-               max_mass = max_mass, 
-               min_ms2mass = min_ms2mass,
-               max_ms2mass = max_ms2mass, 
-               topn_ms2ions = topn_ms2ions,
-               quant = quant, 
-               ms1_charge_range = c(min_ms1_charge, max_ms1_charge), 
-               ms1_scan_range = c(min_scan_num, max_scan_num), 
-               ret_range = c(min_ret_time, max_ret_time),
-               ppm_ms1 = ppm_ms1_new,
-               ppm_ms2 = ppm_ms2_new,
-               tmt_reporter_lower = tmt_reporter_lower, 
-               tmt_reporter_upper = tmt_reporter_upper, 
-               exclude_reporter_region = exclude_reporter_region, 
-               index_mgf_ms2 = index_mgf_ms2, 
-               mgf_cutmzs = mgf_cutmzs, 
-               mgf_cutpercs = mgf_cutpercs, 
-               out_path = rds, 
-               digits = digits)
-    }
-    else {
-      stop("No files of peak lists found.")
-    }
-    
-    .savecall <- TRUE
+  if (file.exists(raws_indexes)) {
+    raws <- qs::qread(raws_indexes)
+    ques <- list.files(mgf_path, pattern = "^mgf_queries_\\d+\\.rds$")
+    ok_mgfs <- if (length(raws) == length(ques)) TRUE else FALSE
+    rm(list = c("raws", "ques", "raws_indexes"))
   }
+  else {
+    ok_mgfs <- FALSE
+    rm(list = c("raws_indexes"))
+  }
+
+  if (ok_pars && ok_mgfs) {
+    message("Found cached MGFs,")
+    .savecall <- FALSE
+    
+    return(NULL)
+  }
+  
+  message("Processing raw MGFs.")
+  
+  ppm_ms1_new <- if (is_ms1_three_frame) 
+    as.integer(ceiling(ppm_ms1 * .5))
+  else 
+    ppm_ms1
+  
+  ppm_ms2_new <- if (is_ms2_three_frame) 
+    as.integer(ceiling(ppm_ms2 * .5))
+  else 
+    ppm_ms2
+  
+  delete_files(
+    out_path, 
+    ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
+                "\\.xls$", "\\.csv$", "\\.txt$", "\\.tsv$", 
+                "^mgf$", "^mgfs$", "Calls", 
+                # in case of reprocessing after proteoQ
+                "fraction_scheme.rda", "label_scheme.rda", 
+                "label_scheme_full.rda"))
+  
+  fi_mgf   <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mgf$")
+  fi_mzml  <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mzML$")
+  len_mgf  <- length(fi_mgf)
+  len_mzml <- length(fi_mzml)
+  
+  if (len_mgf && len_mzml)
+    stop("Peak lists need to be in either MGF or mzML, but not both.")
+  
+  filelist <- if (len_mgf) fi_mgf else fi_mzml
+  
+  if (len_mgf) {
+    readMGF(filepath = mgf_path,
+            filelist = filelist, 
+            min_mass = min_mass,
+            max_mass = max_mass, 
+            min_ms2mass = min_ms2mass,
+            max_ms2mass = max_ms2mass, 
+            topn_ms2ions = topn_ms2ions,
+            quant = quant, 
+            ms1_charge_range = c(min_ms1_charge, max_ms1_charge), 
+            ms1_scan_range = c(min_scan_num, max_scan_num), 
+            ret_range = c(min_ret_time, max_ret_time),
+            ppm_ms1 = ppm_ms1_new,
+            ppm_ms2 = ppm_ms2_new,
+            tmt_reporter_lower = tmt_reporter_lower, 
+            tmt_reporter_upper = tmt_reporter_upper, 
+            exclude_reporter_region = exclude_reporter_region, 
+            index_mgf_ms2 = index_mgf_ms2, 
+            mgf_cutmzs = mgf_cutmzs, 
+            mgf_cutpercs = mgf_cutpercs, 
+            out_path = out_path, 
+            digits = digits)
+  }
+  else if (len_mzml) {
+    warning("Please uncheck \"Use zlib compression\" with mzML from MSConvert.")
+    
+    readmzML(filepath = mgf_path,
+             filelist = filelist, 
+             min_mass = min_mass,
+             max_mass = max_mass, 
+             min_ms2mass = min_ms2mass,
+             max_ms2mass = max_ms2mass, 
+             topn_ms2ions = topn_ms2ions,
+             quant = quant, 
+             ms1_charge_range = c(min_ms1_charge, max_ms1_charge), 
+             ms1_scan_range = c(min_scan_num, max_scan_num), 
+             ret_range = c(min_ret_time, max_ret_time),
+             ppm_ms1 = ppm_ms1_new,
+             ppm_ms2 = ppm_ms2_new,
+             tmt_reporter_lower = tmt_reporter_lower, 
+             tmt_reporter_upper = tmt_reporter_upper, 
+             exclude_reporter_region = exclude_reporter_region, 
+             index_mgf_ms2 = index_mgf_ms2, 
+             mgf_cutmzs = mgf_cutmzs, 
+             mgf_cutpercs = mgf_cutpercs, 
+             out_path = out_path, 
+             digits = digits)
+  }
+  else {
+    stop("No files of peak lists found.")
+  }
+  
+  .savecall <- TRUE
 
   invisible(NULL)
 }
@@ -316,7 +326,7 @@ readMGF <- function (filepath = NULL, filelist = NULL,
   out <- dplyr::bind_rows(out)
   
   post_readmgf(out, min_mass = min_mass, max_mass = max_mass, ppm_ms1 = ppm_ms1, 
-               filepath = filepath, out_path = out_path)
+               filepath = filepath)
 }
 
 
@@ -327,7 +337,7 @@ readMGF <- function (filepath = NULL, filelist = NULL,
 #' @param df A data frame of processed peak lists.
 #' @inheritParams readMGF
 post_readmgf <- function (df, min_mass = 200L, max_mass = 4500L, ppm_ms1 = 10L, 
-                          filepath, out_path) 
+                          filepath) 
 {
   df <- dplyr::arrange(df, ms1_mass)
   # df <- dplyr::filter(df, ms1_mass >= min_mass, ms1_mass <= max_mass)
@@ -346,8 +356,15 @@ post_readmgf <- function (df, min_mass = 200L, max_mass = 4500L, ppm_ms1 = 10L,
   qs::qsave(inds2, file.path(filepath, "scan_indexes.rds"), preset = "fast")
   df$scan_title <- unname(inds2[scans])
   
-  qs::qsave(df, out_path, preset = "fast")
+  df  <- split(df, df$raw_file)
+  nms <- names(df)
   
+  for (i in seq_along(df)) {
+    qs::qsave(df[[i]], file.path(filepath, paste0("mgf_queries_", nms[i], ".rds")), 
+              preset = "fast")
+  }
+    
+
   invisible(NULL)
 }
 
@@ -366,8 +383,6 @@ readlineMGFs <- function (i, file, filepath, raw_file)
     nm <- file.path(filepath, temp_i, paste0("chunk", "_", pos, ".mgf"))
     writeLines(x, nm)
   }
-  
-  message("Loading '", file, "'.")
   
   temp_i <- paste0("temp_", i)
   
@@ -1376,7 +1391,7 @@ readmzML <- function (filepath = NULL, filelist = NULL,
   
   ## frame number
   post_readmgf(out, min_mass = min_mass, max_mass = max_mass, ppm_ms1 = ppm_ms1, 
-               filepath = filepath, out_path = out_path)
+               filepath = filepath)
 }
 
 

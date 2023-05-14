@@ -13,23 +13,23 @@
 #' @inheritParams add_var_masses
 #' @import parallel
 ms2match <- function (mgf_path, aa_masses_all, out_path, 
-                       mod_indexes, type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
-                       maxn_sites_per_vmod = 3L, maxn_fnl_per_seq = 64L, 
-                       maxn_vnl_per_seq = 64L, maxn_vmods_sitescombi_per_pep = 64L, 
-                       minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms1calib = 10L, 
-                       ppm_ms2 = 20L, min_mass = 200L, max_mass = 4500L, 
-                       min_ms2mass = 115L, quant = "none", ppm_reporters = 10L, 
-                       calib_ms1mass = FALSE, 
-                       
-                       # dummies
-                       fasta, acc_type, acc_pattern,
-                       topn_ms2ions, fixedmods, varmods, 
-                       enzyme, 
-                       maxn_fasta_seqs, maxn_vmods_setscombi, 
-                       min_len, max_len, max_miss, 
-                       
-                       index_mgf_ms2 = FALSE, 
-                       digits = 4L) 
+                      mod_indexes, type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
+                      maxn_sites_per_vmod = 3L, maxn_fnl_per_seq = 64L, 
+                      maxn_vnl_per_seq = 64L, maxn_vmods_sitescombi_per_pep = 64L, 
+                      minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms1calib = 10L, 
+                      ppm_ms2 = 20L, min_mass = 200L, max_mass = 4500L, 
+                      min_ms2mass = 115L, quant = "none", ppm_reporters = 10L, 
+                      calib_ms1mass = FALSE, by_modules = TRUE, 
+                      
+                      # dummies
+                      fasta, acc_type, acc_pattern,
+                      topn_ms2ions, fixedmods, varmods, 
+                      enzyme, 
+                      maxn_fasta_seqs, maxn_vmods_setscombi, 
+                      min_len, max_len, max_miss, 
+                      
+                      index_mgf_ms2 = FALSE, 
+                      digits = 4L) 
 {
   options(digits = 9L)
   
@@ -45,61 +45,31 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   fun     <- as.character(match.call()[[1]])
   fun_env <- environment()
   fml_nms <- names(formals(fun))
+  file_aa <- file.path(out_path, "aa_masses_all.rds")
   
   # (OK as `argument` not for users)
   # min_mass and max_mass only for calib_ms1mass, not to be changed by users
-  args_except <- c("quant", "min_mass", "max_mass", "calib_ms1mass")
-  
+  # args_except <- c("quant", "min_mass", "max_mass", "calib_ms1mass", "by_modules")
+  args_except <- c("by_modules")
   fml_incl    <- fml_nms[!fml_nms %in% args_except]
-  
   cache_pars  <- find_callarg_vals(time = NULL, 
                                    path = file.path(out_path, "Calls"), 
                                    fun = paste0(fun, ".rda"), 
                                    args = fml_incl) 
-  
   cache_pars  <- cache_pars[sort(names(cache_pars))]
   call_pars   <- mget(fml_incl, envir = fun_env, inherits = FALSE)
   call_pars   <- call_pars[sort(names(call_pars))]
   
-  # e.g. when recall from the scratch of `matchMS(calib_ms1mass = TRUE, ...)`, 
-  #   call_pars$ppm_ms1 may be 20 ppm, 
-  #   but cache_pars$ppm_ms1 14 ppm after precursor mass calibration
-  if (passed_ms1calib <- check_ms1calib(out_path, calib_ms1mass)) {
-    file_ms1calib <- file.path(mgf_path, "ppm_ms1calib.rds")
-    
-    ppm_ms1_calib <- if (file.exists(file_ms1calib)) 
-      qs::qread(file_ms1calib)
-    else 
-      c(`ppm_ms1_bf` = ppm_ms1, `ppm_ms1_af` = ppm_ms1)
-    
-    if (calib_ms1mass) { # first match
-      if (ppm_ms1_calib[["ppm_ms1_bf"]] == call_pars[["ppm_ms1"]]) 
-        cache_pars[["ppm_ms1"]] <- call_pars[["ppm_ms1"]] <- NULL
-    }
-    else { # second match
-      if (ppm_ms1_calib[["ppm_ms1_af"]] == call_pars[["ppm_ms1"]]) 
-        cache_pars[["ppm_ms1"]] <- call_pars[["ppm_ms1"]] <- NULL
-    }
-  }
-  
   if (identical(cache_pars, call_pars)) {
-    len     <- length(aa_masses_all)
-    
     fions   <- list.files(path = file.path(out_path, "temp"), 
                           pattern = "ion_matches_[0-9]+\\.rds$")
-    
-    ok_ions <- (length(fions) == len)
-    
-    ok_tmt <- if (grepl("^tmt[0-9]+$", quant)) {
-      ftmt   <- list.files(path = file.path(out_path, "temp"), 
-                           pattern = "reporters_[0-9]+\\.rds$")
-      length(ftmt) == len
-    } 
-    else 
-      TRUE
-    
-    if (ok_ions && ok_tmt) {
-      message("Found cached ion matches.")
+
+    if (length(fions)) {
+      message("Found ", length(fions), " cached ion matches.")
+
+      if (!file.exists(file_aa))
+        qs::qsave(aa_masses_all, file_aa)
+      
       .savecall <- FALSE
       
       return(NULL)
@@ -112,365 +82,95 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                                      "\\.xls$", "\\.csv$", "\\.txt$", 
                                      "^mgf$", "^mgfs$", "Calls"))
   
-  out0 <- tibble::tibble(scan_title = integer(), ms1_moverz = numeric(), 
-                         ms1_mass = numeric(), ms1_int = numeric(), 
-                         ms1_charge = character(), ret_time = numeric(), 
-                         scan_num = character(), raw_file = integer(), 
-                         pep_mod_group = character(), 
-                         ms2_moverz = list(list()), 
-                         ms2_int = list(list()), 
-                         ms2_n = integer(), frame  = numeric(), 
-                         matches = list(list()), 
-                         pep_fmod = character(), pep_vmod = character(), 
-                         pep_isdecoy = logical())
+  # pairs expts and theos
+  .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
   
-  # For three-frame searches
-  # (matches of secondary ions using `outer` and no adjustments)
+  files_a  <-  list.files(mgf_path, pattern = "^expttheo_", full.names = TRUE)
+  files_b  <-  list.files(mgf_path, pattern = "^mgftheo_",  full.names = TRUE)
+  nfiles_a <- length(files_a)
+  nfiles_b <- length(files_b)
+
+  if (nfiles_a && nfiles_b) {
+    warning("Both cached `expttheo_` and `mgftheo_` under", mgf_path, ".\n", 
+            "Deleting ", paste(files_a, collapse = "\n"))
+    file.remove(files_a)
+    nfiles_a <- 0L
+  }
+
+  pair_mgftheo(mgf_path = mgf_path, n_modules = length(aa_masses_all), 
+               .path_bin = .path_bin, by_modules = by_modules)
+
+  rm(list = c("files_a", "files_b", "nfiles_a", "nfiles_b"))
+
+  # MS2 generation functions
+  types  <- unlist(lapply(aa_masses_all, attr, "type", exact = TRUE))
   
-  ppm_precsr  <- if (calib_ms1mass) ppm_ms1calib else ppm_ms1
-  ppm_ms1_bin <- calc_threeframe_ppm(ppm_precsr)
-  ppm_ms2_bin <- calc_threeframe_ppm(ppm_ms2)
+  funs_ms2 <- lapply(types, function (x) {
+    if (x %in% c("amods- tmod- vnl- fnl-", "amods- tmod+ vnl- fnl-"))
+      "gen_ms2ions_base"
+    else if (x %in% c("amods- tmod- vnl- fnl+", "amods- tmod+ vnl- fnl+"))
+      "gen_ms2ions_a0_vnl0_fnl1"
+    else if (x %in% c("amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"))
+      "gen_ms2ions_a1_vnl0_fnl0"
+    else if (x %in% c("amods+ tmod- vnl+ fnl-", "amods+ tmod+ vnl+ fnl-"))
+      "gen_ms2ions_a1_vnl1_fnl0"
+    else if (x %in% c("amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"))
+      "gen_ms2ions_a1_vnl0_fnl1"
+    else
+      stop("Unknown modification type.")
+  })
   
+  # other attributes
   ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
                          maxn_vmods_per_pep = maxn_vmods_per_pep,
                          maxn_sites_per_vmod = maxn_sites_per_vmod)
-  
   ms2vmods_all <- lapply(ms1vmods_all, lapply, make_ms2vmods)
   
-  message("\n===  MS2 ion searches started at ", Sys.time(), ". ===\n")
+  # For three-frame searches
+  # (matches of secondary ions may use `outer` products and no adjustments)
+  ppm_precsr  <- if (calib_ms1mass) ppm_ms1calib else ppm_ms1
+  ppm_ms1_bin <- calc_threeframe_ppm(ppm_precsr)
+  ppm_ms2_bin <- calc_threeframe_ppm(ppm_ms2)
+  rm(list = "ppm_precsr")
+
+  # Searches
+  df0 <- tibble::tibble(scan_title = integer(), ms1_moverz = numeric(), 
+                        ms1_mass = numeric(), ms1_int = numeric(), 
+                        ms1_charge = character(), ret_time = numeric(), 
+                        scan_num = character(), raw_file = integer(), 
+                        ms2_moverz = list(list()), 
+                        ms2_int = list(list()), 
+                        ms2_n = integer(), frame  = numeric(), 
+                        matches = list(list()), 
+                        pep_isdecoy = logical())
   
-  ## Targets 
-  types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
-  is_tmt <- grepl("^tmt[0-9]+$", quant)
-  
-  # (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-" 
-  inds <- which(types %in% c("amods- tmod- vnl- fnl-", 
-                             "amods- tmod+ vnl- fnl-"))
-  
-  if (length(inds)) {
-    # for workflow with precursor mass calibration
-    file_first <- file.path(out_path, "temp", "ion_matches_1.rds")
-    
-    for (i in inds) {
-      aa_masses <- aa_masses_all[[i]]
-      ms1vmods  <- ms1vmods_all[[i]]
-      ms2vmods  <- ms2vmods_all[[i]]
-      
-      # need ntmod and ctmod for `amod+_...` for excluding 
-      #   additive terminal mod and anywhere mod
-      # 
-      # aa_masses["N-term"] not necessary H; 
-      #   e.g., `Acetyl + hydrogen` in case of FIXED Protein N-term 
-      #   or fixed N-term `TMT + hydrogen`
-      
-      ntmod  <- attr(aa_masses, "ntmod", exact = TRUE)
-      ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
-      ntmass <- find_nterm_mass(aa_masses)
-      ctmass <- find_cterm_mass(aa_masses)
-      
-      out <- if ((!calib_ms1mass) && isTRUE(passed_ms1calib) && i == 1L && 
-                 file.exists(file_first))
-        qs::qread(file_first)
-      else {
-        ms2match_base(
-          i = i, 
-          aa_masses = aa_masses, 
-          ms1vmods = ms1vmods, 
-          ms2vmods = ms2vmods, 
-          ntmass = ntmass, 
-          ctmass = ctmass, 
-          mod_indexes = mod_indexes, 
-          mgf_path = mgf_path, 
-          out_path = out_path, 
-          type_ms2ions = type_ms2ions, 
-          maxn_vmods_per_pep = maxn_vmods_per_pep, 
-          maxn_sites_per_vmod = maxn_sites_per_vmod, 
-          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-          minn_ms2 = minn_ms2, 
-          ppm_ms1 = ppm_ms1_bin, 
-          ppm_ms2 = ppm_ms2_bin, 
-          min_ms2mass = min_ms2mass, 
-          index_mgf_ms2 = index_mgf_ms2, 
-          df0 = out0, 
-          digits = digits)
-      }
-      
-      # calibrates and updates ms1_mass in MGF and `out`
-      if (calib_ms1mass && !isTRUE(passed_ms1calib) && i == 1L) {
-        out <- calib_ms1masses(df = out, mgf_path = mgf_path, 
-                               out_path = out_path, ppm_ms1 = ppm_ms1, 
-                               min_mass = min_mass, max_mass = max_mass, 
-                               digits = digits)
-        
-        qs::qsave(out, file.path(out_path, "temp", paste0("ion_matches_", i, ".rds")), 
-                  preset = "fast")
-        
-        qs::qsave(c(`passed_ms1calib` = TRUE), 
-                  file.path(out_path, "Calls", "workflow_info.rds"), 
-                  preset = "fast")
-        
-        .savecall <- FALSE
-        
-        return(NULL)
-      }
-      
-      if (is_tmt) 
-        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
-      
-      rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
-                  "ntmod", "ntmass", "ctmod", "ctmass"))
-      gc()
-    }
-  }
-  
-  
-  # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+" 
-  #        (mutual exclusive btw. (1, 2) and (5, 6)
-  #         "ANY" fmod has neuloss -> 5, 6;
-  #         "ALL" fmods have no neuloss -> 1, 2)
-  
-  inds <- which(types %in% c("amods- tmod- vnl- fnl+", 
-                             "amods- tmod+ vnl- fnl+"))
-  
-  if (length(inds)) {
-    for (i in inds) {
-      aa_masses <- aa_masses_all[[i]]
-      ms1vmods  <- ms1vmods_all[[i]]
-      ms2vmods  <- ms2vmods_all[[i]]
-      
-      ntmod  <- attr(aa_masses, "ntmod", exact = TRUE)
-      ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
-      ntmass <- find_nterm_mass(aa_masses)
-      ctmass <- find_cterm_mass(aa_masses)
-      
-      fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
-      
-      out <- ms2match_a0_vnl0_fnl1(
-        i = i, 
-        aa_masses = aa_masses, 
-        ms1vmods = ms1vmods, 
-        ms2vmods = ms2vmods, 
-        ntmass = ntmass, 
-        ctmass = ctmass, 
-        fmods_nl = fmods_nl, 
-        mod_indexes = mod_indexes, 
-        mgf_path = mgf_path, 
-        out_path = out_path, 
-        type_ms2ions = type_ms2ions, 
-        maxn_vmods_per_pep = maxn_vmods_per_pep, 
-        maxn_sites_per_vmod = maxn_sites_per_vmod, 
-        maxn_fnl_per_seq = maxn_fnl_per_seq, 
-        maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-        minn_ms2 = minn_ms2, 
-        ppm_ms1 = ppm_ms1_bin, 
-        ppm_ms2 = ppm_ms2_bin, 
-        min_ms2mass = min_ms2mass, 
-        index_mgf_ms2 = index_mgf_ms2, 
-        df0 = out0, 
-        digits = digits)
-      
-      if (is_tmt) 
-        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
-      
-      rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
-                  "ntmod", "ntmass", "ctmod", "ctmass"))
-      gc()
-    }
-  }
-  
-  
-  # (7, 8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
-  #        (ALL amods are vnl-)
-  
-  inds <- which(types %in% c("amods+ tmod- vnl- fnl-", 
-                             "amods+ tmod+ vnl- fnl-"))
-  
-  if (length(inds)) {
-    for (i in inds) {
-      aa_masses <- aa_masses_all[[i]]
-      ms1vmods  <- ms1vmods_all[[i]]
-      ms2vmods  <- ms2vmods_all[[i]]
-      
-      ntmod  <- attr(aa_masses, "ntmod", exact = TRUE)
-      ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
-      ntmass <- find_nterm_mass(aa_masses)
-      ctmass <- find_cterm_mass(aa_masses)
-      
-      amods <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
-      
-      out <- ms2match_a1_vnl0_fnl0(
-        i = i, 
-        aa_masses = aa_masses, 
-        ms1vmods = ms1vmods, 
-        ms2vmods = ms2vmods, 
-        ntmod = ntmod, 
-        ctmod = ctmod, 
-        ntmass = ntmass, 
-        ctmass = ctmass, 
-        amods = amods, 
-        mod_indexes = mod_indexes, 
-        mgf_path = mgf_path, 
-        out_path = out_path, 
-        type_ms2ions = type_ms2ions, 
-        maxn_vmods_per_pep = maxn_vmods_per_pep, 
-        maxn_sites_per_vmod = maxn_sites_per_vmod, 
-        maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-        minn_ms2 = minn_ms2, 
-        ppm_ms1 = ppm_ms1_bin, 
-        ppm_ms2 = ppm_ms2_bin, 
-        min_ms2mass = min_ms2mass, 
-        index_mgf_ms2 = index_mgf_ms2, 
-        df0 = out0, 
-        digits = digits)
-      
-      if (is_tmt) 
-        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
-      
-      rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
-                  "ntmod", "ntmass", "ctmod", "ctmass"))
-      gc()
-    }
-  }
-  
-  
-  # (9, 10) "amods+ tmod- vnl+ fnl-", "amods+ tmod+ vnl+ fnl-"
-  #         (ANY amod is vnl+)
-  
-  inds <- which(types %in% c("amods+ tmod- vnl+ fnl-", 
-                             "amods+ tmod+ vnl+ fnl-"))
-  
-  if (length(inds)) {
-    for (i in inds) {
-      aa_masses <- aa_masses_all[[i]]
-      ms1vmods  <- ms1vmods_all[[i]]
-      ms2vmods  <- ms2vmods_all[[i]]
-      
-      ntmod  <- attr(aa_masses, "ntmod", exact = TRUE)
-      ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
-      ntmass <- find_nterm_mass(aa_masses)
-      ctmass <- find_cterm_mass(aa_masses)
-      
-      amods    <- attr(aa_masses, "amods", exact = TRUE) # variable anywhere
-      vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
-      
-      out <- ms2match_a1_vnl1_fnl0(
-        i = i, 
-        aa_masses = aa_masses, 
-        ms1vmods = ms1vmods, 
-        ms2vmods = ms2vmods, 
-        ntmod = ntmod, 
-        ctmod = ctmod, 
-        ntmass = ntmass, 
-        ctmass = ctmass, 
-        amods = amods, 
-        vmods_nl = vmods_nl, 
-        mod_indexes = mod_indexes, 
-        mgf_path = mgf_path, 
-        out_path = out_path, 
-        type_ms2ions = type_ms2ions, 
-        maxn_vmods_per_pep = maxn_vmods_per_pep, 
-        maxn_sites_per_vmod = maxn_sites_per_vmod, 
-        maxn_vnl_per_seq = maxn_vnl_per_seq, 
-        maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-        minn_ms2 = minn_ms2, 
-        ppm_ms1 = ppm_ms1_bin, 
-        ppm_ms2 = ppm_ms2_bin, 
-        min_ms2mass = min_ms2mass, 
-        index_mgf_ms2 = index_mgf_ms2, 
-        df0 = out0, 
-        digits = digits)
-      
-      if (is_tmt) 
-        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
-      
-      rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
-                  "ntmod", "ntmass", "ctmod", "ctmass"))
-      gc()
-    }
-  }
-  
-  
-  # (11, 12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
-  #          (mutual exclusive btw. (11, 12) and (7, 8);
-  #           logicial ANY versus ALL)
-  
-  inds <- which(types %in% c("amods+ tmod- vnl- fnl+", 
-                             "amods+ tmod+ vnl- fnl+"))
-  
-  if (length(inds)) {
-    for (i in inds) {
-      aa_masses <- aa_masses_all[[i]]
-      ms1vmods  <- ms1vmods_all[[i]]
-      ms2vmods  <- ms2vmods_all[[i]]
-      
-      ntmod  <- attr(aa_masses, "ntmod", exact = TRUE)
-      ctmod  <- attr(aa_masses, "ctmod", exact = TRUE)
-      ntmass <- find_nterm_mass(aa_masses)
-      ctmass <- find_cterm_mass(aa_masses)
-      
-      amods    <- attr(aa_masses, "amods", exact = TRUE)
-      fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
-      
-      out <- ms2match_a1_vnl0_fnl1(
-        i = i, 
-        aa_masses = aa_masses, 
-        ms1vmods = ms1vmods, 
-        ms2vmods = ms2vmods, 
-        ntmod = ntmod, 
-        ctmod = ctmod, 
-        ntmass = ntmass, 
-        ctmass = ctmass, 
-        amods = amods, 
-        fmods_nl = fmods_nl, 
-        mod_indexes = mod_indexes, 
-        mgf_path = mgf_path, 
-        out_path = out_path, 
-        type_ms2ions = type_ms2ions, 
-        maxn_vmods_per_pep = maxn_vmods_per_pep, 
-        maxn_sites_per_vmod = maxn_sites_per_vmod, 
-        maxn_fnl_per_seq = maxn_fnl_per_seq, 
-        maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-        minn_ms2 = minn_ms2, 
-        ppm_ms1 = ppm_ms1_bin, 
-        ppm_ms2 = ppm_ms2_bin, 
-        min_ms2mass = min_ms2mass, 
-        index_mgf_ms2 = index_mgf_ms2, 
-        df0 = out0, 
-        digits = digits)
-      
-      if (is_tmt) 
-        out <- hcalc_tmtint(out, quant, ppm_reporters, i, out_path, index_mgf_ms2)
-      
-      rm(list = c("out", "aa_masses", "ms1vmods", "ms2vmods", 
-                  "ntmod", "ntmass", "ctmod", "ctmass"))
-      gc()
-    }
-  }
+  hms2match(aa_masses_all = aa_masses_all, 
+            funs_ms2 = funs_ms2, 
+            ms1vmods_all = ms1vmods_all, 
+            ms2vmods_all = ms2vmods_all, 
+            mod_indexes = mod_indexes, 
+            mgf_path = mgf_path, 
+            out_path = out_path, 
+            type_ms2ions = type_ms2ions, 
+            maxn_vmods_per_pep = maxn_vmods_per_pep, 
+            maxn_sites_per_vmod = maxn_sites_per_vmod, 
+            maxn_fnl_per_seq = maxn_fnl_per_seq, 
+            maxn_vnl_per_seq = maxn_vnl_per_seq, 
+            maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+            minn_ms2 = minn_ms2, 
+            ppm_ms1 = ppm_ms1_bin, 
+            ppm_ms2 = ppm_ms2_bin, 
+            min_ms2mass = min_ms2mass, 
+            index_mgf_ms2 = index_mgf_ms2, 
+            by_modules = by_modules, 
+            df0 = df0, 
+            digits = digits)
+
+  qs::qsave(aa_masses_all, file_aa)
   
   .savecall <- TRUE
-  
-  message("\n===  MS2 ion searches completed at ", Sys.time(), ". ===\n")
-  
+
   invisible(NULL)
-}
-
-
-#' Helper of calc_tmtint
-#' 
-#' @param df A data frame.
-#' @param i The i-th module.
-#' @inheritParams matchMS
-hcalc_tmtint <- function (df, quant, ppm_reporters, i, out_path, 
-                          index_mgf_ms2 = FALSE)
-{
-  df %>% 
-    calc_tmtint(quant = quant, ppm_reporters = ppm_reporters, 
-                index_mgf_ms2 = index_mgf_ms2) %>% 
-    tidyr::unite(uniq_id, raw_file, pep_mod_group, scan_num, sep = ".", 
-                 remove = TRUE) %>% 
-    dplyr::select(uniq_id, grep("^I[0-9]{3}[NC]{0,1}$", names(.))) %T>% 
-    qs::qsave(file.path(out_path, "temp", paste0("reporters_", i, ".rds")), 
-              preset = "fast")
 }
 
 
@@ -505,7 +205,6 @@ reverse_peps_in_frame <- function (pep_frame)
 #' @examples 
 #' \donttest{
 #' seqs = c(paste0(LETTERS[1:10], collapse = ""), paste0(letters[1:10], collapse = ""))
-#' 
 #' }
 reverse_seqs <- function (seqs) 
 {
@@ -521,29 +220,164 @@ reverse_seqs <- function (seqs)
 }
 
 
-#' Precursor masses calibration.
+#' MGF precursor mass calibration.
 #' 
 #' \code{ppm_ms1} only for the calculation of frame indexes of precursors.
 #' 
-#' @param df A data frame after MS2 matches.
 #' @param knots The number of knots for spline fits.
 #' @inheritParams matchMS
-calib_ms1masses <- function (df = NULL, mgf_path = NULL, out_path = NULL, 
-                             ppm_ms1 = 20L, min_mass = 200L, max_mass = 4500L, 
-                             knots = 50L, digits = 4L)
+calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL, 
+                       mod_indexes = NULL, type_ms2ions = "by", 
+                       maxn_vmods_per_pep = 5L,maxn_sites_per_vmod = 3L, 
+                       maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
+                       maxn_vmods_sitescombi_per_pep = 64L,
+                       minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms1calib = 20L, 
+                       ppm_ms2 = 20L, min_mass = 200L, max_mass = 4500L, 
+                       min_ms2mass = 115L,
+                       quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
+                       ppm_reporters = 10L, index_mgf_ms2 = FALSE, 
+                       by_modules = TRUE, 
+                       fasta = NULL, acc_type = NULL, acc_pattern = NULL, 
+                       topn_ms2ions = 100L, fixedmods = NULL, varmods = NULL,
+                       enzyme = "trypsin_p", maxn_fasta_seqs = 200000L, 
+                       maxn_vmods_setscombi = 512L,
+                       min_len = 7L, max_len = 40L, max_miss = 2L, knots = 50L, 
+                       digits = 4L)
 {
   on.exit(
     if (exists(".savecall", envir = fun_env)) {
       if (.savecall) save_call2(path = file.path(out_path, "Calls"), fun = fun)
     }, add = TRUE
   )
-
-  fun     <- as.character(match.call()[[1]])
+  
+  fun <- as.character(match.call()[[1]])
   fun_env <- environment()
+  
+  args_except <- c("out_path")
+  args <- names(formals(fun))
+  args_must <- args[!args %in% args_except]
+  
+  cache_pars <- find_callarg_vals(
+    time = NULL, 
+    path = file.path(out_path, "Calls"), 
+    fun = paste0(fun, ".rda"), 
+    args = args_must)
+  
+  cache_pars <- cache_pars[sort(names(cache_pars))]
+  call_pars <- mget(args_must, envir = fun_env, inherits = FALSE)
+  call_pars <- call_pars[sort(names(call_pars))]
+  ok_pars <- identical(call_pars, cache_pars)
+  
+  if (identical(cache_pars, call_pars) && 
+      check_ms1calib(out_path, calib_ms1mass = TRUE)) {
+    message("Mass calibration performed previously. \n", 
+            "To recalibrate, delete `Calls/workflow_info.rds`.")
+    .savecall <- FALSE
+    return(NULL)
+  }
+  
+  ## the first search
+  ms2match(mgf_path = mgf_path,
+           aa_masses_all = aa_masses_all[1],
+           out_path = out_path,
+           mod_indexes = mod_indexes, 
+           type_ms2ions = type_ms2ions,
+           maxn_vmods_per_pep = maxn_vmods_per_pep,
+           maxn_sites_per_vmod = maxn_sites_per_vmod,
+           maxn_fnl_per_seq = maxn_fnl_per_seq, 
+           maxn_vnl_per_seq = maxn_vnl_per_seq, 
+           maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
+           minn_ms2 = minn_ms2,
+           ppm_ms1 = ppm_ms1,
+           ppm_ms1calib = ppm_ms1calib,
+           ppm_ms2 = ppm_ms2,
+           min_mass = min_mass, 
+           max_mass = max_mass, 
+           min_ms2mass = min_ms2mass,
+           quant = quant,
+           ppm_reporters = ppm_reporters,
+           calib_ms1mass = FALSE, 
+           index_mgf_ms2 = index_mgf_ms2, 
+           by_modules = by_modules, 
+           
+           # dummy for argument matching
+           fasta = fasta,
+           acc_type = acc_type,
+           acc_pattern = acc_pattern,
+           topn_ms2ions = topn_ms2ions,
+           fixedmods = fixedmods,
+           varmods = varmods,
+           enzyme = enzyme,
+           maxn_fasta_seqs = maxn_fasta_seqs,
+           maxn_vmods_setscombi = maxn_vmods_setscombi,
+           min_len = min_len,
+           max_len = max_len,
+           max_miss = max_miss,
+           digits = digits)
+  
+  ## mass calibration
+  files_mgf <- list.files(mgf_path, "^mgf_queries.*\\.rds$")
+  
+  if (!length(files_mgf)) {
+    stop("No `mgf_queries` files found.")
+    return(NULL)
+  }
+  
+  ## Calibration
+  df <- qs::qread(file.path(out_path, "temp", "ion_matches_1.rds"))
+  dfs <- split(df, df$raw_file)
+  ord   <- gsub("^mgf_queries_(\\d+)\\.rds", "\\1", files_mgf)
+  dfs <- dfs[ord]
+  rm(list = c("df", "ord"))
+  
+  len <- length(dfs)
+  n_cores <- min(len, detect_cores(32L))
+  
+  if (len <= 2L) {
+    mapply(calib_ms1, files_mgf, dfs, 
+           MoreArgs = list(
+             mgf_path = mgf_path, out_path = out_path, ppm_ms1 = ppm_ms1, 
+             min_mass = min_mass, max_mass = max_mass, knots = knots, 
+             digits = digits
+           ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  }
+  else {
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    parallel::clusterExport(cl, "calib_ms1", envir = environment(mzion::matchMS))
+    
+    parallel::clusterMap(
+      cl, calib_ms1, files_mgf, dfs, 
+      MoreArgs = list(
+        mgf_path = mgf_path, out_path = out_path, ppm_ms1 = ppm_ms1, 
+        min_mass = min_mass, max_mass = max_mass, knots = knots, 
+        digits = digits
+      ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    
+    parallel::stopCluster(cl)
+  }
+  
+  qs::qsave(c(`passed_ms1calib` = TRUE), 
+            file.path(out_path, "Calls", "workflow_info.rds"), 
+            preset = "fast")
+  
+  message("Completed precursor mass calibration.\n")
+  
+  .savecall <- TRUE
+  
+  invisible(NULL)
+}
 
-  ## Check cached 
-  file_mgf <- file.path(mgf_path, "mgf_queries.rds")
-  mgfs <- if (file.exists(file_mgf)) qs::qread(file_mgf) else return(NULL)
+
+#' Calibration precursor masses by individual RAW_Files.
+#' 
+#' @param file_mgf An MGF file name
+#' @param df A data frame of \code{ion_matches_1.rds}
+#' @inheritParams calib_mgf
+calib_ms1 <- function (file_mgf, df = NULL, mgf_path = NULL, out_path = NULL, 
+                       ppm_ms1 = 20L, min_mass = 200L, max_mass = 4500L, 
+                       knots = 50L, digits = 4L)
+{
+  mgfs <- qs::qread(file.path(mgf_path, file_mgf))
   
   # subsets by minn_ms2 and ms1_int
   if (FALSE) {
@@ -566,36 +400,37 @@ calib_ms1masses <- function (df = NULL, mgf_path = NULL, out_path = NULL,
   })
   theo_ms1  <- .Internal(unlist(theo_ms1, recursive = FALSE, use.names = FALSE))
   
-  expt_ms1  <- df[["ms1_mass"]]
+  expt_ms1  <- df[["pep_exp_mr"]]
   diff_ms1  <- (expt_ms1 - theo_ms1)/theo_ms1 * 1E6
-  ret_time  <- df[["ret_time"]]
+  ret_time  <- df[["pep_ret_range"]]
   ppm_err   <- floor(median(abs(diff_ms1), na.rm = TRUE))
   ppm_ms1calib <- max(ppm_ms1 - ppm_err * 2L, 4L)
-  ppm_ms1_bin <- calc_threeframe_ppm(ppm_ms1calib)
+  ppm_ms1_bin  <- calc_threeframe_ppm(ppm_ms1calib)
   
-  save_ms1calib(ppm_ms1, ppm_ms1calib, mgf_path)
-
+  qs::qsave(c(`ppm_ms1_bf` = ppm_ms1, `ppm_ms1_af` = ppm_ms1calib), 
+            file.path(mgf_path, paste0("ppm_ms1calib_", file_mgf)))
+  
   fit_ns <- tryCatch(
     lm(diff_ms1 ~ splines::ns(ret_time, knots)),
     error = function(e) NA)
-
+  
   fit_bs <- tryCatch(
     lm(diff_ms1 ~ splines::bs(ret_time, knots)),
     error = function(e) NA)
-
+  
   res_ns <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2, na.rm = TRUE) else Inf
   res_bs <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2, na.rm = TRUE) else Inf
-  fit <- if (res_ns <= res_bs) fit_ns else fit_bs
-
+  fit    <- if (res_ns <= res_bs) fit_ns else fit_bs
+  
   ## Update df
   pred <- predict.lm(fit, newdata = data.frame(ret_time = ret_time)) / 1E6
-  df[["ms1_mass"]] <- round(df[["ms1_mass"]] * (1 - pred), digits = digits)
-  df[["frame"]] <- find_ms1_interval(df[["frame"]], from = min_mass, ppm = ppm_ms1_bin)
+  df[["pep_exp_mr"]] <- round(df[["pep_exp_mr"]] * (1 - pred), digits = digits)
+  df[["pep_frame"]] <- find_ms1_interval(df[["pep_frame"]], from = min_mass, ppm = ppm_ms1_bin)
   
   # (keeps the original df$ms1_mass -> can later infer mass deltas)
   # charges <- get_ms1charges(df[["ms1_charge"]])
   # df[["ms1_moverz"]] <- (df[["ms1_mass"]] + 1.00727647 * charges)/charges
-
+  
   ## Update mgf
   rt <- mgfs[["ret_time"]]
   oks_le <- rt >= min(ret_time, na.rm = TRUE)
@@ -604,8 +439,7 @@ calib_ms1masses <- function (df = NULL, mgf_path = NULL, out_path = NULL,
   ms1err <- predict.lm(fit, newdata = data.frame(ret_time = rt[oks])) / 1E6
   ms1oks <- mgfs[["ms1_mass"]][oks]
   mgfs[["ms1_mass"]][oks] <- ms1oks - ms1oks * ms1err
-  # rm(list = "ms1oks")
-
+  
   # beyond the boundary of RT
   if (FALSE) {
     rts_ok <- rt[oks]
@@ -617,7 +451,7 @@ calib_ms1masses <- function (df = NULL, mgf_path = NULL, out_path = NULL,
     mgfs[["ms1_mass"]][!oks_le] <- ms1_le - ms1_le * err_le
     mgfs[["ms1_mass"]][!oks_gr] <- ms1_gr - ms1_gr * err_gr
   }
-
+  
   ## Update MGF
   mgfs <- mgfs %>%
     dplyr::arrange(ms1_mass) %>% 
@@ -627,12 +461,10 @@ calib_ms1masses <- function (df = NULL, mgf_path = NULL, out_path = NULL,
   
   # charges <- get_ms1charges(mgfs[["ms1_charge"]])
   # mgfs[["ms1_moverz"]] <- (mgfs[["ms1_mass"]] + 1.00727647 * charges)/charges
-
-  .savecall <- TRUE
-  message("\n\tPrecursor mass calibration completed.\n")
-  qs::qsave(mgfs, file.path(mgf_path, "mgf_queries.rds"), preset = "fast")
   
-  invisible(df)
+  .savecall <- TRUE
+
+  qs::qsave(mgfs, file.path(mgf_path, file_mgf), preset = "fast")
 }
 
 

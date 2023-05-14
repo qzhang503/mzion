@@ -416,8 +416,6 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
                 SIMPLIFY = FALSE,
                 USE.NAMES = TRUE)
   
-  theo_ms1 <- attr(mts, "theo_ms1")
-  
   len <- length(res)
   out <- vector("list", len)
   
@@ -426,8 +424,9 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
     
     out[[i]] <- list(
       pep_seq = nms,
-      theo_ms1 = theo_ms1, 
+      theo_ms1 = attr(mts, "theo_ms1", exact = TRUE), 
       pep_ivmod = res_i$pep_ivmod, 
+      pep_mod_group = attr(mts, "pep_mod_group", exact = TRUE), 
       pep_prob = res_i$pep_prob, 
       pri_matches = res_i["pri_matches"], 
       sec_matches = res_i["sec_matches"]
@@ -609,26 +608,21 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
 #' @import parallel
 calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by", 
                             target_fdr = 0.01, 
-                            
-                            # to be deleted later
-                            fdr_type = "protein", 
-                            
                             min_len = 7L, max_len = 40L, ppm_ms2 = 20L, 
                             soft_secions = FALSE, 
                             out_path = "~/mzion/outs", 
                             min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
                             tally_ms2ints = TRUE, 
-                            
                             mgf_path, maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
                             maxn_vmods_sitescombi_per_pep = 64L, minn_ms2 = 6L, 
-                            ppm_ms1 = 20L, quant = "none", 
-                            ppm_reporters = 10L, fasta, acc_type, acc_pattern, 
+                            ppm_ms1 = 20L, quant = "none", ppm_reporters = 10, 
+                            fasta, acc_type, acc_pattern, 
                             fixedmods, varmods, 
                             enzyme = "trypsin_p", maxn_fasta_seqs = 200000L, 
                             maxn_vmods_setscombi = 64L, 
                             add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
-                            add_ms2moverzs = FALSE, add_ms2ints = FALSE,
-                            digits = 4L) 
+                            add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
+                            by_modules = TRUE, digits = 4L) 
 {
   on.exit(
     if (exists(".savecall", envir = fun_env)) {
@@ -639,21 +633,21 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     add = TRUE
   )
   
-  ## Check priors
-  pat_i  <- "^ion_matches_"
-  list_i <- find_targets(out_path, pattern = pat_i)$files
-  len_i  <- length(list_i)
-  
-  if (!len_i) 
-    stop("No target results with pattern '", pat_i, "'.")
+  sc_path <- file.path(out_path, "temp")
+  tempdir <- create_dir(file.path(out_path, "sc_temp"))
   
   ## Check cached current
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
   fml_nms <- names(formals(fun))
   
-  args_except <- c("fdr_type")
-  
+  fs_im  <- find_targets(out_path, pattern = "^ion_matches_")$files
+
+  if (!length(fs_im)) 
+    stop("Results of ion matches not found with pattern.")
+
+  args_except <- c("fdr_type", "by_modules")
+
   fml_incl <- if (length(args_except))
     fml_nms[!fml_nms %in% args_except]
   else
@@ -666,61 +660,196 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                                   path = file.path(out_path, "Calls"), 
                                   fun = paste0(fun, ".rda"), 
                                   args = fml_incl) 
-  
   cache_pars <- cache_pars[sort(names(cache_pars))]
   call_pars  <- mget(fml_incl, envir = fun_env, inherits = FALSE) 
   call_pars  <- call_pars[sort(names(call_pars))]
-  
+
   if (identical(cache_pars, call_pars)) {
-    ok_scores <- find_targets(out_path, pattern = "^pepscores_")
-    listsc <- ok_scores$files
-    lensc  <- length(listsc)
+    fs_sc <- list.files(sc_path, pattern = "^prescores_")
+    n_sc  <- length(fs_sc)
+    fi_sp <- file.path(sc_path, "total_splits.rds")
+    n_sp  <- if (file.exists(fi_sp)) qs::qread(fi_sp) else -1L
     
-    if (lensc == len_i) {
-      message("Found cached 'pepscores_[...]'.")
-      .savecall <- FALSE
-      return(NULL)
+    if (n_sc == n_sp) {
+      if (grepl("^tmt", quant)) {
+        fs_tmt <- list.files(sc_path, pattern = "^reporters_\\d+_\\d+")
+        
+        if (length(fs_tmt) == n_sc) {
+          message("Found cached 'prescores_[...]' and 'reporters_[...]'.")
+          .savecall <- FALSE
+          return(NULL)
+        }
+        else
+          message("Recalculating peptide scores (not all 'reporters_' found).")
+        
+        rm(list = "fs_tmt")
+      }
+      else {
+        message("Found cached 'prescores_[...]'.")
+        .savecall <- FALSE
+        return(NULL)
+      }
     } 
-    else {
+    else
       message("Recalculating peptide scores (not all 'pepscores_' found).")
-      rm(list = c("listsc"))
-    }
-  } 
+    
+    rm(list = c("fs_sc", "n_sc", "fi_sp", "n_sp"))
+  }
   else {
     message("Calculating peptide scores.")
-    dir.create(file.path(out_path, "temp"), recursive = TRUE, showWarnings = FALSE)
+    dir.create(sc_path, recursive = TRUE, showWarnings = FALSE)
     rm(list = c("cache_pars", "call_pars"))
   }
   
-  d2 <- calc_threeframe_ppm(ppm_ms2) * 1E-6
+  # aa_masses_all for pep_fmod and pep_vmod
+  if (file.exists(file_aa <- file.path(out_path, "aa_masses_all.rds")))
+    aa_masses_all <- qs::qread(file_aa)
+  else if (file.exists(file_aa <- file.path(.path_bin, "aa_masses_all.rds")))
+    aa_masses_all <- qs::qread(file_aa)
+  else
+    stop("Amino-acid look-ups not found: ", file_aa)
 
-  for (fi in list_i)
-    calcpepsc(file = fi, 
-              topn_ms2ions = topn_ms2ions, 
-              type_ms2ions = type_ms2ions, 
-              ppm_ms2 = ppm_ms2, 
-              soft_secions = soft_secions, 
-              out_path = out_path, 
-              min_ms2mass = min_ms2mass, 
-              d2 = d2, 
-              index_mgf_ms2 = index_mgf_ms2, 
-              tally_ms2ints = tally_ms2ints, 
-              add_ms2theos = add_ms2theos, 
-              add_ms2theos2 = add_ms2theos2, 
-              add_ms2moverzs = add_ms2moverzs, 
-              add_ms2ints = add_ms2ints,
-              # slower with 48 cores
-              n_cores = detect_cores(16L), 
-              digits = digits)
-    
-  hadd_primatches(out_path = out_path, 
-                  add_ms2theos = add_ms2theos, add_ms2theos2 = add_ms2theos2, 
-                  add_ms2moverzs = add_ms2moverzs, add_ms2ints = add_ms2ints, 
-                  index_mgf_ms2 = index_mgf_ms2)
+  pep_fmod_all  <- unlist(lapply(aa_masses_all, attr, "fmods", exact = TRUE))
+  pep_vmod_all  <- unlist(lapply(aa_masses_all, attr, "vmods", exact = TRUE))
+  rm(list = c("file_aa", "aa_masses_all"))
   
+  d2 <- calc_threeframe_ppm(ppm_ms2) * 1E-6
+  
+  if (by_modules) {
+    split_im(fs_im, sc_path, tempdir)
+    im_path <- tempdir
+    fs_im <- list.files(im_path, pattern = "^ion_matches_")
+  }
+  else {
+    split_im(fs_im, sc_path, tempdir, max_size = Inf)
+    im_path <- sc_path
+  }
+  
+  n_cores <- detect_cores(48L) - 1L
+  cl <- parallel::makeCluster(getOption("cl.cores", n_cores), 
+                              outfile = file.path(sc_path, "log.txt"))
+
+  parallel::clusterExport(cl, list("calcpepsc", 
+                                   "calc_pepprobs_i", "scalc_pepprobs", 
+                                   "calc_probi", "calc_probi_bypep", 
+                                   "calc_probi_byvmods", "add_seions", 
+                                   "find_ppm_outer_bycombi", "match_ex2th2", 
+                                   "hcalc_tmtint", "calc_tmtint", 
+                                   "find_reporter_ints", 
+                                   "add_primatches"), 
+                          envir = environment(mzion::matchMS))
+
+  parallel::clusterApplyLB(
+    cl, fs_im, calcpepsc, 
+    im_path = im_path, 
+    pep_fmod_all = pep_fmod_all, 
+    pep_vmod_all = pep_vmod_all, 
+    topn_ms2ions = topn_ms2ions, 
+    type_ms2ions = type_ms2ions, 
+    ppm_ms2 = ppm_ms2, 
+    soft_secions = soft_secions, 
+    out_path = out_path, 
+    min_ms2mass = min_ms2mass, 
+    d2 = d2, 
+    index_mgf_ms2 = index_mgf_ms2, 
+    tally_ms2ints = tally_ms2ints, 
+    add_ms2theos = add_ms2theos, 
+    add_ms2theos2 = add_ms2theos2, 
+    add_ms2moverzs = add_ms2moverzs, 
+    add_ms2ints = add_ms2ints,
+    quant = quant, 
+    ppm_reporters = ppm_reporters, 
+    by_modules = by_modules, 
+    digits = digits)
+
+  parallel::stopCluster(cl)
+  
+  move_scfiles(type = "list_table", tempdir, sc_path)
+  move_scfiles(type = "prescores",  tempdir, sc_path)
+  move_scfiles(type = "reporters",  tempdir, sc_path)
+
+  qs::qsave(length(list.files(sc_path, pattern = "^prescores")), 
+            file.path(sc_path, "total_splits.rds"))
+  
+  message("Completed peptide scores at: ", Sys.time())
+  unlink(tempdir, recursive = TRUE)
   .savecall <- TRUE
-  
+
   invisible(NULL)
+}
+
+
+#' Split \code{ion_matches_.rds}
+#' 
+#' For RAM efficiency
+#' 
+#' @param files File names such as \code{ion_matches_1.rds, ion_matches_2.rds}
+#' @param sc_path A file path to \code{ion_matches_1.rds}
+#' @param tempdir A temporary directory
+#' @param max_size The maximum file size
+split_im <- function (files, sc_path, tempdir, max_size = 10000000) 
+{
+  for (file in files) {
+    fi   <- file.path(sc_path, file)
+    size <- file.size(fi)
+    
+    if (size > max_size) {
+      n_chunks <- size %/% max_size + 1L
+      dfs <- chunksplit(qs::qread(fi), n_chunks, "row")
+      nms <- paste0(gsub("(.*)\\.rds$", "\\1", file), "_", 1:n_chunks, ".rds")
+      mapply(qs::qsave, dfs, file.path(tempdir, nms), MoreArgs = list(preset = "fast"))
+    }
+    else {
+      nm <- paste0(gsub("(.*)\\.rds$", "\\1", file), "_1", ".rds")
+      file.copy(fi, file.path(tempdir, nm), overwrite = TRUE)
+    }
+  }
+}
+
+
+#' Order fractions
+#' 
+#' @param type The type of files
+#' @param tempdir A temporary directory containing the files
+order_fracs <- function (type = "list_table", tempdir)
+{
+  files <- list.files(tempdir, pattern = paste0("^", type, "_\\d+_\\d+.*"))
+  idxes <- as.integer(gsub(paste0("^", type, "_(\\d+).*"), "\\1", files))
+  
+  fracs <- as.integer(gsub(paste0("^", type, "_\\d+_(\\d+).*"), "\\1", files))
+  fracs <- split(fracs, idxes)
+  files <- split(files, idxes)
+  idxes <- split(idxes, idxes)
+  
+  ords  <- lapply(fracs, order)
+  idxes <- names(files)
+  mapply(function (x, y) x[y], files, ords, SIMPLIFY = FALSE)
+}
+
+
+#' Combines results from fractions
+#' 
+#' @param files A list of file names
+#' @param tempdir A temporary directory containing the files
+#' @param sc_path An output path
+combine_fracs <- function (files, tempdir, sc_path)
+{
+  out_nm <- gsub("_\\d+\\.rds$", ".rds", files[[1]])
+  df <- lapply(file.path(tempdir, files), qs::qread)
+  df <- dplyr::bind_rows(df)
+  qs::qsave(df, file.path(sc_path, out_nm))
+}
+
+
+#' Moves score-related files from \code{tempdir} to \code{sc_path}
+#' 
+#' @param type The type of files
+#' @param tempdir A temporary directory containing the files
+#' @param sc_path A target directory
+move_scfiles <- function (type = "list_table", tempdir, sc_path)
+{
+  files <- list.files(tempdir, pattern = paste0("^", type, "_\\d+_\\d+.*"))
+  file.rename(file.path(tempdir, files), file.path(sc_path, files))
 }
 
 
@@ -751,12 +880,11 @@ find_decoy <- function (out_path, pattern = "^ion_matches_")
 #' @param pattern The pattern of files.
 find_targets <- function (out_path, pattern = "^ion_matches_") 
 {
-  pat <- paste0(pattern, "[0-9]+\\.rds$")
-  list_t <- list.files(path = file.path(out_path, "temp"), pattern = pat)
-  
-  nms_t <- gsub(paste0(pattern, "(\\d+)\\.rds$"), "\\1", list_t)
-  ord <- order(as.integer(nms_t))
-  nms_t <- nms_t[ord]
+  list_t <- list.files(path = file.path(out_path, "temp"), 
+                       pattern = paste0(pattern, "[0-9]+\\.rds$"))
+  nms_t  <- gsub(paste0(pattern, "(\\d+)\\.rds$"), "\\1", list_t)
+  ord    <- order(as.integer(nms_t))
+  nms_t  <- nms_t[ord]
   list_t <- list_t[ord]
   
   list(idxes = nms_t, files = list_t)
@@ -764,34 +892,38 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 
 
 #' Helper of \link{calc_pepscores}.
-#' 
-#' @param file A file name of \code{ion_matches_}.
-#' @param d2 Bin width in ppm divided by 1E6.
-#' @param n_cores The number of CPU cores.
+#'
+#' @param file A file name of \code{ion_matches_}
+#' @param im_path A temporary file path to \code{ion_matches_}; \code{sc_temp}
+#'   at \code{by_modules = TRUE} or \code{temp} at \code{by_modules = FALSE}
+#' @param pep_fmod_all Attributes of \code{pep_fmod} from \code{aa_masses_all}
+#' @param pep_vmod_all Attributes of \code{pep_vmod} from \code{aa_masses_all}
+#' @param d2 Bin width in ppm divided by 1E6
+#' @param n_cores The number of CPU cores
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
-calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by", 
+calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all, 
+                       topn_ms2ions = 100L, type_ms2ions = "by", 
                        ppm_ms2 = 20L, soft_secions = FALSE, out_path = NULL, 
                        min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE,
                        tally_ms2ints = TRUE, 
                        add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                        add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
-                       n_cores = 16L, digits = 4L) 
+                       quant = "none", ppm_reporters = 10, 
+                       by_modules = TRUE, digits = 4L) 
 {
-  message("\tModule: ", file)
-  
-  idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
-  file_lt <- file.path(out_path, "temp", paste0("list_table_", idx, ".rds"))
-  file_sc <- file.path(out_path, "temp", paste0("pepscores_",  idx, ".rds"))
+  msg <- paste0("\tModule: ", file)
+  write(msg, stdout())
 
   cols_a  <- c("pep_scan_num", "raw_file")
   cols_b  <- c("pep_ms2_moverzs", "pep_ms2_ints", "pri_matches", "sec_matches")
   cols_lt <- c(cols_a, cols_b)
   
-  cols_sc <- c("pep_seq", "pep_n_ms2", "pep_scan_title", "pep_exp_mz", "pep_exp_mr", 
-               "pep_tot_int", "pep_exp_z", "pep_ret_range", "pep_scan_num", "raw_file", 
-               "pep_mod_group", "pep_frame", "pep_fmod", "pep_vmod", "pep_isdecoy", 
-               "pep_calc_mr", "pep_ivmod", "pep_prob", "pep_len", 
+  cols_sc <- c("pep_seq", "pep_n_ms2", "pep_scan_title", "pep_exp_mz", 
+               "pep_exp_mr", "pep_tot_int", "pep_exp_z", "pep_ret_range", 
+               "pep_scan_num", "raw_file", "pep_mod_group", "pep_frame", 
+               "pep_fmod", "pep_vmod", "pep_isdecoy", "pep_calc_mr", 
+               "pep_ivmod", "pep_prob", "pep_len", 
                "pep_ms2_moverzs", "pep_ms2_ints", 
                "pep_ms2_theos", "pep_ms2_theos2", 
                "pep_ms2_exptints", "pep_ms2_exptints2", 
@@ -802,188 +934,115 @@ calcpepsc <- function (file, topn_ms2ions = 100L, type_ms2ions = "by",
                # for localization scores
                "pep_ms2_ideltas.")
   
-  df <- qs::qread(file.path(out_path, "temp", file))
+  df <- qs::qread(file.path(im_path, file))
   n_rows <- nrow(df)
+  idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
   
-  df <- dplyr::rename(df, 
-                      pep_ret_range = ret_time, 
-                      pep_scan_title = scan_title,
-                      pep_exp_mz = ms1_moverz, 
-                      pep_n_ms2 = ms2_n, 
-                      pep_exp_mr = ms1_mass, 
-                      pep_tot_int = ms1_int, 
-                      pep_scan_num = scan_num, 
-                      pep_exp_z = ms1_charge, 
-                      pep_ms2_moverzs = ms2_moverz, 
-                      pep_ms2_ints = ms2_int, 
-                      pep_frame = frame)
-
   if (!n_rows) {
+    idx <- gsub("_\\d+", "", idx) # idx = "1_1"
+    
     dfa <- data.frame(matrix(ncol = length(cols_lt), nrow = 0L))
     colnames(dfa) <- cols_lt
-    qs::qsave(dfa, file_lt, preset = "fast")
+    qs::qsave(dfa, 
+              file.path(out_path, "temp", paste0("list_table_", idx, ".rds")), 
+              preset = "fast")
     
     dfb <- data.frame(matrix(ncol = length(cols_sc), nrow = 0L))
     colnames(dfb) <- cols_sc
-    qs::qsave(dfb, file_sc, preset = "fast")
+    qs::qsave(dfb, 
+              file.path(out_path, "temp", paste0("pepscores_",  idx, ".rds")), 
+              preset = "fast")
     
     return (dfb)
   }
 
-  tempdir <- create_dir(file.path(out_path, "sc_temp"))
-  
   df[["uniq_id"]] <- paste(df[["pep_scan_num"]], df[["raw_file"]], sep = "@")
   esscols <- c("pep_ms2_moverzs", "pep_ms2_ints", "matches", "pep_n_ms2", "uniq_id")
-  path_df2 <- file.path(tempdir, "df2_sc_temp.rda")
+  path_df2 <- file.path(im_path, paste0("df2_", idx, ".rds"))
   df2 <- df[, -which(names(df) %in% esscols), drop = FALSE]
+
   qs::qsave(df2, path_df2, preset = "fast")
   df <- df[, esscols, drop = FALSE]
   rm(list = "df2")
-  gc()
 
   # otherwise, chunksplit return NULL
   #   -> res[[i]] <- NULL 
   #   -> length(res) shortened by 1
-  
-  if (n_rows <= 5000L) {
-    probs <- calc_pepprobs_i(
-      df,
-      topn_ms2ions = topn_ms2ions, 
-      type_ms2ions = type_ms2ions, 
-      ppm_ms2 = ppm_ms2,
-      soft_secions = soft_secions, 
-      out_path = out_path, 
-      min_ms2mass = min_ms2mass, 
-      d2 = d2, 
-      index_mgf_ms2 = index_mgf_ms2, 
-      tally_ms2ints = tally_ms2ints, 
-      digits = digits)
-  }
-  else {
-    path_df <- file.path(tempdir, "df_sc_temp.rda")
-    max_rows <- 100000L
-
-    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-    parallel::clusterExport(cl, list("calc_pepprobs_i", "scalc_pepprobs", 
-                                     "calc_probi", "calc_probi_bypep", 
-                                     "calc_probi_byvmods", "add_seions", 
-                                     "find_ppm_outer_bycombi", "match_ex2th2", 
-                                     "add_primatches"), 
-                            envir = environment(mzion::matchMS))
-
-    if (n_rows > max_rows) {
-      dfs <- suppressWarnings(chunksplit(df, ceiling(n_rows/max_rows), "row"))
-      len <- length(dfs)
-      nms <- paste0("sc", 1:len, ".rds")
-      mapply(qs::qsave, dfs, file.path(tempdir, nms), MoreArgs = list(preset = "fast"))
-      rm(list = "dfs")
-      gc()
-      
-      df <- df[, -which(names(df) == "matches"), drop = FALSE]
-      qs::qsave(df, path_df, preset = "fast")
-      rm(list = "df", envir = environment())
-      gc()
-      
-      probs <- vector("list", len)
-      
-      for (i in seq_len(len)) {
-        dfi <- suppressWarnings(
-          # * 4L of smaller hashes for some slow phospho scoring
-          chunksplit(qs::qread(file.path(tempdir, nms[[i]])), n_cores, "row"))
-
-        probs[[i]] <- parallel::clusterApply(cl, dfi, 
-                                             calc_pepprobs_i, 
-                                             topn_ms2ions = topn_ms2ions, 
-                                             type_ms2ions = type_ms2ions, 
-                                             ppm_ms2 = ppm_ms2,
-                                             soft_secions = soft_secions, 
-                                             out_path = out_path, 
-                                             min_ms2mass = min_ms2mass, 
-                                             d2 = d2, 
-                                             index_mgf_ms2 = index_mgf_ms2, 
-                                             tally_ms2ints = tally_ms2ints, 
-                                             digits = digits)
-        probs[[i]] <- dplyr::bind_rows(probs[[i]])
-      }
-      
-      parallel::stopCluster(cl)
-      rm(list = c("dfi"))
-      gc()
-      
-      probs <- dplyr::bind_rows(probs)
-      
-      df <- qs::qread(path_df)
-    }
-    else {
-      dfs <- suppressWarnings(chunksplit(df, n_cores, "row"))
-      
-      # a case that `chunksplit` did not successfully split
-      if (is.data.frame(dfs)) {
-        probs <- calc_pepprobs_i(
-          dfs,
-          topn_ms2ions = topn_ms2ions, 
-          type_ms2ions = type_ms2ions, 
-          ppm_ms2 = ppm_ms2,
-          soft_secions = soft_secions, 
-          out_path = out_path, 
-          min_ms2mass = min_ms2mass, 
-          d2 = d2, 
-          index_mgf_ms2 = index_mgf_ms2, 
-          tally_ms2ints = tally_ms2ints, 
-          digits = digits)
-      }
-      else {
-        probs <- parallel::clusterApply(cl, dfs, 
-                                        calc_pepprobs_i, 
-                                        topn_ms2ions = topn_ms2ions, 
-                                        type_ms2ions = type_ms2ions, 
-                                        ppm_ms2 = ppm_ms2,
-                                        soft_secions = soft_secions, 
-                                        out_path = out_path, 
-                                        min_ms2mass = min_ms2mass, 
-                                        d2 = d2, 
-                                        index_mgf_ms2 = index_mgf_ms2, 
-                                        tally_ms2ints = tally_ms2ints, 
-                                        digits = digits)
-        
-        parallel::stopCluster(cl)
-        rm(list = c("dfs"))
-        gc()
-        
-        probs <- dplyr::bind_rows(probs)
-      }
-    }
-  }
+  probs <- calc_pepprobs_i(
+    df,
+    topn_ms2ions = topn_ms2ions, 
+    type_ms2ions = type_ms2ions, 
+    ppm_ms2 = ppm_ms2,
+    soft_secions = soft_secions, 
+    out_path = out_path, 
+    min_ms2mass = min_ms2mass, 
+    d2 = d2, 
+    index_mgf_ms2 = index_mgf_ms2, 
+    tally_ms2ints = tally_ms2ints, 
+    digits = digits)
   
   ## Reassemble `df`
   if ("matches" %in% names(df)) 
     df <- df[, -which(names(df) == "matches"), drop = FALSE]
   
   df2 <- qs::qread(path_df2)
-  df <- dplyr::bind_cols(df, df2)
+  df  <- dplyr::bind_cols(df, df2)
   rm(list = c("df2", "path_df2"))
-  gc()
+
+  # probs contains pep_mod_group for compatibility with `by_modules = FALSE`
+  if ("pep_mod_group" %in% names(df) && "pep_mod_group" %in% names(probs))
+    probs[["pep_mod_group"]] <- NULL
   
   df <- quick_rightjoin(df, probs, "uniq_id")
   rm(list = c("probs"))
-  gc()
-  
-  df <- df[, -which(names(df) == "uniq_id"), drop = FALSE]
-  df <- post_pepscores(df)
-  qs::qsave(df[, cols_lt, drop = FALSE], file_lt, preset = "fast")
-  
-  ## scores
-  n_rows <- nrow(df)
-  max_rows <- 100000L
-  n_chunks <- n_rows %/% max_rows + 1L
 
-  if (n_chunks > 1L)
-    mapply(function (x, i) qs::qsave(x, 
-      file.path(tempdir, paste0("tempscores_", idx, "_", i, ".rds")), 
-      preset = "fast"), chunksplit(df, n_chunks, "row"), 1:n_chunks)
-  else
-    qs::qsave(df, file.path(tempdir, paste0("tempscores_", idx, "_1", ".rds")), 
-              preset = "fast")
+  df <- df[, -which(names(df) == "uniq_id"), drop = FALSE]
+  
+  # adds pep_fmod and pep_vmod
+  if (!by_modules) {
+    oks <- sort(unique(df$pep_mod_group))
+    pep_fmod_all <- pep_fmod_all[oks]
+    pep_vmod_all <- pep_vmod_all[oks]
+    
+    if (length(oks) > 1L) {
+      dfs <- split(df, df$pep_mod_group)
+      ord <- order(as.integer(names(dfs)))
+      dfs <- dfs[ord]
+      
+      for (i in seq_along(dfs)) {
+        dfs[[i]]$pep_fmod <- pep_fmod_all[i]
+        dfs[[i]]$pep_vmod <- pep_vmod_all[i]
+      }
+      
+      df <- dplyr::bind_rows(dfs)
+      
+      rm(list = c("oks", "dfs", "ord"))
+    }
+    else {
+      df$pep_fmod <- pep_fmod_all
+      df$pep_vmod <- pep_vmod_all
+    }
+    
+    rm(list = c("pep_fmod_all", "pep_vmod_all"))
+  }
+
+  df <- post_pepscores(df)
+  
+  hcalc_tmtint(df = df[, c("raw_file", "pep_mod_group", "pep_scan_num", 
+                           "rptr_moverz", "rptr_int")], 
+               quant = quant, 
+               ppm_reporters = ppm_reporters, 
+               idx = idx, 
+               out_path = im_path, 
+               index_mgf_ms2 = index_mgf_ms2)
+
+  qs::qsave(df[, cols_lt, drop = FALSE], 
+            file.path(im_path, paste0("list_table_", idx, ".rds")), 
+            preset = "fast")
+  
+  qs::qsave(df, 
+            file.path(im_path, paste0("prescores_",  idx, ".rds")), 
+            preset = "fast")
 
   invisible(NULL)
 }
@@ -1012,9 +1071,9 @@ hadd_primatches <- function (out_path = NULL,
                # for localization scores
                "pep_ms2_ideltas.")
   
-  tempdir <- file.path(out_path, "sc_temp")
-  files <- list.files(path = tempdir, pattern = "^tempscores_\\d+_\\d+\\.rds$")
-  n_cores <- min(detect_cores(48L), length(files))
+  tempdir <- file.path(out_path, "temp")
+  files <- list.files(path = tempdir, pattern = "^prescores_\\d+.*\\.rds$")
+  n_cores <- min(detect_cores(48L)) - 1L
   
   message("Adding theoretical MS2 m/z and intensity values: ", Sys.time())
   
@@ -1031,17 +1090,7 @@ hadd_primatches <- function (out_path = NULL,
                            index_mgf_ms2 = index_mgf_ms2)
   parallel::stopCluster(cl)
   
-  ms_files <- gsub("^tempscores", "tempms2info", files)
-  # ms_files <- sort(ms_files)
-  idxes <- as.integer(gsub("^tempms2info_(\\d+).*", "\\1", ms_files))
-  fracs <- as.integer(gsub("^tempms2info_\\d+_(\\d+).*", "\\1", ms_files))
-  fracs <- split(fracs, idxes)
-  ms_files <- split(ms_files, idxes)
-  idxes <- split(idxes, idxes)
-  
-  ords <- lapply(fracs, order)
-  ms_files <- mapply(function (x, y) x[y], ms_files, ords)
-  idxes <- names(ms_files)
+  ms_files <- order_fracs(type = "ms2info", tempdir)
   
   mapply(function (fis, idx) {
     df <- lapply(fis, function (x) qs::qread(file.path(tempdir, x)))
@@ -1056,11 +1105,12 @@ hadd_primatches <- function (out_path = NULL,
     
     qs::qsave(df, file.path(out_path, "temp", paste0("pepscores_", idx, ".rds")), 
               preset = "fast")
-  }, ms_files, idxes)
+  }, ms_files, names(ms_files))
+  
+  lapply(order_fracs("reporters", tempdir), combine_fracs, tempdir, tempdir)
   
   message("Completed theoretical MS2 m/z and intensity values: ", Sys.time())
-  unlink(tempdir, recursive = TRUE)
-  
+
   invisible(NULL)
 }
 
@@ -1178,7 +1228,7 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
   if (add_ms2moverzs) df$pep_ms2_moverzs <- collapse_vecs(df$ms2_moverz)
   if (add_ms2ints) df$pep_ms2_ints <- collapse_vecs(df$ms2_int)
   
-  qs::qsave(df, file.path(tempdir, gsub("^tempscores", "tempms2info", file)), 
+  qs::qsave(df, file.path(tempdir, gsub("^prescores", "ms2info", file)), 
             preset = "fast")
 
   invisible(NULL)
@@ -1567,18 +1617,16 @@ prep_pepfdr_td <- function (td = NULL, out_path, enzyme = "trypsin_p",
   if (!length(files)) 
     stop("Score results not found.", call. = FALSE)
   
-  top3s <- gsub(paste0("^.*pepscores_", "(\\d+)\\.rds$"), "\\1", 
-                files[which_topx2(file.size(files), 3L)[1:3]])
-  top3s <- top3s[!is.na(top3s)]
-  
-  max_i <- gsub(paste0("^.*pepscores_", "(\\d+)\\.rds$"), "\\1", 
-                files[which.max(file.size(files))[[1]]])
-  
   if (is.null(td)) {
     td <- lapply(files, qs::qread)
     td <- td[lapply(td, nrow) > 0L] # otherwise, error with bind_rows
     td <- dplyr::bind_rows(td)
   }
+  
+  cts   <- dplyr::count(dplyr::group_by(td, "pep_mod_group"), pep_mod_group)
+  max_i <- which.max(cts$n)[[1]]
+  top3s <- which_topx2(cts$n, 3)[1:3]
+  top3s <- top3s[!is.na(top3s)]
 
   enzyme <- tolower(enzyme)
   is_nes <- enzyme == "noenzyme" || grepl("^semi", enzyme)

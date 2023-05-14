@@ -25,6 +25,7 @@ ms2match(
   quant = "none",
   ppm_reporters = 10L,
   calib_ms1mass = FALSE,
+  by_modules = TRUE,
   fasta,
   acc_type,
   acc_pattern,
@@ -125,7 +126,8 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
 ions. The default is 10.}
 
-\item{calib_ms1mass}{Logical; if TRUE, calibrates precursor masses.}
+\item{calib_ms1mass}{Temporarily diabled. Logical; if TRUE, calibrates
+precursor masses.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}
