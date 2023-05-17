@@ -90,7 +90,7 @@ match_mvmods <- function (aas = NULL, ms1vmods = NULL, amods = NULL)
     rows[i] <- all(ps <= max_rs)
   }
   
-  rows <- which(rows)
+  rows <- .Internal(which(rows))
   
   list(ms1 = ms1vmods[rows], inds = rows)
 }

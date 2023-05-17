@@ -4,7 +4,16 @@
 \alias{pair_mgftheo}
 \title{Pairs MGF queries to theoretical MS1 masses and peptide sequences.}
 \usage{
-pair_mgftheo(mgf_path, n_modules, .path_bin, by_modules = TRUE)
+pair_mgftheo(
+  mgf_path,
+  n_modules,
+  .path_bin,
+  by_modules = TRUE,
+  reframe_mgfs = FALSE,
+  min_mass = 200L,
+  ppm_ms1_bin = 10L,
+  first_search = FALSE
+)
 }
 \arguments{
 \item{mgf_path}{The path to MGF files}
@@ -16,6 +25,17 @@ pair_mgftheo(mgf_path, n_modules, .path_bin, by_modules = TRUE)
 \item{by_modules}{Logical; if TRUE, results are saved with one mgf to one
 theo module. At FALSE, results are saved with one mgf paired to all theo
 modules}
+
+\item{reframe_mgfs}{Logical; if TRUE, recalculates the frame indexes of MGFs.}
+
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is an arbitrarily low value (the primary guard
+against low molecular-weight precursors is \code{min_len}).}
+
+\item{ppm_ms1_bin}{The tolerance in precursor mass error after mass binning.}
+
+\item{first_search}{Logical; is the first search (for MGF mass calibration)
+or not.}
 }
 \description{
 Pairs MGF queries to theoretical MS1 masses and peptide sequences.

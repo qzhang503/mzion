@@ -809,11 +809,17 @@ split_im <- function (files, sc_path, tempdir, max_size = 10000000)
 
 #' Order fractions
 #' 
-#' @param type The type of files
-#' @param tempdir A temporary directory containing the files
-order_fracs <- function (type = "list_table", tempdir)
+#' @param type The type of files.
+#' @param tempdir A temporary directory containing the files.
+#' @param by_modules Logical; if TRUE, performs searches by modules.
+order_fracs <- function (type = "list_table", tempdir, by_modules = TRUE)
 {
-  files <- list.files(tempdir, pattern = paste0("^", type, "_\\d+_\\d+.*"))
+  files <- if (by_modules)
+    list.files(tempdir, pattern = paste0("^", type, "_\\d+_\\d+.*"))
+  else
+    list.files(tempdir, pattern = paste0("^", type, "_\\d+(_){0,1}\\d*.*"))
+
+  # all NA's if by_modules = FALSE
   idxes <- as.integer(gsub(paste0("^", type, "_(\\d+).*"), "\\1", files))
   
   fracs <- as.integer(gsub(paste0("^", type, "_\\d+_(\\d+).*"), "\\1", files))
@@ -899,7 +905,6 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 #' @param pep_fmod_all Attributes of \code{pep_fmod} from \code{aa_masses_all}
 #' @param pep_vmod_all Attributes of \code{pep_vmod} from \code{aa_masses_all}
 #' @param d2 Bin width in ppm divided by 1E6
-#' @param n_cores The number of CPU cores
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all, 
@@ -1054,7 +1059,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
 hadd_primatches <- function (out_path = NULL, 
                              add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                              add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
-                             index_mgf_ms2 = FALSE) 
+                             by_modules = TRUE, index_mgf_ms2 = FALSE) 
 {
   # the same as those in calcpepsc
   cols_sc <- c("pep_seq", "pep_n_ms2", "pep_scan_title", "pep_exp_mz", "pep_exp_mr", 
@@ -1090,7 +1095,7 @@ hadd_primatches <- function (out_path = NULL,
                            index_mgf_ms2 = index_mgf_ms2)
   parallel::stopCluster(cl)
   
-  ms_files <- order_fracs(type = "ms2info", tempdir)
+  ms_files <- order_fracs(type = "ms2info", tempdir, by_modules)
   
   mapply(function (fis, idx) {
     df <- lapply(fis, function (x) qs::qread(file.path(tempdir, x)))
@@ -1107,7 +1112,8 @@ hadd_primatches <- function (out_path = NULL,
               preset = "fast")
   }, ms_files, names(ms_files))
   
-  lapply(order_fracs("reporters", tempdir), combine_fracs, tempdir, tempdir)
+  lapply(order_fracs("reporters", tempdir, by_modules), 
+         combine_fracs, tempdir, tempdir)
   
   message("Completed theoretical MS2 m/z and intensity values: ", Sys.time())
 

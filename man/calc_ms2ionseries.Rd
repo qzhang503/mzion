@@ -14,6 +14,8 @@ calc_ms2ionseries(
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 32L,
+  maxn_fnl_per_seq = 3L,
+  maxn_vnl_per_seq = 3L,
   digits = 4L
 )
 }
@@ -44,6 +46,12 @@ variable modifications per site in a per peptide sequence.}
 
 \item{maxn_vmods_sitescombi_per_pep}{Integer; the maximum number of
 combinatorial variable modifications per peptide sequence.}
+
+\item{maxn_fnl_per_seq}{A non-negative integer; the maximum number of
+permutative neutral losses per peptide sequence for fixed modifications.}
+
+\item{maxn_vnl_per_seq}{A non-negative integer; the maximum number of
+permutative neutral losses per peptide sequence for variable modifications.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }

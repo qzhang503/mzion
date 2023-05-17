@@ -171,23 +171,40 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
 #'   Note that M is a matrix other than lists of vectors, which allows the
 #'   application of one copy of attributes to all rows.
 #' @param aas \code{aa_seq} split in a sequence of LETTERS.
+#' @examples
+#' \donttest{
+#' library(mzion)
+#' 
+#' aa_seq <- "MHQGVMNVNMGQKMNS"
+#' aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
+#' aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
+#' 
+#' m <- c("M", "M", "N", "N")
+#' labs <- ps <- c(2, 2)
+#' names(ps) <- c("M", "N")
+#' names(labs) <- c("Oxidation (M)", "Deamidated (N)")
+#' 
+#' M <- c("Oxidation (M)", "Oxidation (M)", "Deamidated (N)", "Deamidated (N)")
+#' M <- matrix(M, ncol = 4)
+#' attr(M, "ps") <- ps
+#' attr(M, "resids") <- m
+#' 
+#' mzion:::combi_namesiteU(M, aas)
+#' }
 combi_namesiteU <- function (M, aas) 
 {
   m  <- attr(M, "resids")
   ps <- attr(M, "ps")
+  ss <- names(ps)
   
-  ans   <- find_vmodposU(m, ps, aas)
-  combi <- ans$combi
-  vpos  <- ans$vpos # ordinal column indexes of the output
-  
-  # replace the ordinal column indexes with aas indexes (faster than unlist)
+  combi   <- find_vmodposU(m, ps, aas) # add a size limit?
   len_out <- nrow(combi)
   out  <- rep(list(M[1, ]), len_out)
   cols <- seq_len(len_out)
-  
-  for (i in seq_along(vpos)) { # by residue
+
+  for (i in seq_along(ps)) { # by residue
     ansi <- combi[[i]]
-    pi   <- vpos[[i]]
+    pi   <- .Internal(which(m == ss[i]))
     
     for (j in cols)
       names(out[[j]])[pi] <- ansi[[j]] # by combi
@@ -207,24 +224,32 @@ combi_namesiteU <- function (M, aas)
 #' @param ps Named vector; counts for each site. Sites in names and counts in
 #'   values.
 #' @param aas \code{aa_seq} split in a sequence of LETTERS.
+#' @examples
+#' \donttest{
+#' library(mzion)
+#' 
+#' m <- c("M", "M", "N", "N")
+#' ps <- c(2, 2)
+#' names(ps) <- c("M", "N")
+#' 
+#' aa_seq <- "MHQGVMNVNMGQKMNS"
+#' aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
+#' aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
+#' ans <- mzion:::find_vmodposU(m, ps, aas)
+#' }
 find_vmodposU <- function (vec, ps, aas) 
 {
-  nres <- length(ps)
-  M <- vpos <- vector("list", nres)
+  X <- vector("list", length(ps))
   
-  for (i in seq_len(nres)) {
+  for (i in seq_along(ps)) {
     resid <- names(ps)[i] # M
-    aapos <- which(aas == resid) # M:5, 9, 13; N: 6, 14
+    aapos <- .Internal(which(aas == resid)) # M:5, 9, 13; N: 6, 14
     
     ct <- ps[[i]] # M: 2; N: 1
-    vpos[[i]] <- which(vec == resid) # M: 1, 2; N: 3
-    M[[i]] <- if (ct == 1L) vec_to_list(aapos) else sim_combn(aapos, ct)
+    X[[i]] <- if (ct == 1L) vec_to_list(aapos) else sim_combn(aapos, ct)
   }
   
-  list(
-    combi = expand.grid(M, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE), 
-    vpos = vpos
-  )
+  expand.grid(X, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
 }
 
 
@@ -286,15 +311,15 @@ combi_namesiteM <- function (M, aas, nrows)
 #' @inheritParams find_vmodposU
 find_vmodposM <- function (Vec, vec, ps, aas) 
 {
-  nres <- length(ps)
-  M <- vpos <- vector("list", nres)
+  # nr <- length(ps)
+  M  <- P <- vector("list", length(ps))
   
-  for (i in seq_len(nres)) { # by residues
+  for (i in seq_along(ps)) { # by residues
     resid <- names(ps)[i] # M
-    aapos <- which(aas == resid) # M:5, 9, 13; N: 6, 14
+    aapos <- .Internal(which(aas == resid)) # M:5, 9, 13; N: 6, 14
     
     ct <- ps[[i]] # M: 2; N: 1
-    vpos[[i]] <- which(vec == resid) # M: 1, 2; N: 3
+    P[[i]] <- .Internal(which(vec == resid)) # M: 1, 2; N: 3
     M[[i]] <- if (ct == 1L) vec_to_list(aapos) else sim_combn(aapos, ct)
   }
   
@@ -303,9 +328,9 @@ find_vmodposM <- function (Vec, vec, ps, aas)
   len_out <- nrow(ans)
   out <- rep(list(Vec), len_out)
   
-  for (i in seq_along(vpos)) { # by residue
+  for (i in seq_along(P)) { # by residue
     ansi <- ans[[i]]
-    pi   <- vpos[[i]]
+    pi   <- P[[i]]
     
     for (j in seq_len(len_out)) 
       names(out[[j]])[pi] <- ansi[[j]] # by combi

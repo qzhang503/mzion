@@ -112,10 +112,13 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
 ions. The default is 10.}
 
+\item{by_modules}{Logical. Experimenting. At the TRUE default, searches MS
+data by individual modules of combinatorial fixed and variable
+modifications. If FALSE, search all modules together. The later would
+probably need more than 32G RAM if the number of modules is over 96.}
+
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
-
-\item{n_cores}{The number of CPU cores}
 }
 \description{
 Helper of \link{calc_pepscores}.

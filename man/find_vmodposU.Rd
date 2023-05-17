@@ -20,3 +20,17 @@ One-to-one correspondence between Names and Sites.
 \details{
 Custom functions: vec_to_list.
 }
+\examples{
+\donttest{
+library(mzion)
+
+m <- c("M", "M", "N", "N")
+ps <- c(2, 2)
+names(ps) <- c("M", "N")
+
+aa_seq <- "MHQGVMNVNMGQKMNS"
+aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
+aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
+ans <- mzion:::find_vmodposU(m, ps, aas)
+}
+}

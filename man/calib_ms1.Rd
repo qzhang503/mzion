@@ -2,10 +2,10 @@
 % Please edit documentation in R/msmsmatches2.R
 \name{calib_ms1}
 \alias{calib_ms1}
-\title{Calibration precursor masses by individual RAW_Files.}
+\title{Calibrates precursor masses (by individual RAW_Files)}
 \usage{
 calib_ms1(
-  file_mgf,
+  filename,
   df = NULL,
   mgf_path = NULL,
   out_path = NULL,
@@ -17,7 +17,7 @@ calib_ms1(
 )
 }
 \arguments{
-\item{file_mgf}{An MGF file name}
+\item{filename}{An MGF file name}
 
 \item{df}{A data frame of \code{ion_matches_1.rds}}
 
@@ -49,5 +49,5 @@ interrogation.}
 used. The default is 4.}
 }
 \description{
-Calibration precursor masses by individual RAW_Files.
+Calibrates precursor masses (by individual RAW_Files)
 }

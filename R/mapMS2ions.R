@@ -260,14 +260,14 @@ find_secion_types <- function (type_ms2ions = "by")
 find_psm_rows <- function (file_t0, file_t1, file_t2, file_t3, scan, raw_file, 
                            rank = 1L, is_decoy = FALSE) 
 {
-  psm <- find_psm_rows1(file_t1 = file_t1, file_t2 = file_t2, file_t3 = file_t3, 
+  psm <- find_psm_rowsQ(file_t1 = file_t1, file_t2 = file_t2, file_t3 = file_t3, 
                         scan = scan, raw_file = raw_file, rank = rank, 
                         is_decoy = is_decoy)
   
   nrow <- nrow(psm)
   
   if (!nrow) {
-    psm <- find_psm_rows2(file_t0 = file_t0, scan = scan, raw_file = raw_file, 
+    psm <- find_psm_rowsC(file_t0 = file_t0, scan = scan, raw_file = raw_file, 
                           rank = rank, is_decoy = is_decoy)
     nrow <- nrow(psm)
   }
@@ -288,7 +288,7 @@ find_psm_rows <- function (file_t0, file_t1, file_t2, file_t3, scan, raw_file,
 #' Extracts the first row of matched PSMs from tiers 1-3.
 #' 
 #' @inheritParams find_psm_rows
-find_psm_rows1 <- function (file_t1, file_t2, file_t3, scan, raw_file, 
+find_psm_rowsQ <- function (file_t1, file_t2, file_t3, scan, raw_file, 
                             rank = 1L, is_decoy = FALSE) 
 {
   ok <- any(ls(all.names = TRUE, envir = .GlobalEnv) == ".psms")
@@ -343,7 +343,7 @@ find_psm_rows1 <- function (file_t1, file_t2, file_t3, scan, raw_file,
 #' Extracts the first row of matched PSMs from psmC.
 #' 
 #' @inheritParams find_psm_rows
-find_psm_rows2 <- function (file_t0, scan, raw_file, rank = 1L, 
+find_psm_rowsC <- function (file_t0, scan, raw_file, rank = 1L, 
                             is_decoy = FALSE) 
 {
   ok <- any(ls(all.names = TRUE, envir = .GlobalEnv) == ".psmC")
@@ -384,6 +384,7 @@ find_theoexpt_pair <- function (psm, out_path, scan, raw_id, is_decoy = FALSE)
     if (! x %in% col_nms) stop("PSM column not found: ", x)
   })
 
+  # is.na(psm$pep_ivmod) with decoy entries
   pep_seq <- psm$pep_seq
   pep_ivmod <- psm$pep_ivmod
   
@@ -455,6 +456,9 @@ find_theoexpt_pair <- function (psm, out_path, scan, raw_id, is_decoy = FALSE)
   theoexpt <- ion_match$matches[[1]]
   
   # (1) matched by `pep_seq`
+  if (is_decoy)
+    names(theoexpt) <- reverse_seqs(names(theoexpt))
+
   theoexpt <- theoexpt[names(theoexpt) == pep_seq]
   
   if (length(theoexpt) > 1L) {
@@ -467,7 +471,8 @@ find_theoexpt_pair <- function (psm, out_path, scan, raw_id, is_decoy = FALSE)
   
   # (2) matched by pep_ivmod
   # (pep_seq matched but can still have multiple pep_ivmod's)
-  theoexpt <- theoexpt[names(theoexpt) == pep_ivmod]
+  if (!is_decoy)
+    theoexpt <- theoexpt[names(theoexpt) == pep_ivmod]
 
   # (can have multiple NLs)
   if (length(theoexpt) > 1L) {

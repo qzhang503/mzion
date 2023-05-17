@@ -3,24 +3,61 @@
 #' @param mgf_path The path to MGF files
 #' @param n_modules The number of modules (\code{length(aa_masses_all)}) or one
 #' @param .path_bin The path to binned theoretical masses
+#' @param ppm_ms1_bin The tolerance in precursor mass error after mass binning.
 #' @param by_modules Logical; if TRUE, results are saved with one mgf to one
 #'   theo module. At FALSE, results are saved with one mgf paired to all theo
 #'   modules
-pair_mgftheo <- function (mgf_path, n_modules, .path_bin, by_modules = TRUE)
+#' @inheritParams ms2match
+#' @inheritParams matchMS
+pair_mgftheo <- function (mgf_path, n_modules, .path_bin, by_modules = TRUE, 
+                          reframe_mgfs = FALSE, min_mass = 200L, 
+                          ppm_ms1_bin = 10L, first_search = FALSE)
 {
   message("Pairing experimental and theoretical data.")
   
+  tempfiles <- if (by_modules)
+    list.files(mgf_path, pattern = "^expttheo_", full.names = TRUE)
+  else
+    list.files(mgf_path, pattern = "^mgftheo_",  full.names = TRUE)
+  
+  if (length(tempfiles))
+    unlink(tempfiles)
+
   # MGFs (in data frame) split by frame indexes
   mgf_files <- list.files(mgf_path, pattern = "^mgf_queries_\\d+\\.rds$", 
                           full.names = TRUE)
   mgf_frames <- lapply(mgf_files, qs::qread)
+
+  # for MGF calibrations
+  if (first_search) {
+    mgf_frames <- lapply(mgf_frames, function (x) {
+      min_mgfmass <- min(x$ms1_mass, na.rm = TRUE)
+      max_mgfmass <- max(x$ms1_mass, na.rm = TRUE)
+      oks_min <- with(x, ms1_mass <= min_mgfmass + 10L)
+      oks_max <- with(x, ms1_mass >= max_mgfmass - 10L)
+      
+      mgfa <- x[oks_max, ]
+      mgfb <- x[oks_min, ]
+      mgfc <- x[!(oks_max | oks_min), ]
+      rows <- (1:nrow(mgfc)) %% 10L == 1L
+      dplyr::bind_rows(mgfa, mgfc[rows, ], mgfb)
+    })
+  }
+  
   mgf_frames <- dplyr::bind_rows(mgf_frames)
+  
+  if (reframe_mgfs) {
+    mgf_frames[["frame"]] <- 
+      find_ms1_interval(mgf_frames[["ms1_mass"]], from = min_mass, 
+                        ppm = ppm_ms1_bin)
+  }
+
   mgf_frames <- dplyr::group_by(mgf_frames, frame)
   mgf_frames <- dplyr::group_split(mgf_frames)
   fr_names   <- lapply(mgf_frames, function (x) x[["frame"]][1])
   names(mgf_frames) <- unlist(fr_names, recursive = FALSE, use.names = FALSE)
   
-  # into chunks: each chunk has multiple frames: each frame multiple precursors
+  # -> chunks: each chunk has multiple frames: each frame multiple precursors
   ranges <- seq_along(mgf_frames)
   
   n_chunks <- if (n_modules == 1L || by_modules)
@@ -1526,20 +1563,20 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
   frame <- mgfs_cr[["frame"]][1]
   
   bfi <- 1L
-  theos_bf_ms1 <- theopeps[[bfi]] 
-  theopeps_bf_ms1 <- theos_bf_ms1[["pep_seq"]]
-  theomasses_bf_ms1 <- theos_bf_ms1[["mass"]]
+  thbf <- theopeps[[bfi]] 
+  thbf_peps <- thbf[["pep_seq"]]
+  thbf_masses <- thbf[["mass"]]
   
   cri <- bfi + 1L
-  theos_cr_ms1 <- theopeps[[cri]]
-  theopeps_cr_ms1 <- theos_cr_ms1[["pep_seq"]]
-  theomasses_cr_ms1 <- theos_cr_ms1[["mass"]]
+  thcr <- theopeps[[cri]]
+  thcr_peps <- thcr[["pep_seq"]]
+  thcr_masses <- thcr[["mass"]]
   
   # generate both target and decoy MS2
-  theos_bf_ms2 <- mapply(
+  thbf_ms2s <- mapply(
     FUN, 
-    aa_seq = theopeps_bf_ms1, 
-    ms1_mass = theomasses_bf_ms1, 
+    aa_seq = thbf_peps, 
+    ms1_mass = thbf_masses, 
     MoreArgs = list(
       aa_masses = aa_masses, 
       ms1vmods = ms1vmods, 
@@ -1563,12 +1600,12 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
   )
   # temporarily share peptide names between targets and decoys; 
   # later is.na(pep_ivmod) -> decoys -> add "-" to prot_acc -> reverse sequence
-  names(theos_bf_ms2) <- theopeps_bf_ms1
+  names(thbf_ms2s) <- thbf_peps
   
-  theos_cr_ms2 <- mapply(
+  thcr_ms2s <- mapply(
     FUN, 
-    aa_seq = theopeps_cr_ms1, 
-    ms1_mass = theomasses_cr_ms1, 
+    aa_seq = thcr_peps, 
+    ms1_mass = thcr_masses, 
     MoreArgs = list(
       aa_masses = aa_masses, 
       ms1vmods = ms1vmods, 
@@ -1591,11 +1628,11 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
     SIMPLIFY = FALSE,
     USE.NAMES = FALSE
   )
-  names(theos_cr_ms2) <- theopeps_cr_ms1
+  names(thcr_ms2s) <- thcr_peps
   
   ## --- iteration ---
   for (i in seq_len(len)) {
-    exptmasses_ms1 <- mgfs_cr$ms1_mass
+    exptmasses_ms1  <- mgfs_cr$ms1_mass
     exptmoverzs_ms2 <- mgfs_cr$ms2_moverz
     
     ### Slower to subset + passed as argument 
@@ -1606,14 +1643,14 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
     
     afi <- cri + 1L
     
-    theos_af_ms1 <- theopeps[[afi]]
-    theopeps_af_ms1 <- theos_af_ms1[["pep_seq"]]
-    theomasses_af_ms1 <- theos_af_ms1[["mass"]]
+    thaf <- theopeps[[afi]]
+    thaf_peps <- thaf[["pep_seq"]]
+    thaf_masses <- thaf[["mass"]]
     
-    theos_af_ms2 <- mapply(
+    thaf_ms2s <- mapply(
       FUN, 
-      aa_seq = theopeps_af_ms1, 
-      ms1_mass = theomasses_af_ms1, 
+      aa_seq = thaf_peps, 
+      ms1_mass = thaf_masses, 
       MoreArgs = list(
         aa_masses = aa_masses, 
         ms1vmods = ms1vmods, 
@@ -1635,7 +1672,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       SIMPLIFY = FALSE,
       USE.NAMES = FALSE
     )
-    names(theos_af_ms2) <- theopeps_af_ms1
+    names(thaf_ms2s) <- thaf_peps
     
     # each `out` for the results of multiple mgfs in one frame
     out[[i]] <- mapply(
@@ -1644,8 +1681,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       expt_moverz_ms2 = exptmoverzs_ms2, 
       MoreArgs = list(
         pep_mod_groups = pep_mod_group, 
-        theomasses_ms1 = c(theomasses_bf_ms1, theomasses_cr_ms1, theomasses_af_ms1), 
-        theomasses_ms2 = c(theos_bf_ms2, theos_cr_ms2, theos_af_ms2), 
+        theomasses_ms1 = c(thbf_masses, thcr_masses, thaf_masses), 
+        theomasses_ms2 = c(thbf_ms2s, thcr_ms2s, thaf_ms2s), 
         minn_ms2 = minn_ms2, 
         ppm_ms1 = ppm_ms1, 
         ppm_ms2 = ppm_ms2, 
@@ -1666,29 +1703,29 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
     if (isTRUE(new_frame == (frame + 1L))) {
       cri <- cri + 1L
       
-      theos_bf_ms1 <- theos_cr_ms1
-      theomasses_bf_ms1 <- theomasses_cr_ms1
-      theos_bf_ms2 <- theos_cr_ms2
+      thbf <- thcr
+      thbf_masses <- thcr_masses
+      thbf_ms2s <- thcr_ms2s
       
-      theos_cr_ms1 <- theos_af_ms1
-      theomasses_cr_ms1 <- theomasses_af_ms1
-      theos_cr_ms2 <- theos_af_ms2
+      thcr <- thaf
+      thcr_masses <- thaf_masses
+      thcr_ms2s <- thaf_ms2s
     } 
     else if (isTRUE(new_frame == (frame + 2L))) {
       cri <- cri + 2L
       
-      theos_bf_ms1 <- theos_af_ms1
-      theomasses_bf_ms1 <- theomasses_af_ms1
-      theos_bf_ms2 <- theos_af_ms2
+      thbf <- thaf
+      thbf_masses <- thaf_masses
+      thbf_ms2s <- thaf_ms2s
       
-      theos_cr_ms1 <- theopeps[[cri]]
-      theopeps_cr_ms1 <- theos_cr_ms1[["pep_seq"]]
-      theomasses_cr_ms1 <- theos_cr_ms1[["mass"]]
+      thcr <- theopeps[[cri]]
+      thcr_peps <- thcr[["pep_seq"]]
+      thcr_masses <- thcr[["mass"]]
       
-      theos_cr_ms2 <- mapply(
+      thcr_ms2s <- mapply(
         FUN, 
-        aa_seq = theopeps_cr_ms1, 
-        ms1_mass = theomasses_cr_ms1, 
+        aa_seq = thcr_peps, 
+        ms1_mass = thcr_masses, 
         MoreArgs = list(
           aa_masses = aa_masses, 
           ms1vmods = ms1vmods, 
@@ -1710,24 +1747,24 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
       )
-      names(theos_cr_ms2) <- theopeps_cr_ms1
+      names(thcr_ms2s) <- thcr_peps
     } 
     else {
       cri <- cri + 3L
       bfi <- cri - 1L
       
-      theos_bf_ms1 <- theopeps[[bfi]]
-      theopeps_bf_ms1 <- theos_bf_ms1[["pep_seq"]]
-      theomasses_bf_ms1 <- theos_bf_ms1[["mass"]]
+      thbf <- theopeps[[bfi]]
+      thbf_peps <- thbf[["pep_seq"]]
+      thbf_masses <- thbf[["mass"]]
       
-      theos_cr_ms1 <- theopeps[[cri]]
-      theopeps_cr_ms1 <- theos_cr_ms1[["pep_seq"]]
-      theomasses_cr_ms1 <- theos_cr_ms1[["mass"]]
+      thcr <- theopeps[[cri]]
+      thcr_peps <- thcr[["pep_seq"]]
+      thcr_masses <- thcr[["mass"]]
       
-      theos_bf_ms2 <- mapply(
+      thbf_ms2s <- mapply(
         FUN, 
-        aa_seq = theopeps_bf_ms1, 
-        ms1_mass = theomasses_bf_ms1, 
+        aa_seq = thbf_peps, 
+        ms1_mass = thbf_masses, 
         MoreArgs = list(
           aa_masses = aa_masses, 
           ms1vmods = ms1vmods, 
@@ -1749,12 +1786,12 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
       )
-      names(theos_bf_ms2) <- theopeps_bf_ms1
+      names(thbf_ms2s) <- thbf_peps
       
-      theos_cr_ms2 <- mapply(
+      thcr_ms2s <- mapply(
         FUN, 
-        aa_seq = theopeps_cr_ms1, 
-        ms1_mass = theomasses_cr_ms1, 
+        aa_seq = thcr_peps, 
+        ms1_mass = thcr_masses, 
         MoreArgs = list(
           aa_masses = aa_masses, 
           ms1vmods = ms1vmods, 
@@ -1776,7 +1813,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
       )
-      names(theos_cr_ms2) <- theopeps_cr_ms1
+      names(thcr_ms2s) <- thcr_peps
     }
     
     frame <- new_frame

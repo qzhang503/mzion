@@ -17,15 +17,14 @@ ms2match(
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 20L,
-  ppm_ms1calib = 10L,
   ppm_ms2 = 20L,
   min_mass = 200L,
   max_mass = 4500L,
   min_ms2mass = 115L,
   quant = "none",
   ppm_reporters = 10L,
-  calib_ms1mass = FALSE,
   by_modules = TRUE,
+  reframe_mgfs = FALSE,
   fasta,
   acc_type,
   acc_pattern,
@@ -39,6 +38,8 @@ ms2match(
   max_len,
   max_miss,
   index_mgf_ms2 = FALSE,
+  first_search = FALSE,
+  .savecall = TRUE,
   digits = 4L
 )
 }
@@ -97,10 +98,6 @@ not part of the threshold.}
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}
 
-\item{ppm_ms1calib}{A positive integer; the mass tolerance of MS1 species for
-precursor mass calibration. The default is 10. The argument has no effect
-at \code{calib_ms1mass = FALSE}.}
-
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
 
@@ -126,8 +123,12 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
 ions. The default is 10.}
 
-\item{calib_ms1mass}{Temporarily diabled. Logical; if TRUE, calibrates
-precursor masses.}
+\item{by_modules}{Logical. Experimenting. At the TRUE default, searches MS
+data by individual modules of combinatorial fixed and variable
+modifications. If FALSE, search all modules together. The later would
+probably need more than 32G RAM if the number of modules is over 96.}
+
+\item{reframe_mgfs}{Logical; if TRUE, recalculates the frame indexes of MGFs.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}
@@ -191,6 +192,11 @@ per peptide sequence for considerations. The default is 2.}
   20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
   the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
   pep_ms2_deltas_sd} are nullified in the outputs.}
+
+\item{first_search}{Logical; is the first search (for MGF mass calibration)
+or not.}
+
+\item{.savecall}{Logical; if TRUE, saves the current call.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

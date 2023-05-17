@@ -506,7 +506,7 @@ is_equal_sets <- function(x, y) all(x %in% y) && all(y %in% x)
 #'
 #' x <- list(`Bar (M)` = c(0, 3))
 #' mzion:::expand_grid_rows(x)
-expand_grid_rows <- function (..., nmax = 8L, use.names = TRUE) 
+expand_grid_rows <- function (..., nmax = 3L, use.names = TRUE) 
 {
   args <- list(...)[[1]]
   nargs <- length(args)
@@ -548,6 +548,56 @@ expand_grid_rows <- function (..., nmax = 8L, use.names = TRUE)
   }
   
   ans
+}
+
+
+#' Modified from expand.grid
+#' 
+#' Net yet used.
+#' 
+#' @param nmax The maximum number of combinations allowed.
+#' @param ... Lists of data.
+expand_grid <- function (..., nmax = 3L) 
+{
+  nargs <- length(args <- list(...))
+  
+  if (!nargs) 
+    return(as.data.frame(list()))
+  
+  if (nargs == 1L && is.list(a1 <- args[[1L]])) 
+    nargs <- length(args <- a1)
+  if (nargs == 0L) 
+    return(as.data.frame(list()))
+  
+  cargs <- vector("list", nargs)
+  iArgs <- seq_len(nargs)
+  nmc <- paste0("Var", iArgs)
+  nm <- names(args)
+  nm <- nmc
+  names(cargs) <- nmc
+  
+  rep.fac <- 1L
+  d <- lengths(args)
+  orep <- prod(d)
+  nmax <- min(nmax, orep)
+  
+  if (orep == 0L) {
+    for (i in iArgs) cargs[[i]] <- args[[i]][FALSE]
+  }
+  else {
+    for (i in iArgs) {
+      x <- args[[i]]
+      nx <- length(x)
+      orep <- orep/nx
+      
+      x <- x[rep_len(rep.int(seq_len(nx), rep.int(rep.fac, nx)), nmax)]
+      cargs[[i]] <- x
+      rep.fac <- rep.fac * nx
+    }
+  }
+  
+  rn <- .set_row_names(as.integer(prod(d)))
+  structure(cargs, class = "data.frame", row.names = rn)
 }
 
 
@@ -859,38 +909,6 @@ make_zero_df <- function (vec)
 calc_threeframe_ppm <- function (ppm = 20L, is_three_frame = TRUE, fct_ppm = .5) 
 {
   if (is_three_frame) as.integer(ceiling(ppm * fct_ppm)) else ppm
-}
-
-
-#' Checks the status of a prior execution of precursor mass calibration.
-#' 
-#' @inheritParams matchMS 
-#' @return TRUE if without precursor mass calibration.
-check_ms1calib <- function(out_path = NULL, calib_ms1mass = FALSE) 
-{
-  workflow_file <- file.path(out_path, "Calls", "workflow_info.rds")
-  
-  passed_ms1calib <- if (calib_ms1mass) {
-    if (file.exists(workflow_file)) 
-      qs::qread(workflow_file)[["passed_ms1calib"]]
-    else 
-      FALSE
-  }
-  else
-    TRUE
-
-  if (is.null(passed_ms1calib)) FALSE else passed_ms1calib
-}
-
-
-#' Saves the \code{ppm_ms1} before and after calibration.
-#' 
-#' @param ppm_ms1calib The mass error after calibration in ppm.
-#' @inheritParams matchMS
-save_ms1calib <- function (ppm_ms1, ppm_ms1calib, mgf_path)
-{
-  info_calib <- c(`ppm_ms1_bf` = ppm_ms1, `ppm_ms1_af` = ppm_ms1calib)
-  qs::qsave(info_calib, file.path(mgf_path, "ppm_ms1calib.rds"))
 }
 
 

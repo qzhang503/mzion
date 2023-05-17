@@ -4,12 +4,14 @@
 \alias{order_fracs}
 \title{Order fractions}
 \usage{
-order_fracs(type = "list_table", tempdir)
+order_fracs(type = "list_table", tempdir, by_modules = TRUE)
 }
 \arguments{
-\item{type}{The type of files}
+\item{type}{The type of files.}
 
-\item{tempdir}{A temporary directory containing the files}
+\item{tempdir}{A temporary directory containing the files.}
+
+\item{by_modules}{Logical; if TRUE, performs searches by modules.}
 }
 \description{
 Order fractions

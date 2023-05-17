@@ -4,7 +4,7 @@
 \alias{expand_grid_rows}
 \title{Expands grids.}
 \usage{
-expand_grid_rows(..., nmax = 8L, use.names = TRUE)
+expand_grid_rows(..., nmax = 3L, use.names = TRUE)
 }
 \arguments{
 \item{...}{Lists of data.}

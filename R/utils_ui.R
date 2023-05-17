@@ -367,7 +367,8 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
                                maxn_vmods_per_pep = 5L, 
                                maxn_sites_per_vmod = 3L, 
                                maxn_vmods_sitescombi_per_pep = 32L, 
-                               digits = 4L) 
+                               maxn_fnl_per_seq = 3L, 
+                               maxn_vnl_per_seq = 3L, digits = 4L) 
 {
   options(digits = 9L)
   
@@ -386,8 +387,11 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
   
   ms <- purrr::map2(peps, aa_masses_all, function (x, y) {
     pri <- calc_ms2ions(x, ms1_mass, y, mod_indexes, type_ms2ions, 
-                        maxn_vmods_per_pep, maxn_sites_per_vmod, 
-                        maxn_vmods_sitescombi_per_pep, digits)
+                        maxn_vmods_per_pep = maxn_vmods_per_pep, 
+                        maxn_sites_per_vmod = maxn_sites_per_vmod, 
+                        maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+                        maxn_fnl_per_seq = maxn_fnl_per_seq, 
+                        maxn_vnl_per_seq = maxn_vnl_per_seq, digits)
     
     sec <- lapply(pri, add_seions, type_ms2ions = type_ms2ions, digits = digits)
     
@@ -440,7 +444,9 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
 calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL, 
                           type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                           maxn_sites_per_vmod = 3L, 
-                          maxn_vmods_sitescombi_per_pep = 64L, digits = 4L) 
+                          maxn_vmods_sitescombi_per_pep = 64L, 
+                          maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
+                          digits = 4L) 
 {
   # tmt6_mass <- 229.162932
   # tmtpro_mass <- 304.207146
@@ -462,201 +468,58 @@ calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL
   aas <- stringr::str_split(aa_seq, "", simplify = TRUE)
   type <- attr(aa_masses, "type", exact = TRUE)
   
-  # (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-" 
-  if (type %in% c("amods- tmod- vnl- fnl-", "amods- tmod+ vnl- fnl-")) {
-    ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-    ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-    
-    ntmass <- if (length(ntmod)) 
-      aa_masses[names(ntmod)] + 1.00727647
-    else
-      aa_masses["N-term"] - 0.000549
-
-    ctmass <- if (length(ctmod)) 
-      aa_masses[names(ctmod)] + 2.01510147
-    else
-      aa_masses["C-term"] + 2.01510147
-
-    ans <- gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
-                            aa_masses = aa_masses, 
-                            ms1vmods = NULL, ms2vmods = NULL, 
-                            ntmod = ntmod, ctmod = ctmod, 
-                            ntmass = ntmass, ctmass = ctmass, 
-                            amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
-                            mod_indexes = mod_indexes, 
-                            type_ms2ions = type_ms2ions, 
-                            maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                            maxn_sites_per_vmod = maxn_sites_per_vmod, 
-                            maxn_vmods_sitescombi_per_pep = 
-                              maxn_vmods_sitescombi_per_pep, 
-                            digits = digits)
-    
-    return(ans)
+  FUN <- if (type %in% c("amods- tmod- vnl- fnl-", "amods- tmod+ vnl- fnl-"))
+    "gen_ms2ions_base"
+  else if (type %in% c("amods- tmod- vnl- fnl+", "amods- tmod+ vnl- fnl+"))
+    "gen_ms2ions_a0_vnl0_fnl1"
+  else if (type %in% c("amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"))
+    "gen_ms2ions_a1_vnl0_fnl0"
+  else if (type %in% c("amods+ tmod- vnl+ fnl-", "amods+ tmod+ vnl+ fnl-"))
+    "gen_ms2ions_a1_vnl1_fnl0"
+  else if (type %in% c("amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"))
+    "gen_ms2ions_a1_vnl0_fnl1"
+  else {
+    # "amods+ tmod- vnl+ fnl+"
+    message("Unknown modification type.") 
+    return(NULL)
   }
-  
-  # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+" 
-  #        (mutual exclusive btw. (1, 2) and (5, 6)
-  #         "ANY" fmod has neuloss -> 5, 6;
-  #         "ALL" fmods have no neuloss -> 1, 2)
-  
-  if (type %in% c("amods- tmod- vnl- fnl+", "amods- tmod+ vnl- fnl+")) {
-    ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-    
-    ntmass <- if (length(ntmod)) 
-      aa_masses[names(ntmod)] + 1.00727647
-    else 
-      aa_masses["N-term"] - 0.000549
 
-    ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-    
-    ctmass <- if (length(ctmod)) 
-      aa_masses[names(ctmod)] + 2.01510147
-    else 
-      aa_masses["C-term"] + 2.01510147
-
-    fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
-    
-    ans <- gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = ms1_mass, 
-                                    aa_masses = aa_masses, 
-                                    ntmod = ntmod, ctmod = ctmod, 
-                                    ntmass = ntmass, ctmass = ctmass, 
-                                    fmods_nl = fmods_nl, 
-                                    mod_indexes = mod_indexes, 
-                                    type_ms2ions = type_ms2ions, 
-                                    maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                                    maxn_sites_per_vmod = maxn_sites_per_vmod, 
-                                    maxn_vmods_sitescombi_per_pep = 
-                                      maxn_vmods_sitescombi_per_pep, 
-                                    digits = digits)
-    
-    return(ans)
-  }
-  
-  ms1vmods <- make_ms1vmod_i(aa_masses = aa_masses, 
-                             maxn_vmods_per_pep = maxn_vmods_per_pep,
+  ntmod    <- attr(aa_masses, "ntmod", exact = TRUE)
+  ctmod    <- attr(aa_masses, "ctmod", exact = TRUE)
+  ntmass   <- find_nterm_mass(aa_masses)
+  ctmass   <- find_cterm_mass(aa_masses)
+  fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
+  vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
+  amods    <- attr(aa_masses, "amods", exact = TRUE)
+  ms1vmods <- make_ms1vmod_i(aa_masses, maxn_vmods_per_pep = maxn_vmods_per_pep,
                              maxn_sites_per_vmod = maxn_sites_per_vmod)
-  
   ms2vmods <- lapply(ms1vmods, make_ms2vmods)
   
-  # (7, 8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
-  #        (ALL amods are vnl-)
-
-  if (type %in% c("amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-")) {
-    ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-    
-    ntmass <- if (length(ntmod)) 
-      aa_masses[names(ntmod)] + 1.00727647
-    else 
-      aa_masses["N-term"] - 0.000549
-    
-    ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-    
-    ctmass <- if (length(ctmod)) 
-      aa_masses[names(ctmod)] + 2.01510147
-    else 
-      aa_masses["C-term"] + 2.01510147
-    
-    amods <- attr(aa_masses, "amods", exact = TRUE)
-    
-    ans <- gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
-                                    aa_masses = aa_masses, 
-                                    ms1vmods = ms1vmods, ms2vmods = ms2vmods,
-                                    ntmod = ntmod, ctmod = ctmod, 
-                                    ntmass = ntmass, ctmass = ctmass, 
-                                    amods = amods, 
-                                    vmods_nl = NULL, fmods_nl = NULL,
-                                    mod_indexes = mod_indexes, 
-                                    type_ms2ions = type_ms2ions, 
-                                    maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                                    maxn_sites_per_vmod = maxn_sites_per_vmod, 
-                                    maxn_vmods_sitescombi_per_pep = 
-                                      maxn_vmods_sitescombi_per_pep, 
-                                    digits = digits)
-    
-    return(ans)
-  }
+  fmods_nl <- if (length(fmods_nl)) fmods_nl else NULL
+  vmods_nl <- if (length(vmods_nl)) vmods_nl else NULL
+  amods    <- if (length(amods)) amods else NULL
+  ms1vmods <- if (length(ms1vmods)) ms1vmods else NULL
+  ms2vmods <- if (length(ms2vmods)) ms2vmods else NULL
   
-  # (9, 10) "amods+ tmod- vnl+ fnl-", "amods+ tmod+ vnl+ fnl-"
-  #         (ANY amod is vnl+)
-
-  if (type %in% c("amods+ tmod- vnl+ fnl-", 
-                  "amods+ tmod+ vnl+ fnl-")) {
-    
-    ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-    
-    ntmass <- if (length(ntmod)) 
-      aa_masses[names(ntmod)] + 1.00727647
-    else 
-      aa_masses["N-term"] - 0.000549
-    
-    ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-    
-    ctmass <- if (length(ctmod)) 
-      aa_masses[names(ctmod)] + 2.01510147
-    else 
-      aa_masses["C-term"] + 2.01510147
-
-    amods <- attr(aa_masses, "amods", exact = TRUE)
-    vmods_nl <- attr(aa_masses, "vmods_nl", exact = TRUE)
-    
-    ans <- gen_ms2ions_a1_vnl1_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
-                                    aa_masses = aa_masses, 
-                                    ms1vmods = ms1vmods, ms2vmods = ms2vmods,
-                                    ntmod = ntmod, ctmod = ctmod, 
-                                    ntmass = ntmass, ctmass = ctmass, 
-                                    amods = amods, vmods_nl = vmods_nl, 
-                                    mod_indexes = mod_indexes, 
-                                    type_ms2ions = type_ms2ions, 
-                                    maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                                    maxn_sites_per_vmod = maxn_sites_per_vmod, 
-                                    maxn_vmods_sitescombi_per_pep = 
-                                      maxn_vmods_sitescombi_per_pep, 
-                                    digits = digits)
-    
-    return(ans)
-  }
-  
-  # (11, 12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
-  #          (mutual exclusive btw. (11, 12) and (7, 8);
-  #           logicial ANY versus ALL)
-
-  if (type %in% c("amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+")) {
-    
-    ntmod <- attr(aa_masses, "ntmod", exact = TRUE)
-    
-    ntmass <- if (length(ntmod)) 
-      aa_masses[names(ntmod)] + 1.00727647
-    else 
-      aa_masses["N-term"] - 0.000549
-
-    ctmod <- attr(aa_masses, "ctmod", exact = TRUE)
-    
-    ctmass <- if (length(ctmod)) 
-      aa_masses[names(ctmod)] + 2.01510147
-    else 
-      aa_masses["C-term"] + 2.01510147
-
-    amods <- attr(aa_masses, "amods", exact = TRUE)
-    fmods_nl <- attr(aa_masses, "fmods_nl", exact = TRUE)
-    
-    ans <- gen_ms2ions_a1_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = ms1_mass, 
-                                    aa_masses = aa_masses, 
-                                    ms1vmods = ms1vmods, ms2vmods = ms2vmods,
-                                    ntmod = ntmod, ctmod = ctmod, 
-                                    ntmass = ntmass, ctmass = ctmass, 
-                                    amods = amods, fmods_nl = fmods_nl, 
-                                    mod_indexes = mod_indexes, 
-                                    type_ms2ions = type_ms2ions, 
-                                    maxn_vmods_per_pep = maxn_vmods_per_pep, 
-                                    maxn_sites_per_vmod = maxn_sites_per_vmod, 
-                                    maxn_vmods_sitescombi_per_pep = 
-                                      maxn_vmods_sitescombi_per_pep, 
-                                    digits = digits)
-    
-    return(ans)
-  }
-  
-  ans <- NULL
+  do.call(FUN, 
+          list(aa_seq = aa_seq, 
+               ms1_mass = ms1_mass, 
+               aa_masses = aa_masses, 
+               ms1vmods = ms1vmods, 
+               ms2vmods = ms2vmods, 
+               ntmod = ntmod, 
+               ctmod = ctmod, 
+               ntmass = ntmass, 
+               ctmass = ctmass, 
+               amods = amods, vmods_nl = vmods_nl, fmods_nl = fmods_nl, 
+               mod_indexes = mod_indexes, 
+               type_ms2ions = type_ms2ions, 
+               maxn_vmods_per_pep = maxn_vmods_per_pep, 
+               maxn_sites_per_vmod = maxn_sites_per_vmod, 
+               maxn_fnl_per_seq = maxn_fnl_per_seq, 
+               maxn_vnl_per_seq = maxn_vnl_per_seq, 
+               maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+               digits = digits))
 }
 
 

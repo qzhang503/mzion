@@ -25,8 +25,8 @@ gen_ms2ions_base(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_fnl_per_seq = 64L,
-  maxn_vnl_per_seq = 64L,
+  maxn_fnl_per_seq = 3L,
+  maxn_vnl_per_seq = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
   digits = 4L
 )
@@ -48,8 +48,8 @@ gen_ms2ions_a0_vnl0_fnl1(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_fnl_per_seq = 8L,
-  maxn_vnl_per_seq = 8L,
+  maxn_fnl_per_seq = 3L,
+  maxn_vnl_per_seq = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
   digits = 4L
 )
@@ -71,8 +71,8 @@ gen_ms2ions_a1_vnl0_fnl0(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_fnl_per_seq = 64L,
-  maxn_vnl_per_seq = 64L,
+  maxn_fnl_per_seq = 3L,
+  maxn_vnl_per_seq = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
   digits = 4L
 )
@@ -95,8 +95,8 @@ gen_ms2ions_a1_vnl0_fnl1(
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
-  maxn_fnl_per_seq = 64L,
-  maxn_vnl_per_seq = 64L,
+  maxn_fnl_per_seq = 3L,
+  maxn_vnl_per_seq = 3L,
   digits = 4L
 )
 
@@ -118,8 +118,8 @@ gen_ms2ions_a1_vnl1_fnl0(
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
-  maxn_fnl_per_seq = 64L,
-  maxn_vnl_per_seq = 64L,
+  maxn_fnl_per_seq = 3L,
+  maxn_vnl_per_seq = 3L,
   digits = 4L
 )
 }
@@ -208,8 +208,8 @@ fixedmods <- c("TMT6plex (K)", "Carbamidomethyl (C)")
 varmods <- c("TMT6plex (N-term)", "Acetyl (Protein N-term)", "Oxidation (M)",
              "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)")
 
-mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
-  as.hexmode() \%>\%
+mod_indexes <- seq_along(c(fixedmods, varmods)) |>
+  as.hexmode() |>
   `names<-`(c(fixedmods, varmods))
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods)
@@ -243,8 +243,8 @@ out <- mzion:::gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass,
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
 varmods <- c("Oxidation (M)", "Deamidated (N)")
 
-mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
-  as.hexmode() \%>\%
+mod_indexes <- seq_along(c(fixedmods, varmods)) |>
+  as.hexmode() |>
   `names<-`(c(fixedmods, varmods))
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods)
@@ -276,14 +276,13 @@ out <- mzion:::gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass,
 }
 \donttest{
 library(mzion)
-library(magrittr)
 
 # (5) "amods- tmod+ vnl- fnl+"
 fixedmods <- c("TMT6plex (N-term)", "Oxidation (M)", "dHex (S)")
 varmods <- c("Acetyl (Protein N-term)")
 
-mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
-  as.hexmode() \%>\%
+mod_indexes <- seq_along(c(fixedmods, varmods)) |>
+  as.hexmode() |>
   `names<-`(c(fixedmods, varmods))
   
 aa_masses_all <- calc_aamasses(fixedmods, varmods)
@@ -312,24 +311,23 @@ aa_seq <- "MHQGVMNVGMGQKMNS"
 # variable `TMT6plex (N-term)` + `fixed Oxidation (M)`
 # (additive varmod on top of fixedmod allowed)
 
-out <- mzion:::gen_ms2ions_a0_vnl0_fnl1(aa_seq = aa_seq, ms1_mass = NULL, 
-                                aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
-                                ntmass = ntmass, ctmass = ctmass, 
-                                amods = NULL, vmods_nl = NULL, fmods_nl = fmods_nl, 
-                                mod_indexes = mod_indexes)
-
+out <- mzion:::gen_ms2ions_a0_vnl0_fnl1(
+   aa_seq = aa_seq, ms1_mass = NULL, 
+   aa_masses = aa_masses, ntmod = NULL, ctmod = NULL, 
+   ntmass = ntmass, ctmass = ctmass, 
+   amods = NULL, vmods_nl = NULL, fmods_nl = fmods_nl, 
+   mod_indexes = mod_indexes)
 }
 \donttest{
 library(mzion)
-library(magrittr)
 
 # (8a) "amods+ tmod+ vnl- fnl-"
 fixedmods <- c("TMT6plex (K)")
 varmods <- c("Deamidated (N)", "Carbamidomethyl (S)",
              "Acetyl (Protein N-term)")
 
-mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
-  as.hexmode() \%>\%
+mod_indexes <- seq_along(c(fixedmods, varmods)) |>
+  as.hexmode() |>
   `names<-`(c(fixedmods, varmods))
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods)
@@ -387,8 +385,8 @@ varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
 fixedmods <- sort(fixedmods)
 varmods <- sort(varmods)
 
-mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
-  as.hexmode() \%>\%
+mod_indexes <- seq_along(c(fixedmods, varmods)) |>
+  as.hexmode() |>
   `names<-`(c(fixedmods, varmods))
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods)
@@ -439,14 +437,13 @@ out <- mzion:::gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass,
 }
 \donttest{
 library(mzion)
-library(magrittr)
 
 # (12) "amods+ tmod+ vnl- fnl+"
 fixedmods <- c("TMT6plex (K)", "Oxidation (M)", "dHex (S)")
 varmods <- c("Deamidated (N)", "Acetyl (Protein N-term)")
 
-mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
-  as.hexmode() \%>\%
+mod_indexes <- seq_along(c(fixedmods, varmods)) |>
+  as.hexmode() |>
   `names<-`(c(fixedmods, varmods))
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods)
@@ -504,15 +501,14 @@ ms1_mass <- ms1_masses$mass[[2]][2] # 1367.6996
 }
 \donttest{
 library(mzion)
-library(magrittr)
 
 # (10) "amods+ tmod+ vnl+ fnl-"
 fixedmods <- c("TMT6plex (K)")
 varmods <- c("dHex (S)", "Oxidation (M)", "Deamidated (N)", 
              "Acetyl (Protein N-term)")
 
-mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
-  as.hexmode() \%>\%
+mod_indexes <- seq_along(c(fixedmods, varmods)) |>
+  as.hexmode() |>
   `names<-`(c(fixedmods, varmods))
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods)
@@ -581,8 +577,8 @@ fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
 varmods <- c("Acetyl (Protein N-term)", "Oxidation (M)", 
              "Carbamidomethyl (M)")
 
-mod_indexes <- seq_along(c(fixedmods, varmods)) \%>\%
-  as.hexmode() \%>\%
+mod_indexes <- seq_along(c(fixedmods, varmods)) |>
+  as.hexmode() |>
   `names<-`(c(fixedmods, varmods))
 
 aa_masses_all <- calc_aamasses(fixedmods, varmods)

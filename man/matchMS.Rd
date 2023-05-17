@@ -79,7 +79,7 @@ matchMS(
   min_ret_time = 0,
   max_ret_time = Inf,
   calib_ms1mass = FALSE,
-  ppm_ms1calib = 10L,
+  ppm_ms1calib = 20L,
   add_ms2theos = FALSE,
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
@@ -93,6 +93,7 @@ matchMS(
   svm_costs = c(0.1, 0.3, 1, 3, 10),
   svm_def_cost = 1,
   svm_iters = 10L,
+  by_modules = TRUE,
   digits = 4L,
   ...
 )
@@ -500,12 +501,11 @@ seconds for considerations. The default is 0.}
 \item{max_ret_time}{A non-negative numeric; the maximum retention time in
 seconds for considerations. The default is \code{Inf}.}
 
-\item{calib_ms1mass}{Temporarily diabled. Logical; if TRUE, calibrates
-precursor masses.}
+\item{calib_ms1mass}{Logical; if TRUE, calibrates precursor masses.}
 
 \item{ppm_ms1calib}{A positive integer; the mass tolerance of MS1 species for
-precursor mass calibration. The default is 10. The argument has no effect
-at \code{calib_ms1mass = FALSE}.}
+precursor mass calibration. The argument has no effect at
+\code{calib_ms1mass = FALSE}.}
 
 \item{add_ms2theos}{Logical. If true, adds the sequence of primary
   theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a
@@ -548,6 +548,11 @@ validation.}
 \item{svm_def_cost}{The default cost for SVM.}
 
 \item{svm_iters}{The number of iteration in SVM learning.}
+
+\item{by_modules}{Logical. Experimenting. At the TRUE default, searches MS
+data by individual modules of combinatorial fixed and variable
+modifications. If FALSE, search all modules together. The later would
+probably need more than 32G RAM if the number of modules is over 96.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

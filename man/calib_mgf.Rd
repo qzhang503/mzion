@@ -17,12 +17,12 @@ calib_mgf(
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 20L,
-  ppm_ms1calib = 20L,
+  reframe_mgfs = TRUE,
   ppm_ms2 = 20L,
   min_mass = 200L,
   max_mass = 4500L,
   min_ms2mass = 115L,
-  quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
+  quant = "none",
   ppm_reporters = 10L,
   index_mgf_ms2 = FALSE,
   by_modules = TRUE,
@@ -53,7 +53,12 @@ calib_mgf(
   With MSConvert, the default \code{titleMaker} is required for correct
   parsing (don't think it can be altered by users, but just in case).}
 
+\item{aa_masses_all}{List(1); The first list of all amino-acid look-ups.}
+
 \item{out_path}{A file path of outputs.}
+
+\item{mod_indexes}{Integer; the indexes of fixed and/or variable
+modifications}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
@@ -91,9 +96,7 @@ not part of the threshold.}
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}
 
-\item{ppm_ms1calib}{A positive integer; the mass tolerance of MS1 species for
-precursor mass calibration. The default is 10. The argument has no effect
-at \code{calib_ms1mass = FALSE}.}
+\item{reframe_mgfs}{Logical; if TRUE, recalculates the frame indexes of MGFs}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
@@ -133,6 +136,11 @@ ions. The default is 10.}
   20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
   the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
   pep_ms2_deltas_sd} are nullified in the outputs.}
+
+\item{by_modules}{Logical. Experimenting. At the TRUE default, searches MS
+data by individual modules of combinatorial fixed and variable
+modifications. If FALSE, search all modules together. The later would
+probably need more than 32G RAM if the number of modules is over 96.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}

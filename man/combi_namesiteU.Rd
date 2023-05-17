@@ -20,3 +20,24 @@ combi_namesiteU(M, aas)
 One-to-one correspondence between Names and Sites. Finds the positions of
 residues (sites) from a given amino acid sequence (aas).
 }
+\examples{
+\donttest{
+library(mzion)
+
+aa_seq <- "MHQGVMNVNMGQKMNS"
+aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
+aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
+
+m <- c("M", "M", "N", "N")
+labs <- ps <- c(2, 2)
+names(ps) <- c("M", "N")
+names(labs) <- c("Oxidation (M)", "Deamidated (N)")
+
+M <- c("Oxidation (M)", "Oxidation (M)", "Deamidated (N)", "Deamidated (N)")
+M <- matrix(M, ncol = 4)
+attr(M, "ps") <- ps
+attr(M, "resids") <- m
+
+mzion:::combi_namesiteU(M, aas)
+}
+}

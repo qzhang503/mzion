@@ -249,13 +249,12 @@
 #'   default is 20.
 #' @param ppm_ms2 A positive integer; the mass tolerance of MS2 species. The
 #'   default is 20.
-#' @param calib_ms1mass Temporarily diabled. Logical; if TRUE, calibrates
-#'   precursor masses.
+#' @param calib_ms1mass Logical; if TRUE, calibrates precursor masses.
 #' @param ppm_reporters A positive integer; the mass tolerance of MS2 reporter
 #'   ions. The default is 10.
 #' @param ppm_ms1calib A positive integer; the mass tolerance of MS1 species for
-#'   precursor mass calibration. The default is 10. The argument has no effect
-#'   at \code{calib_ms1mass = FALSE}.
+#'   precursor mass calibration. The argument has no effect at
+#'   \code{calib_ms1mass = FALSE}.
 #' @param quant A character string; the quantitation method. The default is
 #'   "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
 #'   tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
@@ -409,6 +408,10 @@
 #'   suggested. Occasionally experimenters may remove the file folder for disk
 #'   space or under infrequent events of modified framework incurred by the
 #'   developer.
+#' @param by_modules Logical. Experimenting. At the TRUE default, searches MS
+#'   data by individual modules of combinatorial fixed and variable
+#'   modifications. If FALSE, search all modules together. The later would
+#'   probably need more than 32G RAM if the number of modules is over 96.
 #' @param digits A non-negative integer; the number of decimal places to be
 #'   used. The default is 4.
 #' @param ... Not currently used.
@@ -706,7 +709,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                      min_ret_time = 0, max_ret_time = Inf, 
                      calib_ms1mass = FALSE, 
-                     ppm_ms1calib = 10L,
+                     ppm_ms1calib = 20L,
                      
                      add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                      add_ms2moverzs = FALSE, add_ms2ints = FALSE,
@@ -722,6 +725,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      svm_costs = c(.1, .3, 1, 3, 10), svm_def_cost = 1, 
                      svm_iters  = 10L, 
                      
+                     by_modules = TRUE, 
                      digits = 4L, ...) 
 {
   options(digits = 9L)
@@ -735,10 +739,6 @@ matchMS <- function (out_path = "~/mzion/outs",
     },
     add = TRUE
   )
-  
-  ## Experimenting
-  by_modules <- TRUE
-  ##
   
   message("Started at: ", Sys.time())
   
@@ -968,7 +968,6 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
   
   # fdr_group
-  
   # for future supports of character strings or integers (mod_groups)
   # fdr_group <- check_fdr_group(fdr_group, eval(this_fml[["fdr_group"]]))
   oks <- eval(this_fml[["fdr_group"]])
@@ -1182,19 +1181,31 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
 
   ## Bin theoretical peptides
-  ppm_precsr <- if (calib_ms1mass) ppm_ms1calib else ppm_ms1
   bypass_bin_ms1 <- dots$bypass_bin_ms1
   if (is.null(bypass_bin_ms1)) bypass_bin_ms1 <- FALSE
+  
+  reframe_mgfs <- calib_ms1mass && ppm_ms1calib != ppm_ms1
 
   if (!bypass_bin_ms1) {
     bin_ms1masses(res = res, 
                   min_mass = min_mass, 
                   max_mass = max_mass, 
-                  ppm_ms1 = ppm_precsr, 
+                  ppm_ms1 = ppm_ms1, 
                   use_ms1_cache = use_ms1_cache, 
                   .path_cache = .path_cache, 
                   .path_ms1masses = .path_ms1masses, 
                   out_path = out_path)
+    
+    if (reframe_mgfs) {
+      bin_ms1masses(res = res, 
+                    min_mass = min_mass, 
+                    max_mass = max_mass, 
+                    ppm_ms1 = ppm_ms1calib, 
+                    use_ms1_cache = use_ms1_cache, 
+                    .path_cache = .path_cache, 
+                    .path_ms1masses = .path_ms1masses, 
+                    out_path = out_path)
+    }
     
     try(rm(list = "res"), silent = TRUE)
     gc()
@@ -1204,7 +1215,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   bypass_mgf <- dots$bypass_mgf
   if (is.null(bypass_mgf)) bypass_mgf <- FALSE
   
-  if (!bypass_mgf) {
+  if (!bypass_mgf)
     load_mgfs(out_path = out_path, 
               mgf_path = mgf_path,
               min_mass = min_mass,
@@ -1218,7 +1229,7 @@ matchMS <- function (out_path = "~/mzion/outs",
               max_scan_num = max_scan_num, 
               min_ret_time = min_ret_time,
               max_ret_time = max_ret_time, 
-              ppm_ms1 = ppm_precsr,
+              ppm_ms1 = ppm_ms1, 
               ppm_ms2 = ppm_ms2,
               mgf_cutmzs = mgf_cutmzs, 
               mgf_cutpercs = mgf_cutpercs, 
@@ -1229,7 +1240,6 @@ matchMS <- function (out_path = "~/mzion/outs",
               index_mgf_ms2 = index_mgf_ms2, 
               quant = quant, 
               digits = digits)
-  }
 
   ## MSMS matches
   bypass_ms2match <- dots$bypass_ms2match
@@ -1254,16 +1264,19 @@ matchMS <- function (out_path = "~/mzion/outs",
     mod_indexes <- NULL
   }
   
-  if (FALSE || calib_ms1mass)
+  if (calib_ms1mass) {
     calib_mgf(mgf_path = mgf_path, aa_masses_all = aa_masses_all[1], # base
-              out_path = out_path, mod_indexes = mod_indexes, 
+              out_path = out_path, 
+              mod_indexes = mod_indexes[names(mod_indexes) %in% fixedmods], 
               type_ms2ions = type_ms2ions, 
               maxn_vmods_per_pep = maxn_vmods_per_pep,
               maxn_sites_per_vmod = maxn_sites_per_vmod, 
               maxn_fnl_per_seq = maxn_fnl_per_seq, 
               maxn_vnl_per_seq = maxn_vnl_per_seq, 
               maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
-              minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms1calib = ppm_ms1calib, 
+              minn_ms2 = minn_ms2, 
+              ppm_ms1 = ppm_ms1calib, 
+              reframe_mgfs = reframe_mgfs, 
               ppm_ms2 = ppm_ms2, min_mass = min_mass, max_mass = max_mass, 
               min_ms2mass = min_ms2mass, quant = quant, 
               ppm_reporters = ppm_reporters, index_mgf_ms2 = index_mgf_ms2, 
@@ -1274,6 +1287,7 @@ matchMS <- function (out_path = "~/mzion/outs",
               maxn_vmods_setscombi = maxn_vmods_setscombi,
               min_len = min_len, max_len = max_len, max_miss = max_miss, 
               knots = 50L, digits = digits)
+  }
 
   if (!bypass_ms2match) {
     if (min_ms2mass < 5L) 
@@ -1290,17 +1304,14 @@ matchMS <- function (out_path = "~/mzion/outs",
              maxn_vnl_per_seq = maxn_vnl_per_seq, 
              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
              minn_ms2 = minn_ms2,
-             
              ppm_ms1 = ppm_ms1,
-             ppm_ms1calib = ppm_ms1calib,
-             
+             reframe_mgfs = FALSE, 
              ppm_ms2 = ppm_ms2,
              min_mass = min_mass, 
              max_mass = max_mass, 
              min_ms2mass = min_ms2mass,
              quant = quant,
              ppm_reporters = ppm_reporters,
-             calib_ms1mass = calib_ms1mass, 
              index_mgf_ms2 = index_mgf_ms2, 
              by_modules = by_modules, 
 
@@ -1381,6 +1392,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                     add_ms2theos2 = add_ms2theos2, 
                     add_ms2moverzs = add_ms2moverzs, 
                     add_ms2ints = add_ms2ints, 
+                    by_modules = by_modules, 
                     index_mgf_ms2 = index_mgf_ms2)
 
   ## Peptide FDR 
