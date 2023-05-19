@@ -1514,6 +1514,10 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
     best_co <- tryCatch(
       (find_pepscore_co1(td, target_fdr) + find_pepscore_co2(td, target_fdr))/2,
       error = function(e) NA)
+    
+    if (is.na(best_co)) {
+      best_co <- Inf
+    }
 
     prob_co <- 10^(-best_co/10)
   }
@@ -1798,6 +1802,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   
   prob_nas <- prob_cos[is.na(prob_cos)]
   prob_cos <- prob_cos[!is.na(prob_cos)]
+  prob_cos[prob_cos < 1E-20] <- 1E-20
   
   if (length(prob_cos) == 1L) {
     seqs <- min_len:max_len
@@ -1905,6 +1910,10 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
     }
     
     newx_left <- min(df_left$x, na.rm = TRUE):max(df_left$x, na.rm = TRUE)
+    
+    if (all(is.na(fit_left)))
+      stop("Contact the developer.")
+    
     newy_left <- predict(fit_left, data.frame(x = newx_left))
     names(newy_left) <- newx_left
   }
