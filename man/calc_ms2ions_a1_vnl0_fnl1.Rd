@@ -5,6 +5,7 @@
 \title{Calculates}
 \usage{
 calc_ms2ions_a1_vnl0_fnl1(
+  M,
   vmods_combi,
   fnl_combi,
   fnl_idxes,
@@ -13,10 +14,13 @@ calc_ms2ions_a1_vnl0_fnl1(
   ntmass,
   ctmass,
   type_ms2ions = "by",
+  mod_indexes,
   digits = 4L
 )
 }
 \arguments{
+\item{M}{A modification matrix or vector.}
+
 \item{vmods_combi}{Lists of variable modifications.}
 
 \item{fnl_combi}{A data.frame of combinations of neutral losses for fixed
@@ -41,6 +45,8 @@ acid residues.}
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
+
+\item{mod_indexes}{Modification indexes.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

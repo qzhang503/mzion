@@ -144,14 +144,5 @@ aas <- unlist(strsplit("MHQGVMNVGMGQKNS", ""))
 # Subset from ms1vmods by aas
 oks <- mzion:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
 ms2vmods <- ms2vmods[oks]
-
-vmods_combi <- mzion:::find_vmodscombi(aas, ms2vmods)
-
-# "Oxidation (M)" on N-term kept in the label space
-lapply(vmods_combi, function (x) any(names(x) == 1))
-
-# Otherwise check if any attr(aa_masses, "amods") in the N-term
-amods <- attr(aa_masses, "amods")
-# may do it during combi_byvmodsM(...)
 }
 }

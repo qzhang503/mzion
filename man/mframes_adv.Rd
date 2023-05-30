@@ -76,8 +76,13 @@ permutative neutral losses per peptide sequence for fixed modifications.}
 permutative neutral losses per peptide sequence for variable modifications.}
 
 \item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
-number of combinatorial variable modifications per peptide sequence. The
-default is 64.}
+number of combinatorial variable modifications per peptide sequence (per
+module). The combinations include the ways of neutral losses and
+modification labels. For instance, at \code{maxn_vnl_per_seq = 2}, the ways
+of allowed position permutation will be 32. Similarly, at
+\code{maxn_vnl_per_seq = 2} and, for example, the permutation of labels
+\code{Acetyl (K)} and \code{TMT (K)} (let's say three ways), the ways of
+position permutation will be limited to \code{64/2/3}.}
 
 \item{minn_ms2}{Integer; the minimum number of MS2 ions for consideration as
 a hit.}

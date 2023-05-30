@@ -596,8 +596,45 @@ expand_grid <- function (..., nmax = 3L)
     }
   }
   
-  rn <- .set_row_names(as.integer(prod(d)))
+  rn <- .set_row_names(length(x))
   structure(cargs, class = "data.frame", row.names = rn)
+}
+
+
+#' Modified from expand.grid
+#' 
+#' Inputs are in matrices
+#' 
+#' @param nmax The maximum number of combinations allowed.
+#' @param ... Lists of data.
+expand_gr <- function (..., nmax = 3L) 
+{
+  nargs <- length(args <- list(...))
+  
+  if (nargs == 1L && is.list(a1 <- args[[1L]])) 
+    nargs <- length(args <- a1)
+  
+  nr <- .Internal(unlist(lapply(args, nrow), recursive = FALSE, use.names = FALSE))
+  nc <- .Internal(unlist(lapply(args, ncol), recursive = FALSE, use.names = FALSE))
+  cnc <- cumsum(nc)
+  orep <- prod(nr)
+  nmax <- min(nmax, orep)
+  
+  M <- matrix(nrow = nmax, ncol = sum(nc))
+  rep.fac <- 1L
+  c1 <- 1L
+  
+  for (i in seq_len(nargs)) {
+    x <- args[[i]]
+    nx <- nr[[i]]
+    orep <- orep/nx
+    c2 <- cnc[[i]]
+    M[, c1:c2] <- x[rep_len(rep.int(seq_len(nx), rep.int(rep.fac, nx)), nmax), ]
+    c1 <- c2 + 1L
+    rep.fac <- rep.fac * nx
+  }
+  
+  M
 }
 
 
@@ -718,6 +755,24 @@ vec_to_list <- function (x)
     out[[i]] <- x[i]
   
   out
+}
+
+
+#' Splits a matrix
+#' 
+#' @param M A matrix.
+#' @param by Split by matrix rows or columns.
+split_matrix <- function (M, by = "row") 
+{
+  if (by == "row")
+    len <- nrow(M)
+  
+  ans <- vector("list", len)
+  
+  for (i in seq_along(ans))
+    ans[[i]] <- M[i, ]
+  
+  ans
 }
 
 

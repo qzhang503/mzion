@@ -101,7 +101,7 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
                                  maxn_vmods_setscombi = maxn_vmods_setscombi)
   
   peps <- check_aaseq(aa_seq, aa_masses_all, fixedmods, varmods)
-  oks <- purrr::map_lgl(peps, function (x) !purrr::is_empty(x))
+  oks <- unlist(lapply(peps, function (x) length(x) > 0L))
   peps <- peps[oks]
   aa_masses_all <- aa_masses_all[oks]
   
@@ -355,11 +355,18 @@ check_aaseq <- function (aa_seq, aa_masses_all, fixedmods, varmods)
 #'              "Phospho (S)", "Phospho (T)", "Phospho (Y)", 
 #'              "Gln->pyro-Glu (N-term = Q)")
 #' ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
-#' 
 #' x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
 #'                        ms1_mass = ms$mass[[21]][[3]])
 #' }
-#' 
+#' #' 
+#' # (8) Carbamyl (K), Acetyl (K), Oxidation (M)
+#' aa_seq <- "MAKKKKKKKKKEMASSPECFUN"
+#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+#' varmods <- c("Oxidation (M)", "Deamidated (N)", 
+#'              "Acetyl (K)", "Carbamyl (K)")
+#' ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
+#' x  <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+#'                         ms1_mass = ms$mass[[21]][[5]])
 #' @export
 calc_ms2ionseries <- function (aa_seq, fixedmods, varmods, 
                                type_ms2ions = "by", ms1_mass = NULL, 
@@ -377,7 +384,7 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
                                  maxn_vmods_setscombi = maxn_vmods_setscombi)
   
   peps <- check_aaseq(aa_seq, aa_masses_all, fixedmods, varmods)
-  oks <- purrr::map_lgl(peps, ~ !purrr::is_empty(.x))
+  oks <- unlist(lapply(peps, function (x) length(x) > 0L))
   peps <- peps[oks]
   aa_masses_all <- aa_masses_all[oks]
   
@@ -385,8 +392,8 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
     as.hexmode() %>% 
     `names<-`(c(fixedmods, varmods))
   
-  ms <- purrr::map2(peps, aa_masses_all, function (x, y) {
-    pri <- calc_ms2ions(x, ms1_mass, y, mod_indexes, type_ms2ions, 
+  ms <- mapply(function (x, y) {
+    pri <- calc_ms2ions(x, y, ms1_mass, mod_indexes, type_ms2ions, 
                         maxn_vmods_per_pep = maxn_vmods_per_pep, 
                         maxn_sites_per_vmod = maxn_sites_per_vmod, 
                         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
@@ -394,10 +401,9 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
                         maxn_vnl_per_seq = maxn_vnl_per_seq, digits)
     
     sec <- lapply(pri, add_seions, type_ms2ions = type_ms2ions, digits = digits)
-    
     list(pri = pri, sec = sec)
-  })
-  
+  }, peps, aa_masses_all, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+
   attrs <- lapply(aa_masses_all, attributes)
   vmods_ps <- lapply(attrs, `[[`, "vmods_ps")
   
@@ -438,10 +444,10 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
 #'   `names<-`(c(fixedmods, varmods))
 #' aa_masses_all <- calc_aamasses(fixedmods, varmods)
 #'
-#' x <- mzion:::calc_ms2ions("MAKEMASSPECFUN", NULL, aa_masses_all[[1]], mod_indexes)
+#' x <- mzion:::calc_ms2ions("MAKEMASSPECFUN", aa_masses_all[[1]], NULL, mod_indexes)
 #'
 #' }
-calc_ms2ions <- function (aa_seq, ms1_mass = NULL, aa_masses, mod_indexes = NULL, 
+calc_ms2ions <- function (aa_seq, aa_masses, ms1_mass = NULL, mod_indexes = NULL, 
                           type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                           maxn_sites_per_vmod = 3L, 
                           maxn_vmods_sitescombi_per_pep = 64L, 

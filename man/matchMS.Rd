@@ -68,7 +68,7 @@ matchMS(
   combine_tier_three = FALSE,
   max_n_prots = 60000L,
   use_ms1_cache = TRUE,
-  .path_cache = "~/mzion/.MSearches (1.2.2.0)/Cache/Calls",
+  .path_cache = "~/mzion/.MSearches (1.2.6)/Cache/Calls",
   .path_fasta = NULL,
   topn_ms2ions = 100L,
   topn_ms2ion_cuts = NA,
@@ -234,8 +234,13 @@ permutative neutral losses per peptide sequence for fixed modifications.}
 permutative neutral losses per peptide sequence for variable modifications.}
 
 \item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
-number of combinatorial variable modifications per peptide sequence. The
-default is 64.}
+number of combinatorial variable modifications per peptide sequence (per
+module). The combinations include the ways of neutral losses and
+modification labels. For instance, at \code{maxn_vnl_per_seq = 2}, the ways
+of allowed position permutation will be 32. Similarly, at
+\code{maxn_vnl_per_seq = 2} and, for example, the permutation of labels
+\code{Acetyl (K)} and \code{TMT (K)} (let's say three ways), the ways of
+position permutation will be limited to \code{64/2/3}.}
 
 \item{min_len}{A positive integer; the minimum length of peptide sequences
 for considerations. Shorter peptides will be excluded. The default is 7.}
@@ -354,7 +359,12 @@ of matches.}
 
 \item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
 of peptide scores for discriminating significant and insignificant
-identities.}
+identities. Note that a probability p-value of, e.g., \eqn{1e-20} may not
+be interpreted as more probable than \eqn{1e-10} (beyond the precision of a
+probability test). Also note that the numeric limit when converting
+probability to scores (\eqn{-10 \times log10(p)}); e.g. \eqn{-10 \times
+log10(e-324)} yielded \code{Inf} instead of 3240. For reasons like these,
+a high value of \code{max_pepscores_co} is not recommended.}
 
 \item{min_pepscores_co}{A non-negative numeric; the lower limit in the
 cut-offs of peptide scores for discriminating significant and insignificant

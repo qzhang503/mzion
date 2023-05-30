@@ -143,8 +143,13 @@
 #' @param maxn_vnl_per_seq A non-negative integer; the maximum number of
 #'   permutative neutral losses per peptide sequence for variable modifications.
 #' @param maxn_vmods_sitescombi_per_pep A non-negative integer; the maximum
-#'   number of combinatorial variable modifications per peptide sequence. The
-#'   default is 64.
+#'   number of combinatorial variable modifications per peptide sequence (per
+#'   module). The combinations include the ways of neutral losses and
+#'   modification labels. For instance, at \code{maxn_vnl_per_seq = 2}, the ways
+#'   of allowed position permutation will be 32. Similarly, at
+#'   \code{maxn_vnl_per_seq = 2} and, for example, the permutation of labels
+#'   \code{Acetyl (K)} and \code{TMT (K)} (let's say three ways), the ways of
+#'   position permutation will be limited to \code{64/2/3}.
 #' @param min_len A positive integer; the minimum length of peptide sequences
 #'   for considerations. Shorter peptides will be excluded. The default is 7.
 #' @param max_len A positive integer; the maximum length of peptide sequences
@@ -277,7 +282,12 @@
 #'   of matches.
 #' @param max_pepscores_co A positive numeric; the upper limit in the cut-offs
 #'   of peptide scores for discriminating significant and insignificant
-#'   identities.
+#'   identities. Note that a probability p-value of, e.g., \eqn{1e-20} may not
+#'   be interpreted as more probable than \eqn{1e-10} (beyond the precision of a
+#'   probability test). Also note that the numeric limit when converting
+#'   probability to scores (\eqn{-10 \times log10(p)}); e.g. \eqn{-10 \times
+#'   log10(e-324)} yielded \code{Inf} instead of 3240. For reasons like these,
+#'   a high value of \code{max_pepscores_co} is not recommended.
 #' @param min_pepscores_co A non-negative numeric; the lower limit in the
 #'   cut-offs of peptide scores for discriminating significant and insignificant
 #'   identities.
@@ -700,7 +710,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 60000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/mzion/.MSearches (1.2.2.0)/Cache/Calls", 
+                     .path_cache = "~/mzion/.MSearches (1.2.6)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,
@@ -858,6 +868,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 10L, minn_ms2 >= 2L, 
             min_mass >= 1L, max_mass >= min_mass, 
             min_ms2mass >= 1L, max_ms2mass > min_ms2mass, 
+            maxn_fnl_per_seq >= 2L, maxn_vnl_per_seq >= 2L, 
+            maxn_vmods_sitescombi_per_pep >= 2L, 
             n_13c >= 0L, noenzyme_maxn >= 0L, 
             maxn_vmods_per_pep >= maxn_sites_per_vmod, max_n_prots > 1000L, 
             min_ms1_charge >= 1L, max_ms1_charge >= min_ms1_charge, 

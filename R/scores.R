@@ -1368,11 +1368,11 @@ find_pepscore_co2 <- function (td, target_fdr = 0.01)
 #' @param len Numeric; the length of peptides.
 #' @inheritParams matchMS
 probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01, 
-                             min_pepscores_co = 0, out_path) 
+                             max_pepscores_co = 50, min_pepscores_co = 0, 
+                             out_path) 
 {
   td <- dplyr::filter(td, pep_len == len)
-  td <- sub_td_byfdrtype(td, fdr_type)
-  
+  td <- sub_td_byfdrtype(td, fdr_type, max_pepscores_co)
   count <- nrow(td)
   
   if (count < (1 / target_fdr)) {
@@ -1532,7 +1532,7 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
 #' 
 #' @param td A data frame of targets and decoys.
 #' @inheritParams matchMS
-sub_td_byfdrtype <- function (td, fdr_type)
+sub_td_byfdrtype <- function (td, fdr_type, max_pepscores_co = 50)
 {
   if (fdr_type %in% c("peptide", "protein")) {
     if (fdr_type == "protein") {
@@ -1556,7 +1556,34 @@ sub_td_byfdrtype <- function (td, fdr_type)
   }
   
   td <- dplyr::select(td, pep_prob, pep_isdecoy)
-  td <- dplyr::arrange(td, pep_prob)
+  td  <- split(td, td[["pep_isdecoy"]])
+  td0 <- td[["FALSE"]]
+  td1 <- td[["TRUE"]]
+  # td1 <- td1[td1[["pep_prob"]] > 10^(-max_pepscores_co/10), ]
+  
+  # guard against very low number of decoys
+  # (already order by pep_prob?)
+  # td1 <- td1[order(td1[["pep_prob"]]), ]
+  nr1 <- nrow(td1)
+  if (is.null(nr1)) nr1 <- 0L
+  
+  if (nr1) {
+    td1 <- if (nr1 > 200)
+      td1[-c(1:5), ]
+    else if (nr1 > 100L)
+      td1[-c(1:5), ]
+    else if (nr1 > 50L)
+      td1[-c(1:5), ]
+    else if (nr1 > 10L)
+      td1[-c(1:5), ]
+    else if (nr1 > 1L)
+      td1[-seq_len(max(as.integer(nr1 * .5) + 1L, 1L)), ]
+    else
+      td1
+  }
+
+  td  <- dplyr::bind_rows(td0, td1)
+  td <- td[order(td[["pep_prob"]]), ]
   td <- dplyr::mutate(td, total = row_number())
   td <- dplyr::mutate(td, decoy = cumsum(pep_isdecoy))
   td <- dplyr::mutate(td, fdr = decoy/total)
@@ -1781,9 +1808,40 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
                      td = td, 
                      fdr_type = fdr_type, 
                      target_fdr = target_fdr, 
+                     max_pepscores_co = max_pepscores_co, 
                      min_pepscores_co = min_pepscores_co, 
                      out_path = out_path)
   prob_cos <- unlist(prob_cos)
+  
+  # to fill gapped prob_cos...
+  if (FALSE) {
+    nas  <- is.na(prob_cos)
+    nnas <- which(!nas)
+    first_na <- which(nas)[1]
+    last_nna <- nna[length(nnas)]
+    
+    # need to handle when the first is NA...
+    
+    # NA exists before the last non-NA
+    if (first_na < last_nna) {
+      prs <- prob_cos[1:last_nna]
+      bads <- is.na(prs)
+      oks <- !bads
+      ibads <- which(bads)
+      ioks <- which(oks)
+      
+      for (i in seq_along(ibads)) {
+        bi <- ibads[i]
+        # oi_bf < ioks[ioks <bi]
+        # oi_bf <- oi_bf[length(oi_bf)]
+      }
+      
+      # replace up to the first non-NA
+      prob_cos[1:last_nna] <- prs
+    }
+    
+    prob_cos
+  }
   
   if (length(prob_cos) == 1L && !is.na(prob_cos))
     return(data.frame(pep_len = all_lens, pep_prob_co = prob_cos))

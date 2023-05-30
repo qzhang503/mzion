@@ -4,7 +4,7 @@
 \alias{sub_td_byfdrtype}
 \title{Subsets targets and decoys by fdr_type.}
 \usage{
-sub_td_byfdrtype(td, fdr_type)
+sub_td_byfdrtype(td, fdr_type, max_pepscores_co = 50)
 }
 \arguments{
 \item{td}{A data frame of targets and decoys.}
@@ -14,6 +14,15 @@ sub_td_byfdrtype(td, fdr_type)
 
   Note that \code{fdr_type = protein} is comparable to \code{fdr_type =
   peptide} with the additional filtration of data at \code{prot_tier == 1}.}
+
+\item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
+of peptide scores for discriminating significant and insignificant
+identities. Note that a probability p-value of, e.g., \eqn{1e-20} may not
+be interpreted as more probable than \eqn{1e-10} (beyond the precision of a
+probability test). Also note that the numeric limit when converting
+probability to scores (\eqn{-10 \times log10(p)}); e.g. \eqn{-10 \times
+log10(e-324)} yielded \code{Inf} instead of 3240. For reasons like these,
+a high value of \code{max_pepscores_co} is not recommended.}
 }
 \description{
 Subsets targets and decoys by fdr_type.

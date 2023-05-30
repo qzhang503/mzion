@@ -2,20 +2,62 @@
 % Please edit documentation in R/vmod_ms2_labels.R
 \name{find_vmodposM}
 \alias{find_vmodposM}
-\title{Helper of \link{combi_namesiteM} (by each rows of labels).}
+\title{Combinatorial vmods (permutation of both positions and labels).}
 \usage{
-find_vmodposM(Vec, vec, ps, aas)
+find_vmodposM(M, aas, nmax = 64L)
 }
 \arguments{
-\item{Vec}{A vector of names (lower-case vec for sites).}
-
-\item{vec}{A vector of labels.}
-
-\item{ps}{Named vector; counts for each site. Sites in names and counts in
-values.}
+\item{M}{A vector of names (lower-case vec for sites).}
 
 \item{aas}{\code{aa_seq} split in a sequence of LETTERS.}
+
+\item{nmax}{The maximum number of combinations.}
 }
 \description{
 Multiple Names to the same Site.
+}
+\examples{
+\donttest{
+library(mzion)
+
+Vec <- c("Carbamidomethyl (M)", "Deamidated (N)", "Carbamyl (M)")
+vec <- c("M", "N", "M")
+aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+ps <- c(2, 1)
+names(ps) <- c("M", "N")
+attr(Vec, "ps") <- ps
+attr(Vec, "resids") <- vec
+rs <- unique(vec)
+inds <- lapply(rs, function (x) which(vec == x))
+attr(Vec, "inds") <- inds
+mzion:::find_vmodposM(Vec, aas)
+mzion:::find_vmodposM(Vec, aas, nmax = 1L)
+
+Vec <- c("Carbamidomethyl (M)", "Carbamidomethyl (M)", "Carbamyl (M)", "Deamidated (N)")
+vec <- c("M", "M", "M", "N")
+aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+ps <- c(3, 1)
+names(ps) <- c("M", "N")
+attr(Vec, "ps") <- ps
+attr(Vec, "resids") <- vec
+rs <- unique(vec)
+inds <- lapply(rs, function (x) which(vec == x))
+attr(Vec, "inds") <- inds
+mzion:::find_vmodposM(Vec, aas)
+mzion:::find_vmodposM(Vec, aas, nmax = 1L)
+
+Vec <- c("Carbamidomethyl (M)", "Carbamidomethyl (M)", "Carbamyl (M)", "Deamidated (N)", 
+         "Carbamidomethyl (S)", "Phospho (S)")
+vec <- c("M", "M", "M", "N", "S", "S")
+aas <- unlist(strsplit("HQGVMNVGMGQKMNSSS", ""))
+ps <- c(3, 1, 2)
+names(ps) <- c("M", "N", "S")
+attr(Vec, "ps") <- ps
+attr(Vec, "resids") <- vec
+rs <- unique(vec)
+inds <- lapply(rs, function (x) which(vec == x))
+attr(Vec, "inds") <- inds
+mzion:::find_vmodposM(Vec, aas)
+mzion:::find_vmodposM(Vec, aas, nmax = 1L)
+}
 }

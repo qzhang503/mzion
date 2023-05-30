@@ -54,7 +54,6 @@
 #       - expand_grid_rows (utils_engine.R)
 # 
 # vmod_ms2_labels.R
-#   - find_vmodscombi
 #     - combi_namesiteU
 #       - find_vmodposU
 #         - vec_to_list
@@ -165,7 +164,6 @@
 #         "gen_ms2ions_a1_vnl0_fnl0" (ms2_a1_vnl0_fnl0.R)
 #           "match_mvmods" (vmods_ms1_labels.R)
 #             "expand_grid_rows" (utils_engine.R)
-#           "find_vmodscombi" (vmods_ms2_labels.R)
 #             "combi_namesiteU" (vmods_ms2_labels.R)
 #               "find_vmodposU" (vmods_ms2_labels.R)
 #                 "vec_to_list" (utils_engine.R)
@@ -201,7 +199,6 @@
 #         "gen_ms2ions_a1_vnl1_fnl0"
 #           "match_mvmods" (vmods_ms1_labels.R)
 #             "expand_grid_rows" (utils_engine.R)
-#           "find_vmodscombi" (vmods_ms2_labels.R)
 #             "combi_namesiteU" (vmods_ms2_labels.R)
 #               "find_vmodposU" (vmods_ms2_labels.R)
 #                 "vec_to_list" (utils_engine.R)
@@ -235,8 +232,7 @@
 #       frames_adv (ms2_base.R)
 #         gen_ms2ions_a1_vnl0_fnl1
 #           - match_mvmods (vmods_ms1_labels.R)
-#           - find_vmodscombi
-#             - combi_namesiteU
+##             - combi_namesiteU
 #               - find_vmodposU
 #                 - "sim_combn" (vmod_ms2_labels.R)
 #             - combi_namesiteM

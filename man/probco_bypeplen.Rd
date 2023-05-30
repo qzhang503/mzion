@@ -9,6 +9,7 @@ probco_bypeplen(
   td,
   fdr_type = "protein",
   target_fdr = 0.01,
+  max_pepscores_co = 50,
   min_pepscores_co = 0,
   out_path
 )
@@ -27,6 +28,15 @@ probco_bypeplen(
 \item{target_fdr}{A numeric; the targeted false-discovery rate (FDR) at the
 levels of PSM, peptide or protein. The default is 0.01. See also argument
 \code{fdr_type}.}
+
+\item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
+of peptide scores for discriminating significant and insignificant
+identities. Note that a probability p-value of, e.g., \eqn{1e-20} may not
+be interpreted as more probable than \eqn{1e-10} (beyond the precision of a
+probability test). Also note that the numeric limit when converting
+probability to scores (\eqn{-10 \times log10(p)}); e.g. \eqn{-10 \times
+log10(e-324)} yielded \code{Inf} instead of 3240. For reasons like these,
+a high value of \code{max_pepscores_co} is not recommended.}
 
 \item{min_pepscores_co}{A non-negative numeric; the lower limit in the
 cut-offs of peptide scores for discriminating significant and insignificant

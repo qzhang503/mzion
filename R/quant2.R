@@ -39,72 +39,70 @@ calc_tmtint <- function (data = NULL,
                          quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16"),
                          ppm_reporters = 10L, index_mgf_ms2 = FALSE) 
 {
-  if (quant == "none") {
-    out <- data
-  } 
-  else {
-    nms_tmt6 <- c("126", "127N", "128N", "129N", "130N", "131N")
-    
-    nms_tmt10 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
-                   "130N", "130C", "131N")
-    
-    nms_tmt11 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
-                   "130N", "130C", "131N", "131C")
-    
-    nms_tmtpro <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
-                    "130N", "130C", "131N", "131C", "132N", "132C",
-                    "133N", "133C", "134N")
-    
-    tmts <- c(
-      `126` = 126.127726, `127N` = 127.124761, `127C` = 127.131080,
-      `128N` = 128.128115, `128C` = 128.134435, `129N` = 129.131470,
-      `129C` = 129.137790, `130N` = 130.134825, `130C` = 130.141145,
-      `131N` = 131.138180, `131C` = 131.144499, `132N` = 132.141535,
-      `132C` = 132.147855, `133N` = 133.14489, `133C` = 133.15121,
-      `134N` = 134.148245)
+  if (quant == "none")
+    return(data)
 
-    theos <- switch(quant,
-                    tmt6  = tmts[names(tmts) %in% nms_tmt6],
-                    tmt10 = tmts[names(tmts) %in% nms_tmt10],
-                    tmt11 = tmts[names(tmts) %in% nms_tmt11],
-                    tmt16 = tmts[names(tmts) %in% nms_tmtpro],
-                    stop("Unknown TMt type.", call. = FALSE))
+  nms_tmt6 <- c("126", "127N", "128N", "129N", "130N", "131N")
+  
+  nms_tmt10 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
+                 "130N", "130C", "131N")
+  
+  nms_tmt11 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
+                 "130N", "130C", "131N", "131C")
+  
+  nms_tmtpro <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
+                  "130N", "130C", "131N", "131C", "132N", "132C",
+                  "133N", "133C", "134N")
+  
+  tmts <- c(
+    `126` = 126.127726, `127N` = 127.124761, `127C` = 127.131080,
+    `128N` = 128.128115, `128C` = 128.134435, `129N` = 129.131470,
+    `129C` = 129.137790, `130N` = 130.134825, `130C` = 130.141145,
+    `131N` = 131.138180, `131C` = 131.144499, `132N` = 132.141535,
+    `132C` = 132.147855, `133N` = 133.14489, `133C` = 133.15121,
+    `134N` = 134.148245)
+  
+  theos <- switch(quant,
+                  tmt6  = tmts[names(tmts) %in% nms_tmt6],
+                  tmt10 = tmts[names(tmts) %in% nms_tmt10],
+                  tmt11 = tmts[names(tmts) %in% nms_tmt11],
+                  tmt16 = tmts[names(tmts) %in% nms_tmtpro],
+                  stop("Unknown TMt type.", call. = FALSE))
+  
+  ul <- switch(quant,
+               tmt6 = c(126.1, 131.2),
+               tmt10 = c(126.1, 131.2),
+               tmt11 = c(126.1, 131.2),
+               tmt16 = c(126.1, 134.2),
+               stop("Unknown TMt type.", call. = FALSE))
+  
+  # stopifnot(all(c("rptr_moverz", "rptr_int") %in% names(data)))
+  
+  col_rptr_mzs <- "rptr_moverz"
+  col_rptr_int <- "rptr_int"
+  
+  out <- mapply(find_reporter_ints, data[["rptr_moverz"]], data[["rptr_int"]], 
+                MoreArgs = list(
+                  theos = theos,
+                  ul = ul,
+                  ppm_reporters = ppm_reporters,
+                  len = length(theos),
+                  nms = names(theos)
+                ), USE.NAMES = FALSE, SIMPLIFY = FALSE)
+  
+  out <- dplyr::bind_rows(out)
+  
+  if (!nrow(out)) {
+    out <- data.frame(matrix(ncol = length(theos), nrow = 0L))
+    colnames(out) <- theos
     
-    ul <- switch(quant,
-                 tmt6 = c(126.1, 131.2),
-                 tmt10 = c(126.1, 131.2),
-                 tmt11 = c(126.1, 131.2),
-                 tmt16 = c(126.1, 134.2),
-                 stop("Unknown TMt type.", call. = FALSE))
-    
-    # stopifnot(all(c("rptr_moverz", "rptr_int") %in% names(data)))
-    
-    col_rptr_mzs <- "rptr_moverz"
-    col_rptr_int <- "rptr_int"
-
-    out <- mapply(find_reporter_ints, data[["rptr_moverz"]], data[["rptr_int"]], 
-                  MoreArgs = list(
-                    theos = theos,
-                    ul = ul,
-                    ppm_reporters = ppm_reporters,
-                    len = length(theos),
-                    nms = names(theos)
-                  ), USE.NAMES = FALSE, SIMPLIFY = FALSE)
-      
-    out <- dplyr::bind_rows(out)
-
-    if (!nrow(out)) {
-      out <- data.frame(matrix(ncol = length(theos), nrow = 0L))
-      colnames(out) <- theos
-      
-      for (i in seq_along(out)) 
-        out[[i]] <- as.numeric(out[[i]])
-    }
-
-    data[["rptr_moverz"]] <- data[["rptr_int"]] <- NULL
-
-    out <- dplyr::bind_cols(data, out)
+    for (i in seq_along(out)) 
+      out[[i]] <- as.numeric(out[[i]])
   }
+  
+  data[["rptr_moverz"]] <- data[["rptr_int"]] <- NULL
+  
+  out <- dplyr::bind_cols(data, out)
   
   cols <- grep("^([0-9]{3}[NC]{0,1})", names(out))
   names(out)[cols] <- find_int_cols(length(theos))

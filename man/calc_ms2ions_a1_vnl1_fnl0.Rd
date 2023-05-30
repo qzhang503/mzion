@@ -5,23 +5,28 @@
 \title{Calculates MS2 ions.}
 \usage{
 calc_ms2ions_a1_vnl1_fnl0(
-  vmods_combi,
   vnl_combi,
+  M,
+  vmods_combi,
   aam,
   aa_masses,
   ntmass,
   ctmass,
   type_ms2ions = "by",
+  mod_indexes,
+  maxn_vmods_sitescombi_per_pep = 64L,
   digits = 4L
 )
 }
 \arguments{
-\item{vmods_combi}{Lists of variable modifications.}
-
 \item{vnl_combi}{Lists of combinations of neutral losses for corresponding
 \code{vmods_combi}. Each list contains a table where each column
 corresponds to a set of neutral loss. The first column corresponds to the
 combination without NLs.}
+
+\item{M}{A modification matrix or vector.}
+
+\item{vmods_combi}{Lists of variable modifications.}
 
 \item{aam}{A sequence of amino-acid residues with \emph{masses}. Residues
 are in names and masses in values (note that argument \code{aas}
@@ -38,6 +43,17 @@ acid residues.}
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
+
+\item{mod_indexes}{Modification indexes.}
+
+\item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
+number of combinatorial variable modifications per peptide sequence (per
+module). The combinations include the ways of neutral losses and
+modification labels. For instance, at \code{maxn_vnl_per_seq = 2}, the ways
+of allowed position permutation will be 32. Similarly, at
+\code{maxn_vnl_per_seq = 2} and, for example, the permutation of labels
+\code{Acetyl (K)} and \code{TMT (K)} (let's say three ways), the ways of
+position permutation will be limited to \code{64/2/3}.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

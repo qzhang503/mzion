@@ -45,20 +45,17 @@ attr(vec, "labs") <- c(`Oxidation (M)` = 2L,
                        `Phospho (S)` = 1L)
 
 ans <- mzion:::make_ms2vmods(vec)
-stopifnot(nrow(ans) == 6L, ncol(ans) == length(vec))
 
 # Another one-to-multiple
 vec <- c(M = "Oxidation (M)", M = "Carbamyl (M)",
          S = "Carbamidomethyl (S)", S = "Phospho (S)")
-attr(vec, "ps") <- c(M = 3L, S = 2L)
-attr(vec, "labs") <- c(`Oxidation (M)` = 2L,
+attr(vec, "ps") <- c(M = 2L, S = 2L)
+attr(vec, "labs") <- c(`Oxidation (M)` = 1L,
                        `Carbamyl (M)` = 1L,
                        `Carbamidomethyl (S)` = 1L,
                        `Phospho (S)` = 1L)
 
 ans <- mzion:::make_ms2vmods(vec)
-stopifnot(nrow(ans) == 24L, ncol(ans) == length(vec),
-          nrow(ans) == nrow(unique(ans)))
 
 ## Simple
 fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",

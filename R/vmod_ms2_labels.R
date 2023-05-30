@@ -1,165 +1,4 @@
-#' Finds the combinatorial MS2 variable modifications.
-#'
-#' @param aas \code{aa_seq} split into a sequence of LETTERS.
-#' @param ms2vmods The i-th result from: 
-#' lapply(ms1vmods_all, function (x) lapply(x, make_ms2vmods)).
-#' @inheritParams matchMS
-#' @examples
-#' \donttest{
-#' library(mzion)
-#' 
-#' ## One-to-one correspondence between Names and Sites
-#' #  (no need to permute MS1 labels)
-#'
-#' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
-#'                "Carbamidomethyl (C)")
-#'
-#' varmods   <- c("Acetyl (Protein N-term)", "Oxidation (M)",
-#'                "Deamidated (N)",
-#'                "Gln->pyro-Glu (N-term = Q)")
-#'
-#' aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
-#'                                varmods = varmods,
-#'                                out_path = NULL)
-#'
-#' maxn_vmods_per_pep  <- 5L
-#' maxn_sites_per_vmod <- 3L
-#'
-#' ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
-#'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
-#'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-#' 
-#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, mzion:::make_ms2vmods))
-#'
-#' i <- 11L
-#' aa_masses <- aa_masses_all[[i]]
-#' amods <- attr(aa_masses, "amods")
-#'
-#' ms1vmods <- ms1vmods_all[[i]]
-#' ms2vmods <- ms2vmods_all[[i]]
-#'
-#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
-#'
-#' # Subset from ms1vmods by aas
-#' oks <- mzion:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
-#' ms2vmods <- ms2vmods[oks]
-#'
-#' vmods_combi <- mzion:::find_vmodscombi(aas, ms2vmods)
-#'
-#'
-#' ## 'Carbamidomethyl (M)',  'Carbamyl (M)' and N
-#' #  (need permutation of MS1 labels)
-#'
-#' fixedmods <- c("TMT6plex (K)", "dHex (S)")
-#' varmods   <- c("Carbamidomethyl (M)", "Carbamyl (M)",
-#'                "Deamidated (N)", "Acetyl (Protein N-term)")
-#'
-#' aa_masses_all <- calc_aamasses(fixedmods, varmods)
-#'
-#' maxn_vmods_per_pep  <- 5L
-#' maxn_sites_per_vmod <- 3L
-#'
-#' ms1vmods_all <- lapply(aa_masses_all, mzion:::make_ms1vmod_i,
-#'                        maxn_vmods_per_pep = maxn_vmods_per_pep,
-#'                        maxn_sites_per_vmod = maxn_sites_per_vmod)
-#'
-#' ms2vmods_all <- lapply(ms1vmods_all, function (x) lapply(x, mzion:::make_ms2vmods))
-#'
-#' i <- 16L
-#' aa_masses <- aa_masses_all[[i]]
-#' amods <- attr(aa_masses, "amods")
-#' ntmod <- attr(aa_masses, "ntmod")
-#' ctmod <- attr(aa_masses, "ctmod")
-#'
-#' ms1vmods <- ms1vmods_all[[i]]
-#' ms2vmods <- ms2vmods_all[[i]]
-#'
-#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
-#'
-#'
-#' # Subset from ms1vmods by aas
-#' oks <- mzion:::match_mvmods(aas = aas, ms1vmods = ms1vmods, amods = amods)$inds
-#' ms2vmods <- ms2vmods[oks]
-#'
-#' vmods_combi <- mzion:::find_vmodscombi(aas, ms2vmods)
-#' 
-#' n_pos <- lapply(vmods_combi, function (x) names(x[x == "Deamidated (N)"]))
-#' stopifnot(all(sapply(n_pos, function (x) all(x %in% c("6", "14")))))
-#' }
-find_vmodscombi <- function (aas = NULL, ms2vmods = NULL, 
-                             maxn_vmods_sitescombi_per_pep = 64L) 
-{
-  # Starts from sets of combinatorial MS1 labels
-  # 
-  #   if multiple names for the same site 
-  #     (e.g., Carbamidomethyl (M)", "Oxidation (M)")
-  #     -> permutation of the names
-  #   else one-to-one correspondence between sites and names 
-  #     (e.g., M <-> "Oxidation (M)")
-  #     -> single-row matrix
-  # 
-  #   -> permutation (by indexes matched to `aas`)
-  #        (5, 9 | 5, 13 | 9, 13...)
-  
-  len <- length(ms2vmods)
-  pos <- vector("list", len)
-  tot <- 0L
-  
-  for (i in 1:len) {
-    M <- ms2vmods[[i]]
-    nrows <- nrow(M)
-    
-    if (nrows == 1L) {
-      ans <- combi_namesiteU(M = M, aas = aas)
-    } 
-    else {
-      ans <- combi_namesiteM(M = M, aas = aas, nrows = nrows)
-      ans <- .Internal(unlist(ans, recursive = FALSE, use.names = FALSE))
-    }
-
-    len_a <- length(ans)
-    tot   <- tot + len_a
-    
-    if (tot > maxn_vmods_sitescombi_per_pep) {
-      lags <- len_a + maxn_vmods_sitescombi_per_pep - tot
-      pos[[i]] <- ans[seq_len(lags)]
-      
-      break
-    } 
-    else {
-      pos[[i]] <- ans
-    }
-  }
-  
-  .Internal(unlist(pos[1:i], recursive = FALSE, use.names = FALSE))
-
-  ## Level 1 (permutated by MS1 labels): 
-  # 
-  # x = out[[1]] 
-  # 
-  # Belongs to the same MS1 label set, e.g. 
-  #   "Carbamidomethyl (M)", "Carbamyl (M)", "Deamidated (N)"
-  # at (six) different permutations of 
-  #   "Carbamidomethyl (M)", "Carbamyl (M)", "Deamidated (N)"
-  #   "Carbamyl (M)", "Carbamidomethyl (M)", "Deamidated (N)"
-  #   ...                                          
-  #                                                ^
-  ## Levle 2 (permutated by `aas` indexes):        ^
-  #                                                ^
-  # x1 = x[[1]]                                    ^
-  #                                                ^
-  # Belongs to the same permutated MS1 label, e.g.
-  #   "Carbamyl (M)", "Carbamidomethyl (M)", "Deamidated (N)"
-  # 
-  # with sub lists at different `aas` indexes 
-  #         5                 9                    14
-  #   "Carbamyl (M)", "Carbamidomethyl (M)", "Deamidated (N)"
-  #         5                 13                    14
-  #   "Carbamyl (M)", "Carbamidomethyl (M)", "Deamidated (N)"
-}
-
-
-#' Helper of combinatorial vmods (by each rows of labels).
+#' Combinatorial vmods (permutation of positions but not labels).
 #'
 #' One-to-one correspondence between Names and Sites. Finds the positions of
 #' residues (sites) from a given amino acid sequence (aas).
@@ -170,6 +9,7 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
 #'
 #'   Note that M is a matrix other than lists of vectors, which allows the
 #'   application of one copy of attributes to all rows.
+#' @param nmax The maximum number of combinations.
 #' @param aas \code{aa_seq} split in a sequence of LETTERS.
 #' @examples
 #' \donttest{
@@ -178,181 +18,166 @@ find_vmodscombi <- function (aas = NULL, ms2vmods = NULL,
 #' aa_seq <- "MHQGVMNVNMGQKMNS"
 #' aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
 #' aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
-#' 
-#' m <- c("M", "M", "N", "N")
+#' ms <- c("M", "M", "N", "N")
 #' labs <- ps <- c(2, 2)
 #' names(ps) <- c("M", "N")
 #' names(labs) <- c("Oxidation (M)", "Deamidated (N)")
-#' 
 #' M <- c("Oxidation (M)", "Oxidation (M)", "Deamidated (N)", "Deamidated (N)")
-#' M <- matrix(M, ncol = 4)
 #' attr(M, "ps") <- ps
-#' attr(M, "resids") <- m
+#' attr(M, "resids") <- ms
 #' 
-#' mzion:::combi_namesiteU(M, aas)
+#' mzion:::find_vmodposU(M, aas)
+#' mzion:::find_vmodposU(M, aas, nmax = 1L)
+#' 
+#' # one residue
+#' aa_seq <- "MHQGVMNVNMGQKMSS"
+#' aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
+#' aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
+#' ms <- c("N")
+#' labs <- ps <- c(1)
+#' names(ps) <- c("N")
+#' names(labs) <- c("Deamidated (N)")
+#' M <- c("Deamidated (N)")
+#' attr(M, "ps") <- ps
+#' attr(M, "resids") <- ms
+#' 
+#' mzion:::find_vmodposU(M, aas)
+#' mzion:::find_vmodposU(M, aas, nmax = 1L)
 #' }
-combi_namesiteU <- function (M, aas) 
+find_vmodposU <- function (M, aas, nmax = 64L) 
 {
-  m  <- attr(M, "resids")
+  rs <- attr(M, "resids")
+  nr <- length(rs)
   ps <- attr(M, "ps")
   ss <- names(ps)
-  
-  combi   <- find_vmodposU(m, ps, aas) # add a size limit?
-  len_out <- nrow(combi)
-  out  <- rep(list(M[1, ]), len_out)
-  cols <- seq_len(len_out)
 
-  for (i in seq_along(ps)) { # by residue
-    ansi <- combi[[i]]
-    pi   <- .Internal(which(m == ss[i]))
+  if (nmax == 1L) {
+    ns <- length(ss)
+    combi <- character(nr)
+    ends <- cumsum(ps)
+    r1 <- 1L
+
+    for (i in 1:ns) {
+      si <- ss[[i]]
+      pi <- ps[[i]]
+      ei <- ends[[i]]
+      combi[r1:ei] <- .Internal(which(aas == si))[1:pi]
+      r1 <- pi + 1L
+    }
     
-    for (j in cols)
-      names(out[[j]])[pi] <- ansi[[j]] # by combi
+    # one-row matrix
+    combi <- .Internal(matrix(combi, nrow = 1L, ncol = 1L, byrow = FALSE, 
+                              dimnames = NULL, FALSE, TRUE))
+    # remove attributes
+    attr(combi, "mods") <- M[1:nr]
+    
+    return(combi)
   }
   
-  out
+  if (nr == 1L) {
+    combi <- .Internal(which(aas == ss))
+    combi <- .Internal(matrix(combi, nrow = 1L, ncol = 1L, byrow = FALSE, 
+                              dimnames = NULL, TRUE, FALSE))
+  }
+  else {
+    ns <- length(ss)
+    X  <- vector("list", ns)
+    
+    for (i in 1:ns) {
+      si <- .Internal(which(aas == names(ps)[i]))
+      ni <- ps[[i]]
+      
+      X[[i]] <- if (ni == 1L) 
+        matrix(si) 
+      else 
+        arrangements::combinations(si, ni, nitem = nmax, layout = "row")
+    }
+    
+    combi <- expand_gr(X, nmax = nmax)
+  }
+  
+  attr(combi, "mods") <- M[1:nr]
+  
+  combi
 }
 
 
-#' Helper of \link{combi_namesiteU}.
+#' Combinatorial vmods (permutation of both positions and labels).
 #'
-#' One-to-one correspondence between Names and Sites.
+#' Multiple Names to the same Site.
 #' 
-#' Custom functions: vec_to_list.
-#'
-#' @param vec A vector of labels.
-#' @param ps Named vector; counts for each site. Sites in names and counts in
-#'   values.
-#' @param aas \code{aa_seq} split in a sequence of LETTERS.
+#' @param M A vector of names (lower-case vec for sites).
+#' @param nmax The maximum number of combinations.
+#' @inheritParams find_vmodposU
 #' @examples
 #' \donttest{
 #' library(mzion)
 #' 
-#' m <- c("M", "M", "N", "N")
-#' ps <- c(2, 2)
+#' Vec <- c("Carbamidomethyl (M)", "Deamidated (N)", "Carbamyl (M)")
+#' vec <- c("M", "N", "M")
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#' ps <- c(2, 1)
 #' names(ps) <- c("M", "N")
+#' attr(Vec, "ps") <- ps
+#' attr(Vec, "resids") <- vec
+#' rs <- unique(vec)
+#' inds <- lapply(rs, function (x) which(vec == x))
+#' attr(Vec, "inds") <- inds
+#' mzion:::find_vmodposM(Vec, aas)
+#' mzion:::find_vmodposM(Vec, aas, nmax = 1L)
 #' 
-#' aa_seq <- "MHQGVMNVNMGQKMNS"
-#' aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
-#' aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
-#' ans <- mzion:::find_vmodposU(m, ps, aas)
+#' Vec <- c("Carbamidomethyl (M)", "Carbamidomethyl (M)", "Carbamyl (M)", "Deamidated (N)")
+#' vec <- c("M", "M", "M", "N")
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#' ps <- c(3, 1)
+#' names(ps) <- c("M", "N")
+#' attr(Vec, "ps") <- ps
+#' attr(Vec, "resids") <- vec
+#' rs <- unique(vec)
+#' inds <- lapply(rs, function (x) which(vec == x))
+#' attr(Vec, "inds") <- inds
+#' mzion:::find_vmodposM(Vec, aas)
+#' mzion:::find_vmodposM(Vec, aas, nmax = 1L)
+#' 
+#' Vec <- c("Carbamidomethyl (M)", "Carbamidomethyl (M)", "Carbamyl (M)", "Deamidated (N)", 
+#'          "Carbamidomethyl (S)", "Phospho (S)")
+#' vec <- c("M", "M", "M", "N", "S", "S")
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNSSS", ""))
+#' ps <- c(3, 1, 2)
+#' names(ps) <- c("M", "N", "S")
+#' attr(Vec, "ps") <- ps
+#' attr(Vec, "resids") <- vec
+#' rs <- unique(vec)
+#' inds <- lapply(rs, function (x) which(vec == x))
+#' attr(Vec, "inds") <- inds
+#' mzion:::find_vmodposM(Vec, aas)
+#' mzion:::find_vmodposM(Vec, aas, nmax = 1L)
 #' }
-find_vmodposU <- function (vec, ps, aas) 
+find_vmodposM <- function (M, aas, nmax = 64L) 
 {
-  X <- vector("list", length(ps))
+  rs <- attr(M, "resids", exact = TRUE)
+  ps <- attr(M, "ps", exact = TRUE)
+  inds <- attr(M, "inds", exact = TRUE)
   
-  for (i in seq_along(ps)) {
-    resid <- names(ps)[i] # M
-    aapos <- .Internal(which(aas == resid)) # M:5, 9, 13; N: 6, 14
-    
-    ct <- ps[[i]] # M: 2; N: 1
-    X[[i]] <- if (ct == 1L) vec_to_list(aapos) else sim_combn(aapos, ct)
+  np <- length(ps)
+  A <- P <- vector("list", np)
+  
+  for (i in 1:np) {
+    ri <- names(ps)[i]
+    si <- .Internal(which(aas == ri))
+    ni <- ps[[i]]
+    P[[i]] <- arrangements::combinations(si, ni, nitem = nmax, layout = "row")
+
+    pi <- inds[[i]]
+    ai <- unique(arrangements::permutations(M[pi], nitem = nmax, layout = "list"))
+    A[[i]] <- do.call(rbind, ai)
   }
   
-  expand.grid(X, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
-}
+  combP <- expand_gr(P, nmax = nmax)
+  combA <- expand_gr(A, nmax = nmax)
+  attr(combP, "mods") <- combA
 
-
-#' Helper of combinatorial vmods (by each rows of labels).
-#'
-#' Multiple Names to the same Site. Finds the positions of
-#' residues (sites) from a given amino acid sequence (aas).
-#' 
-#' @param nrows The number of rows of M.
-#' @inheritParams combi_namesiteU
-combi_namesiteM <- function (M, aas, nrows) 
-{
-  ps <- attr(M, "ps")
-  m  <- attr(M, "resids")
-  
-  # convert to vectors for speed
-  mv <- vector("list", nrows)
-  
-  for (i in 1:nrows) 
-    mv[[i]] <- m[i, ]
-  
-  uniqs <- !duplicated.default(mv)
-  umv   <- mv[uniqs]
-  
-  len   <- length(mv)
-  cache <- ans <- vector("list", len)
-
-  for (i in 1:len) {
-    Vec <- M[i, ]
-    vec <- mv[[i]]
-    is_new <- uniqs[i]
-    
-    if (is_new) {
-      ans[[i]] <- find_vmodposM(Vec = Vec, vec = vec, ps = ps, aas = aas)
-      cache[[i]] <- vec
-    } 
-    else {
-      # must have a preceding match by the way of `duplicated`
-      for (j in 1:len) {
-        cj <- cache[[j]]
-        
-        if ((!is.null(cj)) && identical(vec, cj)) {
-          ans[[i]] <- match_aas_indexes(ans[[j]], Vec)
-          break
-        }
-      }
-    }
-  }
-  
-  ans
-}
-
-
-#' Helper of \link{combi_namesiteM} (by each rows of labels).
-#'
-#' Multiple Names to the same Site.
-#' 
-#' @param Vec A vector of names (lower-case vec for sites).
-#' @inheritParams find_vmodposU
-find_vmodposM <- function (Vec, vec, ps, aas) 
-{
-  # nr <- length(ps)
-  M  <- P <- vector("list", length(ps))
-  
-  for (i in seq_along(ps)) { # by residues
-    resid <- names(ps)[i] # M
-    aapos <- .Internal(which(aas == resid)) # M:5, 9, 13; N: 6, 14
-    
-    ct <- ps[[i]] # M: 2; N: 1
-    P[[i]] <- .Internal(which(vec == resid)) # M: 1, 2; N: 3
-    M[[i]] <- if (ct == 1L) vec_to_list(aapos) else sim_combn(aapos, ct)
-  }
-  
-  ans <- expand.grid(M, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
-  
-  len_out <- nrow(ans)
-  out <- rep(list(Vec), len_out)
-  
-  for (i in seq_along(P)) { # by residue
-    ansi <- ans[[i]]
-    pi   <- P[[i]]
-    
-    for (j in seq_len(len_out)) 
-      names(out[[j]])[pi] <- ansi[[j]] # by combi
-  }
-  
-  out
-}
-
-
-#' Matches the indexes of amino-acid residues to cached results.
-#' 
-#' @param X Lists of cached results.
-#' @param Vec A vector of names (lower-case vec for sites).
-match_aas_indexes <- function (X, Vec) 
-{
-  len <- length(X)
-  out <- rep(list(Vec), len)
-  
-  for (i in 1:len) 
-    names(out[[i]]) <- names(X[[i]])
-
-  out
+  combP
 }
 
 
@@ -394,20 +219,17 @@ match_aas_indexes <- function (X, Vec)
 #'                        `Phospho (S)` = 1L)
 #'
 #' ans <- mzion:::make_ms2vmods(vec)
-#' stopifnot(nrow(ans) == 6L, ncol(ans) == length(vec))
 #'
 #' # Another one-to-multiple
 #' vec <- c(M = "Oxidation (M)", M = "Carbamyl (M)",
 #'          S = "Carbamidomethyl (S)", S = "Phospho (S)")
-#' attr(vec, "ps") <- c(M = 3L, S = 2L)
-#' attr(vec, "labs") <- c(`Oxidation (M)` = 2L,
+#' attr(vec, "ps") <- c(M = 2L, S = 2L)
+#' attr(vec, "labs") <- c(`Oxidation (M)` = 1L,
 #'                        `Carbamyl (M)` = 1L,
 #'                        `Carbamidomethyl (S)` = 1L,
 #'                        `Phospho (S)` = 1L)
 #'
 #' ans <- mzion:::make_ms2vmods(vec)
-#' stopifnot(nrow(ans) == 24L, ncol(ans) == length(vec),
-#'           nrow(ans) == nrow(unique(ans)))
 #'
 #' ## Simple
 #' fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)",
@@ -492,16 +314,25 @@ match_aas_indexes <- function (X, Vec)
 #' }
 make_ms2vmods <- function (vec = NULL) 
 {
-  # stopifnot(maxn_vmods_per_pep >= 2L)
-  
   n_nms  <- length(unique(names(vec)))
   n_vals <- length(unique(vec))
-  
-  ans <- if (n_nms == n_vals) matrix(vec, nrow = 1L) else find_perm_sets(vec)
-  attr(ans, "ps")     <- attr(vec, "ps")
-  attr(ans, "labs")   <- attr(vec, "labs")
-  attr(ans, "resids") <- find_ms2resids(ans, vec)
-  
+  oks <- n_nms == n_vals
+
+  ans <- vec
+  attr(ans, "ps") <- ps <- attr(vec, "ps")
+  attr(ans, "labs") <- attr(vec, "labs")
+  attr(ans, "single") <- oks
+
+  rs <- find_ms2resids(ans, vec)
+  attr(rs, "single") <- attr(rs, "ps") <- attr(rs, "labs") <- NULL
+  attr(ans, "resids") <- rs
+
+  ss <- names(ps)
+  inds <- lapply(ss, function (p) which(rs == p))
+  inds <- lapply(inds, unname)
+  names(inds) <- names(ps)
+  attr(ans, "inds") <- inds
+
   ans
 }
 
@@ -518,8 +349,8 @@ find_ms2resids <- function (M, vec)
   names(vecinv) <- vec
   vecinv <- vecinv[unique(names(vecinv))]
   
-  for (i in 1:nrow(M)) 
-    M[i, ] <- vecinv[M[i, ]]
+  for (i in seq_along(M))
+    M[[i]] <- vecinv[M[[i]]]
 
   invisible(M)
 }
@@ -779,4 +610,5 @@ sim_combn <- function (x, m)
   
   out
 }
+
 

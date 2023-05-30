@@ -77,7 +77,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
   }
 
   if (ok_pars && ok_mgfs) {
-    message("Found cached MGFs,")
+    message("Found cached MGFs.")
     .savecall <- FALSE
     
     return(NULL)
@@ -138,7 +138,8 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
             digits = digits)
   }
   else if (len_mzml) {
-    warning("Please uncheck \"Use zlib compression\" with mzML from MSConvert.")
+    warning("Please uncheck \"Use zlib compression\" with mzML from MSConvert.", 
+            call. = FALSE)
     
     readmzML(filepath = mgf_path,
              filelist = filelist, 

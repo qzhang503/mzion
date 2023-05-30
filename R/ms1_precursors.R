@@ -1036,6 +1036,11 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
 
   ## (3) add variable mods + NL
   varmods_comb <- find_aamasses_vmodscombi(varmods, f_to_v, anywhere_coerce_sites)
+  
+  if (rm_dup_term_anywhere <- TRUE) {
+    oks <- unlist(lapply(varmods_comb, check_dup_term_any))
+    varmods_comb <- varmods_comb[oks]
+  }
 
   aa_masses_var <- lapply(varmods_comb, add_var_masses, aa_masses = aa_masses_fc, 
                           varlabs = varlabs, mod_motifs = vmod_motifs, 
@@ -1623,6 +1628,33 @@ check_fmods_pos_site <- function (positions_sites)
               call. = FALSE)
     }
   }
+}
+
+
+#' Check duplicated variable terminal and anywhere modifications with the same
+#' site.
+#'
+#' Combinations with variable sites occur on both terminal and anywhere will be
+#' flagged as \code{FALSE} (for removals).
+#'
+#' @param mods A set of variable modifications.
+#' @examples
+#' mods <- c("Oxidation (M)", "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)", "Deamidated (Q)")
+#' mzion:::check_dup_term_any(mods)
+#' 
+#' mods <- c("TMT6plex (K)", "Acetyl (K)", "Carbamyl (K)")
+check_dup_term_any <- function (mods)
+{
+  pss  <- find_modps(mods)
+  bads <- grepl("[NC]-term", names(pss))
+  
+  if (!any(bads))
+    return(TRUE)
+  
+  pss <- unlist(pss, recursive = FALSE)
+  ts  <- unique(pss[bads]) # may be length > 1: both N-term and C-term
+  
+  !any(pss[!bads] == ts)
 }
 
 

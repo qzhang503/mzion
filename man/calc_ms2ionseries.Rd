@@ -141,9 +141,16 @@ varmods <- c("Acetyl (N-term)", "Oxidation (M)", "Deamidated (N)",
              "Phospho (S)", "Phospho (T)", "Phospho (Y)", 
              "Gln->pyro-Glu (N-term = Q)")
 ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
-
 x <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
                        ms1_mass = ms$mass[[21]][[3]])
 }
-
+#' 
+# (8) Carbamyl (K), Acetyl (K), Oxidation (M)
+aa_seq <- "MAKKKKKKKKKEMASSPECFUN"
+fixedmods <- c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)")
+varmods <- c("Oxidation (M)", "Deamidated (N)", 
+             "Acetyl (K)", "Carbamyl (K)")
+ms <- calc_monopeptide(aa_seq, fixedmods, varmods)
+x  <- calc_ms2ionseries(aa_seq, fixedmods = fixedmods, varmods = varmods, 
+                        ms1_mass = ms$mass[[21]][[5]])
 }

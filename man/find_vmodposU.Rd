@@ -2,35 +2,57 @@
 % Please edit documentation in R/vmod_ms2_labels.R
 \name{find_vmodposU}
 \alias{find_vmodposU}
-\title{Helper of \link{combi_namesiteU}.}
+\title{Combinatorial vmods (permutation of positions but not labels).}
 \usage{
-find_vmodposU(vec, ps, aas)
+find_vmodposU(M, aas, nmax = 64L)
 }
 \arguments{
-\item{vec}{A vector of labels.}
+\item{M}{A matrix of labels of modification names with permutation. Each
+  permutation in a row. The corresponding matrix of site permutations in the
+  attribute of \code{resids}.
 
-\item{ps}{Named vector; counts for each site. Sites in names and counts in
-values.}
+  Note that M is a matrix other than lists of vectors, which allows the
+  application of one copy of attributes to all rows.}
 
 \item{aas}{\code{aa_seq} split in a sequence of LETTERS.}
+
+\item{nmax}{The maximum number of combinations.}
 }
 \description{
-One-to-one correspondence between Names and Sites.
-}
-\details{
-Custom functions: vec_to_list.
+One-to-one correspondence between Names and Sites. Finds the positions of
+residues (sites) from a given amino acid sequence (aas).
 }
 \examples{
 \donttest{
 library(mzion)
 
-m <- c("M", "M", "N", "N")
-ps <- c(2, 2)
-names(ps) <- c("M", "N")
-
 aa_seq <- "MHQGVMNVNMGQKMNS"
 aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
 aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
-ans <- mzion:::find_vmodposU(m, ps, aas)
+ms <- c("M", "M", "N", "N")
+labs <- ps <- c(2, 2)
+names(ps) <- c("M", "N")
+names(labs) <- c("Oxidation (M)", "Deamidated (N)")
+M <- c("Oxidation (M)", "Oxidation (M)", "Deamidated (N)", "Deamidated (N)")
+attr(M, "ps") <- ps
+attr(M, "resids") <- ms
+
+mzion:::find_vmodposU(M, aas)
+mzion:::find_vmodposU(M, aas, nmax = 1L)
+
+# one residue
+aa_seq <- "MHQGVMNVNMGQKMSS"
+aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
+aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
+ms <- c("N")
+labs <- ps <- c(1)
+names(ps) <- c("N")
+names(labs) <- c("Deamidated (N)")
+M <- c("Deamidated (N)")
+attr(M, "ps") <- ps
+attr(M, "resids") <- ms
+
+mzion:::find_vmodposU(M, aas)
+mzion:::find_vmodposU(M, aas, nmax = 1L)
 }
 }
