@@ -7,16 +7,11 @@
 find_vmodposU(M, aas, nmax = 64L)
 }
 \arguments{
-\item{M}{A matrix of labels of modification names with permutation. Each
-  permutation in a row. The corresponding matrix of site permutations in the
-  attribute of \code{resids}.
-
-  Note that M is a matrix other than lists of vectors, which allows the
-  application of one copy of attributes to all rows.}
+\item{M}{A vector of modifications.}
 
 \item{aas}{\code{aa_seq} split in a sequence of LETTERS.}
 
-\item{nmax}{The maximum number of combinations.}
+\item{nmax}{The maximum number of combinations being allowed.}
 }
 \description{
 One-to-one correspondence between Names and Sites. Finds the positions of

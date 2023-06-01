@@ -97,7 +97,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
   
   delete_files(
     out_path, 
-    ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
+    ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.mzML$", "\\.xlsx$", 
                 "\\.xls$", "\\.csv$", "\\.txt$", "\\.tsv$", 
                 "^mgf$", "^mgfs$", "Calls", 
                 # in case of reprocessing after proteoQ
@@ -1339,8 +1339,8 @@ readmzML <- function (filepath = NULL, filelist = NULL,
   # parallel here
   files <- file.path(filepath, filelist)
   sizes <- max(unlist(lapply(files, file.size)))/1024^3
-  # n_cores <- min(detect_cores(16L), floor((max_ram <- 32)/(sizes * 8)), len)
-  n_cores <- min(detect_cores(32L), floor((find_free_mem()/1024)/(sizes * 8)), len)
+  # n_cores <- min(detect_cores(32L), floor((find_free_mem()/1024)/(sizes * 8)), len)
+  n_cores <- min(detect_cores(32L), floor((find_free_mem()/1024)/(sizes * 8)) + 1L, len)
   n_cores <- max(1L, n_cores)
   
   if (n_cores == 1L) {

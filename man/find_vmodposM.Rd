@@ -20,6 +20,19 @@ Multiple Names to the same Site.
 \donttest{
 library(mzion)
 
+Vec <- c("Carbamidomethyl (M)", "Carbamyl (M)")
+vec <- c("M", "M")
+aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+ps <- c(2)
+names(ps) <- c("M")
+attr(Vec, "ps") <- ps
+attr(Vec, "resids") <- vec
+rs <- unique(vec)
+inds <- lapply(rs, function (x) which(vec == x))
+attr(Vec, "inds") <- inds
+mzion:::find_vmodposM(Vec, aas)
+mzion:::find_vmodposM(Vec, aas, nmax = 1L)
+
 Vec <- c("Carbamidomethyl (M)", "Deamidated (N)", "Carbamyl (M)")
 vec <- c("M", "N", "M")
 aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
@@ -59,5 +72,8 @@ inds <- lapply(rs, function (x) which(vec == x))
 attr(Vec, "inds") <- inds
 mzion:::find_vmodposM(Vec, aas)
 mzion:::find_vmodposM(Vec, aas, nmax = 1L)
+mzion:::find_vmodposM(Vec, aas, nmax = 16L)
+mzion:::find_vmodposM(Vec, aas, nmax = 8L)
+lapply(1:32, function (x) mzion:::find_vmodposM(Vec, aas, nmax = x))
 }
 }

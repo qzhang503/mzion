@@ -6,7 +6,7 @@
 \usage{
 calc_ms2ions_a1_vnl0_fnl0(
   M,
-  vmods_combi,
+  P,
   aam,
   aa_masses,
   ntmass,
@@ -19,7 +19,7 @@ calc_ms2ions_a1_vnl0_fnl0(
 \arguments{
 \item{M}{A modification matrix or vector.}
 
-\item{vmods_combi}{Lists of variable modifications.}
+\item{P}{A matrix of position permutations.}
 
 \item{aam}{A sequence of amino-acid residues with \emph{masses}. Residues
 are in names and masses in values (note that argument \code{aas}

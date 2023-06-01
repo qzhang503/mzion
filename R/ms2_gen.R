@@ -109,9 +109,9 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aam <- aa_masses[aas]
-  
   naa <- length(aas)
-  nm <- .Internal(paste0(list(rep("0", naa)), collapse = "", recycle0 = FALSE))
+  
+  nm <- .Internal(paste0(list(rep_len("0", naa)), collapse = "", recycle0 = FALSE))
   af <- ms2ions_by_type(aam, ntmass, ctmass, type_ms2ions, digits)
   
   av <- list(calc_rev_ms2(af, aas))
@@ -190,6 +190,21 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL,
                                       maxn_vmods_sitescombi_per_pep = 64L, 
                                       digits = 4L) 
 {
+  if (maxn_fnl_per_seq < 2L)
+    return(
+      gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+                       aa_masses = aa_masses, ms1vmods = NULL, ms2vmods = NULL, 
+                       ntmod = NULL, ctmod = NULL, 
+                       ntmass = ntmass, ctmass = ctmass, 
+                       amods = NULL, vmods_nl = NULL, fmods_nl = NULL, 
+                       mod_indexes = mod_indexes, 
+                       type_ms2ions = type_ms2ions, 
+                       maxn_vmods_per_pep = maxn_vmods_per_pep, 
+                       maxn_sites_per_vmod = maxn_sites_per_vmod, 
+                       maxn_vmods_sitescombi_per_pep = 
+                         maxn_vmods_sitescombi_per_pep, 
+                       digits = digits))
+
   # (1, 2) "amods- tmod+ vnl- fnl-", "amods- tmod- vnl- fnl-" 
   # (no pep_seq dispatching by Anywhere fmod residues -> possible no matched sites)
   
@@ -233,8 +248,7 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL,
   
   # ---
   fmods_combi <- aas[idxes]
-  # names(fmods_combi) <- idxes
-  
+
   if (length(fmods_combi) == 1L) {
     fnls <- fmods_nl[[fmods_combi]]
     len <- length(fnls)
@@ -490,8 +504,9 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
                                 aa_masses = aa_masses, 
                                 ntmod = ntmod, ctmod = ctmod, 
                                 ms1_mass = ms1_mass)
+  ms2vmods <- ms2vmods[idxes]
   
-  if (!length(ms2vmods <- ms2vmods[idxes])) 
+  if (!length(ms2vmods)) 
     return(NULL)
   
   # most likely a list-one
@@ -499,27 +514,22 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
   ms2vmods <- ms2vmods[[1]]
 
   if (attr(ms2vmods, "single")) {
-    vmods_combi <- 
-      find_vmodposU(M = ms2vmods, aas = aas, nmax = maxn_vmods_sitescombi_per_pep)
-    
-    M <- attr(vmods_combi, "mods", exact = TRUE)
+    P <- find_vmodposU(M = ms2vmods, aas = aas, nmax = maxn_vmods_sitescombi_per_pep)
+    M <- attr(P, "mods", exact = TRUE)
     
     af <- calc_ms2ions_a1_vnl0_fnl0(
-      M = M, vmods_combi = vmods_combi, aam = aam, aa_masses = aa_masses, 
+      M = M, P = P, aam = aam, aa_masses = aa_masses, 
       ntmass = ntmass, ctmass = ctmass, type_ms2ions = type_ms2ions, 
       mod_indexes = mod_indexes, digits = digits)
   }
   else {
-    vmods_combi <- 
-      find_vmodposM(M = ms2vmods, aas = aas, nmax = maxn_vmods_sitescombi_per_pep)
-    
-    M <- attr(vmods_combi, "mods", exact = TRUE)
+    P <- find_vmodposM(M = ms2vmods, aas = aas, nmax = maxn_vmods_sitescombi_per_pep)
+    M <- attr(P, "mods", exact = TRUE)
 
     af <- lapply(split_matrix(M, by = "row"), calc_ms2ions_a1_vnl0_fnl0, 
-                 vmods_combi = vmods_combi, aam = aam, aa_masses = aa_masses, 
+                 P = P, aam = aam, aa_masses = aa_masses, 
                  ntmass = ntmass, ctmass = ctmass, type_ms2ions = type_ms2ions, 
                  mod_indexes = mod_indexes, digits = digits)
-    
     af <- .Internal(unlist(af, recursive = FALSE, use.names = TRUE))
   }
 
@@ -532,23 +542,23 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
 #' Helper for the calculation of MS2 ion series.
 #' 
 #' @param M A modification matrix or vector.
-#' @param vmods_combi Lists of variable modifications.
+#' @param P A matrix of position permutations.
 #' @param mod_indexes Modification indexes.
 #' @inheritParams ms2ions_by_type
 #' @inheritParams add_var_masses
-calc_ms2ions_a1_vnl0_fnl0 <- function (M, vmods_combi, aam, aa_masses, 
-                                       ntmass, ctmass, type_ms2ions = "by", 
-                                       mod_indexes, digits = 4L) 
+calc_ms2ions_a1_vnl0_fnl0 <- function (M, P, aam, aa_masses, ntmass, ctmass, 
+                                       type_ms2ions = "by", mod_indexes, 
+                                       digits = 4L) 
 {
   ds  <- aa_masses[M]
-  nvm <- nrow(vmods_combi)
+  nvm <- nrow(P)
   out <- vector("list", nvm)
   
   naa <- length(aam)
   hex0 <- rep_len("0", naa)
 
   for (i in 1:nvm) {
-    vi <- vmods_combi[i, ]
+    vi <- P[i, ]
     aam_i <- aam
     aam_i[vi] <- aam_i[vi] + ds
     out[[i]] <- ms2ions_by_type(aam_i, ntmass, ctmass, type_ms2ions, digits)
@@ -767,10 +777,29 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
                                       maxn_vnl_per_seq = 3L, 
                                       digits = 4L) 
 {
+  if (maxn_fnl_per_seq < 2L)
+    return(
+      gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+                               aa_masses = aa_masses, 
+                               ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
+                               ntmod = ntmod, ctmod = ctmod, 
+                               ntmass = ntmass, ctmass = ctmass, 
+                               amods = amods, mod_indexes = mod_indexes, 
+                               type_ms2ions = type_ms2ions, 
+                               maxn_vmods_per_pep = maxn_vmods_per_pep, 
+                               maxn_sites_per_vmod = maxn_sites_per_vmod, 
+                               maxn_vmods_sitescombi_per_pep = 
+                                 maxn_vmods_sitescombi_per_pep, 
+                               digits = digits))
+
   # (7, 8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
   # (no pep_seq dispatching by fmod residues -> possible no matched sites)
   sites <- names(fmods_nl)
-  pattern <- .Internal(paste(list(sites), sep = " ", collapse = "|", recycle0 = FALSE))
+  # pattern <- .Internal(paste(list(sites), sep = " ", collapse = "|", recycle0 = FALSE))
+  pattern <- if (length(sites) > 1L)
+    .Internal(paste0(list(sites), collapse = "|", recycle0 = FALSE))
+  else
+    sites
   
   if (!grepl(pattern, aa_seq)) 
     return(
@@ -800,8 +829,9 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
                                 aa_masses = aa_masses, 
                                 ntmod = ntmod, ctmod = ctmod, 
                                 ms1_mass = ms1_mass)
+  ms2vmods <- ms2vmods[idxes]
   
-  if (!length(ms2vmods <- ms2vmods[idxes])) 
+  if (!length(ms2vmods)) 
     return(NULL)
   
   fnl_idxes <- .Internal(which(aas %fin% names(fmods_nl)))
@@ -826,25 +856,21 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
   ms2vmods <- ms2vmods[[1]]
 
   if (attr(ms2vmods, "single")) {
-    vmods_combi <- 
-      find_vmodposU(M = ms2vmods, aas = aas, nmax = maxn_vmods_sitescombi_per_pep)
-    
-    M <- attr(vmods_combi, "mods", exact = TRUE)
+    P <- find_vmodposU(M = ms2vmods, aas = aas, nmax = maxn_vmods_sitescombi_per_pep)
+    M <- attr(P, "mods", exact = TRUE)
     
     af <- calc_ms2ions_a1_vnl0_fnl1(
-      M = M, vmods_combi = vmods_combi, fnl_combi = fnl_combi, 
+      M = M, P = P, fnl_combi = fnl_combi, 
       fnl_idxes = fnl_idxes, aam = aam, aa_masses = aa_masses, ntmass = ntmass, 
       ctmass = ctmass, type_ms2ions = type_ms2ions, mod_indexes = mod_indexes, 
       digits = digits)
   }
   else {
-    vmods_combi <- 
-      find_vmodposM(M = ms2vmods, aas = aas, nmax = maxn_vmods_sitescombi_per_pep)
-    
-    M <- attr(vmods_combi, "mods", exact = TRUE)
+    P <- find_vmodposM(M = ms2vmods, aas = aas, nmax = maxn_vmods_sitescombi_per_pep)
+    M <- attr(P, "mods", exact = TRUE)
 
     af <- lapply(split_matrix(M, by = "row"), calc_ms2ions_a1_vnl0_fnl1, 
-                 vmods_combi = vmods_combi, fnl_combi = fnl_combi, 
+                 P = P, fnl_combi = fnl_combi, 
                  fnl_idxes = fnl_idxes, aam = aam, aa_masses = aa_masses, 
                  ntmass = ntmass, ctmass = ctmass, type_ms2ions = type_ms2ions, 
                  mod_indexes = mod_indexes, digits = digits)
@@ -866,13 +892,13 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
 #' @param mod_indexes Modification indexes.
 #' @inheritParams calc_ms2ions_a1_vnl0_fnl0
 #' @inheritParams hms1_a0_vnl0_fnl1
-calc_ms2ions_a1_vnl0_fnl1 <- function (M, vmods_combi, fnl_combi, fnl_idxes, 
+calc_ms2ions_a1_vnl0_fnl1 <- function (M, P, fnl_combi, fnl_idxes, 
                                        aam, aa_masses, ntmass, ctmass, 
                                        type_ms2ions = "by", mod_indexes, 
                                        digits = 4L) 
 {
   ds  <- aa_masses[M]
-  nvm <- nrow(vmods_combi)
+  nvm <- nrow(P)
   nnl <- length(fnl_combi)
   len <- nvm * nnl
   out <- vector("list", len)
@@ -882,7 +908,7 @@ calc_ms2ions_a1_vnl0_fnl1 <- function (M, vmods_combi, fnl_combi, fnl_idxes,
   hex0 <- rep_len("0", naa)
   
   for (i in 1:nvm) {
-    vi <- vmods_combi[i, ]
+    vi <- P[i, ]
     aam_i <- aam
     aam_i[vi] <- aam_i[vi] + ds
     
@@ -1129,10 +1155,23 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
                                       
                                       # dummy
                                       maxn_fnl_per_seq = 3L, 
-                                      
                                       maxn_vnl_per_seq = 3L, 
                                       digits = 4L) 
 {
+  if (maxn_vnl_per_seq < 2L)
+    return(gen_ms2ions_a1_vnl0_fnl0(aa_seq = aa_seq, ms1_mass = ms1_mass, 
+                                    aa_masses = aa_masses, 
+                                    ms1vmods = ms1vmods, ms2vmods = ms2vmods, 
+                                    ntmod = ntmod, ctmod = ctmod, 
+                                    ntmass = ntmass, ctmass = ctmass, 
+                                    amods = amods, mod_indexes = mod_indexes, 
+                                    type_ms2ions = type_ms2ions, 
+                                    maxn_vmods_per_pep = maxn_vmods_per_pep, 
+                                    maxn_sites_per_vmod = maxn_sites_per_vmod, 
+                                    maxn_vmods_sitescombi_per_pep = 
+                                      maxn_vmods_sitescombi_per_pep, 
+                                    digits = digits))
+
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
   aam <- aa_masses[aas]
@@ -1145,8 +1184,9 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
                                 aa_masses = aa_masses, 
                                 ntmod = ntmod, ctmod = ctmod, 
                                 ms1_mass = ms1_mass)
-
-  if (!length(ms2vmods <- ms2vmods[idxes])) 
+  ms2vmods <- ms2vmods[idxes]
+  
+  if (!length(ms2vmods)) 
     return(NULL)
   
   # most likely a list-one
@@ -1154,57 +1194,101 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
   ms2vmods <- ms2vmods[[1]]
 
   if (attr(ms2vmods, "single")) {
-    vmods_combi <- 
-      find_vmodposU(M = ms2vmods, aas = aas, nmax = maxn_vmods_sitescombi_per_pep)
+    P  <- find_vmodposU(M = ms2vmods, aas = aas, nmax = maxn_vmods_sitescombi_per_pep)
+    M  <- attr(P, "mods", exact = TRUE)
+    nP <- nrow(P)
     
-    M <- attr(vmods_combi, "mods", exact = TRUE)
-    vnl_combi <- expand_grid_rows(vmods_nl[ms2vmods], nmax = maxn_vnl_per_seq)
-    
-    af <- calc_ms2ions_a1_vnl1_fnl0(
-      vnl_combi = vnl_combi, 
-      M = M, 
-      vmods_combi = vmods_combi, 
-      aam = aam, 
-      aa_masses = aa_masses, 
-      ntmass = ntmass, 
-      ctmass = ctmass, 
-      type_ms2ions = type_ms2ions, 
-      mod_indexes = mod_indexes, 
-      maxn_vmods_sitescombi_per_pep = 
-        maxn_vmods_sitescombi_per_pep, 
-      digits = digits)
+    if (nP >= maxn_vmods_sitescombi_per_pep)
+      af <- calc_ms2ions_a1_vnl0_fnl0(
+        M = M, P = P, aam = aam, aa_masses = aa_masses, 
+        ntmass = ntmass, ctmass = ctmass, type_ms2ions = type_ms2ions, 
+        mod_indexes = mod_indexes, digits = digits)
+    else {
+      nnl <- min(maxn_vmods_sitescombi_per_pep %/% nP, maxn_vnl_per_seq)
+      
+      if (nnl <= 1L)
+        af <- calc_ms2ions_a1_vnl0_fnl0(
+          M = M, P = P, aam = aam, aa_masses = aa_masses, 
+          ntmass = ntmass, ctmass = ctmass, type_ms2ions = type_ms2ions, 
+          mod_indexes = mod_indexes, digits = digits)
+      else
+        af <- calc_ms2ions_a1_vnl1_fnl0(
+          N = expand_grid_rows(vmods_nl[ms2vmods], nmax = nnl), 
+          M = M, 
+          P = P, 
+          aam = aam, 
+          aa_masses = aa_masses, 
+          ntmass = ntmass, 
+          ctmass = ctmass, 
+          type_ms2ions = type_ms2ions, 
+          mod_indexes = mod_indexes, 
+          digits = digits)
+    }
   }
   else {
-    vmods_combi <- 
-      find_vmodposM(M = ms2vmods, aas = aas, nmax = maxn_vmods_sitescombi_per_pep)
-    
-    M <- attr(vmods_combi, "mods", exact = TRUE)
-    M <- split_matrix(M, by = "row")
-    
-    vnl_combi <- 
-      lapply(M, function (x) expand_grid_rows(vmods_nl[x], nmax = maxn_vnl_per_seq))
+    P  <- find_vmodposM(M = ms2vmods, aas = aas, nmax = maxn_vmods_sitescombi_per_pep)
+    M  <- attr(P, "mods", exact = TRUE)
+    nP <- nrow(P)
+    nM <- nrow(M)
+    n1 <- nP * nM
 
-    # garanteed from matchMS: maxn_vmods_sitescombi_per_pep >= 2L
-    maxnvmods <- max(maxn_vmods_sitescombi_per_pep %/% length(M), 2L)
-    
-    af <- mapply(
-      calc_ms2ions_a1_vnl1_fnl0, 
-      vnl_combi, M, 
-      MoreArgs = list(
-        vmods_combi = vmods_combi, 
-        aam = aam, 
-        aa_masses = aa_masses, 
-        ntmass = ntmass, 
-        ctmass = ctmass, 
-        type_ms2ions = type_ms2ions, 
-        mod_indexes = mod_indexes, 
-        maxn_vmods_sitescombi_per_pep = maxnvmods, 
-        digits = digits
-      ), 
-      SIMPLIFY = FALSE, 
-      USE.NAMES = FALSE)
-    
-    af <- .Internal(unlist(af, recursive = FALSE, use.names = TRUE))
+    if (n1 > maxn_vmods_sitescombi_per_pep) {
+      l <- maxn_vmods_sitescombi_per_pep %/% nP
+      M <- M[1:l, ] # l >= 1L
+
+      if (l == 1L) {
+        af <- calc_ms2ions_a1_vnl0_fnl0(
+          M = M, P = P, aam = aam, aa_masses = aa_masses, 
+          ntmass = ntmass, ctmass = ctmass, type_ms2ions = type_ms2ions, 
+          mod_indexes = mod_indexes, digits = digits)
+      }
+      else {
+        M  <- split_matrix(M, by = "row")
+        af <- lapply(M, calc_ms2ions_a1_vnl0_fnl0, 
+                     P = P, aam = aam, aa_masses = aa_masses, 
+                     ntmass = ntmass, ctmass = ctmass, type_ms2ions = type_ms2ions, 
+                     mod_indexes = mod_indexes, digits = digits)
+        af <- .Internal(unlist(af, recursive = FALSE, use.names = TRUE))
+      }
+    }
+    else {
+      M <- split_matrix(M, by = "row")
+      l <- maxn_vmods_sitescombi_per_pep  %/% n1
+      
+      if (l == 1L) {
+        af <- lapply(M, calc_ms2ions_a1_vnl0_fnl0, 
+                     P = P, aam = aam, aa_masses = aa_masses, 
+                     ntmass = ntmass, ctmass = ctmass, type_ms2ions = type_ms2ions, 
+                     mod_indexes = mod_indexes, digits = digits)
+        af <- .Internal(unlist(af, recursive = FALSE, use.names = TRUE))
+      }
+      else {
+        n2 <- n1 * prod(lengths(vmods_nl))
+        
+        N <- if (n2 > maxn_vmods_sitescombi_per_pep)
+          lapply(M, function (x) expand_grid_rows(vmods_nl[x], nmax = 2L))
+        else
+          lapply(M, function (x) expand_grid_rows(vmods_nl[x], nmax = maxn_vnl_per_seq))
+        
+        af <- mapply(
+          calc_ms2ions_a1_vnl1_fnl0, 
+          N, M, 
+          MoreArgs = list(
+            P = P, 
+            aam = aam, 
+            aa_masses = aa_masses, 
+            ntmass = ntmass, 
+            ctmass = ctmass, 
+            type_ms2ions = type_ms2ions, 
+            mod_indexes = mod_indexes, 
+            digits = digits
+          ), 
+          SIMPLIFY = FALSE, 
+          USE.NAMES = FALSE)
+        
+        af <- .Internal(unlist(af, recursive = FALSE, use.names = TRUE))
+      }
+    }
   }
 
   # hexcodes of the reversed entries are not yet reversed; 
@@ -1217,47 +1301,40 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
 
 
 #' Calculates MS2 ions.
-#' 
-#' @param M A modification matrix or vector.
-#' @param vmods_combi Lists of variable modifications.
-#' @param vnl_combi Lists of combinations of neutral losses for corresponding
-#'   \code{vmods_combi}. Each list contains a table where each column
-#'   corresponds to a set of neutral loss. The first column corresponds to the
-#'   combination without NLs.
+#'
+#' @param M A vector of modifications.
+#' @param P A matrix of positions.
+#' @param N Lists of combinations of neutral losses for corresponding \code{P}.
+#'   Each list contains a table where each column corresponds to a set of
+#'   neutral loss. The first column corresponds to the combination without NLs.
 #' @param mod_indexes Modification indexes.
 #' @inheritParams ms2ions_by_type
 #' @inheritParams add_var_masses
 #' @inheritParams matchMS
-calc_ms2ions_a1_vnl1_fnl0 <- function (vnl_combi, M, vmods_combi, aam, aa_masses, 
+calc_ms2ions_a1_vnl1_fnl0 <- function (N, M, P, aam, aa_masses, 
                                        ntmass, ctmass, 
                                        type_ms2ions = "by", mod_indexes, 
-                                       maxn_vmods_sitescombi_per_pep = 64L, 
                                        digits = 4L) 
 {
-  naa <- length(aam)
+  naa  <- length(aam)
   hex0 <- rep_len("0", naa)
   
   ds  <- aa_masses[M]
-  nnl <- length(vnl_combi)
-  nvm <- nrow(vmods_combi)
-  
-  mod <- maxn_vmods_sitescombi_per_pep %/% nnl
-  maxn_vmods_sitescombi_per_pep <- mod * nnl
-  len <- min(nvm * nnl, maxn_vmods_sitescombi_per_pep)
+  nnl <- length(N)
+  nvm <- nrow(P)
+  len <- nvm * nnl
   out <- vector("list", len)
   
-  ite <- min(mod, nvm)
   r   <- 1L
 
-  for (i in 1:ite) {
-    vi <- vmods_combi[i, ]
+  for (i in 1:nvm) {
+    vi <- P[i, ]
     aam_i <- aam
     aam_i[vi] <- aam_i[vi] + ds
     
     for (j in 1:nnl) {
       aam_j <- aam_i
-      delta_nl <- .Internal(unlist(vnl_combi[[j]], recursive = FALSE, 
-                                   use.names = FALSE))
+      delta_nl <- .Internal(unlist(N[[j]], recursive = FALSE, use.names = FALSE))
       aam_j[vi] <- aam_j[vi] - delta_nl
       out[[r]] <- ms2ions_by_type(aam_j, ntmass, ctmass, type_ms2ions, digits)
       r <- r + 1L

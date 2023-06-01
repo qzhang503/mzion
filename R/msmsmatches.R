@@ -139,9 +139,13 @@
 #'   considered, the value of \code{maxn_sites_per_vmod} needs to be four or
 #'   greater.
 #' @param maxn_fnl_per_seq A non-negative integer; the maximum number of
-#'   permutative neutral losses per peptide sequence for fixed modifications.
+#'   permutative neutral losses per peptide sequence for fixed modifications. To
+#'   bypass the combinatorial of neutral losses, set \code{maxn_fnl_per_seq = 1}
+#'   or \code{0}.
 #' @param maxn_vnl_per_seq A non-negative integer; the maximum number of
 #'   permutative neutral losses per peptide sequence for variable modifications.
+#'   To bypass the combinatorial of neutral losses, set \code{maxn_vnl_per_seq =
+#'   1} or \code{0}.
 #' @param maxn_vmods_sitescombi_per_pep A non-negative integer; the maximum
 #'   number of combinatorial variable modifications per peptide sequence (per
 #'   module). The combinations include the ways of neutral losses and
@@ -868,7 +872,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 10L, minn_ms2 >= 2L, 
             min_mass >= 1L, max_mass >= min_mass, 
             min_ms2mass >= 1L, max_ms2mass > min_ms2mass, 
-            maxn_fnl_per_seq >= 2L, maxn_vnl_per_seq >= 2L, 
+            # maxn_fnl_per_seq >= 2L, maxn_vnl_per_seq >= 2L, 
             maxn_vmods_sitescombi_per_pep >= 2L, 
             n_13c >= 0L, noenzyme_maxn >= 0L, 
             maxn_vmods_per_pep >= maxn_sites_per_vmod, max_n_prots > 1000L, 

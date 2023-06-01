@@ -48,10 +48,14 @@ variable modifications per site in a per peptide sequence.}
 combinatorial variable modifications per peptide sequence.}
 
 \item{maxn_fnl_per_seq}{A non-negative integer; the maximum number of
-permutative neutral losses per peptide sequence for fixed modifications.}
+permutative neutral losses per peptide sequence for fixed modifications. To
+bypass the combinatorial of neutral losses, set \code{maxn_fnl_per_seq = 1}
+or \code{0}.}
 
 \item{maxn_vnl_per_seq}{A non-negative integer; the maximum number of
-permutative neutral losses per peptide sequence for variable modifications.}
+permutative neutral losses per peptide sequence for variable modifications.
+To bypass the combinatorial of neutral losses, set \code{maxn_vnl_per_seq =
+1} or \code{0}.}
 
 \item{digits}{Integer; the number of decimal places to be used.}
 }

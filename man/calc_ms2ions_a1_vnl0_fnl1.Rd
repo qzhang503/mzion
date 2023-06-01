@@ -6,7 +6,7 @@
 \usage{
 calc_ms2ions_a1_vnl0_fnl1(
   M,
-  vmods_combi,
+  P,
   fnl_combi,
   fnl_idxes,
   aam,
@@ -21,7 +21,7 @@ calc_ms2ions_a1_vnl0_fnl1(
 \arguments{
 \item{M}{A modification matrix or vector.}
 
-\item{vmods_combi}{Lists of variable modifications.}
+\item{P}{A matrix of position permutations.}
 
 \item{fnl_combi}{A data.frame of combinations of neutral losses for fixed
 modifications. Each row corresponds to a set of neutral loss. The first row

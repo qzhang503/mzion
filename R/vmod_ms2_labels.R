@@ -3,13 +3,8 @@
 #' One-to-one correspondence between Names and Sites. Finds the positions of
 #' residues (sites) from a given amino acid sequence (aas).
 #'
-#' @param M A matrix of labels of modification names with permutation. Each
-#'   permutation in a row. The corresponding matrix of site permutations in the
-#'   attribute of \code{resids}.
-#'
-#'   Note that M is a matrix other than lists of vectors, which allows the
-#'   application of one copy of attributes to all rows.
-#' @param nmax The maximum number of combinations.
+#' @param M A vector of modifications. 
+#' @param nmax The maximum number of combinations being allowed.
 #' @param aas \code{aa_seq} split in a sequence of LETTERS.
 #' @examples
 #' \donttest{
@@ -46,14 +41,14 @@
 #' }
 find_vmodposU <- function (M, aas, nmax = 64L) 
 {
-  rs <- attr(M, "resids")
+  rs <- attr(M, "resids", exact = TRUE)
   nr <- length(rs)
-  ps <- attr(M, "ps")
+  ps <- attr(M, "ps", exact = TRUE)
   ss <- names(ps)
 
   if (nmax == 1L) {
     ns <- length(ss)
-    combi <- character(nr)
+    P  <- character(nr)
     ends <- cumsum(ps)
     r1 <- 1L
 
@@ -61,44 +56,44 @@ find_vmodposU <- function (M, aas, nmax = 64L)
       si <- ss[[i]]
       pi <- ps[[i]]
       ei <- ends[[i]]
-      combi[r1:ei] <- .Internal(which(aas == si))[1:pi]
+      P[r1:ei] <- .Internal(which(aas == si))[1:pi]
       r1 <- pi + 1L
     }
     
     # one-row matrix
-    combi <- .Internal(matrix(combi, nrow = 1L, ncol = 1L, byrow = FALSE, 
+    P <- .Internal(matrix(P, nrow = 1L, ncol = 1L, byrow = FALSE, 
                               dimnames = NULL, FALSE, TRUE))
     # remove attributes
-    attr(combi, "mods") <- M[1:nr]
-    
-    return(combi)
+    attr(P, "mods") <- M[1:nr]
+    return(P)
   }
   
   if (nr == 1L) {
-    combi <- .Internal(which(aas == ss))
-    combi <- .Internal(matrix(combi, nrow = 1L, ncol = 1L, byrow = FALSE, 
-                              dimnames = NULL, TRUE, FALSE))
-  }
-  else {
-    ns <- length(ss)
-    X  <- vector("list", ns)
-    
-    for (i in 1:ns) {
-      si <- .Internal(which(aas == names(ps)[i]))
-      ni <- ps[[i]]
-      
-      X[[i]] <- if (ni == 1L) 
-        matrix(si) 
-      else 
-        arrangements::combinations(si, ni, nitem = nmax, layout = "row")
-    }
-    
-    combi <- expand_gr(X, nmax = nmax)
+    P <- .Internal(which(aas == ss))
+    P <- .Internal(matrix(P, nrow = 1L, ncol = 1L, byrow = FALSE, 
+                          dimnames = NULL, TRUE, FALSE))
+    attr(P, "mods") <- M[1:nr]
+    return(P)
   }
   
-  attr(combi, "mods") <- M[1:nr]
+  ns <- length(ss)
+  X  <- vector("list", ns)
   
-  combi
+  for (i in 1:ns) {
+    si <- .Internal(which(aas == names(ps)[i]))
+    ni <- ps[[i]]
+    
+    X[[i]] <- if (ni == 1L) 
+      matrix(si) 
+    else 
+      arrangements::combinations(si, ni, nitem = nmax, layout = "row")
+  }
+  
+  P <- expand_gr(X, nmax = nmax)
+  
+  attr(P, "mods") <- M[1:nr]
+  
+  P
 }
 
 
@@ -112,6 +107,19 @@ find_vmodposU <- function (M, aas, nmax = 64L)
 #' @examples
 #' \donttest{
 #' library(mzion)
+#' 
+#' Vec <- c("Carbamidomethyl (M)", "Carbamyl (M)")
+#' vec <- c("M", "M")
+#' aas <- unlist(strsplit("HQGVMNVGMGQKMNS", ""))
+#' ps <- c(2)
+#' names(ps) <- c("M")
+#' attr(Vec, "ps") <- ps
+#' attr(Vec, "resids") <- vec
+#' rs <- unique(vec)
+#' inds <- lapply(rs, function (x) which(vec == x))
+#' attr(Vec, "inds") <- inds
+#' mzion:::find_vmodposM(Vec, aas)
+#' mzion:::find_vmodposM(Vec, aas, nmax = 1L)
 #' 
 #' Vec <- c("Carbamidomethyl (M)", "Deamidated (N)", "Carbamyl (M)")
 #' vec <- c("M", "N", "M")
@@ -152,29 +160,58 @@ find_vmodposU <- function (M, aas, nmax = 64L)
 #' attr(Vec, "inds") <- inds
 #' mzion:::find_vmodposM(Vec, aas)
 #' mzion:::find_vmodposM(Vec, aas, nmax = 1L)
+#' mzion:::find_vmodposM(Vec, aas, nmax = 16L)
+#' mzion:::find_vmodposM(Vec, aas, nmax = 8L)
+#' lapply(1:32, function (x) mzion:::find_vmodposM(Vec, aas, nmax = x))
 #' }
 find_vmodposM <- function (M, aas, nmax = 64L) 
 {
   rs <- attr(M, "resids", exact = TRUE)
   ps <- attr(M, "ps", exact = TRUE)
-  inds <- attr(M, "inds", exact = TRUE)
-  
+  ds <- attr(M, "inds", exact = TRUE)
   np <- length(ps)
   A <- P <- vector("list", np)
-  
+  nmax2 <- nmax
+
   for (i in 1:np) {
     ri <- names(ps)[i]
     si <- .Internal(which(aas == ri))
     ni <- ps[[i]]
-    P[[i]] <- arrangements::combinations(si, ni, nitem = nmax, layout = "row")
 
-    pi <- inds[[i]]
-    ai <- unique(arrangements::permutations(M[pi], nitem = nmax, layout = "list"))
-    A[[i]] <- do.call(rbind, ai)
+    nP <- nrow(P[[i]] <- arrangements::combinations(si, ni, nitem = nmax, layout = "row"))
+    nmax2 <- nmax2 %/% nP
+    
+    if (nmax2 <= 1L) {
+      A[[i]] <- .Internal(matrix(M[ds[[i]]], nrow = 1L, ncol = 1L, byrow = FALSE, 
+                                 dimnames = NULL, FALSE, TRUE))
+      A <- A[1:i]
+      P <- P[1:i]
+      # np <- i
+      break
+    }
+    else {
+      Mi <- M[ds[[i]]]
+      
+      nA <- if (length(Mi) == 1L) # Deamidated (N)
+        nrow(A[[i]] <- .Internal(matrix(Mi, nrow = 1L, ncol = 1L, byrow = FALSE, 
+                                              dimnames = NULL, TRUE, FALSE)))
+      else # Carbamidomethyl (M), Carbamyl (M)
+        nrow(A[[i]] <- unique(arrangements::permutations(Mi, nitem = nmax, layout = "row")))
+
+      nmax2 <- nmax2 %/% nA
+    }
   }
   
-  combP <- expand_gr(P, nmax = nmax)
-  combA <- expand_gr(A, nmax = nmax)
+  if (np == 1L) {
+    combP <- P[[1]]
+    combA <- A[[1]]
+  }
+  else {
+    combP <- expand_gr(P, nmax = nmax)
+    # combA <- expand_gr(A, nmax = max(nmax %/% nrow(combP), 1L))
+    combA <- expand_gr(A, nmax = nmax)
+  }
+  
   attr(combP, "mods") <- combA
 
   combP
