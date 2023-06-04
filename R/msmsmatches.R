@@ -148,12 +148,8 @@
 #'   1} or \code{0}.
 #' @param maxn_vmods_sitescombi_per_pep A non-negative integer; the maximum
 #'   number of combinatorial variable modifications per peptide sequence (per
-#'   module). The combinations include the ways of neutral losses and
-#'   modification labels. For instance, at \code{maxn_vnl_per_seq = 2}, the ways
-#'   of allowed position permutation will be 32. Similarly, at
-#'   \code{maxn_vnl_per_seq = 2} and, for example, the permutation of labels
-#'   \code{Acetyl (K)} and \code{TMT (K)} (let's say three ways), the ways of
-#'   position permutation will be limited to \code{64/2/3}.
+#'   module). The ways include the permutations in neutral losses and
+#'   modifications (e.g., \code{Acetyl (K) and TMT (K)}).
 #' @param min_len A positive integer; the minimum length of peptide sequences
 #'   for considerations. Shorter peptides will be excluded. The default is 7.
 #' @param max_len A positive integer; the maximum length of peptide sequences
@@ -1534,7 +1530,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   df <- dplyr::mutate(df, pep_expect = 10^((pep_score_co - pep_score)/10) * target_fdr)
   df[["pep_score_co"]] <- NULL
   df$pep_delta <- df$pep_exp_mr - df$pep_calc_mr
-  
+
   nms <- names(df)
   df  <- dplyr::bind_cols(
     df[grepl("^prot_", nms)],
@@ -1552,10 +1548,14 @@ matchMS <- function (out_path = "~/mzion/outs",
   rows_tmt <- grepl("TMT", df[["pep_fmod"]]) | grepl("TMT", df[["pep_vmod"]])
   df[!rows_tmt, cols_tmt] <- NA_real_
   rm(list = c("cols_tmt", "rows_tmt"))
-
-  readr::write_tsv(df, file.path(out_path, "psmC.txt"))
   
   local({
+    df$pep_exp_mr  <- round(df$pep_exp_mr, digits = 4L)
+    df$pep_calc_mr <- round(df$pep_calc_mr, digits = 4L)
+    df$pep_delta   <- round(df$pep_delta, digits = 4L)
+    df$pep_expect  <- format(df$pep_expect, digits = 3L)
+    readr::write_tsv(df, file.path(out_path, "psmC.txt"))
+    
     session_info <- sessionInfo()
     save(session_info, file = file.path(out_path, "Calls", "mzion.rda"))
   })
@@ -1919,6 +1919,11 @@ post_psmC2Q <- function (df, dfC, tier = NULL)
     df[grepl("^psm_", names(df))],
     df[!grepl("^prot_|^pep_|^psm_", names(df))],
   )
+  
+  df$pep_exp_mr  <- round(df$pep_exp_mr, digits = 4L)
+  df$pep_calc_mr <- round(df$pep_calc_mr, digits = 4L)
+  df$pep_delta   <- round(df$pep_delta, digits = 4L)
+  df$pep_expect  <- format(df$pep_expect, digits = 3L)
   
   df <- dplyr::select(df, -which(names(df) %in% c("prot_n_psm", "prot_n_pep")))
 }

@@ -86,12 +86,8 @@ To bypass the combinatorial of neutral losses, set \code{maxn_vnl_per_seq =
 
 \item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
 number of combinatorial variable modifications per peptide sequence (per
-module). The combinations include the ways of neutral losses and
-modification labels. For instance, at \code{maxn_vnl_per_seq = 2}, the ways
-of allowed position permutation will be 32. Similarly, at
-\code{maxn_vnl_per_seq = 2} and, for example, the permutation of labels
-\code{Acetyl (K)} and \code{TMT (K)} (let's say three ways), the ways of
-position permutation will be limited to \code{64/2/3}.}
+module). The ways include the permutations in neutral losses and
+modifications (e.g., \code{Acetyl (K) and TMT (K)}).}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
 for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are

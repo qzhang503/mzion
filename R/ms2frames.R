@@ -1039,7 +1039,6 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
                                ppm_ms2 = 10L, min_ms2mass = 115L, minn_ms2 = 6L, 
                                index_mgf_ms2 = FALSE) 
 {
-  ##############################################################################
   # `theos`
   #   the same pep_seq at different applicable ivmods and NLs
   # 
@@ -1067,8 +1066,7 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
   # (i) %in% and %fin% only shows the first match for duplicated entries thi:
   #   match(1:4, c(1, 2, 2, 5))
   #   (so no worry about thi duplication)
-  ##############################################################################
-  
+
   nullout <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL)
   len <- length(theos)
   
@@ -1267,7 +1265,7 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
   if (!by_modules)
     pep_mod_groups <- pep_mod_groups[oks2]
 
-  ans <- mapply(
+  mapply(
     function (x, y, g) {
       attr(x, "theo_ms1") <- y
       attr(x, "pep_mod_group") <- g
@@ -1320,8 +1318,6 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
   #   4  790.  790.
   #   5  868.  868.
   #   6 1297. 1297.
-  
-  invisible(ans)
 }
 
 

@@ -159,8 +159,7 @@ bions_base <- function (aam, tmass, digits = 4L)
   ions <- c(tmass, aam)
   ions <- cumsum(ions)
   ions <- ions[-1]
-  
-  round(ions, digits = digits)
+  # round(ions, digits = digits)
 }
 
 
@@ -174,8 +173,7 @@ yions_base <- function (aam, tmass, digits = 4L)
   ions <- c(tmass, aam[length(aam):1L])
   ions <- cumsum(ions)
   ions <- ions[-1]
-  
-  round(ions, digits = digits)
+  # round(ions, digits = digits)
 }
 
 
@@ -196,8 +194,7 @@ bstarions <- function (aam, tmass, digits = 4L)
   ions <- c(tmass - 17.026549, aam)
   ions <- cumsum(ions)
   ions <- ions[-1]
-  
-  round(ions, digits = digits)
+  # round(ions, digits = digits)
 }
 
 
@@ -219,8 +216,7 @@ b0ions <- function (aam, tmass, digits = 4L)
   ions <- c(tmass - 18.010565, aam)
   ions <- cumsum(ions)
   ions <- ions[-1]
-  
-  round(ions, digits = digits)
+  # round(ions, digits = digits)
 }
 
 
@@ -248,8 +244,7 @@ ystarions <- function (aam, tmass, digits = 4L)
   ions <- c(tmass - 17.026549, aam[length(aam):1L])
   ions <- cumsum(ions)
   ions <- ions[-1]
-  
-  round(ions, digits = digits)
+  # round(ions, digits = digits)
 }
 
 
@@ -269,8 +264,7 @@ y0ions <- function (aam, tmass, digits = 4L)
   ions <- c(tmass - 18.010565, aam[length(aam):1L])
   ions <- cumsum(ions)
   ions <- ions[-1]
-  
-  round(ions, digits = digits)
+  # round(ions, digits = digits)
 }
 
 
@@ -290,8 +284,7 @@ cions_base <- function (aam, tmass, digits = 4L)
   ions <- c(tmass + 17.026549, aam)
   ions <- cumsum(ions)
   ions <- ions[-1]
-  
-  round(ions, digits = digits)
+  # round(ions, digits = digits)
 }
 
 
@@ -311,8 +304,7 @@ zions_base <- function (aam, tmass, digits = 4L)
   ions <- c(tmass - 17.026549, aam[length(aam):1L])
   ions <- cumsum(ions)
   ions <- ions[-1]
-  
-  round(ions, digits = digits)
+  # round(ions, digits = digits)
 }
 
 
@@ -332,8 +324,7 @@ aions_base <- function (aam, tmass, digits = 4L)
   ions <- c(tmass - 27.9949146, aam)
   ions <- cumsum(ions)
   ions <- ions[-1]
-  
-  round(ions, digits = digits)
+  # round(ions, digits = digits)
 }
 
 
@@ -354,8 +345,7 @@ astarions <- function (aam, tmass, digits = 4L)
   ions <- c(tmass - 45.0214636, aam)
   ions <- cumsum(ions)
   ions <- ions[-1]
-  
-  round(ions, digits = digits)
+  # round(ions, digits = digits)
 }
 
 
@@ -376,8 +366,7 @@ a0ions <- function (aam, tmass, digits = 4L)
   ions <- c(tmass - 46.0054796, aam)
   ions <- cumsum(ions)
   ions <- ions[-1]
-  
-  round(ions, digits = digits)
+  # round(ions, digits = digits)
 }
 
 
@@ -398,8 +387,7 @@ xions_base <- function (aam, tmass, digits = 4L)
   ions <- c(tmass + 25.9792646, aam[length(aam):1L])
   ions <- cumsum(ions)
   ions <- ions[-1]
-  
-  round(ions, digits = digits)
+  # round(ions, digits = digits)
 }
 
 

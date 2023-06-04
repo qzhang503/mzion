@@ -1135,9 +1135,10 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
 {
   df <- qs::qread(file.path(tempdir, file))
   
+  if (!add_ms2moverzs) df[["pep_ms2_moverzs"]] <- NA_character_
+  if (!add_ms2ints)    df[["pep_ms2_ints"]] <- NA_character_
+  
   df <- dplyr::mutate(df, 
-                      pep_ms2_moverzs = NA_character_, 
-                      pep_ms2_ints = NA_character_, 
                       pep_ms2_theos = NA_character_, 
                       pep_ms2_theos2 = NA_character_, 
                       
@@ -1231,8 +1232,8 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
   
   if (add_ms2theos) df$pep_ms2_theos <- collapse_vecs(lapply(pris, `[[`, "theo"))
   if (add_ms2theos2) df$pep_ms2_theos2 <- collapse_vecs(lapply(secs, `[[`, "theo"))
-  if (add_ms2moverzs) df$pep_ms2_moverzs <- collapse_vecs(df$ms2_moverz)
-  if (add_ms2ints) df$pep_ms2_ints <- collapse_vecs(df$ms2_int)
+  if (add_ms2moverzs) df$pep_ms2_moverzs <- collapse_vecs(df$pep_ms2_moverzs)
+  if (add_ms2ints) df$pep_ms2_ints <- collapse_vecs(df$pep_ms2_ints)
   
   qs::qsave(df, file.path(tempdir, gsub("^prescores", "ms2info", file)), 
             preset = "fast")
@@ -1248,6 +1249,8 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
 #' @param sep A separator.
 collapse_vecs <- function (vecs, nm = "theo", sep = ";") 
 {
+  vecs <- lapply(vecs, round, digits = 4L)
+  
   ans <- lapply(vecs, function (v) 
     .Internal(paste0(list(v), collapse = sep, recycle0 = FALSE))
   )
