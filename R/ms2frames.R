@@ -1036,8 +1036,8 @@ fuzzy_match_one2 <- function (x, y)
 #' 
 #' @return Lists of (1) theo, (2) expt, (3) ith, (4) iex and (5) m.
 find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL, 
-                            ppm_ms2 = 10L, min_ms2mass = 115L, minn_ms2 = 6L, 
-                            index_mgf_ms2 = FALSE) 
+                               ppm_ms2 = 10L, min_ms2mass = 115L, minn_ms2 = 6L, 
+                               index_mgf_ms2 = FALSE) 
 {
   ##############################################################################
   # `theos`
@@ -1050,94 +1050,82 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
   #   and never get matched.
   # 
   # ex: `expts` in integers
-  # th_i: the i-th `theos` in integers
+  # thi: the i-th `theos` in integers
   # 
   # ex has no duplicated entries; 
-  # th_i can.
+  # thi can.
   # 
   # Forward matching: match(theos, expts)
   # (i) allowed, e.g., b4- and y5 theo ions matched to the same ex value: 
   #   match(c(2,2,3,4), c(1:2, 5:10))
-  # (ii) multiple ex' value's to the same th_i value not allowed; 
+  # (ii) multiple ex' value's to the same thi value not allowed; 
   #   otherwise longer length `c(expts[bps], expts[yps])` than lhs.
-  #   e.g. ex's 74953, 74955 both fit to th_i 74954 and the best one is applied.
-  #   (after a th_i is matched, it will be removed from further matching)
+  #   e.g. ex's 74953, 74955 both fit to thi 74954 and the best one is applied.
+  #   (after a thi is matched, it will be removed from further matching)
   # 
   # Backward matching: match(expts, theos)
-  # (i) %in% and %fin% only shows the first match for duplicated entries th_i:
+  # (i) %in% and %fin% only shows the first match for duplicated entries thi:
   #   match(1:4, c(1, 2, 2, 5))
-  #   (so no worry about th_i duplication)
+  #   (so no worry about thi duplication)
   ##############################################################################
   
+  nullout <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL)
   len <- length(theos)
   
   if (!len) 
-    return(list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL))
+    return(nullout)
   
-  # ---
   out <- vector("list", len)
   
-  ## forward matches
   if (len > 3L) {
     mths  <- index_mz(.Internal(unlist(theos, recursive = FALSE, use.names = FALSE)), 
                       min_ms2mass, d)
-    pss  <- mths %fin% ex | (mths - 1L) %fin% ex | (mths + 1L) %fin% ex
-    pss  <- fold_vec(pss, len)
-    mths <- fold_vec(mths, len)
-    ipss <- lapply(pss, function (x) .Internal(which(x)))
+    tines <- mths %fin% ex | (mths - 1L) %fin% ex | (mths + 1L) %fin% ex
+    tines <- fold_vec(tines, len)
+    mths  <- fold_vec(mths, len)
+    iths  <- lapply(tines, function (x) .Internal(which(x)))
     
     for (i in 1:len) {
-      theos_i <- theos[[i]]
-      th_i <- mths[[i]]
-      ps <- pss[[i]]
-      ips <- ipss[[i]]
+      theoi <- theos[[i]]
+      thi   <- mths[[i]]
+      tine  <- tines[[i]]
+      ith   <- iths[[i]]
+      nth   <- length(ith)
       
-      ### the remaining are the same as those under "else" ###
-      
-      ## backward matches
-      #  expts are in ascending orders, but theos in b1, b2, ... , y1, y2, ...
-      #  separate matches to theos_b and theos_y, each are in ascending order
-      n_ps <- length(ips)
-      
-      if(n_ps >= minn_ms2) {
-        # separated b and y matches (to handled double-dipping between b and y)
-        # (adj: bps <- fuzzy_match_one2(ex, th_i[1:mid]))
-        lth <- length(ps)
-        mid <- lth/2L
+      if (nth >= minn_ms2) {
+        es <- theoi
+        es[!tine] <- NA_real_
         
-        # experimental es initially filled by NA and matched theoretical values, 
-        # and at the end replaced with matched experimental values
-        es <- theos_i
-        es[!ps] <- NA_real_
+        thok <- thi[ith]
+        tine2 <- fastmatch::fmatch(c(thok, thok - 1L, thok + 1L), ex) # 2us
+        iex <- vector("integer", nth)
         
-        ex_bf <- ex - 1L
-        ex_af <- ex + 1L
+        for (j in 1:nth) {
+          x <- tine2[[j]]
+          
+          if (is.na(x)) {
+            y <- tine2[[j+nth]]
+            
+            if (is.na(y)) {
+              iex[[j]] <- tine2[[j+nth*2]] 
+            } else {
+              iex[[j]] <- y
+            }
+          } else {
+            iex[[j]] <- x
+          }
+        }
         
-        # b-ions
-        y_1 <- th_i[1:mid]
-        ps_1 <- ex %fin% y_1 | ex_bf %fin% y_1 | ex_af %fin% y_1
-        ips_1 <- .Internal(which(ps_1))
+        nex <- length(iex)
         
-        # y-ions
-        y_2 <- th_i[(mid+1L):lth]
-        ps_2 <- ex %fin% y_2 | ex_bf %fin% y_2 | ex_af %fin% y_2
-        ips_2 <- .Internal(which(ps_2))
-        
-        # b- and y-ions
-        expt_1 <- expts[ips_1]
-        expt_2 <- expts[ips_2]
-        expt_12 <- c(expt_1, expt_2)
-        ips_12 <- c(ips_1, ips_2)
-        len_12 <- length(expt_12)
-        
-        # (occur rarely; OK to recalculate freshly `expt_12`)
-        if (n_ps != len_12) {
+        # should not occur?
+        if (nth != nex) {
           # "* 2" for three-frame searches
-          # also ensure that "ith = ips" in ascending order, not "iex = ips_12"
-          out_i <- find_ppm_outer_bycombi(expts, theos_i, ppm_ms2 * 2L)
+          # also ensure that "ith = ith" in ascending order, not "iex = iex"
+          out_i <- find_ppm_outer_bycombi(expts, theoi, ppm_ms2 * 2L)
           
           if (sum(!is.na(out_i[["expt"]])) < minn_ms2) {
-            out[[i]] <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL)
+            out[[i]] <- nullout
             next
           }
           
@@ -1145,92 +1133,45 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
           next
         }
         
-        es[ps] <- expt_12
-        
-        out[[i]] <- list(theo = theos_i, expt = es, ith = ips, iex = ips_12, m = len_12)
+        es[tine] <- expts[iex]
+        out[[i]] <- list(theo = theoi, expt = es, ith = ith, iex = iex, m = nex)
       } 
       else
-        out[[i]] <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL)
+        out[[i]] <- nullout
     }
   }
   else {
-    # mths <- lapply(theos, index_mz, min_ms2mass, d)
-    # pss <- lapply(mths, function (x) x %fin% ex | (x - 1L) %fin% ex | (x + 1L) %fin% ex)
-    # ipss <- lapply(pss, function (x) .Internal(which(x)))
-    
     for (i in 1:len) {
-      ## forward matches
-      theos_i <- theos[[i]]
-      th_i <- index_mz(theos_i, min_ms2mass, d)
-      ps <- th_i %fin% ex | (th_i - 1L) %fin% ex | (th_i + 1L) %fin% ex
-      ips <- .Internal(which(ps))
+      theoi <- theos[[i]]
+      thi <- index_mz(theoi, min_ms2mass, d)
+      t2e <- fastmatch::fmatch(c(thi, thi - 1L, thi + 1L), ex, nomatch = 0L)
+      nth <- sum(t2e > 0L)
       
-      ## "ith = ips" in ascending order, not "iex = ips_12"
-      
-      ### the remaining are the same under "if" ###
-      
-      ## backward matches
-      #  expts are in ascending orders, but theos in b1, b2, ... , y1, y2, ...
-      #  separate matches to theos_b and theos_y, each are in ascending order
-      n_ps <- length(ips)
-      
-      if(n_ps >= minn_ms2) {
-        # separated b and y matches (to handled double-dipping between b and y)
-        # (adj: bps <- fuzzy_match_one2(ex, th_i[1:mid]))
-        lth <- length(ps)
-        mid <- lth/2L
+      if (nth >= minn_ms2) {
+        l  <- length(thi)
+        mi <- t2e[1:l]
+        bf <- t2e[(l + 1L):(l + l)]
+        af <- t2e[(l + l + 1L):(l + l + l)]
         
-        # experimental es initially filled by NA and matched theoretical values, 
-        # and at the end replaced with matched experimental values
-        es <- theos_i
-        es[!ps] <- NA_real_
+        okmi <- mi > 0L
+        okbf <- bf > 0L
+        okaf <- af > 0L
         
-        ex_bf <- ex - 1L
-        ex_af <- ex + 1L
+        ith <- c(.Internal(which(okmi)), .Internal(which(okbf)), .Internal(which(okaf)))
+        iex <- c(mi[okmi], bf[okbf], af[okaf])
         
-        # b-ions
-        y_1 <- th_i[1:mid]
-        ps_1 <- ex %fin% y_1 | ex_bf %fin% y_1 | ex_af %fin% y_1
-        ips_1 <- .Internal(which(ps_1))
-        
-        # y-ions
-        y_2 <- th_i[(mid+1L):lth]
-        ps_2 <- ex %fin% y_2 | ex_bf %fin% y_2 | ex_af %fin% y_2
-        ips_2 <- .Internal(which(ps_2))
-        
-        # b- and y-ions
-        expt_1 <- expts[ips_1]
-        expt_2 <- expts[ips_2]
-        expt_12 <- c(expt_1, expt_2)
-        ips_12 <- c(ips_1, ips_2)
-        len_12 <- length(expt_12)
-        
-        # (occur rarely; OK to recalculate freshly `expt_12`)
-        if (n_ps != len_12) {
-          # "* 2" for three-frame searches
-          # also ensure that "ith = ips" in ascending order, not "iex = ips_12"
-          out_i <- find_ppm_outer_bycombi(expts, theos_i, ppm_ms2 * 2L)
-          
-          if (sum(!is.na(out_i[["expt"]])) < minn_ms2) {
-            out[[i]] <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL)
-            next
-          }
-          
-          out[[i]] <- out_i
-          next
-        }
-        
-        es[ps] <- expt_12
-        
-        out[[i]] <- list(theo = theos_i, expt = es, ith = ips, iex = ips_12, m = len_12)
+        es <- rep_len(NA_real_, l)
+        es[ith] <- expts[iex]
+        names(es) <- names(theoi)
+        out[[i]] <- list(theo = theoi, expt = es, ith = ith, iex = iex, m = nth)
       } 
-      else
-        out[[i]] <- list(theo = NULL, expt = NULL, ith = NULL, iex = NULL, m = NULL)
+      else {
+        out[[i]] <- nullout
+      }
     }
   }
   
   names(out) <- names(theos)
-  
   out
 }
 

@@ -555,7 +555,7 @@ calc_ms2ions_a1_vnl0_fnl0 <- function (M, P, aam, aa_masses, ntmass, ctmass,
   out <- vector("list", nvm)
   
   naa <- length(aam)
-  hex0 <- rep_len("0", naa)
+  hx0 <- rep_len("0", naa)
 
   for (i in 1:nvm) {
     vi <- P[i, ]
@@ -563,7 +563,7 @@ calc_ms2ions_a1_vnl0_fnl0 <- function (M, P, aam, aa_masses, ntmass, ctmass,
     aam_i[vi] <- aam_i[vi] + ds
     out[[i]] <- ms2ions_by_type(aam_i, ntmass, ctmass, type_ms2ions, digits)
     
-    h <- hex0
+    h <- hx0
     h[vi] <- mod_indexes[M]
     names(out)[i] <- .Internal(paste0(list(h), collapse = "", recycle0 = FALSE))
   }
@@ -848,7 +848,8 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
     }
   }
   else {
-    fnl_combi <- expand_grid_rows(fmods_nl[fmods_combi], nmax = maxn_fnl_per_seq)
+    fnl_combi <- expand_grid_rows(fmods_nl[fmods_combi], nmax = maxn_fnl_per_seq, 
+                                  use.names = FALSE)
   }
   
   # most likely a list-one
@@ -905,7 +906,7 @@ calc_ms2ions_a1_vnl0_fnl1 <- function (M, P, fnl_combi, fnl_idxes,
   r <- 1L
   
   naa <- length(aam)
-  hex0 <- rep_len("0", naa)
+  hx0 <- rep_len("0", naa)
   
   for (i in 1:nvm) {
     vi <- P[i, ]
@@ -926,7 +927,7 @@ calc_ms2ions_a1_vnl0_fnl1 <- function (M, P, fnl_combi, fnl_idxes,
       }
     }
 
-    h <- hex0
+    h <- hx0
     h[vi] <- mod_indexes[M]
     h <- .Internal(paste0(list(h), collapse = "", recycle0 = FALSE))
     
@@ -1213,7 +1214,7 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
           mod_indexes = mod_indexes, digits = digits)
       else
         af <- calc_ms2ions_a1_vnl1_fnl0(
-          N = expand_grid_rows(vmods_nl[ms2vmods], nmax = nnl), 
+          N = expand_grid_rows(vmods_nl[ms2vmods], nmax = nnl, use.names = FALSE), 
           M = M, 
           P = P, 
           aam = aam, 
@@ -1243,8 +1244,7 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
           mod_indexes = mod_indexes, digits = digits)
       }
       else {
-        M  <- split_matrix(M, by = "row")
-        af <- lapply(M, calc_ms2ions_a1_vnl0_fnl0, 
+        af <- lapply(split_matrix(M, by = "row"), calc_ms2ions_a1_vnl0_fnl0, 
                      P = P, aam = aam, aa_masses = aa_masses, 
                      ntmass = ntmass, ctmass = ctmass, type_ms2ions = type_ms2ions, 
                      mod_indexes = mod_indexes, digits = digits)
@@ -1255,7 +1255,7 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
       M <- split_matrix(M, by = "row")
       l <- maxn_vmods_sitescombi_per_pep  %/% n1
       
-      if (l == 1L) {
+      if (l <= 1L) {
         af <- lapply(M, calc_ms2ions_a1_vnl0_fnl0, 
                      P = P, aam = aam, aa_masses = aa_masses, 
                      ntmass = ntmass, ctmass = ctmass, type_ms2ions = type_ms2ions, 
@@ -1266,9 +1266,11 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
         n2 <- n1 * prod(lengths(vmods_nl))
         
         N <- if (n2 > maxn_vmods_sitescombi_per_pep)
-          lapply(M, function (x) expand_grid_rows(vmods_nl[x], nmax = 2L))
+          lapply(M, function (x) 
+            expand_grid_rows(vmods_nl[x], nmax = 2L, use.names = FALSE))
         else
-          lapply(M, function (x) expand_grid_rows(vmods_nl[x], nmax = maxn_vnl_per_seq))
+          lapply(M, function (x) 
+            expand_grid_rows(vmods_nl[x], nmax = maxn_vnl_per_seq, use.names = FALSE))
         
         af <- mapply(
           calc_ms2ions_a1_vnl1_fnl0, 
@@ -1316,16 +1318,14 @@ calc_ms2ions_a1_vnl1_fnl0 <- function (N, M, P, aam, aa_masses,
                                        type_ms2ions = "by", mod_indexes, 
                                        digits = 4L) 
 {
-  naa  <- length(aam)
-  hex0 <- rep_len("0", naa)
-  
   ds  <- aa_masses[M]
   nnl <- length(N)
   nvm <- nrow(P)
   len <- nvm * nnl
   out <- vector("list", len)
-  
-  r   <- 1L
+  naa <- length(aam)
+  hx0 <- rep_len("0", naa)
+  r <- 1L
 
   for (i in 1:nvm) {
     vi <- P[i, ]
@@ -1341,7 +1341,7 @@ calc_ms2ions_a1_vnl1_fnl0 <- function (N, M, P, aam, aa_masses,
     }
 
     # both i and j must exist
-    h <- hex0
+    h <- hx0
     h[vi] <- mod_indexes[M]
     h <- .Internal(paste0(list(h), collapse = "", recycle0 = FALSE))
     
