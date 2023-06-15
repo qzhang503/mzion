@@ -45,11 +45,11 @@ searches.}
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
 
-\item{soft_secions}{Impacts on search performance not yet assessed. Logical;
-if TRUE, collapses the intensities of secondary ions to primary ions even
-when the primaries are absent. The default is FALSE. For instance, the
-signal of \code{b5^*} will be ignored if its primary ion \code{b5} is not
-matched.}
+\item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
+ions to primary ions even when the primaries are absent. The default is
+FALSE. For instance, the signal of \code{b5^*} will be ignored if its
+primary ion \code{b5} is not matched. The impacts of \code{soft_secions =
+TRUE} on search performance has not yet been assessed.}
 
 \item{burn_ins}{The range of burn-ins where inputs will be excluded from
 probablity assessments.}

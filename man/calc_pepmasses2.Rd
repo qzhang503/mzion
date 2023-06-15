@@ -13,6 +13,7 @@ calc_pepmasses2(
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
+  rm_dup_term_anywhere = TRUE,
   fixedlabs = NULL,
   varlabs = NULL,
   mod_motifs = NULL,
@@ -28,7 +29,6 @@ calc_pepmasses2(
   max_miss = 2L,
   min_mass = 200L,
   max_mass = 4500L,
-  n_13c = 0L,
   out_path = NULL,
   digits = 4L,
   use_ms1_cache = TRUE,
@@ -58,6 +58,10 @@ c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
 \link{parse_unimod} for grammars.}
 
 \item{varmods}{A character vector of variable modifications.}
+
+\item{rm_dup_term_anywhere}{Logical; if TRUE, removes combinations in
+variable modifications with site(s) in positions of both terminal and
+anywhere, e.g., "Gln->pyro-Glu (N-term = Q)" and "Deamidated (Q).}
 
 \item{fixedlabs}{Character string(s) of fixed isotopic labels. See examples
 of SILAC for details. Can be but not typically used in standard alone
@@ -132,14 +136,6 @@ against low molecular-weight precursors is \code{min_len}).}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation.}
-
-\item{n_13c}{A non-negative integer; the maximum number of 13C off-sets for
-consideration in MS1 masses. The default is 0 with no off-sets.
-Peak-pickings by various MGF conversion tools may have attempted to adjust
-precursor masses to the corresponding mono-isotopic masses in isotope
-envelopes. Nevertheless, by setting \code{n_13c = 1}, some increases in the
-number of PSMs may be readily achieved at a relatively small cost of search
-time.}
 
 \item{out_path}{An output path.}
 

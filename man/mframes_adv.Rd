@@ -22,8 +22,7 @@ mframes_adv(
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
   min_ms2mass = 115L,
-  index_mgf_ms2 = FALSE,
-  digits = 4L
+  index_mgf_ms2 = FALSE
 )
 }
 \arguments{
@@ -107,9 +106,6 @@ interrogation. The default is 110.}
   20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
   the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
   pep_ms2_deltas_sd} are nullified in the outputs.}
-
-\item{digits}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
 }
 \value{
 Matches to each MGF as a list elements. The length of the output is

@@ -10,10 +10,11 @@
 #' @inheritParams load_mgfs
 #' @inheritParams calc_pepmasses2
 bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L, 
-                           ppm_ms1 = 20L, use_ms1_cache = TRUE, 
-                           .path_cache = NULL, .path_ms1masses = NULL, 
-                           is_ms1_three_frame = TRUE, 
-                           out_path = NULL, sys_ram = 24L) 
+                           min_len = 7L, max_len = 40L, ppm_ms1 = 20L, 
+                           use_ms1_cache = TRUE, .path_cache = NULL, 
+                           .path_ms1masses = NULL, is_ms1_three_frame = TRUE, 
+                           out_path = NULL, enzyme = "trypsin_p", 
+                           sys_ram = 24L) 
 {
   old_opts <- options()
   options(warn = 1L)
@@ -38,11 +39,10 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
 
   # checks pre-existed precursor masses
   .time_stamp <- get(".time_stamp", envir = .GlobalEnv, inherits = FALSE)
-  .path_mass <- file.path(.path_ms1masses, .time_stamp)
+  .path_mass  <- file.path(.path_ms1masses, .time_stamp)
   masses <- list.files(path = .path_mass, pattern = paste0("^pepmasses_", "\\d+\\.rds$"))
-  len_m <- length(masses)
   
-  if (!len_m) 
+  if (!(len_m  <- length(masses))) 
     stop("File not found: ", 
          file.path(.path_mass, paste0("pepmasses_", "[...].rds")))
 
@@ -51,52 +51,32 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
                                                "calc_pepmasses2", 
                                                .time_stamp), 
                               fun = fun,
-                              nms = c("min_mass", "max_mass", "ppm_ms1")) 
+                              nms = c("min_mass", "max_mass", "min_len", 
+                                      "max_len", "ppm_ms1")) 
   
   # already binned
-  len_bts <- length(.time_bin)
-  
-  if (len_bts > 1L) 
+  if ((len_bts <- length(.time_bin)) > 1L) 
     stop("More than one cached results found: \n\n", 
          paste(file.path(.path_ms1masses, .time_stamp, fun), collapse = "\n"), 
-         "\n\nDelete the caches and start over.", 
-         call. = FALSE)
+         "\n\nDelete the caches and start over.")
   
   if (len_bts && use_ms1_cache) {
     .path_bin <- file.path(.path_ms1masses, .time_stamp, fun, .time_bin)
-    
     bins <- list.files(path = .path_bin, pattern = "binned_theopeps_\\d+\\.rds$")
-    len_b <- length(bins)
 
-    if (len_b == len_m) {
+    if (length(bins) == len_m) {
       message("Loading bins of MS1 masses from cache.")
-      
       .savecall <- FALSE
-      
-      # no need of global `.time_bin`
-      assign(".path_bin", .path_bin, envir = .GlobalEnv)
-
-      return(NULL)
+      return(.path_bin)
     }
   }
   
-  
-  # to be binned
   message("Binning MS1 masses...")
   
   .time_bin <- format(Sys.time(), ".%Y-%m-%d_%H%M%S")
   .path_bin <- create_dir(file.path(.path_ms1masses, .time_stamp, fun, .time_bin))
-
-  if (!is.null(res)) {
-    # (a) process directly
-    binTheoSeqs(idxes = NULL,
-                res = res,
-                min_mass = min_mass,
-                max_mass = max_mass,
-                ppm_ms1 = ppm_ms1_bin,
-                out_path = file.path(.path_bin, "binned_theopeps.rds"))
-  } 
-  else {
+  
+  if (is.null(res)) {
     # (b) reload
     idxes <- local({
       idxes <- gsub("^pepmasses_(\\d+)\\.rds$", "\\1", masses)
@@ -104,19 +84,35 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
       idxes <- idxes[order(idxes)]
     })
     
-    n_cores <- local({
-      fct <- 20 
-      free_mem <- find_free_mem(sys_ram)
-      max_sz <- max(file.size(file.path(.path_mass, masses)))/1024^2
-      
-      n_cores <- min(floor(free_mem/max_sz/fct), detect_cores(8L))
+    if (FALSE) {
+      n_cores <- local({
+        fct <- 20 
+        free_mem <- find_free_mem(sys_ram)
+        max_sz <- max(file.size(file.path(.path_mass, masses)))/1024^2
+        
+        n_cores <- min(floor(free_mem/max_sz/fct), detect_cores(8L))
+        
+        if (n_cores < 1L) {
+          warning("May be out of RAM with large peptide tables.")
+          n_cores <- 1L
+        }
+        
+        n_cores
+      })
+    }
 
-      if (n_cores < 1L) {
-        warning("May be out of RAM with large peptide tables.")
-        n_cores <- 1L
-      }
+    n_cores <- local({
+      n_cores <- detect_cores(15L)
       
-      n_cores
+      if (len_m > n_cores) 
+        n_cores <- min(floor(n_cores/2L), len_m)
+      else 
+        n_cores <- min(n_cores, len_m)
+      
+      if (enzyme == "noenzyme")
+        n_cores <- floor(n_cores/2L)
+      
+      n_cores <- max(1L, n_cores)
     })
     
     if (n_cores > 1L) {
@@ -129,6 +125,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
         c("binTheoSeqs_i", 
           "binTheoSeqs2", 
           "bin_theoseqs", 
+          "s_readRDS", 
           "find_ms1_cutpoints"), 
         envir = environment(mzion::matchMS))
       
@@ -147,23 +144,35 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
       
       parallel::stopCluster(cl)
     } 
-    else {
+    else
       lapply(idxes, binTheoSeqs_i, min_mass, max_mass, ppm_ms1_bin, 
              .path_mass, .path_bin)
-    }
+  }
+  else {
+    # (a) process directly
+    binTheoSeqs(idxes = NULL,
+                res = res,
+                min_mass = min_mass,
+                max_mass = max_mass,
+                ppm_ms1 = ppm_ms1_bin,
+                enzyme = enzyme, 
+                out_path = file.path(.path_bin, "binned_theopeps.rds"))
   }
   
+  pat_b <- "^binned_theopeps_[0-9]+\\.rds"
+  len_b <- length(list.files(.path_bin, pattern = pat_b))
+  
+  if (len_b != len_m)
+    stop("May need more RAM: expect ", len_m, " \"", pat_b, "\" files, ", 
+         "but found ", len_b, " files under \n\"", .path_bin, "\"\n")
+  
   .savecall <- TRUE
-
-  assign(".time_bin", .time_bin, envir = .GlobalEnv)
-  assign(".path_bin", .path_bin, envir = .GlobalEnv)
 
   local({
     file <- file.path(out_path, "Calls", ".cache_info.rds")
     
-    if (file.exists(file)) {
+    if (file.exists(file))
       .cache_info <- qs::qread(file)
-    }
 
     .cache_info$.time_bin <- .time_bin
     .cache_info$.path_bin <- .path_bin
@@ -173,7 +182,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
   
   message("Completed precusor bins at: ", Sys.time())
   
-  invisible(NULL)
+  invisible(.path_bin)
 }
 
 
@@ -181,7 +190,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
 #' 
 #' @param in_path An input path of \code{pepmasses_}.
 #' @inheritParams binTheoSeqs2
-binTheoSeqs_i <- function (idx = 1L, min_mass = 200L,max_mass = 4500L,
+binTheoSeqs_i <- function (idx = 1L, min_mass = 200L, max_mass = 4500L,
                            ppm_ms1 = 10L, in_path = NULL, out_path = NULL) 
 {
   if (is.null(in_path)) 
@@ -189,8 +198,7 @@ binTheoSeqs_i <- function (idx = 1L, min_mass = 200L,max_mass = 4500L,
   
   message("\tSet: ", idx)
   
-  in_nm <- paste0("pepmasses_", idx, ".rds")
-  res <- s_readRDS(in_nm, in_path)
+  res <- s_readRDS(paste0("pepmasses_", idx, ".rds"), in_path)
   
   binTheoSeqs2(idx = idx,
                res = res,
@@ -241,7 +249,6 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 200L,
   if (!length(peps)) {
     out <- NULL   
     qs::qsave(out, out_nm, preset = "fast")
-    
     return(NULL)
   }
 
@@ -255,7 +262,7 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 200L,
   
   out <- dplyr::arrange(out, frame, pep_seq)
   out <- split(out, out$frame, drop = FALSE)
-  
+  out <- lapply(out, function (x) { x[["frame"]] <- NULL; x })
   qs::qsave(out, out_nm, preset = "fast")
 
   invisible(NULL)
@@ -272,6 +279,7 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 200L,
 #' @param max_mass Numeric; the maximum MS1 mass.
 #' @param ppm_ms1 Numeric; (half of) the error tolerance of MS1 mass in ppm.
 #' @param out_path The output path.
+#' @param enzyme The assume enzyme activity.
 #' @examples
 #' \donttest{
 #' library(mzion)
@@ -281,9 +289,9 @@ bin_theoseqs <- function (peps = NULL, out_nm = NULL, min_mass = 200L,
 #' }
 #' @return Lists of theoretical peptides binned by MS1 masses. The lists
 #'   correspond to the lists of \code{res}.
-#' @import parallel
 binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 200L,
-                         max_mass = 4500L, ppm_ms1 = 10L, out_path = NULL) 
+                         max_mass = 4500L, ppm_ms1 = 10L, enzyme = "trypsin_p", 
+                         out_path = NULL) 
 {
   if (is.null(res)) 
     stop("`res` cannot be NULL.")
@@ -305,20 +313,23 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 200L,
   
   n_cores <- local({
     len <- length(res)
-    n_cores <- detect_cores(16L)
+    n_cores <- detect_cores(15L)
     
     if (len > n_cores) 
       n_cores <- min(floor(n_cores/2L), len)
     else 
       n_cores <- min(n_cores, len)
+    
+    if (enzyme == "noenzyme")
+      n_cores <- floor(n_cores/2L)
 
     n_cores <- max(1L, n_cores)
   })
 
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
   
-  parallel::clusterExport(cl, list("qread", "qsave"), envir = environment(qs::qsave))
-  
+  parallel::clusterExport(cl, list("qread", "qsave"), 
+                          envir = environment(qs::qsave))
   parallel::clusterExport(cl, c("bin_theoseqs", "find_ms1_cutpoints"), 
                           envir = environment(mzion::matchMS))
   

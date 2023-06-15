@@ -12,8 +12,7 @@ calib_ms1(
   ppm_ms1 = 20L,
   min_mass = 200L,
   max_mass = 4500L,
-  knots = 50L,
-  digits = 4L
+  knots = 50L
 )
 }
 \arguments{
@@ -44,9 +43,6 @@ against low molecular-weight precursors is \code{min_len}).}
 interrogation.}
 
 \item{knots}{The number of knots for spline fits.}
-
-\item{digits}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
 }
 \description{
 Calibrates precursor masses (by individual RAW_Files)

@@ -7,6 +7,7 @@
 #'   fixed and variable modifications.
 #' @param mod_indexes Integer; the indexes of fixed and/or variable
 #'   modifications.
+#' @param .path_bin The file path to binned precursor masses.
 #' @param reframe_mgfs Logical; if TRUE, recalculates the frame indexes of MGFs.
 #' @param first_search Logical; is the first search (for MGF mass calibration)
 #'   or not.
@@ -16,7 +17,7 @@
 #' @inheritParams frames_adv
 #' @inheritParams add_var_masses
 #' @import parallel
-ms2match <- function (mgf_path, aa_masses_all, out_path, 
+ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin, 
                       mod_indexes, type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                       maxn_sites_per_vmod = 3L, maxn_fnl_per_seq = 64L, 
                       maxn_vnl_per_seq = 64L, maxn_vmods_sitescombi_per_pep = 64L, 
@@ -24,7 +25,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                       min_mass = 200L, max_mass = 4500L, min_ms2mass = 115L, 
                       quant = "none", ppm_reporters = 10L, 
                       by_modules = TRUE, reframe_mgfs = FALSE, 
-                      
+                      n_13c = NULL, ms1_notches = 0, 
+
                       # dummies
                       fasta, acc_type, acc_pattern,
                       topn_ms2ions, fixedmods, varmods, 
@@ -33,7 +35,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                       min_len, max_len, max_miss, 
                       
                       index_mgf_ms2 = FALSE, first_search = FALSE, 
-                      .savecall = TRUE, digits = 4L) 
+                      .savecall = TRUE) 
 {
   options(digits = 9L)
   
@@ -89,8 +91,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                 "^mgf$", "^mgfs$", "Calls"))
 
   # pairs expts and theos
-  .path_bin <- get(".path_bin", envir = .GlobalEnv, inherits = FALSE)
-  
   files_a  <-  list.files(mgf_path, pattern = "^expttheo_", full.names = TRUE)
   files_b  <-  list.files(mgf_path, pattern = "^mgftheo_",  full.names = TRUE)
   nfiles_a <- length(files_a)
@@ -107,13 +107,13 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
   # (matches of secondary ions may use `outer` products and no adjustments)
   ppm_ms1_bin <- calc_threeframe_ppm(ppm_ms1)
   ppm_ms2_bin <- calc_threeframe_ppm(ppm_ms2)
+  ms1_offsets <- find_ms1_offsets(n_13c = n_13c, ms1_notches = ms1_notches)
   
-  # if (first_search) subset mgf
-  
-  pair_mgftheo(mgf_path = mgf_path, n_modules = length(aa_masses_all), 
-               .path_bin = .path_bin, by_modules = by_modules, 
-               reframe_mgfs = reframe_mgfs, min_mass = min_mass, 
-               ppm_ms1_bin = ppm_ms1_bin, first_search = first_search)
+  pair_mgftheos(mgf_path = mgf_path, n_modules = length(aa_masses_all), 
+                ms1_offsets = ms1_offsets, by_modules = by_modules, 
+                min_mass = min_mass, max_mass = max_mass, 
+                ppm_ms1_bin = ppm_ms1_bin, .path_bin = .path_bin, 
+                reframe_mgfs = reframe_mgfs, first_search = first_search)
 
   rm(list = c("files_a", "files_b", "nfiles_a", "nfiles_b"))
 
@@ -151,7 +151,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
                         ms2_n = integer(), frame  = numeric(), 
                         matches = list(list()), 
                         pep_isdecoy = logical())
-  
+
   hms2match(aa_masses_all = aa_masses_all, 
             funs_ms2 = funs_ms2, 
             ms1vmods_all = ms1vmods_all, 
@@ -171,8 +171,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path,
             min_ms2mass = min_ms2mass, 
             index_mgf_ms2 = index_mgf_ms2, 
             by_modules = by_modules, 
-            df0 = df0, 
-            digits = digits)
+            df0 = df0)
 
   qs::qsave(aa_masses_all, faa)
   
@@ -232,12 +231,13 @@ reverse_seqs <- function (seqs)
 #'
 #' @param aa_masses_all List(1); The first list of all amino-acid look-ups.
 #' @param mod_indexes Integer; the indexes of fixed and/or variable
-#'   modifications
+#'   modifications.
+#' @param .path_bin The file path to binned precursor masses.
 #' @param reframe_mgfs Logical; if TRUE, recalculates the frame indexes of MGFs
 #' @param knots The number of knots for spline fits.
 #' @inheritParams matchMS
 calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL, 
-                       mod_indexes = NULL, type_ms2ions = "by", 
+                       .path_bin, mod_indexes = NULL, type_ms2ions = "by", 
                        maxn_vmods_per_pep = 5L,maxn_sites_per_vmod = 3L, 
                        maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
                        maxn_vmods_sitescombi_per_pep = 64L, minn_ms2 = 6L, 
@@ -249,8 +249,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL,
                        acc_pattern = NULL, topn_ms2ions = 100L, 
                        fixedmods = NULL, varmods = NULL, enzyme = "trypsin_p", 
                        maxn_fasta_seqs = 200000L, maxn_vmods_setscombi = 512L,
-                       min_len = 7L, max_len = 40L, max_miss = 2L, knots = 50L, 
-                       digits = 4L)
+                       min_len = 7L, max_len = 40L, max_miss = 2L, knots = 50L)
 {
   on.exit(
     if (exists(".savecall", envir = fun_env)) {
@@ -262,12 +261,8 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL,
   fun_env <- environment()
   args <- names(formals(fun))
   args_except <- NULL
+  args_must <- if (length(args_except)) args[!args %in% args_except] else args
 
-  if (length(args_except)) 
-    args_must <- args[!args %in% args_except]
-  else
-    args_must <- args
-  
   cache_pars <- find_callarg_vals(
     time = NULL, 
     path = file.path(out_path, "Calls"), 
@@ -317,6 +312,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL,
   ms2match(mgf_path = mgf_path,
            aa_masses_all = aa_masses_all,
            out_path = out_path,
+           .path_bin = .path_bin, 
            mod_indexes = mod_indexes, 
            type_ms2ions = type_ms2ions,
            maxn_vmods_per_pep = maxn_vmods_per_pep,
@@ -348,8 +344,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL,
            max_len = max_len,
            max_miss = max_miss,
            first_search = TRUE, 
-           .savecall = FALSE, 
-           digits = digits)
+           .savecall = FALSE)
   
   file.rename(fi_aa2, fi_aa)
   file.rename(fi_mi2, fi_mi)
@@ -381,8 +376,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL,
     mapply(calib_ms1, fs_mgf, dfs, 
            MoreArgs = list(
              mgf_path = mgf_path, out_path = out_path, ppm_ms1 = ppm_ms1, 
-             min_mass = min_mass, max_mass = max_mass, knots = knots, 
-             digits = digits), 
+             min_mass = min_mass, max_mass = max_mass, knots = knots), 
            SIMPLIFY = FALSE, 
            USE.NAMES = FALSE)
   }
@@ -394,8 +388,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL,
       cl, calib_ms1, fs_mgf, dfs, 
       MoreArgs = list(
         mgf_path = mgf_path, out_path = out_path, ppm_ms1 = ppm_ms1, 
-        min_mass = min_mass, max_mass = max_mass, knots = knots, 
-        digits = digits), 
+        min_mass = min_mass, max_mass = max_mass, knots = knots), 
       SIMPLIFY = FALSE, 
       USE.NAMES = FALSE)
     
@@ -422,7 +415,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL,
 #' @inheritParams calib_mgf
 calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL, 
                        ppm_ms1 = 20L, min_mass = 200L, max_mass = 4500L, 
-                       knots = 50L, digits = 4L)
+                       knots = 50L)
 {
   mgfs <- qs::qread(file.path(mgf_path, filename))
   
@@ -491,9 +484,7 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
   ## update MGF
   mgfs <- mgfs %>%
     dplyr::arrange(ms1_mass) %>% 
-    dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass) %>%
-    dplyr::mutate(
-      frame = find_ms1_interval(ms1_mass, from = min_mass, ppm = ppm_ms1_bin))
+    dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass)
 
   # charges <- get_ms1charges(mgfs[["ms1_charge"]])
   # mgfs[["ms1_moverz"]] <- (mgfs[["ms1_mass"]] + 1.00727647 * charges)/charges
@@ -501,6 +492,20 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
   .savecall <- TRUE
 
   qs::qsave(mgfs, file.path(mgf_path, filename), preset = "fast")
+}
+
+
+#' Finds offsets in precursor masses.
+#' 
+#' @inheritParams matchMS
+find_ms1_offsets <- function (n_13c = 0L, ms1_notches = 0) 
+{
+  if (length(n_13c))
+    n_13c <- n_13c[n_13c != 0L]
+  
+  offsets_13c <- if (length(n_13c)) n_13c * 1.00335483 else NULL
+  ms1_offsets <- unique(c(offsets_13c, ms1_notches))
+  round(ms1_offsets, digits = 4L)
 }
 
 

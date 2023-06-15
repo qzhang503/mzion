@@ -59,10 +59,10 @@ interrogation. The default is 110.}
   the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
   pep_ms2_deltas_sd} are nullified in the outputs.}
 
-\item{by_modules}{Logical. Experimenting. At the TRUE default, searches MS
-data by individual modules of combinatorial fixed and variable
-modifications. If FALSE, search all modules together. The later would
-probably need more than 32G RAM if the number of modules is over 96.}
+\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
+individual modules of combinatorial fixed and variable modifications. If
+FALSE, search all modules together. The later would probably need more than
+32G RAM if the number of modules is over 96.}
 }
 \description{
 Matches an MGF query

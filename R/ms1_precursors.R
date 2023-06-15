@@ -58,6 +58,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
               "Oxidation (M)", 
               "Deamidated (N)",
               "Gln->pyro-Glu (N-term = Q)"),
+  rm_dup_term_anywhere = TRUE, 
   fixedlabs = NULL, 
   varlabs = NULL, 
   mod_motifs = NULL, 
@@ -70,7 +71,6 @@ calc_pepmasses2 <- function (aa_masses = NULL,
   maxn_sites_per_vmod = 3L,
   min_len = 7L, max_len = 40L, max_miss = 2L,
   min_mass = 200L, max_mass = 4500L, 
-  n_13c = 0L,
   out_path = NULL,
   digits = 4L,
   use_ms1_cache = TRUE, 
@@ -109,8 +109,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
   # (7) Twelve types of VARIABLE modifications/masses:
   #     adds variable terminal masses (tmod+), variable anywhere masses (vmods+) 
   #     neutral losses (fnl+) etc.
-  
-  
+
   old_opts <- options()
   options(warn = 1L)
   on.exit(options(old_opts), add = TRUE)
@@ -143,6 +142,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
   })
   
   # toggle this if no new arguments to bypass
+  # new_args <- c(ms1_notches = 0)
   new_args <- NULL
 
   .time_stamp <- match_calltime(
@@ -157,7 +157,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
             "maxn_fasta_seqs", "maxn_vmods_setscombi",
             "maxn_vmods_per_pep", "maxn_sites_per_vmod",
             "min_len", "max_len", "max_miss", 
-            "min_mass", "max_mass", "n_13c"), 
+            "min_mass", "max_mass"), 
     
     # exception: new arguments need matches but not defined in earlier versions
     new_args = new_args)
@@ -176,6 +176,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
       out_path = file.path(.path_fasta, "ms1masses", .time_stamp),
       fixedmods = fixedmods,
       varmods = varmods,
+      rm_dup_term_anywhere = rm_dup_term_anywhere, 
       varlabs = varlabs, 
       mod_motifs = mod_motifs, 
       maxn_vmods_setscombi = maxn_vmods_setscombi)
@@ -189,9 +190,6 @@ calc_pepmasses2 <- function (aa_masses = NULL,
            "Remove cache file: \n", 
            file.path(.path_cache, fun, paste0(.time_stamp, ".rda")),
            " and try again.")
-
-    rm(list = c("aa_masses_all", "files"))
-    gc()
 
     fwd_peps <- NULL
     rev_peps <- NULL
@@ -214,6 +212,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
       out_path = path_tstamp,
       fixedmods = fixedmods,
       varmods = varmods,
+      rm_dup_term_anywhere = rm_dup_term_anywhere, 
       varlabs = varlabs,
       mod_motifs = mod_motifs, 
       maxn_vmods_setscombi = maxn_vmods_setscombi)
@@ -271,7 +270,6 @@ calc_pepmasses2 <- function (aa_masses = NULL,
                                         max_len = max_len, 
                                         aa_masses = aa_masses_0, 
                                         ftmass = ftmass)
-      
       gc()
     }
     else {
@@ -332,8 +330,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     #   `length(fwd_peps) == length(aa_masses_all)` after the step.
     # Note 1-to-n expansion: 
     #   `length(fwd_peps) == length(aa_masses_all)` after the step.
-    # n_cores = 4L at noenzyme and 16L otherwise
-    n_cores <- detect_cores(16L)
+    n_cores <- detect_cores(15L)
     
     if (isTRUE(enzyme == "noenzyme"))
       n_cores <- floor(max(1L, n_cores/4L))
@@ -383,8 +380,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
         "ct_counts", 
         "rm_char_in_nfirst", 
         "rm_char_in_nlast"), 
-      envir = environment(mzion::matchMS)
-    )
+      envir = environment(mzion::matchMS))
 
     # aa_masses_all[[1]] is for the original all-fixed mode not for the coerced,
     # otherwise, e.g. fixed to variable coercion of "TMT (K)" with a conflicting 
@@ -398,9 +394,8 @@ calc_pepmasses2 <- function (aa_masses = NULL,
       motifs_all = motifs_all, 
       max_miss = max_miss, 
       max_len = max_len, # different purpose
-      enzyme = enzyme
-    )
-    
+      enzyme = enzyme)
+
     parallel::stopCluster(cl)
     
     fwd_peps <- lapply(seq_along(aa_masses_all), function (i) {
@@ -413,7 +408,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     
     message("\tCompleted bare peptides distributions.")
     rm(list = c("seqs_0"))
-    gc()
+    # gc()
 
     # (c) Protein-peptide associations
     message("Summarizing the association of proteins and peptides.")
@@ -431,17 +426,17 @@ calc_pepmasses2 <- function (aa_masses = NULL,
       simple_prots_peps)
     
     parallel::stopCluster(cl)
-    gc()
+    # gc()
     
     prps <- flatten_list(prps)
     qs::qsave(prps, file.path(path_prp, "simple_prot_pep.rds"), preset = "fast")
     rm(list = c("prps"))
-    gc()
+    # gc()
     
 
     # (d) Flattened peptide lists (prot_acc's removed)
     fwd_peps <- lapply(fwd_peps, flat_pepseqs)
-    gc()
+    # gc()
     
     
     # (e) Adjusted base masses if with fixed-to-variable coercion
@@ -451,8 +446,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     fwd_peps[[1]] <- adj_base_masses(fwd_peps[[1]], aa_masses_0, aa_masses_1, 
                                      min_mass = min_mass, max_mass = max_mass, 
                                      digits = digits)
-    
-    gc()
+    # gc()
     
     
     # --- Delta masses of `variable` terminals  ---
@@ -505,7 +499,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
     
     if (FALSE) {
-      n_cores <- detect_cores(32L)
+      n_cores <- detect_cores(32L) - 1L
 
       inds <- which(types %in% c("amods- tmod- vnl- fnl+",
                                  "amods- tmod+ vnl- fnl+"))
@@ -580,7 +574,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     # 32L: 22.6
     # 64L: 39 
 
-    n_cores <- detect_cores(16L)
+    n_cores <- detect_cores(15L)
 
     inds <- which(types %in% c("amods+ tmod- vnl- fnl-",
                                "amods+ tmod+ vnl- fnl-",
@@ -649,36 +643,31 @@ calc_pepmasses2 <- function (aa_masses = NULL,
       }
       
       parallel::stopCluster(cl)
-      gc()
+      # gc()
     }
 
     suppressWarnings(
       rm(list = c("amods_i", "fmods_nl", "fmods_ps", "fwd_peps_i", 
-                  "vmods_nl_i", "aa_masses_1", "aa_masses_i"))
-    )
-    
-    gc()
+                  "vmods_nl_i", "aa_masses_1", "aa_masses_i")))
+    # gc()
 
-    fwd_peps <- lapply(fwd_peps, add_ms1_13c, n_13c)
-
+    # fwd_peps <- lapply(fwd_peps, add_ms1_13c, n_13c, max_mass)
+    # fwd_peps <- lapply(fwd_peps, add_ms1_notches, ms1_notches, max_mass)
 
     # === Outputs ===
     path_masses <- create_dir(file.path(.path_ms1masses, .time_stamp))
 
-    fwd_peps <- purrr::map2(aa_masses_all, fwd_peps, ~ {
-      attr(.x, "data") <- .y
-      .x
-    })
+    fwd_peps <- mapply(function (x, y) {
+      attr(x, "data") <- y
+      x
+    }, aa_masses_all, fwd_peps, SIMPLIFY = FALSE, USE.NAMES = FALSE)
 
     names(fwd_peps) <- seq_along(aa_masses_all)
-    gc()
 
-    for (i in seq_along(fwd_peps)) {
+    for (i in seq_along(fwd_peps))
       qs::qsave(fwd_peps[[i]], 
                 file.path(path_masses, paste0("pepmasses_", i, ".rds")), 
                 preset = "fast")
-    }
-    gc()
 
     .savecall <- TRUE
     message("\n=== Completed MS1 precursor masses. ===\n")
@@ -709,7 +698,8 @@ calc_pepmasses2 <- function (aa_masses = NULL,
 #'
 #' @inheritParams calc_pepmasses2
 find_aa_masses <- function(aa_masses = NULL, out_path = NULL, fixedmods = NULL, 
-                           varmods = NULL, varlabs = NULL, mod_motifs = NULL, 
+                           varmods = NULL, rm_dup_term_anywhere = TRUE, 
+                           varlabs = NULL, mod_motifs = NULL, 
                            maxn_vmods_setscombi = 64L) 
 {
   file <- file.path(out_path, "aa_masses_all.rds")
@@ -723,6 +713,7 @@ find_aa_masses <- function(aa_masses = NULL, out_path = NULL, fixedmods = NULL,
 
   aa_masses_all <- calc_aamasses(fixedmods = fixedmods,
                                  varmods = varmods,
+                                 rm_dup_term_anywhere = rm_dup_term_anywhere, 
                                  aa_masses = aa_masses, 
                                  varlabs = varlabs, 
                                  mod_motifs = mod_motifs, 
@@ -946,6 +937,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
                                        "Oxidation (M)",
                                        "Deamidated (N)",
                                        "Gln->pyro-Glu (N-term = Q)"),
+                           rm_dup_term_anywhere = TRUE, 
                            aa_masses = NULL, varlabs = NULL, mod_motifs = NULL, 
                            maxn_vmods_setscombi = 64L, out_path = NULL) 
 {
@@ -1037,7 +1029,7 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
   ## (3) add variable mods + NL
   varmods_comb <- find_aamasses_vmodscombi(varmods, f_to_v, anywhere_coerce_sites)
   
-  if (rm_dup_term_anywhere <- TRUE) {
+  if (rm_dup_term_anywhere) {
     oks <- unlist(lapply(varmods_comb, check_dup_term_any))
     varmods_comb <- varmods_comb[oks]
   }
@@ -2752,11 +2744,13 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
 
 
 #' Adds Carbon-13 masses.
-#'
+#' 
+#' Not currently used.
+#' 
 #' @param peps A named vector of peptide sequences. Sequences in names and
 #'   masses in values.
 #' @inheritParams matchMS
-add_ms1_13c <- function (peps, n_13c = 1L, max_mass = 4500L) 
+add_ms1_13c <- function (peps, n_13c = 0L, max_mass = 4500L) 
 {
   len <- length(n_13c)
   
@@ -2765,7 +2759,7 @@ add_ms1_13c <- function (peps, n_13c = 1L, max_mass = 4500L)
   
   if (len == 1L && n_13c == 0L)
     return(peps)
-  
+
   mass_13c <- 1.00335483
   ns <- if (len == 1L) if (n_13c < 0L) n_13c:0L else 0:n_13c else n_13c
   len2 <- length(ns)
@@ -2776,6 +2770,36 @@ add_ms1_13c <- function (peps, n_13c = 1L, max_mass = 4500L)
     out[[i]] <- if (ni == 0L) peps else peps + mass_13c * ni
   }
   
+  out <- .Internal(unlist(out, recursive = FALSE, use.names = TRUE))
+  
+  out[out <= max_mass]
+}
+
+
+#' Adds offsets of MS1 masses.
+#' 
+#' Not currently used.
+#' 
+#' @param peps A named vector of peptide sequences. Sequences in names and
+#'   masses in values.
+#' @param masses The masses of notches.
+#' @inheritParams matchMS
+add_ms1_notches <- function (peps, masses = 0, max_mass = 4500L) 
+{
+  if (!length(masses))
+    return(peps)
+  
+  masses <- c(0, masses[abs(masses) > 1e-4])
+
+  if ((len <- length(masses)) == 1L)
+    return(peps)
+  
+  out <- vector("list", len)
+  out[[1]] <- peps
+  
+  for (i in 2:len)
+    out[[i]] <- peps + masses[[i]]
+
   out <- .Internal(unlist(out, recursive = FALSE, use.names = TRUE))
   
   out[out <= max_mass]

@@ -13,7 +13,7 @@ matchMS_par_groups(
 )
 }
 \arguments{
-\item{par_groups}{A low -priority feature. Parameter(s) of \code{matchMS}
+\item{par_groups}{A low-priority feature. Parameter(s) of \code{matchMS}
 multiplied by sets of values in groups. Multiple searches will be performed
 separately against the parameter groups. For instance with one set of
 samples in SILAC light and the other in SILAC heavy, the experimenters may

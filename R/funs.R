@@ -16,10 +16,8 @@
 # 
 # $ion_ladder.R
 #  [1] "ms2ions_by_type" "byions"          "czions"          "axions"          "bions_base"      "yions_base"     
-#  [7] "b2ions_base"     "bstarions"       "bstar2ions"      "b0ions"          "b02ions"         "y2ions"         
-# [13] "ystarions"       "ystar2ions"      "y0ions"          "y02ions"         "cions_base"      "c2ions"         
-# [19] "zions_base"      "z2ions"          "aions_base"      "a2ions"          "astarions"       "astar2ions"     
-# [25] "a0ions"          "a02ions"         "xions_base"      "x2ions"         
+#  [7] "cions_base"      "zions_base"      "c2ions"          "z2ions"          "aions_base"      "xions_base"     
+# [13] "a2ions"          "astarions"       "astar2ions"      "a0ions"          "a02ions"         "x2ions"         
 # 
 # $mapMS2ions.R
 #  [1] "mapMS2ions"             "match_mgf_path"         "match_raw_id"           "add_raw_ids"           

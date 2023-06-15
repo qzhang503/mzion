@@ -8,6 +8,7 @@ calc_aamasses(
   fixedmods = c("TMT6plex (K)", "Carbamidomethyl (. = C)"),
   varmods = c("TMT6plex (N-term)", "Acetyl (Protein N-term)", "Oxidation (M)",
     "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
+  rm_dup_term_anywhere = TRUE,
   aa_masses = NULL,
   varlabs = NULL,
   mod_motifs = NULL,
@@ -20,6 +21,10 @@ calc_aamasses(
 \link{parse_unimod} for grammars.}
 
 \item{varmods}{A character vector of variable modifications.}
+
+\item{rm_dup_term_anywhere}{Logical; if TRUE, removes combinations in
+variable modifications with site(s) in positions of both terminal and
+anywhere, e.g., "Gln->pyro-Glu (N-term = Q)" and "Deamidated (Q).}
 
 \item{aa_masses}{An amino-acid mass lookup.}
 

@@ -11,7 +11,7 @@ find_reporter_ints(
   ul,
   ppm_reporters = 10L,
   len,
-  nms
+  channels
 )
 }
 \arguments{
@@ -30,7 +30,7 @@ ions. The default is 10.}
 
 \item{len}{The length of reporter-ion plexes.}
 
-\item{nms}{The names of reporter-ion channels.}
+\item{channels}{The names of reporter-ion channels.}
 }
 \description{
 Finds the intensities of reporter-ions.
@@ -55,13 +55,13 @@ names(theos) <- c("126", "127N", "127C", "128N", "128C",
 ppm_reporters <- 10
 ul <- c(126.1, 131.2)
 len <- 10
-nms <- names(theos)
+channels <- names(theos)
 
 x <- mzion:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 10,
-                        len , nms)
+                        len , channels)
 
 x <- mzion:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
-                        len , nms)
+                        len , channels)
 
 # Two `129C`, no `127N` etc.
 ms2_moverzs <- c(105.1503, 107.0428, 111.7716, 120.0811, 126.1281, 127.1312,
@@ -78,6 +78,6 @@ ms2_ints <- c(1201.79, 1319.32, 1603.45, 1595.34, 2148.66, 1785.74, 1254.24,
               1990.57, 1758.72, 1655.09, 1460.68, 1641.39, 1721.33)
 
 x <- mzion:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
-                        len , nms)
+                        len , channels)
 }
 }

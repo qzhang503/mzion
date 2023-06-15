@@ -8,6 +8,7 @@ calib_mgf(
   mgf_path = NULL,
   aa_masses_all = NULL,
   out_path = NULL,
+  .path_bin,
   mod_indexes = NULL,
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
@@ -38,8 +39,7 @@ calib_mgf(
   min_len = 7L,
   max_len = 40L,
   max_miss = 2L,
-  knots = 50L,
-  digits = 4L
+  knots = 50L
 )
 }
 \arguments{
@@ -57,8 +57,10 @@ calib_mgf(
 
 \item{out_path}{A file path of outputs.}
 
+\item{.path_bin}{The file path to binned precursor masses.}
+
 \item{mod_indexes}{Integer; the indexes of fixed and/or variable
-modifications}
+modifications.}
 
 \item{type_ms2ions}{Character; the type of
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
@@ -142,10 +144,10 @@ ions. The default is 10.}
   the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
   pep_ms2_deltas_sd} are nullified in the outputs.}
 
-\item{by_modules}{Logical. Experimenting. At the TRUE default, searches MS
-data by individual modules of combinatorial fixed and variable
-modifications. If FALSE, search all modules together. The later would
-probably need more than 32G RAM if the number of modules is over 96.}
+\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
+individual modules of combinatorial fixed and variable modifications. If
+FALSE, search all modules together. The later would probably need more than
+32G RAM if the number of modules is over 96.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}
@@ -197,9 +199,6 @@ for considerations. Longer peptides will be excluded. The default is 40.}
 per peptide sequence for considerations. The default is 2.}
 
 \item{knots}{The number of knots for spline fits.}
-
-\item{digits}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
 }
 \description{
 \code{ppm_ms1} only for the calculation of frame indexes of precursors.

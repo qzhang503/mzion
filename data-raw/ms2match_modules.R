@@ -1,3 +1,39 @@
+x = mgf_frames[[1]]
+y = theopeps[[1]]
+from = 133
+to = 133
+sta = as.integer(names(x[from])) - 1L
+end = as.integer(names(x[to])) + 1L
+
+df <- frames_adv(
+  x[from:to], y[which(names(y) == sta):which(names(y) == end)], 
+  aa_masses = aa_masses, 
+  ms1vmods = ms1vmods, 
+  ms2vmods = ms2vmods, 
+  ntmod = ntmod, 
+  ctmod = ctmod, 
+  ntmass = ntmass, 
+  ctmass = ctmass, 
+  amods = amods, 
+  vmods_nl = vmods_nl, 
+  fmods_nl = fmods_nl, 
+  pep_mod_group = pep_mod_group, 
+  mod_indexes = mod_indexes, 
+  type_ms2ions = type_ms2ions, 
+  maxn_vmods_per_pep = maxn_vmods_per_pep, 
+  maxn_sites_per_vmod = maxn_sites_per_vmod, 
+  maxn_fnl_per_seq = maxn_fnl_per_seq, 
+  maxn_vnl_per_seq = maxn_vnl_per_seq, 
+  maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+  minn_ms2 = minn_ms2, 
+  ppm_ms1 = ppm_ms1, 
+  ppm_ms2 = ppm_ms2, 
+  min_ms2mass = min_ms2mass, 
+  index_mgf_ms2 = index_mgf_ms2, 
+  ms1_offsets = ms1_offsets, 
+  FUN = FUN
+)
+
 ## Module 9
 # ms2match_a1_vnl1_fnl0 (Kh_001)
 i=100

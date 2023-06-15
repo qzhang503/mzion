@@ -59,6 +59,9 @@
 #'   \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
 #'   \link{parse_unimod} for grammars of modification \code{title},
 #'   \code{position} and \code{site}.
+#' @param rm_dup_term_anywhere Logical; if TRUE, removes combinations in
+#'   variable modifications with site(s) in positions of both terminal and
+#'   anywhere, e.g., "Gln->pyro-Glu (N-term = Q)" and "Deamidated (Q).
 #' @param fixedlabs Character string(s) of fixed isotopic labels. See examples
 #'   of SILAC for details. Can be but not typically used in standard alone
 #'   searches of labeled residues.
@@ -165,14 +168,12 @@
 #'   interrogation. The default is 110.
 #' @param max_ms2mass A positive integer; the maximum MS2 mass for
 #'   interrogation.
-#' @param n_13c A non-negative integer; the maximum number of 13C off-sets for
-#'   consideration in MS1 masses. The default is 0 with no off-sets.
-#'   Peak-pickings by various MGF conversion tools may have attempted to adjust
-#'   precursor masses to the corresponding mono-isotopic masses in isotope
-#'   envelopes. Nevertheless, by setting \code{n_13c = 1}, some increases in the
-#'   number of PSMs may be readily achieved at a relatively small cost of search
-#'   time.
-#' @param par_groups A low -priority feature. Parameter(s) of \code{matchMS}
+#' @param n_13c Number(s) of 13C off-sets in precursor masses, for example, over
+#'   the range of \code{-1:2}. The default is 0.
+#' @param ms1_notches A numeric vector; notches (off-sets) in precursor masses,
+#'   e.g., \code{c(-79.966331, -97.976896)} to account fo the loss of a phospho
+#'   group and phosphoric acid in precursor masses.
+#' @param par_groups A low-priority feature. Parameter(s) of \code{matchMS}
 #'   multiplied by sets of values in groups. Multiple searches will be performed
 #'   separately against the parameter groups. For instance with one set of
 #'   samples in SILAC light and the other in SILAC heavy, the experimenters may
@@ -302,18 +303,18 @@
 #'   \code{max_protnpep_co = Inf} to learn automatically the cut-off from data.
 #'   Note that the the value of \code{prot_n_pep} includes the counts of shared
 #'   peptides.
-#' @param method_prot_es_co A character string; the method to calculate the
-#'   cut-offs of protein enrichment scores. The value is in one of \code{
-#'   "median", "mean", "max", "min"} with the default of \code{"median"}. For
-#'   instance at the default, the median of \code{peptide_score -
-#'   pep_score_cutoff} under a protein will be used to represent the threshold
-#'   of a protein enrichment score. For more conserved thresholds, the
-#'   statistics of \code{"max"} may be considered.
-#' @param soft_secions Impacts on search performance not yet assessed. Logical;
-#'   if TRUE, collapses the intensities of secondary ions to primary ions even
-#'   when the primaries are absent. The default is FALSE. For instance, the
-#'   signal of \code{b5^*} will be ignored if its primary ion \code{b5} is not
-#'   matched.
+#' @param method_prot_es_co A low-priority setting. A character string; the
+#'   method to calculate the cut-offs of protein enrichment scores. The value is
+#'   in one of \code{"median", "mean", "max", "min"} with the default of
+#'   \code{"median"}. For instance at the default, the median of
+#'   \code{peptide_score - pep_score_cutoff} under a protein will be used to
+#'   represent the threshold of a protein enrichment score. For more conserved
+#'   thresholds, the statistics of \code{"max"} may be considered.
+#' @param soft_secions Logical; if TRUE, collapses the intensities of secondary
+#'   ions to primary ions even when the primaries are absent. The default is
+#'   FALSE. For instance, the signal of \code{b5^*} will be ignored if its
+#'   primary ion \code{b5} is not matched. The impacts of \code{soft_secions =
+#'   TRUE} on search performance has not yet been assessed.
 #' @param topn_seqs_per_query Positive integer; a threshold to discard peptide
 #'   matches under the same MS query with scores beyond the top-n.
 #'
@@ -418,10 +419,10 @@
 #'   suggested. Occasionally experimenters may remove the file folder for disk
 #'   space or under infrequent events of modified framework incurred by the
 #'   developer.
-#' @param by_modules Logical. Experimenting. At the TRUE default, searches MS
-#'   data by individual modules of combinatorial fixed and variable
-#'   modifications. If FALSE, search all modules together. The later would
-#'   probably need more than 32G RAM if the number of modules is over 96.
+#' @param by_modules Not used. Logical. At the TRUE default, searches MS data by
+#'   individual modules of combinatorial fixed and variable modifications. If
+#'   FALSE, search all modules together. The later would probably need more than
+#'   32G RAM if the number of modules is over 96.
 #' @param digits A non-negative integer; the number of decimal places to be
 #'   used. The default is 4.
 #' @param ... Not currently used.
@@ -461,7 +462,6 @@
 #'   out_path = "~/mzion/examples",
 #' )
 #'
-#'
 #' # TMT-16plex, phospho
 #' matchMS(
 #'   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
@@ -470,6 +470,16 @@
 #'                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
 #'   locmods   = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
 #'   quant     = "tmt16",
+#'   fdr_type  = "psm",
+#'   out_path  = "~/mzion/examples",
+#' )
+#'
+#' # TMT-18plex
+#' matchMS(
+#'   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
+#'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
+#'                 "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
+#'   quant     = "tmt18",
 #'   fdr_type  = "psm",
 #'   out_path  = "~/mzion/examples",
 #' )
@@ -648,6 +658,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      varmods = c("Acetyl (Protein N-term)",
                                  "Oxidation (M)", "Deamidated (N)",
                                  "Gln->pyro-Glu (N-term = Q)"),
+                     rm_dup_term_anywhere = TRUE, 
                      fixedlabs = NULL, 
                      varlabs = NULL, 
                      locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
@@ -678,6 +689,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      min_mass = 200L, max_mass = 4500L, 
                      ppm_ms1 = 20L, 
                      n_13c = 0L, 
+                     ms1_notches = 0, 
                      
                      par_groups = NULL, 
                      silac_mix = NULL, 
@@ -710,7 +722,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 60000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/mzion/.MSearches (1.2.6)/Cache/Calls", 
+                     .path_cache = "~/mzion/.MSearches (1.2.7)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,
@@ -802,7 +814,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   stopifnot(vapply(c(soft_secions, combine_tier_three, calib_ms1mass, 
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
                      add_ms2ints, exclude_reporter_region, index_mgf_ms2, 
-                     svm_cv), 
+                     svm_cv, rm_dup_term_anywhere), 
                    is.logical, logical(1L)))
 
   # numeric types 
@@ -868,9 +880,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 10L, minn_ms2 >= 2L, 
             min_mass >= 1L, max_mass >= min_mass, 
             min_ms2mass >= 1L, max_ms2mass > min_ms2mass, 
-            # maxn_fnl_per_seq >= 2L, maxn_vnl_per_seq >= 2L, 
             maxn_vmods_sitescombi_per_pep >= 2L, 
-            n_13c >= 0L, noenzyme_maxn >= 0L, 
+            noenzyme_maxn >= 0L, 
             maxn_vmods_per_pep >= maxn_sites_per_vmod, max_n_prots > 1000L, 
             min_ms1_charge >= 1L, max_ms1_charge >= min_ms1_charge, 
             min_scan_num >= 1L, max_scan_num >= min_scan_num, 
@@ -1049,13 +1060,11 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (length(par_groups)) {
     if ("out_path" %in% names(par_groups))
       stop("Do not include `out_path` in `par_groups`.\n", 
-           "The same parent `out_path` is assumed.", 
-           call. = FALSE)
+           "The same parent `out_path` is assumed.")
     
     if ("fasta" %in% names(par_groups))
       stop("Do not include `fasta` in `par_groups`.\n", 
-           "The same set of `fasta` files is assumed.", 
-           call. = FALSE)
+           "The same set of `fasta` files is assumed.")
     
     grp_args <- local({
       nms <- lapply(par_groups, names)
@@ -1064,15 +1073,14 @@ matchMS <- function (out_path = "~/mzion/outs",
       
       if (!identical(nms_1, all_nms))
         stop("Not all names are identical to those in the first group: ", 
-             paste(nms_1, collapse = ", "), 
-             call. = FALSE)
+             paste(nms_1, collapse = ", "))
       
       fargs <- formalArgs(fun)
       bads <- nms_1[! nms_1 %in% fargs]
       
       if (length(bads)) 
         stop("Arguments in `par_groups` not defined in `", fun, "`:\n  ", 
-             paste(bads, collapse = ", "), call. = FALSE)
+             paste(bads, collapse = ", "))
       
       cargs <- names(this_call)
       cargs <- cargs[cargs != ""]
@@ -1080,7 +1088,7 @@ matchMS <- function (out_path = "~/mzion/outs",
       
       if (length(dups))
         stop("Arguments in `par_groups` already in the call", ":\n  ", 
-             paste(dups, collapse = ", "), call. = FALSE)
+             paste(dups, collapse = ", "))
       
       nms_1
     })
@@ -1156,10 +1164,10 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
   
   ## Theoretical MS1 masses
-  bypass_pepmasses <- dots$bypass_pepmasses
-  if (is.null(bypass_pepmasses)) bypass_pepmasses <- FALSE
+  if (is.null(bypass_pepmasses <- dots$bypass_pepmasses)) 
+    bypass_pepmasses <- FALSE
 
-  if (!bypass_pepmasses) {
+  if (!bypass_pepmasses)
     res <- calc_pepmasses2(
       aa_masses = aa_masses, 
       fasta = fasta,
@@ -1167,6 +1175,7 @@ matchMS <- function (out_path = "~/mzion/outs",
       acc_pattern = acc_pattern,
       fixedmods = fixedmods,
       varmods = varmods,
+      rm_dup_term_anywhere = rm_dup_term_anywhere, 
       fixedlabs = fixedlabs, 
       varlabs = varlabs, 
       mod_motifs = mod_motifs, 
@@ -1182,50 +1191,54 @@ matchMS <- function (out_path = "~/mzion/outs",
       max_miss = max_miss,
       min_mass = min_mass, 
       max_mass = max_mass, 
-      n_13c = n_13c,
       out_path = out_path,
       digits = digits,
       use_ms1_cache = use_ms1_cache, 
       .path_cache = .path_cache, 
       .path_fasta = .path_fasta, 
-      .path_ms1masses = .path_ms1masses
-    )
-  }
+      .path_ms1masses = .path_ms1masses)
 
   ## Bin theoretical peptides
-  bypass_bin_ms1 <- dots$bypass_bin_ms1
-  if (is.null(bypass_bin_ms1)) bypass_bin_ms1 <- FALSE
+  if (is.null(bypass_bin_ms1 <- dots$bypass_bin_ms1)) 
+    bypass_bin_ms1 <- FALSE
   
   reframe_mgfs <- calib_ms1mass && ppm_ms1calib != ppm_ms1
 
   if (!bypass_bin_ms1) {
-    bin_ms1masses(res = res, 
-                  min_mass = min_mass, 
-                  max_mass = max_mass, 
-                  ppm_ms1 = ppm_ms1, 
-                  use_ms1_cache = use_ms1_cache, 
-                  .path_cache = .path_cache, 
-                  .path_ms1masses = .path_ms1masses, 
-                  out_path = out_path)
-    
-    if (reframe_mgfs) {
+    .path_bin <- 
       bin_ms1masses(res = res, 
                     min_mass = min_mass, 
                     max_mass = max_mass, 
-                    ppm_ms1 = ppm_ms1calib, 
+                    min_len = min_len,
+                    max_len = max_len,
+                    ppm_ms1 = ppm_ms1, 
                     use_ms1_cache = use_ms1_cache, 
                     .path_cache = .path_cache, 
                     .path_ms1masses = .path_ms1masses, 
+                    enzyme = enzyme, 
                     out_path = out_path)
-    }
     
-    try(rm(list = "res"), silent = TRUE)
-    gc()
+    if (reframe_mgfs)
+      .path_bin_calib <- 
+        bin_ms1masses(res = res, 
+                      min_mass = min_mass, 
+                      max_mass = max_mass, 
+                      min_len = min_len,
+                      max_len = max_len,
+                      ppm_ms1 = ppm_ms1calib, 
+                      use_ms1_cache = use_ms1_cache, 
+                      .path_cache = .path_cache, 
+                      .path_ms1masses = .path_ms1masses, 
+                      enzyme = enzyme, 
+                      out_path = out_path)
+
+    if (exists("res"))
+      rm(list = "res")
   }
 
   ## MGFs
-  bypass_mgf <- dots$bypass_mgf
-  if (is.null(bypass_mgf)) bypass_mgf <- FALSE
+  if (is.null(bypass_mgf <- dots$bypass_mgf)) 
+    bypass_mgf <- FALSE
   
   if (!bypass_mgf)
     load_mgfs(out_path = out_path, 
@@ -1254,8 +1267,8 @@ matchMS <- function (out_path = "~/mzion/outs",
               digits = digits)
 
   ## MSMS matches
-  bypass_ms2match <- dots$bypass_ms2match
-  if (is.null(bypass_ms2match)) bypass_ms2match <- FALSE
+  if (is.null(bypass_ms2match <- dots$bypass_ms2match)) 
+    bypass_ms2match <- FALSE
   
   .time_stamp <- find_ms1_times(out_path)
   
@@ -1276,9 +1289,9 @@ matchMS <- function (out_path = "~/mzion/outs",
     mod_indexes <- NULL
   }
   
-  if (calib_ms1mass) {
+  if (calib_ms1mass)
     calib_mgf(mgf_path = mgf_path, aa_masses_all = aa_masses_all[1], # base
-              out_path = out_path, 
+              out_path = out_path, .path_bin = .path_bin_calib, 
               mod_indexes = mod_indexes[names(mod_indexes) %in% fixedmods], 
               type_ms2ions = type_ms2ions, 
               maxn_vmods_per_pep = maxn_vmods_per_pep,
@@ -1298,16 +1311,16 @@ matchMS <- function (out_path = "~/mzion/outs",
               enzyme = enzyme, maxn_fasta_seqs = maxn_fasta_seqs, 
               maxn_vmods_setscombi = maxn_vmods_setscombi,
               min_len = min_len, max_len = max_len, max_miss = max_miss, 
-              knots = 50L, digits = digits)
-  }
+              knots = 50L)
 
   if (!bypass_ms2match) {
     if (min_ms2mass < 5L) 
       warning("Maybe out of RAM at \"min_ms2mass < 5L\".")
-
+    
     ms2match(mgf_path = mgf_path,
              aa_masses_all = aa_masses_all,
              out_path = out_path,
+             .path_bin = .path_bin, 
              mod_indexes = mod_indexes,
              type_ms2ions = type_ms2ions,
              maxn_vmods_per_pep = maxn_vmods_per_pep,
@@ -1326,6 +1339,8 @@ matchMS <- function (out_path = "~/mzion/outs",
              ppm_reporters = ppm_reporters,
              index_mgf_ms2 = index_mgf_ms2, 
              by_modules = by_modules, 
+             n_13c = n_13c,
+             ms1_notches = ms1_notches, 
 
              # dummy for argument matching
              fasta = fasta,
@@ -1339,23 +1354,22 @@ matchMS <- function (out_path = "~/mzion/outs",
              maxn_vmods_setscombi = maxn_vmods_setscombi,
              min_len = min_len,
              max_len = max_len,
-             max_miss = max_miss,
-             digits = digits)
+             max_miss = max_miss)
   }
 
   ## Peptide scores
-  bypass_from_pepscores <- dots$bypass_from_pepscores
-  if (is.null(bypass_from_pepscores)) bypass_from_pepscores <- FALSE
+  if (is.null(bypass_from_pepscores <- dots$bypass_from_pepscores)) 
+    bypass_from_pepscores <- FALSE
 
   if (bypass_from_pepscores) 
     return(NULL)
   
-  bypass_pepscores <- dots$bypass_pepscores
-  if (is.null(bypass_pepscores)) bypass_pepscores <- FALSE
+  if (is.null(bypass_pepscores <- dots$bypass_pepscores)) 
+    bypass_pepscores <- FALSE
   
   if (!bypass_pepscores) {
-    tally_ms2ints <- dots$tally_ms2ints
-    if (is.null(tally_ms2ints)) tally_ms2ints <- TRUE
+    if (is.null(tally_ms2ints <- dots$tally_ms2ints)) 
+      tally_ms2ints <- TRUE
     
     calc_pepscores(topn_ms2ions = topn_ms2ions,
                    type_ms2ions = type_ms2ions,
@@ -1395,8 +1409,8 @@ matchMS <- function (out_path = "~/mzion/outs",
                    digits = digits)
   }
   
-  bypass_primatches <- dots$bypass_primatches
-  if (is.null(bypass_primatches)) bypass_primatches <- FALSE
+  if (is.null(bypass_primatches <- dots$bypass_primatches)) 
+    bypass_primatches <- FALSE
   
   if (!bypass_primatches)
     hadd_primatches(out_path = out_path, 
@@ -1408,8 +1422,8 @@ matchMS <- function (out_path = "~/mzion/outs",
                     index_mgf_ms2 = index_mgf_ms2)
 
   ## Peptide FDR 
-  bypass_pepfdr <- dots$bypass_pepfdr
-  if (is.null(bypass_pepfdr)) bypass_pepfdr <- FALSE
+  if (is.null(bypass_pepfdr <- dots$bypass_pepfdr)) 
+    bypass_pepfdr <- FALSE
   
   if (!bypass_pepfdr) {
     prob_cos <- calc_pepfdr(target_fdr = target_fdr, 
@@ -1448,8 +1462,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
 
   ## Peptide ranks and score deltas between `pep_ivmod`
-  bypass_peploc <- dots$bypass_peploc
-  if (is.null(bypass_peploc)) bypass_peploc <- FALSE
+  if (is.null(bypass_peploc <- dots$bypass_peploc)) 
+    bypass_peploc <- FALSE
   
   if (!bypass_peploc) {
     calc_peploc(out_path = out_path, 
@@ -1457,18 +1471,18 @@ matchMS <- function (out_path = "~/mzion/outs",
                 locmods = locmods, 
                 topn_mods_per_seq = topn_mods_per_seq, 
                 topn_seqs_per_query = topn_seqs_per_query)
-    gc()
   }
 
   ## Protein accessions
-  bypass_from_protacc <- dots$bypass_from_protacc
-  if (is.null(bypass_from_protacc)) bypass_from_protacc <- FALSE
+  if (is.null(bypass_from_protacc <- dots$bypass_from_protacc)) 
+    bypass_from_protacc <- FALSE
   
   if (bypass_from_protacc) 
     return(NULL)
+
+  if (is.null(bypass_protacc <- dots$bypass_protacc)) 
+    bypass_protacc <- FALSE
   
-  bypass_protacc <- dots$bypass_protacc
-  if (is.null(bypass_protacc)) bypass_protacc <- FALSE
   temp_dir <- file.path(out_path, "temp")
   file_protacc <- file.path(temp_dir, "df_protacc.rds")
   
@@ -1501,8 +1515,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   rm(list = "file_protacc")
   
   ## Protein FDR
-  bypass_protfdr <- dots$bypass_protfdr
-  if (is.null(bypass_protfdr)) bypass_protfdr <- FALSE
+  if (is.null(bypass_protfdr <- dots$bypass_protfdr)) 
+    bypass_protfdr <- FALSE
   
   file_protfdr <- file.path(temp_dir, "df_protfdr.rds")
   
@@ -1520,12 +1534,11 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
   
   df <- add_rptrs(df, quant, out_path)
-  gc()
 
   ## Clean-ups
   # (raw_file etc. already mapped if `from_group_search`)
-  from_group_search <- dots$from_group_search
-  if (!isTRUE(from_group_search)) df <- map_raw_n_scan(df, mgf_path)
+  if (!isTRUE(from_group_search <- dots$from_group_search)) 
+    df <- map_raw_n_scan(df, mgf_path)
   
   df <- dplyr::mutate(df, pep_expect = 10^((pep_score_co - pep_score)/10) * target_fdr)
   df[["pep_score_co"]] <- NULL
@@ -1550,12 +1563,14 @@ matchMS <- function (out_path = "~/mzion/outs",
   rm(list = c("cols_tmt", "rows_tmt"))
   
   local({
+    df$pep_exp_mz  <- round(df$pep_exp_mz, digits = 4L)
     df$pep_exp_mr  <- round(df$pep_exp_mr, digits = 4L)
     df$pep_calc_mr <- round(df$pep_calc_mr, digits = 4L)
     df$pep_delta   <- round(df$pep_delta, digits = 4L)
+    df$pep_tot_int <- round(df$pep_tot_int, digits = 1L)
     df$pep_expect  <- format(df$pep_expect, digits = 3L)
-    readr::write_tsv(df, file.path(out_path, "psmC.txt"))
     
+    readr::write_tsv(df, file.path(out_path, "psmC.txt"))
     session_info <- sessionInfo()
     save(session_info, file = file.path(out_path, "Calls", "mzion.rda"))
   })
@@ -1565,7 +1580,6 @@ matchMS <- function (out_path = "~/mzion/outs",
                "prot_issig", "prot_n_pep")]
   
   df <- dplyr::filter(df, pep_issig, !pep_isdecoy, !grepl("^-", prot_acc))
-  gc()
 
   df <- try_psmC2Q(df, 
                    out_path = out_path,
@@ -1602,20 +1616,17 @@ try_psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
     stop()
   }
   
-  if (n_peps > 1000000L && n_prots > 100000L) {
+  if (n_peps > 1000000L && n_prots > 100000L)
     df <- NA
-  } 
-  else {
+  else
     df <- tryCatch(
       psmC2Q(df,
              out_path = out_path,
              fdr_type = fdr_type,
              combine_tier_three = combine_tier_three, 
              max_n_prots = max_n_prots),
-      error = function(e) NA
-    )
-  }
-  
+      error = function(e) NA)
+
   if (length(df) == 1L && is.na(df)) {
     message("Retry with a new R session: \n\n",
             "Manual execution of the following codes if not start automatically.\n\n", 
@@ -1646,10 +1657,9 @@ try_psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
   } 
   else {
     suppressWarnings(
-      rm(list = c(".path_cache", ".path_ms1masses", ".time_stamp"),
-         envir = .GlobalEnv)
-    )
-    
+      rm(list = c(".path_cache", ".path_ms1masses", ".time_stamp"), 
+         envir = .GlobalEnv))
+
     message("Done.")
   }
   
@@ -1789,8 +1799,7 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
   df  <- unique(df [, c("prot_acc", "pep_seq")])
   df2 <- unique(df2[, c("prot_acc", "pep_seq")])
   df3 <- unique(df3[, c("prot_acc", "pep_seq")])
-  gc()
-  
+
   nms <- c("prot_acc", "pep_seq", "prot_isess", "prot_hit_num", 
            "prot_family_member", "pep_literal_unique", "pep_razor_unique")
   
@@ -1824,7 +1833,6 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
   df3 <- post_psmC2Q(df3, dfC, tier = 3L)
   
   rm(list = "dfC")
-  gc()
 
   # Three-tier combines
   nms_df <- names(df)
@@ -1902,29 +1910,29 @@ post_psmC2Q <- function (df, dfC, tier = NULL)
   
   df <- dplyr::bind_cols(
     df[, ord_prots, drop = FALSE], 
-    df[, !names(df) %in% ord_prots, drop = FALSE]
-  )
+    df[, !names(df) %in% ord_prots, drop = FALSE])
 
   ord_peps <- c("pep_seq", "pep_issig", "pep_literal_unique", 
                 "pep_razor_unique", "pep_score", "pep_expect")
   
   df <- dplyr::bind_cols(
     df[, ord_peps, drop = FALSE], 
-    df[, !names(df) %in% ord_peps, drop = FALSE]
-  )
-  
+    df[, !names(df) %in% ord_peps, drop = FALSE])
+
   df <- dplyr::bind_cols(
     df[grepl("^prot_", names(df))],
     df[grepl("^pep_", names(df))],
     df[grepl("^psm_", names(df))],
-    df[!grepl("^prot_|^pep_|^psm_", names(df))],
-  )
+    df[!grepl("^prot_|^pep_|^psm_", names(df))])
   
+  
+  df$pep_exp_mz  <- round(df$pep_exp_mz, digits = 4L)
   df$pep_exp_mr  <- round(df$pep_exp_mr, digits = 4L)
   df$pep_calc_mr <- round(df$pep_calc_mr, digits = 4L)
   df$pep_delta   <- round(df$pep_delta, digits = 4L)
+  df$pep_tot_int <- round(df$pep_tot_int, digits = 1L)
   df$pep_expect  <- format(df$pep_expect, digits = 3L)
-  
+
   df <- dplyr::select(df, -which(names(df) %in% c("prot_n_psm", "prot_n_pep")))
 }
 
@@ -1970,36 +1978,34 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
   
   fvmods <- c(fixedmods, varmods)
   
-  if (grepl("^tmt[0-9]+", quant)) {
-    possibles <- fvmods[grepl("^TMT", fvmods)]
+  if (!grepl("^tmt[0-9]+", quant))
+    return(NULL)
+  
+  tmts <- fvmods[grepl("^TMT", fvmods)]
+  
+  if (quant == "tmt18") {
+    ok <- all(grepl("TMTpro18.* |TMT18plex.* ", tmts))
     
-    if (quant == "tmt18") {
-      ok <- all(grepl("TMTpro18.* |TMT18plex.* ", possibles))
-      
-      if (!ok) 
-        warning("All TMT modifications need to be `TMTpro18` or `TMT18plex` at `", 
-                quant, "`.\n", 
-                tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
-                call. = FALSE)
-    } 
-    else if (quant == "tmt16") {
-      ok <- all(grepl("TMTpro.* |TMT16plex.* ", possibles))
-      
-      if (!ok) 
-        warning("All TMT modifications need to be `TMTpro` or `TMT16plex` at `", 
-                quant, "`.\n", 
-                tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
-                call. = FALSE)
-    } 
-    else {
-      ok <- all(grepl("TMT6plex.* |TMT10plex.* |TMT11plex.* ", possibles))
-      
-      if (!ok) 
-        warning("All TMT modifications need to be `TMT6plex`, `TMT10plex` or `TMT11plex` at `", 
-                quant, "`.\n", 
-                tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3, 
-                call. = FALSE)
-    }
+    if (!ok) 
+      warning("All TMT modifications need to be `TMTpro18` or `TMT18plex` at `", 
+              quant, "`.\n", 
+              tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3)
+  } 
+  else if (quant == "tmt16") {
+    ok <- all(grepl("TMTpro.* |TMT16plex.* ", tmts))
+    
+    if (!ok) 
+      warning("All TMT modifications need to be `TMTpro` or `TMT16plex` at `", 
+              quant, "`.\n", 
+              tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3)
+  } 
+  else {
+    ok <- all(grepl("TMT6plex.* |TMT10plex.* |TMT11plex.* ", tmts))
+    
+    if (!ok) 
+      warning("All TMT modifications need to be `TMT6plex`, `TMT10plex` or `TMT11plex` at `", 
+              quant, "`.\n", 
+              tmt_msg_1, "\n", tmt_msg_2, "\n", tmt_msg_3)
   }
   
   invisible(NULL)
@@ -2020,7 +2026,7 @@ checkMGF <- function (mgf_path = NULL, grp_args = NULL, error = c("stop", "warn"
     stop("`error` needs to be one of \"error\" or \"stop\".")
   
   if (is.null(mgf_path)) 
-    stop("`mgf_path` not found.", call. = FALSE)
+    stop("`mgf_path` not found.")
   
   fi_mgf <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mgf$")
   fi_mzml <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mzML$")
@@ -2032,9 +2038,9 @@ checkMGF <- function (mgf_path = NULL, grp_args = NULL, error = c("stop", "warn"
   
   if (!(len_mgf || len_mzml)) {
     if (error == "warn")
-      warning("No `.mgf` files immediately under ", mgf_path, call. = FALSE)
+      warning("No `.mgf` files immediately under ", mgf_path)
     else
-      stop("No `.mgf` files immediately under ", mgf_path, call. = FALSE)
+      stop("No `.mgf` files immediately under ", mgf_path)
   }
   
   invisible(mgf_path)
@@ -2128,17 +2134,12 @@ check_fdr_group <- function (fdr_group = c("base", "all", "top3"),
   if (is_trivial)
     return(oks[[1]])
   
-  fdr_group <- unique(fdr_group)
+  len  <- length(fdr_group <- unique(fdr_group))
+  oks2 <- fdr_group %in% oks
   
-  len <- length(fdr_group)
-  
-  if (len > 1L) {
-    if (all(fdr_group %in% oks))
-      fdr_group <- oks[1]
-    else
-      fdr_group <- fdr_group[!fdr_group %in% oks]
-  }
-  
+  if (len > 1L)
+    fdr_group <- if (all(oks2)) oks[1] else fdr_group[!oks2]
+
   as.character(fdr_group)
 }
 

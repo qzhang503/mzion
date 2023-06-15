@@ -6,83 +6,53 @@
 \alias{axions}
 \alias{bions_base}
 \alias{yions_base}
-\alias{b2ions_base}
-\alias{bstarions}
-\alias{bstar2ions}
-\alias{b0ions}
-\alias{b02ions}
-\alias{y2ions}
-\alias{ystarions}
-\alias{ystar2ions}
-\alias{y0ions}
-\alias{y02ions}
 \alias{cions_base}
-\alias{c2ions}
 \alias{zions_base}
+\alias{c2ions}
 \alias{z2ions}
 \alias{aions_base}
+\alias{xions_base}
 \alias{a2ions}
 \alias{astarions}
 \alias{astar2ions}
 \alias{a0ions}
 \alias{a02ions}
-\alias{xions_base}
 \alias{x2ions}
 \title{Masses of singly-charged b- and y-ions.}
 \usage{
-byions(ntmass, ctmass, aam, digits = 4L)
+byions(ntmass, ctmass, aam)
 
-czions(ntmass, ctmass, aam, digits = 4L)
+czions(ntmass, ctmass, aam)
 
-axions(ntmass, ctmass, aam, digits = 4L)
+axions(ntmass, ctmass, aam)
 
-bions_base(aam, tmass, digits = 4L)
+bions_base(aam, ntmass)
 
-yions_base(aam, tmass, digits = 4L)
+yions_base(aam, ctmass)
 
-b2ions_base(aam, tmass, digits = 4L, n = 2L)
+cions_base(aam, ntmass)
 
-bstarions(aam, tmass, digits = 4L)
+zions_base(aam, ctmass)
 
-bstar2ions(aam, tmass, digits = 4L, n = 2L)
+c2ions(aam, ntmass, n = 2L)
 
-b0ions(aam, tmass, digits = 4L)
+z2ions(aam, ctmass, n = 2L)
 
-b02ions(aam, tmass, digits = 4L, n = 2L)
+aions_base(aam, ntmass)
 
-y2ions(aam, tmass, digits = 4L, n = 2L)
+xions_base(aam, ctmass)
 
-ystarions(aam, tmass, digits = 4L)
+a2ions(aam, ntmass, n = 2L)
 
-ystar2ions(aam, tmass, digits = 4L, n = 2L)
+astarions(aam, ntmass)
 
-y0ions(aam, tmass, digits = 4L)
+astar2ions(aam, ntmass, n = 2L)
 
-y02ions(aam, tmass, digits = 4L, n = 2L)
+a0ions(aam, ntmass)
 
-cions_base(aam, tmass, digits = 4L)
+a02ions(aam, ntmass, n = 2L)
 
-c2ions(aam, tmass, digits = 4L, n = 2L)
-
-zions_base(aam, tmass, digits = 4L)
-
-z2ions(aam, tmass, digits = 4L, n = 2L)
-
-aions_base(aam, tmass, digits = 4L)
-
-a2ions(aam, tmass, digits = 4L, n = 2L)
-
-astarions(aam, tmass, digits = 4L)
-
-astar2ions(aam, tmass, digits = 4L, n = 2L)
-
-a0ions(aam, tmass, digits = 4L)
-
-a02ions(aam, tmass, digits = 4L, n = 2L)
-
-xions_base(aam, tmass, digits = 4L)
-
-x2ions(aam, tmass, digits = 4L, n = 2L)
+x2ions(aam, ctmass, n = 2L)
 }
 \arguments{
 \item{ntmass}{The mass of a fixed or variable N-term modification.}
@@ -95,16 +65,25 @@ x2ions(aam, tmass, digits = 4L, n = 2L)
   The masses reflects fixed/variable modifications, and/or fixed/variable
   neutral losses.}
 
-\item{digits}{Integer; the number of decimal places to be used.}
-
-\item{tmass}{The mass of a fixed or variable N-term or C-term modification.}
-
 \item{n}{The charge state.}
 }
 \description{
+b-ions first, then y-ions
+
 For (1) "amods- tmod- vnl- fnl-", (2) "amods- tmod+ vnl- fnl-".
 
-\code{H2O = 18.010565}.
+# (1) OH (C-term), + H (neutralizes the N-term on a fragment) + H+ 
+# (2) Other C-term (other than OH) + H + H+: X + 1.007825 + 1.00727647
+
+\code{NH3 = 17.026549}
+
+\code{CO = 27.9949146}
+
+\code{+CO -H2 = 27.9949146 - 2 * 1.007825}
+
+\code{-CO -NH3 = -(27.9949146 + 17.026549)}
+
+\code{-CO -H2O = -(27.9949146 + 18.010565)}
 }
 \examples{
 \donttest{
@@ -206,6 +185,5 @@ if (!length(ctmod)) {
 
 b <- mzion:::bions_base(aam, ntmass)
 y <- mzion:::yions_base(aam, ctmass)
-
 }
 }

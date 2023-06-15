@@ -27,8 +27,7 @@ gen_ms2ions_base(
   maxn_sites_per_vmod = 3L,
   maxn_fnl_per_seq = 3L,
   maxn_vnl_per_seq = 3L,
-  maxn_vmods_sitescombi_per_pep = 64L,
-  digits = 4L
+  maxn_vmods_sitescombi_per_pep = 64L
 )
 
 gen_ms2ions_a0_vnl0_fnl1(
@@ -50,8 +49,7 @@ gen_ms2ions_a0_vnl0_fnl1(
   maxn_sites_per_vmod = 3L,
   maxn_fnl_per_seq = 3L,
   maxn_vnl_per_seq = 3L,
-  maxn_vmods_sitescombi_per_pep = 64L,
-  digits = 4L
+  maxn_vmods_sitescombi_per_pep = 64L
 )
 
 gen_ms2ions_a1_vnl0_fnl0(
@@ -73,8 +71,7 @@ gen_ms2ions_a1_vnl0_fnl0(
   maxn_sites_per_vmod = 3L,
   maxn_fnl_per_seq = 3L,
   maxn_vnl_per_seq = 3L,
-  maxn_vmods_sitescombi_per_pep = 64L,
-  digits = 4L
+  maxn_vmods_sitescombi_per_pep = 64L
 )
 
 gen_ms2ions_a1_vnl0_fnl1(
@@ -96,8 +93,7 @@ gen_ms2ions_a1_vnl0_fnl1(
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
   maxn_fnl_per_seq = 3L,
-  maxn_vnl_per_seq = 3L,
-  digits = 4L
+  maxn_vnl_per_seq = 3L
 )
 
 gen_ms2ions_a1_vnl1_fnl0(
@@ -119,8 +115,7 @@ gen_ms2ions_a1_vnl1_fnl0(
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
   maxn_fnl_per_seq = 3L,
-  maxn_vnl_per_seq = 3L,
-  digits = 4L
+  maxn_vnl_per_seq = 3L
 )
 }
 \arguments{
@@ -189,9 +184,6 @@ To bypass the combinatorial of neutral losses, set \code{maxn_vnl_per_seq =
 number of combinatorial variable modifications per peptide sequence (per
 module). The ways include the permutations in neutral losses and
 modifications (e.g., \code{Acetyl (K) and TMT (K)}).}
-
-\item{digits}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
 }
 \description{
 (1) "amods- tmod- vnl- fnl-", (2) "amods- tmod+ vnl- fnl-"

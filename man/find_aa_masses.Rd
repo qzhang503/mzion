@@ -9,6 +9,7 @@ find_aa_masses(
   out_path = NULL,
   fixedmods = NULL,
   varmods = NULL,
+  rm_dup_term_anywhere = TRUE,
   varlabs = NULL,
   mod_motifs = NULL,
   maxn_vmods_setscombi = 64L
@@ -23,6 +24,10 @@ find_aa_masses(
 \link{parse_unimod} for grammars.}
 
 \item{varmods}{A character vector of variable modifications.}
+
+\item{rm_dup_term_anywhere}{Logical; if TRUE, removes combinations in
+variable modifications with site(s) in positions of both terminal and
+anywhere, e.g., "Gln->pyro-Glu (N-term = Q)" and "Deamidated (Q).}
 
 \item{varlabs}{Character string(s) of variable isotopic labels. See examples
 of SILAC for details. Can be but not typically used in standard alone

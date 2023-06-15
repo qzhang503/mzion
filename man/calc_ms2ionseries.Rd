@@ -15,8 +15,7 @@ calc_ms2ionseries(
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 32L,
   maxn_fnl_per_seq = 3L,
-  maxn_vnl_per_seq = 3L,
-  digits = 4L
+  maxn_vnl_per_seq = 3L
 )
 }
 \arguments{
@@ -56,8 +55,6 @@ or \code{0}.}
 permutative neutral losses per peptide sequence for variable modifications.
 To bypass the combinatorial of neutral losses, set \code{maxn_vnl_per_seq =
 1} or \code{0}.}
-
-\item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
 For direct uses from an R console (with trade-offs in speed).

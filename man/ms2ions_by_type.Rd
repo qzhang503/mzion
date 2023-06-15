@@ -4,7 +4,7 @@
 \alias{ms2ions_by_type}
 \title{Helper: switches among ion types for calculating MS2 masses.}
 \usage{
-ms2ions_by_type(aam, ntmass, ctmass, type_ms2ions = "by", digits = 4L)
+ms2ions_by_type(aam, ntmass, ctmass, type_ms2ions = "by")
 }
 \arguments{
 \item{aam}{A sequence of amino-acid residues with \emph{masses}. Residues
@@ -19,9 +19,6 @@ corresponds to residues without masses).}
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
-
-\item{digits}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
 }
 \description{
 Helper: switches among ion types for calculating MS2 masses.

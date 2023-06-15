@@ -12,8 +12,7 @@ vmods_elements(
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   .ms1_vmodsets = NULL,
-  .base_ent = NULL,
-  digits = 4L
+  .base_ent = NULL
 )
 }
 \arguments{
@@ -46,9 +45,6 @@ default is 5.}
 \item{.ms1_vmodsets}{Not used.}
 
 \item{.base_ent}{Not used.}
-
-\item{digits}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
 }
 \description{
 The same residue, e.g. M, at different modifications, c("Carbamyl (M",

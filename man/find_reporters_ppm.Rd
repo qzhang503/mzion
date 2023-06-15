@@ -4,7 +4,7 @@
 \alias{find_reporters_ppm}
 \title{Finds the indexes of reporter ions.}
 \usage{
-find_reporters_ppm(theos, expts, ppm_reporters = 10L, len, nms)
+find_reporters_ppm(theos, expts, ppm_reporters = 10L, len)
 }
 \arguments{
 \item{theos}{The theoretical m-over-z of reporter ions.}
@@ -16,8 +16,6 @@ reporter ions).}
 ions. The default is 10.}
 
 \item{len}{The length of reporter-ion plexes.}
-
-\item{nms}{The names of reporter-ion channels.}
 }
 \value{
 A vector of indexes

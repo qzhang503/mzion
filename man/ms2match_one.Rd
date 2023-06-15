@@ -5,6 +5,7 @@
 \title{Matches experimentals and theoreticals}
 \usage{
 ms2match_one(
+  mgth,
   pep_mod_group,
   aa_masses,
   FUN,
@@ -25,11 +26,12 @@ ms2match_one(
   ppm_ms2 = 10L,
   min_ms2mass = 115L,
   index_mgf_ms2 = FALSE,
-  df0 = NULL,
-  digits = 4L
+  df0 = NULL
 )
 }
 \arguments{
+\item{mgth}{MGF and theoretical pairs}
+
 \item{pep_mod_group}{The index of peptide modification groups}
 
 \item{aa_masses}{An amino-acid look-up}
@@ -122,9 +124,6 @@ interrogation. The default is 110.}
   pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{df0}{An output template}
-
-\item{digits}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
 }
 \description{
 For a single module

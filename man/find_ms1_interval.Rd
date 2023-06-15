@@ -5,7 +5,7 @@
 \title{Calculates the frame numbers for a list of experimental MS1 mass by
 intervals.}
 \usage{
-find_ms1_interval(mass = 1800, from = 115L, ppm = 10L)
+find_ms1_interval(mass = 1800, from = 200L, ppm = 10L)
 }
 \arguments{
 \item{mass}{Numeric; a list of MS1 masses.}

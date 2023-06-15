@@ -12,8 +12,7 @@ calc_monopeptide(
   maxn_vmods_per_pep = Inf,
   maxn_sites_per_vmod = Inf,
   min_mass = 200L,
-  max_mass = 4500L,
-  digits = 4L
+  max_mass = 4500L
 )
 }
 \arguments{
@@ -40,8 +39,6 @@ against low molecular-weight precursors is \code{min_len}).}
 
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation.}
-
-\item{digits}{Integer; the number of decimal places to be used.}
 }
 \description{
 Only for direct uses from an R console (with trade-offs in speed).

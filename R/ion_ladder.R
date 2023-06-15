@@ -6,37 +6,44 @@
 #' @param ntmass The mass of a fixed or variable N-term modification.
 #' @param ctmass The mass of a fixed or variable C-term modification.
 #' @inheritParams matchMS
-ms2ions_by_type <- function (aam, ntmass, ctmass, type_ms2ions = "by", 
-                             digits = 4L) 
+ms2ions_by_type <- function (aam, ntmass, ctmass, type_ms2ions = "by") 
 {
   switch(type_ms2ions, 
-         by = byions(ntmass, ctmass, aam, digits), 
-         cz = czions(ntmod, ctmod, aam, digits), 
-         ax = axions(ntmod, ctmod, aam, digits), 
+         by = byions(ntmass = ntmass, ctmass = ctmass, aam = aam), 
+         cz = czions(ntmass = ntmass, ctmass = ctmass, aam = aam), 
+         ax = axions(ntmass = ntmass, ctmass = ctmass, aam = aam), 
          stop("Unknown type.", call. = FALSE))
 }
 
 
 #' Masses of singly-charged b- and y-ions.
 #' 
-#' @inheritParams ms2ions_by_type
+#' b-ions first, then y-ions
+#' 
 #' @rdname bions_base
-byions <- function (ntmass, ctmass, aam, digits = 4L) 
-  c(bions_base(aam, ntmass, digits), yions_base(aam, ctmass, digits))
+byions <- function (ntmass, ctmass, aam) 
+  c(cumsum(c(ntmass, aam))[-1], cumsum(c(ctmass, aam[length(aam):1L]))[-1])
 
 
 #' Masses of singly-charged c- and z-ions.
 #'
 #' @rdname bions_base
-czions <- function (ntmass, ctmass, aam, digits = 4L) 
-  c(cions_base(aam, ntmass, digits), zions_base(aam, ctmass, digits))
+czions <- function (ntmass, ctmass, aam)
+  c(cumsum(c(ntmass + 17.026549, aam))[-1], 
+    cumsum(c(ctmass - 17.026549, aam[length(aam):1L]))[-1])
+
 
 #' Masses of singly-charged a- and x-ions.
 #'
 #' @rdname bions_base
-axions <- function (ntmass, ctmass, aam, digits = 4L) 
-  c(aions_base(aam, ntmass, digits), xions_base(aam, ctmass, digits))
+axions <- function (ntmass, ctmass, aam) 
+  c(cumsum(c(ntmass - 27.9949146, aam))[-1], 
+    cumsum(c(ctmass + 25.9792646, aam[length(aam):1L]))[-1])
 
+
+###
+# No direct uses of the followings.
+###
 
 #' B-ions.
 #'
@@ -48,8 +55,7 @@ axions <- function (ntmass, ctmass, aam, digits = 4L)
 #'   The masses reflects fixed/variable modifications, and/or fixed/variable
 #'   neutral losses.
 #'   
-#' @param digits Integer; the number of decimal places to be used.
-#' @param tmass The mass of a fixed or variable N-term or C-term modification.
+#' @param ntmass The mass of a fixed or variable N-term modification.
 #'
 #' @importFrom stringr str_split
 #' @examples
@@ -152,249 +158,107 @@ axions <- function (ntmass, ctmass, aam, digits = 4L)
 #'
 #' b <- mzion:::bions_base(aam, ntmass)
 #' y <- mzion:::yions_base(aam, ctmass)
-#'
 #' }
-bions_base <- function (aam, tmass, digits = 4L) 
-{
-  ions <- c(tmass, aam)
-  ions <- cumsum(ions)
-  ions <- ions[-1]
-  # round(ions, digits = digits)
-}
+bions_base <- function (aam, ntmass) cumsum(c(ntmass, aam))[-1]
 
 
 #' Y-ions.
 #' 
-#' @rdname bions_base
-yions_base <- function (aam, tmass, digits = 4L) 
-{
-  # (1) OH (C-term), + H (neutralizes the N-term on a fragment) + H+ 
-  # (2) Other C-term (other than OH) + H + H+: X + 1.007825 + 1.00727647
-  ions <- c(tmass, aam[length(aam):1L])
-  ions <- cumsum(ions)
-  ions <- ions[-1]
-  # round(ions, digits = digits)
-}
-
-
-#' B2-ions.
+#' # (1) OH (C-term), + H (neutralizes the N-term on a fragment) + H+ 
+#' # (2) Other C-term (other than OH) + H + H+: X + 1.007825 + 1.00727647
 #' 
-#' @param n The charge state.
+#' @param ctmass The mass of a fixed or variable C-term modification.
 #' @rdname bions_base
-b2ions_base <- function (aam, tmass, digits = 4L, n = 2L) 
-  (bions_base(aam, tmass, digits) + 1.00727647)/n
-
-
-#' B*-ions.
-#' 
-#' @rdname bions_base
-bstarions <- function (aam, tmass, digits = 4L) 
-{
-  # -NH3:17.026549
-  ions <- c(tmass - 17.026549, aam)
-  ions <- cumsum(ions)
-  ions <- ions[-1]
-  # round(ions, digits = digits)
-}
-
-
-#' B*2-ions.
-#' 
-#' @param n The charge state.
-#' @rdname bions_base
-bstar2ions <- function (aam, tmass, digits = 4L, n = 2L) 
-  (bstarions(aam, tmass, digits) + 1.00727647)/n
-
-
-#' B0-ions.
-#' 
-#' \code{H2O = 18.010565}.
-#' 
-#' @rdname bions_base
-b0ions <- function (aam, tmass, digits = 4L) 
-{
-  ions <- c(tmass - 18.010565, aam)
-  ions <- cumsum(ions)
-  ions <- ions[-1]
-  # round(ions, digits = digits)
-}
-
-
-#' B02-ions.
-#' 
-#' @param n The charge state.
-#' @rdname bions_base
-b02ions <- function (aam, tmass, digits = 4L, n = 2L) 
-  (b0ions(aam, tmass, digits) + 1.00727647)/n
-
-
-#' Y2-ions.
-#' 
-#' @param n The charge state.
-#' @rdname bions_base
-y2ions <- function (aam, tmass, digits = 4L, n = 2L) 
-  (yions_base(aam, tmass, digits) + 1.00727647)/n
-
-
-#' Y*-ions.
-#' 
-#' @rdname bions_base
-ystarions <- function (aam, tmass, digits = 4L) 
-{
-  ions <- c(tmass - 17.026549, aam[length(aam):1L])
-  ions <- cumsum(ions)
-  ions <- ions[-1]
-  # round(ions, digits = digits)
-}
-
-
-#' Y*2-ions.
-#' 
-#' @param n The charge state.
-#' @rdname bions_base
-ystar2ions <- function (aam, tmass, digits = 4L, n = 2L) 
-  (ystarions(aam, tmass, digits) + 1.00727647)/n
-
-
-#' Y0-ions.
-#' 
-#' @rdname bions_base
-y0ions <- function (aam, tmass, digits = 4L) 
-{
-  ions <- c(tmass - 18.010565, aam[length(aam):1L])
-  ions <- cumsum(ions)
-  ions <- ions[-1]
-  # round(ions, digits = digits)
-}
-
-
-#' Y02-ions.
-#' 
-#' @param n The charge state.
-#' @rdname bions_base
-y02ions <- function (aam, tmass, digits = 4L, n = 2L) 
-  (y0ions(aam, tmass, digits) + 1.00727647)/n
+yions_base <- function (aam, ctmass) cumsum(c(ctmass, aam[length(aam):1L]))[-1]
 
 
 #' C-ions.
 #' 
+#' \code{NH3 = 17.026549}
+#' 
 #' @rdname bions_base
-cions_base <- function (aam, tmass, digits = 4L) 
-{
-  ions <- c(tmass + 17.026549, aam)
-  ions <- cumsum(ions)
-  ions <- ions[-1]
-  # round(ions, digits = digits)
-}
+cions_base <- function (aam, ntmass) cumsum(c(ntmass + 17.026549, aam))[-1]
+
+
+#' Z-ions.
+#' 
+#' @rdname bions_base
+zions_base <- function (aam, ctmass) 
+  cumsum(c(ctmass - 17.026549, aam[length(aam):1L]))[-1]
 
 
 #' C2-ions.
 #' 
 #' @param n The charge state.
 #' @rdname bions_base
-c2ions <- function (aam, tmass, digits = 4L, n = 2L) 
-  (cions_base(aam, tmass, digits) + 1.00727647)/n
-
-
-#' Z-ions.
-#' 
-#' @rdname bions_base
-zions_base <- function (aam, tmass, digits = 4L) 
-{
-  ions <- c(tmass - 17.026549, aam[length(aam):1L])
-  ions <- cumsum(ions)
-  ions <- ions[-1]
-  # round(ions, digits = digits)
-}
+c2ions <- function (aam, ntmass, n = 2L) (cions_base(aam, ntmass) + 1.00727647)/n
 
 
 #' Z2-ions.
 #' 
 #' @param n The charge state.
 #' @rdname bions_base
-z2ions <- function (aam, tmass, digits = 4L, n = 2L) 
-  (zions_base(aam, tmass, digits) + 1.00727647)/n
+z2ions <- function (aam, ctmass, n = 2L) (zions_base(aam, ctmass) + 1.00727647)/n
 
 
 #' A-ions.
 #' 
+#' \code{CO = 27.9949146}
+
 #' @rdname bions_base
-aions_base <- function (aam, tmass, digits = 4L) 
-{
-  ions <- c(tmass - 27.9949146, aam)
-  ions <- cumsum(ions)
-  ions <- ions[-1]
-  # round(ions, digits = digits)
-}
+aions_base <- function (aam, ntmass) cumsum(c(ntmass - 27.9949146, aam))[-1]
+
+
+#' X-ions.
+#' 
+#' \code{+CO -H2 = 27.9949146 - 2 * 1.007825}
+#' 
+#' @rdname bions_base
+xions_base <- function (aam, ctmass) 
+  cumsum(c(ctmass + 25.9792646, aam[length(aam):1L]))[-1]
 
 
 #' A2-ions.
 #' 
 #' @param n The charge state.
 #' @rdname bions_base
-a2ions <- function (aam, tmass, digits = 4L, n = 2L) 
-  (aions_base(aam, tmass, digits) + 1.00727647)/n
+a2ions <- function (aam, ntmass, n = 2L) (aions_base(aam, ntmass) + 1.00727647)/n
 
 
 #' A*-ions.
 #' 
+#' \code{-CO -NH3 = -(27.9949146 + 17.026549)}
+#' 
 #' @rdname bions_base
-astarions <- function (aam, tmass, digits = 4L) 
-{
-  # -CO -NH3 = -(27.9949146 + 17.026549)
-  ions <- c(tmass - 45.0214636, aam)
-  ions <- cumsum(ions)
-  ions <- ions[-1]
-  # round(ions, digits = digits)
-}
+astarions <- function (aam, ntmass) cumsum(c(ntmass - 45.0214636, aam))[-1]
 
 
 #' A*2-ions.
 #' 
 #' @param n The charge state.
 #' @rdname bions_base
-astar2ions <- function (aam, tmass, digits = 4L, n = 2L) 
-  (astarions(aam, tmass, digits) + 1.00727647)/n
+astar2ions <- function (aam, ntmass, n = 2L) (astarions(aam, ntmass) + 1.00727647)/n
 
 
 #' A0-ions.
 #' 
+#' \code{-CO -H2O = -(27.9949146 + 18.010565)}
+#' 
 #' @rdname bions_base
-a0ions <- function (aam, tmass, digits = 4L) 
-{
-  # -CO -H2O = -(27.9949146 + 18.010565)
-  ions <- c(tmass - 46.0054796, aam)
-  ions <- cumsum(ions)
-  ions <- ions[-1]
-  # round(ions, digits = digits)
-}
+a0ions <- function (aam, ntmass) cumsum(c(ntmass - 46.0054796, aam))[-1]
 
 
 #' A02-ions.
 #' 
 #' @param n The charge state.
 #' @rdname bions_base
-a02ions <- function (aam, tmass, digits = 4L, n = 2L) 
-  (a0ions(aam, tmass, digits) + 1.00727647)/n
-
-
-#' X-ions.
-#' 
-#' @rdname bions_base
-xions_base <- function (aam, tmass, digits = 4L) 
-{
-  # +CO -H2 = 27.9949146 - 2*1.007825
-  ions <- c(tmass + 25.9792646, aam[length(aam):1L])
-  ions <- cumsum(ions)
-  ions <- ions[-1]
-  # round(ions, digits = digits)
-}
+a02ions <- function (aam, ntmass, n = 2L) (a0ions(aam, ntmass) + 1.00727647)/n
 
 
 #' X2-ions.
 #' 
 #' @param n The charge state.
 #' @rdname bions_base
-x2ions <- function (aam, tmass, digits = 4L, n = 2L) 
-  (xions_base(aam, tmass, digits) + 1.00727647)/n
+x2ions <- function (aam, ctmass, n = 2L) (xions_base(aam, ctmass) + 1.00727647)/n
+
 

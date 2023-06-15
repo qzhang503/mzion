@@ -9,8 +9,7 @@ hcalc_tmtint(
   quant = "tmt10",
   ppm_reporters = 10L,
   idx = 1L,
-  out_path = NULL,
-  index_mgf_ms2 = FALSE
+  out_path = NULL
 )
 }
 \arguments{
@@ -31,20 +30,6 @@ ions. The default is 10.}
 \item{idx}{The i-th chunk}
 
 \item{out_path}{A file path of outputs.}
-
-\item{index_mgf_ms2}{A low-priority feature. Logical; if TRUE, converts
-  upfrontly MS2 m-over-z values from numeric to integers as opposed to
-  \emph{in-situ} conversion during ion matches. The default is FALSE. The
-  \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
-  reducing RAM footprints.
-
-  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
-  theoretical and experimental MS2 m-over-z values is limited by the
-  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
-  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
-  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
-  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
-  pep_ms2_deltas_sd} are nullified in the outputs.}
 }
 \description{
 Helper of calc_tmtint

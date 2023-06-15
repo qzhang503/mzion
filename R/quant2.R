@@ -4,24 +4,21 @@
 #' @param idx The i-th chunk
 #' @inheritParams matchMS
 hcalc_tmtint <- function (df, quant = "tmt10", ppm_reporters = 10L, idx = 1L, 
-                          out_path = NULL, index_mgf_ms2 = FALSE)
+                          out_path = NULL)
 {
   df <- df[, c("raw_file", "pep_mod_group", "pep_scan_num", "rptr_moverz", 
                "rptr_int")]
   df <- unique(df)
-  
-  df <- calc_tmtint(df, quant = quant, ppm_reporters = ppm_reporters, 
-                    index_mgf_ms2 = index_mgf_ms2)
+  df <- calc_tmtint(df, quant = quant, ppm_reporters = ppm_reporters)
   df[["uniq_id"]] <- with(df, paste(raw_file, pep_mod_group, pep_scan_num, 
                                     sep = "."))
   df[["raw_file"]] <- df[["pep_mod_group"]] <- df[["pep_scan_num"]] <- NULL
   
   qs::qsave(df, file.path(out_path, paste0("reporters_", idx, ".rds")), 
             preset = "fast")
-  
+
   invisible(df)
 }
-
 
 
 #' Reporter-ion quantitation.
@@ -34,47 +31,51 @@ hcalc_tmtint <- function (df, quant = "tmt10", ppm_reporters = 10L, idx = 1L,
 #'   compatible higher plexes, for example, \code{tmt16} for \code{tmt12} etc.
 #'   and \code{tmt10} for \code{tmt8} etc.
 #' @param ppm_reporters The mass tolerance of MS2 reporter ions.
-#' @inheritParams matchMS
-calc_tmtint <- function (data = NULL,
-                         quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16"),
-                         ppm_reporters = 10L, index_mgf_ms2 = FALSE) 
+calc_tmtint <- function (data = NULL, quant = "tmt16", ppm_reporters = 10L) 
 {
   if (quant == "none")
     return(data)
 
-  nms_tmt6 <- c("126", "127N", "128N", "129N", "130N", "131N")
+  nms_tmt6   <- c("126", "127N", "128N", "129N", "130N", "131N")
   
-  nms_tmt10 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
-                 "130N", "130C", "131N")
+  nms_tmt10  <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
+                  "130N", "130C", "131N")
   
-  nms_tmt11 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
-                 "130N", "130C", "131N", "131C")
+  nms_tmt11  <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
+                  "130N", "130C", "131N", "131C")
   
   nms_tmtpro <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
                   "130N", "130C", "131N", "131C", "132N", "132C",
                   "133N", "133C", "134N")
   
+  nms_tmt18  <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
+                  "130N", "130C", "131N", "131C", "132N", "132C",
+                  "133N", "133C", "134N", "134C", "135N")
+  
+  # "C(8) N(1) H(16)"
   tmts <- c(
     `126` = 126.127726, `127N` = 127.124761, `127C` = 127.131080,
     `128N` = 128.128115, `128C` = 128.134435, `129N` = 129.131470,
     `129C` = 129.137790, `130N` = 130.134825, `130C` = 130.141145,
     `131N` = 131.138180, `131C` = 131.144499, `132N` = 132.141535,
     `132C` = 132.147855, `133N` = 133.14489, `133C` = 133.15121,
-    `134N` = 134.148245)
+    `134N` = 134.148245, `134C` = 134.155114, `135N` = 135.152149)
   
   theos <- switch(quant,
                   tmt6  = tmts[names(tmts) %in% nms_tmt6],
                   tmt10 = tmts[names(tmts) %in% nms_tmt10],
                   tmt11 = tmts[names(tmts) %in% nms_tmt11],
                   tmt16 = tmts[names(tmts) %in% nms_tmtpro],
-                  stop("Unknown TMt type.", call. = FALSE))
+                  tmt18 = tmts[names(tmts) %in% nms_tmt18],
+                  stop("Unknown TMT type."))
   
   ul <- switch(quant,
                tmt6 = c(126.1, 131.2),
                tmt10 = c(126.1, 131.2),
                tmt11 = c(126.1, 131.2),
                tmt16 = c(126.1, 134.2),
-               stop("Unknown TMt type.", call. = FALSE))
+               tmt18 = c(126.1, 135.2),
+               stop("Unknown TMT type."))
   
   # stopifnot(all(c("rptr_moverz", "rptr_int") %in% names(data)))
   
@@ -87,7 +88,7 @@ calc_tmtint <- function (data = NULL,
                   ul = ul,
                   ppm_reporters = ppm_reporters,
                   len = length(theos),
-                  nms = names(theos)
+                  channels = names(theos)
                 ), USE.NAMES = FALSE, SIMPLIFY = FALSE)
   
   out <- dplyr::bind_rows(out)
@@ -145,7 +146,7 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
 #' @param theos The theoretical m-over-z of reporter ions.
 #' @param ul The upper and lower bound for reporter-ion m-over-z's.
 #' @param len The length of reporter-ion plexes.
-#' @param nms The names of reporter-ion channels.
+#' @param channels The names of reporter-ion channels.
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
@@ -167,13 +168,13 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
 #' ppm_reporters <- 10
 #' ul <- c(126.1, 131.2)
 #' len <- 10
-#' nms <- names(theos)
+#' channels <- names(theos)
 #'
 #' x <- mzion:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 10,
-#'                         len , nms)
+#'                         len , channels)
 #'
 #' x <- mzion:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
-#'                         len , nms)
+#'                         len , channels)
 #'
 #' # Two `129C`, no `127N` etc.
 #' ms2_moverzs <- c(105.1503, 107.0428, 111.7716, 120.0811, 126.1281, 127.1312,
@@ -190,36 +191,35 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
 #'               1990.57, 1758.72, 1655.09, 1460.68, 1641.39, 1721.33)
 #'
 #' x <- mzion:::find_reporter_ints(ms2_moverzs, ms2_ints, theos, ul, ppm_reporters = 25,
-#'                         len , nms)
+#'                         len , channels)
 #' }
 find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
-                                ppm_reporters = 10L, len, nms) 
+                                ppm_reporters = 10L, len, channels) 
 {
   range <- findInterval(ul, ms2_moverzs)
+  rg <- range[1]:range[2]
+  ms <- ms2_moverzs[rg]
+  vs <- ms2_ints[rg]
+  idxes <- find_reporters_ppm(theos, ms, ppm_reporters, len)
   
-  ms <- ms2_moverzs[range[1]:range[2]]
-  is <- ms2_ints[range[1]:range[2]]
-  
-  idxes <- find_reporters_ppm(theos, ms, ppm_reporters, len, nms)
-  
-  if (!length(idxes)) 
-    return(rep(NA, len) %>% `names<-`(nms))
-  
-  # 126      127N      127C      128N      128N      128C
-  # 135569.00 120048.00 122599.00   3397.98 140551.00 144712.00
-  
-  if (anyDuplicated(names(idxes))) {
-    idxes <- idxes %>%
-      split(names(.)) %>%
-      purrr::imap_int(~ {
-        if (length(.x) > 1L) {
-          p <- which.min(abs(ms[.x] - theos[.y]))
-          .x <- .x[p]
-        }
-        
-        .x
-      }) %>%
-      .[nms]
+  if (!length(idxes)) {
+    es <- rep_len(NA_real_, len)
+    names(es) <- channels
+    return(es)
+  }
+
+  if (anyDuplicated(chs <- names(idxes))) {
+    idxes <- split(idxes, chs)
+    
+    idxes <- mapply(function (x, y) {
+      if (length(x) > 1L)
+        x <- x[which.min(abs(ms[x] - theos[y]))]
+      else 
+        x
+    }, idxes, names(idxes), USE.NAMES = FALSE, SIMPLIFY = TRUE)
+    
+    # complete and correct order of channels
+    idxes <- idxes[channels]
   }
   
   # missing channels:
@@ -227,14 +227,14 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
   #  2   NA    3    4    5    6    8   NA   NA   NA
   
   if (anyNA(names(idxes))) 
-    names(idxes) <- nms
+    names(idxes) <- channels
   
-  rptr_ints <- is[idxes] %>%
-    `names<-`(names(idxes))
-  
+  rptr_ints <- vs[idxes]
+  names(rptr_ints) <- names(idxes)
+
   if (length(rptr_ints) < len) {
-    es <- rep(NA, len)
-    names(es) <- nms
+    es <- rep_len(NA_real_, len)
+    names(es) <- channels
     es[names(rptr_ints)] <- rptr_ints
   } 
   else {
@@ -251,7 +251,7 @@ find_reporter_ints <- function (ms2_moverzs, ms2_ints, theos, ul,
 #'   reporter ions).
 #' @inheritParams find_reporter_ints
 #' @return A vector of indexes
-find_reporters_ppm <- function (theos, expts, ppm_reporters = 10L, len, nms) 
+find_reporters_ppm <- function (theos, expts, ppm_reporters = 10L, len) 
 {
   d <- outer(theos, expts, "find_ppm_error")
   row_cols <- which(abs(d) <= ppm_reporters, arr.ind = TRUE)

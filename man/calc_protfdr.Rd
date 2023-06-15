@@ -31,13 +31,13 @@ protein significance score cutoff of zero and thus are significant. Choose
 Note that the the value of \code{prot_n_pep} includes the counts of shared
 peptides.}
 
-\item{method_prot_es_co}{A character string; the method to calculate the
-cut-offs of protein enrichment scores. The value is in one of \code{
-"median", "mean", "max", "min"} with the default of \code{"median"}. For
-instance at the default, the median of \code{peptide_score -
-pep_score_cutoff} under a protein will be used to represent the threshold
-of a protein enrichment score. For more conserved thresholds, the
-statistics of \code{"max"} may be considered.}
+\item{method_prot_es_co}{A low-priority setting. A character string; the
+method to calculate the cut-offs of protein enrichment scores. The value is
+in one of \code{"median", "mean", "max", "min"} with the default of
+\code{"median"}. For instance at the default, the median of
+\code{peptide_score - pep_score_cutoff} under a protein will be used to
+represent the threshold of a protein enrichment score. For more conserved
+thresholds, the statistics of \code{"max"} may be considered.}
 
 \item{out_path}{An output path.}
 }

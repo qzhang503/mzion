@@ -14,6 +14,7 @@ matchMS(
   fixedmods = c("TMT6plex (N-term)", "TMT6plex (K)", "Carbamidomethyl (C)"),
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
+  rm_dup_term_anywhere = TRUE,
   fixedlabs = NULL,
   varlabs = NULL,
   locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
@@ -41,6 +42,7 @@ matchMS(
   max_mass = 4500L,
   ppm_ms1 = 20L,
   n_13c = 0L,
+  ms1_notches = 0,
   par_groups = NULL,
   silac_mix = NULL,
   type_ms2ions = "by",
@@ -68,7 +70,7 @@ matchMS(
   combine_tier_three = FALSE,
   max_n_prots = 60000L,
   use_ms1_cache = TRUE,
-  .path_cache = "~/mzion/.MSearches (1.2.6)/Cache/Calls",
+  .path_cache = "~/mzion/.MSearches (1.2.7)/Cache/Calls",
   .path_fasta = NULL,
   topn_ms2ions = 100L,
   topn_ms2ion_cuts = NA,
@@ -137,6 +139,10 @@ c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
   \code{TMT11plex} for TMT-11 and (2) \code{TMT16plex} for TMTpro. See also
   \link{parse_unimod} for grammars of modification \code{title},
   \code{position} and \code{site}.}
+
+\item{rm_dup_term_anywhere}{Logical; if TRUE, removes combinations in
+variable modifications with site(s) in positions of both terminal and
+anywhere, e.g., "Gln->pyro-Glu (N-term = Q)" and "Deamidated (Q).}
 
 \item{fixedlabs}{Character string(s) of fixed isotopic labels. See examples
 of SILAC for details. Can be but not typically used in standard alone
@@ -261,15 +267,14 @@ interrogation.}
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}
 
-\item{n_13c}{A non-negative integer; the maximum number of 13C off-sets for
-consideration in MS1 masses. The default is 0 with no off-sets.
-Peak-pickings by various MGF conversion tools may have attempted to adjust
-precursor masses to the corresponding mono-isotopic masses in isotope
-envelopes. Nevertheless, by setting \code{n_13c = 1}, some increases in the
-number of PSMs may be readily achieved at a relatively small cost of search
-time.}
+\item{n_13c}{Number(s) of 13C off-sets in precursor masses, for example, over
+the range of \code{-1:2}. The default is 0.}
 
-\item{par_groups}{A low -priority feature. Parameter(s) of \code{matchMS}
+\item{ms1_notches}{A numeric vector; notches (off-sets) in precursor masses,
+e.g., \code{c(-79.966331, -97.976896)} to account fo the loss of a phospho
+group and phosphoric acid in precursor masses.}
+
+\item{par_groups}{A low-priority feature. Parameter(s) of \code{matchMS}
 multiplied by sets of values in groups. Multiple searches will be performed
 separately against the parameter groups. For instance with one set of
 samples in SILAC light and the other in SILAC heavy, the experimenters may
@@ -383,19 +388,19 @@ protein significance score cutoff of zero and thus are significant. Choose
 Note that the the value of \code{prot_n_pep} includes the counts of shared
 peptides.}
 
-\item{method_prot_es_co}{A character string; the method to calculate the
-cut-offs of protein enrichment scores. The value is in one of \code{
-"median", "mean", "max", "min"} with the default of \code{"median"}. For
-instance at the default, the median of \code{peptide_score -
-pep_score_cutoff} under a protein will be used to represent the threshold
-of a protein enrichment score. For more conserved thresholds, the
-statistics of \code{"max"} may be considered.}
+\item{method_prot_es_co}{A low-priority setting. A character string; the
+method to calculate the cut-offs of protein enrichment scores. The value is
+in one of \code{"median", "mean", "max", "min"} with the default of
+\code{"median"}. For instance at the default, the median of
+\code{peptide_score - pep_score_cutoff} under a protein will be used to
+represent the threshold of a protein enrichment score. For more conserved
+thresholds, the statistics of \code{"max"} may be considered.}
 
-\item{soft_secions}{Impacts on search performance not yet assessed. Logical;
-if TRUE, collapses the intensities of secondary ions to primary ions even
-when the primaries are absent. The default is FALSE. For instance, the
-signal of \code{b5^*} will be ignored if its primary ion \code{b5} is not
-matched.}
+\item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
+ions to primary ions even when the primaries are absent. The default is
+FALSE. For instance, the signal of \code{b5^*} will be ignored if its
+primary ion \code{b5} is not matched. The impacts of \code{soft_secions =
+TRUE} on search performance has not yet been assessed.}
 
 \item{topn_mods_per_seq}{Positive integer; a threshold to discard variable
   modifications under the same peptide match with scores beyond the top-n.
@@ -559,10 +564,10 @@ validation.}
 
 \item{svm_iters}{The number of iteration in SVM learning.}
 
-\item{by_modules}{Logical. Experimenting. At the TRUE default, searches MS
-data by individual modules of combinatorial fixed and variable
-modifications. If FALSE, search all modules together. The later would
-probably need more than 32G RAM if the number of modules is over 96.}
+\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
+individual modules of combinatorial fixed and variable modifications. If
+FALSE, search all modules together. The later would probably need more than
+32G RAM if the number of modules is over 96.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
@@ -650,7 +655,6 @@ matchMS(
   out_path = "~/mzion/examples",
 )
 
-
 # TMT-16plex, phospho
 matchMS(
   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
@@ -659,6 +663,16 @@ matchMS(
                 "Phospho (Y)", "Gln->pyro-Glu (N-term = Q)"),
   locmods   = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
   quant     = "tmt16",
+  fdr_type  = "psm",
+  out_path  = "~/mzion/examples",
+)
+
+# TMT-18plex
+matchMS(
+  fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
+  varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
+                "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
+  quant     = "tmt18",
   fdr_type  = "psm",
   out_path  = "~/mzion/examples",
 )

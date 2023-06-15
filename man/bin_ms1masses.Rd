@@ -8,12 +8,15 @@ bin_ms1masses(
   res = NULL,
   min_mass = 200L,
   max_mass = 4500L,
+  min_len = 7L,
+  max_len = 40L,
   ppm_ms1 = 20L,
   use_ms1_cache = TRUE,
   .path_cache = NULL,
   .path_ms1masses = NULL,
   is_ms1_three_frame = TRUE,
   out_path = NULL,
+  enzyme = "trypsin_p",
   sys_ram = 24L
 )
 }
@@ -23,6 +26,12 @@ bin_ms1masses(
 \item{min_mass}{A minimum mass of precursors.}
 
 \item{max_mass}{A maximum mass of precursors.}
+
+\item{min_len}{A positive integer; the minimum length of peptide sequences
+for considerations. Shorter peptides will be excluded. The default is 7.}
+
+\item{max_len}{A positive integer; the maximum length of peptide sequences
+for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}
@@ -46,6 +55,10 @@ precursors.}
 preceding, current and following.}
 
 \item{out_path}{A file path of outputs.}
+
+\item{enzyme}{A character string; the proteolytic specificity of the assumed
+enzyme will be used to generate peptide sequences from protein entries. The
+default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
 
 \item{sys_ram}{A putative value of system RAM.}
 }

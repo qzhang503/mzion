@@ -91,8 +91,7 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
                               maxn_vmods_per_pep = Inf,
                               maxn_sites_per_vmod = Inf,
                               min_mass = 200L, 
-                              max_mass = 4500L, 
-                              digits = 4L) 
+                              max_mass = 4500L) 
 {
   options(digits = 9L)
   
@@ -110,8 +109,7 @@ calc_monopeptide <- function (aa_seq, fixedmods, varmods,
                  maxn_vmods_per_pep = maxn_vmods_per_pep,
                  maxn_sites_per_vmod = maxn_sites_per_vmod,
                  min_mass = min_mass, 
-                 max_mass = max_mass, 
-                 digits = digits)
+                 max_mass = max_mass)
   })
   
   attrs <- purrr::map(aa_masses_all, attributes)
@@ -138,8 +136,7 @@ calc_monopep <- function (aa_seq, aa_masses,
                           maxn_vmods_per_pep = 5L,
                           maxn_sites_per_vmod = 3L,
                           min_mass = 200L, 
-                          max_mass = 4500L, 
-                          digits = 4L) 
+                          max_mass = 4500L) 
 {
   if (is.na(aa_seq)) return(NULL)
   
@@ -153,7 +150,7 @@ calc_monopep <- function (aa_seq, aa_masses,
     `+`(aa_masses["N-term"]) %>%
     `+`(aa_masses["C-term"]) %>%
     stats::setNames(aa_seq) %>%
-    round(digits = digits)
+    round(digits = 4L)
   
   if (type == "amods- tmod- vnl- fnl-") {
     return(mass)
@@ -177,7 +174,7 @@ calc_monopep <- function (aa_seq, aa_masses,
     if (type %in% c("amods- tmod- vnl- fnl+", "amods- tmod+ vnl- fnl+")) {
       fnl_combi <- expand_grid_rows0(fmods_nl)
       deltas <- delta_ms1_a0_fnl1(fnl_combi, aas, aa_masses)
-      masses <- round(mass - deltas, digits = digits)
+      masses <- round(mass - deltas, digits = 4L)
     }
     else {
       masses <- mass
@@ -207,14 +204,13 @@ calc_monopep <- function (aa_seq, aa_masses,
     vmods_combi <- unique_mvmods(amods = amods, ntmod = NULL, ctmod = NULL,
                                  aa_masses = aa_masses, aas = aas,
                                  maxn_vmods_per_pep = maxn_vmods_per_pep,
-                                 maxn_sites_per_vmod = maxn_sites_per_vmod,
-                                 digits = digits) %>% 
+                                 maxn_sites_per_vmod = maxn_sites_per_vmod) %>% 
       find_intercombi()
 
     deltas <- unname(lapply(vmods_combi, function (x) sum(aa_masses[x])))
     
     masses <- 
-      sapply(deltas, function (x) round(unlist(masses) + x, digits = digits))
+      sapply(deltas, function (x) round(unlist(masses) + x, digits = 4L))
   }
   
   masses
@@ -375,7 +371,7 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
                                maxn_sites_per_vmod = 3L, 
                                maxn_vmods_sitescombi_per_pep = 32L, 
                                maxn_fnl_per_seq = 3L, 
-                               maxn_vnl_per_seq = 3L, digits = 4L) 
+                               maxn_vnl_per_seq = 3L) 
 {
   options(digits = 9L)
   
@@ -398,9 +394,9 @@ calc_ms2ionseries <- function (aa_seq, fixedmods, varmods,
                         maxn_sites_per_vmod = maxn_sites_per_vmod, 
                         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
                         maxn_fnl_per_seq = maxn_fnl_per_seq, 
-                        maxn_vnl_per_seq = maxn_vnl_per_seq, digits)
+                        maxn_vnl_per_seq = maxn_vnl_per_seq)
     
-    sec <- lapply(pri, add_seions, type_ms2ions = type_ms2ions, digits = digits)
+    sec <- lapply(pri, add_seions, type_ms2ions = type_ms2ions)
     list(pri = pri, sec = sec)
   }, peps, aa_masses_all, SIMPLIFY = FALSE, USE.NAMES = FALSE)
 
@@ -451,8 +447,7 @@ calc_ms2ions <- function (aa_seq, aa_masses, ms1_mass = NULL, mod_indexes = NULL
                           type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                           maxn_sites_per_vmod = 3L, 
                           maxn_vmods_sitescombi_per_pep = 64L, 
-                          maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
-                          digits = 4L) 
+                          maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L) 
 {
   # tmt6_mass <- 229.162932
   # tmtpro_mass <- 304.207146
@@ -524,8 +519,7 @@ calc_ms2ions <- function (aa_seq, aa_masses, ms1_mass = NULL, mod_indexes = NULL
                maxn_sites_per_vmod = maxn_sites_per_vmod, 
                maxn_fnl_per_seq = maxn_fnl_per_seq, 
                maxn_vnl_per_seq = maxn_vnl_per_seq, 
-               maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-               digits = digits))
+               maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep))
 }
 
 
@@ -600,8 +594,7 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
                            maxn_vmods_per_pep = 5L,
                            maxn_sites_per_vmod = 3L,
                            .ms1_vmodsets = NULL, 
-                           .base_ent = NULL, 
-                           digits = 4L) 
+                           .base_ent = NULL) 
 {
   # (6) "amods- tmod- vnl- fnl+"
   if (!length(amods)) 
@@ -617,8 +610,7 @@ unique_mvmods <- function (amods, ntmod, ctmod, aa_masses, aas,
                    maxn_vmods_per_pep = maxn_vmods_per_pep,
                    maxn_sites_per_vmod = maxn_sites_per_vmod,
                    .ms1_vmodsets = .ms1_vmodsets, 
-                   .base_ent = .base_ent, 
-                   digits = digits)
+                   .base_ent = .base_ent)
   })
 }
 
@@ -657,8 +649,7 @@ vmods_elements <- function (aas,
                             maxn_vmods_per_pep = 5L,
                             maxn_sites_per_vmod = 3L,
                             .ms1_vmodsets = NULL, 
-                            .base_ent = NULL, 
-                            digits = 4L) 
+                            .base_ent = NULL) 
 {
   residue <- residue_mods[[1]]
   

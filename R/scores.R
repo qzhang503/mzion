@@ -2,61 +2,54 @@
 #' 
 #' @param ms2s A vector of theoretical MS2 m-over-z values.
 #' @inheritParams matchMS
-add_seions <- function (ms2s, type_ms2ions = "by", digits = 4L) 
+add_seions <- function (ms2s, type_ms2ions = "by") 
 {
+  # proton <- 1.00727647
+  # h2o <- 18.010565
+  # nh3 <- 17.026549
+  
   len <- length(ms2s)
   
   if (type_ms2ions == "by") {
-    proton <- 1.00727647
-    h2o <- 18.010565
-    nh3 <- 17.026549
-    
     bs <- ms2s[1:(len/2)]
     ys <- ms2s[(len/2+1):len]
     
-    b2s <- (bs + proton)/2
-    bstars <- bs - nh3
-    bstar2s <- (bstars + proton)/2
-    b0s <- bs - h2o
-    b02s <- (b0s + proton)/2
+    b2s <- (bs + 1.00727647)/2
+    bstars <- bs - 17.026549
+    bstar2s <- (bstars + 1.00727647)/2
+    b0s <- bs - 18.010565
+    b02s <- (b0s + 1.00727647)/2
     
-    y2s <- (ys + proton)/2
-    ystars <- ys - nh3
-    ystar2s <- (ystars + proton)/2
-    y0s <- ys - h2o
-    y02s <- (y0s + proton)/2
+    y2s <- (ys + 1.00727647)/2
+    ystars <- ys - 17.026549
+    ystar2s <- (ystars + 1.00727647)/2
+    y0s <- ys - 18.010565
+    y02s <- (y0s + 1.00727647)/2
     
-    round(c(b2s, bstars, bstar2s, b0s, b02s, y2s, ystars, ystar2s, y0s, y02s), 
-          digits = digits)
+    c(b2s, bstars, bstar2s, b0s, b02s, y2s, ystars, ystar2s, y0s, y02s)
   } 
   else if (type_ms2ions == "ax") {
-    proton <- 1.00727647
-    h2o <- 18.010565
-    nh3 <- 17.026549
-    
     as <- ms2s[1:(len/2)]
     xs <- ms2s[(len/2+1):len]
     
-    a2s <- (as + proton)/2
-    astars <- as - nh3
-    astar2s <- (astars + proton)/2
-    a0s <- as - h2o
-    a02s <- (a0s + proton)/2
+    a2s <- (as + 1.00727647)/2
+    astars <- as - 17.026549
+    astar2s <- (astars + 1.00727647)/2
+    a0s <- as - 18.010565
+    a02s <- (a0s + 1.00727647)/2
     
-    x2s <- (xs + proton)/2
+    x2s <- (xs + 1.00727647)/2
     
-    round(c(a2s, astars, astar2s, a0s, a02s, x2s), digits = digits)
+    c(a2s, astars, astar2s, a0s, a02s, x2s)
   } 
   else if (type_ms2ions == "cz") {
-    proton <- 1.00727647
-    
     cs <- ms2s[1:(len/2)]
     zs <- ms2s[(len/2+1):len]
     
-    c2s <- (cs + proton)/2
-    z2s <- (zs + proton)/2
+    c2s <- (cs + 1.00727647)/2
+    z2s <- (zs + 1.00727647)/2
     
-    round(c(c2s, z2s), digits = digits)
+    c(c2s, z2s)
   }
 }
 
@@ -262,18 +255,19 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
                                 d2 = 1E-5, index_mgf_ms2 = FALSE, 
                                 tally_ms2ints = TRUE, digits = 4L) 
 {
-  df_theo <- df$theo
+  df_theo <- df[["theo"]]
   m <- length(df_theo)
 
   ## df2
-  tt2  <- add_seions(df_theo, type_ms2ions = type_ms2ions, digits = digits)
+  tt2  <- add_seions(df_theo, type_ms2ions = type_ms2ions)
   df2  <- match_ex2th2(expt_moverzs, tt2, min_ms2mass, d2, index_mgf_ms2)
   ith2 <- df2[["ith"]]
   iex2 <- df2[["iex"]]
 
   ## 1. int2 (secondary intensities)
   len <- length(df2[["expt"]])
-  df2[["int"]] <- rep(NA_real_, len)
+  df2[["int"]] <- rep_len(NA_real_, len)
+  # df2[["int"]] <- rep_len(0, len)
   df2[["int"]][ith2] <- expt_ints[iex2] # works if iex2 contains NA
   
   facs <- rep(seq_len(len/m), each = m)
@@ -290,15 +284,15 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   # int2
   #  0  11520   7697      0      0      0      0      0      0      0      0  59843 222989  12091   7927      0  10710      0
 
-
   ## 2. y 
   ith <- df[["ith"]]
   iex <- df[["iex"]]
-  df[["int"]] <- rep(NA_integer_, m)
+  df[["int"]] <- rep_len(NA_integer_, m)
   df[["int"]][ith] <- expt_ints[iex]
 
-  nudbl <- rep(NA_real_, topn_ms2ions)
-  nuint <- rep(NA_integer_, topn_ms2ions)
+  nudbl <- rep_len(NA_real_, topn_ms2ions)
+  nuint <- rep_len(NA_integer_, topn_ms2ions)
+  # nuint <- rep_len(0L, topn_ms2ions)
   y <- list(expt = expt_moverzs, int = expt_ints, theo = nudbl, idx = nuint, int2 = nuint)
   y[["theo"]][iex] <- df_theo[ith]
   y[["idx"]][iex] <- ith
@@ -307,6 +301,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
     ## 3. join `int2` to `y`
     y_idx  <- y[["idx"]]
     ok_iex <- .Internal(which(!is.na(y_idx)))
+    # ok_iex <- .Internal(which(y_idx > 0L))
     y_ith  <- y_idx[ok_iex]
     y[["int2"]][ok_iex] <- int2[y_ith]
     
@@ -359,13 +354,10 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   x_ <- x[-burn_ins]
   k_ <- k[-burn_ins]
   
-  if (length(x_)) {
-    prs <- stats::dhyper(x = x_, m = m, n = N, k = k_)
-    pr  <- min(prs, na.rm = TRUE)
-  }
-  else {
+  if (length(x_))
+    pr  <- min(stats::dhyper(x = x_, m = m, n = N, k = k_), na.rm = TRUE)
+  else
     pr <- .5
-  }
 
   ## outputs
   list(pep_ivmod = nms, 
@@ -926,7 +918,8 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
   
   cols_sc <- c("pep_seq", "pep_n_ms2", "pep_scan_title", "pep_exp_mz", 
                "pep_exp_mr", "pep_tot_int", "pep_exp_z", "pep_ret_range", 
-               "pep_scan_num", "raw_file", "pep_mod_group", "pep_frame", 
+               "pep_scan_num", "raw_file", "pep_mod_group", "pep_ms1_offset", 
+               # "pep_frame", 
                "pep_fmod", "pep_vmod", "pep_isdecoy", "pep_calc_mr", 
                "pep_ivmod", "pep_prob", "pep_len", 
                "pep_ms2_moverzs", "pep_ms2_ints", 
@@ -961,7 +954,8 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
     return (dfb)
   }
 
-  df[["uniq_id"]] <- paste(df[["pep_scan_num"]], df[["raw_file"]], sep = "@")
+  # df[["uniq_id"]] <- paste(df[["pep_scan_num"]], df[["raw_file"]], sep = "@")
+  df[["uniq_id"]] <- paste(df[["pep_scan_num"]], df[["raw_file"]], df[["pep_ms1_offset"]], sep = "@")
   esscols <- c("pep_ms2_moverzs", "pep_ms2_ints", "matches", "pep_n_ms2", "uniq_id")
   path_df2 <- file.path(im_path, paste0("df2_", idx, ".rds"))
   df2 <- df[, -which(names(df) %in% esscols), drop = FALSE]
@@ -1038,8 +1032,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
                quant = quant, 
                ppm_reporters = ppm_reporters, 
                idx = idx, 
-               out_path = im_path, 
-               index_mgf_ms2 = index_mgf_ms2)
+               out_path = im_path)
 
   qs::qsave(df[, cols_lt, drop = FALSE], 
             file.path(im_path, paste0("list_table_", idx, ".rds")), 
@@ -1064,7 +1057,8 @@ hadd_primatches <- function (out_path = NULL,
   # the same as those in calcpepsc
   cols_sc <- c("pep_seq", "pep_n_ms2", "pep_scan_title", "pep_exp_mz", "pep_exp_mr", 
                "pep_tot_int", "pep_exp_z", "pep_ret_range", "pep_scan_num", "raw_file", 
-               "pep_mod_group", "pep_frame", "pep_fmod", "pep_vmod", "pep_isdecoy", 
+               "pep_mod_group", "pep_ms1_offset", # "pep_frame", 
+               "pep_fmod", "pep_vmod", "pep_isdecoy", 
                "pep_calc_mr", "pep_ivmod", "pep_prob", "pep_len", 
                "pep_ms2_moverzs", "pep_ms2_ints", 
                "pep_ms2_theos", "pep_ms2_theos2", 
@@ -1664,8 +1658,8 @@ prep_pepfdr_td <- function (td = NULL, out_path, enzyme = "trypsin_p",
   }
   
   cts   <- dplyr::count(dplyr::group_by(td, "pep_mod_group"), pep_mod_group)
-  max_i <- which.max(cts$n)[[1]]
-  top3s <- which_topx2(cts$n, 3)[1:3]
+  max_i <- cts$pep_mod_group[which.max(cts$n)[[1]]]
+  top3s <- cts$pep_mod_group[which_topx2(cts$n, 3)[1:3]]
   top3s <- top3s[!is.na(top3s)]
 
   enzyme <- tolower(enzyme)
@@ -1709,8 +1703,9 @@ prep_pepfdr_td <- function (td = NULL, out_path, enzyme = "trypsin_p",
   }
   
   if (!nrow(td))
-    stop("Found nothing: empty targets and decoys.")
-  
+    stop("No entries at fdr_group = ", fdr_group, ".", 
+         "May consider a different `fdr_group`.")
+
   td
 }
 
@@ -2663,45 +2658,26 @@ find_ppm_outer_bycombi <- function (X, Y, ppm_ms2 = 20L)
 match_ex2th2 <- function (expt, theo, min_ms2mass = 115L, d = 1E-5, 
                           index_mgf_ms2 = FALSE) 
 {
-  th <- index_mz(theo, from = min_ms2mass, d = d)
-  ex <- if (index_mgf_ms2) expt else index_mz(expt, from = min_ms2mass, d = d)
-  ith <- .Internal(which(th %fin% ex | (th - 1L) %fin% ex | (th + 1L) %fin% ex))
-
-  # if: e.g. th[ith+1] = th[ith] + 1 -> can have NA in iex:
-  #   th[ith+1] not in ex but th[ith+1] - 1
-  # OK to keep the NA:
-  #   es initiated as all NA, OK assign NA <- NA during es[ith] <- expt[iex]
-  # in intensity tally of experimental intensity: 
-  #   `%+%` default with na.rm = TRUE
-
-  thi <- th[ith]
-  iex <- fastmatch::fmatch(thi, ex)
+  th  <- index_mz(theo, from = min_ms2mass, d = d)
+  ex  <- if (index_mgf_ms2) expt else index_mz(expt, from = min_ms2mass, d = d)
+  t2e <- fastmatch::fmatch(c(th, th - 1L, th + 1L), ex, nomatch = 0L)
   
-  # indexes before and after
-  nas <- .Internal(which(is.na(iex)))
+  l  <- length(th)
+  mi <- t2e[1:l]
+  bf <- t2e[(l + 1L):(l + l)]
+  af <- t2e[(l + l + 1L):(l * 3L)]
   
-  if (length(nas)) {
-    bf <- fastmatch::fmatch(thi - 1L, ex)
-    
-    if (all(is.na(bf))) {
-      af <- fastmatch::fmatch(thi + 1L, ex)
-      iex[nas] <- af[nas]
-    }
-    else {
-      iex[nas] <- bf[nas]
-      nas <- .Internal(which(is.na(iex)))
-
-      if (length(nas)) {
-        af <- fastmatch::fmatch(thi + 1L, ex)
-        iex[nas] <- af[nas]
-      }
-    }
-  }
+  okmi <- mi > 0L
+  okbf <- bf > 0L
+  okaf <- af > 0L
   
-  es <- rep(NA_real_, length(th))
+  ith <- c(.Internal(which(okmi)), .Internal(which(okbf)), .Internal(which(okaf)))
+  iex <- c(mi[okmi], bf[okbf], af[okaf])
+  
+  es <- rep_len(NA_real_, l)
   names(es) <- names(th)
   es[ith] <- expt[iex]
-  
+
   list(theo = theo, expt = es, ith = ith, iex = iex, m = length(iex))
 }
 

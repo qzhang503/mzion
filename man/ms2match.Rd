@@ -8,6 +8,7 @@ ms2match(
   mgf_path,
   aa_masses_all,
   out_path,
+  .path_bin,
   mod_indexes,
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
@@ -25,6 +26,8 @@ ms2match(
   ppm_reporters = 10L,
   by_modules = TRUE,
   reframe_mgfs = FALSE,
+  n_13c = NULL,
+  ms1_notches = 0,
   fasta,
   acc_type,
   acc_pattern,
@@ -39,8 +42,7 @@ ms2match(
   max_miss,
   index_mgf_ms2 = FALSE,
   first_search = FALSE,
-  .savecall = TRUE,
-  digits = 4L
+  .savecall = TRUE
 )
 }
 \arguments{
@@ -58,6 +60,8 @@ ms2match(
 fixed and variable modifications.}
 
 \item{out_path}{A file path of outputs.}
+
+\item{.path_bin}{The file path to binned precursor masses.}
 
 \item{mod_indexes}{Integer; the indexes of fixed and/or variable
 modifications.}
@@ -128,12 +132,19 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
 ions. The default is 10.}
 
-\item{by_modules}{Logical. Experimenting. At the TRUE default, searches MS
-data by individual modules of combinatorial fixed and variable
-modifications. If FALSE, search all modules together. The later would
-probably need more than 32G RAM if the number of modules is over 96.}
+\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
+individual modules of combinatorial fixed and variable modifications. If
+FALSE, search all modules together. The later would probably need more than
+32G RAM if the number of modules is over 96.}
 
 \item{reframe_mgfs}{Logical; if TRUE, recalculates the frame indexes of MGFs.}
+
+\item{n_13c}{Number(s) of 13C off-sets in precursor masses, for example, over
+the range of \code{-1:2}. The default is 0.}
+
+\item{ms1_notches}{A numeric vector; notches (off-sets) in precursor masses,
+e.g., \code{c(-79.966331, -97.976896)} to account fo the loss of a phospho
+group and phosphoric acid in precursor masses.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}
@@ -202,9 +213,6 @@ per peptide sequence for considerations. The default is 2.}
 or not.}
 
 \item{.savecall}{Logical; if TRUE, saves the current call.}
-
-\item{digits}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
 }
 \description{
 All files under `out_path` are removed if incur \code{calc_pepmasses} in the

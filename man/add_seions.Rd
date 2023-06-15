@@ -4,7 +4,7 @@
 \alias{add_seions}
 \title{Adds secondary ions of b0, y0 etc.}
 \usage{
-add_seions(ms2s, type_ms2ions = "by", digits = 4L)
+add_seions(ms2s, type_ms2ions = "by")
 }
 \arguments{
 \item{ms2s}{A vector of theoretical MS2 m-over-z values.}
@@ -13,9 +13,6 @@ add_seions(ms2s, type_ms2ions = "by", digits = 4L)
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
-
-\item{digits}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
 }
 \description{
 Adds secondary ions of b0, y0 etc.

@@ -14,8 +14,7 @@ calc_ms2ions_a1_vnl0_fnl1(
   ntmass,
   ctmass,
   type_ms2ions = "by",
-  mod_indexes,
-  digits = 4L
+  mod_indexes
 )
 }
 \arguments{
@@ -47,9 +46,6 @@ ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
 
 \item{mod_indexes}{Modification indexes.}
-
-\item{digits}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
 }
 \description{
 Calculates

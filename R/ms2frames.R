@@ -2,6 +2,8 @@
 #'
 #' @param mgf_path The path to MGF files
 #' @param n_modules The number of modules (\code{length(aa_masses_all)}) or one
+#' @param ms1_offsets Off-sets in precursor masses (in relative to the values in
+#'   the original MGFs).
 #' @param .path_bin The path to binned theoretical masses
 #' @param ppm_ms1_bin The tolerance in precursor mass error after mass binning.
 #' @param by_modules Logical; if TRUE, results are saved with one mgf to one
@@ -9,9 +11,10 @@
 #'   modules
 #' @inheritParams ms2match
 #' @inheritParams matchMS
-pair_mgftheo <- function (mgf_path, n_modules, .path_bin, by_modules = TRUE, 
-                          reframe_mgfs = FALSE, min_mass = 200L, 
-                          ppm_ms1_bin = 10L, first_search = FALSE)
+pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, 
+                           by_modules = TRUE, min_mass = 200L, max_mass = 4500L, 
+                           ppm_ms1_bin = 10L, .path_bin, reframe_mgfs = FALSE, 
+                           first_search = FALSE)
 {
   message("Pairing experimental and theoretical data.")
   
@@ -22,15 +25,14 @@ pair_mgftheo <- function (mgf_path, n_modules, .path_bin, by_modules = TRUE,
   
   if (length(tempfiles))
     unlink(tempfiles)
-
-  # MGFs (in data frame) split by frame indexes
+  
   mgf_files <- list.files(mgf_path, pattern = "^mgf_queries_\\d+\\.rds$", 
                           full.names = TRUE)
-  mgf_frames <- lapply(mgf_files, qs::qread)
-
-  # for MGF calibrations
+  mgfs <- lapply(mgf_files, qs::qread)
+  
+  # data thinning for MGF calibrations
   if (first_search) {
-    mgf_frames <- lapply(mgf_frames, function (x) {
+    mgfs <- lapply(mgfs, function (x) {
       min_mgfmass <- min(x$ms1_mass, na.rm = TRUE)
       max_mgfmass <- max(x$ms1_mass, na.rm = TRUE)
       oks_min <- with(x, ms1_mass <= min_mgfmass + 10L)
@@ -44,21 +46,45 @@ pair_mgftheo <- function (mgf_path, n_modules, .path_bin, by_modules = TRUE,
     })
   }
   
-  mgf_frames <- dplyr::bind_rows(mgf_frames)
-  
-  if (reframe_mgfs) {
-    mgf_frames[["frame"]] <- 
-      find_ms1_interval(mgf_frames[["ms1_mass"]], from = min_mass, 
-                        ppm = ppm_ms1_bin)
-  }
+  ## output expttheo_1_1.rds: expttheo_module[_notch].rds
+  mgfs <- dplyr::bind_rows(mgfs)
 
-  mgf_frames <- dplyr::group_by(mgf_frames, frame)
-  mgf_frames <- dplyr::group_split(mgf_frames)
-  fr_names   <- lapply(mgf_frames, function (x) x[["frame"]][1])
-  names(mgf_frames) <- unlist(fr_names, recursive = FALSE, use.names = FALSE)
+  mapply(hpair_mgths, ms1_offsets, seq_along(ms1_offsets), 
+         MoreArgs = list(
+           mgfs = mgfs, n_modules = n_modules, by_modules = by_modules, 
+           mgf_path = mgf_path, min_mass = min_mass, max_mass = max_mass, 
+           ppm_ms1_bin = ppm_ms1_bin, .path_bin = .path_bin), 
+         SIMPLIFY = FALSE, USE.NAMES = FALSE)
+
+  invisible(NULL)
+}
+
+
+#' Helper of \link{pair_mgftheos}.
+#' 
+#' @param ms1_offset The ms1 offset.
+#' @param notch The index assigned to an ms1_offset.
+#' @param mgfs MGF data.
+#' @inheritParams pair_mgftheos
+hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules, 
+                         by_modules = TRUE, mgf_path, min_mass = 200L, 
+                         max_mass = 4500L, ppm_ms1_bin = 10L, .path_bin)
+{
+  if (abs(ms1_offset) > 1e-4) {
+    mgfs <- if (ms1_offset > 0)
+      mgfs[with(mgfs, ms1_mass <= max_mass - ms1_offset), ]
+    else
+      mgfs[with(mgfs, ms1_mass >= min_mass - ms1_offset), ]
+
+    mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - ms1_offset
+  }
   
-  # -> chunks: each chunk has multiple frames: each frame multiple precursors
-  ranges <- seq_along(mgf_frames)
+  mgfs[["pep_ms1_offset"]] <- ms1_offset
+  mgfs <- split(mgfs, find_ms1_interval(mgfs[["ms1_mass"]], from = min_mass, 
+                                        ppm = ppm_ms1_bin))
+
+  # to chunks: each chunk has multiple frames: each frame multiple precursors
+  ranges <- seq_along(mgfs)
   
   n_chunks <- if (n_modules == 1L || by_modules)
     min(detect_cores(96L)^2, 1024L)
@@ -67,15 +93,15 @@ pair_mgftheo <- function (mgf_path, n_modules, .path_bin, by_modules = TRUE,
   else
     min(length(ranges), length(mgf_files) * n_modules)
   
-  labs   <- levels(cut(ranges, n_chunks))
-  lower  <- floor(as.numeric( sub("\\((.+),.*", "\\1", labs)))
-  grps   <- findInterval(ranges, lower)
-  mgf_frames <- split(mgf_frames, grps)
-  rm(list = c("fr_names", "ranges", "labs", "lower", "grps"))
-  
-  # (1) splits `theos` in accordance to `mgf_frames` with
-  #     preceding and following frames: (o)|range of mgf_frames[[1]]|(o)
-  mfrs <- lapply(mgf_frames, function (x) as.integer(names(x)))
+  labs <- levels(cut(ranges, n_chunks))
+  lwrs <- floor(as.numeric( sub("\\((.+),.*", "\\1", labs)))
+  grps <- findInterval(ranges, lwrs)
+  mgfs <- split(mgfs, grps)
+  rm(list = c("ranges", "labs", "lwrs", "grps"))
+
+  # (1) splits `theos` in accordance to `mgfs` with
+  #     preceding and following frames: (o)|range of mgfs[[1]]|(o)
+  mfrs <- lapply(mgfs, function (x) as.integer(names(x)))
   mins <- lapply(mfrs, function (x) if (length(x)) min(x, na.rm = TRUE) else 0L)
   mins <- .Internal(unlist(mins, recursive = FALSE, use.names = FALSE))
   maxs <- lapply(mfrs, function (x) if (length(x)) max(x, na.rm = TRUE) else 0L)
@@ -90,57 +116,79 @@ pair_mgftheo <- function (mgf_path, n_modules, .path_bin, by_modules = TRUE,
     if (is.null(theos))
       next
     
-    theos <- lapply(theos, function (x) x[, c("pep_seq", "mass")])
     thfrs <- as.integer(names(theos))
     
-    # separates into intervals (intersecting mgf_frames)
+    # separates into intervals (intersecting mgfs)
     anstheo[[i]] <- mapply(function (x, y) {
       theos[which(thfrs >= (x - 1L) & thfrs <= (y + 1L))]
     }, mins, maxs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
   }
+  # rm(list = c("theos", "mfrs", "thfrs", "mins", "maxs"))
   
-  rm(list = c("theos", "mfrs", "thfrs", "mins", "maxs"))
-  
-  # (2) removes mgf_frames[[i]] not be found in anstheo[[i]]
-  for (i in seq_along(mgf_frames)) {
-    mi  <- mgf_frames[[i]]
-    fmi <- names(mi)
-    ti  <- lapply(anstheo, `[[`, i) # theos at chunk[[i]] (for all modules)
+  # (2) removes mgfs[[i]] not be found in anstheo[[i]]
+  for (i in seq_along(mgfs)) {
+    mi <- mgfs[[i]]
+    fi <- names(mi)
+    ti <- lapply(anstheo, `[[`, i) # theos at chunk[[i]] (for all modules)
     
     # expt frames found in (any) theo module
-    oks <- lapply(ti, function (x) fmi %in% names(x))
+    oks <- lapply(ti, function (x) fi %in% names(x))
     oks <- Reduce(`|`, oks)
-    mgf_frames[[i]] <- mi[oks]
+    mgfs[[i]] <- mi[oks]
   }
-  rm(list = c("mi", "ti", "fmi", "oks"))
+  # rm(list = c("mi", "ti", "fi", "oks"))
+  
+  if (length(mgfs) == 1L && !length(mgfs[[1]])) {
+    mgfs[1] <- list(NULL)
+  }
   
   # (3) removes unused frames of `anstheo`
-  # (mgf_frames determines the length of each anstheo[[i]]; 
-  #  more effective to first generate all bracketed mgf_frames indexes and apply
+  # (mgfs determines the length of each anstheo[[i]]; 
+  #  more effective to first generate all bracketed mgfs indexes and apply
   #  the same set of indexes to each anstheo[[i]])
   for (i in seq_along(anstheo))
-    anstheo[[i]] <- mapply(subset_theoframes, mgf_frames, anstheo[[i]], 
+    anstheo[[i]] <- mapply(subset_theoframes, mgfs, anstheo[[i]], 
                            SIMPLIFY = FALSE, USE.NAMES = FALSE)
   
   # (4) reverses the order (longer/heavier peptides towards the beginning)
   #     do the difficult ones first when paralleling with LB
   ord <- rev(seq_along(anstheo[[1]]))
-  mgf_frames <- mgf_frames[ord]
+  mgfs <- mgfs[ord]
   anstheo <- lapply(anstheo, function (x) x[ord])
   
   # (5) outputs (in chunks)
   if (by_modules) {
     for (i in seq_len(n_modules))
-      qs::qsave(list(mgf_frames = mgf_frames, theopeps = anstheo[[i]]), 
-                file.path(mgf_path, paste0("expttheo_", i, ".rds")), 
+      qs::qsave(list(mgf_frames = mgfs, theopeps = anstheo[[i]]), 
+                file.path(mgf_path, paste0("expttheo_", i, "_", notch, ".rds")), 
                 preset = "fast")
   }
   else {
-    for (i in seq_along(mgf_frames))
-      qs::qsave(list(mgf_frames = mgf_frames[[i]], 
+    for (i in seq_along(mgfs))
+      qs::qsave(list(mgf_frames = mgfs[[i]], 
                      theopeps = lapply(anstheo, `[[`, i)), 
                 file.path(mgf_path, paste0("mgftheo_", i, ".rds")), 
                 preset = "fast")
+  }
+
+  # next version: note that mgfs are the same for different modules
+  # also save by fractions -> avoid sendData in parallel by read from disk
+  if (FALSE) {
+    if (by_modules) (
+      # expt_notch_fraction.rds
+      # theo_module_notch_fraction.rds
+      mapply(function (data, frc) {
+        fi <- file.path(mgf_path, paste0("expt_", 0, "_", notch, "_", frc, ".rds"))
+        qs::qsave(data, fi, preset = "fast")
+      }, mgfs, seq_along(mgfs))
+    )
+    else {
+      for (i in seq_along(mgfs))
+        qs::qsave(list(mgf_frames = mgfs[[i]], 
+                       theopeps = lapply(anstheo, `[[`, i)), 
+                  file.path(mgf_path, paste0("mgftheo_", i, ".rds")), 
+                  preset = "fast")
+    }
   }
   
   invisible(NULL)
@@ -162,7 +210,7 @@ pair_mgftheo <- function (mgf_path, n_modules, .path_bin, by_modules = TRUE,
 #'   modifications
 #' @param df0 An output template with zero rows
 #' @inheritParams matchMS
-#' @inheritParams pair_mgftheo
+#' @inheritParams pair_mgftheos
 hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all, 
                        mod_indexes, mgf_path, out_path, 
                        type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
@@ -171,13 +219,11 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
                        maxn_vmods_sitescombi_per_pep = 64L, 
                        minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                        min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
-                       by_modules = FALSE, df0 = NULL, digits = 4L)
+                       by_modules = FALSE, df0 = NULL)
 {
-  pat   <- if (by_modules) "^expttheo_" else "^mgftheo_"
-  mgths <- list.files(mgf_path, pattern = paste0(pat, "[0-9]+"))
-  ord   <- order(as.integer(gsub(paste0(pat, "([0-9]+)\\.rds$"), "\\1", mgths)))
-  mgths <- mgths[ord]
-  
+  pat   <- if (by_modules) "^expttheo" else "^mgftheo"
+  mgths <- order_fracs(type = pat, tempdir = mgf_path, by_modules = by_modules)
+
   message("\n===  MS2 ion searches started at ", Sys.time(), ". ===\n")
   
   n_cores <- detect_cores(96L) - 1L
@@ -195,18 +241,17 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
       "vec_to_list", "split_matrix", "check_ms1_mass_vmods", 
       "calc_ms2ions_a1_vnl0_fnl0", "calc_ms2ions_a1_vnl0_fnl1", 
       "calc_ms2ions_a1_vnl1_fnl0", "ms2ions_by_type", 
-      "byions", "czions", "axions", "bions_base", "yions_base", 
-      "cions_base", "zions_base", "aions_base", "xions_base", 
-      "find_ms2_bypep", "fuzzy_match_one", 
-      "fuzzy_match_one2", "post_frame_adv"), 
+      "byions", "czions", "axions", 
+      "find_ms2_bypep", "post_frame_adv"), 
     envir = environment(mzion::matchMS))
   
   if (by_modules) {
     parallel::clusterExport(cl, c("frames_adv"), envir = environment(mzion::matchMS))
-    
+
     for (i in seq_along(aa_masses_all))
-      ms2match_one(
+      hms2match_one(
         pep_mod_group = i, 
+        mgths = mgths[[i]], 
         aa_masses = aa_masses_all[[i]], 
         FUN = funs_ms2[[i]],  
         ms1vmods = ms1vmods_all[[i]], 
@@ -223,7 +268,7 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
         minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
         min_ms2mass = min_ms2mass, index_mgf_ms2 = index_mgf_ms2, 
-        df0 = df0, digits = digits)
+        df0 = df0)
   }
   else {
     message("Check search progress at: ", logs)
@@ -250,8 +295,7 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
       ppm_ms2 = ppm_ms2, 
       min_ms2mass = min_ms2mass, 
       index_mgf_ms2 = index_mgf_ms2, 
-      df0 = df0, 
-      digits = digits)
+      df0 = df0)
   }
   
   parallel::stopCluster(cl)
@@ -277,7 +321,7 @@ ms2match_all <- function (mgth, aa_masses_all, funs_ms2, ms1vmods_all,
                           maxn_vmods_sitescombi_per_pep = 64L, 
                           minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                           min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
-                          df0 = NULL, digits = 4L)
+                          df0 = NULL)
 {
   msg <- paste0("Matching expt-theo pair: ", mgth)
   write(msg, stdout())
@@ -311,8 +355,7 @@ ms2match_all <- function (mgth, aa_masses_all, funs_ms2, ms1vmods_all,
     ppm_ms1 = ppm_ms1, 
     ppm_ms2 = ppm_ms2, 
     min_ms2mass = min_ms2mass, 
-    index_mgf_ms2 = index_mgf_ms2, 
-    digits = digits)
+    index_mgf_ms2 = index_mgf_ms2)
 
   if (!dir.exists(tempdir <- file.path(out_path, "temp")))
     create_dir(tempdir)
@@ -371,10 +414,10 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
                          maxn_vnl_per_seq = 3L, 
                          maxn_vmods_sitescombi_per_pep = 64L, 
                          minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                         min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
-                         digits = 4L) 
+                         min_ms2mass = 115L, index_mgf_ms2 = FALSE) 
 {
   lenm <- length(mgf_frames)
+  frames <- as.integer(names(mgf_frames))
   
   if (!lenm)
     return(NULL)
@@ -400,7 +443,7 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
 
   ## --- initiation ---
   mgfs_cr <- mgf_frames[[1]]
-  frame   <- mgfs_cr[["frame"]][1]
+  frame   <- frames[1]
   
   thaf_ms2s <- thcr_ms2s <- thbf_ms2s <- 
     thaf_peps <- thcr_peps <- thbf_peps <- 
@@ -441,8 +484,7 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
           maxn_sites_per_vmod = maxn_sites_per_vmod, 
           maxn_fnl_per_seq = maxn_fnl_per_seq, 
           maxn_vnl_per_seq = maxn_vnl_per_seq, 
-          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-          digits = digits
+          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
@@ -482,8 +524,7 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
           maxn_sites_per_vmod = maxn_sites_per_vmod, 
           maxn_fnl_per_seq = maxn_fnl_per_seq, 
           maxn_vnl_per_seq = maxn_vnl_per_seq, 
-          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-          digits = digits
+          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
@@ -530,8 +571,7 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
             maxn_sites_per_vmod = maxn_sites_per_vmod, 
             maxn_fnl_per_seq = maxn_fnl_per_seq, 
             maxn_vnl_per_seq = maxn_vnl_per_seq, 
-            maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-            digits = digits
+            maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
           ), 
           SIMPLIFY = FALSE,
           USE.NAMES = FALSE
@@ -581,7 +621,7 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
     
     # advance to the next frame
     mgfs_cr <- mgf_frames[[i+1]]
-    new_frame <- mgfs_cr[["frame"]][1]
+    new_frame <- frames[i+1L]
     
     if (isTRUE(new_frame == (frame + 1L))) {
       cri <- cri + 1L
@@ -635,8 +675,7 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
               maxn_sites_per_vmod = maxn_sites_per_vmod, 
               maxn_fnl_per_seq = maxn_fnl_per_seq, 
               maxn_vnl_per_seq = maxn_vnl_per_seq, 
-              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-              digits = digits
+              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
             ), 
             SIMPLIFY = FALSE,
             USE.NAMES = FALSE
@@ -680,8 +719,7 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
               maxn_sites_per_vmod = maxn_sites_per_vmod, 
               maxn_fnl_per_seq = maxn_fnl_per_seq, 
               maxn_vnl_per_seq = maxn_vnl_per_seq, 
-              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-              digits = digits
+              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
             ), 
             SIMPLIFY = FALSE,
             USE.NAMES = FALSE
@@ -719,8 +757,7 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
               maxn_sites_per_vmod = maxn_sites_per_vmod, 
               maxn_fnl_per_seq = maxn_fnl_per_seq, 
               maxn_vnl_per_seq = maxn_vnl_per_seq, 
-              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-              digits = digits
+              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
             ), 
             SIMPLIFY = FALSE,
             USE.NAMES = FALSE
@@ -734,93 +771,6 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
   }
   
   out <- post_frame_adv(out, mgf_frames)
-}
-
-
-#' Fuzzy matches with a +/-1 window.
-#' 
-#' Not used but called the codes inside directly.
-#' 
-#' @param x A vector to be matched.
-#' @param y A vector to be matched against.
-#' @importFrom fastmatch fmatch %fin% 
-#' @examples 
-#' library(mzion)
-#' 
-#' ans1 <- mzion:::fuzzy_match_one(c(74953, 74955), rep(74954, 2))
-#' ans2 <- mzion:::fuzzy_match_one(c(74953, 74955), 74954)
-#' 
-#' stopifnot(identical(ans1, ans2))
-#' stopifnot(ans1 == c(TRUE, TRUE))
-fuzzy_match_one <- function (x, y) 
-{
-  mi <- x %fin% y
-  bf <- (x - 1L) %fin% y
-  af <- (x + 1L) %fin% y
-  
-  mi | bf | af
-}
-
-
-#' Fuzzy matches with a +/-1 window.
-#'
-#' No multiple dipping of \code{y} matches. A \code{y} value will be removed (or
-#' became 0) if matched,
-#'
-#' @param x A vector to be matched.
-#' @param y A vector to be matched against.
-#' @importFrom fastmatch fmatch %fin%
-#' @examples
-#' library(mzion)
-#' 
-#' ans1 <- mzion:::fuzzy_match_one2(c(74953, 74955), rep(74954, 2))
-#' ans2 <- mzion:::fuzzy_match_one2(c(74953, 74955), 74954)
-#'
-#' stopifnot(identical(ans1, ans2))
-#' stopifnot(ans1 == c(FALSE, TRUE))
-#'
-#' ans3 <- mzion:::fuzzy_match_one2(c(74953, 74955, 80000), c(74955, 80000))
-#' 
-#' ## The x3 example from "find_ms2_bypep"
-#' x <- c(-9185, -3369, -1973, -626, 59, 714, 3326, 7106, 7711, 7715, 8316, 8320, 
-#'        8916, 8920, 9511, 9515, 10102, 10688, 11211, 12945, 16807, 24001, 24481, 
-#'        31480, 32350, 32805, 37050, 37875, 42986, 53028, 53377, 53711, 56940, 58542, 
-#'        59172, 61310, 62482, 70941, 73801, 77575, 78046, 78047, 84120, 85881, 89313, 
-#'        91185, 96328, 101503, 102916, 104302, 113257, 113411, 116563, 118593, 
-#'        121336, 121405, 121474, 123450, 123841, 125826, 127823, 130750, 131786, 
-#'        131842, 131903, 134568, 135267, 135956, 139090, 139200, 146310, 146801, 
-#'        146902, 149442, 152081, 152174, 153544, 153635, 160913, 160995, 161078, 
-#'        162794, 162875, 163036, 163117, 163191, 163271, 168686, 169869, 169943, 
-#'        173741, 173812, 173951, 174856, 174922, 174990, 175059, 175128, 175197, 
-#'        175266)
-#' 
-#' aas <- unlist(strsplit("SLAAEEEAAR", ""))
-#' 
-#' y <- c(317.2022, 430.2863, 501.3234, 572.3605, 701.4031, 
-#'        830.4457, 959.4883, 1030.5254, 1101.5625, 1257.6636, 
-#'        175.1190, 246.1561, 317.1932, 446.2358, 575.2784, 
-#'        704.3210, 775.3581, 846.3952, 959.4793, 1046.5113)
-#' 
-#' names(y) <- c(aas, rev(aas))
-#' 
-#' ppm_ms2 <- 13L
-#' min_ms2mass <- 115L
-#' d <- ppm_ms2/1E6
-#' y <- ceiling(log(y/min_ms2mass)/log(1+d))
-#' 
-#' ans <- mzion:::fuzzy_match_one2(x, y)
-fuzzy_match_one2 <- function (x, y) 
-{
-  mi <- x %fin% y
-  if (any(mi)) y[y %fin% x[mi]] <- 0L
-  
-  x2 <- x - 1L
-  bf <- x2 %fin% y
-  if (any(bf)) y[y %fin% x2[bf]] <- 0L
-  
-  af <- (x + 1L) %fin% y
-  
-  mi | bf | af
 }
 
 
@@ -1031,13 +981,12 @@ fuzzy_match_one2 <- function (x, y)
 #' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
 #' 
 #' x5 <- mzion:::find_ms2_bypep(theos, expts, ex, d, ppm_ms2)
-#' 
 #' }
 #' 
 #' @return Lists of (1) theo, (2) expt, (3) ith, (4) iex and (5) m.
 find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL, 
-                               ppm_ms2 = 10L, min_ms2mass = 115L, minn_ms2 = 6L, 
-                               index_mgf_ms2 = FALSE) 
+                            ppm_ms2 = 10L, min_ms2mass = 115L, minn_ms2 = 6L, 
+                            index_mgf_ms2 = FALSE) 
 {
   # `theos`
   #   the same pep_seq at different applicable ivmods and NLs
@@ -1186,7 +1135,7 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
 #'   value at \code{by_modules = TRUE}
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
-#' @inheritParams pair_mgftheo
+#' @inheritParams pair_mgftheos
 #' @examples
 #' \donttest{
 #' library(mzion)
@@ -1248,7 +1197,7 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
   # (1) within a list: removes vmods+ positions that are NULL (< minn_ms2)
   # (no effects on vmods-; need `type` info if to limit to vmods+)
   oks <- lapply(ans, function (this) {
-    oks <- lapply(this, function (x) !is.null(x$theo))
+    oks <- lapply(this, function (x) !is.null(x[["theo"]]))
     .Internal(unlist(oks, recursive = FALSE, use.names = FALSE))
   })
   
@@ -1325,6 +1274,92 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
 #'
 #' For a single module
 #'
+#' @param pep_mod_group The index of peptide modification groups.
+#' @param mgths Pairs of experimental and theoretical data.
+#' @param aa_masses An amino-acid look-up.
+#' @param FUN A function, e.g., \link{gen_ms2ions_base}, with an i-th module of
+#'   \code{aa_masses}.
+#' @param ms1vmods All possible labels of MS1 variable modifications with
+#'   an i-th \code{aa_masses}.
+#' @param ms2vmods All possible labels of MS2 variable modifications with
+#'   an i-t \code{aa_masses}.
+#' @param cl The value of clusters for parallel processes.
+#' @param df0 An output template.
+#' @inheritParams hms2match
+hms2match_one <- function (pep_mod_group, mgths, aa_masses, FUN, 
+                           ms1vmods, ms2vmods, cl, 
+                           mod_indexes, mgf_path, out_path, type_ms2ions = "by", 
+                           maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
+                           maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
+                           maxn_vmods_sitescombi_per_pep = 64L, 
+                           minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
+                           min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
+                           df0 = NULL) 
+{
+  nm_fmods <- attr(aa_masses, "fmods", exact = TRUE)
+  nm_vmods <- attr(aa_masses, "vmods", exact = TRUE)
+  
+  message("Matching against: ", 
+          if (nchar(nm_vmods) == 0L) nm_fmods else paste0(nm_fmods, " | ", nm_vmods))
+  
+  df <- vector("list", length(mgths))
+  
+  for (i in seq_along(mgths)) {
+    df[[i]] <- ms2match_one(
+      mgths[[i]], 
+      pep_mod_group = pep_mod_group, aa_masses = aa_masses, FUN = FUN, 
+      ms1vmods = ms1vmods, ms2vmods = ms2vmods, cl = cl, 
+      mod_indexes = mod_indexes, mgf_path = mgf_path, out_path = out_path, 
+      type_ms2ions = type_ms2ions, 
+      maxn_vmods_per_pep = maxn_vmods_per_pep, 
+      maxn_sites_per_vmod = maxn_sites_per_vmod, 
+      maxn_fnl_per_seq = maxn_fnl_per_seq, 
+      maxn_vnl_per_seq = maxn_vnl_per_seq, 
+      maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+      minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
+      min_ms2mass = min_ms2mass, index_mgf_ms2 = index_mgf_ms2, 
+      df0 = df0)
+  }
+  
+  df <- dplyr::bind_rows(df)
+  
+  out_nm <- file.path(out_path, "temp", paste0("ion_matches_", pep_mod_group, ".rds"))
+  
+  if (is.null(df)) {
+    qs::qsave(df, out_nm, preset = "fast")
+    return(NULL)
+  }
+  
+  # fields not yet available with `ms2match_all`
+  df[["pep_fmod"]] <- nm_fmods
+  df[["pep_vmod"]] <- nm_vmods
+  df[["pep_mod_group"]] <- pep_mod_group
+  
+  df <- dplyr::rename(df, 
+                      pep_ret_range = ret_time, 
+                      pep_scan_title = scan_title,
+                      pep_exp_mz = ms1_moverz, 
+                      pep_n_ms2 = ms2_n, 
+                      pep_exp_mr = ms1_mass, 
+                      pep_tot_int = ms1_int, 
+                      pep_scan_num = scan_num, 
+                      pep_exp_z = ms1_charge, 
+                      pep_ms2_moverzs = ms2_moverz, 
+                      pep_ms2_ints = ms2_int, 
+                      # pep_frame = frame, 
+                      )
+  # df[["pep_scan_num"]] <- as.character(df[["pep_scan_num"]])
+  df <- reloc_col_after(df, "raw_file", "scan_num")
+  df <- reloc_col_after(df, "pep_mod_group", "raw_file")
+  qs::qsave(df, out_nm, preset = "fast")
+}
+
+
+#' Matches experimentals and theoreticals
+#'
+#' For a single module
+#'
+#' @param mgth MGF and theoretical pairs
 #' @param pep_mod_group The index of peptide modification groups
 #' @param aa_masses An amino-acid look-up
 #' @param FUN A function, e.g., \link{gen_ms2ions_base}, with an i-th module of
@@ -1336,7 +1371,7 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
 #' @param cl The value of clusters for parallel processes
 #' @param df0 An output template
 #' @inheritParams hms2match
-ms2match_one <- function (pep_mod_group, aa_masses, FUN, 
+ms2match_one <- function (mgth, pep_mod_group, aa_masses, FUN, 
                           ms1vmods, ms2vmods, cl, 
                           mod_indexes, mgf_path, out_path, type_ms2ions = "by", 
                           maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
@@ -1344,26 +1379,20 @@ ms2match_one <- function (pep_mod_group, aa_masses, FUN,
                           maxn_vmods_sitescombi_per_pep = 64L, 
                           minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                           min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
-                          df0 = NULL, digits = 4L) 
+                          df0 = NULL)
 {
-  nm_fmods <- attr(aa_masses, "fmods", exact = TRUE)
-  nm_vmods <- attr(aa_masses, "vmods", exact = TRUE)
-  
-  message("Matching against: ", 
-          if (nchar(nm_vmods) == 0L) nm_fmods else paste0(nm_fmods, " | ", nm_vmods))
-  
-  mgth       <- paste0("expttheo_", pep_mod_group, ".rds")
   out_name   <- gsub("^expttheo", "ion_matches", mgth)
   mgftheo    <- qs::qread(file.path(mgf_path, mgth))
   mgf_frames <- mgftheo[["mgf_frames"]]
   theopeps   <- mgftheo[["theopeps"]]
-  rm("mgftheo")
+  rm(list = "mgftheo")
+
+  len <- length(mgf_frames)
   
-  if (!length(mgf_frames)) {
-    qs::qsave(df0, file.path(out_path, "temp", out_name))
+  # NULL or NULL list
+  if ((!len) || (len == 1L && is.null(mgf_frames[[1]])))
     return(df0)
-  }
-  
+
   ntmod    <- attr(aa_masses, "ntmod", exact = TRUE)
   ctmod    <- attr(aa_masses, "ctmod", exact = TRUE)
   ntmass   <- find_nterm_mass(aa_masses)
@@ -1406,42 +1435,10 @@ ms2match_one <- function (pep_mod_group, aa_masses, FUN,
                     ppm_ms2 = ppm_ms2, 
                     min_ms2mass = min_ms2mass, 
                     index_mgf_ms2 = index_mgf_ms2, 
-                    digits = digits, 
                     FUN = FUN), 
     .scheduling = "dynamic")
-
+  
   df <- dplyr::bind_rows(df)
-  
-  out_nm <- file.path(out_path, "temp", paste0("ion_matches_", pep_mod_group, ".rds"))
-  
-  if (is.null(df)) {
-    qs::qsave(df, out_nm, preset = "fast")
-    return(NULL)
-  }
-  
-  # fields not yet available with `ms2match_all`
-  df[["pep_fmod"]] <- nm_fmods
-  df[["pep_vmod"]] <- nm_vmods
-  df[["pep_mod_group"]] <- pep_mod_group
-  
-  df <- dplyr::rename(df, 
-                      pep_ret_range = ret_time, 
-                      pep_scan_title = scan_title,
-                      pep_exp_mz = ms1_moverz, 
-                      pep_n_ms2 = ms2_n, 
-                      pep_exp_mr = ms1_mass, 
-                      pep_tot_int = ms1_int, 
-                      pep_scan_num = scan_num, 
-                      pep_exp_z = ms1_charge, 
-                      pep_ms2_moverzs = ms2_moverz, 
-                      pep_ms2_ints = ms2_int, 
-                      pep_frame = frame)
-  df[["pep_scan_num"]] <- as.character(df[["pep_scan_num"]])
-  
-  df <- reloc_col_after(df, "raw_file", "scan_num")
-  df <- reloc_col_after(df, "pep_mod_group", "raw_file")
-  
-  qs::qsave(df, out_nm, preset = "fast")
 }
 
 
@@ -1469,7 +1466,7 @@ ms2match_one <- function (pep_mod_group, aa_masses, FUN,
 #' @param FUN A function pointer to, e.g., \link{gen_ms2ions_base}.
 #' @inheritParams matchMS
 #' @inheritParams ms2match
-#' @inheritParams ms2match_one
+#' @inheritParams hms2match_one
 #' @return Matches to each MGF as a list elements. The length of the output is
 #'   equal to the number of MGFs in the given frame.
 frames_adv <- function (mgf_frames = NULL, theopeps = NULL, 
@@ -1484,18 +1481,19 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
                         maxn_vmods_sitescombi_per_pep = 64L, 
                         minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                         min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
-                        digits = 4L, FUN) 
+                        FUN) 
 {
   len <- length(mgf_frames)
   
   if (!len)
     return(NULL)
   
+  frames <- as.integer(names(mgf_frames))
   out <- vector("list", len) 
   
   ## --- initiation ---
   mgfs_cr <- mgf_frames[[1]]
-  frame <- mgfs_cr[["frame"]][1]
+  frame <- frames[1]
   
   bfi <- 1L
   thbf <- theopeps[[bfi]] 
@@ -1527,8 +1525,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       maxn_sites_per_vmod = maxn_sites_per_vmod, 
       maxn_fnl_per_seq = maxn_fnl_per_seq, 
       maxn_vnl_per_seq = maxn_vnl_per_seq, 
-      maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-      digits = digits
+      maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
     ), 
     SIMPLIFY = FALSE,
     USE.NAMES = FALSE
@@ -1556,9 +1553,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       maxn_sites_per_vmod = maxn_sites_per_vmod, 
       maxn_fnl_per_seq = maxn_fnl_per_seq, 
       maxn_vnl_per_seq = maxn_vnl_per_seq, 
-      maxn_vmods_sitescombi_per_pep = 
-        maxn_vmods_sitescombi_per_pep, 
-      digits = digits
+      maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
     ), 
     SIMPLIFY = FALSE,
     USE.NAMES = FALSE
@@ -1600,9 +1595,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
         maxn_sites_per_vmod = maxn_sites_per_vmod, 
         maxn_fnl_per_seq = maxn_fnl_per_seq, 
         maxn_vnl_per_seq = maxn_vnl_per_seq, 
-        maxn_vmods_sitescombi_per_pep = 
-          maxn_vmods_sitescombi_per_pep, 
-        digits = digits
+        maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
       ), 
       SIMPLIFY = FALSE,
       USE.NAMES = FALSE
@@ -1633,7 +1626,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
     
     # advance to the next frame
     mgfs_cr <- mgf_frames[[i+1]]
-    new_frame <- mgfs_cr[["frame"]][1]
+    new_frame <- frames[i+1L]
     
     if (isTRUE(new_frame == (frame + 1L))) {
       cri <- cri + 1L
@@ -1675,9 +1668,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
           maxn_sites_per_vmod = maxn_sites_per_vmod, 
           maxn_fnl_per_seq = maxn_fnl_per_seq, 
           maxn_vnl_per_seq = maxn_vnl_per_seq, 
-          maxn_vmods_sitescombi_per_pep = 
-            maxn_vmods_sitescombi_per_pep, 
-          digits = digits
+          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
@@ -1714,9 +1705,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
           maxn_sites_per_vmod = maxn_sites_per_vmod, 
           maxn_fnl_per_seq = maxn_fnl_per_seq, 
           maxn_vnl_per_seq = maxn_vnl_per_seq, 
-          maxn_vmods_sitescombi_per_pep = 
-            maxn_vmods_sitescombi_per_pep, 
-          digits = digits
+          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE
@@ -1741,9 +1730,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
           maxn_sites_per_vmod = maxn_sites_per_vmod, 
           maxn_fnl_per_seq = maxn_fnl_per_seq, 
           maxn_vnl_per_seq = maxn_vnl_per_seq, 
-          maxn_vmods_sitescombi_per_pep = 
-            maxn_vmods_sitescombi_per_pep, 
-          digits = digits
+          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
         ), 
         SIMPLIFY = FALSE,
         USE.NAMES = FALSE

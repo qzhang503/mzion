@@ -10,6 +10,7 @@ binTheoSeqs(
   min_mass = 200L,
   max_mass = 4500L,
   ppm_ms1 = 10L,
+  enzyme = "trypsin_p",
   out_path = NULL
 )
 }
@@ -25,6 +26,8 @@ binTheoSeqs(
 \item{max_mass}{Numeric; the maximum MS1 mass.}
 
 \item{ppm_ms1}{Numeric; (half of) the error tolerance of MS1 mass in ppm.}
+
+\item{enzyme}{The assume enzyme activity.}
 
 \item{out_path}{The output path.}
 }

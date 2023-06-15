@@ -24,8 +24,7 @@ hms2match(
   min_ms2mass = 115L,
   index_mgf_ms2 = FALSE,
   by_modules = FALSE,
-  df0 = NULL,
-  digits = 4L
+  df0 = NULL
 )
 }
 \arguments{
@@ -116,15 +115,12 @@ interrogation. The default is 110.}
   the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
   pep_ms2_deltas_sd} are nullified in the outputs.}
 
-\item{by_modules}{Logical. Experimenting. At the TRUE default, searches MS
-data by individual modules of combinatorial fixed and variable
-modifications. If FALSE, search all modules together. The later would
-probably need more than 32G RAM if the number of modules is over 96.}
+\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
+individual modules of combinatorial fixed and variable modifications. If
+FALSE, search all modules together. The later would probably need more than
+32G RAM if the number of modules is over 96.}
 
 \item{df0}{An output template with zero rows}
-
-\item{digits}{A non-negative integer; the number of decimal places to be
-used. The default is 4.}
 }
 \description{
 By MGF chunks
