@@ -984,10 +984,15 @@ get_ms1charges <- function (charges)
 #' The same value at different name will be treated as different elements.
 #' 
 #' @param x A named vector.
+#' @examples
+#' \donttest{
+#' library(mzion)
+#' mzion:::finds_uniq_vec(c(a1 = 3, a2 = 3, a2 = 4, a2 = 3, b1 = 3, b2 = 1))
+#' }
 finds_uniq_vec <- function (x)
 {
   v <- .Internal(paste0(list(x, names(x)), collapse = NULL, recycle0 = FALSE))
-  oks <- !duplicated(v)
+  oks <- !duplicated.default(v)
   x[oks]
 }
 

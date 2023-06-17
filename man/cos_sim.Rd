@@ -12,7 +12,7 @@ cos_sim(M)
 Vectors are in rows: mtcars[1, ].}
 }
 \description{
-Cosine similarity.
+Not yet used.
 }
 \examples{
 library(mzion)

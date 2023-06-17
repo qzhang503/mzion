@@ -28,8 +28,7 @@ matchMS_silac_mix <- function (silac_mix = list(base = NULL, heavy = c("K8 (K)",
          "  # labelled base\n", 
          "  silac_mix = list(base = c(fixedlabs = ..., varlabs = ...), \n", 
          "                   grpC = c(fixedlabs = ..., varlabs = ...), \n", 
-         "                   grpN = c(fixedlabs = ..., varlabs = ...), \n\n", 
-         call. = FALSE)
+         "                   grpN = c(fixedlabs = ..., varlabs = ...), \n\n")
   }
   
   nms <- names(silac_mix)
@@ -41,12 +40,10 @@ matchMS_silac_mix <- function (silac_mix = list(base = NULL, heavy = c("K8 (K)",
   }
   
   if (all(unlist(lapply(silac_mix, is.null))))
-    stop("`silac_mix` groups cannot be all NULL.", call. = FALSE)
+    stop("`silac_mix` groups cannot be all NULL.")
   
-  len <- length(nms)
-  
-  if (len < 2L)
-    stop("Need at least two `silac_mix` groups.", call. = FALSE)
+  if ((len <- length(nms)) < 2L)
+    stop("Need at least two `silac_mix` groups.")
   
   out_paths <- vector("list", len)
   
@@ -149,19 +146,17 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
          "       fixedmods = c(\"Carbamidomethyl (C)\")", "),\n", 
          "  list(mgf_path  = \"~/mzion/my_proj/mgfs/grp_2\"", ",\n", 
          "       fixedmods = c(\"Carbamidomethyl (C)\", \"K8 (K)\", \"R10 (R)\")", ")\n", 
-         "  )", 
-         call. = FALSE)
+         "  )")
   }
-  
-  nms <- names(par_groups)
   
   if (all(unlist(lapply(par_groups, is.null))))
     stop("`par_groups` cannot be all NULL.")
   
+  nms <- names(par_groups)
   len <- length(nms)
   
   if (len < 2L)
-    stop("Need at least two `par_groups`.", call. = FALSE)
+    stop("Need at least two `par_groups`.")
   
   ans <- out_paths <- vector("list", len)
   
@@ -436,37 +431,27 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
 #' @param type The type of data for combining.
 combine_ion_matches <- function (out_path, out_paths, type = "ion_matches_") 
 {
-  out_path_temp <- create_dir(file.path(out_path, "temp"))
+  out_path_temp  <- create_dir(file.path(out_path, "temp"))
   out_paths_temp <- lapply(out_paths, function(x) file.path(x, "temp"))
   
   pat  <- paste0(type, "[0-9]+\\.rds$")
   pat2 <- paste0(type, "([0-9]+)\\.rds$")
+  xs   <- list.files(out_paths_temp[[1]], pattern = pat)
   
-  files_mts <- local({
-    xs <- list.files(out_paths_temp[[1]], pattern = pat)
-    
-    files <- if (length(xs)) 
-      paste0(type, sort(as.integer(gsub(pat2, "\\1", xs))), ".rds")
-    else 
-      NULL
-  })
+  files <- if (length(xs)) 
+    paste0(type, sort(as.integer(gsub(pat2, "\\1", xs))), ".rds")
+  else 
+    NULL
   
-  len_mts <- length(files_mts)
-  
-  if (!len_mts) {
+  if (!length(files)) {
     warning("Files not found: ", type)
     return(NULL)
   }
   
-  ans_mts <- vector("list", len_mts)
-  
-  for (i in seq_along(ans_mts)) {
-    ans_mts[[i]] <- lapply(out_paths_temp, function (path) {
-      qs::qread(file.path(path, files_mts[i]))
-    }) %>% 
-      dplyr::bind_rows()
-    
-    qs::qsave(ans_mts[[i]], file.path(out_path_temp, files_mts[i]), preset = "fast")
+  for (i in seq_along(files)) {
+    ans <- lapply(out_paths_temp, function (x) qs::qread(file.path(x, files[i])))
+    ans <- dplyr::bind_rows(ans)
+    qs::qsave(ans, file.path(out_path_temp, files[i]), preset = "fast")
   }
   
   invisible(NULL)

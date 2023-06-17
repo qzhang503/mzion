@@ -4,7 +4,7 @@
 \alias{combine_fracs}
 \title{Combines results from fractions}
 \usage{
-combine_fracs(files, tempdir, sc_path)
+combine_fracs(files, tempdir, sc_path, ms1_offsets = 0)
 }
 \arguments{
 \item{files}{A list of file names}
@@ -12,6 +12,9 @@ combine_fracs(files, tempdir, sc_path)
 \item{tempdir}{A temporary directory containing the files}
 
 \item{sc_path}{An output path}
+
+\item{ms1_offsets}{Off-sets in precursor masses in relative to the original
+values in MGFs.}
 }
 \description{
 Combines results from fractions

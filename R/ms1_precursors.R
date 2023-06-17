@@ -148,7 +148,6 @@ calc_pepmasses2 <- function (aa_masses = NULL,
   .time_stamp <- match_calltime(
     path = .path_cache,
     fun = fun,
-    
     # `nms` must be matched in order to retrieve cached results
     nms = c("fasta", "acc_type", "acc_pattern",
             "fixedmods", "varmods", "mod_motifs", 
@@ -158,14 +157,11 @@ calc_pepmasses2 <- function (aa_masses = NULL,
             "maxn_vmods_per_pep", "maxn_sites_per_vmod",
             "min_len", "max_len", "max_miss", 
             "min_mass", "max_mass"), 
-    
     # exception: new arguments need matches but not defined in earlier versions
     new_args = new_args)
 
   # ---
-  len_ts <- length(.time_stamp)
-  
-  if (len_ts && use_ms1_cache) {
+  if ((len_ts <- length(.time_stamp)) && use_ms1_cache) {
     # can have multiple matches with use_ms1_cache on/off
     .time_stamp <- .time_stamp[len_ts]
 
@@ -205,7 +201,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     
     .time_stamp <- format(Sys.time(), ".%Y-%m-%d_%H%M%S")
     path_tstamp <- file.path(.path_fasta, "ms1masses", .time_stamp)
-    file_ms1 <- file.path(path_tstamp, "aa_masses_ms1.rds")
+    file_ms1    <- file.path(path_tstamp, "aa_masses_ms1.rds")
 
     aa_masses_all <- find_aa_masses(
       aa_masses = aa_masses, 
@@ -348,18 +344,16 @@ calc_pepmasses2 <- function (aa_masses = NULL,
         c("hsemipeps_byprots", 
           "semipeps_byprots", 
           "calc_semipepmasses"), 
-        envir = environment(mzion::matchMS)
-      )
-      
+        envir = environment(mzion::matchMS))
+
       fwd_peps <- parallel::clusterApply(
         cl, 
         fwd_peps, 
         hsemipeps_byprots, 
         min_len = min_len , 
         max_len = max_len, 
-        aa_masses = aa_masses_0
-      )
-      
+        aa_masses = aa_masses_0)
+
       parallel::stopCluster(cl)
     }
     
@@ -401,14 +395,12 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     fwd_peps <- lapply(seq_along(aa_masses_all), function (i) {
       # by i-th aa_masses from each node
       fwd_peps_i <- lapply(fwd_peps, `[[`, i)
-      
       # combines i-th results across nodes
       flatten_list(fwd_peps_i)
     })
     
     message("\tCompleted bare peptides distributions.")
     rm(list = c("seqs_0"))
-    # gc()
 
     # (c) Protein-peptide associations
     message("Summarizing the association of proteins and peptides.")
@@ -426,19 +418,14 @@ calc_pepmasses2 <- function (aa_masses = NULL,
       simple_prots_peps)
     
     parallel::stopCluster(cl)
-    # gc()
-    
+
     prps <- flatten_list(prps)
     qs::qsave(prps, file.path(path_prp, "simple_prot_pep.rds"), preset = "fast")
     rm(list = c("prps"))
-    # gc()
-    
 
     # (d) Flattened peptide lists (prot_acc's removed)
     fwd_peps <- lapply(fwd_peps, flat_pepseqs)
-    # gc()
-    
-    
+
     # (e) Adjusted base masses if with fixed-to-variable coercion
     # fwd_peps[[1]] ties to the original user-supplied fixed and variable mods;
     #   adjusted against all of the coerced N-, C-term and Anywhere sites
@@ -446,8 +433,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     fwd_peps[[1]] <- adj_base_masses(fwd_peps[[1]], aa_masses_0, aa_masses_1, 
                                      min_mass = min_mass, max_mass = max_mass, 
                                      digits = digits)
-    # gc()
-    
+
     
     # --- Delta masses of `variable` terminals  ---
     # e.g., on top of the `fixed` 18.010565; 
@@ -485,7 +471,8 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     # --- Mass of variable mods and/or NLs ---
     # !!! switch to the "ultimate" aa_masses_all (with back coercion)
     message("Adding variable masses...")
-    types <- purrr::map_chr(aa_masses_all, attr, "type", exact = TRUE)
+    types <- lapply(aa_masses_all, attr, "type", exact = TRUE)
+    types <- unlist(types, recursive = FALSE, use.names = FALSE)
 
     fmods_ps <- lapply(aa_masses_all, attr, "fmods_ps", exact = TRUE)
     vmods_ps <- lapply(aa_masses_all, attr, "vmods_ps", exact = TRUE)
@@ -497,7 +484,6 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     # `amods-` and `fnl+` (must be vnl- since amods-)
     #
     # (5, 6) "amods- tmod+ vnl- fnl+", "amods- tmod- vnl- fnl+"
-    
     if (FALSE) {
       n_cores <- detect_cores(32L) - 1L
 
@@ -549,7 +535,6 @@ calc_pepmasses2 <- function (aa_masses = NULL,
           
           fwd_peps[[i]] <- flatten_list(fwd_peps[[i]])
           fwd_peps[[i]] <- unlist(fwd_peps[[i]], recursive = FALSE, use.names = TRUE)
-          gc()
         }
       }
     }
@@ -558,7 +543,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     # `amods+`; (9-14) nested under (7-8)
     #
     # (7-8) "amods+ tmod- vnl- fnl-", "amods+ tmod+ vnl- fnl-"
-    #   (9-10) "amods+ tmod- vnl+ fnl-", "amods+ tmod+ vnl+ fnl-"
+    #   (9-10)  "amods+ tmod- vnl+ fnl-", "amods+ tmod+ vnl+ fnl-"
     #   (11-12) "amods+ tmod- vnl- fnl+", "amods+ tmod+ vnl- fnl+"
     #   (13-14) "amods+ tmod- vnl+ fnl+", "amods+ tmod+ vnl+ fnl+"
     
@@ -618,7 +603,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
         vmods_nl_i = vmods_nl[[i]]
         fmods_nl_i = fmods_nl[[i]]
 
-        fwd_peps[[i]] <- parallel::clusterApply(
+        ansi <- parallel::clusterApply(
           cl, 
           chunksplit(fwd_peps_i, n_cores, "list"), 
           hms1_a1_vnl0_fnl0, 
@@ -633,8 +618,8 @@ calc_pepmasses2 <- function (aa_masses = NULL,
           max_mass = max_mass, 
           digits = digits)
         
-        fwd_peps[[i]] <- flatten_list(fwd_peps[[i]])
-        fwd_peps[[i]] <- unlist(fwd_peps[[i]], recursive = FALSE, use.names = TRUE)
+        ansi <- flatten_list(ansi)
+        fwd_peps[[i]] <- unlist(ansi, recursive = FALSE, use.names = TRUE)
 
         message("\tCompleted peptide masses: ",
                 paste(attributes(aa_masses_i)$fmods, "|", 
@@ -643,13 +628,11 @@ calc_pepmasses2 <- function (aa_masses = NULL,
       }
       
       parallel::stopCluster(cl)
-      # gc()
     }
 
     suppressWarnings(
       rm(list = c("amods_i", "fmods_nl", "fmods_ps", "fwd_peps_i", 
                   "vmods_nl_i", "aa_masses_1", "aa_masses_i")))
-    # gc()
 
     # fwd_peps <- lapply(fwd_peps, add_ms1_13c, n_13c, max_mass)
     # fwd_peps <- lapply(fwd_peps, add_ms1_notches, ms1_notches, max_mass)
@@ -690,6 +673,8 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     qs::qsave(.cache_info, file.path(path, ".cache_info.rds"), preset = "fast")
   })
 
+  # fwd_peps may be NULL if matched with cached
+  # attr(fwd_peps, ".time_stamp") <- .time_stamp
   invisible(fwd_peps)
 }
 
@@ -732,13 +717,10 @@ find_motif_pat <- function (aa_masses)
   mms <- attr(aa_masses, "mod_motifs", exact = TRUE)
   mms <- .Internal(unlist(mms, recursive = FALSE, use.names = FALSE))
   
-  if (length(mms)) {
-    motifs <- unique(mms)
-    .Internal(paste0(list(motifs), collapse = "|", recycle0 = FALSE))
-  }
-  else {
+  if (length(mms))
+    .Internal(paste0(list(unique(mms)), collapse = "|", recycle0 = FALSE))
+  else
     NULL
-  }
 }
 
 
@@ -1164,8 +1146,7 @@ check_dupfvmods <- function (fixedmods, varmods)
   if (length(dup_mods)) 
     stop("Modifications cannot be simultaneously 'fixed' and 'variable': \n",
          paste(dup_mods, collapse = ", "), "\n", 
-         "Hint: the default \"fixedmods\" and \"varmods\" are not NULL.", 
-         call. = FALSE)
+         "Hint: the default \"fixedmods\" and \"varmods\" are not NULL.")
 }
 
 
@@ -1178,12 +1159,9 @@ coerce_fvmods <- function (fixedmods, varmods)
   vmods_ps <- find_modps(varmods)
   
   local({
-    dup_fsites <- fmods_ps[duplicated(fmods_ps)]
-    
-    if (length(dup_fsites)) {
+    if (length((dup_fsites <- fmods_ps[duplicated(fmods_ps)])))
       stop("Multiple fixed modifications to the same site: \n",
            "'", paste(dup_fsites, collapse = ", "), "'")
-    }
   })
   
   coerce_sites <- find_f_to_v(fixedmods, fmods_ps, vmods_ps)
@@ -1276,9 +1254,7 @@ find_f_to_v <- function (fixedmods, fmods_ps, vmods_ps)
 #' @inheritParams calc_aamasses
 check_mod_motifs <- function (mod_motifs, mods)
 {
-  bads <- mod_motifs[!names(mod_motifs) %in% mods]
-  
-  if (length(bads))
+  if (length((bads <- mod_motifs[!names(mod_motifs) %in% mods])))
     stop("\"mod_motifs\" not found in \"varmods\" or \"fixedmods\": ", 
          paste(bads, collapse = ", "))
 }
@@ -1311,10 +1287,7 @@ find_aamasses_vmodscombi <- function (varmods = NULL, f_to_v = NULL,
   #     apply a strong condition of "all" sites
   
   # if no K -> need everything else: TMT6plex (N-term), Acetyl (K), Deamidated (N)
-  
-  len_a <- length(anywhere_coerce_sites)
-  
-  if (len_a > 1L) {
+  if ((len_a <- length(anywhere_coerce_sites)) > 1L) {
     warning("Multiple coercions from fixed to variable modifications: ", 
             paste(anywhere_coerce_sites, collapse = ", "), "\n", 
             "Suggest change (some of) them to variable modifications.")
@@ -1662,8 +1635,8 @@ add_aamasses_neulosses <- function (aa_masses, neulosses, mod_type)
     purrr::map_lgl(~ all(.x == 0)) %>%
     all()
   
-  # if (no_nls) return(list(aa_masses))
-  if (no_nls) return(aa_masses)
+  if (no_nls) 
+    return(aa_masses)
   
   attr(aa_masses, paste0(mod_type, "_neuloss")) <- neulosses
   
@@ -1684,8 +1657,6 @@ add_aamasses_motifs <- function (aa_masses, mod_motifs, positions_sites)
   nms <- names(positions_sites)
   pmod_motifs <- mod_motifs[nms]
   
-  # pmod_motifs <- lapply(pmod_motifs, function (x) if (is.null(x)) "" else x)
-  # names(pmod_motifs) <- nms
   if (!is.null(pmod_motifs)) 
     names(pmod_motifs) <- nms
   
@@ -1749,7 +1720,6 @@ parse_aamasses <- function (aa_masses)
     anywhere_backs <- attr(aa_masses, "anywhere_backs", exact = TRUE)
     amods2 <- if (is.null(anywhere_backs)) amods else amods[!names(amods) %in% anywhere_backs]
     count_elements(unlist(amods2, recursive = FALSE, use.names = FALSE))
-    # count_elements(unlist(amods, recursive = FALSE, use.names = FALSE))
   })
 
   # Is "same Anywhere mod existed"
@@ -1786,10 +1756,8 @@ parse_aamasses <- function (aa_masses)
       x[!rows]
     })
   } 
-  else {
-    stop("cannot have more than two terminal modifications.",
-         call. = FALSE)
-  }
+  else
+    stop("cannot have more than two terminal modifications.")
 
   ## fixed mods
   famods <- local({
@@ -2125,7 +2093,6 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   peps_m <- lapply(fasta_dbm, function (x) {
     s <- .Internal(strsplit(x, "@", fixed = FALSE, perl = FALSE, useBytes = FALSE))
     s <- .Internal(unlist(s, recursive = FALSE, use.names = FALSE))
-    
     keep_n_misses(s, max_miss)
   })
   
@@ -2601,10 +2568,9 @@ adj_anywhere_masses <- function (peps, aa_masses)
     d * n
   }, ds, ns, SIMPLIFY = FALSE, USE.NAMES = FALSE)
   
-  for (i in seq_along(dns)) {
+  for (i in seq_along(dns))
     peps <- peps + dns[[i]]
-  }
-  
+
   invisible(peps)
 }
 
@@ -2844,9 +2810,6 @@ ms1masses_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L,
 
   attr(aa_masses, "data") <- out
 
-  rm(list = c("aa_seqs", "out"))
-  gc()
-
   invisible(aa_masses)
 }
 
@@ -3004,8 +2967,7 @@ distri_fpeps <- function (data = NULL, max_miss = 2L, is_fixed_protnt = FALSE,
   if (is_fixed_protnt) {
     warning("At fixed `Protein N-term`, ",
             "non N-term peptides are removed.\n",
-            "!!! Consider variable `Protein N-term` modifications. !!!",
-            call. = FALSE)
+            "!!! Consider variable `Protein N-term` modifications. !!!")
 
     # peps: List of 2
     data <- lapply(data, function (peps) { 
@@ -3020,8 +2982,7 @@ distri_fpeps <- function (data = NULL, max_miss = 2L, is_fixed_protnt = FALSE,
   if (is_fixed_protct) {
     warning("At fixed `Protein C-term`, ",
             "non C-term peptides are removed.\n",
-            "!!! Consider variable `Protein C-term` modifications. !!!",
-            call. = FALSE)
+            "!!! Consider variable `Protein C-term` modifications. !!!")
 
     data <- lapply(data, function (peps) {
       
@@ -3324,7 +3285,8 @@ ms1_a0_vnl0_fnl1 <- function (mass, aa_seq, fnl_combi, aa_masses,
   out <- round(mass - delta, digits = digits)
   
   out <- out[out >= min_mass & out <= max_mass]
-  names(out) <- rep(aa_seq, length(out))
+  # out <- unique(out) # maybe useful
+  names(out) <- rep_len(aa_seq, length(out))
   
   invisible(out)
 }
@@ -3471,14 +3433,17 @@ ms1_a1_vnl0_fnl0 <- function (mass, aa_seq, amods, aa_masses,
   
   # "Carbamidomethyl (M)", "Carbamyl (M)" requires two "M"s
   # aas may only have one "M"
-  if (!length(vmods_combi)) return(NULL)
+  if (!length(vmods_combi)) 
+    return(NULL)
 
   deltas <- lapply(vmods_combi, function (x) sum(aa_masses[x]))
+  # rounding needed for removals of duplicated entries
   masses <- lapply(deltas, function (x) round(mass + x, digits = digits))
   out <- .Internal(unlist(masses, recursive = FALSE, use.names = FALSE))
-
   out <- out[out >= min_mass & out <= max_mass]
-  names(out) <- rep(aa_seq, length(out))
+  # different combinations can have the same mass
+  out <- unique(out)
+  names(out) <- rep_len(aa_seq, length(out))
   
   invisible(out)
 }

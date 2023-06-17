@@ -118,8 +118,7 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
   if (! pos %in% pos_allowed) 
     stop("`pos` needs to be one of ", 
          paste0("\n  '", pos_allowed, collapse = "'"), 
-         "'",  
-         call. = FALSE)
+         "'")
   
   # standardize terminal sites
   if (site == ".") {
@@ -132,8 +131,7 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
   }
   
   if (pos == "Anywhere" && site == ".") 
-    stop("'position' or 'site' cannot be both 'Anywhere'.",
-         call. = FALSE)
+    stop("'position' or 'site' cannot be both 'Anywhere'.")
   
   invisible(list(title = title, position = pos, site = site))
 }
@@ -185,7 +183,7 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)",
   monomass <- as.numeric(xml2::xml_attr(node_delta, "mono_mass"))
   
   if (!(length(monomass) == 1L))
-    stop("The length of `mono_mass` is not one.", call. = FALSE)
+    stop("The length of `mono_mass` is not one.")
   
   # sites and positions
   node_specs <- xml2::xml_find_all(this_mod, "umod:specificity")
@@ -210,11 +208,9 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)",
     len_sites <- length(sites)
     
     if (len_sites > 1L)
-      stop("Multiple matches in site and position for '", unimod, "'.", 
-           call. = FALSE)
+      stop("Multiple matches in site and position for '", unimod, "'.")
     else if (len_sites == 0L)
-      stop("No matches in site and position for '", unimod, "'.", 
-           call. = FALSE)
+      stop("No matches in site and position for '", unimod, "'.")
   })
 
   # neutral loss
@@ -263,8 +259,7 @@ hfind_unimod <- function (xml_files = c("master.xml", "custom.xml"), unimod)
   
   if (is.null(this_mod))
     stop("Modification not found: '", title, "'.\n",
-         "For example, use 'Acetyl' (title) instead of 'Acetylation' (full_name).",
-         call. = FALSE)
+         "For example, use 'Acetyl' (title) instead of 'Acetylation' (full_name).")
   
   invisible(this_mod)
 }
@@ -318,11 +313,12 @@ table_unimods <- function (out_nm = "~/mzion/unimods.txt")
   dir.create("~/mzion")
   files <- c("master.xml", "custom.xml")
   
-  lapply(files, htable_unimods) %>% 
-    do.call(rbind, .) %>% 
-    `rownames<-`(NULL) %T>% 
-    readr::write_tsv(out_nm)
+  ans <- lapply(files, htable_unimods)
+  ans <- do.call(rbind, ans)
+  rownames(ans) <- NULL
+  readr::write_tsv(ans, out_nm)
   
+  ans
 }
 
 
@@ -648,10 +644,10 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
 
   local({
     if (!(length(site) == 1L))
-      stop("The length of `site` is not one.", call. = FALSE)
+      stop("The length of `site` is not one.")
     
     if (!(length(position) == 1L))
-      stop("The length of `position` is not one.", call. = FALSE)
+      stop("The length of `position` is not one.")
     
     ok_sites <- c("A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", 
                   "P", "Q", "R", "S", "T", "U", "V", "W", "Y", 
@@ -661,12 +657,10 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
                       "Any N-term", "Any C-term")
     
     if (!site %in% c(LETTERS, "N-term", "C-term"))
-      stop("`site` is not one of ", paste(ok_sites, collapse = ", "), ".", 
-           call. = FALSE)
+      stop("`site` is not one of ", paste(ok_sites, collapse = ", "), ".")
 
     if (!position %in% ok_positions)
-      stop("`position` is not one of ", paste(ok_positions, collapse = ", "), ".", 
-           call. = FALSE)
+      stop("`position` is not one of ", paste(ok_positions, collapse = ", "), ".")
   })
   
   if (is.numeric(mod_mono_mass)) 
@@ -710,8 +704,7 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
       
       if (this_full_name != full_name)
         warning("The original `full_name = ", this_full_name, "` \n", 
-                "replaced by `full_name = ", full_name, "`.", 
-                call. = FALSE)
+                "replaced by `full_name = ", full_name, "`.")
     })
 
     local({
@@ -731,8 +724,7 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
                "is different to the current `mono_mass = ", this_mono_mass, "`.\n", 
                "If you believe the new entry is correct: \n", 
                "  try `remove_unimod(title = ", title, "`, ", 
-               "then repeat the current call.", 
-               call. = FALSE)
+               "then repeat the current call.")
       }
 
       if (this_avge_mass != mod_avge_mass) {
@@ -743,15 +735,13 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
                "is different to the current `avge_mass = ", this_avge_mass, "`.\n", 
                "If you believe the new entry is correct: \n", 
                "  try `remove_unimod(title = ", title, "`, ", 
-               "then repeat the current call.", 
-               call. = FALSE)
+               "then repeat the current call.")
       }
 
       if (this_composition != mod_composition) {
         if (is_master) {
           warning("Changed from the user provided `composition = ", mod_composition, "` ", 
-                  "to the current `composition = ", this_composition, "`.\n", 
-                  call. = FALSE)
+                  "to the current `composition = ", this_composition, "`.\n")
           
           mod_composition <- this_composition
         }
@@ -760,8 +750,7 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
                "is different to the current `composition = ", this_composition, "`.\n", 
                "If you believe the new entry is correct: \n", 
                "  try `remove_unimod(title = ", title, "`, ", 
-               "then repeat the current call.", 
-               call. = FALSE)
+               "then repeat the current call.")
         }
       }
     })
@@ -776,8 +765,7 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
       stop("Multiple matches to `site = ", site, "` and ", 
            "`position = ", position, "` at ", 
            "`title = ", title, "`.\n", 
-           "Fix the redundancy from ", xml_file, ".", 
-           call. = FALSE)
+           "Fix the redundancy from ", xml_file, ".")
     else if (len_sitepos) 
       # `site` and `position` found -> adds/checks neulosses
       add_neuloss(nodes_children[[ok_sitepos]], 
@@ -793,9 +781,7 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
   }
   else if (len_title > 1L)
     stop("Multiple matches to `", title, "`.\n", 
-         "Fix the redundancy from ", xml_file, ".", 
-         call. = FALSE)
-  
+         "Fix the redundancy from ", xml_file, ".")
 
   xml2::write_xml(xml_root, xml_file)
   
@@ -985,9 +971,8 @@ add_neuloss <- function (node = NULL, neuloss_mono_mass = "0",
       add_comp_elements(this_neuloss, neuloss_composition)
     }
   }
-  else {
+  else
     message("No neutral loss.")
-  }
 }
 
 
@@ -1115,8 +1100,7 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
   node_modif <- xml2::xml_find_all(nodes_lev1_four, "//umod:modifications")
   
   if (!length(node_modif)) 
-    stop("Node `umod:modifications` not found and nothing to remove from.", 
-         call. = FALSE)
+    stop("Node `umod:modifications` not found and nothing to remove from.")
   
   site <- standardize_unimod_ps(x = c(site = site))
   position <- standardize_unimod_ps(x = c(position = position))
@@ -1125,7 +1109,7 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
     return(remove_unimod_title(title = title))
   
   if (site == "." || position == ".")
-    stop("Specify both `site` and `position`.", call. = FALSE)
+    stop("Specify both `site` and `position`.")
   
   if (is.numeric(mod_mono_mass)) 
     mod_mono_mass <- as.character(mod_mono_mass)
@@ -1164,8 +1148,7 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
     if (this_full_name != full_name)
       warning("Ignored the difference between the original `full_name = ", 
               this_full_name, "` \nand the current ", 
-              "`full_name = ", full_name, "`.", 
-              call. = FALSE)
+              "`full_name = ", full_name, "`.")
   })
   
   # (children can be `specification`, `delta` etc.)
@@ -1182,14 +1165,12 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
     if (!len_sitepos)
       stop("No matches to `site = ", site, "` and ", 
            "`position = ", position, "` at ", 
-           "`title = ", title, "`.\n", 
-           call. = FALSE)
+           "`title = ", title, "`.\n")
     else if (len_sitepos > 1L)
       stop("Multiple matches to `site = ", site, "` and ", 
            "`position = ", position, "` at ", 
            "`title = ", title, "`.\n", 
-           "Fix the redundancy from ", xml_file, ".", 
-           call. = FALSE)
+           "Fix the redundancy from ", xml_file, ".")
   })
 
   this_spec <- nodes_mod_ch[ok_sitepos]
@@ -1212,8 +1193,7 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
     nodes_neuloss <- xml2::xml_children(this_spec)
     
     if (length(nodes_neuloss))
-      stop("No NeutralLoss nodes expected; contact the developer for bugs.",
-           call. = FALSE)
+      stop("No NeutralLoss nodes expected; contact the developer for bugs.")
     
     xml2::write_xml(xml_root, xml_file)
     
@@ -1232,9 +1212,9 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
       len_neuloss <- length(idx_neuloss)
       
       if (len_neuloss > 1L)
-        stop("Multiple matches to the `mono_mass` in `neuloss`.", call. = FALSE)
+        stop("Multiple matches to the `mono_mass` in `neuloss`.")
       else if (!len_neuloss) 
-        stop("No matches to the `mono_mass` in `neuloss`.", call. = FALSE)
+        stop("No matches to the `mono_mass` in `neuloss`.")
     })
     
     this_neuloss <- nodes_neuloss[idx_neuloss]
@@ -1248,8 +1228,7 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
       nodes_neuloss <- xml2::xml_children(this_spec)
       
       if (length(nodes_neuloss))
-        stop("No NeutralLoss nodes expected; contact the developer for bugs.",
-             call. = FALSE)
+        stop("No NeutralLoss nodes expected; contact the developer for bugs.")
     }
     
     xml2::write_xml(xml_root, xml_file)
@@ -1275,7 +1254,7 @@ standardize_unimod_ps <- function (x)
     x <- "."
   
   if (length(x) != 1L) 
-    stop("The length of `", nm, "` is not exactly one.", call. = FALSE)
+    stop("The length of `", nm, "` is not exactly one.")
   
   if (nchar(x) == 0L) 
     x <- "."
@@ -1287,7 +1266,7 @@ standardize_unimod_ps <- function (x)
     
     # site may later include "X", "Z" etc.
     if (! x %in% c(LETTERS, "N-term", "C-term", "."))
-      stop("Invalid site = ", x, call. = FALSE)
+      stop("Invalid site = ", x)
   }
   
   if (nm == "position") {
@@ -1295,7 +1274,7 @@ standardize_unimod_ps <- function (x)
                       "Any N-term", "Any C-term", ".")
     
     if (! x %in% ok_positions)
-      stop("Invalid position = ", x, call. = FALSE)
+      stop("Invalid position = ", x)
   }
   
   invisible(x)
@@ -1314,7 +1293,7 @@ standardize_unimod_ps <- function (x)
 remove_unimod_title <- function (title = NULL) 
 {
   if (isFALSE(title) || nchar(title) == 0L)
-    stop("Provide a `title`.", call. = FALSE)
+    stop("Provide a `title`.")
   
   xml_file <- system.file("extdata", "custom.xml", package = "mzion")
   xml_root <- xml2::read_xml(xml_file)
@@ -1369,7 +1348,7 @@ calc_unimod_compmass <- function (composition = "H(4) C O S", digits = 6L)
   if (file.exists(nm))
     lookup <- read.delim(file = nm, sep = "\t")
   else
-    stop("Not found: ", nm, call. = FALSE)
+    stop("Not found: ", nm)
   
   df <- parse_unimod_composition(composition)
   df$number <- as.numeric(df$number)
@@ -1379,8 +1358,7 @@ calc_unimod_compmass <- function (composition = "H(4) C O S", digits = 6L)
   rows <- is.na(df$mono_mass)
   
   if (any(rows)) 
-    stop("Unknown element(s): ", paste(df$symbol[rows], collapse = ", "), 
-         call. = FALSE)
+    stop("Unknown element(s): ", paste(df$symbol[rows], collapse = ", "))
   
   nums <- df$number
   avges <- df$avge_mass

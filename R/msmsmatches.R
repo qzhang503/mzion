@@ -722,7 +722,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 60000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/mzion/.MSearches (1.2.7)/Cache/Calls", 
+                     .path_cache = "~/mzion/.MSearches (1.2.8)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,
@@ -1313,6 +1313,8 @@ matchMS <- function (out_path = "~/mzion/outs",
               min_len = min_len, max_len = max_len, max_miss = max_miss, 
               knots = 50L)
 
+  ms1_offsets <- find_ms1_offsets(n_13c = n_13c, ms1_notches = ms1_notches)
+  
   if (!bypass_ms2match) {
     if (min_ms2mass < 5L) 
       warning("Maybe out of RAM at \"min_ms2mass < 5L\".")
@@ -1339,8 +1341,7 @@ matchMS <- function (out_path = "~/mzion/outs",
              ppm_reporters = ppm_reporters,
              index_mgf_ms2 = index_mgf_ms2, 
              by_modules = by_modules, 
-             n_13c = n_13c,
-             ms1_notches = ms1_notches, 
+             ms1_offsets = ms1_offsets, 
 
              # dummy for argument matching
              fasta = fasta,
@@ -1382,6 +1383,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                    min_ms2mass = min_ms2mass,
                    index_mgf_ms2 = index_mgf_ms2, 
                    tally_ms2ints = tally_ms2ints, 
+                   ms1_offsets = ms1_offsets, 
                    
                    # dummies
                    mgf_path = mgf_path,
@@ -1414,6 +1416,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   
   if (!bypass_primatches)
     hadd_primatches(out_path = out_path, 
+                    ms1_offsets = ms1_offsets, 
                     add_ms2theos = add_ms2theos, 
                     add_ms2theos2 = add_ms2theos2, 
                     add_ms2moverzs = add_ms2moverzs, 
@@ -1430,6 +1433,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                             fdr_type = fdr_type, 
                             min_len = min_len, 
                             max_len = max_len, 
+                            ms1_offsets = ms1_offsets, 
                             max_pepscores_co = max_pepscores_co, 
                             min_pepscores_co = min_pepscores_co, 
                             enzyme = enzyme, 
@@ -1469,6 +1473,7 @@ matchMS <- function (out_path = "~/mzion/outs",
     calc_peploc(out_path = out_path, 
                 mod_indexes = mod_indexes, 
                 locmods = locmods, 
+                ms1_offsets = ms1_offsets, 
                 topn_mods_per_seq = topn_mods_per_seq, 
                 topn_seqs_per_query = topn_seqs_per_query)
   }

@@ -560,9 +560,7 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
                              index_mgf_ms2 = FALSE, tally_ms2ints = TRUE, 
                              digits = 4L) 
 {
-  n_rows <- nrow(df)
-  
-  if (n_rows) {
+  if (n_rows <- nrow(df)) {
     df <- split.data.frame(df, seq_len(n_rows)) 
     
     df <- lapply(df, scalc_pepprobs, 
@@ -578,6 +576,10 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
     
     df <- .Internal(unlist(df, recursive = FALSE, use.names = FALSE))
     df <- dplyr::bind_rows(df)
+    
+    ## do not reverse decoy "pep_seq"s until after adding protein accessions
+    # if (sum(nas <- is.na(df[["pep_ivmod"]])))
+    #   df[nas, "pep_seq"] <- reverse_seqs(df[nas, ][["pep_seq"]])
   } 
   else {
     df <- data.frame(
@@ -596,6 +598,8 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
 #' Calculates the scores of peptides.
 #' 
 #' @param tally_ms2ints Logical; tally MS2 intensities or not.
+#' @param ms1_offsets Off-sets in precursor masses in relative to the original
+#'   values in MGFs.
 #' @inheritParams matchMS
 #' @import parallel
 calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by", 
@@ -604,7 +608,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             soft_secions = FALSE, 
                             out_path = "~/mzion/outs", 
                             min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
-                            tally_ms2ints = TRUE, 
+                            tally_ms2ints = TRUE, ms1_offsets = 0, 
                             mgf_path, maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
                             maxn_vmods_sitescombi_per_pep = 64L, minn_ms2 = 6L, 
                             ppm_ms1 = 20L, quant = "none", ppm_reporters = 10, 
@@ -745,6 +749,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     d2 = d2, 
     index_mgf_ms2 = index_mgf_ms2, 
     tally_ms2ints = tally_ms2ints, 
+    ms1_offsets = ms1_offsets, 
     add_ms2theos = add_ms2theos, 
     add_ms2theos2 = add_ms2theos2, 
     add_ms2moverzs = add_ms2moverzs, 
@@ -830,11 +835,17 @@ order_fracs <- function (type = "list_table", tempdir, by_modules = TRUE)
 #' @param files A list of file names
 #' @param tempdir A temporary directory containing the files
 #' @param sc_path An output path
-combine_fracs <- function (files, tempdir, sc_path)
+#' @inheritParams calc_pepscores
+combine_fracs <- function (files, tempdir, sc_path, ms1_offsets = 0)
 {
   out_nm <- gsub("_\\d+\\.rds$", ".rds", files[[1]])
   df <- lapply(file.path(tempdir, files), qs::qread)
   df <- dplyr::bind_rows(df)
+  
+  # uniq_id does not contain information of pep_ms1_offset
+  if (length(ms1_offsets) > 1L)
+    df <- df[!duplicated.default(df[["uniq_id"]]), ]
+
   qs::qsave(df, file.path(sc_path, out_nm))
 }
 
@@ -903,7 +914,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
                        topn_ms2ions = 100L, type_ms2ions = "by", 
                        ppm_ms2 = 20L, soft_secions = FALSE, out_path = NULL, 
                        min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE,
-                       tally_ms2ints = TRUE, 
+                       tally_ms2ints = TRUE, ms1_offsets = 0, 
                        add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                        add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
                        quant = "none", ppm_reporters = 10, 
@@ -919,7 +930,6 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
   cols_sc <- c("pep_seq", "pep_n_ms2", "pep_scan_title", "pep_exp_mz", 
                "pep_exp_mr", "pep_tot_int", "pep_exp_z", "pep_ret_range", 
                "pep_scan_num", "raw_file", "pep_mod_group", "pep_ms1_offset", 
-               # "pep_frame", 
                "pep_fmod", "pep_vmod", "pep_isdecoy", "pep_calc_mr", 
                "pep_ivmod", "pep_prob", "pep_len", 
                "pep_ms2_moverzs", "pep_ms2_ints", 
@@ -1032,6 +1042,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
                quant = quant, 
                ppm_reporters = ppm_reporters, 
                idx = idx, 
+               ms1_offsets = ms1_offsets, 
                out_path = im_path)
 
   qs::qsave(df[, cols_lt, drop = FALSE], 
@@ -1049,7 +1060,8 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
 #' Helper of \link{add_primatches}
 #' 
 #' @inheritParams matchMS
-hadd_primatches <- function (out_path = NULL, 
+#' @inheritParams calc_pepscores
+hadd_primatches <- function (out_path = NULL, ms1_offsets = 0, 
                              add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                              add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
                              by_modules = TRUE, index_mgf_ms2 = FALSE) 
@@ -1107,7 +1119,7 @@ hadd_primatches <- function (out_path = NULL,
   }, ms_files, names(ms_files))
   
   lapply(order_fracs("reporters", tempdir, by_modules), 
-         combine_fracs, tempdir, tempdir)
+         combine_fracs, tempdir, tempdir, ms1_offsets)
   
   message("Completed theoretical MS2 m/z and intensity values: ", Sys.time())
 
@@ -1753,6 +1765,8 @@ keep_pepfdr_best <- function (td, cols = c("pep_scan_num", "raw_file"))
 #' @param target_fdr Numeric; the levels of false-discovery rate (FDR).
 #' @param fdr_type Character string; the type of FDR for controlling.
 #' @param fct_score A trivial factor converting p-values to scores.
+#' @param ms1_offsets Off-sets in precursor masses in relative to the original
+#'   values in MGFs.
 #' @inheritParams matchMS
 #' @examples 
 #' \donttest{
@@ -1765,18 +1779,16 @@ keep_pepfdr_best <- function (td, cols = c("pep_scan_num", "raw_file"))
 #'                           max_len = 50L, 
 #'                           out_path = "~/mzion/bi_1")
 #' }
-#' 
 #' }
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein", 
-                         min_len = 7L, max_len = 40L, 
+                         min_len = 7L, max_len = 40L, ms1_offsets = 0, 
                          max_pepscores_co = 50, min_pepscores_co = 0, 
-                         enzyme = "trypsin_p", 
-                         fdr_group = "base", 
-                         nes_fdr_group = "base", 
-                         fct_score = 10, 
-                         out_path) 
+                         enzyme = "trypsin_p", fdr_group = "base", 
+                         nes_fdr_group = "base", fct_score = 10, out_path)
 {
   message("Calculating peptide FDR.")
+  
+  # may exclude non-zero ms1_offsets...
   
   td <- prep_pepfdr_td(out_path = out_path, 
                        enzyme = enzyme, 
@@ -2144,14 +2156,22 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
   }
   
   fct_score <- 10
-  
   ok_targets <- find_targets(out_path, "^pepscores_")
   files <- ok_targets$files
   
   if (!length(files)) 
     stop("Results of peptide scores not found.")
   
-  td <- lapply(files, function (x) qs::qread(file.path(out_path, "temp", x)))
+  # td <- lapply(files, function (x) qs::qread(file.path(out_path, "temp", x)))
+  td <- lapply(files, function (x) {
+    # without column "matches" -> `df` may have duplicated rows; 
+    # targets and decoys share the same pep_seq but is.na(decoys$pep_ivmod)
+    df <- qs::qread(file.path(out_path, "temp", x))
+    u  <- df[, c("raw_file", "pep_scan_num", "pep_seq", "pep_ivmod", 
+                 "pep_ms1_offset")]
+    df[!duplicated.data.frame(u), ]
+  })
+  
   names(td) <- ok_targets$idxes
   ok <- lapply(td, nrow) > 0L
   td <- dplyr::bind_rows(td[ok])
@@ -2161,8 +2181,8 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
     stop("No PSM matches for scoring. Consider different search parameters.")
   
   # Adjusted p-values (just to moderate pep_score)
-  td <- td %>% 
-    dplyr::left_join(prob_cos, by = "pep_len") %>% 
+  td <- td |> 
+    dplyr::left_join(prob_cos, by = "pep_len") |>
     dplyr::mutate(pep_issig = ifelse(pep_prob <= pep_prob_co, TRUE, FALSE), 
                   pep_adjp = p.adjust(pep_prob, "BH"))
   
@@ -2173,11 +2193,11 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
   
   prob_cos <- dplyr::bind_cols(prob_cos, pep_adjp_co = adjp_cos)
   
-  td <- td %>% 
-    dplyr::left_join(prob_cos[, c("pep_len", "pep_adjp_co")], by = "pep_len") %>% 
+  td <- td |> 
+    dplyr::left_join(prob_cos[, c("pep_len", "pep_adjp_co")], by = "pep_len") |> 
     dplyr::mutate(pep_score = -log10(pep_adjp) * fct_score, 
                   pep_score = ifelse(pep_score > 250, 250, pep_score), 
-                  pep_score_co = -log10(pep_adjp_co) * fct_score) %>% 
+                  pep_score_co = -log10(pep_adjp_co) * fct_score) |> 
     dplyr::select(-c("pep_prob", "pep_adjp", "pep_prob_co", "pep_adjp_co"))
   
   qs::qsave(td, file.path(out_path, "temp", "pepfdr.rds"), preset = "fast")
@@ -2218,32 +2238,32 @@ calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = Inf,
   score_co_bf <- data.frame(prot_n_pep = as.integer(names(score_co)), 
                             prot_score_co_bf = score_co)
   
-  score_co <- score_co %>% 
-    fit_protfdr(max_n_pep, out_path) %>% 
-    dplyr::filter(prot_n_pep %in% all_n_peps) %>% 
-    dplyr::left_join(score_co_bf, by = "prot_n_pep") %>% 
+  score_co <- score_co |> 
+    fit_protfdr(max_n_pep, out_path) |> 
+    dplyr::filter(prot_n_pep %in% all_n_peps) |> 
+    dplyr::left_join(score_co_bf, by = "prot_n_pep") |> 
     dplyr::mutate(prot_es_co = ifelse(prot_score_co <= prot_score_co_bf, 
-                                      prot_score_co, prot_score_co_bf)) %>% 
+                                      prot_score_co, prot_score_co_bf)) |> 
     dplyr::select(-c("prot_score_co", "prot_score_co_bf"))
   
   # add protein enrichment score
-  prot_es <- df %>% 
-    dplyr::group_by(prot_acc, pep_seq) %>% 
-    dplyr::arrange(-pep_score) %>% 
-    dplyr::filter(row_number() == 1L) %>% 
-    dplyr::ungroup() %>% 
-    dplyr::filter(pep_issig) %>% 
-    dplyr::mutate(pep_es = pep_score - pep_score_co) %>% 
-    dplyr::group_by(prot_acc) %>% 
+  prot_es <- df |> 
+    dplyr::group_by(prot_acc, pep_seq) |> 
+    dplyr::arrange(-pep_score) |> 
+    dplyr::filter(row_number() == 1L) |> 
+    dplyr::ungroup() |> 
+    dplyr::filter(pep_issig) |> 
+    dplyr::mutate(pep_es = pep_score - pep_score_co) |> 
+    dplyr::group_by(prot_acc) |> 
     dplyr::summarise(prot_es = max(pep_es, na.rm = TRUE))
   
   # puts together
-  df <- df %>% 
+  df <- df |> 
     dplyr::left_join(prot_es, by = "prot_acc")
   
-  df <- df %>% 
-    dplyr::left_join(score_co, by = "prot_n_pep") %>% 
-    dplyr::mutate(prot_issig = ifelse(prot_es >= prot_es_co, TRUE, FALSE)) %>% 
+  df <- df |> 
+    dplyr::left_join(score_co, by = "prot_n_pep") |> 
+    dplyr::mutate(prot_issig = ifelse(prot_es >= prot_es_co, TRUE, FALSE)) |> 
     dplyr::mutate(pep_score = round(pep_score, digits = 1L), 
                   pep_score_co = round(pep_score_co, digits = 1L), 
                   prot_es = round(prot_es, digits = 1L), 
@@ -2693,10 +2713,13 @@ match_ex2th2 <- function (expt, theo, min_ms2mass = 115L, d = 1E-5,
 #' @param out_path An output path.
 #' @param mod_indexes Integer; the indexes of fixed and/or variable
 #'   modifications.
+#' @param ms1_offsets Off-sets in precursor masses in relative to the original
+#'   values in MGFs.
 #' @inheritParams matchMS
 #' @rawNamespace import(data.table, except = c(last, first, between, transpose,
 #'   melt, dcast))
 calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL, 
+                         ms1_offsets = 0, 
                          locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
                          topn_mods_per_seq = 3L, topn_seqs_per_query = 3L) 
 {
@@ -2718,12 +2741,34 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
     rm(list = "file")
   }
   
-  x <- data.table::data.table(x)
-  gc()
+  message("\tRank peptides by neutral losses.")
   
   n_cores <- detect_cores(16L)
   para <- nrow(x) > 10000L
   
+  x <- data.table::data.table(x)
+  x[, pep_isdecoy := as.integer(pep_isdecoy)]
+
+  # finds the rank-1 pep_ms1_offset at each query_id
+  # keeps only the rank-1 pep_ms1_offset group at each query_id
+  if (length(ms1_offsets) > 1L) {
+    x[, query_id := paste(pep_isdecoy, pep_scan_num, raw_file, sep = ".")]
+    
+    if (para) {
+      x  <- x[order(x[["query_id"]]), ] # for group split
+      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+      xs <- parallel::clusterApply(
+        cl, split(x, find_chunkbreaks(x[["query_id"]], n_cores)), find_bestnotch)
+      parallel::stopCluster(cl)
+      
+      x <- data.table::rbindlist(xs, use.names = FALSE)
+      rm(list = c("xs"))
+    }
+    else {
+      x <- find_bestnotch(x)
+    }
+  }
+
   # For simplicity `pep_seq` uses interchangeably with `uniq_id` and 
   # `pep_seq_mod` with `uniq_id2` where everything is on top of the same 
   # pep_isdecoy, pep_scan_num, raw_file.
@@ -2739,13 +2784,10 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   
   
   ## 1. compile `uniq_id`, `uniq_id2` and `pep_rank2`
-  message("\tRank peptides by neutral losses.")
-  
-  x[, pep_isdecoy := as.integer(pep_isdecoy)]
   x[, uniq_id := paste(pep_isdecoy, pep_scan_num, raw_file, pep_seq, sep = ".")]
   x[, "pep_ivmod2" := gsub(" [\\(\\[]\\d+[\\)\\[]$", "", pep_ivmod)]
   x[, uniq_id2 := paste(uniq_id, pep_ivmod2, sep = ".")]
-  
+
   if (para) {
     x <- x[order(x[["uniq_id2"]]), ] # for group split
 
@@ -2791,7 +2833,6 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   y0[["nl_id"]] <- NULL
   z0[["nl_id"]] <- NULL
   rm(list = c("x"))
-  gc()
 
   
   ## 3. keep the top-3 `pep_seq_mod`
@@ -2819,7 +2860,6 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   
   x0 <- x0[pep_rank <= topn_mods_per_seq, ]
   x0[["pep_rank"]] <- NULL
-  gc()
 
   
   ## 4 `pep_locprob` (the same `pep_seq`, different `pep_seq_mod`)
@@ -2842,7 +2882,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
       
       us <- split(x0[, c("uniq_id2", "pep_ivmod2", "pep_ms2_ideltas.")], 
                   x0[["uniq_id"]])
-      gc()
+      # gc()
       
       probs <- lapply(us, findLocFracsDF, locmod_indexes)
       
@@ -2886,7 +2926,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
                            by = "uniq_id2")
       
       rm(list = c("probs", "deltas", "us"))
-      gc()
+      # gc()
     }
     else {
       x0[["pep_locprob"]] <- NA_real_
@@ -2929,7 +2969,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x0[ , "pep_score" := round(pep_score, 2L)]
   x0[ , "pep_locprob" := round(pep_locprob, 2L)]
   x0[ , "pep_locdiff" := round(pep_locdiff, 2L)]
-  gc()
+  # gc()
   
   # 5.1 NEW `pep_rank`s across different `pep_seq`s under the same `query`
   # (this is different to the earlier `uniq_id` to differentiate LOCATIONS)
@@ -3000,6 +3040,37 @@ calcpeprank_3 <- function (x0)
 {
   x0[, pep_rank := data.table::frank(-pep_score, ties.method = "min"), 
      by = "uniq_id3"]
+}
+
+
+#' Finds the best off-set in precursor masses.
+#' 
+#' @param x A data.table object
+find_bestnotch <- function (x)
+{
+  x[, pep_rank0 := data.table::frank(-pep_score, ties.method = "min"), 
+    by = list(query_id)]
+
+  g <- x[, c("pep_rank0", "query_id", "pep_ms1_offset")]
+  g <- g[g$pep_rank0 == 1L, ]
+  g[["pep_rank0"]] <- NULL
+  
+  # pep_ms1_offset == 0 goes first?
+  if (length(us <- unique(g$pep_ms1_offset)) > 1L) {
+    g <- g[g$pep_ms1_offset == us[[1]], ]
+  }
+  
+  g[["keep"]] <- TRUE
+  g[, uid := paste(query_id, pep_ms1_offset, sep = ".")]
+  g[["pep_ms1_offset"]] <- g[["query_id"]] <- NULL
+  
+  x[, uid := paste(query_id, pep_ms1_offset, sep = ".")]
+  x <- quick_leftjoin(x, g, by = "uid")
+  x <- x[x$keep, ]
+  
+  x[["keep"]] <- x[["pep_rank0"]] <- x[["uid"]] <- x[["query_id"]] <- NULL
+  
+  x
 }
 
 

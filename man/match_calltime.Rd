@@ -7,7 +7,7 @@
 match_calltime(
   path = "~/mzion/.MSearches/Cache/Calls",
   fun = "calc_pepmasses2",
-  nms = c("parallel", "out_path"),
+  nms = c("out_path"),
   type = c(TRUE, FALSE),
   new_args = NULL
 )
@@ -38,6 +38,6 @@ library(mzion)
   path = file.path(.path_cache, "calc_pepmasses2", .time_stamp), 
   fun = fun,
   nms = c("min_mass", "max_mass", "ppm_ms1", "calib_ms1mass"), 
-  new_args = c(`calib_ms1mass` = calib_ms1mass)) 
+  new_args = c(calib_ms1mass = calib_ms1mass)) 
 }
 }

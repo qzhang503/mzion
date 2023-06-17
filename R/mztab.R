@@ -4,7 +4,6 @@
 #'
 #' @param out_path A parent path where the outputs of \code{PSM}, \code{Peptide}
 #'   and \code{Protein} files and folders are.
-#' @importFrom magrittr %>% %T>% %$% %<>%
 #' @import dplyr
 make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE)) 
 {
@@ -140,21 +139,21 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
                              show_col_types = FALSE) 
 
   df_shared_prot_accs <- local({
-    df <- unique(df_peps[, c("prot_acc", "shared_prot_accs")]) %>% 
-      dplyr::mutate(len = stringr::str_count(shared_prot_accs, ",")) %>% 
-      dplyr::arrange(prot_acc, -len) %>% 
-      dplyr::group_by(prot_acc) %>% 
+    df <- unique(df_peps[, c("prot_acc", "shared_prot_accs")]) |> 
+      dplyr::mutate(len = stringr::str_count(shared_prot_accs, ",")) |> 
+      dplyr::arrange(prot_acc, -len) |> 
+      dplyr::group_by(prot_acc) |> 
       dplyr::mutate(group_count = dplyr::n())
     
-    df_1 <- df %>% 
-      dplyr::filter(group_count == 1L) %>% 
+    df_1 <- df |> 
+      dplyr::filter(group_count == 1L) |> 
       dplyr::mutate(shared_prot_accs = "null")
     
-    df_n <- df %>% 
-      dplyr::filter(group_count > 1L) %>% 
+    df_n <- df |> 
+      dplyr::filter(group_count > 1L) |> 
       dplyr::filter(row_number() == 1L)
     
-    dplyr::bind_rows(df_1, df_n) %>% 
+    dplyr::bind_rows(df_1, df_n) |> 
       dplyr::select(-len, -group_count)
   })
 
@@ -169,14 +168,14 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
     "reliability"
   )
 
-  prt <- matrix(ncol = length(cols_prt), 
-                nrow = nrow(df_prots)) %>% 
-    data.frame(check.names = FALSE) %>% 
+  prt <- matrix(ncol = length(cols_prt), nrow = nrow(df_prots)) |> 
+    data.frame(check.names = FALSE) |> 
     setNames(cols_prt)
   
-  for (i in seq_along(prt)) prt[[i]] <- "null"
+  for (i in seq_along(prt)) 
+    prt[[i]] <- "null"
 
-  prt <- prt %>% 
+  prt <- prt |> 
     dplyr::mutate(PRH = "PRT", 
                   accession = df_prots$prot_acc, 
                   description = df_prots$prot_desc, 
@@ -186,48 +185,43 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
                   database_version = "null", 
                   search_engine = "mzion", 
                   "best_search_engine_score[1]" = df_prots$prot_es, 
-                  ) %>% 
-    dplyr::left_join(df_shared_prot_accs, by = c("accession" = "prot_acc")) %>% 
-    dplyr::mutate(ambiguity_members = shared_prot_accs) %>% 
+                  ) |> 
+    dplyr::left_join(df_shared_prot_accs, by = c("accession" = "prot_acc")) |> 
+    dplyr::mutate(ambiguity_members = shared_prot_accs) |> 
     dplyr::select(-shared_prot_accs)
   
-  prt <- prt %>% 
-    dplyr::mutate(modifications = "null") %>% 
+  prt <- prt |> 
+    dplyr::mutate(modifications = "null") |> 
     dplyr::left_join(df_prots[, c("prot_acc", "prot_cover")], 
-                     by = c("accession" = "prot_acc")) %>% 
-    dplyr::mutate(protein_coverage = prot_cover) %>% 
+                     by = c("accession" = "prot_acc")) |> 
+    dplyr::mutate(protein_coverage = prot_cover) |> 
     dplyr::select(-prot_cover)
   
-  prt <- prt %>% 
+  prt <- prt |> 
     dplyr::left_join(df_prots[, c("prot_acc", "prot_mass")], 
-                     by = c("accession" = "prot_acc")) %>% 
-    dplyr::mutate(opt_global_mass = prot_mass) %>% 
+                     by = c("accession" = "prot_acc")) |> 
+    dplyr::mutate(opt_global_mass = prot_mass) |> 
     dplyr::select(-prot_mass)
   
-  prt <- prt %>% 
+  prt <- prt |> 
     dplyr::mutate(reliability = 1L)
   
-  prt <- prt %>% 
+  prt <- prt |> 
     dplyr::left_join(df_prots[, c("prot_acc", "prot_n_psm", "prot_n_uniqpsm", 
                               "prot_n_pep", "prot_n_uniqpep")], 
-                     by = c("accession" = "prot_acc")) %>% 
+                     by = c("accession" = "prot_acc")) |> 
     dplyr::mutate("num_psms_distinct_ms_run[1]" = prot_n_psm, 
                   "num_psms_unique_ms_run[1]" = prot_n_uniqpsm, 
                   "num_peptides_distinct_ms_run[1]" = prot_n_pep, 
-                  "num_peptides_unique_ms_run[1]" = prot_n_uniqpep) %>% 
+                  "num_peptides_unique_ms_run[1]" = prot_n_uniqpep) |> 
     dplyr::select(-c("prot_n_psm", "prot_n_uniqpsm", 
                      "prot_n_pep", "prot_n_uniqpep"))
   
   prt <- local({
     df <- df_prots[, grepl("^I[0-9]+", names(df_prots))]
     colnames(df) <- paste0("protein_abundance_study_variable[", 1:ncol(df), "]")
-    
-    df <- cbind(prot_acc = df_prots$prot_acc, 
-                df) %>% 
-      data.frame(check.names = FALSE)
-    
-    prt <- prt %>% 
-      dplyr::left_join(df, by = c("accession" = "prot_acc"))
+    data.frame(cbind(prot_acc = df_prots$prot_acc, df), check.names = FALSE)
+    dplyr::left_join(prt, df, by = c("accession" = "prot_acc"))
   })
   
   ## Peptides
@@ -240,19 +234,19 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
     "reliability"
   )
   
-  pep <- matrix(ncol = length(cols_pep), 
-                nrow = nrow(df_peps)) %>% 
-    data.frame(check.names = FALSE) %>% 
+  pep <- matrix(ncol = length(cols_pep), nrow = nrow(df_peps)) |> 
+    data.frame(check.names = FALSE) |> 
     setNames(cols_pep)
   
-  for (i in seq_along(pep)) pep[[i]] <- "null"
+  for (i in seq_along(pep)) 
+    pep[[i]] <- "null"
   
-  if ("pep_seq" %in% names(df_peps)) 
-    df_peps$sequence <- df_peps$pep_seq
+  df_peps$sequence <- if ("pep_seq" %in% names(df_peps)) 
+    df_peps$pep_seq
   else if ("pep_seq_mod" %in% names(df_peps))
-    df_peps$sequence <- df_peps$pep_seq_mod
+    df_peps$pep_seq_mod
   
-  pep <- pep %>% 
+  pep <- pep |> 
     dplyr::mutate(PEH = "PEP", 
                   sequence = df_peps$sequence,
                   accession = df_peps$prot_acc, 
@@ -269,9 +263,7 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
   pep <- local({
     df <- df_peps[, grepl("^I[0-9]+", names(df_peps))]
     colnames(df) <- paste0("peptide_abundance_study_variable[", 1:ncol(df), "]")
-    
-    cbind(pep, df) %>% 
-      data.frame(check.names = FALSE)
+    data.frame(cbind(pep, df), check.names = FALSE)
   })
   
   ## PSMs
@@ -281,7 +273,7 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
 
   df_psms <- lapply(psm_files, 
                     function (x) readr::read_tsv(file.path(out_path, "PSM", x), 
-                                                 show_col_types = FALSE)) %>% 
+                                                 show_col_types = FALSE)) |> 
     dplyr::bind_rows()
 
   cols_psm <- c(
@@ -296,16 +288,15 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
     # redundancy kept at "prot_acc" and "pep_ivmod"
     uniq_id <- c("raw_file", "pep_scan_num", "prot_acc", "pep_ivmod")
   })
-  
-  
-  psm <- matrix(ncol = length(cols_psm), 
-                nrow = nrow(df_psms)) %>% 
-    data.frame(check.names = FALSE) %>% 
+
+  psm <- matrix(ncol = length(cols_psm), nrow = nrow(df_psms)) |> 
+    data.frame(check.names = FALSE) |> 
     setNames(cols_psm)
   
-  for (i in seq_along(psm)) psm[[i]] <- "null"
+  for (i in seq_along(psm)) 
+    psm[[i]] <- "null"
 
-  psm <- psm %>% 
+  psm <- psm |> 
     dplyr::mutate(PSH = "PSM", 
                   sequence = df_psms$pep_seq,
                   # PSM_ID = seq_len(nrow(df_psms)), 
@@ -333,9 +324,7 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
   psm <- local({
     df <- df_psms[, grepl("^I[0-9]+", names(df_psms))]
     colnames(df) <- paste0("peptide_abundance_study_variable[", 1:ncol(df), "]")
-    
-    cbind(psm, df) %>% 
-      data.frame(check.names = FALSE)
+    data.frame(cbind(psm, df), check.names = FALSE)
   })
   
   ## Outputs
@@ -362,8 +351,10 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
   dir.create(file.path(out_path, "mzTab"), showWarnings = FALSE, recursive = TRUE)
   out_file <- file.path(out_path, "mzTab", "mztab.mzTab")
   
-  out <- Reduce(append, list(lines_mtd, lines_prt, lines_pep, lines_psm)) %T>% 
-    writeLines(out_file)
+  out <- Reduce(append, list(lines_mtd, lines_prt, lines_pep, lines_psm))
+  writeLines(out, out_file)
+
+  out
 }
 
 

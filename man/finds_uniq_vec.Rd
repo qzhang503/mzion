@@ -12,3 +12,9 @@ finds_uniq_vec(x)
 \description{
 The same value at different name will be treated as different elements.
 }
+\examples{
+\donttest{
+library(mzion)
+mzion:::finds_uniq_vec(c(a1 = 3, a2 = 3, a2 = 4, a2 = 3, b1 = 3, b2 = 1))
+}
+}

@@ -18,32 +18,6 @@
 }
 
 
-#' Finds the columns of reporter-ion intensity.
-#'
-#' @param TMT_plex Numeric; the multiplexity of TMT, i.e., 10, 11 etc.
-find_int_cols <- function (TMT_plex) 
-{
-  col_int <- if (TMT_plex == 18L) 
-    c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
-      "I130N", "I130C", "I131N", "I131C",
-      "I132N", "I132C", "I133N", "I133C", "I134N", "I134C", "I135N") 
-  else if (TMT_plex == 16L) 
-    c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
-      "I130N", "I130C", "I131N", "I131C",
-      "I132N", "I132C", "I133N", "I133C", "I134N")
-  else if (TMT_plex == 11L) 
-    c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
-      "I130N", "I130C", "I131N", "I131C")
-  else if (TMT_plex == 10L) 
-    c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
-      "I130N", "I130C", "I131")
-  else if(TMT_plex == 6L) 
-    c("I126", "I127", "I128", "I129", "I130", "I131")
-  else 
-    NULL
-}
-
-
 #' Re-order columns in a data frame
 #'
 #' \code{ins_cols_after} re-orders columns in a data frame.
@@ -525,17 +499,13 @@ find_callarg_vals <- function (time = NULL, path = NULL, fun = NULL,
 #'   path = file.path(.path_cache, "calc_pepmasses2", .time_stamp), 
 #'   fun = fun,
 #'   nms = c("min_mass", "max_mass", "ppm_ms1", "calib_ms1mass"), 
-#'   new_args = c(`calib_ms1mass` = calib_ms1mass)) 
+#'   new_args = c(calib_ms1mass = calib_ms1mass)) 
 #' }
 match_calltime <- function (path = "~/mzion/.MSearches/Cache/Calls",
-                            fun = "calc_pepmasses2",
-                            nms = c("parallel", "out_path"),
-                            type = c(TRUE, FALSE), 
-                            new_args = NULL) 
+                            fun = "calc_pepmasses2", nms = c("out_path"),
+                            type = c(TRUE, FALSE), new_args = NULL)
 {
-  len_path <- length(path)
-  
-  if (!len_path)
+  if (!(len_path <- length(path)))
     return(NULL)
   
   if (len_path > 1L)
@@ -556,17 +526,14 @@ match_calltime <- function (path = "~/mzion/.MSearches/Cache/Calls",
   args <- if (type) 
     mget(fml_nms[fml_nms %in% nms], envir = parent.frame(), inherits = FALSE)
   else 
-    mget(fml_nms[! fml_nms %in% nms], envir = parent.frame(), inherits = FALSE)
+    mget(fml_nms[!fml_nms %in% nms], envir = parent.frame(), inherits = FALSE)
 
   if (!length(args)) 
-    stop("Arguments for matching is empty.", call. = FALSE)
+    stop("Arguments for matching is empty.")
   
-  args <- lapply(args, function (x) if (is.list(x)) lapply(x, sort) else sort(x))
-  
-  times <- list.files(path = file.path(path, fun),
-                      pattern = "\\.rda$",
-                      all.files = TRUE)
-  
+  args  <- lapply(args, function (x) if (is.list(x)) lapply(x, sort) else sort(x))
+  times <- list.files(path = file.path(path, fun), pattern = "\\.rda$", all.files = TRUE)
+
   # cached values
   cached <- lapply(times, find_callarg_vals, path = path, fun = fun,
                    args = names(args), new_args = new_args)

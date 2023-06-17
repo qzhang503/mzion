@@ -7,6 +7,7 @@
 #'   fixed and variable modifications.
 #' @param mod_indexes Integer; the indexes of fixed and/or variable
 #'   modifications.
+#' @param ms1_offsets The MS1 off-sets.
 #' @param .path_bin The file path to binned precursor masses.
 #' @param reframe_mgfs Logical; if TRUE, recalculates the frame indexes of MGFs.
 #' @param first_search Logical; is the first search (for MGF mass calibration)
@@ -24,8 +25,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                       minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 20L, 
                       min_mass = 200L, max_mass = 4500L, min_ms2mass = 115L, 
                       quant = "none", ppm_reporters = 10L, 
-                      by_modules = TRUE, reframe_mgfs = FALSE, 
-                      n_13c = NULL, ms1_notches = 0, 
+                      by_modules = TRUE, reframe_mgfs = FALSE, ms1_offsets = 0, 
 
                       # dummies
                       fasta, acc_type, acc_pattern,
@@ -55,8 +55,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   
   # (OK as `argument` not for users)
   # min_mass and max_mass only for calib_ms1mass, not to be changed by users
-  # args_except <- c("quant", "min_mass", "max_mass", "by_modules")
-  args_except <- c("by_modules", "first_search")
+  # args_except <- c("ms1_offsets")
+  args_except <- c("by_modules")
   fml_incl    <- fml_nms[!fml_nms %in% args_except]
   cache_pars  <- find_callarg_vals(time = NULL, 
                                    path = file.path(out_path, "Calls"), 
@@ -107,8 +107,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   # (matches of secondary ions may use `outer` products and no adjustments)
   ppm_ms1_bin <- calc_threeframe_ppm(ppm_ms1)
   ppm_ms2_bin <- calc_threeframe_ppm(ppm_ms2)
-  ms1_offsets <- find_ms1_offsets(n_13c = n_13c, ms1_notches = ms1_notches)
-  
+
   pair_mgftheos(mgf_path = mgf_path, n_modules = length(aa_masses_all), 
                 ms1_offsets = ms1_offsets, by_modules = by_modules, 
                 min_mass = min_mass, max_mass = max_mass, 
@@ -500,11 +499,8 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
 #' @inheritParams matchMS
 find_ms1_offsets <- function (n_13c = 0L, ms1_notches = 0) 
 {
-  if (length(n_13c))
-    n_13c <- n_13c[n_13c != 0L]
-  
   offsets_13c <- if (length(n_13c)) n_13c * 1.00335483 else NULL
-  ms1_offsets <- unique(c(offsets_13c, ms1_notches))
+  ms1_offsets <- unique(c(0, offsets_13c, ms1_notches))
   round(ms1_offsets, digits = 4L)
 }
 

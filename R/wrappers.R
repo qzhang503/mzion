@@ -1,6 +1,8 @@
 #' A wrapper of \link[stats]{dist} with the handling of partial argument
 #' matches.
 #' 
+#' Not yet used.
+#' 
 #' @param ... Arguments for \link[stats]{dist}
 my_dist <- function (...) 
 {
@@ -12,7 +14,7 @@ my_dist <- function (...)
     "`p` in `dist()` not used."
   )
   
-  stopifnot(length(dummies) == length(msgs))
+  # stopifnot(length(dummies) == length(msgs))
   
   purrr::walk2(dummies, msgs, ~ {
     if (.x %in% names(dots)) {
@@ -27,6 +29,8 @@ my_dist <- function (...)
 
 #' Cosine similarity.
 #' 
+#' Not yet used.
+#' 
 #' @param M An input Matrix.
 #' 
 #' Vectors are in rows: mtcars[1, ].
@@ -40,8 +44,9 @@ my_dist <- function (...)
 #' as.dist(1 - sim)
 cos_sim <- function (M) 
 {
-  stopifnot(is.matrix(M))
-  
+  if (!is.matrix(M))
+    stop("The input data is not a matrix.")
+
   L <- sqrt(rowSums(M * M)) # vector lengths; no `mean` subtraction
   Mn <- M / L # normalized M 
   Mn %*% t(Mn) # dot products; vectors in the rows of Mn
@@ -55,11 +60,10 @@ cos_sim <- function (M)
 matchMS_NES <- function (...)
 {
   args <- as.list(substitute(...()))
-  nms <- names(args)
-  oks <- nms != ""
-  
+  nms  <- names(args)
+  oks  <- nms != ""
   args <- args[oks]
-  nms <- nms[oks]
+  nms  <- nms[oks]
   
   if ("max_miss" %in% nms)
     warning("Argument \"max_miss\" has no effect at no enzymatic specificity.")
@@ -87,11 +91,10 @@ matchMS_NES <- function (...)
 rematchMS_NES <- function (...)
 {
   args <- as.list(substitute(...()))
-  nms <- names(args)
-  oks <- nms != ""
-  
+  nms  <- names(args)
+  oks  <- nms != ""
   args <- args[oks]
-  nms <- nms[oks]
+  nms  <- nms[oks]
   
   if ("max_miss" %in% nms)
     warning("Argument \"max_miss\" has no effect at no enzymatic specificity.")
@@ -102,7 +105,6 @@ rematchMS_NES <- function (...)
   }
   
   do.call(matchMS, c(list(enzyme = "noenzyme", 
-                          # bypass old matchMS_noenzyme
                           bypass_noenzyme = TRUE, 
                           bypass_pepmasses = TRUE,
                           bypass_bin_ms1 = TRUE,

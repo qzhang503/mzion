@@ -19,5 +19,4 @@ Writes a fasta file (Not yet used).
 fasta_db <- read_fasta(file = "~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 write_fasta(fasta_db, "~/mzion/examples/my.fasta")
 }
-
 }

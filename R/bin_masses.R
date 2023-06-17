@@ -5,7 +5,6 @@
 #' @param res The results from \link{calc_pepmasses2}.
 #' @param min_mass A minimum mass of precursors.
 #' @param max_mass A maximum mass of precursors.
-#' @param sys_ram A putative value of system RAM.
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
 #' @inheritParams calc_pepmasses2
@@ -13,8 +12,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
                            min_len = 7L, max_len = 40L, ppm_ms1 = 20L, 
                            use_ms1_cache = TRUE, .path_cache = NULL, 
                            .path_ms1masses = NULL, is_ms1_three_frame = TRUE, 
-                           out_path = NULL, enzyme = "trypsin_p", 
-                           sys_ram = 24L) 
+                           out_path = NULL, enzyme = "trypsin_p") 
 {
   old_opts <- options()
   options(warn = 1L)
@@ -84,37 +82,8 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
       idxes <- idxes[order(idxes)]
     })
     
-    if (FALSE) {
-      n_cores <- local({
-        fct <- 20 
-        free_mem <- find_free_mem(sys_ram)
-        max_sz <- max(file.size(file.path(.path_mass, masses)))/1024^2
-        
-        n_cores <- min(floor(free_mem/max_sz/fct), detect_cores(8L))
-        
-        if (n_cores < 1L) {
-          warning("May be out of RAM with large peptide tables.")
-          n_cores <- 1L
-        }
-        
-        n_cores
-      })
-    }
+    n_cores <- set_bin_ncores(len_m, enzyme)
 
-    n_cores <- local({
-      n_cores <- detect_cores(15L)
-      
-      if (len_m > n_cores) 
-        n_cores <- min(floor(n_cores/2L), len_m)
-      else 
-        n_cores <- min(n_cores, len_m)
-      
-      if (enzyme == "noenzyme")
-        n_cores <- floor(n_cores/2L)
-      
-      n_cores <- max(1L, n_cores)
-    })
-    
     if (n_cores > 1L) {
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
       
@@ -311,23 +280,8 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 200L,
   res <- lapply(res, `[[`, "data")
   gc()
   
-  n_cores <- local({
-    len <- length(res)
-    n_cores <- detect_cores(15L)
-    
-    if (len > n_cores) 
-      n_cores <- min(floor(n_cores/2L), len)
-    else 
-      n_cores <- min(n_cores, len)
-    
-    if (enzyme == "noenzyme")
-      n_cores <- floor(n_cores/2L)
-
-    n_cores <- max(1L, n_cores)
-  })
-
+  n_cores <- set_bin_ncores(length(res), enzyme)
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-  
   parallel::clusterExport(cl, list("qread", "qsave"), 
                           envir = environment(qs::qsave))
   parallel::clusterExport(cl, c("bin_theoseqs", "find_ms1_cutpoints"), 
@@ -340,7 +294,6 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 200L,
                                               ppm_ms1 = ppm_ms1), 
                               SIMPLIFY = FALSE, USE.NAMES = FALSE, 
                               .scheduling = "dynamic")
-  
   parallel::stopCluster(cl)
   rm(list = c("res"))
   gc()
@@ -391,6 +344,26 @@ s_readRDS <- function (file, out_path)
     stop("Files not found: ", file.path(out_path, file))
   
   ans
+}
+
+
+#' Sets the number of CPU cores for precursor mass binning.
+#' 
+#' @param len_m The number of \code{aa_masses} modules.
+#' @param enzyme The assume enzymatic activity.
+set_bin_ncores <- function (len_m, enzyme)
+{
+  n_cores <- detect_cores(15L)
+  
+  n_cores <- if (len_m > n_cores) 
+    min(floor(n_cores/2L), len_m)
+  else 
+    min(n_cores, len_m)
+  
+  if (enzyme == "noenzyme")
+    n_cores <- floor(n_cores/2L)
+  
+  max(1L, n_cores)
 }
 
 

@@ -34,30 +34,24 @@
 #' head(names(fasta))
 #' }
 #'
-#' @import dplyr purrr
-#' @importFrom magrittr %>% %T>% %$% %<>%
 #' @seealso \code{\link{write_fasta}}
 #' @export
 read_fasta <- function (file = NULL, acc_pattern = ">([^ ]+?) .*", 
                         comment_char = "") 
 {
-  lines <- readLines(file)
-  
-  # removes empty lines
+  lines   <- readLines(file)
   empties <- grep("^\\s*$", lines)
   
   if (length(empties)) 
     lines <- lines[-empties]
-  
-  rm(list = c("empties"))
-  
+
   # removes comment lines
   if (nchar(comment_char)) 
     lines <- lines[!grepl(paste0("^", comment_char), lines)]
 
   # begins and ends
   headers <- grep(">", lines)
-  begins <- headers + 1L
+  begins  <- headers + 1L
   ends <- c(headers[-1L] - 1L, length(lines))
 
   seqs <- mapply(function (x, y) {
@@ -88,9 +82,6 @@ read_fasta <- function (file = NULL, acc_pattern = ">([^ ]+?) .*",
 #' fasta_db <- read_fasta(file = "~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
 #' write_fasta(fasta_db, "~/mzion/examples/my.fasta")
 #' }
-#'
-#' @import dplyr purrr
-#' @importFrom magrittr %>% %T>% %$% %<>%
 write_fasta <- function (fasta_db, file) 
 {
   filepath <- gsub("(^.*/).*$", "\\1", file)

@@ -26,8 +26,7 @@ ms2match(
   ppm_reporters = 10L,
   by_modules = TRUE,
   reframe_mgfs = FALSE,
-  n_13c = NULL,
-  ms1_notches = 0,
+  ms1_offsets = 0,
   fasta,
   acc_type,
   acc_pattern,
@@ -139,12 +138,7 @@ FALSE, search all modules together. The later would probably need more than
 
 \item{reframe_mgfs}{Logical; if TRUE, recalculates the frame indexes of MGFs.}
 
-\item{n_13c}{Number(s) of 13C off-sets in precursor masses, for example, over
-the range of \code{-1:2}. The default is 0.}
-
-\item{ms1_notches}{A numeric vector; notches (off-sets) in precursor masses,
-e.g., \code{c(-79.966331, -97.976896)} to account fo the loss of a phospho
-group and phosphoric acid in precursor masses.}
+\item{ms1_offsets}{The MS1 off-sets.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}

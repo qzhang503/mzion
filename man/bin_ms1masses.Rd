@@ -16,8 +16,7 @@ bin_ms1masses(
   .path_ms1masses = NULL,
   is_ms1_three_frame = TRUE,
   out_path = NULL,
-  enzyme = "trypsin_p",
-  sys_ram = 24L
+  enzyme = "trypsin_p"
 )
 }
 \arguments{
@@ -59,8 +58,6 @@ preceding, current and following.}
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from protein entries. The
 default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
-
-\item{sys_ram}{A putative value of system RAM.}
 }
 \description{
 For target peptides.

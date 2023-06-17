@@ -3,8 +3,9 @@
 #' @param df A data frame.
 #' @param idx The i-th chunk
 #' @inheritParams matchMS
+#' @inheritParams calc_pepscores
 hcalc_tmtint <- function (df, quant = "tmt10", ppm_reporters = 10L, idx = 1L, 
-                          out_path = NULL)
+                          ms1_offsets = 0, out_path = NULL)
 {
   df <- df[, c("raw_file", "pep_mod_group", "pep_scan_num", "rptr_moverz", 
                "rptr_int")]
@@ -36,21 +37,17 @@ calc_tmtint <- function (data = NULL, quant = "tmt16", ppm_reporters = 10L)
   if (quant == "none")
     return(data)
 
-  nms_tmt6   <- c("126", "127N", "128N", "129N", "130N", "131N")
-  
-  nms_tmt10  <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
-                  "130N", "130C", "131N")
-  
-  nms_tmt11  <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
-                  "130N", "130C", "131N", "131C")
-  
-  nms_tmtpro <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
-                  "130N", "130C", "131N", "131C", "132N", "132C",
-                  "133N", "133C", "134N")
-  
-  nms_tmt18  <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
-                  "130N", "130C", "131N", "131C", "132N", "132C",
-                  "133N", "133C", "134N", "134C", "135N")
+  nms_tmt6  <- c("126", "127N", "128N", "129N", "130N", "131N")
+  nms_tmt10 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
+                 "130N", "130C", "131N")
+  nms_tmt11 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
+                 "130N", "130C", "131N", "131C")
+  nms_tmt16 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
+                 "130N", "130C", "131N", "131C", "132N", "132C",
+                 "133N", "133C", "134N")
+  nms_tmt18 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",
+                 "130N", "130C", "131N", "131C", "132N", "132C",
+                 "133N", "133C", "134N", "134C", "135N")
   
   # "C(8) N(1) H(16)"
   tmts <- c(
@@ -65,7 +62,7 @@ calc_tmtint <- function (data = NULL, quant = "tmt16", ppm_reporters = 10L)
                   tmt6  = tmts[names(tmts) %in% nms_tmt6],
                   tmt10 = tmts[names(tmts) %in% nms_tmt10],
                   tmt11 = tmts[names(tmts) %in% nms_tmt11],
-                  tmt16 = tmts[names(tmts) %in% nms_tmtpro],
+                  tmt16 = tmts[names(tmts) %in% nms_tmt16],
                   tmt18 = tmts[names(tmts) %in% nms_tmt18],
                   stop("Unknown TMT type."))
   
@@ -78,10 +75,7 @@ calc_tmtint <- function (data = NULL, quant = "tmt16", ppm_reporters = 10L)
                stop("Unknown TMT type."))
   
   # stopifnot(all(c("rptr_moverz", "rptr_int") %in% names(data)))
-  
-  col_rptr_mzs <- "rptr_moverz"
-  col_rptr_int <- "rptr_int"
-  
+
   out <- mapply(find_reporter_ints, data[["rptr_moverz"]], data[["rptr_int"]], 
                 MoreArgs = list(
                   theos = theos,
@@ -129,11 +123,39 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
   reporters <- lapply(files, function (x) qs::qread(file.path(out_path, "temp", x)))
   reporters <- dplyr::bind_rows(reporters)
   
-  df <- df %>%
-    tidyr::unite(uniq_id, raw_file, pep_mod_group, pep_scan_num, sep = ".",
-                 remove = FALSE) %>%
-    dplyr::left_join(reporters, by = "uniq_id") %>%
+  df |>
+    tidyr::unite(uniq_id, raw_file, pep_mod_group, pep_scan_num, sep = ".", 
+                 remove = FALSE) |>
+    dplyr::left_join(reporters, by = "uniq_id") |>
     dplyr::select(-uniq_id)
+}
+
+
+#' Finds the columns of reporter-ion intensity.
+#' 
+#' Also in proteoQ.
+#' 
+#' @param TMT_plex Numeric; the multiplexity of TMT, i.e., 10, 11 etc.
+find_int_cols <- function (TMT_plex) 
+{
+  col_int <- if (TMT_plex == 18L) 
+    c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
+      "I130N", "I130C", "I131N", "I131C",
+      "I132N", "I132C", "I133N", "I133C", "I134N", "I134C", "I135N") 
+  else if (TMT_plex == 16L) 
+    c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
+      "I130N", "I130C", "I131N", "I131C",
+      "I132N", "I132C", "I133N", "I133C", "I134N")
+  else if (TMT_plex == 11L) 
+    c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
+      "I130N", "I130C", "I131N", "I131C")
+  else if (TMT_plex == 10L) 
+    c("I126", "I127N", "I127C", "I128N", "I128C", "I129N", "I129C",
+      "I130N", "I130C", "I131")
+  else if(TMT_plex == 6L) 
+    c("I126", "I127", "I128", "I129", "I130", "I131")
+  else 
+    NULL
 }
 
 
@@ -424,6 +446,7 @@ add_protacc <- function (df = NULL, out_path = NULL, .path_cache = NULL,
 hannot_decoys <- function (df, prps)
 {
   # keep prot_acc be the first column
+  # !!! reverse decoy pep_seq after adding prot_acc
   df <- dplyr::right_join(prps, df, by = "pep_seq")
   rows <- is.na(df[["pep_ivmod"]])
   tars <- df[!rows, ]
@@ -438,16 +461,16 @@ hannot_decoys <- function (df, prps)
   # Adds prot_n_psm, prot_n_pep for protein FDR estimates
   x <- df[df[["pep_issig"]], ]
   
-  prot_n_psm <- x %>%
-    dplyr::select(prot_acc) %>%
-    dplyr::group_by(prot_acc) %>%
+  prot_n_psm <- x |>
+    dplyr::select(prot_acc) |>
+    dplyr::group_by(prot_acc) |>
     dplyr::summarise(prot_n_psm = n())
   
-  prot_n_pep <- x %>%
-    dplyr::select(pep_seq, prot_acc) %>% 
-    tidyr::unite(pep_prot, c("pep_seq", "prot_acc"), sep = ".", remove = FALSE) %>% 
-    dplyr::filter(!duplicated(pep_prot)) %>%
-    dplyr::group_by(prot_acc) %>%
+  prot_n_pep <- x |>
+    dplyr::select(pep_seq, prot_acc) |> 
+    tidyr::unite(pep_prot, c("pep_seq", "prot_acc"), sep = ".", remove = FALSE) |> 
+    dplyr::filter(!duplicated(pep_prot)) |>
+    dplyr::group_by(prot_acc) |>
     dplyr::summarise(prot_n_pep = n())
   
   # inconsistent Protein[NC]-term
@@ -461,8 +484,8 @@ hannot_decoys <- function (df, prps)
   df[["is_pnt"]] <- NULL
   df[["is_pct"]] <- NULL
   
-  list(df, prot_n_psm, prot_n_pep) %>%
-    purrr::reduce(dplyr::left_join, by = "prot_acc") %>%
+  list(df, prot_n_psm, prot_n_pep) |>
+    purrr::reduce(dplyr::left_join, by = "prot_acc") |>
     dplyr::arrange(-prot_n_pep, -prot_n_psm)
 }
 
@@ -532,16 +555,13 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
   
   df <- df[with(df, order(pep_seq)), ]
   
-  if (nrow(df) <= 1L) {
-    df <- dplyr::mutate(df, 
-                        prot_isess = TRUE,
-                        prot_hit_num = 1L,
-                        prot_family_member = 1L, 
-                        pep_literal_unique = TRUE, 
-                        pep_razor_unique = TRUE)
-    
-    return(df)
-  }
+  if (nrow(df) <= 1L)
+    return(dplyr::mutate(df, 
+                         prot_isess = TRUE,
+                         prot_hit_num = 1L,
+                         prot_family_member = 1L, 
+                         pep_literal_unique = TRUE, 
+                         pep_razor_unique = TRUE))
 
   ## (1) builds protein ~ peptide map
   Mats <- map_pepprot(df, out_path = out_path, fct = fct)
@@ -677,8 +697,8 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
     rsums <- Matrix::rowSums(M4)
     rsums2 <- Matrix::rowSums(M4_ess)
     
-    peps <- data.frame(pep_seq = rownames(M4)) %>%
-      dplyr::mutate(pep_literal_unique = (rsums == 1L)) %>%
+    peps <- data.frame(pep_seq = rownames(M4)) |>
+      dplyr::mutate(pep_literal_unique = (rsums == 1L)) |>
       dplyr::mutate(pep_razor_unique = (rsums2 == 1L))
   })
   
@@ -686,12 +706,12 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
   gc()
   message("Parsed unique versus shared peptides.")
   
-  df0 <- df0 %>%
+  df0 <- df0 |>
     dplyr::mutate(prot_hit_num = NA, prot_family_member = NA)
   
-  df <- df %>%
-    dplyr::left_join(prot_grps, by = "prot_acc") %>%
-    dplyr::bind_rows(df0) %>%
+  df <- df |>
+    dplyr::left_join(prot_grps, by = "prot_acc") |>
+    dplyr::bind_rows(df0) |>
     dplyr::left_join(peps_uniq, by = "pep_seq")
 
   invisible(df)
@@ -802,8 +822,8 @@ map_pepprot <- function (df, out_path = NULL, fct = 4L)
   
   dpeps <- peps[duplicated.default(peps)]
   drows <- peps %in% dpeps
-  Mat0  <- Mat[!drows, ]
-  Mat1  <- Mat[drows, ]
+  Mat0  <- Mat[!drows, , drop = FALSE]
+  Mat1  <- Mat[drows, , drop = FALSE]
 
   rm(list = c("dpeps", "drows", "Mat", "peps"))
   gc()
@@ -1161,10 +1181,10 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
     rownames(grps) <- prots
   }
   
-  grps <- grps %>% 
-    tibble::rownames_to_column("prot_acc") %>%
-    dplyr::group_by(prot_hit_num) %>%
-    dplyr::mutate(prot_family_member = dplyr::row_number()) %>%
+  grps <- grps |> 
+    tibble::rownames_to_column("prot_acc") |>
+    dplyr::group_by(prot_hit_num) |>
+    dplyr::mutate(prot_family_member = dplyr::row_number()) |>
     dplyr::ungroup()
 
   if (!is.null(out_path)) {
