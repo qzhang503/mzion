@@ -1479,7 +1479,7 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
         .01
 
       newx <- seq(min_x, max_x, by = step)
-      newy <- predict(fit, data.frame(x = newx)) %>% `names<-`(newx)
+      newy <- predict(fit, data.frame(x = newx)) |> `names<-`(newx)
       
       # NA if not existed
       score_co2 <- as.numeric(names(which(newy <= target_fdr)[1]))
@@ -1651,11 +1651,14 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 
 
 #' Prepares target-decoy data.
-#' 
+#'
 #' @param td A data frame of targets and decoys (for Percolator).
+#' @param only_notch_zero Logical; if TRUE, use only data at \code{ms1_offsets =
+#'   0}.
 #' @inheritParams matchMS
 prep_pepfdr_td <- function (td = NULL, out_path, enzyme = "trypsin_p", 
-                            nes_fdr_group = "base", fdr_group = "base")
+                            nes_fdr_group = "base", fdr_group = "base", 
+                            ms1_offsets = 0, only_notch_zero = TRUE)
 {
   files <- list.files(path = file.path(out_path, "temp"), 
                       pattern = "^pepscores_", full.names = TRUE)
@@ -1669,6 +1672,9 @@ prep_pepfdr_td <- function (td = NULL, out_path, enzyme = "trypsin_p",
     td <- dplyr::bind_rows(td)
   }
   
+  if (length(ms1_offsets) > 1L && only_notch_zero)
+    td <- td[with(td, abs(pep_ms1_offset) <= 1e-4), ]
+
   cts   <- dplyr::count(dplyr::group_by(td, "pep_mod_group"), pep_mod_group)
   max_i <- cts$pep_mod_group[which.max(cts$n)[[1]]]
   top3s <- cts$pep_mod_group[which_topx2(cts$n, 3)[1:3]]
@@ -1788,12 +1794,12 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
 {
   message("Calculating peptide FDR.")
   
-  # may exclude non-zero ms1_offsets...
-  
   td <- prep_pepfdr_td(out_path = out_path, 
                        enzyme = enzyme, 
                        nes_fdr_group = nes_fdr_group, 
-                       fdr_group = fdr_group)
+                       fdr_group = fdr_group, 
+                       ms1_offsets = ms1_offsets, 
+                       only_notch_zero = TRUE)
   
   # back-compatibility to new column keys (e.g. scan_num -> pep_scan_num)
   if (!"pep_scan_num" %in% names(td)) 
@@ -2219,7 +2225,7 @@ calc_protfdr <- function (df = NULL, target_fdr = .01, max_protscores_co = Inf,
   message("Calculating peptide-protein FDR.")
   
   # score cut-offs as a function of prot_n_pep
-  max_n_pep <- max(df$prot_n_pep, na.rm = TRUE)
+  max_n_pep  <- max(df$prot_n_pep, na.rm = TRUE)
   all_n_peps <- unique(df$prot_n_pep)
   
   # protein enrichment score cut-offs at each `prot_n_pep`
@@ -2296,10 +2302,10 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
   if (td[["prot_n_pep"]][[1]] > max_protnpep_co)
     return(0L)
 
-  td <- td %>% 
-    dplyr::group_by(prot_acc, pep_seq) %>% 
-    dplyr::arrange(-pep_score) %>% 
-    dplyr::filter(row_number() == 1L) %>% 
+  td <- td |> 
+    dplyr::group_by(prot_acc, pep_seq) |> 
+    dplyr::arrange(-pep_score) |> 
+    dplyr::filter(row_number() == 1L) |> 
     dplyr::ungroup()
 
   ## no decoys
@@ -2316,8 +2322,8 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
     return(1L)
   
   # (NOT to use `local` for hard `return (0L)`)
-  prot_scores <- td %>% 
-    dplyr::mutate(prot_es = pep_score - pep_score_co) %>% 
+  prot_scores <- td |> 
+    dplyr::mutate(prot_es = pep_score - pep_score_co) |> 
     dplyr::group_by(prot_acc) 
   
   prot_scores <- switch(method_prot_es_co, 
@@ -2345,8 +2351,8 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
   # keep one unique `prot_es` (by roughly assuming `prot_es` is an indicator for 
   # the redundancy). 
 
-  prot_scores <- prot_scores %>% 
-    dplyr::mutate(prot_es = round(prot_es, digits = 5L)) %>% 
+  prot_scores <- prot_scores |> 
+    dplyr::mutate(prot_es = round(prot_es, digits = 5L)) |> 
     dplyr::filter(!duplicated(prot_es))
   
   # Removes the last three in case only one or two decoy spikes near the end 
@@ -2358,8 +2364,8 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
   # -NP_001157012    54.4
   # NP_077772        62.7
 
-  prot_scores <- prot_scores %>% 
-    dplyr::arrange(prot_es) %>% 
+  prot_scores <- prot_scores |> 
+    dplyr::arrange(prot_es) |> 
     dplyr::filter(row_number() > n_burnin)
 
   # no decoys
@@ -2367,11 +2373,11 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
     return (0L)
 
   # both targets and decoys
-  td <- td %>% 
-    dplyr::right_join(prot_scores, by = "prot_acc") %>% 
-    dplyr::arrange(-prot_es) %>% 
-    dplyr::mutate(total = row_number()) %>% 
-    dplyr::mutate(decoy = cumsum(pep_isdecoy)) %>% 
+  td <- td |> 
+    dplyr::right_join(prot_scores, by = "prot_acc") |> 
+    dplyr::arrange(-prot_es) |> 
+    dplyr::mutate(total = row_number()) |> 
+    dplyr::mutate(decoy = cumsum(pep_isdecoy)) |> 
     dplyr::mutate(fdr = decoy/total)
   
   rm(list = "prot_scores")
@@ -2404,11 +2410,11 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
         min_score <- min(data$x, na.rm = TRUE)
         max_score <- max(data$x, na.rm = TRUE)
         newx <- min_score:max_score
-        newy <- predict(fit, data.frame(x = newx)) %>% `names<-`(newx)
+        newy <- predict(fit, data.frame(x = newx)) |> `names<-`(newx)
 
         # NA if not existed
-        score_co2 <- which(newy <= target_fdr)[1] %>% 
-          names() %>% 
+        score_co2 <- which(newy <= target_fdr)[1] |> 
+          names() |> 
           as.numeric()
         
         local({
@@ -2493,9 +2499,9 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
       NA
     } 
     else {
-      fits %>% 
-        .[!is.na(.)] %>% 
-        .[[length(.)]]
+      # fits %>% .[!is.na(.)] %>% .[[length(.)]]
+      fits <- fits[!is.na(fits)]
+      fits <- fits[[length(fits)]]
     }
   }
 
@@ -2524,7 +2530,7 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
     
     out <- data.frame(
       prot_n_pep = newx, 
-      prot_score_co = newy) %>% 
+      prot_score_co = newy) |> 
       dplyr::mutate(prot_score_co = ifelse(prot_n_pep >= elbow, 0, prot_score_co))
   } 
   else {
@@ -2538,7 +2544,7 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
 
     out <- data.frame(
       prot_n_pep = newx, 
-      prot_score_co = newy) %>% 
+      prot_score_co = newy) |> 
       dplyr::mutate(prot_score_co = ifelse(prot_n_pep >= elbow, 0, prot_score_co))
     
   }
@@ -3051,15 +3057,21 @@ find_bestnotch <- function (x)
   x[, pep_rank0 := data.table::frank(-pep_score, ties.method = "min"), 
     by = list(query_id)]
 
+  # the best query at each query_id
   g <- x[, c("pep_rank0", "query_id", "pep_ms1_offset")]
   g <- g[g$pep_rank0 == 1L, ]
   g[["pep_rank0"]] <- NULL
+  g[, id := seq_len(.N), by = query_id]
+  g <- g[g$id == 1L, ]
+  g[["id"]] <- NULL
   
-  # pep_ms1_offset == 0 goes first?
-  if (length(us <- unique(g$pep_ms1_offset)) > 1L) {
-    g <- g[g$pep_ms1_offset == us[[1]], ]
+  if (FALSE) {
+    if (length(us <- unique(g$pep_ms1_offset)) > 1L) {
+      i <- if (length(ok <- which(abs(us) < 1e-4)) == 1L) ok else 1L
+      g <- g[g$pep_ms1_offset == us[[i]], ]
+    }
   }
-  
+
   g[["keep"]] <- TRUE
   g[, uid := paste(query_id, pep_ms1_offset, sep = ".")]
   g[["pep_ms1_offset"]] <- g[["query_id"]] <- NULL

@@ -1,6 +1,6 @@
 # $bin_masses.R
 # [1] "bin_ms1masses"      "binTheoSeqs_i"      "binTheoSeqs2"       "bin_theoseqs"       "binTheoSeqs"       
-# [6] "find_ms1_cutpoints" "s_readRDS"         
+# [6] "find_ms1_cutpoints" "s_readRDS"          "set_bin_ncores"    
 # 
 # $dispatch.R
 #  [1] "find_pos_site"       "contain_pos_site"    "contain_termpos_any" "subset_by_prps"      "subset_protntsite"  
@@ -42,11 +42,11 @@
 # [29] "mmake_noenzpeps"           "make_noenzpeps"            "hmake_noenzpeps"           "ms1masses_bare_noenz"     
 # [33] "keep_n_misses"             "exclude_n_misses"          "str_exclude_count"         "rm_char_in_nfirst"        
 # [37] "rm_char_in_nlast"          "adj_base_masses"           "adj_anywhere_masses"       "add_term_mass"            
-# [41] "ms1masses_bare"            "add_ms1_13c"               "ms1masses_noterm"          "calcms1mass_noterm"       
-# [45] "calcms1mass_noterm_byprot" "calcms1mass_noterm_bypep"  "distri_peps"               "ct_counts"                
-# [49] "distri_fpeps"              "roll_sum"                  "hsemipeps_byprots"         "semipeps_byprots"         
-# [53] "calc_semipepmasses"        "delta_ms1_a0_fnl1"         "hms1_a0_vnl0_fnl1"         "ms1_a0_vnl0_fnl1"         
-# [57] "hms1_a1_vnl0_fnl0"         "ms1_a1_vnl0_fnl0"         
+# [41] "ms1masses_bare"            "add_ms1_13c"               "add_ms1_notches"           "ms1masses_noterm"         
+# [45] "calcms1mass_noterm"        "calcms1mass_noterm_byprot" "calcms1mass_noterm_bypep"  "distri_peps"              
+# [49] "ct_counts"                 "distri_fpeps"              "roll_sum"                  "hsemipeps_byprots"        
+# [53] "semipeps_byprots"          "calc_semipepmasses"        "delta_ms1_a0_fnl1"         "hms1_a0_vnl0_fnl1"        
+# [57] "ms1_a0_vnl0_fnl1"          "hms1_a1_vnl0_fnl0"         "ms1_a1_vnl0_fnl0"         
 # 
 # $ms2_gen.R
 # [1] "gen_ms2ions_base"          "gen_ms2ions_a0_vnl0_fnl1"  "gen_ms2ions_a1_vnl0_fnl0"  "calc_ms2ions_a1_vnl0_fnl0"
@@ -54,8 +54,8 @@
 # [9] "calc_ms2ions_a1_vnl1_fnl0"
 # 
 # $ms2frames.R
-#  [1] "pair_mgftheo"     "hms2match"        "ms2match_all"     "mframes_adv"      "fuzzy_match_one"  "fuzzy_match_one2"
-#  [7] "find_ms2_bypep"   "search_mgf"       "ms2match_one"     "frames_adv"      
+#  [1] "pair_mgftheos"  "hpair_mgths"    "hms2match"      "ms2match_all"   "mframes_adv"    "find_ms2_bypep" "search_mgf"    
+#  [8] "hms2match_one"  "ms2match_one"   "frames_adv"    
 # 
 # $msmsmatches.R
 #  [1] "matchMS"         "try_psmC2Q"      "reproc_psmC"     "psmC2Q"          "post_psmC2Q"     "check_tmt_pars" 
@@ -63,6 +63,7 @@
 # 
 # $msmsmatches2.R
 # [1] "ms2match"              "reverse_peps_in_frame" "reverse_seqs"          "calib_mgf"             "calib_ms1"            
+# [6] "find_ms1_offsets"     
 # 
 # $mzion.R
 # character(0)
@@ -74,10 +75,11 @@
 # [1] "creat_folds" "cv_svm"      "perco_svm"  
 # 
 # $quant2.R
-#  [1] "hcalc_tmtint"       "calc_tmtint"        "add_rptrs"          "find_reporter_ints" "find_reporters_ppm"
-#  [6] "msub_protpep"       "sub_protpep"        "add_protacc2"       "add_protacc"        "hannot_decoys"     
-# [11] "groupProts"         "map_pepprot"        "collapse_sortpeps"  "pcollapse_sortpeps" "chunksplit_spmat"  
-# [16] "find_group_breaks"  "cut_proteinGroups"  "sparseD_fourquad"   "as_dist"            "greedysetcover3"   
+#  [1] "hcalc_tmtint"       "calc_tmtint"        "add_rptrs"          "find_int_cols"      "find_reporter_ints"
+#  [6] "find_reporters_ppm" "msub_protpep"       "sub_protpep"        "add_protacc2"       "add_protacc"       
+# [11] "hannot_decoys"      "groupProts"         "map_pepprot"        "collapse_sortpeps"  "pcollapse_sortpeps"
+# [16] "chunksplit_spmat"   "find_group_breaks"  "cut_proteinGroups"  "sparseD_fourquad"   "as_dist"           
+# [21] "greedysetcover3"   
 # 
 # $roadmaps.R
 # character(0)
@@ -93,8 +95,9 @@
 # [29] "fill_probco_nas"        "fill_probs"             "post_pepfdr"            "calc_protfdr"          
 # [33] "aggr_prot_es"           "calc_protfdr_i"         "fit_protfdr"            "  f"                   
 # [37] "find_ppm_outer_bycombi" "match_ex2th2"           "calc_peploc"            "calcpeprank_1"         
-# [41] "calcpeprank_2"          "calcpeprank_3"          "find_chunkbreaks"       "findLocFracsDF"        
-# [45] "concatFracs"            "na.interp"              "is.constant"            "tsoutliers"            
+# [41] "calcpeprank_2"          "calcpeprank_3"          "find_bestnotch"         "find_chunkbreaks"      
+# [45] "findLocFracsDF"         "concatFracs"            "na.interp"              "is.constant"           
+# [49] "tsoutliers"            
 # 
 # $silac.R
 # [1] "matchMS_silac_mix"   "matchMS_par_groups"  "add_fixedlab_masses" "matchMS_noenzyme"    "combine_ion_matches"
@@ -118,13 +121,13 @@
 # [36] "finds_uniq_vec"        "my_dataframe"          "flatten_list"          "calc_rev_ms2"          "bind_dfs"             
 # 
 # $utils_os.R
-#  [1] "`names_pos<-`"          "find_int_cols"          "ins_cols_after"         "add_cols_at"           
-#  [5] "replace_cols_at"        "reloc_col_after"        "reloc_col_after_last"   "reloc_col_after_first" 
-#  [9] "reloc_col_before"       "reloc_col_before_last"  "reloc_col_before_first" "find_preceding_colnm"  
-# [13] "recur_flatten"          "chunksplit"             "chunksplitLB"           "find_dir"              
-# [17] "create_dir"             "save_call2"             "find_callarg_vals"      "match_calltime"        
-# [21] "delete_files"           "find_ms1_times"         "get_globalvar"          "load_cache_info"       
-# [25] "is_nulllist"            "add_nulllist"          
+#  [1] "`names_pos<-`"          "ins_cols_after"         "add_cols_at"            "replace_cols_at"       
+#  [5] "reloc_col_after"        "reloc_col_after_last"   "reloc_col_after_first"  "reloc_col_before"      
+#  [9] "reloc_col_before_last"  "reloc_col_before_first" "find_preceding_colnm"   "recur_flatten"         
+# [13] "chunksplit"             "chunksplitLB"           "find_dir"               "create_dir"            
+# [17] "save_call2"             "find_callarg_vals"      "match_calltime"         "delete_files"          
+# [21] "find_ms1_times"         "get_globalvar"          "load_cache_info"        "is_nulllist"           
+# [25] "add_nulllist"          
 # 
 # $utils_ui.R
 # [1] "calc_monopeptide"  "calc_monopep"      "check_aaseq"       "calc_ms2ionseries" "calc_ms2ions"      "unique_mvmods"    
