@@ -16,7 +16,6 @@ calc_pepscores(
   min_ms2mass = 115L,
   index_mgf_ms2 = FALSE,
   tally_ms2ints = TRUE,
-  ms1_offsets = 0,
   mgf_path,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
@@ -89,9 +88,6 @@ interrogation. The default is 110.}
   pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{tally_ms2ints}{Logical; tally MS2 intensities or not.}
-
-\item{ms1_offsets}{Off-sets in precursor masses in relative to the original
-values in MGFs.}
 
 \item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
   supply the files.

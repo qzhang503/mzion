@@ -4,7 +4,7 @@
 \alias{mprepBrukerMGF}
 \title{Parallel \link{prepBrukerMGF}}
 \usage{
-mprepBrukerMGF(filepath, n_cores = 48L)
+mprepBrukerMGF(filepath, n_cores = 32L)
 }
 \arguments{
 \item{filepath}{A file path to MGF.}

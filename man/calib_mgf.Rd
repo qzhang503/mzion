@@ -39,7 +39,7 @@ calib_mgf(
   min_len = 7L,
   max_len = 40L,
   max_miss = 2L,
-  knots = 50L
+  knots = 5L
 )
 }
 \arguments{

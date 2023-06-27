@@ -4,9 +4,20 @@
 \alias{check_locmods}
 \title{Checks \code{locmods}}
 \usage{
-check_locmods(fixedmods, varmods, locmods)
+check_locmods(locmods, fixedmods, varmods, ms1_neulosses = NULL)
 }
 \arguments{
+\item{locmods}{Among \code{varmods} for the consideration of localization
+  probabilities; for instance, \code{locmods = NULL} for nothing,
+  \code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
+  phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
+  \code{fixedmods} that were coerced to \code{varmods} will be added
+  automatically to \code{locmods}.
+
+  For convenience, the default is set to look for applicable peptide
+  phosphorylation (and may encounter warning messages if the data type is
+  different to the default).}
+
 \item{fixedmods}{Character string(s) of fixed modifications.}
 
 \item{varmods}{Character string(s) of variable modifications. Multiple
@@ -20,16 +31,13 @@ check_locmods(fixedmods, varmods, locmods)
   \link{parse_unimod} for grammars of modification \code{title},
   \code{position} and \code{site}.}
 
-\item{locmods}{Among \code{varmods} for the consideration of localization
-  probabilities; for instance, \code{locmods = NULL} for nothing,
-  \code{locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)")} for
-  phosphopeptides, \code{locmods = "Acetyl (K)"} for lysine acetylation.
-  \code{fixedmods} that were coerced to \code{varmods} will be added
-  automatically to \code{locmods}.
+\item{ms1_neulosses}{Character string(s) specifying the neutral losses of
+  precursors. The nomenclature is the same as those in argument
+  \code{varmods}, e.g., \code{c("Phospho (S)", "Phospho (T)", "Phospho
+  (Y)")}.
 
-  For convenience, the default is set to look for applicable peptide
-  phosphorylation (and may encounter warning messages if the data type is
-  different to the default).}
+  The argument is a simplified (narrower) usage of argument
+  \code{ms1_notches} with additional specificity in modifications and sites.}
 }
 \description{
 Coerced \code{fixedmods} not considered.

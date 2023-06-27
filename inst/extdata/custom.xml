@@ -259,5 +259,38 @@
         <umod:element symbol="O" number="5"/>
       </umod:delta>
     </umod:mod>
+    <umod:mod title="Phospho+" full_name="Phosphorylation" username_of_poster="unimod" group_of_poster="user" date_time_posted="2023-06-21 17:00:09.482562" date_time_modified="2023-06-21 17:00:09.483741" approved="0" record_id="31">
+      <umod:specificity hidden="0" site="S" position="Anywhere" classification="other" spec_group="1">
+        <umod:NeutralLoss mono_mass="0" avge_mass="0" flag="false" composition="0"/>
+        <umod:NeutralLoss mono_mass="97.976897" avge_mass="97.99518" flag="false" composition="H(3) P(1) O(4)">
+          <umod:element symbol="H" number="3"/>
+          <umod:element symbol="P" number="1"/>
+          <umod:element symbol="O" number="4"/>
+        </umod:NeutralLoss>
+        <umod:NeutralLoss mono_mass="79.966332" avge_mass="79.9799" flag="false" composition="H(1) P(1) O(3)">
+          <umod:element symbol="H" number="1"/>
+          <umod:element symbol="P" number="1"/>
+          <umod:element symbol="O" number="3"/>
+        </umod:NeutralLoss>
+      </umod:specificity>
+      <umod:delta mono_mass="79.966332" avge_mass="79.9799" composition="H(1) P(1) O(3)">
+        <umod:element symbol="H" number="1"/>
+        <umod:element symbol="P" number="1"/>
+        <umod:element symbol="O" number="3"/>
+      </umod:delta>
+      <umod:specificity hidden="0" site="T" position="Anywhere" classification="other" spec_group="2">
+        <umod:NeutralLoss mono_mass="0" avge_mass="0" flag="false" composition="0"/>
+        <umod:NeutralLoss mono_mass="97.976897" avge_mass="97.99518" flag="false" composition="H(3) P(1) O(4)">
+          <umod:element symbol="H" number="3"/>
+          <umod:element symbol="P" number="1"/>
+          <umod:element symbol="O" number="4"/>
+        </umod:NeutralLoss>
+        <umod:NeutralLoss mono_mass="79.966332" avge_mass="79.9799" flag="false" composition="H(1) P(1) O(3)">
+          <umod:element symbol="H" number="1"/>
+          <umod:element symbol="P" number="1"/>
+          <umod:element symbol="O" number="3"/>
+        </umod:NeutralLoss>
+      </umod:specificity>
+    </umod:mod>
   </umod:modifications>
 </umod:unimod>

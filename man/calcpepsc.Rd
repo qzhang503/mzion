@@ -18,7 +18,6 @@ calcpepsc(
   d2 = 1e-05,
   index_mgf_ms2 = FALSE,
   tally_ms2ints = TRUE,
-  ms1_offsets = 0,
   add_ms2theos = FALSE,
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
@@ -78,9 +77,6 @@ interrogation. The default is 110.}
   pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{tally_ms2ints}{Logical; tally MS2 intensities or not.}
-
-\item{ms1_offsets}{Off-sets in precursor masses in relative to the original
-values in MGFs.}
 
 \item{add_ms2theos}{Logical. If true, adds the sequence of primary
   theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a

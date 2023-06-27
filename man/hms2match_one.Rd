@@ -6,12 +6,16 @@
 \usage{
 hms2match_one(
   pep_mod_group,
-  mgths,
+  nms_theo,
+  nms_expt,
   aa_masses,
   FUN,
   ms1vmods,
   ms2vmods,
   cl,
+  ms1_neulosses = NULL,
+  maxn_neulosses_fnl = 1L,
+  maxn_neulosses_vnl = 1L,
   mod_indexes,
   mgf_path,
   out_path,
@@ -32,7 +36,9 @@ hms2match_one(
 \arguments{
 \item{pep_mod_group}{The index of peptide modification groups.}
 
-\item{mgths}{Pairs of experimental and theoretical data.}
+\item{nms_theo}{Names of theoretical files.}
+
+\item{nms_expt}{Names of experimental files.}
 
 \item{aa_masses}{An amino-acid look-up.}
 
@@ -46,6 +52,26 @@ an i-th \code{aa_masses}.}
 an i-t \code{aa_masses}.}
 
 \item{cl}{The value of clusters for parallel processes.}
+
+\item{ms1_neulosses}{Character string(s) specifying the neutral losses of
+  precursors. The nomenclature is the same as those in argument
+  \code{varmods}, e.g., \code{c("Phospho (S)", "Phospho (T)", "Phospho
+  (Y)")}.
+
+  The argument is a simplified (narrower) usage of argument
+  \code{ms1_notches} with additional specificity in modifications and sites.}
+
+\item{maxn_neulosses_fnl}{A positive integer used in conjunction with
+arguments \code{ms1_notches} and \code{ms1_neulosses}. The maximum number
+of fixed MS2 neutral losses to be considered when searching against peak
+lists with MS1 mass off-sets. The default is two (one MS2 neutral loss in
+addition to 0).}
+
+\item{maxn_neulosses_vnl}{A positive integer used in conjunction with
+arguments \code{ms1_notches} and \code{ms1_neulosses}. The maximum number
+of variable MS2 neutral losses to be considered when searching against peak
+lists with MS1 mass off-sets. The default is two (one MS2 neutral loss in
+addition to 0).}
 
 \item{mod_indexes}{Integer; the indexes of fixed and/or variable
 modifications}

@@ -76,64 +76,58 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
   
   # (assumed) no space in `title`
   # title <- gsub("(.*)\\s\\([^\\(]*\\)$", "\\1", unimod)
-  title <- gsub("^([^ ]+?) .*", "\\1", unimod)
-  
-  pos_site <- unimod %>%
-    gsub("^[^ ]+", "", .) %>%
-    gsub("^[^\\(]+[\\(]*([^\\)]*)[\\)]*$", "\\1", .)
+  title    <- gsub("^([^ ]+?) .*", "\\1", unimod)
+  pos_site <- gsub("^[^ ]+", "", unimod)
+  pos_site <- gsub("^[^\\(]+[\\(]*([^\\)]*)[\\)]*$", "\\1", pos_site)
   
   if (grepl("=", pos_site)) {
-    pos <- pos_site %>%
-      gsub("^([^=]+?)[=].*", "\\1", .) %>%
-      gsub("^[ ]*", "\\1", .) %>%
-      gsub(" *$", "", .)
-    
-    site <- pos_site %>%
-      gsub("^[^=]+?[=](.*)", "\\1", .) %>%
-      gsub("^[ ]*", "\\1", .) %>%
-      gsub(" *$", "", .)
+    pos  <- gsub("^([^=]+?)[=].*", "\\1", pos_site)
+    pos  <- gsub("^[ ]*", "\\1", pos)
+    pos  <- gsub(" *$", "", pos)
+    site <- gsub("^[^=]+?[=](.*)", "\\1", pos_site)
+    site <- gsub("^[ ]*", "\\1", site)
+    site <- gsub(" *$", "", site)
   } 
   else {
-    pos <- "."
+    pos  <- "."
     site <- pos_site
   }
   
-  if (site == "") site = "."
+  if (site == "") 
+    site = "."
   
   if (site %in% c("Protein N-term", "Protein C-term",
                   "Anywhere N-term", "Anywhere C-term",
                   "N-term", "C-term")) {
-    pos <- site
-    site <- site %>% gsub("^(Protein|Anywhere) ", "", .)
+    pos  <- site
+    site <- gsub("^(Protein|Anywhere) ", "", site)
   }
   
   # standardize `position`
   pos <- gsub("^([NC]){1}-term", "Any \\1-term", pos)
   
-  if (pos %in% c(".", "")) pos <- "Anywhere"
+  if (pos %in% c(".", "")) 
+    pos <- "Anywhere"
   
   pos_allowed <- c("Anywhere", "Protein N-term", "Protein C-term",
                    "Any N-term", "Any C-term")
   
   if (! pos %in% pos_allowed) 
     stop("`pos` needs to be one of ", 
-         paste0("\n  '", pos_allowed, collapse = "'"), 
-         "'")
-  
+         paste0("\n  '", pos_allowed, collapse = "'"), "'")
+
   # standardize terminal sites
   if (site == ".") {
-    if (pos %in% c("Protein N-term", "Any N-term")) {
+    if (pos %in% c("Protein N-term", "Any N-term"))
       site <- "N-term"
-    } 
-    else if (pos %in% c("Protein C-term", "Any C-term")) {
+    else if (pos %in% c("Protein C-term", "Any C-term"))
       site <- "C-term"
-    }
   }
   
   if (pos == "Anywhere" && site == ".") 
     stop("'position' or 'site' cannot be both 'Anywhere'.")
   
-  invisible(list(title = title, position = pos, site = site))
+  list(title = title, position = pos, site = site)
 }
 
 
@@ -182,36 +176,26 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)",
   node_delta <- xml2::xml_find_all(this_mod, "umod:delta")
   monomass <- as.numeric(xml2::xml_attr(node_delta, "mono_mass"))
   
-  if (!(length(monomass) == 1L))
+  if (length(monomass) != 1L)
     stop("The length of `mono_mass` is not one.")
   
   # sites and positions
   node_specs <- xml2::xml_find_all(this_mod, "umod:specificity")
   attrs_specs <- xml2::xml_attrs(node_specs)
   
-  sites <- attrs_specs %>%
-    lapply(`[`, c("site")) %>%
-    unlist()
-  
-  positions <- attrs_specs %>%
-    lapply(`[`, c("position")) %>%
-    unlist()
-  
+  sites <- unlist(lapply(attrs_specs, `[`, "site"))
+  positions <- unlist(lapply(attrs_specs, `[`, "position"))
   names(sites) <- positions
   
-  idx_ps <- which(sites == site & positions == position)
+  idx_ps  <- which(sites == site & positions == position)
+  sites   <- sites[idx_ps]
+  empties <- unlist(lapply(sites, is.null))
+  sites   <- sites[!empties]
   
-  sites <- sites[idx_ps] %>%
-    .[purrr::map_lgl(., function (x) !is.null(x))]
-  
-  local({
-    len_sites <- length(sites)
-    
-    if (len_sites > 1L)
-      stop("Multiple matches in site and position for '", unimod, "'.")
-    else if (len_sites == 0L)
-      stop("No matches in site and position for '", unimod, "'.")
-  })
+  if ((len_sites <- length(sites)) > 1L)
+    stop("Multiple matches in site and position for '", unimod, "'.")
+  else if (len_sites == 0L)
+    stop("No matches in site and position for '", unimod, "'.")
 
   # neutral loss
   idxes_nl <- grep("NeutralLoss", node_specs)
@@ -219,18 +203,16 @@ find_unimod <- function (unimod = "Carbamidomethyl (C)",
   
   if (length(idxes_nl)) {
     nodes_nl <- xml2::xml_children(node_specs[idxes_nl])
-    
-    neulosses <- xml2::xml_attr(nodes_nl, "mono_mass") %>%
-      as.numeric() %>%
-      sort() # ensures the first is 0
+    # ensures the first is 0
+    neulosses <- sort(as.numeric(xml2::xml_attr(nodes_nl, "mono_mass")))
   }
   else 
     neulosses <- 0
   
-  invisible(list(title = title, 
-                 monomass = monomass,
-                 position_site = sites,
-                 nl = neulosses))
+  list(title = title, 
+       monomass = monomass,
+       position_site = sites,
+       nl = neulosses)
 }
 
 
@@ -261,51 +243,52 @@ hfind_unimod <- function (xml_files = c("master.xml", "custom.xml"), unimod)
     stop("Modification not found: '", title, "'.\n",
          "For example, use 'Acetyl' (title) instead of 'Acetylation' (full_name).")
   
-  invisible(this_mod)
+  this_mod
 }
 
 
 #' Tabulates \href{https://www.unimod.org/}{Unimod} entries.
 #'
-#' For convenience summary of the \code{title}, \code{site} and
-#' \code{position}.
+#' For convenience summary of the \code{title}, \code{site} and \code{position}.
 #'
 #' @param out_nm A name to outputs.
-#' @seealso \link{find_unimod}, \link{parse_unimod}.
+#' @seealso \link{find_unimod}, \link{parse_unimod}, \link{add_unimod},
+#'   \link{remove_unimod}, \link{remove_unimod_title},
+#'   \link{calc_unimod_compmass}.
 #' @examples
 #' \donttest{
 #' library(mzion)
-#' 
+#'
 #' ans <- table_unimods()
-#' 
-#' ## TMT-6, -10 and -11 plexes 
+#'
+#' ## TMT-6, -10 and -11 plexes
 #' # share the same Unimod entry at title "TMT6plex"
 #' # (the same chemistry at tag mass 229.162932 Da)
 #' ans[with(ans, title == "TMT6plex"), ]
 #' this_mod1 <- parse_unimod("TMT6plex (Anywhere = K)")
-#' 
+#'
 #' # Convenience title, "TMT10plex", alias to "TMT6plex"
 #' this_mod2 <- parse_unimod("TMT10plex (Anywhere = K)")
-#' 
+#'
 #' # Title "TMT11plex" alias to "TMT6plex"
 #' this_mod3 <- parse_unimod("TMT11plex (Anywhere = K)")
-#' 
+#'
 #' ## TMT-16
 #' ans[with(ans, title == "TMTpro"), ]
 #' this_mod1 <- parse_unimod("TMTpro (Anywhere = K)")
-#' 
+#'
 #' # Both "TMTpro16" and "TMT16plex" alias to "TMTpro"
 #' this_mod2 <- parse_unimod("TMTpro16 (Anywhere = K)")
 #' this_mod3 <- parse_unimod("TMT16plex (Anywhere = K)")
-#' 
+#'
 #' ## Summary of TMT entries and alias
 #' ans[with(ans, grepl("^TMT", title)), ]
-#' 
-#' 
+#'
+#'
 #' ## Special characters in the title (e.g., "->")
 #' ans[with(ans, grepl("^Gln->pyro", title)), ]
 #' this_mod <- parse_unimod("Gln->pryo-Glu (N-term = Q)")
-#' 
+#'
 #' }
 #' @export
 table_unimods <- function (out_nm = "~/mzion/unimods.txt") 
@@ -643,7 +626,7 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
   }
 
   local({
-    if (!(length(site) == 1L))
+    if (length(site) != 1L)
       stop("The length of `site` is not one.")
     
     if (!(length(position) == 1L))
@@ -709,9 +692,10 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
 
     local({
       this_delta <- xml2::xml_find_all(this_mod, "umod:delta")
-
-      stopifnot(length(this_delta) == 1L)
       
+      if (length(this_delta) != 1L)
+        stop("Multiple or no matches.")
+
       this_mono_mass <- xml2::xml_attr(this_delta, "mono_mass")
       this_avge_mass <- xml2::xml_attr(this_delta, "avge_mass")
       this_composition <- xml2::xml_attr(this_delta, "composition")
@@ -759,9 +743,7 @@ add_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
     positions <- unlist(lapply(attrs_children, `[`, c("position")))
     ok_sitepos <- which((sites == site) & (positions == position))
     
-    len_sitepos <- length(ok_sitepos)
-    
-    if (len_sitepos > 1L)
+    if ((len_sitepos <- length(ok_sitepos)) > 1L)
       stop("Multiple matches to `site = ", site, "` and ", 
            "`position = ", position, "` at ", 
            "`title = ", title, "`.\n", 
@@ -1129,15 +1111,11 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
   # title
   idx_title <- which(xml2::xml_attr(modifications, "title") == title)
   
-  local({
-    len_title <- length(idx_title)
-    
-    if (len_title > 1L)
-      stop("Multiple matches to `", title, "`.\n", 
-           "Fix the redundancy from ", xml_file, ".")
-    else if (!len_title) 
-      stop("Entry `", title, "` not found.")
-  })
+  if ((len_title <- length(idx_title)) > 1L)
+    stop("Multiple matches to `", title, "`.\n", 
+         "Fix the redundancy from ", xml_file, ".")
+  else if (!len_title) 
+    stop("Entry `", title, "` not found.")
   
   # `site` and `position`
   this_mod <- modifications[[idx_title]]
@@ -1159,19 +1137,15 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
   positions <- unlist(lapply(attrs_mod_ch, `[`, c("position")))
   ok_sitepos <- which((sites == site) & (positions == position))
   
-  local({
-    len_sitepos <- length(ok_sitepos)
-    
-    if (!len_sitepos)
-      stop("No matches to `site = ", site, "` and ", 
-           "`position = ", position, "` at ", 
-           "`title = ", title, "`.\n")
-    else if (len_sitepos > 1L)
-      stop("Multiple matches to `site = ", site, "` and ", 
-           "`position = ", position, "` at ", 
-           "`title = ", title, "`.\n", 
-           "Fix the redundancy from ", xml_file, ".")
-  })
+  if (!(len_sitepos <- length(ok_sitepos)))
+    stop("No matches to `site = ", site, "` and ", 
+         "`position = ", position, "` at ", 
+         "`title = ", title, "`.\n")
+  else if (len_sitepos > 1L)
+    stop("Multiple matches to `site = ", site, "` and ", 
+         "`position = ", position, "` at ", 
+         "`title = ", title, "`.\n", 
+         "Fix the redundancy from ", xml_file, ".")
 
   this_spec <- nodes_mod_ch[ok_sitepos]
   
@@ -1208,14 +1182,10 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
     neuloss_mono_masses <- unlist(lapply(attrs_neuloss, `[`, c("mono_mass")))
     idx_neuloss <- which((neuloss_mono_masses == neuloss_mono_mass))
     
-    local({
-      len_neuloss <- length(idx_neuloss)
-      
-      if (len_neuloss > 1L)
-        stop("Multiple matches to the `mono_mass` in `neuloss`.")
-      else if (!len_neuloss) 
-        stop("No matches to the `mono_mass` in `neuloss`.")
-    })
+    if ((len_neuloss <- length(idx_neuloss)) > 1L)
+      stop("Multiple matches to the `mono_mass` in `neuloss`.")
+    else if (!len_neuloss) 
+      stop("No matches to the `mono_mass` in `neuloss`.")
     
     this_neuloss <- nodes_neuloss[idx_neuloss]
     xml2::xml_remove(this_neuloss)
@@ -1304,9 +1274,7 @@ remove_unimod_title <- function (title = NULL)
   
   idx <- which(xml2::xml_attr(modifications, "title") == title)
   
-  len <- length(idx)
-  
-  if (len > 1L)
+  if ((len <- length(idx)) > 1L)
     stop("Multiple matches to `", title, "`.\n", 
          "Fix the redundancy from ", xml_file, ".")
   else if (!len)
@@ -1378,12 +1346,12 @@ parse_unimod_composition <- function (composition = "H(4) C O S")
 {
   options(digits = 9L)
   
-  df <- composition %>% 
-    stringr::str_replace_all("([:alnum:]+)$", paste0("\\1", "(1)")) %>% 
-    stringr::str_replace_all("([:alnum:]+) ", paste0("\\1", "(1) ")) %>% 
-    gsub("\\s+", "", .) %>% 
-    stringr::str_match_all("(.*?)\\((-*[0-9]+)\\)") %>% 
-    `[[`(1)
+  df <- composition |> 
+    stringr::str_replace_all("([:alnum:]+)$", paste0("\\1", "(1)")) |> 
+    stringr::str_replace_all("([:alnum:]+) ", paste0("\\1", "(1) "))
+  df <- gsub("\\s+", "", df)
+  df <- stringr::str_match_all(df, "(.*?)\\((-*[0-9]+)\\)")
+  df <- df[[1]]
   
   df <- df[, -1, drop = FALSE]
   colnames(df) <- c("symbol", "number")

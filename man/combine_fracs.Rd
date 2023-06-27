@@ -4,17 +4,16 @@
 \alias{combine_fracs}
 \title{Combines results from fractions}
 \usage{
-combine_fracs(files, tempdir, sc_path, ms1_offsets = 0)
+combine_fracs(files, tempdir, sc_path, is_notched = FALSE)
 }
 \arguments{
-\item{files}{A list of file names}
+\item{files}{A list of file names.}
 
-\item{tempdir}{A temporary directory containing the files}
+\item{tempdir}{A temporary directory containing the files.}
 
 \item{sc_path}{An output path}
 
-\item{ms1_offsets}{Off-sets in precursor masses in relative to the original
-values in MGFs.}
+\item{is_notched}{Logical; is a search with MS1 notches or not.}
 }
 \description{
 Combines results from fractions

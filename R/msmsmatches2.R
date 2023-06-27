@@ -20,12 +20,14 @@
 #' @import parallel
 ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin, 
                       mod_indexes, type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
-                      maxn_sites_per_vmod = 3L, maxn_fnl_per_seq = 64L, 
-                      maxn_vnl_per_seq = 64L, maxn_vmods_sitescombi_per_pep = 64L, 
+                      maxn_sites_per_vmod = 3L, maxn_fnl_per_seq = 3L, 
+                      maxn_vnl_per_seq = 3L, maxn_vmods_sitescombi_per_pep = 64L, 
                       minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 20L, 
                       min_mass = 200L, max_mass = 4500L, min_ms2mass = 115L, 
                       quant = "none", ppm_reporters = 10L, 
                       by_modules = TRUE, reframe_mgfs = FALSE, ms1_offsets = 0, 
+                      ms1_neulosses = NULL, maxn_neulosses_fnl = 1L, 
+                      maxn_neulosses_vnl = 1L, 
 
                       # dummies
                       fasta, acc_type, acc_pattern,
@@ -109,7 +111,9 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   ppm_ms2_bin <- calc_threeframe_ppm(ppm_ms2)
 
   pair_mgftheos(mgf_path = mgf_path, n_modules = length(aa_masses_all), 
-                ms1_offsets = ms1_offsets, by_modules = by_modules, 
+                ms1_offsets = comb_ms1_offsets(ms1_offsets = ms1_offsets, 
+                                               ms1_neulosses = ms1_neulosses), 
+                by_modules = by_modules, 
                 min_mass = min_mass, max_mass = max_mass, 
                 ppm_ms1_bin = ppm_ms1_bin, .path_bin = .path_bin, 
                 reframe_mgfs = reframe_mgfs, first_search = first_search)
@@ -140,21 +144,28 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                          maxn_sites_per_vmod = maxn_sites_per_vmod)
   ms2vmods_all <- lapply(ms1vmods_all, lapply, make_ms2vmods)
   
-  # Searches
-  df0 <- tibble::tibble(scan_title = integer(), ms1_moverz = numeric(), 
-                        ms1_mass = numeric(), ms1_int = numeric(), 
-                        ms1_charge = character(), ret_time = numeric(), 
-                        scan_num = character(), raw_file = integer(), 
-                        ms2_moverz = list(list()), 
-                        ms2_int = list(list()), 
-                        ms2_n = integer(), frame  = numeric(), 
+  df0 <- tibble::tibble(scan_title = integer(), raw_file = integer(), 
+                        pep_mod_group = integer(), pep_exp_mz = numeric(), 
+                        pep_exp_mr = numeric(), pep_tot_int = numeric(), 
+                        pep_exp_z = numeric(), pep_ret_range = numeric(), 
+                        pep_scan_num = character(), 
+                        pep_ms2_moverzs = list(list()), 
+                        pep_ms2_ints = list(list()), 
+                        pep_n_ms2 = integer(), 
+                        rptr_moverz = list(list()), 
+                        rptr_int = list(list()), 
+                        pep_ms1_offset = numeric(), 
                         matches = list(list()), 
-                        pep_isdecoy = logical())
+                        pep_fmod = character(), 
+                        pep_vmod = character())
 
   hms2match(aa_masses_all = aa_masses_all, 
             funs_ms2 = funs_ms2, 
             ms1vmods_all = ms1vmods_all, 
             ms2vmods_all = ms2vmods_all, 
+            ms1_neulosses = ms1_neulosses, 
+            maxn_neulosses_fnl = maxn_neulosses_fnl, 
+            maxn_neulosses_vnl = maxn_neulosses_vnl, 
             mod_indexes = mod_indexes, 
             mgf_path = mgf_path, 
             out_path = out_path, 
@@ -235,7 +246,7 @@ reverse_seqs <- function (seqs)
 #' @param reframe_mgfs Logical; if TRUE, recalculates the frame indexes of MGFs
 #' @param knots The number of knots for spline fits.
 #' @inheritParams matchMS
-calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL, 
+calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL, 
                        .path_bin, mod_indexes = NULL, type_ms2ions = "by", 
                        maxn_vmods_per_pep = 5L,maxn_sites_per_vmod = 3L, 
                        maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
@@ -248,7 +259,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL,
                        acc_pattern = NULL, topn_ms2ions = 100L, 
                        fixedmods = NULL, varmods = NULL, enzyme = "trypsin_p", 
                        maxn_fasta_seqs = 200000L, maxn_vmods_setscombi = 512L,
-                       min_len = 7L, max_len = 40L, max_miss = 2L, knots = 50L)
+                       min_len = 7L, max_len = 40L, max_miss = 2L, knots = 5L)
 {
   on.exit(
     if (exists(".savecall", envir = fun_env)) {
@@ -280,12 +291,9 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL,
     return(NULL)
   }
   
-  # may need to delete mgf_queries_[...].rds when changing, e.g., from
-  #   ppm_ms1 = 20 to 10; or save a copy of the original mgf_queries
-  
   ## the first search
   tempdir <- file.path(out_path, "temp")
-  pat_th <- if (by_modules) "^expttheo_\\d+.*\\.rds$" else "^mgftheo_\\d+.*\\.rds$"
+  pat_th <- if (by_modules) "^(theo|expt)_\\d+.*\\.rds$" else "^mgftheo_\\d+.*\\.rds$"
   pat_im <- "^ion_matches_\\d+.*\\.rds$"
   fs_th <- list.files(mgf_path, pattern = pat_th, full.names = TRUE)
   fs_im <- list.files(tempdir,  pattern = pat_im, full.names = TRUE)
@@ -307,25 +315,29 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL,
   fi_mi2 <- file.path(out_path, "Calls", "mod_indexes.txt")
   file.rename(fi_aa, fi_aa2)
   file.rename(fi_mi, fi_mi2)
-
+  
   ms2match(mgf_path = mgf_path,
            aa_masses_all = aa_masses_all,
            out_path = out_path,
            .path_bin = .path_bin, 
            mod_indexes = mod_indexes, 
            type_ms2ions = type_ms2ions,
-           maxn_vmods_per_pep = maxn_vmods_per_pep,
-           maxn_sites_per_vmod = maxn_sites_per_vmod,
-           maxn_fnl_per_seq = maxn_fnl_per_seq, 
-           maxn_vnl_per_seq = maxn_vnl_per_seq, 
-           maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
+           maxn_vmods_per_pep = 1L,
+           maxn_sites_per_vmod = 1L,
+           maxn_fnl_per_seq = 1L, 
+           maxn_vnl_per_seq = 1L, 
+           ms1_offsets = 0, 
+           ms1_neulosses = NULL, 
+           maxn_neulosses_fnl = 1L, 
+           maxn_neulosses_vnl = 1L, 
+           maxn_vmods_sitescombi_per_pep = 1L,
            minn_ms2 = minn_ms2,
            ppm_ms1 = ppm_ms1,
            ppm_ms2 = ppm_ms2,
            min_mass = min_mass, 
            max_mass = max_mass, 
            min_ms2mass = min_ms2mass,
-           quant = quant,
+           quant = "none",
            ppm_reporters = ppm_reporters,
            reframe_mgfs = reframe_mgfs, 
            index_mgf_ms2 = index_mgf_ms2, 
@@ -345,19 +357,56 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL,
            first_search = TRUE, 
            .savecall = FALSE)
   
+  calc_pepscores(topn_ms2ions = topn_ms2ions,
+                 type_ms2ions = type_ms2ions,
+                 target_fdr = .01,
+                 min_len = min_len,
+                 max_len = max_len,
+                 ppm_ms2 = ppm_ms2,
+                 soft_secions = FALSE, 
+                 out_path = out_path,
+                 min_ms2mass = min_ms2mass,
+                 index_mgf_ms2 = index_mgf_ms2, 
+                 tally_ms2ints = TRUE, 
+                 
+                 # dummies
+                 mgf_path = mgf_path,
+                 maxn_vmods_per_pep = 1L,
+                 maxn_sites_per_vmod = 1L,
+                 maxn_vmods_sitescombi_per_pep = 1L,
+                 minn_ms2 = minn_ms2,
+                 ppm_ms1 = ppm_ms1,
+                 quant = quant,
+                 ppm_reporters = ppm_reporters,
+                 fasta = fasta,
+                 acc_type = acc_type,
+                 acc_pattern = acc_pattern,
+                 fixedmods = fixedmods,
+                 varmods = varmods,
+                 enzyme = enzyme,
+                 maxn_fasta_seqs = maxn_fasta_seqs,
+                 maxn_vmods_setscombi = maxn_vmods_setscombi,
+                 add_ms2theos = FALSE, 
+                 add_ms2theos2 = FALSE, 
+                 add_ms2moverzs = FALSE, 
+                 add_ms2ints = FALSE,
+                 by_modules = by_modules, 
+                 digits = 4L)
+  
   file.rename(fi_aa2, fi_aa)
   file.rename(fi_mi2, fi_mi)
   
   ## mass calibration
   fs_mgf <- list.files(mgf_path, "^mgf_queries.*\\.rds$")
-  fi_ion <- file.path(out_path, "temp", "ion_matches_1.rds")
-  
+  fi_ion <- file.path(out_path, "temp", "prescores_1_1.rds")
+
   if (!length(fs_mgf))
     stop("No `mgf_queries` files found for calibrations.")
   if (!file.exists(fi_ion))
     stop("No `ion_matches` files found for calibrations.")
   
-  df  <- qs::qread(fi_ion)
+  df <- qs::qread(fi_ion)
+  df <- df[with(df, pep_prob <= .01), ]
   
   if (!"raw_file" %in% names(df))
     stop("Column not found in search results: `raw_file`")
@@ -414,9 +463,11 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL,out_path = NULL,
 #' @inheritParams calib_mgf
 calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL, 
                        ppm_ms1 = 20L, min_mass = 200L, max_mass = 4500L, 
-                       knots = 50L)
+                       knots = 5L)
 {
-  mgfs <- qs::qread(file.path(mgf_path, filename))
+  n_row <- nrow(df)
+  knots <- max(min(floor(n_row/20L), knots), 4L)
+  mgfs  <- qs::qread(file.path(mgf_path, filename))
   
   # subsets by minn_ms2 and ms1_int
   if (FALSE) {
@@ -432,41 +483,79 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
     df <- df[minn_ok, ]
   }
   
-  # x[[1]]: no nested structures, as the first search is always 
-  # against the all-fixed modifications
-  theo_ms1 <- lapply(df[["matches"]], function (x) {
-    attr(x[[1]], "theo_ms1", exact = TRUE)
-  })
-  theo_ms1  <- .Internal(unlist(theo_ms1, recursive = FALSE, use.names = FALSE))
+  diff_ms1 <- (df[["pep_exp_mr"]] - df[["theo_ms1"]])/df[["theo_ms1"]] * 1E6
+  mdiff    <- median(diff_ms1, na.rm = TRUE)/1E6
+
+  if (n_row <= 100L || mdiff <= 2e-6) {
+    mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - mdiff
+    post_calib(mgfs, min_mass, max_mass, mgf_path, filename)
+    .savecall <- TRUE
+    return(NULL)
+  }
   
-  diff_ms1  <- (df[["pep_exp_mr"]] - theo_ms1)/theo_ms1 * 1E6
-  ret_time  <- df[["pep_ret_range"]]
+  ret_time     <- df[["pep_ret_range"]]
   ppm_ms1_bin  <- calc_threeframe_ppm(ppm_ms1)
   
-  fit_ns <- tryCatch(
-    lm(diff_ms1 ~ splines::ns(ret_time, knots)),
-    error = function(e) NA)
-  
-  fit_bs <- tryCatch(
-    lm(diff_ms1 ~ splines::bs(ret_time, knots)),
-    error = function(e) NA)
-  
-  res_ns <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2, na.rm = TRUE) else Inf
-  res_bs <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2, na.rm = TRUE) else Inf
-  fit    <- if (res_ns <= res_bs) fit_ns else fit_bs
+  fit_ns <- find_optns(diff_ms1, ret_time, knots)
+  fit_bs <- find_optbs(diff_ms1, ret_time, knots)
 
+  if (all(is.na(fit_ns))) {
+    if (all(is.na(fit_bs))) {
+      mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - mdiff
+      post_calib(mgfs, min_mass, max_mass, mgf_path, filename)
+      .savecall <- TRUE
+      return(NULL)
+    }
+    else
+      fit_ns <- fit_bs
+  }
+  else if (all(is.na(fit_bs)))
+    fit_bs <- fit_ns
+  
+  bad_ns <- anyNA(coef(fit_ns))
+  bad_bs <- anyNA(coef(fit_bs))
+  
+  if (bad_ns) {
+    if (bad_bs) {
+      mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - mdiff
+      post_calib(mgfs, min_mass, max_mass, mgf_path, filename)
+      .savecall <- TRUE
+      return(NULL)
+    }
+    else
+      fit_ns <- fit_bs
+  }
+  else if (bad_bs)
+    fit_bs <- fit_ns
+
+  res_ns <- if (class(fit_ns) == "lm") mean(resid(fit_ns)^2, na.rm = TRUE) else Inf
+  res_bs <- if (class(fit_bs) == "lm") mean(resid(fit_bs)^2, na.rm = TRUE) else Inf
+  fit    <- if (res_ns <= res_bs) fit_ns else fit_bs
+  
   # (keeps the original df$ms1_mass -> can later infer mass deltas)
   # charges <- get_ms1charges(df[["ms1_charge"]])
   # df[["ms1_moverz"]] <- (df[["ms1_mass"]] + 1.00727647 * charges)/charges
   
   ## Update mgf
   rt <- mgfs[["ret_time"]]
-  oks_le <- rt >= min(ret_time, na.rm = TRUE)
-  oks_gr <- rt <= max(ret_time, na.rm = TRUE)
+  min_rt <- min(ret_time, na.rm = TRUE)
+  max_rt <- max(ret_time, na.rm = TRUE)
+  
+  if ((min_rt2 <- min_rt * 1.05) < (max_rt2 <- max_rt / 1.05)) {
+    oks_le <- rt >= min_rt2
+    oks_gr <- rt <= max_rt2
+  }
+  else {
+    oks_le <- rt >= min_rt
+    oks_gr <- rt <= max_rt
+  }
+
   oks <- oks_le & oks_gr
   ms1err <- predict.lm(fit, newdata = data.frame(ret_time = rt[oks])) / 1E6
-  ms1oks <- mgfs[["ms1_mass"]][oks]
-  mgfs[["ms1_mass"]][oks] <- ms1oks - ms1oks * ms1err
+  mgfs[["ms1_mass"]][oks] <- mgfs[["ms1_mass"]][oks] * (1 - ms1err)
+
+  uls <- rt[!oks]
+  mgfs[["ms1_mass"]][uls] <- mgfs[["ms1_mass"]][uls] - mdiff
   
   # beyond the boundary of RT
   if (FALSE) {
@@ -481,27 +570,118 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
   }
   
   ## update MGF
-  mgfs <- mgfs %>%
-    dplyr::arrange(ms1_mass) %>% 
-    dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass)
-
   # charges <- get_ms1charges(mgfs[["ms1_charge"]])
   # mgfs[["ms1_moverz"]] <- (mgfs[["ms1_mass"]] + 1.00727647 * charges)/charges
-  
+  post_calib(mgfs, min_mass, max_mass, mgf_path, filename)
   .savecall <- TRUE
 
-  qs::qsave(mgfs, file.path(mgf_path, filename), preset = "fast")
+  invisible(NULL)
 }
 
 
-#' Finds offsets in precursor masses.
+#' Post MS1 calibrations.
 #' 
+#' @param mgfs MGF data.
+#' @param filename An MGF file name
 #' @inheritParams matchMS
+post_calib <- function (mgfs, min_mass, max_mass, mgf_path, filename)
+{
+  mgfs <- mgfs |>
+    dplyr::arrange(ms1_mass) |> 
+    dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass)
+  
+  qs::qsave(mgfs, file.path(mgf_path, filename), preset = "fast")
+}
+
+#' Finds the optimal natural spline.
+#'
+#' @param diff_ms1 The differences between experimental and theoretical
+#'   precursor masses.
+#' @param ret_time Retention timm.
+#' @param knots The number of knots.
+find_optns <- function (diff_ms1, ret_time, knots = 50L)
+{
+  if (knots <= 3L)
+    return(NA)
+  
+  ans <- tryCatch(
+    lm(diff_ms1 ~ splines::ns(ret_time, knots)),
+    error = function(e) NA)
+  
+  if (all(is.na(ans)))
+    return(NA)
+  
+  if (anyNA(coef(ans)))
+    find_optns(diff_ms1, ret_time, floor(knots/1.5))
+  else
+    ans
+}
+
+
+#' Finds the optimal natural spline.
+#' 
+#' @inheritParams find_optns
+find_optbs <- function (diff_ms1, ret_time, knots = 50L)
+{
+  if (knots <= 3L)
+    return(NA)
+  
+  ans <- tryCatch(
+    lm(diff_ms1 ~ splines::bs(ret_time, knots)),
+    error = function(e) NA)
+  
+  if (all(is.na(ans)))
+    return(NA)
+  
+  if (anyNA(coef(ans)))
+    find_optbs(diff_ms1, ret_time, floor(knots/1.5))
+  else
+    ans
+}
+
+
+#' Finds off-sets in precursor masses.
+#'
+#' @inheritParams matchMS
+#' @return A vector of mass off-sets.
 find_ms1_offsets <- function (n_13c = 0L, ms1_notches = 0) 
 {
+  if (dups <- anyDuplicated(n_13c))
+    stop("At least one duplicated values in `n_13c`: ", 
+         n_13c[dups])
+  
+  if (dups <- anyDuplicated(ms1_notches))
+    stop("At least one duplicated values in `ms1_offsets`: ", 
+         ms1_notches[dups])
+
   offsets_13c <- if (length(n_13c)) n_13c * 1.00335483 else NULL
   ms1_offsets <- unique(c(0, offsets_13c, ms1_notches))
-  round(ms1_offsets, digits = 4L)
+  ms1_offsets <- round(ms1_offsets, digits = 4L)
+}
+
+
+#' Combines off-sets in precursor masses (notches and neutral losses).
+#'
+#' The return contains no information of Unimod titles and positions since it is
+#' only used for pairing with experimental MGF data.
+#'
+#' @param ms1_offsets Precursor mass off-sets (notches, not neutral losses).
+#' @inheritParams matchMS
+#' @return A vector of mass off-sets.
+comb_ms1_offsets <- function (ms1_offsets = 0, ms1_neulosses = NULL)
+{
+  if (dups <- anyDuplicated(ms1_neulosses))
+    stop("At least one duplicated values in `ms1_neulosses`: ", 
+         ms1_neulosses[dups])
+
+  if ((!(nnl <- length(ms1_neulosses))) || (nnl == 1L && nnl == 0)) 
+    return(ms1_offsets)
+  
+  nls <- extract_umods(ms1_neulosses)
+  nls <- unique(unlist(lapply(nls, `[[`, "nl")))
+  nls <- -nls[nls != 0]
+  
+  round(unique(c(ms1_offsets, nls)), digits = 4L)
 }
 
 

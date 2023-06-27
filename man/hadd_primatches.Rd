@@ -6,7 +6,7 @@
 \usage{
 hadd_primatches(
   out_path = NULL,
-  ms1_offsets = 0,
+  is_notched = FALSE,
   add_ms2theos = FALSE,
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
@@ -18,8 +18,7 @@ hadd_primatches(
 \arguments{
 \item{out_path}{A file path of outputs.}
 
-\item{ms1_offsets}{Off-sets in precursor masses in relative to the original
-values in MGFs.}
+\item{is_notched}{Logical; is a search with MS1 notches or not.}
 
 \item{add_ms2theos}{Logical. If true, adds the sequence of primary
   theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a

@@ -1598,13 +1598,49 @@ prepBrukerMGF <- function (file = NULL, begin_offset = 5L, charge_offset = 5L)
   message("Processing: ", file)
   
   lines <- readLines(file)
+  hd <- lines[1:100]
   
+  ### Some MGFs may have additional "SCANS=" lines
+  pat_sc <- "SCANS"
+  sc <- .Internal(which(stringi::stri_startswith_fixed(hd, pat_sc)))
+  
+  if (length(sc)) {
+    lscs  <- .Internal(which(stringi::stri_startswith_fixed(lines, pat_sc)))
+    lines <- lines[-lscs]
+    rm(list = "lscs")
+  }
+  rm(list = c("pat_sc", "sc"))
+
+  ###PrecursorID: 
+  pat_pr <- "###PrecursorID"
+  pr <- .Internal(which(stringi::stri_startswith_fixed(hd, pat_pr)))
+  
+  if (length(pr)) {
+    lprs  <- .Internal(which(stringi::stri_startswith_fixed(lines, pat_pr)))
+    lines <- lines[-lprs]
+    rm(list = "lprs")
+  }
+  rm(list = c("pat_pr", "pr"))
+
+  ###CCS: 
+  pat_ccs <- "###CCS"
+  ccs <- .Internal(which(stringi::stri_startswith_fixed(hd, pat_ccs)))
+  
+  if (length(ccs)) {
+    ccs  <- .Internal(which(stringi::stri_startswith_fixed(lines, pat_ccs)))
+    lines <- lines[-ccs]
+    rm(list = "ccs")
+  }
+  rm(list = c("pat_ccs", "ccs"))
+
+  ## Processing
   begins <- .Internal(which(stringi::stri_startswith_fixed(lines, "BEGIN IONS")))
   ends   <- .Internal(which(stringi::stri_endswith_fixed(lines, "END IONS")))
   hdrs   <- 1:(begins[1]-begin_offset-1L)
   
   zls <- lines[begins+5L]
-  oks <- grepl("^CHARGE", zls) & (zls != "CHARGE=1+")
+  # oks <- grepl("^CHARGE", zls) & (zls != "CHARGE=1+")
+  oks <- grepl("^CHARGE", zls) & (zls != "CHARGE=1+") & grepl("^###Mobility", lines[begins-1L])
   rm(list = "zls")
   
   b_oks <- begins[oks] - begin_offset
@@ -1623,7 +1659,7 @@ prepBrukerMGF <- function (file = NULL, begin_offset = 5L, charge_offset = 5L)
 #' @param filepath A file path to MGF.
 #' @param n_cores The number of CPU cores.
 #' @export
-mprepBrukerMGF <- function (filepath, n_cores = 48L) 
+mprepBrukerMGF <- function (filepath, n_cores = 32L) 
 {
   message("Preparing Bruker's MGFs.")
   

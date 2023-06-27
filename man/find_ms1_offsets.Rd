@@ -2,7 +2,7 @@
 % Please edit documentation in R/msmsmatches2.R
 \name{find_ms1_offsets}
 \alias{find_ms1_offsets}
-\title{Finds offsets in precursor masses.}
+\title{Finds off-sets in precursor masses.}
 \usage{
 find_ms1_offsets(n_13c = 0L, ms1_notches = 0)
 }
@@ -11,9 +11,12 @@ find_ms1_offsets(n_13c = 0L, ms1_notches = 0)
 the range of \code{-1:2}. The default is 0.}
 
 \item{ms1_notches}{A numeric vector; notches (off-sets) in precursor masses,
-e.g., \code{c(-79.966331, -97.976896)} to account fo the loss of a phospho
-group and phosphoric acid in precursor masses.}
+e.g., \code{c(-97.976896)} to account fo the loss of a phosphoric acid in
+precursor masses.}
+}
+\value{
+A vector of mass off-sets.
 }
 \description{
-Finds offsets in precursor masses.
+Finds off-sets in precursor masses.
 }

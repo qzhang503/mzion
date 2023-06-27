@@ -5,7 +5,7 @@
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 hcalc_tmtint <- function (df, quant = "tmt10", ppm_reporters = 10L, idx = 1L, 
-                          ms1_offsets = 0, out_path = NULL)
+                          out_path = NULL)
 {
   df <- df[, c("raw_file", "pep_mod_group", "pep_scan_num", "rptr_moverz", 
                "rptr_int")]

@@ -100,8 +100,6 @@ gen_ms2ions_base <- function (aa_seq = NULL, ms1_mass = NULL,
                               mod_indexes = NULL, 
                               type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                               maxn_sites_per_vmod = 3L, 
-                              
-                              # dummy
                               maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
                               maxn_vmods_sitescombi_per_pep = 64L) 
 {
@@ -182,11 +180,13 @@ gen_ms2ions_a0_vnl0_fnl1 <- function (aa_seq, ms1_mass = NULL,
                                       maxn_vmods_per_pep = 5L, 
                                       maxn_sites_per_vmod = 3L, 
                                       maxn_fnl_per_seq = 3L, 
-                                      
-                                      # dummy
                                       maxn_vnl_per_seq = 3L, 
                                       maxn_vmods_sitescombi_per_pep = 64L) 
 {
+  # cannot distinguish a neutral loss is in-source or in-MS2: 
+  # "+ms1_offset and +ms2_nl" versus "-ms1_offset and -ms2_nl" 
+  # if (ms1_offset != 0) maxn_vnl_per_seq = 1L
+
   if (maxn_fnl_per_seq < 2L)
     return(
       gen_ms2ions_base(aa_seq = aa_seq, ms1_mass = ms1_mass, 
@@ -478,10 +478,8 @@ gen_ms2ions_a1_vnl0_fnl0 <- function (aa_seq, ms1_mass = NULL, aa_masses = NULL,
                                       mod_indexes = NULL, type_ms2ions = "by", 
                                       maxn_vmods_per_pep = 5L, 
                                       maxn_sites_per_vmod = 3L, 
-                                      
-                                      # dummy
-                                      maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
-                                      
+                                      maxn_fnl_per_seq = 3L, 
+                                      maxn_vnl_per_seq = 3L, 
                                       maxn_vmods_sitescombi_per_pep = 64L) 
 {
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, useBytes = FALSE))
@@ -770,8 +768,6 @@ gen_ms2ions_a1_vnl0_fnl1 <- function (aa_seq = NULL, ms1_mass = NULL,
                                       maxn_sites_per_vmod = 3L, 
                                       maxn_vmods_sitescombi_per_pep = 64L, 
                                       maxn_fnl_per_seq = 3L, 
-                                      
-                                      # dummy
                                       maxn_vnl_per_seq = 3L) 
 {
   if (maxn_fnl_per_seq < 2L)
@@ -1146,8 +1142,6 @@ gen_ms2ions_a1_vnl1_fnl0 <- function (aa_seq = NULL, ms1_mass = NULL,
                                       maxn_vmods_per_pep = 5L, 
                                       maxn_sites_per_vmod = 3L, 
                                       maxn_vmods_sitescombi_per_pep = 64L, 
-                                      
-                                      # dummy
                                       maxn_fnl_per_seq = 3L, 
                                       maxn_vnl_per_seq = 3L) 
 {

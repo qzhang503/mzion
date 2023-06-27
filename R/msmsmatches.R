@@ -171,8 +171,25 @@
 #' @param n_13c Number(s) of 13C off-sets in precursor masses, for example, over
 #'   the range of \code{-1:2}. The default is 0.
 #' @param ms1_notches A numeric vector; notches (off-sets) in precursor masses,
-#'   e.g., \code{c(-79.966331, -97.976896)} to account fo the loss of a phospho
-#'   group and phosphoric acid in precursor masses.
+#'   e.g., \code{c(-97.976896)} to account fo the loss of a phosphoric acid in
+#'   precursor masses.
+#' @param ms1_neulosses Character string(s) specifying the neutral losses of
+#'   precursors. The nomenclature is the same as those in argument
+#'   \code{varmods}, e.g., \code{c("Phospho (S)", "Phospho (T)", "Phospho
+#'   (Y)")}.
+#'
+#'   The argument is a simplified (narrower) usage of argument
+#'   \code{ms1_notches} with additional specificity in modifications and sites.
+#' @param maxn_neulosses_fnl A positive integer used in conjunction with
+#'   arguments \code{ms1_notches} and \code{ms1_neulosses}. The maximum number
+#'   of fixed MS2 neutral losses to be considered when searching against peak
+#'   lists with MS1 mass off-sets. The default is two (one MS2 neutral loss in
+#'   addition to 0).
+#' @param maxn_neulosses_vnl A positive integer used in conjunction with
+#'   arguments \code{ms1_notches} and \code{ms1_neulosses}. The maximum number
+#'   of variable MS2 neutral losses to be considered when searching against peak
+#'   lists with MS1 mass off-sets. The default is two (one MS2 neutral loss in
+#'   addition to 0).
 #' @param par_groups A low-priority feature. Parameter(s) of \code{matchMS}
 #'   multiplied by sets of values in groups. Multiple searches will be performed
 #'   separately against the parameter groups. For instance with one set of
@@ -478,9 +495,9 @@
 #' matchMS(
 #'   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
 #'   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
-#'                 "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
+#'                 "Deamidated (N)", "Deamidated (Q)",
+#'                 "Gln->pyro-Glu (N-term = Q)"),
 #'   quant     = "tmt18",
-#'   fdr_type  = "psm",
 #'   out_path  = "~/mzion/examples",
 #' )
 #'
@@ -659,6 +676,11 @@ matchMS <- function (out_path = "~/mzion/outs",
                                  "Oxidation (M)", "Deamidated (N)",
                                  "Gln->pyro-Glu (N-term = Q)"),
                      rm_dup_term_anywhere = TRUE, 
+                     
+                     ms1_neulosses = NULL, 
+                     maxn_neulosses_fnl = 2L, 
+                     maxn_neulosses_vnl = 2L, 
+
                      fixedlabs = NULL, 
                      varlabs = NULL, 
                      locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
@@ -732,7 +754,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      min_ret_time = 0, max_ret_time = Inf, 
                      calib_ms1mass = FALSE, 
                      ppm_ms1calib = 20L,
-                     
+
                      add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                      add_ms2moverzs = FALSE, add_ms2ints = FALSE,
                      
@@ -798,7 +820,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   # modifications
   fixedmods <- sort(fixedmods)
   varmods <- sort(varmods)
-  locmods <- check_locmods(fixedmods, varmods, locmods)
+  locmods <- check_locmods(locmods, fixedmods, varmods, ms1_neulosses)
   
   db_ord <- order(fasta)
   fasta  <- fasta[db_ord]
@@ -820,6 +842,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   # numeric types 
   stopifnot(vapply(c(maxn_fasta_seqs, maxn_vmods_setscombi, maxn_vmods_per_pep, 
                      maxn_sites_per_vmod, maxn_fnl_per_seq, maxn_vnl_per_seq, 
+                     ms1_notches, maxn_neulosses_fnl, maxn_neulosses_vnl, 
                      maxn_vmods_sitescombi_per_pep, 
                      min_len, max_len, max_miss, topn_ms2ions, minn_ms2, 
                      min_mass, max_mass, min_ms2mass, max_ms2mass, n_13c, 
@@ -854,6 +877,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   maxn_vmods_sitescombi_per_pep <- as.integer(maxn_vmods_sitescombi_per_pep)
   maxn_fnl_per_seq <- as.integer(maxn_fnl_per_seq)
   maxn_vnl_per_seq <- as.integer(maxn_vnl_per_seq)
+  maxn_neulosses_fnl <- as.integer(maxn_neulosses_fnl)
+  maxn_neulosses_vnl <- as.integer(maxn_neulosses_vnl)
   min_len <- as.integer(min_len)
   max_len <- as.integer(max_len)
   max_miss <- as.integer(max_miss)
@@ -880,8 +905,9 @@ matchMS <- function (out_path = "~/mzion/outs",
   stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 10L, minn_ms2 >= 2L, 
             min_mass >= 1L, max_mass >= min_mass, 
             min_ms2mass >= 1L, max_ms2mass > min_ms2mass, 
-            maxn_vmods_sitescombi_per_pep >= 2L, 
-            noenzyme_maxn >= 0L, 
+            maxn_vmods_sitescombi_per_pep >= 2L, noenzyme_maxn >= 0L, 
+            maxn_fnl_per_seq >= 0L, maxn_vnl_per_seq >= 0L, 
+            maxn_neulosses_fnl >= 0L, maxn_neulosses_vnl >= 0L,
             maxn_vmods_per_pep >= maxn_sites_per_vmod, max_n_prots > 1000L, 
             min_ms1_charge >= 1L, max_ms1_charge >= min_ms1_charge, 
             min_scan_num >= 1L, max_scan_num >= min_scan_num, 
@@ -1034,9 +1060,19 @@ matchMS <- function (out_path = "~/mzion/outs",
   rm(list = c("oks"))
 
   # TMT
-  check_tmt_pars(fixedmods, varmods, quant) 
+  check_tmt_pars(fixedmods, varmods, quant)
+  
+  # MS1 off-sets
+  if (!all(ms1_neulosses %in% varmods))
+    stop("Not all `ms1_neulosses` found in `varmods`.")
+  
+  check_notches(ms1_notches = ms1_notches, ms1_neulosses = ms1_neulosses)
+  ms1_offsets <- find_ms1_offsets(n_13c = n_13c, ms1_notches = ms1_notches)
+  is_notched  <- length(unique(c(ms1_offsets, ms1_neulosses))) > 1L
 
   # system paths
+  homedir <- find_dir("~")
+  
   if (is.null(.path_cache)) {
     .path_cache <- "~/mzion/.MSearches/Cache/Calls/"
   }
@@ -1049,6 +1085,9 @@ matchMS <- function (out_path = "~/mzion/outs",
   
   .path_fasta <- create_dir(.path_fasta)
   .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
+
+  fasta <- lapply(fasta, function (x) if (grepl("~", x)) gsub("~", homedir, x) else x)
+  fasta <- unlist(fasta, recursive = FALSE, use.names = FALSE)
   
   # Output path
   out_path <- create_dir(out_path)
@@ -1218,19 +1257,20 @@ matchMS <- function (out_path = "~/mzion/outs",
                     enzyme = enzyme, 
                     out_path = out_path)
     
-    if (reframe_mgfs)
-      .path_bin_calib <- 
-        bin_ms1masses(res = res, 
-                      min_mass = min_mass, 
-                      max_mass = max_mass, 
-                      min_len = min_len,
-                      max_len = max_len,
-                      ppm_ms1 = ppm_ms1calib, 
-                      use_ms1_cache = use_ms1_cache, 
-                      .path_cache = .path_cache, 
-                      .path_ms1masses = .path_ms1masses, 
-                      enzyme = enzyme, 
-                      out_path = out_path)
+    .path_bin_calib <- if (reframe_mgfs)
+      bin_ms1masses(res = res, 
+                    min_mass = min_mass, 
+                    max_mass = max_mass, 
+                    min_len = min_len,
+                    max_len = max_len,
+                    ppm_ms1 = ppm_ms1calib, 
+                    use_ms1_cache = use_ms1_cache, 
+                    .path_cache = .path_cache, 
+                    .path_ms1masses = .path_ms1masses, 
+                    enzyme = enzyme, 
+                    out_path = out_path)
+    else
+      .path_bin
 
     if (exists("res"))
       rm(list = "res")
@@ -1269,10 +1309,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   ## MSMS matches
   if (is.null(bypass_ms2match <- dots$bypass_ms2match)) 
     bypass_ms2match <- FALSE
-  
-  .time_stamp <- find_ms1_times(out_path)
-  
-  if (length(.time_stamp) == 1L) {
+
+  if (length(.time_stamp <- find_ms1_times(out_path)) == 1L) {
     path_time <- file.path(.path_ms1masses, .time_stamp)
     file_aams <- file.path(path_time, "aa_masses_all.rds")
     file_mods <- file.path(path_time, "mod_indexes.txt")
@@ -1311,10 +1349,8 @@ matchMS <- function (out_path = "~/mzion/outs",
               enzyme = enzyme, maxn_fasta_seqs = maxn_fasta_seqs, 
               maxn_vmods_setscombi = maxn_vmods_setscombi,
               min_len = min_len, max_len = max_len, max_miss = max_miss, 
-              knots = 50L)
+              knots = 5L)
 
-  ms1_offsets <- find_ms1_offsets(n_13c = n_13c, ms1_notches = ms1_notches)
-  
   if (!bypass_ms2match) {
     if (min_ms2mass < 5L) 
       warning("Maybe out of RAM at \"min_ms2mass < 5L\".")
@@ -1342,6 +1378,9 @@ matchMS <- function (out_path = "~/mzion/outs",
              index_mgf_ms2 = index_mgf_ms2, 
              by_modules = by_modules, 
              ms1_offsets = ms1_offsets, 
+             ms1_neulosses = ms1_neulosses, 
+             maxn_neulosses_fnl = maxn_neulosses_fnl, 
+             maxn_neulosses_vnl = maxn_neulosses_vnl, 
 
              # dummy for argument matching
              fasta = fasta,
@@ -1383,8 +1422,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                    min_ms2mass = min_ms2mass,
                    index_mgf_ms2 = index_mgf_ms2, 
                    tally_ms2ints = tally_ms2ints, 
-                   ms1_offsets = ms1_offsets, 
-                   
+
                    # dummies
                    mgf_path = mgf_path,
                    maxn_vmods_per_pep = maxn_vmods_per_pep,
@@ -1416,7 +1454,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   
   if (!bypass_primatches)
     hadd_primatches(out_path = out_path, 
-                    ms1_offsets = ms1_offsets, 
+                    is_notched = is_notched, 
                     add_ms2theos = add_ms2theos, 
                     add_ms2theos2 = add_ms2theos2, 
                     add_ms2moverzs = add_ms2moverzs, 
@@ -1433,7 +1471,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                             fdr_type = fdr_type, 
                             min_len = min_len, 
                             max_len = max_len, 
-                            ms1_offsets = ms1_offsets, 
+                            is_notched = is_notched, 
                             max_pepscores_co = max_pepscores_co, 
                             min_pepscores_co = min_pepscores_co, 
                             enzyme = enzyme, 
@@ -1473,7 +1511,7 @@ matchMS <- function (out_path = "~/mzion/outs",
     calc_peploc(out_path = out_path, 
                 mod_indexes = mod_indexes, 
                 locmods = locmods, 
-                ms1_offsets = ms1_offsets, 
+                is_notched = is_notched,
                 topn_mods_per_seq = topn_mods_per_seq, 
                 topn_seqs_per_query = topn_seqs_per_query)
   }
@@ -2057,26 +2095,42 @@ checkMGF <- function (mgf_path = NULL, grp_args = NULL, error = c("stop", "warn"
 #' Coerced \code{fixedmods} not considered.
 #' 
 #' @inheritParams matchMS
-check_locmods <- function (fixedmods, varmods, locmods)
+check_locmods <- function (locmods, fixedmods, varmods, ms1_neulosses = NULL)
 {
   if (!length(locmods))
     return(NULL)
   
-  oks <- locmods %in% c(fixedmods, varmods)
-  
-  if (!all(oks)) {
-    warning("Some \"locmods\" not in \"varmods\" or \"fixedmods\": ", 
+  if (!is.null(ms1_neulosses)) {
+    if (sum(bads <- !ms1_neulosses %in% locmods)) {
+      warning("\nPLEASE READ: \n\n", 
+              "\"ms1_neulosses\": ", paste(ms1_neulosses[bads], collapse = ", "), 
+              " not found in \"locmods\": ", paste(locmods, collapse =, ""), 
+              "\n!!! Consider matching some of the \"locmods\" setting to", 
+              " \"ms1_neulosses\". !!!\n")
+      
+      if (FALSE) {
+        nls <- lapply(ms1_neulosses, find_unimod)
+        nlresids <- lapply(nls, `[[`, "position_site")
+        nlresids <- unlist(nlresids, use.names = FALSE, recursive = FALSE)
+        
+        vs <- lapply(varmods, find_unimod)
+        vresids <- lapply(vs, `[[`, "position_site")
+        vresids <- unlist(vresids, use.names = FALSE, recursive = FALSE)
+      }
+    }
+  }
+
+  if (!all(oks <- locmods %in% c(fixedmods, varmods))) {
+    warning("Ignore \"locmods\" not in \"varmods\" or \"fixedmods\": ", 
             paste(locmods[!oks], collapse = ", "))
     locmods <- locmods[oks]
   }
-  
+
   if (!length(locmods))
     return(NULL)
 
-  vids <- which(varmods %in% locmods)
-  
   # locmods are only among fixedmods
-  if (!length(vids)) 
+  if (!length(vids <- which(varmods %in% locmods))) 
     stop("No \"varmods\" matched to \"locmods\": ", paste(locmods, collapse = ", "))
   
   vmods <- find_modps(varmods)
@@ -2146,6 +2200,24 @@ check_fdr_group <- function (fdr_group = c("base", "all", "top3"),
     fdr_group <- if (all(oks2)) oks[1] else fdr_group[!oks2]
 
   as.character(fdr_group)
+}
+
+
+#' Checks the compatibility between ms1_notches and ms1_neulosses.
+#' 
+#' @inheritParams matchMS
+check_notches <- function (ms1_notches, ms1_neulosses)
+{
+  n_notches   <- length(ms1_notches)
+  n_neulosses <- length(ms1_neulosses)
+  
+  if (n_neulosses) {
+    cdn_1 <- n_notches == 1L && ms1_notches != 0
+    cdn_2 <- n_notches > 1L
+    
+    if (cdn_1 || cdn_2)
+      stop("Not support simultaneous non-trival `ms1_notches` and `ms1_neulosses`.")
+  }
 }
 
 

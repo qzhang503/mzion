@@ -8,7 +8,7 @@ calc_peploc(
   x = NULL,
   out_path = NULL,
   mod_indexes = NULL,
-  ms1_offsets = 0,
+  is_notched = FALSE,
   locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
   topn_mods_per_seq = 3L,
   topn_seqs_per_query = 3L
@@ -22,8 +22,7 @@ calc_peploc(
 \item{mod_indexes}{Integer; the indexes of fixed and/or variable
 modifications.}
 
-\item{ms1_offsets}{Off-sets in precursor masses in relative to the original
-values in MGFs.}
+\item{is_notched}{Logical; is a search with MS1 notches or not.}
 
 \item{locmods}{Among \code{varmods} for the consideration of localization
   probabilities; for instance, \code{locmods = NULL} for nothing,

@@ -9,7 +9,7 @@ calc_pepfdr(
   fdr_type = "protein",
   min_len = 7L,
   max_len = 40L,
-  ms1_offsets = 0,
+  is_notched = FALSE,
   max_pepscores_co = 50,
   min_pepscores_co = 0,
   enzyme = "trypsin_p",
@@ -30,8 +30,7 @@ for considerations. Shorter peptides will be excluded. The default is 7.}
 \item{max_len}{A positive integer; the maximum length of peptide sequences
 for considerations. Longer peptides will be excluded. The default is 40.}
 
-\item{ms1_offsets}{Off-sets in precursor masses in relative to the original
-values in MGFs.}
+\item{is_notched}{Logical; is a search with MS1 notches or not.}
 
 \item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
 of peptide scores for discriminating significant and insignificant

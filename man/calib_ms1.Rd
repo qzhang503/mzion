@@ -12,7 +12,7 @@ calib_ms1(
   ppm_ms1 = 20L,
   min_mass = 200L,
   max_mass = 4500L,
-  knots = 50L
+  knots = 5L
 )
 }
 \arguments{

@@ -9,7 +9,6 @@ hcalc_tmtint(
   quant = "tmt10",
   ppm_reporters = 10L,
   idx = 1L,
-  ms1_offsets = 0,
   out_path = NULL
 )
 }
@@ -29,9 +28,6 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 ions. The default is 10.}
 
 \item{idx}{The i-th chunk}
-
-\item{ms1_offsets}{Off-sets in precursor masses in relative to the original
-values in MGFs.}
 
 \item{out_path}{A file path of outputs.}
 }

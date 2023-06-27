@@ -598,8 +598,6 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
 #' Calculates the scores of peptides.
 #' 
 #' @param tally_ms2ints Logical; tally MS2 intensities or not.
-#' @param ms1_offsets Off-sets in precursor masses in relative to the original
-#'   values in MGFs.
 #' @inheritParams matchMS
 #' @import parallel
 calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by", 
@@ -608,7 +606,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             soft_secions = FALSE, 
                             out_path = "~/mzion/outs", 
                             min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
-                            tally_ms2ints = TRUE, ms1_offsets = 0, 
+                            tally_ms2ints = TRUE, 
                             mgf_path, maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
                             maxn_vmods_sitescombi_per_pep = 64L, minn_ms2 = 6L, 
                             ppm_ms1 = 20L, quant = "none", ppm_reporters = 10, 
@@ -749,7 +747,6 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     d2 = d2, 
     index_mgf_ms2 = index_mgf_ms2, 
     tally_ms2ints = tally_ms2ints, 
-    ms1_offsets = ms1_offsets, 
     add_ms2theos = add_ms2theos, 
     add_ms2theos2 = add_ms2theos2, 
     add_ms2moverzs = add_ms2moverzs, 
@@ -830,20 +827,49 @@ order_fracs <- function (type = "list_table", tempdir, by_modules = TRUE)
 }
 
 
+#' Order fractions
+#' 
+#' Three layers: module_notch_frac
+#' 
+#' @param type The type of files.
+#' @param tempdir A temporary directory containing the files.
+#' @param by_modules Logical; if TRUE, performs searches by modules.
+order_fracs3 <- function (type = "list_table", tempdir, by_modules = TRUE)
+{
+  files <- if (by_modules)
+    list.files(tempdir, pattern = paste0("^", type, "_\\d+_\\d+_\\d+.*"))
+  else
+    list.files(tempdir, pattern = paste0("^", type, "_\\d+(_){0,1}\\d*.*"))
+  
+  # all NA's if by_modules = FALSE
+  l1 <- as.integer(gsub(paste0("^", type, "_(\\d+).*"), "\\1", files))
+  l2 <- as.integer(gsub(paste0("^", type, "_\\d+_(\\d+).*"), "\\1", files))
+  l3 <- as.integer(gsub(paste0("^", type, "_\\d+_\\d+_(\\d+).*"), "\\1", files))
+  
+  df <- data.frame(l1 = l1, l2 = l2, l3 = l3)
+  df <- dplyr::arrange(df, l1, l2, l3)
+  df$fs <- with(df, paste(l1, l2, l3, sep = "_"))
+  df$fs <- paste0(type, "_", df$fs, ".rds")
+  
+  split(df$fs, df$l1)
+}
+
+
+
 #' Combines results from fractions
 #' 
-#' @param files A list of file names
-#' @param tempdir A temporary directory containing the files
+#' @param files A list of file names.
+#' @param tempdir A temporary directory containing the files.
+#' @param is_notched Logical; is a search with MS1 notches or not.
 #' @param sc_path An output path
-#' @inheritParams calc_pepscores
-combine_fracs <- function (files, tempdir, sc_path, ms1_offsets = 0)
+combine_fracs <- function (files, tempdir, sc_path, is_notched = FALSE)
 {
   out_nm <- gsub("_\\d+\\.rds$", ".rds", files[[1]])
   df <- lapply(file.path(tempdir, files), qs::qread)
   df <- dplyr::bind_rows(df)
   
   # uniq_id does not contain information of pep_ms1_offset
-  if (length(ms1_offsets) > 1L)
+  if (is_notched)
     df <- df[!duplicated.default(df[["uniq_id"]]), ]
 
   qs::qsave(df, file.path(sc_path, out_nm))
@@ -914,7 +940,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
                        topn_ms2ions = 100L, type_ms2ions = "by", 
                        ppm_ms2 = 20L, soft_secions = FALSE, out_path = NULL, 
                        min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE,
-                       tally_ms2ints = TRUE, ms1_offsets = 0, 
+                       tally_ms2ints = TRUE, 
                        add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                        add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
                        quant = "none", ppm_reporters = 10, 
@@ -1042,7 +1068,6 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
                quant = quant, 
                ppm_reporters = ppm_reporters, 
                idx = idx, 
-               ms1_offsets = ms1_offsets, 
                out_path = im_path)
 
   qs::qsave(df[, cols_lt, drop = FALSE], 
@@ -1059,9 +1084,10 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
 
 #' Helper of \link{add_primatches}
 #' 
+#' @param is_notched Logical; is a search with MS1 notches or not.
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
-hadd_primatches <- function (out_path = NULL, ms1_offsets = 0, 
+hadd_primatches <- function (out_path = NULL, is_notched = FALSE, 
                              add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                              add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
                              by_modules = TRUE, index_mgf_ms2 = FALSE) 
@@ -1119,7 +1145,7 @@ hadd_primatches <- function (out_path = NULL, ms1_offsets = 0,
   }, ms_files, names(ms_files))
   
   lapply(order_fracs("reporters", tempdir, by_modules), 
-         combine_fracs, tempdir, tempdir, ms1_offsets)
+         combine_fracs, tempdir, tempdir, is_notched)
   
   message("Completed theoretical MS2 m/z and intensity values: ", Sys.time())
 
@@ -1653,12 +1679,12 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 #' Prepares target-decoy data.
 #'
 #' @param td A data frame of targets and decoys (for Percolator).
-#' @param only_notch_zero Logical; if TRUE, use only data at \code{ms1_offsets =
-#'   0}.
+#' @param is_notched Logical; is a search with MS1 notches or not.
+#' @param only_notch_zero Logical; if TRUE, use only data at the zero notch.
 #' @inheritParams matchMS
 prep_pepfdr_td <- function (td = NULL, out_path, enzyme = "trypsin_p", 
                             nes_fdr_group = "base", fdr_group = "base", 
-                            ms1_offsets = 0, only_notch_zero = TRUE)
+                            is_notched = FALSE, only_notch_zero = TRUE)
 {
   files <- list.files(path = file.path(out_path, "temp"), 
                       pattern = "^pepscores_", full.names = TRUE)
@@ -1672,8 +1698,8 @@ prep_pepfdr_td <- function (td = NULL, out_path, enzyme = "trypsin_p",
     td <- dplyr::bind_rows(td)
   }
   
-  if (length(ms1_offsets) > 1L && only_notch_zero)
-    td <- td[with(td, abs(pep_ms1_offset) <= 1e-4), ]
+  if (is_notched && only_notch_zero)
+    td <- td[with(td, pep_ms1_offset == 0), ]
 
   cts   <- dplyr::count(dplyr::group_by(td, "pep_mod_group"), pep_mod_group)
   max_i <- cts$pep_mod_group[which.max(cts$n)[[1]]]
@@ -1771,8 +1797,7 @@ keep_pepfdr_best <- function (td, cols = c("pep_scan_num", "raw_file"))
 #' @param target_fdr Numeric; the levels of false-discovery rate (FDR).
 #' @param fdr_type Character string; the type of FDR for controlling.
 #' @param fct_score A trivial factor converting p-values to scores.
-#' @param ms1_offsets Off-sets in precursor masses in relative to the original
-#'   values in MGFs.
+#' @param is_notched Logical; is a search with MS1 notches or not.
 #' @inheritParams matchMS
 #' @examples 
 #' \donttest{
@@ -1787,7 +1812,7 @@ keep_pepfdr_best <- function (td, cols = c("pep_scan_num", "raw_file"))
 #' }
 #' }
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein", 
-                         min_len = 7L, max_len = 40L, ms1_offsets = 0, 
+                         min_len = 7L, max_len = 40L, is_notched = FALSE, 
                          max_pepscores_co = 50, min_pepscores_co = 0, 
                          enzyme = "trypsin_p", fdr_group = "base", 
                          nes_fdr_group = "base", fct_score = 10, out_path)
@@ -1798,7 +1823,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
                        enzyme = enzyme, 
                        nes_fdr_group = nes_fdr_group, 
                        fdr_group = fdr_group, 
-                       ms1_offsets = ms1_offsets, 
+                       is_notched = is_notched, 
                        only_notch_zero = TRUE)
   
   # back-compatibility to new column keys (e.g. scan_num -> pep_scan_num)
@@ -1814,7 +1839,9 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
     return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
   }
   
-  td <- keep_pepfdr_best(td)
+  # not cols = c("pep_scan_num", "raw_file", "pep_ms1_offset")
+  # as only use td at pep_ms1_offset == 0
+  td <- keep_pepfdr_best(td, cols = c("pep_scan_num", "raw_file"))
   qs::qsave(td, file.path(out_path, "temp", "td_pepfdr.rds"), preset = "fast")
 
   # --- 
@@ -2192,11 +2219,11 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
     dplyr::mutate(pep_issig = ifelse(pep_prob <= pep_prob_co, TRUE, FALSE), 
                   pep_adjp = p.adjust(pep_prob, "BH"))
   
-  adjp_cos <- purrr::map_dbl(prob_cos$pep_prob_co, function (x) {
+  adjp_cos <- lapply(prob_cos$pep_prob_co, function (x) {
     row <- which.min(abs(log10(td$pep_prob/x)))
     td[row, ]$pep_adjp
-  }) 
-  
+  })
+  adjp_cos <- unlist(adjp_cos, recursive = FALSE, use.names = FALSE)
   prob_cos <- dplyr::bind_cols(prob_cos, pep_adjp_co = adjp_cos)
   
   td <- td |> 
@@ -2719,13 +2746,12 @@ match_ex2th2 <- function (expt, theo, min_ms2mass = 115L, d = 1E-5,
 #' @param out_path An output path.
 #' @param mod_indexes Integer; the indexes of fixed and/or variable
 #'   modifications.
-#' @param ms1_offsets Off-sets in precursor masses in relative to the original
-#'   values in MGFs.
+#' @param is_notched Logical; is a search with MS1 notches or not.
 #' @inheritParams matchMS
 #' @rawNamespace import(data.table, except = c(last, first, between, transpose,
 #'   melt, dcast))
 calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL, 
-                         ms1_offsets = 0, 
+                         is_notched = FALSE, 
                          locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
                          topn_mods_per_seq = 3L, topn_seqs_per_query = 3L) 
 {
@@ -2757,7 +2783,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
 
   # finds the rank-1 pep_ms1_offset at each query_id
   # keeps only the rank-1 pep_ms1_offset group at each query_id
-  if (length(ms1_offsets) > 1L) {
+  if (is_notched) {
     x[, query_id := paste(pep_isdecoy, pep_scan_num, raw_file, sep = ".")]
     
     if (para) {
@@ -3054,24 +3080,18 @@ calcpeprank_3 <- function (x0)
 #' @param x A data.table object
 find_bestnotch <- function (x)
 {
-  x[, pep_rank0 := data.table::frank(-pep_score, ties.method = "min"), 
+  # favors pep_ms1_offset == 0
+  x <- data.table::rbindlist(list(x[x$pep_ms1_offset == 0], 
+                                  x[x$pep_ms1_offset != 0]), 
+                             use.names = FALSE)
+  x[, pep_rank0 := data.table::frank(-pep_score, ties.method = "first"), 
     by = list(query_id)]
 
   # the best query at each query_id
   g <- x[, c("pep_rank0", "query_id", "pep_ms1_offset")]
   g <- g[g$pep_rank0 == 1L, ]
   g[["pep_rank0"]] <- NULL
-  g[, id := seq_len(.N), by = query_id]
-  g <- g[g$id == 1L, ]
-  g[["id"]] <- NULL
   
-  if (FALSE) {
-    if (length(us <- unique(g$pep_ms1_offset)) > 1L) {
-      i <- if (length(ok <- which(abs(us) < 1e-4)) == 1L) ok else 1L
-      g <- g[g$pep_ms1_offset == us[[i]], ]
-    }
-  }
-
   g[["keep"]] <- TRUE
   g[, uid := paste(query_id, pep_ms1_offset, sep = ".")]
   g[["pep_ms1_offset"]] <- g[["query_id"]] <- NULL

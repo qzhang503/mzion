@@ -10,8 +10,7 @@ table_unimods(out_nm = "~/mzion/unimods.txt")
 \item{out_nm}{A name to outputs.}
 }
 \description{
-For convenience summary of the \code{title}, \code{site} and
-\code{position}.
+For convenience summary of the \code{title}, \code{site} and \code{position}.
 }
 \examples{
 \donttest{
@@ -19,7 +18,7 @@ library(mzion)
 
 ans <- table_unimods()
 
-## TMT-6, -10 and -11 plexes 
+## TMT-6, -10 and -11 plexes
 # share the same Unimod entry at title "TMT6plex"
 # (the same chemistry at tag mass 229.162932 Da)
 ans[with(ans, title == "TMT6plex"), ]
@@ -50,5 +49,7 @@ this_mod <- parse_unimod("Gln->pryo-Glu (N-term = Q)")
 }
 }
 \seealso{
-\link{find_unimod}, \link{parse_unimod}.
+\link{find_unimod}, \link{parse_unimod}, \link{add_unimod},
+  \link{remove_unimod}, \link{remove_unimod_title},
+  \link{calc_unimod_compmass}.
 }

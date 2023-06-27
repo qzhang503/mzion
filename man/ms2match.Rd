@@ -13,8 +13,8 @@ ms2match(
   type_ms2ions = "by",
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
-  maxn_fnl_per_seq = 64L,
-  maxn_vnl_per_seq = 64L,
+  maxn_fnl_per_seq = 3L,
+  maxn_vnl_per_seq = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 20L,
@@ -27,6 +27,9 @@ ms2match(
   by_modules = TRUE,
   reframe_mgfs = FALSE,
   ms1_offsets = 0,
+  ms1_neulosses = NULL,
+  maxn_neulosses_fnl = 1L,
+  maxn_neulosses_vnl = 1L,
   fasta,
   acc_type,
   acc_pattern,
@@ -139,6 +142,26 @@ FALSE, search all modules together. The later would probably need more than
 \item{reframe_mgfs}{Logical; if TRUE, recalculates the frame indexes of MGFs.}
 
 \item{ms1_offsets}{The MS1 off-sets.}
+
+\item{ms1_neulosses}{Character string(s) specifying the neutral losses of
+  precursors. The nomenclature is the same as those in argument
+  \code{varmods}, e.g., \code{c("Phospho (S)", "Phospho (T)", "Phospho
+  (Y)")}.
+
+  The argument is a simplified (narrower) usage of argument
+  \code{ms1_notches} with additional specificity in modifications and sites.}
+
+\item{maxn_neulosses_fnl}{A positive integer used in conjunction with
+arguments \code{ms1_notches} and \code{ms1_neulosses}. The maximum number
+of fixed MS2 neutral losses to be considered when searching against peak
+lists with MS1 mass off-sets. The default is two (one MS2 neutral loss in
+addition to 0).}
+
+\item{maxn_neulosses_vnl}{A positive integer used in conjunction with
+arguments \code{ms1_notches} and \code{ms1_neulosses}. The maximum number
+of variable MS2 neutral losses to be considered when searching against peak
+lists with MS1 mass off-sets. The default is two (one MS2 neutral loss in
+addition to 0).}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}

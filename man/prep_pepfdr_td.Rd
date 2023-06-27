@@ -10,7 +10,7 @@ prep_pepfdr_td(
   enzyme = "trypsin_p",
   nes_fdr_group = "base",
   fdr_group = "base",
-  ms1_offsets = 0,
+  is_notched = FALSE,
   only_notch_zero = TRUE
 )
 }
@@ -39,8 +39,9 @@ peptide FDR controls. The value is in one of \code{c("all", "base")}. The
 \code{base} corresponds to the modification group with the largest number
 of matches.}
 
-\item{only_notch_zero}{Logical; if TRUE, use only data at \code{ms1_offsets =
-0}.}
+\item{is_notched}{Logical; is a search with MS1 notches or not.}
+
+\item{only_notch_zero}{Logical; if TRUE, use only data at the zero notch.}
 }
 \description{
 Prepares target-decoy data.

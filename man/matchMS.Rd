@@ -15,6 +15,9 @@ matchMS(
   varmods = c("Acetyl (Protein N-term)", "Oxidation (M)", "Deamidated (N)",
     "Gln->pyro-Glu (N-term = Q)"),
   rm_dup_term_anywhere = TRUE,
+  ms1_neulosses = NULL,
+  maxn_neulosses_fnl = 2L,
+  maxn_neulosses_vnl = 2L,
   fixedlabs = NULL,
   varlabs = NULL,
   locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
@@ -144,6 +147,26 @@ c("uniprot_acc", "uniprot_id", "refseq_acc", "other"). See also
 variable modifications with site(s) in positions of both terminal and
 anywhere, e.g., "Gln->pyro-Glu (N-term = Q)" and "Deamidated (Q).}
 
+\item{ms1_neulosses}{Character string(s) specifying the neutral losses of
+  precursors. The nomenclature is the same as those in argument
+  \code{varmods}, e.g., \code{c("Phospho (S)", "Phospho (T)", "Phospho
+  (Y)")}.
+
+  The argument is a simplified (narrower) usage of argument
+  \code{ms1_notches} with additional specificity in modifications and sites.}
+
+\item{maxn_neulosses_fnl}{A positive integer used in conjunction with
+arguments \code{ms1_notches} and \code{ms1_neulosses}. The maximum number
+of fixed MS2 neutral losses to be considered when searching against peak
+lists with MS1 mass off-sets. The default is two (one MS2 neutral loss in
+addition to 0).}
+
+\item{maxn_neulosses_vnl}{A positive integer used in conjunction with
+arguments \code{ms1_notches} and \code{ms1_neulosses}. The maximum number
+of variable MS2 neutral losses to be considered when searching against peak
+lists with MS1 mass off-sets. The default is two (one MS2 neutral loss in
+addition to 0).}
+
 \item{fixedlabs}{Character string(s) of fixed isotopic labels. See examples
 of SILAC for details. Can be but not typically used in standard alone
 searches of labeled residues.}
@@ -271,8 +294,8 @@ default is 20.}
 the range of \code{-1:2}. The default is 0.}
 
 \item{ms1_notches}{A numeric vector; notches (off-sets) in precursor masses,
-e.g., \code{c(-79.966331, -97.976896)} to account fo the loss of a phospho
-group and phosphoric acid in precursor masses.}
+e.g., \code{c(-97.976896)} to account fo the loss of a phosphoric acid in
+precursor masses.}
 
 \item{par_groups}{A low-priority feature. Parameter(s) of \code{matchMS}
 multiplied by sets of values in groups. Multiple searches will be performed
@@ -671,9 +694,9 @@ matchMS(
 matchMS(
   fixedmods = c("TMTpro (N-term)", "TMTpro (K)", "Carbamidomethyl (C)"),
   varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)",
-                "Deamidated (N)", "Gln->pyro-Glu (N-term = Q)"),
+                "Deamidated (N)", "Deamidated (Q)",
+                "Gln->pyro-Glu (N-term = Q)"),
   quant     = "tmt18",
-  fdr_type  = "psm",
   out_path  = "~/mzion/examples",
 )
 

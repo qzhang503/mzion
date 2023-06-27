@@ -2,10 +2,11 @@
 % Please edit documentation in R/ms2frames.R
 \name{ms2match_one}
 \alias{ms2match_one}
-\title{Matches experimentals and theoreticals}
+\title{Matches experimentals and theoreticals.}
 \usage{
 ms2match_one(
-  mgth,
+  nms_theo,
+  nms_expt,
   pep_mod_group,
   aa_masses,
   FUN,
@@ -30,7 +31,9 @@ ms2match_one(
 )
 }
 \arguments{
-\item{mgth}{MGF and theoretical pairs}
+\item{nms_theo}{Names of theoretical files.}
+
+\item{nms_expt}{Names of experimental files.}
 
 \item{pep_mod_group}{The index of peptide modification groups}
 
@@ -126,5 +129,5 @@ interrogation. The default is 110.}
 \item{df0}{An output template}
 }
 \description{
-For a single module
+For a single module and single notch.
 }
