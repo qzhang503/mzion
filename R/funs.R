@@ -59,11 +59,11 @@
 # 
 # $msmsmatches.R
 #  [1] "matchMS"         "try_psmC2Q"      "reproc_psmC"     "psmC2Q"          "post_psmC2Q"     "check_tmt_pars" 
-#  [7] "checkMGF"        "check_locmods"   "map_raw_n_scan"  "check_fdr_group"
+#  [7] "checkMGF"        "check_locmods"   "map_raw_n_scan"  "check_fdr_group" "check_notches"  
 # 
 # $msmsmatches2.R
 # [1] "ms2match"              "reverse_peps_in_frame" "reverse_seqs"          "calib_mgf"             "calib_ms1"            
-# [6] "find_ms1_offsets"     
+# [6] "cv_ms1err"             "post_calib"            "find_ms1_offsets"      "comb_ms1_offsets"     
 # 
 # $mzion.R
 # character(0)
@@ -72,7 +72,7 @@
 # [1] "make_mztab"
 # 
 # $percolator.R
-# [1] "creat_folds" "cv_svm"      "perco_svm"  
+# [1] "create_folds" "cv_svm"       "perco_svm"   
 # 
 # $quant2.R
 #  [1] "hcalc_tmtint"       "calc_tmtint"        "add_rptrs"          "find_int_cols"      "find_reporter_ints"
@@ -87,17 +87,17 @@
 # $scores.R
 #  [1] "add_seions"             "list_leftmatch"         "calc_probi_byvmods"     "calc_probi_bypep"      
 #  [5] "calc_probi"             "scalc_pepprobs"         "calc_pepprobs_i"        "calc_pepscores"        
-#  [9] "split_im"               "order_fracs"            "combine_fracs"          "move_scfiles"          
-# [13] "find_decoy"             "find_targets"           "calcpepsc"              "hadd_primatches"       
-# [17] "add_primatches"         "collapse_vecs"          "post_pepscores"         "find_pepscore_co1"     
-# [21] "find_pepscore_co2"      "probco_bypeplen"        "sub_td_byfdrtype"       "find_optlens"          
-# [25] "find_probco_valley"     "prep_pepfdr_td"         "keep_pepfdr_best"       "calc_pepfdr"           
-# [29] "fill_probco_nas"        "fill_probs"             "post_pepfdr"            "calc_protfdr"          
-# [33] "aggr_prot_es"           "calc_protfdr_i"         "fit_protfdr"            "  f"                   
-# [37] "find_ppm_outer_bycombi" "match_ex2th2"           "calc_peploc"            "calcpeprank_1"         
-# [41] "calcpeprank_2"          "calcpeprank_3"          "find_bestnotch"         "find_chunkbreaks"      
-# [45] "findLocFracsDF"         "concatFracs"            "na.interp"              "is.constant"           
-# [49] "tsoutliers"            
+#  [9] "split_im"               "order_fracs"            "order_fracs3"           "combine_fracs"         
+# [13] "move_scfiles"           "find_decoy"             "find_targets"           "calcpepsc"             
+# [17] "hadd_primatches"        "add_primatches"         "collapse_vecs"          "post_pepscores"        
+# [21] "find_pepscore_co1"      "find_pepscore_co2"      "probco_bypeplen"        "sub_td_byfdrtype"      
+# [25] "find_optlens"           "find_probco_valley"     "prep_pepfdr_td"         "keep_pepfdr_best"      
+# [29] "calc_pepfdr"            "fill_probco_nas"        "fill_probs"             "post_pepfdr"           
+# [33] "calc_protfdr"           "aggr_prot_es"           "calc_protfdr_i"         "fit_protfdr"           
+# [37] "  f"                    "find_ppm_outer_bycombi" "match_ex2th2"           "calc_peploc"           
+# [41] "calcpeprank_1"          "calcpeprank_2"          "calcpeprank_3"          "find_bestnotch"        
+# [45] "find_chunkbreaks"       "findLocFracsDF"         "concatFracs"            "na.interp"             
+# [49] "is.constant"            "tsoutliers"            
 # 
 # $silac.R
 # [1] "matchMS_silac_mix"   "matchMS_par_groups"  "add_fixedlab_masses" "matchMS_noenzyme"    "combine_ion_matches"
@@ -126,8 +126,7 @@
 #  [9] "reloc_col_before_last"  "reloc_col_before_first" "find_preceding_colnm"   "recur_flatten"         
 # [13] "chunksplit"             "chunksplitLB"           "find_dir"               "create_dir"            
 # [17] "save_call2"             "find_callarg_vals"      "match_calltime"         "delete_files"          
-# [21] "find_ms1_times"         "get_globalvar"          "load_cache_info"        "is_nulllist"           
-# [25] "add_nulllist"          
+# [21] "find_ms1_times"         "is_nulllist"            "add_nulllist"          
 # 
 # $utils_ui.R
 # [1] "calc_monopeptide"  "calc_monopep"      "check_aaseq"       "calc_ms2ionseries" "calc_ms2ions"      "unique_mvmods"    

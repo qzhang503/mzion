@@ -656,11 +656,6 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     message("\n=== Completed MS1 precursor masses. ===\n")
   }
 
-  assign(".path_cache", .path_cache, envir = .GlobalEnv)
-  assign(".path_fasta", .path_fasta, envir = .GlobalEnv)
-  assign(".path_ms1masses", .path_ms1masses, envir = .GlobalEnv)
-  assign(".time_stamp", .time_stamp, envir = .GlobalEnv)
-  
   local({
     .cache_info <- list(
       .path_cache = .path_cache, 
@@ -1589,8 +1584,7 @@ check_fmods_pos_site <- function (positions_sites)
       warning("Conflicts in fixed modifications: \n",
               paste(dup_mods, collapse = ", "), "\n",
               "May consider change from fixed to variable modifications(s); \n",
-              "or create a new Unimod for joint modifications.",
-              call. = FALSE)
+              "or create a new Unimod for joint modifications.")
     }
   }
 }

@@ -12,7 +12,7 @@ calib_ms1(
   ppm_ms1 = 20L,
   min_mass = 200L,
   max_mass = 4500L,
-  knots = 5L
+  range = 3:6
 )
 }
 \arguments{
@@ -42,7 +42,7 @@ against low molecular-weight precursors is \code{min_len}).}
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation.}
 
-\item{knots}{The number of knots for spline fits.}
+\item{ranges}{The range of spine knots}
 }
 \description{
 Calibrates precursor masses (by individual RAW_Files)

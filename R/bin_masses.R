@@ -36,7 +36,8 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
   ppm_ms1_bin <- calc_threeframe_ppm(ppm_ms1)
 
   # checks pre-existed precursor masses
-  .time_stamp <- get(".time_stamp", envir = .GlobalEnv, inherits = FALSE)
+  .cache_info <- qs::qread(file.path(out_path, "Calls", ".cache_info.rds"))
+  .time_stamp <- .cache_info$.time_stamp
   .path_mass  <- file.path(.path_ms1masses, .time_stamp)
   masses <- list.files(path = .path_mass, pattern = paste0("^pepmasses_", "\\d+\\.rds$"))
   

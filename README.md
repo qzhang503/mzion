@@ -1,21 +1,17 @@
 Mzion
 ================
 true
-2023-04-30
+2023-07-13
 
-- <a href="#installation" id="toc-installation">Installation</a>
-- <a href="#peaklist-formats" id="toc-peaklist-formats">Peaklist
-  formats</a>
-- <a href="#help-documents" id="toc-help-documents">Help documents</a>
-- <a href="#specifications-of-fixed-and-variable-modifications"
-  id="toc-specifications-of-fixed-and-variable-modifications">Specifications
-  of fixed and variable modifications</a>
-- <a href="#database-searches" id="toc-database-searches">Database
-  searches</a>
-- <a href="#data-qc-and-mining" id="toc-data-qc-and-mining">Data QC and
-  mining</a>
-- <a href="#other-utilities" id="toc-other-utilities">Other utilities</a>
-- <a href="#cite-mzion" id="toc-cite-mzion">Cite Mzion</a>
+- [Installation](#installation)
+- [Peaklist formats](#peaklist-formats)
+- [Help documents](#help-documents)
+- [Specifications of fixed and variable
+  modifications](#specifications-of-fixed-and-variable-modifications)
+- [Database searches](#database-searches)
+- [Data QC and mining](#data-qc-and-mining)
+- [Other utilities](#other-utilities)
+- [Cite Mzion](#cite-mzion)
 
 ## Installation
 
@@ -25,6 +21,12 @@ To install this package, start R and enter:
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 devtools::install_github("qzhang503/mzion")
+```
+
+To install the corresponding Shiny App (optional):
+
+``` r
+devtools::install_github("qzhang503/mzionShiny")
 ```
 
 ## Peaklist formats

@@ -38,8 +38,7 @@ calib_mgf(
   maxn_vmods_setscombi = 512L,
   min_len = 7L,
   max_len = 40L,
-  max_miss = 2L,
-  knots = 5L
+  max_miss = 2L
 )
 }
 \arguments{
@@ -197,8 +196,6 @@ for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{max_miss}{A non-negative integer; the maximum number of mis-cleavages
 per peptide sequence for considerations. The default is 2.}
-
-\item{knots}{The number of knots for spline fits.}
 }
 \description{
 \code{ppm_ms1} only for the calculation of frame indexes of precursors.

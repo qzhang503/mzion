@@ -244,7 +244,6 @@ reverse_seqs <- function (seqs)
 #'   modifications.
 #' @param .path_bin The file path to binned precursor masses.
 #' @param reframe_mgfs Logical; if TRUE, recalculates the frame indexes of MGFs
-#' @param knots The number of knots for spline fits.
 #' @inheritParams matchMS
 calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL, 
                        .path_bin, mod_indexes = NULL, type_ms2ions = "by", 
@@ -259,7 +258,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL,
                        acc_pattern = NULL, topn_ms2ions = 100L, 
                        fixedmods = NULL, varmods = NULL, enzyme = "trypsin_p", 
                        maxn_fasta_seqs = 200000L, maxn_vmods_setscombi = 512L,
-                       min_len = 7L, max_len = 40L, max_miss = 2L, knots = 5L)
+                       min_len = 7L, max_len = 40L, max_miss = 2L)
 {
   on.exit(
     if (exists(".savecall", envir = fun_env)) {
@@ -424,7 +423,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL,
     mapply(calib_ms1, fs_mgf, dfs, 
            MoreArgs = list(
              mgf_path = mgf_path, out_path = out_path, ppm_ms1 = ppm_ms1, 
-             min_mass = min_mass, max_mass = max_mass, knots = knots), 
+             min_mass = min_mass, max_mass = max_mass), 
            SIMPLIFY = FALSE, 
            USE.NAMES = FALSE)
   }
@@ -436,7 +435,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL,
       cl, calib_ms1, fs_mgf, dfs, 
       MoreArgs = list(
         mgf_path = mgf_path, out_path = out_path, ppm_ms1 = ppm_ms1, 
-        min_mass = min_mass, max_mass = max_mass, knots = knots), 
+        min_mass = min_mass, max_mass = max_mass), 
       SIMPLIFY = FALSE, 
       USE.NAMES = FALSE)
     
@@ -460,13 +459,13 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL,
 #' 
 #' @param filename An MGF file name
 #' @param df A data frame of \code{ion_matches_1.rds}
+#' @param ranges The range of spine knots
 #' @inheritParams calib_mgf
 calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL, 
                        ppm_ms1 = 20L, min_mass = 200L, max_mass = 4500L, 
-                       knots = 5L)
+                       range = 3:6)
 {
   n_row <- nrow(df)
-  knots <- max(min(floor(n_row/20L), knots), 4L)
   mgfs  <- qs::qread(file.path(mgf_path, filename))
   
   # subsets by minn_ms2 and ms1_int
@@ -486,18 +485,35 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
   diff_ms1 <- (df[["pep_exp_mr"]] - df[["theo_ms1"]])/df[["theo_ms1"]] * 1E6
   mdiff    <- median(diff_ms1, na.rm = TRUE)/1E6
 
-  if (n_row <= 100L || mdiff <= 2e-6) {
+  if (n_row <= 100L || mdiff <= 1e-6) {
     mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - mdiff
     post_calib(mgfs, min_mass, max_mass, mgf_path, filename)
     .savecall <- TRUE
     return(NULL)
   }
+  else {
+    cvs <- lapply(range, cv_ms1err, k = 10, df = df) 
+    cvs <- unlist(cvs, recursive = FALSE, use.names = FALSE)
+    
+    stopifnot(length(cvs) == length(range))
+    
+    if (all(is.na(cvs))) {
+      mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - mdiff
+      post_calib(mgfs, min_mass, max_mass, mgf_path, filename)
+      .savecall <- TRUE
+      return(NULL)
+    }
+    
+    cvs[is.na(cvs)] <- Inf
+    knots <- range[which.min(cvs)]
+    
+    if (length(knots) > 1L)
+      knots <- knots[[1]]
+  }
   
-  ret_time     <- df[["pep_ret_range"]]
-  ppm_ms1_bin  <- calc_threeframe_ppm(ppm_ms1)
-  
-  fit_ns <- find_optns(diff_ms1, ret_time, knots)
-  fit_bs <- find_optbs(diff_ms1, ret_time, knots)
+  ret_time <- df[["pep_ret_range"]]
+  fit_ns <- lm(diff_ms1 ~ splines::ns(ret_time, knots))
+  fit_bs <- lm(diff_ms1 ~ splines::bs(ret_time, knots))
 
   if (all(is.na(fit_ns))) {
     if (all(is.na(fit_bs))) {
@@ -541,16 +557,13 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
   min_rt <- min(ret_time, na.rm = TRUE)
   max_rt <- max(ret_time, na.rm = TRUE)
   
-  if ((min_rt2 <- min_rt * 1.05) < (max_rt2 <- max_rt / 1.05)) {
-    oks_le <- rt >= min_rt2
-    oks_gr <- rt <= max_rt2
+  oks <- if ((min_rt2 <- min_rt * 1.1) < (max_rt2 <- max_rt / 1.2)) {
+    rt >= min_rt2 & rt <= max_rt2
   }
   else {
-    oks_le <- rt >= min_rt
-    oks_gr <- rt <= max_rt
+    rt >= min_rt & rt <= max_rt
   }
 
-  oks <- oks_le & oks_gr
   ms1err <- predict.lm(fit, newdata = data.frame(ret_time = rt[oks])) / 1E6
   mgfs[["ms1_mass"]][oks] <- mgfs[["ms1_mass"]][oks] * (1 - ms1err)
 
@@ -579,6 +592,55 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
 }
 
 
+#' Cross-validation of mass error at a given number of knots
+#' 
+#' @param df A data frame of search results.
+#' @param m The number of knots for fitting.
+#' @param k The fold of cross-valications
+cv_ms1err <- function(m = 3L, k = 5L, df)
+{
+  if (!is.data.frame(df))
+    stop("Input is a not data frame.")
+  
+  if ((nr <- nrow(df)) < 50L)
+    return(NA_real_)
+  
+  cv_errs <- vector("list", k)
+  folds <- create_folds(seq_len(nr), k = k)
+  
+  for (i in seq_len(k)) {
+    fdi <- folds[[i]]
+    tei <- df[fdi, ]
+    tri <- df[-fdi, ]
+    
+    ret_time <- tei[["pep_ret_range"]]
+    deltas <- (tei[["pep_exp_mr"]] - tei[["theo_ms1"]])/tei[["theo_ms1"]] * 1E6
+    fit <- lm(deltas ~ splines::ns(ret_time, m))
+    
+    if (all(is.na(fit)) || anyNA(coef(fit)))
+      cv_errs[i] <- list(NULL)
+    
+    tri_rt <- tri[["pep_ret_range"]]
+    min_rt <- min(tri_rt, na.rm = TRUE)
+    max_rt <- max(tri_rt, na.rm = TRUE)
+    
+    oks <- if ((min_rt2 <- min_rt * 1.1) < (max_rt2 <- max_rt / 1.2)) {
+      tri_rt >= min_rt2 & tri_rt <= max_rt2
+    }
+    else {
+      tri_rt >= min_rt & tri_rt <= max_rt
+    }
+    
+    tri_rt <- tri_rt[oks]
+    prd <- predict.lm(fit, newdata = data.frame(ret_time = tri_rt)) / 1E6
+    cv_errs[[i]] <- mean(prd^2, na.rm = TRUE)
+  }
+  
+  # return NA at all NUll
+  mean(unlist(cv_errs, recursive = FALSE, use.names = FALSE), na.rm = TRUE)
+}
+
+
 #' Post MS1 calibrations.
 #' 
 #' @param mgfs MGF data.
@@ -591,52 +653,6 @@ post_calib <- function (mgfs, min_mass, max_mass, mgf_path, filename)
     dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass)
   
   qs::qsave(mgfs, file.path(mgf_path, filename), preset = "fast")
-}
-
-#' Finds the optimal natural spline.
-#'
-#' @param diff_ms1 The differences between experimental and theoretical
-#'   precursor masses.
-#' @param ret_time Retention timm.
-#' @param knots The number of knots.
-find_optns <- function (diff_ms1, ret_time, knots = 50L)
-{
-  if (knots <= 3L)
-    return(NA)
-  
-  ans <- tryCatch(
-    lm(diff_ms1 ~ splines::ns(ret_time, knots)),
-    error = function(e) NA)
-  
-  if (all(is.na(ans)))
-    return(NA)
-  
-  if (anyNA(coef(ans)))
-    find_optns(diff_ms1, ret_time, floor(knots/1.5))
-  else
-    ans
-}
-
-
-#' Finds the optimal natural spline.
-#' 
-#' @inheritParams find_optns
-find_optbs <- function (diff_ms1, ret_time, knots = 50L)
-{
-  if (knots <= 3L)
-    return(NA)
-  
-  ans <- tryCatch(
-    lm(diff_ms1 ~ splines::bs(ret_time, knots)),
-    error = function(e) NA)
-  
-  if (all(is.na(ans)))
-    return(NA)
-  
-  if (anyNA(coef(ans)))
-    find_optbs(diff_ms1, ret_time, floor(knots/1.5))
-  else
-    ans
 }
 
 

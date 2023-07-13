@@ -744,7 +744,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 60000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/mzion/.MSearches (1.2.8)/Cache/Calls", 
+                     .path_cache = "~/mzion/.MSearches (1.3.0)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,
@@ -822,17 +822,23 @@ matchMS <- function (out_path = "~/mzion/outs",
   varmods <- sort(varmods)
   locmods <- check_locmods(locmods, fixedmods, varmods, ms1_neulosses)
   
+  # accession pattern
   db_ord <- order(fasta)
   fasta  <- fasta[db_ord]
   acc_type <- acc_type[db_ord]
-  if (!is.null(acc_pattern)) acc_pattern <- acc_pattern[db_ord]
-  rm(list = "db_ord")
   
-  # accession pattern
-  if ((!is.null(acc_pattern)) && (acc_pattern == "")) 
+  if ((!is.null(acc_pattern)) && all(acc_pattern == "")) 
     acc_pattern <- NULL
   
-  # logical types 
+  if (!is.null(acc_pattern)) {
+    if (length(acc_pattern) != length(acc_type))
+      stop("The length of `acc_pattern` needs to be the same as `acc_type`.")
+    else
+      acc_pattern <- acc_pattern[db_ord]
+  }
+  rm(list = "db_ord")
+
+  # logical types
   stopifnot(vapply(c(soft_secions, combine_tier_three, calib_ms1mass, 
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
                      add_ms2ints, exclude_reporter_region, index_mgf_ms2, 
@@ -918,7 +924,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   target_fdr <- round(as.double(target_fdr), digits = 2L)
   
   if (target_fdr > .25) 
-    stop("Choose a smaller `target_fdr`.", call. = FALSE)
+    stop("Choose a smaller `target_fdr`.")
   
   min_ret_time <- round(min_ret_time, digits = 2L)
   max_ret_time <- round(max_ret_time, digits = 2L)
@@ -935,7 +941,7 @@ matchMS <- function (out_path = "~/mzion/outs",
     mgf_cutmzs <- mgf_cutpercs <- numeric()
   else {
     if (is.infinite(topn_ms2ions))
-      stop("Choose a finite value of \"topn_ms2ions\" to enable \"topn_ms2ion_cuts\".")
+      stop("Choose a finite \"topn_ms2ions\" value to enable \"topn_ms2ion_cuts\".")
     
     mgf_cutmzs <- as.numeric(names(topn_ms2ion_cuts))
     len <- length(topn_ms2ion_cuts)
@@ -969,30 +975,17 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
 
   # enzyme
-  oks <- eval(this_fml[["enzyme"]])
-  oks_lwr <- tolower(oks)
-  enzyme <- substitute(enzyme)
-  
-  if (length(enzyme) > 1L) {
-    enzyme <- oks[1]
-    enzyme_lwr <- tolower(enzyme)
-  }
-  else {
-    enzyme <- as.character(enzyme)
-    enzyme_lwr <- tolower(enzyme)
-    
-    if ((!enzyme_lwr %in% oks_lwr) && is.null(custom_enzyme)) 
-      stop("Incorrect `enzyme = ", enzyme, "`.")
-  }
-  
+  if ((!is.null(custom_enzyme)) && custom_enzyme == "")
+    custom_enzyme <- NULL
+
   if (is.null(custom_enzyme)) {
-    enzyme <- enzyme_lwr
+    enzyme <- tolower(match.arg(enzyme))
   }
   else {
-    warning("Overrule `enzyme` with `custom_enzyme`.", call. = FALSE)
+    warning("Overrule `enzyme` with `custom_enzyme`.")
     enzyme <- NULL
   }
-  
+
   if ((!is.null(enzyme)) && (enzyme == "noenzyme"))
     max_miss <- 0L
   
@@ -1001,63 +994,13 @@ matchMS <- function (out_path = "~/mzion/outs",
     max_len <- max_integer
   }
 
-  rm(list = c("oks", "oks_lwr", "enzyme_lwr"))
-  
   # fdr_type
-  oks <- eval(this_fml[["fdr_type"]])
-  fdr_type <- substitute(fdr_type)
+  fdr_type <- match.arg(fdr_type)
+  fdr_group <- match.arg(fdr_group)
+  nes_fdr_group <- match.arg(nes_fdr_group)
   
-  if (length(fdr_type) > 1L)
-    fdr_type <- oks[1]
-  else {
-    fdr_type <- as.character(fdr_type) 
-    
-    if (!fdr_type %in% oks)
-      stop("Incorrect `fdr_type`.")
-  }
-  
-  # fdr_group
-  # for future supports of character strings or integers (mod_groups)
-  # fdr_group <- check_fdr_group(fdr_group, eval(this_fml[["fdr_group"]]))
-  oks <- eval(this_fml[["fdr_group"]])
-  fdr_group <- substitute(fdr_group)
-  
-  if (length(fdr_group) > 1L && identical(eval(fdr_group), oks))
-    fdr_group <- oks[1]
-  else {
-    fdr_group <- as.character(fdr_group) 
-    
-    if (!fdr_group %in% oks)
-      stop("Incorrect `fdr_group`.")
-  }
-
-  # nes_fdr_group
-  oks <- eval(this_fml[["nes_fdr_group"]])
-  nes_fdr_group <- substitute(nes_fdr_group)
-  
-  if (length(nes_fdr_group) > 1L && identical(eval(nes_fdr_group), oks))
-    nes_fdr_group <- oks[1]
-  else {
-    nes_fdr_group <- as.character(nes_fdr_group) 
-    
-    if (!nes_fdr_group %in% oks)
-      stop("Incorrect `nes_fdr_group`.")
-  }
-  
-  # Quantitation method
-  oks <- eval(this_fml[["quant"]])
-  quant <- substitute(quant)
-  
-  if (length(quant) > 1L)
-    quant <- oks[1]
-  else {
-    quant <- as.character(quant) 
-    
-    if (!quant %in% oks)
-      stop("Incorrect `quant`.")
-  }
-  
-  rm(list = c("oks"))
+  # quant
+  quant <- match.arg(quant)
 
   # TMT
   check_tmt_pars(fixedmods, varmods, quant)
@@ -1348,8 +1291,7 @@ matchMS <- function (out_path = "~/mzion/outs",
               fixedmods = fixedmods, varmods = NULL, # the first search
               enzyme = enzyme, maxn_fasta_seqs = maxn_fasta_seqs, 
               maxn_vmods_setscombi = maxn_vmods_setscombi,
-              min_len = min_len, max_len = max_len, max_miss = max_miss, 
-              knots = 5L)
+              min_len = min_len, max_len = max_len, max_miss = max_miss)
 
   if (!bypass_ms2match) {
     if (min_ms2mass < 5L) 

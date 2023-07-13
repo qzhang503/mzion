@@ -6,21 +6,21 @@
 #' @param k The number of folds.
 #' @param list Logical; should the result be a list or not.
 #' @param returnTrain Logical; return training sets or not (test sets).
-creat_folds <- function (y, k = 10L, list = TRUE, returnTrain = FALSE) 
+create_folds <- function (y, k = 10L, list = TRUE, returnTrain = FALSE) 
 {
-  if (k < length(y)) {
+  if ((n <- length(y)) >= k) {
     y <- factor(as.character(y))
     numInClass <- table(y)
-    foldVector <- vector(mode = "integer", length(y))
+    foldVector <- vector("integer", n)
     
-    for (i in 1:length(numInClass)) {
+    for (i in seq_along(numInClass)) {
       min_reps <- numInClass[i] %/% k
       
-      if (min_reps > 0L) {
+      if (min_reps) {
         spares <- numInClass[i] %% k
         seqVector <- rep(1:k, min_reps)
         
-        if (spares > 0L) 
+        if (spares) 
           seqVector <- c(seqVector, sample(1:k, spares))
         
         foldVector[which(y == names(numInClass)[i])] <- 
@@ -260,7 +260,7 @@ perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL,
   if (cross_valid) {
     mses  <- vector("numeric", length(costs))
     
-    folds <- creat_folds(ta[["y."]], k = k)
+    folds <- create_folds(ta[["y."]], k = k)
     tests <- trains <- vector("list", k)
     
     for (i in seq_len(k)) {

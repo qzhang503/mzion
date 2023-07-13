@@ -609,11 +609,6 @@ delete_files <- function (path, ignores = NULL, ...)
 #' @param out_path An output path.
 find_ms1_times <- function (out_path) 
 {
-  if (".time_stamp" %in% ls(envir = .GlobalEnv, all.names = TRUE)) {
-    # may be incorrect `.time_stamp` from a previous session
-    return(get(".time_stamp", envir = .GlobalEnv, inherits = FALSE))
-  }
-  
   file <- file.path(out_path, "Calls", ".cache_info.rds")
   
   if (file.exists(file)) {
@@ -641,89 +636,6 @@ find_ms1_times <- function (out_path)
   else {
     stop("Cannot find `.time_stamp`.")
   }
-}
-
-
-
-#' Finds a global variable.
-#'
-#' Not yet used. The utility at first looks up the global environment then the
-#' indicated file.
-#'
-#' @param val Variable name
-#' @param cache A cache file name.
-#' @seealso \link{find_ms1_times}
-#' @examples
-#' \dontrun{
-#' library(mzion)
-#' 
-#' out_path <- "~/mzion/example/"
-#' cache <- file.path(out_path, "Calls/.cache_info.rds")
-#' mzion:::get_globalvar(".time_stamp", cache)
-#' }
-get_globalvar <- function (val = NULL, cache = NULL)
-{
-  if (is.null(val))
-    stop("\"val\" cannot be NULL.")
-  
-  if (length(val) > 1L)
-    stop("The length of \"val\" is not one.")
-  
-  ok <- exists(val, envir = .GlobalEnv, inherits = FALSE)
-  
-  if (ok)
-    return(get(val, envir = .GlobalEnv, inherits = FALSE))
-  
-  if (is.null(cache))
-    stop("\"cache\" cannot be NULL when without a global match.")
-  
-  if (length(cache) > 1L)
-    stop("The length of \"cache\" is not one.")
-  
-  if (!file.exists(cache))
-    stop("Object \"", val, " \" not found in ", cache, ".")
-  
-  ans <- qs::qread(cache)
-  assign(x = val, val, envir = .GlobalEnv)
-  
-  ans[[val]]
-}
-
-
-#' Loads variable to the global environment.
-#' 
-#' Not yet used. 
-#' 
-#' @param cache A cache file name.
-#' @param overwrite If TRUE, overwrite the pre-existed global values with the
-#'   cache values.
-#' @seealso \link{find_ms1_times}
-load_cache_info <- function (cache = NULL, overwrite = TRUE)
-{
-  if (is.null(cache))
-    stop("\"cache\" cannot be NULL.")
-  
-  if (length(cache) > 1L)
-    stop("The length of \"cache\" is not one.")
-  
-  if (!file.exists(cache))
-    stop("File not existed: ", cache)
-  
-  ans <- qs::qread(cache)
-  
-  for (i in seq_along(ans)) {
-    nm <- names(ans[i])
-    val <- ans[[i]]
-    
-    if (overwrite)
-      assign(x = nm, val, envir = .GlobalEnv)
-    else {
-      if (!exists(nm, envir = .GlobalEnv, inherits = FALSE))
-        assign(x = nm, val, envir = .GlobalEnv)
-    }
-  }
-  
-  invisible(ans)
 }
 
 
