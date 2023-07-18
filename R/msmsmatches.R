@@ -785,7 +785,27 @@ matchMS <- function (out_path = "~/mzion/outs",
   )
   
   message("Started at: ", Sys.time())
+  max_integer <- .Machine$integer.max
   
+  # Shiny compatibles
+  if (is.na(max_protscores_co)) max_protscores_co <- Inf
+  if (is.na(max_scan_num)) max_scan_num <- max_integer
+  if (is.na(max_ret_time)) max_ret_time <- max_integer
+  if ((!is.na(topn_ms2ion_cuts)) && (topn_ms2ion_cuts == "")) topn_ms2ion_cuts <- NA
+  
+  oks <- fasta != ""
+  
+  if (!all(is.null(acc_pattern)) && length(acc_pattern) == length(fasta))
+    acc_pattern <- acc_pattern[oks]
+  else
+    acc_pattern <- NULL
+  
+  if (length(acc_type) == length(fasta))
+    acc_type <- acc_type[oks]
+  
+  fasta <- fasta[oks]
+
+  # Calls
   this_call <- match.call()
   fun <- as.character(this_call[1])
   this_fml <- formals()
@@ -859,7 +879,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
-  max_integer <- .Machine$integer.max
+  
 
   if (is.infinite(max_len)) max_len <- max_integer
   if (is.infinite(maxn_fasta_seqs)) maxn_fasta_seqs <- max_integer

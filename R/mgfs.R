@@ -98,7 +98,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
   delete_files(
     out_path, 
     ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.mzML$", "\\.xlsx$", 
-                "\\.xls$", "\\.csv$", "\\.txt$", "\\.tsv$", 
+                "\\.xls$", "\\.csv$", "\\.txt$", "\\.tsv$", "\\.pars$", 
                 "^mgf$", "^mgfs$", "Calls", 
                 # in case of reprocessing after proteoQ
                 "fraction_scheme.rda", "label_scheme.rda", 

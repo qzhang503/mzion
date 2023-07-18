@@ -176,12 +176,18 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL)
 
   oks <- file.exists(fasta)
   
-  if (!all(oks))
-    stop("Missing FASTA file(s): \n", paste(fasta[!oks], collapse = "\n"))
-
+  if (!all(oks)) {
+    warning("Removed missing FASTA file(s): \n", paste(fasta[!oks], collapse = "\n"))
+    fasta <- fasta[oks]
+    acc_type <- acc_type[oks]
+  }
+  
   len_f <- length(fasta)
   len_a <- length(acc_type)
   len_p <- length(acc_pattern)
+  
+  if (!len_f)
+    stop("None of the supplied fasta files were found.")
 
   if (len_f < len_a) 
     stop("More accession types than fasta files.")

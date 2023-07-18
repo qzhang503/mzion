@@ -89,7 +89,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   delete_files(
     out_path, 
     ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
-                "\\.xls$", "\\.csv$", "\\.txt$", 
+                "\\.xls$", "\\.csv$", "\\.txt$", "\\.pars$", 
                 "^mgf$", "^mgfs$", "Calls"))
 
   # pairs expts and theos
@@ -662,10 +662,14 @@ post_calib <- function (mgfs, min_mass, max_mass, mgf_path, filename)
 #' @return A vector of mass off-sets.
 find_ms1_offsets <- function (n_13c = 0L, ms1_notches = 0) 
 {
-  if (dups <- anyDuplicated(n_13c))
-    stop("At least one duplicated values in `n_13c`: ", 
-         n_13c[dups])
-  
+  if (dups <- anyDuplicated(n_13c)) {
+    # a range with Shiny
+    if (length(n_13c) != 2L || n_13c[[1]] != n_13c[[2]]) {
+      warning("At least one duplicated values in `n_13c`: ", n_13c[dups])
+      n_13c <- unique(n_13c)
+    }
+  }
+
   if (dups <- anyDuplicated(ms1_notches))
     stop("At least one duplicated values in `ms1_offsets`: ", 
          ms1_notches[dups])
