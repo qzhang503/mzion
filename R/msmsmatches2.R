@@ -663,16 +663,15 @@ post_calib <- function (mgfs, min_mass, max_mass, mgf_path, filename)
 find_ms1_offsets <- function (n_13c = 0L, ms1_notches = 0) 
 {
   if (dups <- anyDuplicated(n_13c)) {
-    # a range with Shiny
-    if (length(n_13c) != 2L || n_13c[[1]] != n_13c[[2]]) {
-      warning("At least one duplicated values in `n_13c`: ", n_13c[dups])
-      n_13c <- unique(n_13c)
-    }
+    warning("At least one duplicated value in `n_13c`: ", n_13c[dups])
+    n_13c <- unique(n_13c)
   }
 
-  if (dups <- anyDuplicated(ms1_notches))
-    stop("At least one duplicated values in `ms1_offsets`: ", 
-         ms1_notches[dups])
+  if (dups <- anyDuplicated(ms1_notches)) {
+    warning("At least one duplicated values in `ms1_offsets`: ", 
+            ms1_notches[dups])
+    ms1_notches <- unique(ms1_notches)
+  }
 
   offsets_13c <- if (length(n_13c)) n_13c * 1.00335483 else NULL
   ms1_offsets <- unique(c(0, offsets_13c, ms1_notches))

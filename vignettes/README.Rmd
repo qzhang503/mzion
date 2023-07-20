@@ -51,12 +51,14 @@ To install this package, start R and enter:
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 devtools::install_github("qzhang503/mzion")
+
+# Shiny App (optional):
+devtools::install_github("qzhang503/mzionShiny")
+
+library(mzionShiny)
+run_app()
 ```
 
-To install the corresponding Shiny App (optional):
-```{r shiny, include = TRUE, eval = FALSE}
-devtools::install_github("qzhang503/mzionShiny")
-```
 
 ## Peaklist formats
 -   Thermo's MS

@@ -1,7 +1,7 @@
 Mzion
 ================
 true
-2023-07-13
+2023-07-19
 
 - [Installation](#installation)
 - [Peaklist formats](#peaklist-formats)
@@ -21,12 +21,12 @@ To install this package, start R and enter:
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 devtools::install_github("qzhang503/mzion")
-```
 
-To install the corresponding Shiny App (optional):
-
-``` r
+# Shiny App (optional):
 devtools::install_github("qzhang503/mzionShiny")
+
+library(mzionShiny)
+run_app()
 ```
 
 ## Peaklist formats

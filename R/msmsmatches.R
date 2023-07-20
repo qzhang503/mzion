@@ -792,7 +792,11 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (is.na(max_scan_num)) max_scan_num <- max_integer
   if (is.na(max_ret_time)) max_ret_time <- max_integer
   if ((!is.na(topn_ms2ion_cuts)) && (topn_ms2ion_cuts == "")) topn_ms2ion_cuts <- NA
-  
+  if (!(is.numeric(ms1_notches) && length(ms1_notches))) ms1_notches <- 0
+  if (is.null(noenzyme_maxn)) noenzyme_maxn <- 0L
+  if ((!is.null(custom_enzyme)) && custom_enzyme == "")
+    custom_enzyme = c(Cterm = NULL, Nterm = NULL)
+
   oks <- fasta != ""
   
   if (!all(is.null(acc_pattern)) && length(acc_pattern) == length(fasta))
