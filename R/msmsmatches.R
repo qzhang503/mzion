@@ -744,7 +744,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 60000L, 
                      use_ms1_cache = TRUE, 
-                     .path_cache = "~/mzion/.MSearches (1.3.0)/Cache/Calls", 
+                     .path_cache = "~/mzion/.MSearches (1.3.0.1)/Cache/Calls", 
                      .path_fasta = NULL,
                      
                      topn_ms2ions = 100L,
@@ -808,6 +808,11 @@ matchMS <- function (out_path = "~/mzion/outs",
     acc_type <- acc_type[oks]
   
   fasta <- fasta[oks]
+  
+  # fixedmods <- gsub("Protein N-term = N-term", "Protein N-term", fixedmods)
+  # fixedmods <- gsub("Protein C-term = C-term", "Protein C-term", fixedmods)
+  # varmods <- gsub("Protein N-term = N-term", "Protein N-term", varmods)
+  # varmods <- gsub("Protein C-term = C-term", "Protein C-term", varmods)
 
   # Calls
   this_call <- match.call()

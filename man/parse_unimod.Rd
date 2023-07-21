@@ -24,16 +24,19 @@ x3 <- parse_unimod("Carbamidomethyl (C)")
 identical(x1, x2); identical(x2, x3)
 
 # Any residue on protein N-term
-x1 <- parse_unimod("Acetyl (Protein N-term = .)")
-x2 <- parse_unimod("Acetyl (Protein N-term)")
+x1 <- parse_unimod("Acetyl (Protein N-term)")
+x2 <- parse_unimod("Acetyl (Protein N-term = .)")
+x3 <- parse_unimod("Acetyl (Protein N-term = N-term)")
 
-identical(x1, x2)
+identical(x1, x2); identical(x2, x3)
 
 # Any N-term residue
 x1 <- parse_unimod("Acetyl (N-term)")
 x2 <- parse_unimod("Acetyl (N-term = .)")
+x3 <- parse_unimod("Acetyl (N-term = N-term)")
+x4 <- parse_unimod("Acetyl (Any N-term = N-term)")
 
-identical(x1, x2)
+identical(x1, x2); identical(x2, x3); identical(x3, x4)
 
 # N-term Q
 x1 <- parse_unimod("Gln->pryo-Glu (N-term = Q)")
@@ -46,6 +49,11 @@ x <- parse_unimod("Hex(5)HexNAc(2) (N)")
 
 # ok with spaces in the 'title'
 x <- parse_unimod("Met-loss (Protein N-term = M)")
+
+# N-term
+parse_unimod("Carbamidomethyl (Any N-term = C)")
+parse_unimod("Carbamidomethyl (Any N-term = N-term)")
+parse_unimod("Carbamidomethyl (Protein N-term = N-term)")
 }
 
 \dontrun{

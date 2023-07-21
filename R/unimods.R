@@ -16,16 +16,19 @@
 #' identical(x1, x2); identical(x2, x3)
 #'
 #' # Any residue on protein N-term
-#' x1 <- parse_unimod("Acetyl (Protein N-term = .)")
-#' x2 <- parse_unimod("Acetyl (Protein N-term)")
+#' x1 <- parse_unimod("Acetyl (Protein N-term)")
+#' x2 <- parse_unimod("Acetyl (Protein N-term = .)")
+#' x3 <- parse_unimod("Acetyl (Protein N-term = N-term)")
 #'
-#' identical(x1, x2)
+#' identical(x1, x2); identical(x2, x3)
 #'
 #' # Any N-term residue
 #' x1 <- parse_unimod("Acetyl (N-term)")
 #' x2 <- parse_unimod("Acetyl (N-term = .)")
+#' x3 <- parse_unimod("Acetyl (N-term = N-term)")
+#' x4 <- parse_unimod("Acetyl (Any N-term = N-term)")
 #'
-#' identical(x1, x2)
+#' identical(x1, x2); identical(x2, x3); identical(x3, x4)
 #'
 #' # N-term Q
 #' x1 <- parse_unimod("Gln->pryo-Glu (N-term = Q)")
@@ -38,6 +41,11 @@
 #'
 #' # ok with spaces in the 'title'
 #' x <- parse_unimod("Met-loss (Protein N-term = M)")
+#' 
+#' # N-term
+#' parse_unimod("Carbamidomethyl (Any N-term = C)")
+#' parse_unimod("Carbamidomethyl (Any N-term = N-term)")
+#' parse_unimod("Carbamidomethyl (Protein N-term = N-term)")
 #' }
 #'
 #' \dontrun{
@@ -70,10 +78,20 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
   ## dual parentheses
   # unimod = "Carbamidomethyl ((. = C))" # --> pos_site = ". = C"
   
+  if (grepl("Protein N-term\\s*=\\s*N-term", unimod)) 
+    return(
+      list(title = gsub("^([^ ]+?) .*", "\\1", unimod), 
+           position = "Protein N-term", site = "N-term"))
+  
+  if (grepl("Protein C-term\\s*=\\s*C-term", unimod)) 
+    return(
+      list(title = gsub("^([^ ]+?) .*", "\\1", unimod), 
+           position = "Protein C-term", site = "C-term"))
+  
   if (grepl("([NC]{1}-term|Anywhere) [A-Z]{1}", unimod)) 
     unimod <- 
       gsub("^(.*[NC]{1}-term|.*Anywhere)\\s*([A-Z]{1})", "\\1 = \\2", unimod)
-  
+
   # (assumed) no space in `title`
   # title <- gsub("(.*)\\s\\([^\\(]*\\)$", "\\1", unimod)
   title    <- gsub("^([^ ]+?) .*", "\\1", unimod)
@@ -96,6 +114,7 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
   if (site == "") 
     site = "."
   
+  # site can be temporarily "Protein N-term"
   if (site %in% c("Protein N-term", "Protein C-term",
                   "Anywhere N-term", "Anywhere C-term",
                   "N-term", "C-term")) {
@@ -103,7 +122,8 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
     site <- gsub("^(Protein|Anywhere) ", "", site)
   }
   
-  # standardize `position`
+  # standardize the terminal `position`
+  # (no need of handling Protein [NC]-term due to the early return)
   pos <- gsub("^([NC]){1}-term", "Any \\1-term", pos)
   
   if (pos %in% c(".", "")) 
