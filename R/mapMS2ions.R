@@ -101,6 +101,12 @@ mapMS2ions <- function (out_path = NULL, in_name = "psmQ.txt",
   raw_id <- match_raw_id(raw_file, mgf_path)
   scan <- as.character(scan)
   mgf_ok <- find_mgf_query(mgf_path, raw_id, scan)
+  
+  if (is.null(mgf_ok) || !nrow(mgf_ok)) {
+    warning("MGF query not found.")
+    return(NULL)
+  }
+
   mgf <- data.frame(ms2_moverz = mgf_ok$ms2_moverz[[1]], 
                     ms2_int = mgf_ok$ms2_int[[1]])
   mgf$iex <- seq_len(nrow(mgf))
@@ -396,32 +402,33 @@ find_mgf_query <- function (mgf_path, raw_id, scan, to_global = TRUE)
 {
   ok <- any(ls(all.names = TRUE, envir = .GlobalEnv) == ".mgf_queries")
   
-  if (ok)
+  if (ok) {
     .mgf_queries <- get(".mgf_queries", envir = .GlobalEnv)
+  }
   else {
     files <- list.files(path = file.path(mgf_path), 
                         pattern = "mgf_queries[_]*[0-9]*\\.rds$")
     
-    if (!length(files))
-      stop("No parsed `mgf_queries.rds` under ", mgf_path, call. = FALSE)
-    
+    if (!length(files)) {
+      warning("No parsed `mgf_queries.rds` under ", mgf_path, call. = FALSE)
+      return(NULL)
+    }
+
     .mgf_queries <- lapply(files, function (x) qs::qread(file.path(mgf_path, x)))
     .mgf_queries <- do.call(rbind, .mgf_queries)
     .mgf_queries <- dplyr::mutate(.mgf_queries, scan_num = as.character(scan_num))
 
     if (to_global)
       assign(".mgf_queries", .mgf_queries, envir = .GlobalEnv)
+    
+    rm(list = "files")
   }
   
   mgf <- .mgf_queries |>
     dplyr::filter(raw_file == raw_id, scan_num == scan)
 
-  nrow <- nrow(mgf)
-  
-  if (!nrow) {
-    stop("Corresponding MGF entries not found in ", 
-         paste(files, collapse = ", "), 
-         call. = FALSE)
+  if (!(nrow <- nrow(mgf))) {
+    warning("MGF entries not found.")
   }
   else if (nrow > 1L) {
     warning("Multiple `mgf_query` matches and used the first one.")
