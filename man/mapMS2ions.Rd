@@ -71,10 +71,10 @@ p <- ggplot() +
   geom_segment(duo, mapping = aes(x = ms2_moverz, y = ms2_int,
                                            xend = ms2_moverz, yend = 0,
                                            color = type),
-                        size = .4, show.legend = FALSE) +
+                        size = 1, show.legend = FALSE) +
   geom_text(duo, mapping = aes(x = ms2_moverz, y = ms2_int,
                                         label = label, color = type),
-                     size = 3, alpha = .5, hjust = 0, angle = 90, vjust = 0,
+                     size = 6, alpha = .5, hjust = 0, angle = 90, vjust = 0,
                      nudge_x = 0.05, nudge_y = 0.05, na.rm = TRUE,
                      show.legend = FALSE) +
   labs(x = "m/z", y = "Intensity")
@@ -84,10 +84,10 @@ if (nrow(duo2)) {
     ggplot2::geom_segment(duo2, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                               xend = ms2_moverz, yend = 0, 
                                               color = type), 
-                          size = .2, show.legend = FALSE) + 
+                          size = .5, show.legend = FALSE) + 
     ggplot2::geom_text(duo2, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                            label = label, color = type),
-                       size = 2, alpha = .5, hjust = 0, angle = 90, vjust = 0, 
+                       size = 4, alpha = .5, hjust = 0, angle = 90, vjust = 0, 
                        nudge_x = 0.05, nudge_y = 0.05, na.rm = TRUE, 
                        show.legend = FALSE) 
 }

@@ -42,10 +42,10 @@
 #'   geom_segment(duo, mapping = aes(x = ms2_moverz, y = ms2_int,
 #'                                            xend = ms2_moverz, yend = 0,
 #'                                            color = type),
-#'                         size = .4, show.legend = FALSE) +
+#'                         size = 1, show.legend = FALSE) +
 #'   geom_text(duo, mapping = aes(x = ms2_moverz, y = ms2_int,
 #'                                         label = label, color = type),
-#'                      size = 3, alpha = .5, hjust = 0, angle = 90, vjust = 0,
+#'                      size = 6, alpha = .5, hjust = 0, angle = 90, vjust = 0,
 #'                      nudge_x = 0.05, nudge_y = 0.05, na.rm = TRUE,
 #'                      show.legend = FALSE) +
 #'   labs(x = "m/z", y = "Intensity")
@@ -55,10 +55,10 @@
 #'     ggplot2::geom_segment(duo2, mapping = aes(x = ms2_moverz, y = ms2_int, 
 #'                                               xend = ms2_moverz, yend = 0, 
 #'                                               color = type), 
-#'                           size = .2, show.legend = FALSE) + 
+#'                           size = .5, show.legend = FALSE) + 
 #'     ggplot2::geom_text(duo2, mapping = aes(x = ms2_moverz, y = ms2_int, 
 #'                                            label = label, color = type),
-#'                        size = 2, alpha = .5, hjust = 0, angle = 90, vjust = 0, 
+#'                        size = 4, alpha = .5, hjust = 0, angle = 90, vjust = 0, 
 #'                        nudge_x = 0.05, nudge_y = 0.05, na.rm = TRUE, 
 #'                        show.legend = FALSE) 
 #' }
@@ -123,8 +123,10 @@ mapMS2ions <- function (out_path = NULL, in_name = "psmQ.txt",
       .psms <- get(".psms", envir = .GlobalEnv)
     }
     else {
-      .psms <- readr::read_tsv(fi_psm, show_col_types = FALSE, 
-                               col_types = get_mzion_coltypes()) 
+      # some columns in psmQ.txt not in psmC.txt
+      .psms <- suppressWarnings(
+        readr::read_tsv(fi_psm, show_col_types = FALSE, 
+                        col_types = get_mzion_coltypes()))
       .psms <- .psms[, -which(names(.psms) %in% cols_excl), drop = FALSE]
       assign(".psms", .psms, envir = .GlobalEnv)
       assign(".psm_file", file.path(out_path, in_name), envir = .GlobalEnv)
@@ -265,10 +267,10 @@ plotMS2ions <- function (duos, out_path = "~", out_name = "bar.png",
     ggplot2::geom_segment(duo, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                              xend = ms2_moverz, yend = 0, 
                                              color = type), 
-                          size = .4, show.legend = FALSE) + 
+                          size = 1, show.legend = FALSE) + 
     ggplot2::geom_text(duo, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                           label = label, color = type),
-                       size = 3, alpha = .5, hjust = 0, angle = 90, vjust = 0, 
+                       size = 6, alpha = .5, hjust = 0, angle = 90, vjust = 0, 
                        nudge_x = 0.05, nudge_y = 0.05, na.rm = TRUE, 
                        show.legend = FALSE) + 
     ggplot2::labs(x = "m/z", y = "Intensity")
@@ -278,18 +280,27 @@ plotMS2ions <- function (duos, out_path = "~", out_name = "bar.png",
       ggplot2::geom_segment(duo2, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                                 xend = ms2_moverz, yend = 0, 
                                                 color = type), 
-                            size = .2, show.legend = FALSE) + 
+                            size = .5, show.legend = FALSE) + 
       ggplot2::geom_text(duo2, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                              label = label, color = type),
-                         size = 2, alpha = .5, hjust = 0, angle = 90, vjust = 0, 
+                         size = 4, alpha = .5, hjust = 0, angle = 90, vjust = 0, 
                          nudge_x = 0.05, nudge_y = 0.05, na.rm = TRUE, 
                          show.legend = FALSE) 
   }
   
   pep <- paste0(duo$site[1:(nrow(duo)/2L)], collapse = " ")
+  
+  if (nrow(duo2)) 
+    ymax <- max(duo$ms2_int, duo2$ms2_int, na.rm = TRUE)
+  else 
+    ymax <- max(duo$ms2_int, na.rm = TRUE)
+  
   p <- p + 
-    annotate("text", -Inf, Inf, label = pep, hjust = -.2, vjust = 2)
-  ggplot2::ggsave(file.path(out_path, out_name), width = width, height = height)
+    annotate("text", -Inf, Inf, label = pep, hjust = -.2, vjust = 2) + 
+    ylim(0, ymax * 1.05)
+
+  ggplot2::ggsave(file.path(out_path, out_name), width = width, height = height,
+                  dpi = 300)
 
   ans <- list(mgf = mgf, duo = duo, duo2 = duo2, p = p)
   rds <- paste0(gsub("\\.[^.]*$", "", out_name), ".rds")
@@ -448,7 +459,6 @@ get_mzion_coltypes <- function ()
     pep_ret_range = col_number(), 
     pep_scan_num = col_character(), # timsTOF
     pep_mod_group = col_integer(), 
-    pep_frame = col_integer(), 
     pep_fmod = col_character(),
     pep_vmod = col_character(),
     pep_isdecoy = col_logical(),
@@ -473,11 +483,11 @@ get_mzion_coltypes <- function ()
     
     pep_issig = col_logical(),
     pep_score = col_double(),
-    pep_score_co = col_double(),
+    # pep_score_co = col_double(),
     pep_rank = col_integer(), 
     pep_locprob = col_double(),
     pep_locdiff = col_double(),
-    pep_rank_nl = col_integer(), 
+    # pep_rank_nl = col_integer(), 
     pep_literal_unique = col_logical(),
     pep_razor_unique = col_logical(),
     raw_file = col_character(), 

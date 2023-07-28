@@ -777,7 +777,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   on.exit(
     if (exists(".savecall", envir = environment())) {
       if (.savecall) {
-        tryCatch(save_call2(path = file.path(out_path, "Calls"), fun = fun), 
+        tryCatch(save_call2(path = file.path(out_path, "Calls"), fun = "matchMS"), 
                  error = function(e) NA)
       }
     },
@@ -1600,7 +1600,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                    fdr_type = fdr_type, # for workflow controls 
                    combine_tier_three = combine_tier_three, 
                    max_n_prots = max_n_prots)
-  
+
   message("Completed at: ", Sys.time())
   
   .savecall <- TRUE
