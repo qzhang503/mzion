@@ -6,17 +6,27 @@
 \usage{
 mapMS2ions(
   out_path = NULL,
-  scan = 1234,
+  in_name = "psmQ.txt",
+  out_name = "bar.png",
   raw_file = "foo.raw",
+  scan = 1234,
   rank = 1L,
   is_decoy = FALSE,
   type_ms2ions = "by",
-  filename = NULL
+  width = 12.5,
+  height = 6
 )
 }
 \arguments{
 \item{out_path}{A file path where outputs of \link{matchMS} can be
 identified.}
+
+\item{in_name}{An input file name of PSMs, such as psmQ.txt, psmC.txt,
+psmT2.txt, psmT3.txt etc.}
+
+\item{out_name}{An output file name for saving the the plot of MS2 ions.}
+
+\item{raw_file}{Character string; a RAW file name.}
 
 \item{scan}{A scan number that can be found from the outputs. Positive
   integer, Thermo's Orbitrap data; character string, Bruker's timsTOF data.
@@ -25,19 +35,14 @@ identified.}
   \code{psmQ.txt},  \code{psmT2.txt}, \code{psmT3.txt} and/or
   \code{psmC.txt}.}
 
-\item{raw_file}{Character string; a RAW file name.}
-
 \item{rank}{Positive integer; the rank of a match. The default is one for the
 best match.}
 
 \item{is_decoy}{Logical; is the match from decoy. The default is FALSE.}
 
-\item{type_ms2ions}{Character; the type of
-\href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
-ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
-and y-ions.}
+\item{width}{Plot width.}
 
-\item{filename}{An output file name for saving the the plot of MS2 ions.}
+\item{height}{Plot height.}
 }
 \description{
 Visualization of matched MS2 ions.
@@ -46,12 +51,11 @@ Visualization of matched MS2 ions.
 \dontrun{
 library(mzion)
 
-ans <- mapMS2ions(out_path = "a/mzion/output/folder",
-                  scan = 9933,
-                  raw_file = "a-raw-file-name.raw",
-                  rank = 1L,
-                  is_decoy = FALSE, 
-                  filename = "bar.png")
+ans <- mapMS2ions(
+    out_path = "a/mzion/output/folder", in_name = "psmQ.txt", 
+    out_name = "bar.png", raw_file = "a-raw-file-name.raw", scan = 9933, 
+    rank = 1L, is_decoy = FALSE, type_ms2ions = "by"
+  )
 
 # Custom plots
 library(ggplot2)
@@ -92,4 +96,5 @@ pep <- paste0(duo$site[1:(nrow(duo)/2L)], collapse = " ")
 p + annotate("text", -Inf, Inf, label = pep, hjust = -.2, vjust = 2)
 
 }
+
 }

@@ -19,7 +19,6 @@ pep_tot_int	Total MS1 intenisty of a peptide match
 pep_ret_range	Range of LCMS retention times of a peptide match	
 pep_scan_num	MS scan number of peptide	
 pep_mod_group	Index of peptide modification group	
-pep_frame	MS1 frame number of peptide	
 pep_fmod	Fix modifications of peptide	
 pep_vmod	Variable modificaiton of peptide	
 pep_isdecoy	Is peptide identication a decoy or not	
@@ -35,8 +34,10 @@ pep_n_matches	Number matches between experimental and theoretical m/z values of 
 pep_n_matches2	Number matches between experimental and theoretical m/z values of peptide (secondary)	
 pep_ms2_deltas	Character string of MS2 mass deltas between experimentals and theoreticals (primary)	In the unit of mDA
 pep_ms2_ideltas	The corresponding indexes of pep_ms2_deltas along the theoretical sequence of pep_ms2_theos	"E.g. if the the first value is 3, it says that the first mass delta in pep_ms2_deltas is for ion b3."
+pep_ms2_iexs	The corresponding indexes of pep_ms2_deltas along the experiment sequence	
 pep_ms2_deltas2	Character string of MS2 mass deltas between experimentals and theoreticals (secondary)	
 pep_ms2_ideltas2	The corresponding indexes of pep_ms2_deltas2	"E.g. for a `pep_seq` of `pep_len` = 7, if the first index is 8, it says that the first mass delta in `pep_ms2_deltas2` is for the first b ion along the b* sequence (see also `pep_ms2_theos2`)."
+pep_ms2_iexs2	The corresponding indexes of pep_ms2_deltas along the experiment sequence (secondary)	
 pep_ms2_deltas_mean	Mean representation of pep_ms2_deltas	
 pep_ms2_deltas_sd	Standard deviation of pep_ms2_deltas	
 pep_issig	Is peptide identication significant or not	

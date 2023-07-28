@@ -42,7 +42,7 @@ against low molecular-weight precursors is \code{min_len}).}
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation.}
 
-\item{ranges}{The range of spine knots}
+\item{range}{The range of spine knots}
 }
 \description{
 Calibrates precursor masses (by individual RAW_Files)

@@ -105,7 +105,7 @@ value is always 10.}
 
 \item{svm_tol}{Tolerance in FDR.}
 
-\item{...}{Not currently used.}
+\item{...}{Additional parameters for \link[e1071]{svm}.}
 }
 \description{
 Percolator

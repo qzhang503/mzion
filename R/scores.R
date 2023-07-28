@@ -961,13 +961,14 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
                "pep_ms2_moverzs", "pep_ms2_ints", 
                "pep_ms2_theos", "pep_ms2_theos2", 
                "pep_ms2_exptints", "pep_ms2_exptints2", 
-               "pep_n_matches", "pep_n_matches2", "pep_ms2_deltas", 
-               "pep_ms2_ideltas", "pep_ms2_deltas2", "pep_ms2_ideltas2", 
+               "pep_n_matches", "pep_n_matches2", 
+               "pep_ms2_deltas", "pep_ms2_ideltas", "pep_ms2_iexs", 
+               "pep_ms2_deltas2", "pep_ms2_ideltas2", "pep_ms2_iexs2", 
                "pep_ms2_deltas_mean", "pep_ms2_deltas_sd", 
                
                # for localization scores
                "pep_ms2_ideltas.")
-  
+
   df <- qs::qread(file.path(im_path, file))
   n_rows <- nrow(df)
   idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
@@ -1095,14 +1096,15 @@ hadd_primatches <- function (out_path = NULL, is_notched = FALSE,
   # the same as those in calcpepsc
   cols_sc <- c("pep_seq", "pep_n_ms2", "pep_scan_title", "pep_exp_mz", "pep_exp_mr", 
                "pep_tot_int", "pep_exp_z", "pep_ret_range", "pep_scan_num", "raw_file", 
-               "pep_mod_group", "pep_ms1_offset", # "pep_frame", 
+               "pep_mod_group", "pep_ms1_offset", 
                "pep_fmod", "pep_vmod", "pep_isdecoy", 
                "pep_calc_mr", "pep_ivmod", "pep_prob", "pep_len", 
                "pep_ms2_moverzs", "pep_ms2_ints", 
                "pep_ms2_theos", "pep_ms2_theos2", 
                "pep_ms2_exptints", "pep_ms2_exptints2", 
-               "pep_n_matches", "pep_n_matches2", "pep_ms2_deltas", 
-               "pep_ms2_ideltas", "pep_ms2_deltas2", "pep_ms2_ideltas2", 
+               "pep_n_matches", "pep_n_matches2", 
+               "pep_ms2_deltas", "pep_ms2_ideltas", "pep_ms2_iexs", 
+               "pep_ms2_deltas2", "pep_ms2_ideltas2", "pep_ms2_iexs2", 
                "pep_ms2_deltas_mean", "pep_ms2_deltas_sd", 
                
                # for localization scores
@@ -1182,8 +1184,10 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
                       
                       pep_ms2_deltas = NA_character_, 
                       pep_ms2_ideltas = NA_character_,
+                      pep_ms2_iexs <- NA_character_,
                       pep_ms2_deltas2 = NA_character_, 
                       pep_ms2_ideltas2 = NA_character_, 
+                      pep_ms2_iexs2 <- NA_character_,
                       
                       pep_ms2_deltas_mean = NA_real_, 
                       pep_ms2_deltas_sd = NA_real_, 
@@ -1195,7 +1199,8 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
   secs <- lapply(df$sec_matches, `[[`, 1)
 
   len <- length(pris)
-  p1s. <- m2s <- m1s <- iys2 <- iys1 <- sd1s <- me1s <- p2s <- d2s <- p1s <- d1s <- 
+  p1s. <- m2s <- m1s <- iys2 <- iys1 <- sd1s <- me1s <- 
+    e2s <- p2s <- d2s <- e1s <- p1s <- d1s <- 
     vector("list", len)
 
   for (i in 1:len) {
@@ -1210,6 +1215,8 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
 
     ps1 <- mt1[["ith"]]
     ps2 <- mt2[["ith"]]
+    es1 <- mt1[["iex"]]
+    es2 <- mt2[["iex"]]
     
     ds1 <- (ex1[ps1] - th1[ps1]) * 1E3
     ds2 <- (ex2[ps2] - th2[ps2]) * 1E3
@@ -1227,9 +1234,11 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
     
     p1s[[i]]  <- .Internal(paste0(list(ps1), collapse = ";", recycle0 = FALSE))
     p2s[[i]]  <- .Internal(paste0(list(ps2), collapse = ";", recycle0 = FALSE))
+    e1s[[i]]  <- .Internal(paste0(list(es1), collapse = ";", recycle0 = FALSE))
+    e2s[[i]]  <- .Internal(paste0(list(es2), collapse = ";", recycle0 = FALSE))
     iys1[[i]] <- .Internal(paste0(list(iy1[ps1]), collapse = ";", recycle0 = FALSE))
     iys2[[i]] <- .Internal(paste0(list(iy2[ps2]), collapse = ";", recycle0 = FALSE))
-    
+
     me1s[[i]] <- me1
     sd1s[[i]] <- sd1
     
@@ -1255,6 +1264,8 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
 
   df[["pep_ms2_ideltas"]] <- do.call(rbind, p1s)
   df[["pep_ms2_ideltas2"]] <- do.call(rbind, p2s)
+  df[["pep_ms2_iexs"]] <- do.call(rbind, e1s)
+  df[["pep_ms2_iexs2"]] <- do.call(rbind, e2s)
   df[["pep_n_matches"]] <- do.call(rbind, m1s)
   df[["pep_n_matches2"]] <- do.call(rbind, m2s)
   df[["pep_ms2_exptints"]] <- do.call(rbind, iys1)

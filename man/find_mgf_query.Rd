@@ -4,7 +4,7 @@
 \alias{find_mgf_query}
 \title{Finds matched MGF query.}
 \usage{
-find_mgf_query(mgf_path, raw_id, scan)
+find_mgf_query(mgf_path, raw_id, scan, to_global = TRUE)
 }
 \arguments{
 \item{mgf_path}{An MGF path.}
@@ -12,6 +12,8 @@ find_mgf_query(mgf_path, raw_id, scan)
 \item{raw_id}{The index of raw_file.}
 
 \item{scan}{A scan number or identifier.}
+
+\item{to_global}{Logical; if TRUE, assigned to the Global environment.}
 }
 \description{
 Finds matched MGF query.

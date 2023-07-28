@@ -85,6 +85,7 @@ cv_svm <- function (train, test, costs = c(10E-2, 10E-1, 1, 5, 50), ...)
 #' @param def_cost The default cost.
 #' @param svm_tol Tolerance in FDR.
 #' @param svm_iters The number of iterations.
+#' @param ... Additional parameters for \link[e1071]{svm}.
 #' @inheritParams matchMS
 perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL, 
                        target_fdr = .01, fdr_type = "protein", 
@@ -109,7 +110,7 @@ perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL,
   if (def_cost <= 0)
     def_cost <- 1L
   
-  if (svm_iters <= 0)
+  if (svm_iters <= 0L)
     svm_iters <- 10L
   
   if (svm_tol <= 0)
@@ -155,12 +156,12 @@ perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL,
   }
   
   if (!all(c("raw_file", "pep_scan_num") %in% cnms)) {
-    warning("Require columns \"raw_file\" and \"pep_scan_num\".")
+    warning("Require columns \"raw_file\" and \"pep_scan_num\" for SVM.")
     return(df)
   }
   
   if (!"pep_score" %in% cnms) {
-    warning("Column \"pep_score\" not found.")
+    warning("Column \"pep_score\" required for SVM not found.")
     return(df)
   }
   
@@ -179,8 +180,7 @@ perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL,
   }
 
   rm(list = c("cnms"))
-  
-  
+
   # --- initialization
   # metric for selecting high-quality training PSMs
   if (!"pep_expect" %in% svm_feats)
@@ -207,16 +207,12 @@ perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL,
   td <- keep_pepfdr_best(td, cols = c("pep_scan_num", "raw_file"))
   td[["y."]] <- as.factor(td[["pep_issig"]])
   
-  oks <- svm_feats %in% names(df)
-  
-  if (!all(oks)) {
+  if (!all(oks <- svm_feats %in% names(df))) {
     warning("SVM features not found: ", svm_feats[!oks])
     svm_feats <- svm_feats[oks]
   }
   
-  oks <- unlist(lapply(df[svm_feats], is.numeric))
-  
-  if (!all(oks)) {
+  if (!all(oks <- unlist(lapply(df[svm_feats], is.numeric)))) {
     warning("Non-numeric features excluded: ", svm_feats[!oks])
     svm_feats <- svm_feats[oks]
   }
@@ -226,7 +222,7 @@ perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL,
   
   rm(list = c("pf", "oks"))
   
-  svm_feats <- paste0(svm_feats, ".")
+  (svm_feats <- paste0(svm_feats, "."))
   
   if ("pep_expect." %in% svm_feats)
     td[["pep_expect."]] <- -log10(td[["pep_expect."]])
@@ -259,7 +255,6 @@ perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL,
   
   if (cross_valid) {
     mses  <- vector("numeric", length(costs))
-    
     folds <- create_folds(ta[["y."]], k = k)
     tests <- trains <- vector("list", k)
     
@@ -268,7 +263,7 @@ perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL,
       trains[[i]] <- ta[-folds[[i]], ]
     }
     
-    n_cores <- min(mzion:::detect_cores(16L), k)
+    n_cores <- min(detect_cores(16L), k)
     cl  <- parallel::makeCluster(getOption("cl.cores", n_cores))
     cvs <- parallel::clusterMap(cl, cv_svm, trains, tests, 
                                 MoreArgs = list(costs = costs), 
@@ -315,7 +310,6 @@ perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL,
   
   # if ((delta > 0) || (abs(delta) <= svm_tol)) return(prob_cos)
 
-  
   # --- iteration 
   fdr0 <- target_fdr
   fdr1 <- target_fdr * 5

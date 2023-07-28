@@ -1,5 +1,8 @@
 #' Visualization of matched MS2 ions.
 #'
+#' @param in_name An input file name of PSMs, such as psmQ.txt, psmC.txt,
+#'   psmT2.txt, psmT3.txt etc.
+#' @param out_name An output file name for saving the the plot of MS2 ions.
 #' @param out_path A file path where outputs of \link{matchMS} can be
 #'   identified.
 #' @param scan A scan number that can be found from the outputs. Positive
@@ -12,19 +15,18 @@
 #' @param rank Positive integer; the rank of a match. The default is one for the
 #'   best match.
 #' @param is_decoy Logical; is the match from decoy. The default is FALSE.
-#' @param filename An output file name for saving the the plot of MS2 ions.
-#' @inheritParams matchMS
+#' @param width Plot width.
+#' @param height Plot height.
 #' @rawNamespace import(ggplot2, except = c("%+%"))
 #' @examples
 #' \dontrun{
 #' library(mzion)
 #' 
-#' ans <- mapMS2ions(out_path = "a/mzion/output/folder",
-#'                   scan = 9933,
-#'                   raw_file = "a-raw-file-name.raw",
-#'                   rank = 1L,
-#'                   is_decoy = FALSE, 
-#'                   filename = "bar.png")
+#' ans <- mapMS2ions(
+#'     out_path = "a/mzion/output/folder", in_name = "psmQ.txt", 
+#'     out_name = "bar.png", raw_file = "a-raw-file-name.raw", scan = 9933, 
+#'     rank = 1L, is_decoy = FALSE, type_ms2ions = "by"
+#'   )
 #'
 #' # Custom plots
 #' library(ggplot2)
@@ -65,70 +67,189 @@
 #' p + annotate("text", -Inf, Inf, label = pep, hjust = -.2, vjust = 2)
 #' 
 #' }
+#' 
 #' @export
-mapMS2ions <- function (out_path = NULL, scan = 1234, 
-                        raw_file = "foo.raw", rank = 1L, is_decoy = FALSE, 
-                        type_ms2ions = "by", filename = NULL) 
+mapMS2ions <- function (out_path = NULL, in_name = "psmQ.txt", 
+                        out_name = "bar.png", raw_file = "foo.raw", 
+                        scan = 1234, rank = 1L, is_decoy = FALSE, 
+                        type_ms2ions = "by", width = 12.5, height = 6) 
 {
-  if (is.null(out_path))
-    stop("\"out_path\" cannot be NULL.", call. = FALSE)
+  if (is.null(out_path) || is.na(out_path) || out_path == "") {
+    warning("\"out_path\" cannot be empty.", call. = FALSE)
+    return(NULL)
+  }
   
-  if (is.null(filename)) 
-    filename <- "bar.png"
+  if (is.null(raw_file) || is.na(raw_file) || raw_file == "" ) {
+    warning("\"raw_file\" cannot be empty.", call. = FALSE)
+    return(NULL)
+  }
   
-  if (!is.character(filename)) 
-    filename <- as.character(substitute(filename))
+  if (is.null(in_name) || is.na(in_name) || in_name == "" ) {
+    warning("\"in_name\" is empty; assume `psmQ.txt`.", call. = FALSE)
+    in_name <- "psmQ.txt"
+  }
   
-  if (!is.character(raw_file)) 
-    raw_file <- as.character(substitute(raw_file))
+  if (is.null(out_name) || out_name == "") {
+    warning("\"out_name\" is empty; use `bar.png`.", call. = FALSE)
+    out_name <- "bar.png"
+  }
   
-  if (!is.character(type_ms2ions)) 
-    type_ms2ions <- as.character(substitute(type_ms2ions))
-
+  out_name <- check_ggname(out_name)
+  
+  # MGF
   mgf_path <- match_mgf_path(out_path)
   raw_id <- match_raw_id(raw_file, mgf_path)
   scan <- as.character(scan)
-
-  fileQ <- list.files(path = file.path(out_path), pattern = "^psmQ.*\\.txt$")
-  fileT2 <- list.files(path = file.path(out_path), pattern = "^psmT2.*\\.txt$")
-  fileT3 <- list.files(path = file.path(out_path), pattern = "^psmT3.*\\.txt$")
-  fileC <- list.files(path = file.path(out_path), pattern = "^psmC.*\\.txt$")
-  
-  lapply(c(fileQ, fileT2, fileT3, fileC), check_existed_psms)
-
-  file_t1 <- file.path(out_path, fileQ)
-  file_t2 <- file.path(out_path, fileT2)
-  file_t3 <- file.path(out_path, fileT3)
-  file_t0 <- file.path(out_path, fileC)
-
-  ## PSMs
-  psm <- find_psm_rows(file_t0 = file_t0, file_t1 = file_t1, file_t2 = file_t2, 
-                       file_t3 = file_t3, scan = scan, raw_file = raw_file, 
-                       rank = rank, is_decoy = is_decoy)
-
-  ## Matches
-  theoexpt_pair <- find_theoexpt_pair(psm = psm, out_path = out_path, 
-                                      scan = scan, raw_id = raw_id, 
-                                      is_decoy = is_decoy)
-  theoexpt <- theoexpt_pair$theoexpt
-  theoexpt2 <- theoexpt_pair$theoexpt2
-  
-  ## MGFs
   mgf_ok <- find_mgf_query(mgf_path, raw_id, scan)
-
-  ## Trio: theo-expt-mgf
-  th_ex_mgf <- list(theo = theoexpt$theo, 
-                    expt = theoexpt$expt, 
-                    theo2 = theoexpt2$theo, 
-                    expt2 = theoexpt2$expt, 
-                    ms2_moverz = mgf_ok$ms2_moverz[[1]], 
+  mgf <- data.frame(ms2_moverz = mgf_ok$ms2_moverz[[1]], 
                     ms2_int = mgf_ok$ms2_int[[1]])
+  mgf$iex <- seq_len(nrow(mgf))
+  
+  ## PSMs
+  cols_excl <- c("pep_ms2_moverzs", "pep_ms2_ints", "pep_ms2_theos", 
+                 "pep_ms2_theos2", "pep_ms2_exptints", "pep_ms2_exptints2", 
+                 "pep_n_matches", "pep_n_matches2")
+  
+  if (file.exists(fi_psm <- file.path(out_path, in_name))) {
+    gl_vals <- ls(all.names = TRUE, envir = .GlobalEnv)
+    ok_psms <- any(gl_vals == ".psms")
 
-  duos <- combine_prisec_matches(th_ex_mgf, type_ms2ions)
-  duo <- duos$duo
+    ok_file <- if (any(gl_vals == ".psm_file"))
+      identical(get(".psm_file", envir = .GlobalEnv), fi_psm)
+    else
+      FALSE
+
+    if (ok_psms && ok_file) {
+      .psms <- get(".psms", envir = .GlobalEnv)
+    }
+    else {
+      .psms <- readr::read_tsv(fi_psm, show_col_types = FALSE, 
+                               col_types = get_mzion_coltypes()) 
+      .psms <- .psms[, -which(names(.psms) %in% cols_excl), drop = FALSE]
+      assign(".psms", .psms, envir = .GlobalEnv)
+      assign(".psm_file", file.path(out_path, in_name), envir = .GlobalEnv)
+    }
+    
+    psm <- .psms |>
+      dplyr::filter(pep_scan_num == scan, 
+                    .data$raw_file == .env$raw_file, 
+                    pep_rank == rank,
+                    pep_isdecoy == is_decoy) 
+    psm <- psm[, -grep("^prot_", names(psm)), drop = FALSE]
+    # can be duplicated by prot_accs
+    psm <- unique(psm)
+  }
+  else {
+    warning("PSM file not found: ", fi_psm)
+    return(NULL)
+  }
+  
+  if (!(nrow <- nrow(psm))) {
+    warning("PSM entry not found. Check the correctness of scan number etc.")
+    return(NULL)
+  }
+  
+  if (nrow > 1L) {
+    warning("Multiple PSMs found and the the first match being used.")
+    psm <- psm[1, , drop = FALSE]
+  }
+  
+  cols_duo <- c("ms2_moverz", "theo", "ms2_int", "site", "type", "label")
+  aas <- strsplit(psm$pep_seq, "")[[1]]
+  naa <- length(aas)
+  
+  ## Primary
+  duo <- local({
+    ion_types <- unlist(strsplit(type_ms2ions, ""))
+    
+    if (length(ion_types) != 2L)
+      stop("Not a two-character `type_ms2ions = ", type_ms2ions, "`.", 
+           call. = FALSE)
+    
+    cols_pri <- c("pep_ms2_deltas", "pep_ms2_ideltas", "pep_ms2_iexs")
+
+    if (!all(oks <- cols_pri %in% names(psm))) {
+      warning("PSM columns not found: ", paste(cols_pri[!oks], collapse = ", "), 
+              "\nPlease use the latest version of mzion.")
+      return(NULL)
+    }
+
+    theoexpt <- lapply(psm[, cols_pri], function (x) strsplit(x, ";")[[1]]) |>
+      dplyr::bind_cols() |>
+      dplyr::mutate(pep_ms2_deltas = as.numeric(pep_ms2_deltas)/1E3, 
+                    pep_ms2_ideltas = as.integer(pep_ms2_ideltas), 
+                    pep_ms2_iexs = as.integer(pep_ms2_iexs)) |>
+      dplyr::rename(ith = pep_ms2_ideltas, iex = pep_ms2_iexs)
+    
+    duo <- data.frame(site = c(aas, aas[naa:1L]))
+    duo$ith <- seq_len(nrow(duo))
+    duo$type <- rep(ion_types, each = naa)
+    idxes <- paste0("(", seq_len(naa), ")")
+    duo$label <- unlist(lapply(ion_types, function (x) paste0(x, idxes)))
+    
+    duo <- duo |>
+      dplyr::left_join(theoexpt, by = "ith")  |> 
+      dplyr::arrange(ith) |>
+      dplyr::left_join(mgf, by = "iex") |> 
+      dplyr::mutate(theo = ms2_moverz + pep_ms2_deltas) |> 
+      dplyr::select(cols_duo)
+  })
+  
+  ## Secondary
+  duo2 <- local({
+    cols_sec <- c("pep_ms2_deltas2", "pep_ms2_ideltas2", "pep_ms2_iexs2")
+    
+    if (!all(oks <- cols_sec %in% names(psm))) {
+      warning("PSM columns not found: ", paste(cols_sec[!oks], collapse = ", "), 
+              "\nPlease use the latest version of mzion.")
+      return(NULL)
+    }
+
+    theoexpt2 <- lapply(psm[, cols_sec], function (x) strsplit(x, ";")[[1]]) |>
+      dplyr::bind_cols() |>
+      dplyr::mutate(pep_ms2_deltas2 = as.numeric(pep_ms2_deltas2)/1E3, 
+                    pep_ms2_ideltas2 = as.integer(pep_ms2_ideltas2), 
+                    pep_ms2_iexs2 = as.integer(pep_ms2_iexs2)) |>
+      dplyr::rename(ith = pep_ms2_ideltas2, iex = pep_ms2_iexs2) 
+    
+    ion_types2 <- find_secion_types(type_ms2ions)
+    nsec   <- length(ion_types2)/2L
+    type2  <- rep(ion_types2, each = naa)
+    idxes2 <- paste0("(", seq_len(naa), ")")
+    labs2  <- unlist(lapply(ion_types2, function (x) paste0(x, idxes2)))
+    
+    duo2 <- data.frame(site = c(rep(aas, nsec), rep(aas[naa:1L], nsec)), 
+                       ith = seq_len(nsec * 2L * naa), 
+                       type = type2, label = labs2)
+    
+    duo2 <- duo2 |>
+      dplyr::left_join(theoexpt2, by = "ith")  |>
+      dplyr::arrange(ith) |>
+      dplyr::left_join(mgf, by = "iex") |>
+      dplyr::mutate(theo = ms2_moverz + pep_ms2_deltas2) |>
+      dplyr::select(cols_duo)
+  })
+  
+  duos <- list(duo = duo, duo2 = duo2, mgf = mgf[, c("ms2_moverz", "ms2_int")])
+  plotMS2ions(duos, out_path = out_path, out_name = out_name, width = width, 
+              height = height)
+}
+
+
+#' Plots matched MS2 ions
+#' 
+#' @param duos The duo of MGF data and matched data.
+#' @param out_path An output path.
+#' @param out_name An output file name for saving the the plot of MS2 ions.
+#' @param width Plot width.
+#' @param height Plot height.
+plotMS2ions <- function (duos, out_path = "~", out_name = "bar.png", 
+                         width = 12.5, height = 9)
+{
+  duo  <- duos$duo
   duo2 <- duos$duo2
-  mgf <- duos$mgf
-
+  mgf  <- duos$mgf
+  
   ## Visualizations
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     warning("\n======================================================", 
@@ -166,10 +287,15 @@ mapMS2ions <- function (out_path = NULL, scan = 1234,
   }
   
   pep <- paste0(duo$site[1:(nrow(duo)/2L)], collapse = " ")
-  p <- p + annotate("text", -Inf, Inf, label = pep, hjust = -.2, vjust = 2)
-  ggplot2::ggsave(file.path(out_path, filename), width = 8, height = 5)
-  
-  invisible(list(mgf = mgf, duo = duo, duo2 = duo2))
+  p <- p + 
+    annotate("text", -Inf, Inf, label = pep, hjust = -.2, vjust = 2)
+  ggplot2::ggsave(file.path(out_path, out_name), width = width, height = height)
+
+  ans <- list(mgf = mgf, duo = duo, duo2 = duo2, p = p)
+  rds <- paste0(gsub("\\.[^.]*$", "", out_name), ".rds")
+  saveRDS(ans, file.path(out_path, rds))
+
+  invisible(ans)
 }
 
 
@@ -249,281 +375,13 @@ find_secion_types <- function (type_ms2ions = "by")
 }
 
 
-#' Extracts the first row of matched PSMs.
-#' 
-#' @param file_t0 The filename of psmC results.
-#' @param file_t1 The filename of tier-1 PSMs.
-#' @param file_t2 The filename of tier-1 PSMs.
-#' @param file_t3 The filename of tier-1 PSMs.
-#' @param scan A scan number or identifier.
-#' @inheritParams mapMS2ions
-find_psm_rows <- function (file_t0, file_t1, file_t2, file_t3, scan, raw_file, 
-                           rank = 1L, is_decoy = FALSE) 
-{
-  psm <- find_psm_rowsQ(file_t1 = file_t1, file_t2 = file_t2, file_t3 = file_t3, 
-                        scan = scan, raw_file = raw_file, rank = rank, 
-                        is_decoy = is_decoy)
-  
-  nrow <- nrow(psm)
-  
-  if (!nrow) {
-    psm <- find_psm_rowsC(file_t0 = file_t0, scan = scan, raw_file = raw_file, 
-                          rank = rank, is_decoy = is_decoy)
-    nrow <- nrow(psm)
-  }
-  
-  if (!nrow)
-    stop("PSM entry not found.", call. = FALSE)
-  
-  if (nrow > 1L) {
-    warning("Multiple PSMs matched (e.g. at different neutral losses);", 
-            " used the first match.")
-    psm <- psm[1, ]
-  }
-  
-  invisible(psm)
-}
-
-
-#' Extracts the first row of matched PSMs from tiers 1-3.
-#' 
-#' @inheritParams find_psm_rows
-find_psm_rowsQ <- function (file_t1, file_t2, file_t3, scan, raw_file, 
-                            rank = 1L, is_decoy = FALSE) 
-{
-  ok <- any(ls(all.names = TRUE, envir = .GlobalEnv) == ".psms")
-  
-  if (ok) {
-    .psms <- get(".psms", envir = .GlobalEnv)
-  }
-  else {
-    psms_1 <- readr::read_tsv(file_t1, show_col_types = FALSE, 
-                              col_types = get_mzion_coltypes())
-    
-    if (length(file_t2)) 
-      psms_2 <- readr::read_tsv(file_t2, show_col_types = FALSE, 
-                                col_types = get_mzion_coltypes())
-    else 
-      psms_2 <- NULL
-    
-    if (length(file_t3)) 
-      psms_3 <- readr::read_tsv(file_t3, show_col_types = FALSE, 
-                                col_types = get_mzion_coltypes())
-    else 
-      psms_3 <- NULL
-    
-    cols_excl <- c("pep_ms2_moverzs", "pep_ms2_ints", "pep_ms2_theos", 
-                   "pep_ms2_theos2", "pep_ms2_deltas", "pep_ms2_ideltas", 
-                   "pep_ms2_deltas2", "pep_ms2_ideltas2")
-
-    if (!is.null(psms_1)) psms_1 <- psms_1 %>% dplyr::select(-which(names(.) %in% cols_excl))
-    if (!is.null(psms_2)) psms_2 <- psms_2 %>% dplyr::select(-which(names(.) %in% cols_excl))
-    if (!is.null(psms_3)) psms_3 <- psms_3 %>% dplyr::select(-which(names(.) %in% cols_excl))
-
-    # psms_1, _2 and _3 can have overlaps
-    # (the same pep_seq to different prot_accs and thus different tiers)
-    .psms <- dplyr::bind_rows(psms_1, psms_2, psms_3) %>% 
-      dplyr::mutate(pep_scan_num = as.character(pep_scan_num))
-    
-    assign(".psms", .psms, envir = .GlobalEnv)
-  }
-  
-  .psms %>% 
-    dplyr::filter(pep_scan_num == scan, 
-                  .data$raw_file == .env$raw_file, 
-                  pep_rank == rank,
-                  pep_isdecoy == is_decoy) %>% 
-    # can be duplicated by prot_accs
-    # no pep_start and pep_end in the data.frame -> no duplication per se
-    dplyr::select(-grep("^prot_", names(.))) %>% 
-    unique()
-}
-
-
-#' Extracts the first row of matched PSMs from psmC.
-#' 
-#' @inheritParams find_psm_rows
-find_psm_rowsC <- function (file_t0, scan, raw_file, rank = 1L, 
-                            is_decoy = FALSE) 
-{
-  ok <- any(ls(all.names = TRUE, envir = .GlobalEnv) == ".psmC")
-  
-  if (ok) {
-    .psms <- get(".psmC", envir = .GlobalEnv)
-  }
-  else {
-    .psms <- readr::read_tsv(file_t0, show_col_types = FALSE) %>% 
-      dplyr::mutate(pep_scan_num = as.character(pep_scan_num))
-    
-    assign(".psmC", .psms, envir = .GlobalEnv)
-  }
-  
-  .psms %>% 
-    dplyr::filter(pep_scan_num == scan, 
-                  .data$raw_file == .env$raw_file, 
-                  pep_rank == rank,
-                  pep_isdecoy == is_decoy) %>% 
-    dplyr::select(-grep("^prot_", names(.))) %>% 
-    unique()
-}
-
-
-#' Finds the pairs of theoretical and experimental values.
-#' 
-#' @param psm Matched PSM.
-#' @param out_path An output path.
-#' @param raw_id The index of raw_file.
-#' @param scan A scan number or identifier.
-#' @inheritParams mapMS2ions
-find_theoexpt_pair <- function (psm, out_path, scan, raw_id, is_decoy = FALSE) 
-{
-  tempdir <- file.path(out_path, "temp")
-  col_nms <- names(psm)
-  
-  lapply(c("pep_seq", "pep_ivmod", "pep_mod_group"), function (x) {
-    if (! x %in% col_nms) stop("PSM column not found: ", x)
-  })
-
-  # is.na(psm$pep_ivmod) with decoy entries
-  pep_seq <- psm$pep_seq
-  pep_ivmod <- psm$pep_ivmod
-  
-  mod <- psm$pep_mod_group
-  nm <- paste0(".ion_matches_", mod)
-  nm2 <- paste0(".list_table_", mod)
-  
-  ok <- local({
-    objs <- ls(all.names = TRUE, envir = .GlobalEnv)
-    all(c(nm, nm2) %in% objs)
-  })
-  
-  if (ok) {
-    .ion_matches <- get(nm, envir = .GlobalEnv)
-    .list_table <- get(nm2, envir = .GlobalEnv)
-  }
-  else {
-    file  <- file.path(tempdir, paste0("ion_matches_", mod, ".rds"))
-    file2 <- file.path(tempdir, paste0("list_table_",  mod, ".rds"))
-    
-    if (!file.exists(file))
-      stop("Ion matches not found: ", file, call. = FALSE)
-    
-    if (!file.exists(file2)) {
-      fs_mod <- order_fracs("list_table", tempdir)[[mod]]
-      
-      if (!length(fs_mod))
-        stop("Secondary ion matches not found: ", file)
-      else
-        combine_fracs(fs_mod, tempdir, tempdir)
-    }
-
-    .ion_matches <- 
-      qs::qread(file) %>% 
-      dplyr::mutate(pep_scan_num = as.character(pep_scan_num))
-    
-    .list_table <- 
-      qs::qread(file2) %>%
-      dplyr::mutate(pep_scan_num = as.character(pep_scan_num))
-    
-    if (! "pep_mod_group" %in% names(.list_table))
-      .list_table$pep_mod_group <- mod
-    
-    assign(nm, .ion_matches, envir = .GlobalEnv)
-    assign(nm2, .list_table, envir = .GlobalEnv)
-  }
-  
-  ion_match <- .ion_matches %>% 
-    dplyr::filter(pep_scan_num == scan, 
-                  raw_file == raw_id, 
-                  # pep_isdecoy == is_decoy, 
-                  )
-  
-  list_table <- .list_table %>% 
-    dplyr::filter(pep_scan_num == scan, 
-                  raw_file == raw_id, )
-  
-  nrow <- nrow(ion_match)
-  
-  if (!nrow)
-    stop("PSM not found.", call. = FALSE)
-  
-  if (nrow > 1L) {
-    warning("Multiple PSMs found and the the first match being used.")
-    ion_match <- ion_match[1, ]
-  }
-  
-  # theo-expt pairs (unlist from list table)
-  theoexpt <- ion_match$matches[[1]]
-  
-  # (1) matched by `pep_seq`
-  if (is_decoy)
-    names(theoexpt) <- reverse_seqs(names(theoexpt))
-
-  theoexpt <- theoexpt[names(theoexpt) == pep_seq]
-  
-  if (length(theoexpt) > 1L) {
-    warning("Multiple `pep_seq` matches and used the first one.")
-    theoexpt <- theoexpt[1]
-  }
-  
-  # unlist from the current list
-  theoexpt <- theoexpt[[1]]
-  
-  # (2) matched by pep_ivmod
-  # (pep_seq matched but can still have multiple pep_ivmod's)
-  if (!is_decoy)
-    theoexpt <- theoexpt[names(theoexpt) == pep_ivmod]
-
-  # (can have multiple NLs)
-  if (length(theoexpt) > 1L) {
-    warning("Multiple `pep_ivmod` matches and used the first one.")
-    theoexpt <- theoexpt[1]
-  }
-  
-  # unlist from the current list
-  theoexpt <- theoexpt[[1]]
-  
-  ## list_table
-  # (1) match by identical primary matches
-  list_table <- local({
-    # unlist
-    pris <- lapply(list_table$pri_matches, `[[`, 1)
-    
-    # matched by the same ion ladder of `theo`s
-    # (e.g. will exclude ladders at unmatched `pep_ivmod`)
-    rows <- unlist(lapply(pris, function (x) identical(x$theo, theoexpt$theo)), 
-                   use.names = FALSE)
-    
-    list_table <- list_table[rows, ]
-    
-    if (nrow(list_table) > 1L) {
-      warning("More than one primary match; used the first one.")
-      list_table <- list_table[1, ]
-    }
-    
-    list_table
-  })
-  
-  theoexpt2 <- list_table$sec_matches[[1]]
-  
-  # may still need to unlist
-  while(is.list(theoexpt2) && length(theoexpt2) == 1L) {
-    theoexpt2 <- theoexpt2[[1]]
-  }
-  
-  names(theoexpt2$expt) <- names(theoexpt2$theo)
-  
-  list(theoexpt = theoexpt, 
-       theoexpt2 = theoexpt2)
-}
-
-
 #' Finds matched MGF query.
 #' 
 #' @param mgf_path An MGF path.
 #' @param raw_id The index of raw_file.
 #' @param scan A scan number or identifier.
-find_mgf_query <- function (mgf_path, raw_id, scan) 
+#' @param to_global Logical; if TRUE, assigned to the Global environment.
+find_mgf_query <- function (mgf_path, raw_id, scan, to_global = TRUE) 
 {
   ok <- any(ls(all.names = TRUE, envir = .GlobalEnv) == ".mgf_queries")
   
@@ -536,18 +394,17 @@ find_mgf_query <- function (mgf_path, raw_id, scan)
     if (!length(files))
       stop("No parsed `mgf_queries.rds` under ", mgf_path, call. = FALSE)
     
-    .mgf_queries <- 
-      lapply(files, function (x) qs::qread(file.path(mgf_path, x))) %>% 
-      do.call(rbind, .) %>% 
-      dplyr::mutate(scan_num = as.character(scan_num))
-    
-    assign(".mgf_queries", .mgf_queries, envir = .GlobalEnv)
+    .mgf_queries <- lapply(files, function (x) qs::qread(file.path(mgf_path, x)))
+    .mgf_queries <- do.call(rbind, .mgf_queries)
+    .mgf_queries <- dplyr::mutate(.mgf_queries, scan_num = as.character(scan_num))
+
+    if (to_global)
+      assign(".mgf_queries", .mgf_queries, envir = .GlobalEnv)
   }
   
-  mgf <- .mgf_queries %>% 
-    dplyr::filter(raw_file == raw_id, 
-                  scan_num == scan)
-  
+  mgf <- .mgf_queries |>
+    dplyr::filter(raw_file == raw_id, scan_num == scan)
+
   nrow <- nrow(mgf)
   
   if (!nrow) {
@@ -557,86 +414,17 @@ find_mgf_query <- function (mgf_path, raw_id, scan)
   }
   else if (nrow > 1L) {
     warning("Multiple `mgf_query` matches and used the first one.")
-    mgf <- mgf[1, ]
+    mgf <- mgf[1, , drop = FALSE]
   }
   
   mgf
 }
 
 
-#' Combines primary and secondary matches.
-#' 
-#' @param th_ex_mgf The results of theoretical, experimental and MGF.
-#' @inheritParams matchMS
-combine_prisec_matches <- function (th_ex_mgf, type_ms2ions = "by") 
-{
-  mgf <- data.frame(ms2_moverz = th_ex_mgf$ms2_moverz, 
-                    ms2_int = th_ex_mgf$ms2_int)
-  
-  # primary
-  duo <- data.frame(ms2_moverz = th_ex_mgf$expt, theo = th_ex_mgf$theo) %>% 
-    dplyr::left_join(mgf, by = "ms2_moverz") %>% 
-    dplyr::mutate(site = names(th_ex_mgf$expt))
-  
-  ion_types <- unlist(strsplit(type_ms2ions, ""))
-  n <- 2L
-  
-  if (!(length(ion_types) == n))
-    stop("Not a two-character `type_ms2ions = ", type_ms2ions, "`.", 
-         call. = FALSE)
-  
-  len <- nrow(duo)/n
-  type <- rep(ion_types, each = len)
-  idxes <- paste0("(", 1:len, ")")
-  labs <- unlist(lapply(ion_types, function (x) paste0(x, idxes)))
-  
-  duo <- duo %>% dplyr::mutate(type = type, label = labs)
-
-  # secondary
-  if (!all(is.na(th_ex_mgf$expt2))) {
-    duo2 <- data.frame(ms2_moverz = th_ex_mgf$expt2, theo = th_ex_mgf$theo2) %>% 
-      dplyr::left_join(mgf, by = "ms2_moverz") %>% 
-      dplyr::mutate(site = names(th_ex_mgf$expt2))
-    
-    ion_types2 <- find_secion_types(type_ms2ions)
-    type2 <- rep(ion_types2, each = len)
-    idxes2 <- idxes
-    labs2 <- unlist(lapply(ion_types2, function (x) paste0(x, idxes2)))
-    
-    duo2 <- duo2 %>% dplyr::mutate(type = type2, label = labs2)
-  }
-  else {
-    duo2 <- duo[0, ]
-  }
-  
-  list(duo = duo, duo2 = duo2, mgf = mgf)
-}
-
-
-#' Checks the existing PSM files.
-#' 
-#' Required: psmQ, psmC; Optional: psmT2, psmT3
-#' 
-#' @param x A PSM file type.
-check_existed_psms <- function (x) 
-{
-  type <- gsub("^(psm.*)\\.txt$", "\\1", x)
-  len <- length(x)
-  
-  if (!len) {
-    if (type %in% c("psmQ", "psmC")) {
-      stop("No `", type, "` results.", call. = FALSE)
-    }
-  } 
-  else if (len > 1L) {
-    stop("No more than one `", type, "` results.", call. = FALSE)
-  }
-}
-
-
 #' Gets column types.
 #' 
 #' @import readr
+#' @export
 get_mzion_coltypes <- function () 
 {
   col_types_pq <- cols(
@@ -702,3 +490,26 @@ get_mzion_coltypes <- function ()
   col_types_pq
 }
 
+
+#' Checks file names for ggsave
+#' 
+#' The same as proteoQ::gg_imgname.
+#' 
+#' @param filename Character string; An output file name.
+check_ggname <- function(filename) 
+{
+  fn_suffix <- gsub("^.*\\.([^.]*)$", "\\1", filename)
+  fn_prefix <- gsub("\\.[^.]*$", "", filename)
+  
+  exts <- c("png", "eps", "ps", "tex", "pdf", "jpeg", "tiff", "png", "bmp", "svg") 
+  
+  if(!fn_suffix %in% exts) {
+    warning("Unrecognized file extenstion: '", fn_suffix, 
+            "'. Image will be saved as a '.png'.", 
+            call. = FALSE)
+    
+    fn_suffix <- "png"
+  }
+  
+  paste0(fn_prefix, ".", fn_suffix)
+}

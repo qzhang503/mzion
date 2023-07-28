@@ -459,7 +459,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL,
 #' 
 #' @param filename An MGF file name
 #' @param df A data frame of \code{ion_matches_1.rds}
-#' @param ranges The range of spine knots
+#' @param range The range of spine knots
 #' @inheritParams calib_mgf
 calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL, 
                        ppm_ms1 = 20L, min_mass = 200L, max_mass = 4500L, 
