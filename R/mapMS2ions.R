@@ -97,9 +97,11 @@ mapMS2ions <- function (out_path = NULL, in_name = "psmQ.txt",
   out_name <- check_ggname(out_name)
   
   # MGF
+  fi_psm <- file.path(out_path, in_name)
   mgf_path <- match_mgf_path(out_path)
   raw_id <- match_raw_id(raw_file, mgf_path)
   scan <- as.character(scan)
+  
   mgf_ok <- find_mgf_query(mgf_path, raw_id, scan)
   
   if (is.null(mgf_ok) || !nrow(mgf_ok)) {
@@ -116,7 +118,7 @@ mapMS2ions <- function (out_path = NULL, in_name = "psmQ.txt",
                  "pep_ms2_theos2", "pep_ms2_exptints", "pep_ms2_exptints2", 
                  "pep_n_matches", "pep_n_matches2")
   
-  if (file.exists(fi_psm <- file.path(out_path, in_name))) {
+  if (file.exists(fi_psm)) {
     gl_vals <- ls(all.names = TRUE, envir = .GlobalEnv)
     ok_psms <- any(gl_vals == ".psms")
 
@@ -400,9 +402,15 @@ find_secion_types <- function (type_ms2ions = "by")
 #' @param to_global Logical; if TRUE, assigned to the Global environment.
 find_mgf_query <- function (mgf_path, raw_id, scan, to_global = TRUE) 
 {
-  ok <- any(ls(all.names = TRUE, envir = .GlobalEnv) == ".mgf_queries")
+  gl_vals <- ls(all.names = TRUE, envir = .GlobalEnv)
+  ok_mgfs <- any(gl_vals == ".mgf_queries")
   
-  if (ok) {
+  ok_file <- if (any(gl_vals == ".mgf_path"))
+    identical(get(".mgf_path", envir = .GlobalEnv), mgf_path)
+  else
+    FALSE
+  
+  if (ok_mgfs && ok_file) {
     .mgf_queries <- get(".mgf_queries", envir = .GlobalEnv)
   }
   else {
@@ -418,9 +426,11 @@ find_mgf_query <- function (mgf_path, raw_id, scan, to_global = TRUE)
     .mgf_queries <- do.call(rbind, .mgf_queries)
     .mgf_queries <- dplyr::mutate(.mgf_queries, scan_num = as.character(scan_num))
 
-    if (to_global)
+    if (to_global) {
       assign(".mgf_queries", .mgf_queries, envir = .GlobalEnv)
-    
+      assign(".mgf_path", mgf_path, envir = .GlobalEnv)
+    }
+
     rm(list = "files")
   }
   
