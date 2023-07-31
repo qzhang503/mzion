@@ -2,7 +2,7 @@
 % Please edit documentation in R/unimods.R
 \name{parse_unimod_composition}
 \alias{parse_unimod_composition}
-\title{Parses A unimod position.}
+\title{Parses A Unimod position.}
 \usage{
 parse_unimod_composition(composition = "H(4) C O S")
 }
@@ -10,5 +10,5 @@ parse_unimod_composition(composition = "H(4) C O S")
 \item{composition}{A chemical composition.}
 }
 \description{
-Parses A unimod position.
+Parses A Unimod position.
 }

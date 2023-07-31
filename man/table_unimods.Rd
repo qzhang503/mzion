@@ -7,7 +7,7 @@
 table_unimods(out_nm = "~/mzion/unimods.txt")
 }
 \arguments{
-\item{out_nm}{A name to outputs.}
+\item{out_nm}{A name to outputs. If NULL, outputs will not be saved.}
 }
 \description{
 For convenience summary of the \code{title}, \code{site} and \code{position}.

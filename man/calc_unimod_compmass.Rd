@@ -17,14 +17,7 @@ Calculates the masses of a chemical formula.
 }
 \examples{
 \donttest{
-library(mzion)
-
-## Error
-# comp <- "N(+1) 15N(-1)"
-# m <- mzion:::calc_unimod_compmass(comp)
-
-## Instead 
 comp <- "N(1) 15N(-1)"
-m <- mzion:::calc_unimod_compmass(comp)
+m <- mzion::calc_unimod_compmass(comp)
 }
 }

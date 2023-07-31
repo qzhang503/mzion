@@ -777,6 +777,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   on.exit(
     if (exists(".savecall", envir = environment())) {
       if (.savecall) {
+        # Don't: "fun = fun"; seem name collide of `fun` when called from Shiny
         tryCatch(save_call2(path = file.path(out_path, "Calls"), fun = "matchMS"), 
                  error = function(e) NA)
       }
