@@ -1,14 +1,15 @@
 Mzion
 ================
 true
-2023-07-19
+2023-08-01
 
 - [Installation](#installation)
 - [Peaklist formats](#peaklist-formats)
+- [Database searches (via an app)](#database-searches-via-an-app)
 - [Help documents](#help-documents)
 - [Specifications of fixed and variable
   modifications](#specifications-of-fixed-and-variable-modifications)
-- [Database searches](#database-searches)
+- [Database searches (via R scripts)](#database-searches-via-r-scripts)
 - [Data QC and mining](#data-qc-and-mining)
 - [Other utilities](#other-utilities)
 - [Cite Mzion](#cite-mzion)
@@ -22,11 +23,8 @@ if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 devtools::install_github("qzhang503/mzion")
 
-# Shiny App (optional):
+# or install both Mzion and its Shiny App:
 devtools::install_github("qzhang503/mzionShiny")
-
-library(mzionShiny)
-run_app()
 ```
 
 ## Peaklist formats
@@ -48,6 +46,13 @@ run_app()
 - Bruker’s MS
   - [x] `DataAnalysis mgf`
 
+## Database searches (via an app)
+
+``` r
+library(mzionShiny)
+run_app()
+```
+
 ## Help documents
 
 Enter `?mzion::matchMS` from an R console.
@@ -65,13 +70,13 @@ modification is `title (position = site)` where title is a unique
 character string without space. At a position of “Anywhere”, the
 modification can be shorthanded as `title (site)`, for example,
 `TMT10plex (K)`. For a terminal modification at any site, it can be
-abbreviated as `title (position)`, for example,
+abbreviated as `title (position)`, for examples,
 `Acetyl (Protein N-term)` and `TMT10plex (N-term)`. There are
 circumstances that both position and site are needed for specifying a
 modification, for instance, `Gln->pyro-Glu (N-term = Q)`. More examples
 are available in the help document of Mzion utility of `parse_unimod`.
 
-## Database searches
+## Database searches (via R scripts)
 
 ``` r
 ## Global, TMT-10plex
@@ -115,7 +120,7 @@ matchMS(
   fdr_type  = "psm",
 )
 
-## See also ?matchMS for SILAC, acetylome workflows and more.
+## See also ?matchMS for SILAC, acetylome workflows etc.
 ```
 
 ## Data QC and mining

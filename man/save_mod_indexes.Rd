@@ -4,7 +4,7 @@
 \alias{save_mod_indexes}
 \title{Saves mod_indexes.txt}
 \usage{
-save_mod_indexes(out_path = NULL, fixedmods, varmods, f_to_v)
+save_mod_indexes(out_path = NULL, fixedmods, varmods, f_to_v, collapse = FALSE)
 }
 \arguments{
 \item{out_path}{An output path}
@@ -14,6 +14,9 @@ save_mod_indexes(out_path = NULL, fixedmods, varmods, f_to_v)
 \item{varmods}{Variable modifications}
 
 \item{f_to_v}{Coerced fixed to variable modifications}
+
+\item{collapse}{Logical; if TRUE, collapses modification indexes at the same
+title.}
 }
 \description{
 Saves mod_indexes.txt

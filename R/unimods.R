@@ -1222,10 +1222,6 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
 
   this_spec <- nodes_mod_ch[ok_sitepos]
   
-  # After "complete" removals of `specificity`, 
-  # a modification may have `delta` without `specificity`.
-  # This seems innocuous for now or simply `remove_unimod_title`.
-
   if (neuloss_mono_mass == "0") {
     xml2::xml_remove(this_spec)
     nodes_mod_ch <- xml2::xml_children(this_mod)
@@ -1287,6 +1283,14 @@ remove_unimod <- function (header = c(title = "Foo", full_name = "Foo bar"),
     message("NeutralLoss at `mono_mass = ", neuloss_mono_mass, "`, ", 
             "`site = ", site, "` and `position = ", position, 
             "` removed from `title = ", title, "`.")
+  }
+  
+  # Remove the node if no more sites under the title
+  nodes_mod_ch <- xml2::xml_children(this_mod)
+  attrs_mod_ch <- xml2::xml_attrs(nodes_mod_ch)
+  
+  if (all(is.na(unlist(lapply(attrs_mod_ch, `[`, c("site")))))) {
+    remove_unimod_title(title)
   }
   
   invisible(xml_root)

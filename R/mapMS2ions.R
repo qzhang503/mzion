@@ -449,6 +449,124 @@ find_mgf_query <- function (mgf_path, raw_id, scan, to_global = TRUE)
 }
 
 
+#' Makes spectrum library
+#'
+#' @param score_co The cut-off in PSM scores for library construction.
+#' @param mdev_co The cut-off in PSM \code{pep_ms2_deltas_mean}. The default is
+#'   5 (ppm).
+#' @param sd_co The cut-off in PSM \code{pep_ms2_deltas_sd}. The default is 10.
+#' @inheritParams mapMS2ions
+#' @export
+make_speclib <- function (out_path = NULL, in_name = "psmQ.txt", score_co = 15, 
+                          mdev_co = 5, sd_co = 10, type_ms2ions = "by")
+{
+  if (is.null(out_path) || is.na(out_path) || out_path == "") {
+    warning("\"out_path\" cannot be empty.", call. = FALSE)
+    return(NULL)
+  }
+  
+  if (is.null(in_name) || is.na(in_name) || in_name == "" ) {
+    warning("\"in_name\" is empty; assume `psmQ.txt`.", call. = FALSE)
+    in_name <- "psmQ.txt"
+  }
+  
+  if (!file.exists(fileQ <- file.path(out_path, in_name))) {
+    warning("PSM file not found: ", fileQ)
+    return(NULL)
+  }
+  
+  if (length(ion_types <- unlist(strsplit(type_ms2ions, ""))) != 2L)
+    stop("Not a two-character `type_ms2ions = ", type_ms2ions, "`.")
+  
+  cols <- c("prot_acc", "pep_seq", "pep_score", "pep_expect", "pep_n_ms2", 
+            "pep_exp_mz", "pep_exp_mr", "pep_exp_z", "pep_calc_mr", 
+            "pep_delta", "pep_tot_int", "pep_ret_range", "pep_scan_num", 
+            "pep_ms1_offset", "pep_fmod", "pep_vmod", "pep_ivmod", "pep_len", 
+            "pep_ms2_moverzs", "pep_ms2_ints", "pep_n_matches", 
+            # "pep_scan_title", "pep_mod_group", "pep_ms2_theos", 
+            # "pep_ms2_theos2", "pep_ms2_exptints", "pep_ms2_exptints2", 
+            "pep_n_matches2", "pep_ms2_deltas", "pep_ms2_ideltas", 
+            "pep_ms2_iexs", "pep_ms2_deltas2", "pep_ms2_ideltas2", 
+            "pep_ms2_iexs2", "pep_ms2_deltas_mean", "pep_ms2_deltas_sd", 
+            "pep_locprob", "pep_locdiff", "pep_rank", "raw_file")
+  df <- readr::read_tsv(fileQ)
+  df <- df[, names(df) %in% cols, drop = FALSE]
+  
+  cols_pri <- c("pep_ms2_deltas", "pep_ms2_ideltas", "pep_ms2_iexs")
+  cols_sec <- c("pep_ms2_deltas2", "pep_ms2_ideltas2", "pep_ms2_iexs2")
+  
+  if (!all(oks <- cols_pri %in% names(df))) {
+    warning("PSM columns not found: ", paste(cols_pri[!oks], collapse = ", "), 
+            "\nPlease use the latest version of mzion.")
+    return(NULL)
+  }
+  
+  if (!all(oks <- cols_sec %in% names(psm))) {
+    warning("PSM columns not found: ", paste(cols_sec[!oks], collapse = ", "), 
+            "\nPlease use the latest version of mzion.")
+    return(NULL)
+  }
+  
+  df <- df[df$pep_rank == 1L, ]
+  df <- dplyr::arrange(df, -pep_score)
+  df <- tidyr::unite(df, uid2, pep_seq, pep_ivmod, sep = "@", remove = FALSE)
+  df <- df[!duplicated(df$uid2), ]
+  df$uid2 <- NULL
+  # df <- df[with(df, pep_score >= quantile(pep_score, .05)), ]
+  df <- df[with(df, pep_score >= score_co), ]
+  df <- df[with(df, abs(pep_ms2_deltas_mean) <= mdev_co), ]
+  df <- df[with(df, pep_ms2_deltas_sd <= sd_co), ]
+
+  if (all(is.na(df$pep_ms2_moverzs)) || all(is.na(df$pep_ms2_ints))) {
+    mgf_path  <- match_mgf_path(out_path)
+    mgf_files <- list.files(file.path(mgf_path), "mgf_queries[_]*[0-9]*\\.rds$")
+    
+    if (!length(mgf_files)) {
+      warning("Processed `mgf_queries.rds` not found under ", mgf_path)
+      return(NULL)
+    }
+    
+    mgfs <- lapply(mgf_files, function (x) qs::qread(file.path(mgf_path, x)))
+    mgfs <- do.call(rbind, mgfs)
+    mgfs <- dplyr::mutate(mgfs, scan_num = as.character(scan_num))
+    mgfs <- mgfs[, c("raw_file", "scan_num", "ms2_moverz", "ms2_int")]
+    mgfs <- tidyr::unite(mgfs, uid, raw_file, scan_num, sep = "@", remove = TRUE)
+    
+    raw_files <- unique(df$raw_file)
+    raw_ids <- unlist(lapply(raw_files, match_raw_id, mgf_path))
+    names(raw_ids) <- raw_files
+    df$raw_file <- unname(raw_ids[df$raw_file])
+    df <- tidyr::unite(df, uid, raw_file, pep_scan_num, sep = "@", remove = FALSE)
+    df <- dplyr::left_join(df, mgfs, by = "uid")
+    rm(list = c("mgfs", "raw_files", "raw_ids", "mgf_path", "mgf_files"))
+    df$uid <- NULL
+
+    df$pep_ms2_moverzs <- lapply(df$ms2_moverz, function (x) 
+      .Internal(paste0(list(x), collapse = ";", recycle0 = FALSE)))
+    df$pep_ms2_ints <- lapply(df$ms2_int, function (x) 
+      .Internal(paste0(list(x), collapse = ";", recycle0 = FALSE)))
+  }
+  
+  readr::write_tsv(dplyr::select(df, -c("ms2_moverz", "ms2_int")),
+                   file.path(out_path, "psmLib.txt"))
+  df$pep_ms2_moverzs <- df$ms2_moverz
+  df$pep_ms2_ints <- df$ms2_int
+  df$ms2_moverz <- df$ms2_int <- NULL
+  
+  purrr::walk(cols_pri, function (x) df[[x]] <<- strsplit(df[[x]], ";"))
+  df$pep_ms2_deltas <- lapply(df$pep_ms2_deltas, function (x) as.numeric(x)/1E3)
+  df$pep_ms2_ideltas <- lapply(df$pep_ms2_ideltas, as.integer)
+  df$pep_ms2_iexs <- lapply(df$pep_ms2_iexs, as.integer)
+  
+  purrr::walk(cols_sec, function (x) df[[x]] <<- strsplit(df[[x]], ";"))
+  df$pep_ms2_deltas2 <- lapply(df$pep_ms2_deltas2, function (x) as.numeric(x)/1E3)
+  df$pep_ms2_ideltas2 <- lapply(df$pep_ms2_ideltas2, as.integer)
+  df$pep_ms2_iexs2 <- lapply(df$pep_ms2_iexs2, as.integer)
+  
+  qs::qsave(df, file.path(out_path, "psmLib.rds"), preset = "fast")
+}
+
+
 #' Gets column types.
 #' 
 #' @import readr

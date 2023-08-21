@@ -461,7 +461,7 @@ find_free_mem <- function (sys_ram = 32L)
 find_mod_indexes <- function (file) 
 {
   if (!file.exists(file)) 
-    stop("File not found: ", file, call. = FALSE)
+    stop("File not found: ", file)
   
   mod_indexes <- readr::read_tsv(file, show_col_types = FALSE)
   inds <- mod_indexes$Abbr

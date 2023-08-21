@@ -20,10 +20,8 @@
 # [13] "a2ions"          "astarions"       "astar2ions"      "a0ions"          "a02ions"         "x2ions"         
 # 
 # $mapMS2ions.R
-#  [1] "mapMS2ions"             "match_mgf_path"         "match_raw_id"           "add_raw_ids"           
-#  [5] "find_secion_types"      "find_psm_rows"          "find_psm_rowsQ"         "find_psm_rowsC"        
-#  [9] "find_theoexpt_pair"     "find_mgf_query"         "combine_prisec_matches" "check_existed_psms"    
-# [13] "get_mzion_coltypes"    
+# [1] "mapMS2ions"         "plotMS2ions"        "match_mgf_path"     "match_raw_id"       "add_raw_ids"       
+# [6] "find_secion_types"  "find_mgf_query"     "get_mzion_coltypes" "check_ggname"      
 # 
 # $mgfs.R
 #  [1] "load_mgfs"          "readMGF"            "post_readmgf"       "readlineMGFs"       "  f"               

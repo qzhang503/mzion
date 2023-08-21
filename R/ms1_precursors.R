@@ -1093,19 +1093,23 @@ finalize_aamasses <- function (aa_masses_i, aa_masses, varlabs = NULL,
 
 
 #' Saves mod_indexes.txt
-#' 
+#'
 #' @param out_path An output path
 #' @param fixedmods Fixed modifications
 #' @param varmods Variable modifications
 #' @param f_to_v Coerced fixed to variable modifications
-save_mod_indexes <- function (out_path = NULL, fixedmods, varmods, f_to_v)
+#' @param collapse Logical; if TRUE, collapses modification indexes at the same
+#'   title.
+save_mod_indexes <- function (out_path = NULL, fixedmods, varmods, f_to_v, 
+                              collapse = FALSE)
 {
   if (is.null(out_path))
     return(NULL)
   
-  mod_indexes <- seq_along(c(fixedmods, varmods))
+  fvs <- c(fixedmods, varmods)
+  mod_indexes <- seq_along(fvs)
   mod_indexes <- as.hexmode(mod_indexes)
-  names(mod_indexes) <- c(fixedmods, varmods)
+  names(mod_indexes) <- fvs
 
   is_coerced <- if (length(f_to_v)) 
     names(mod_indexes) %in% f_to_v
@@ -1127,6 +1131,14 @@ save_mod_indexes <- function (out_path = NULL, fixedmods, varmods, f_to_v)
                                  rep("variable", length(varmods))), 
                         Coerced = is_coerced) 
   
+  # Not yet tested
+  if (collapse) {
+    df_mods$Title <- gsub("([^ ]) .*","\\1", df_mods$Desc)
+    df_mods$Abbr <- 
+      as.integer(factor(df_mods$Title, levels = unique(df_mods$Title)))
+    df_mods$Title <- NULL
+  }
+
   readr::write_tsv(df_mods, file.path(out_path, "mod_indexes.txt"))
 }
 

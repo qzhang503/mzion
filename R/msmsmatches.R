@@ -889,8 +889,6 @@ matchMS <- function (out_path = "~/mzion/outs",
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
-  
-
   if (is.infinite(max_len)) max_len <- max_integer
   if (is.infinite(maxn_fasta_seqs)) maxn_fasta_seqs <- max_integer
   if (is.infinite(maxn_vmods_setscombi)) maxn_vmods_setscombi <- max_integer
