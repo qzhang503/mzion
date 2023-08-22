@@ -1501,11 +1501,8 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
                             perl = FALSE, useBytes = FALSE))
   id_nms <- lapply(ids, `[[`, 1)
   idx_sc <- which(id_nms == "scan")
-  
-  # (DIA)
-  if (!length(idx_osc <- which(id_nms == "originalScan"))) 
-    idx_osc <- idx_sc
-  
+  if (!length(idx_osc <- which(id_nms == "originalScan"))) idx_osc <- idx_sc
+
   xc <- xml2::xml_children(x)
   xcp_attrs <- xml2::xml_attrs(xc[which(xml2::xml_name(xc) == "cvParam")])
   xcp_names <- lapply(xcp_attrs, `[[`, "name")
@@ -1607,13 +1604,14 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
         ms1_charges[i] <- xml2::xml_attr(selectedIonc[[idx_charge]], "value")
       
       # may be no precursor intensity
-      ms1_ints[i] <- xml2::xml_attr(selectedIonc[[idx_ms1int]], "value")
-      
-      # ms1_ints[i] <- if (length(selectedIonc) > 2L)
-      #   xml2::xml_attr(selectedIonc[[idx_ms1int]], "value")
-      # else
-      #   numeric(1)
-      
+      if (length(selectedIonc) > 2L) {
+        ms1_ints[i] <- xml2::xml_attr(selectedIonc[[idx_ms1int]], "value")
+      }
+      else {
+        # message("Missing intensity ", raw_files[[i]], "@", scan_titles[[i]])
+        ms1_ints[i] <- numeric(1)
+      }
+
       ## binaryDataArrayList
       binData <- xml2::xml_children(xml2::xml_children(xc[[idx_bin_2]]))
       ms2s <- xml2::xml_contents(binData)
@@ -1623,12 +1621,9 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
       ms2_moverzs[[i]] <- readBin(r1, "double", n = ms2_n, size = 8L)
       ms2_ints[[i]] <- readBin(r2, "double", n = ms2_n, size = 8L)
       ms2_ns[i] <- ms2_n
-      
     }
     else {
-      next
-      
-      if (FALSE) {
+      if (is_dia) {
         ## retention
         scanList <- xml2::xml_children(xc[[idx_scanList_1]])
         scanList_ret <- xml2::xml_children(scanList[[idx_rt_1]])
@@ -1662,8 +1657,6 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
   
   charges <- as.integer(ms1_charges)
   ms1_charges <- paste0(ms1_charges, "+") # assume always "+" for now
-  # ms1_moverzs <- round(as.numeric(ms1_moverzs), digits = digits)
-  # ms1_masses <- round(ms1_moverzs * charges - charges * 1.00727647, digits = digits)
   ms1_moverzs <- as.numeric(ms1_moverzs)
   ms1_masses <- ms1_moverzs * charges - charges * 1.00727647
   
