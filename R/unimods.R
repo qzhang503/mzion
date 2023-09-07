@@ -1417,7 +1417,7 @@ calc_unimod_compmass <- function (composition = "H(4) C O S", digits = 6L)
     lookup <- read.delim(file = nm, sep = "\t")
   else
     stop("Not found: ", nm)
-  
+
   df <- parse_unimod_composition(composition)
   df$number <- as.numeric(df$number)
   df <- dplyr::left_join(df, lookup, by = "symbol")

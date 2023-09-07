@@ -462,68 +462,107 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
 
   if (!(len <- length(filelist))) 
     stop("No mgf files under ", filepath, call. = FALSE)
-
-  n_cores <- min(detect_cores(32L), len)
-  cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-
-  parallel::clusterExport(
-    cl, 
-    c("stri_startswith_fixed", 
-      "stri_endswith_fixed", 
-      "stri_replace_first_fixed", 
-      "stri_split_fixed"), 
-    envir = environment(stringi::stri_startswith_fixed)
-  )
-
-  parallel::clusterExport(
-    cl,
-    c("proc_mgf_chunks", 
-      "proc_mgfs", 
-      "which_topx2", 
-      "index_mz", 
-      "integerize_ms2ints", 
-      "find_ms1_interval"), 
-    envir = environment(mzion::matchMS)
-  )
-
-  out <- parallel::clusterApply(cl, file.path(filepath, filelist),
-                                proc_mgf_chunks,
-                                topn_ms2ions = topn_ms2ions,
-                                ms1_charge_range = ms1_charge_range, 
-                                ms1_scan_range = ms1_scan_range, 
-                                ret_range = ret_range,
-                                min_mass = min_mass, 
-                                max_mass = max_mass, 
-                                ppm_ms1 = ppm_ms1,
-                                ppm_ms2 = ppm_ms2,
-                                min_ms2mass = min_ms2mass,
-                                max_ms2mass = max_ms2mass, 
-                                mgf_cutmzs = mgf_cutmzs, 
-                                mgf_cutpercs = mgf_cutpercs, 
-                                type_mgf = type_mgf,
-                                n_bf_begin = n_bf_begin, 
-                                n_spacer = n_spacer,
-                                n_hdr = n_hdr,
-                                n_to_pepmass = n_to_pepmass,
-                                n_to_title = n_to_title,
-                                n_to_scan = n_to_scan,
-                                n_to_rt = n_to_rt,
-                                n_to_charge = n_to_charge, 
-                                sep_ms2s = sep_ms2s, 
-                                nfields_ms2s = nfields_ms2s, 
-                                sep_pepmass = sep_pepmass, 
-                                nfields_pepmass = nfields_pepmass, 
-                                raw_file = raw_file, 
-                                tmt_reporter_lower = tmt_reporter_lower, 
-                                tmt_reporter_upper = tmt_reporter_upper, 
-                                exclude_reporter_region = exclude_reporter_region, 
-                                index_mgf_ms2 = index_mgf_ms2, 
-                                quant = quant, 
-                                digits = digits)
   
-  parallel::stopCluster(cl)
-
-  out <- dplyr::bind_rows(out)
+  if (len == 1L) {
+    out <- proc_mgf_chunks(
+      file.path(filepath, filelist),
+      topn_ms2ions = topn_ms2ions,
+      ms1_charge_range = ms1_charge_range, 
+      ms1_scan_range = ms1_scan_range, 
+      ret_range = ret_range,
+      min_mass = min_mass, 
+      max_mass = max_mass, 
+      ppm_ms1 = ppm_ms1,
+      ppm_ms2 = ppm_ms2,
+      min_ms2mass = min_ms2mass,
+      max_ms2mass = max_ms2mass, 
+      mgf_cutmzs = mgf_cutmzs, 
+      mgf_cutpercs = mgf_cutpercs, 
+      type_mgf = type_mgf,
+      n_bf_begin = n_bf_begin, 
+      n_spacer = n_spacer,
+      n_hdr = n_hdr,
+      n_to_pepmass = n_to_pepmass,
+      n_to_title = n_to_title,
+      n_to_scan = n_to_scan,
+      n_to_rt = n_to_rt,
+      n_to_charge = n_to_charge, 
+      sep_ms2s = sep_ms2s, 
+      nfields_ms2s = nfields_ms2s, 
+      sep_pepmass = sep_pepmass, 
+      nfields_pepmass = nfields_pepmass, 
+      raw_file = raw_file, 
+      tmt_reporter_lower = tmt_reporter_lower, 
+      tmt_reporter_upper = tmt_reporter_upper, 
+      exclude_reporter_region = exclude_reporter_region, 
+      index_mgf_ms2 = index_mgf_ms2, 
+      quant = quant, 
+      digits = digits
+    )
+  }
+  else {
+    n_cores <- min(detect_cores(32L), len)
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    
+    parallel::clusterExport(
+      cl, 
+      c("stri_startswith_fixed", 
+        "stri_endswith_fixed", 
+        "stri_replace_first_fixed", 
+        "stri_split_fixed"), 
+      envir = environment(stringi::stri_startswith_fixed)
+    )
+    
+    parallel::clusterExport(
+      cl,
+      c("proc_mgf_chunks", 
+        "proc_mgfs", 
+        "which_topx2", 
+        "index_mz", 
+        "integerize_ms2ints", 
+        "find_ms1_interval"), 
+      envir = environment(mzion::matchMS)
+    )
+    
+    out <- parallel::clusterApply(cl, file.path(filepath, filelist),
+                                  proc_mgf_chunks,
+                                  topn_ms2ions = topn_ms2ions,
+                                  ms1_charge_range = ms1_charge_range, 
+                                  ms1_scan_range = ms1_scan_range, 
+                                  ret_range = ret_range,
+                                  min_mass = min_mass, 
+                                  max_mass = max_mass, 
+                                  ppm_ms1 = ppm_ms1,
+                                  ppm_ms2 = ppm_ms2,
+                                  min_ms2mass = min_ms2mass,
+                                  max_ms2mass = max_ms2mass, 
+                                  mgf_cutmzs = mgf_cutmzs, 
+                                  mgf_cutpercs = mgf_cutpercs, 
+                                  type_mgf = type_mgf,
+                                  n_bf_begin = n_bf_begin, 
+                                  n_spacer = n_spacer,
+                                  n_hdr = n_hdr,
+                                  n_to_pepmass = n_to_pepmass,
+                                  n_to_title = n_to_title,
+                                  n_to_scan = n_to_scan,
+                                  n_to_rt = n_to_rt,
+                                  n_to_charge = n_to_charge, 
+                                  sep_ms2s = sep_ms2s, 
+                                  nfields_ms2s = nfields_ms2s, 
+                                  sep_pepmass = sep_pepmass, 
+                                  nfields_pepmass = nfields_pepmass, 
+                                  raw_file = raw_file, 
+                                  tmt_reporter_lower = tmt_reporter_lower, 
+                                  tmt_reporter_upper = tmt_reporter_upper, 
+                                  exclude_reporter_region = exclude_reporter_region, 
+                                  index_mgf_ms2 = index_mgf_ms2, 
+                                  quant = quant, 
+                                  digits = digits)
+    
+    parallel::stopCluster(cl)
+    
+    out <- dplyr::bind_rows(out)
+  }
 
   # adds back broken mgf entries
   afs <- local({
@@ -744,15 +783,20 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
 
   # (3) MS1 charges and masses
   ms1_charges <- stringi::stri_replace_first_fixed(lines[begins + n_to_charge], "CHARGE=", "")
-  charges <- lapply(ms1_charges, stringi::stri_reverse)
-  charges <- .Internal(unlist(charges, recursive = FALSE, use.names = FALSE))
-  # timsTOF no CHARGE line -> NAs introduced by coercion
-  charges <- as.integer(charges)
-  
-  ms1_masses <- mapply(function (x, y) x * y - y * 1.00727647, 
-                       ms1_moverzs, charges, SIMPLIFY = TRUE, USE.NAMES = FALSE)
+  ms1_charges <- gsub("[\\+]$", "", ms1_charges)
+  # if ((polarity <- gsub(".*([\\+-])$", "\\1", ms1_charges[[1]])) == "+")
+  #   ms1_charges <- gsub("[\\+]$", "", ms1_charges)
+  # else if (polarity == "-")
+  #   ms1_charges <- gsub("-$", "", ms1_charges)
+  ms1_charges <- as.integer(ms1_charges)
 
-  rows <- (charges >= ms1_charge_range[1] & charges <= ms1_charge_range[2] & 
+  # timsTOF no CHARGE line -> NAs introduced by coercion
+
+  ms1_masses <- mapply(function (x, y) x * y - y * 1.00727647, 
+                       ms1_moverzs, ms1_charges, 
+                       SIMPLIFY = TRUE, USE.NAMES = FALSE)
+
+  rows <- (ms1_charges >= ms1_charge_range[1] & ms1_charges <= ms1_charge_range[2] & 
              ret_times >= ret_range[1] & ret_times <= ret_range[2] & 
              ms1_masses >= min_mass & ms1_masses <= max_mass & 
              # timsTOF: no MS1 masses
@@ -769,7 +813,6 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
   ms1_charges <- ms1_charges[rows]
   ret_times <- round(ret_times[rows], digits = 2L)
   ms1_masses <- ms1_masses[rows]
-  charges <- charges[rows]
 
   # Others
   scan_titles <- 
@@ -863,7 +906,6 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L,
     ms2_moverz = ms2_moverzs,
     ms2_int = ms2_ints,
     ms2_n = lens, 
-    # charge = charges, 
     rptr_moverz = rptr_moverzs, 
     rptr_int = rptr_ints)
 }
@@ -1399,22 +1441,14 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L),
                   ppm_ms2 = ppm_ms2, min_ms2mass = min_ms2mass, 
                   max_ms2mass = max_ms2mass, quant = quant, digits = digits)
   df <- df[with(df, !is.na(ms1_mass)), ]
-  .Internal(gc(verbose = FALSE, reset = FALSE, full = TRUE))
-  
-  if (!"charge" %in% names(df)) {
-    ms1_charges <- df[["ms1_charges"]]
-    charges <- lapply(ms1_charges, stringi::stri_reverse)
-    charges <- .Internal(unlist(charges, recursive = FALSE, use.names = FALSE))
-    charges <- as.integer(charges)
-    df <- dplyr::mutate(df, charge = charges)
-  }
+  # .Internal(gc(verbose = FALSE, reset = FALSE, full = TRUE))
   
   df <- dplyr::filter(df, 
-                      charge >= ms1_charge_range[1], charge <= ms1_charge_range[2], 
+                      ms1_charge >= ms1_charge_range[1], 
+                      ms1_charge <= ms1_charge_range[2], 
                       ret_time >= ret_range[1], ret_time <= ret_range[2], 
                       ms1_mass >= min_mass, ms1_mass <= max_mass, )
-  df[["charge"]] <- NULL
-  
+
   # subsets by top-n and min_ms2mass
   # (also convert non reporter-ion MS2 intensities to integers)
   mz_n_int <- sub_mgftopn(ms2_moverzs = df[["ms2_moverz"]], 
@@ -1436,7 +1470,7 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L),
 
 #' Reads mzML from MSConvert
 #' 
-#' zlib compression need to be disabled when creating mzML from MSConvert.
+#' Only for Thermo's RAW format.
 #' 
 #' @param xml_file A file name of mzML.
 #' @inheritParams matchMS
@@ -1448,12 +1482,29 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
   ## spectrum
   xml_root <- xml2::read_xml(xml_file)
   mzML <- xml2::xml_child(xml_root)
+  
+  raw_file <- local({
+    idx_file <- which(xml2::xml_name(xml2::xml_children(mzML)) == "fileDescription")
+    file_des <- xml2::xml_children(mzML)[[idx_file]]
+    idx_srcl <- which(xml2::xml_name(xml2::xml_children(file_des)) == "sourceFileList")
+    info_raw <- xml2::xml_children(file_des)[[idx_srcl]]
+    idx_srcf <- which(xml2::xml_name(xml2::xml_children(info_raw)) == "sourceFile")
+    info_fi  <- xml2::xml_children(info_raw)[[idx_srcf]]
+    raw_file <- xml2::xml_attr(info_fi, "name")
+  })
+  
   idx_run <- which(xml2::xml_name(xml2::xml_children(mzML)) == "run")
   run <- xml2::xml_children(mzML)[[idx_run]]
   idx_specs <- which(xml2::xml_name(xml2::xml_children(run)) == "spectrumList")
-  # idx_chrom <- which(xml2::xml_name(xml2::xml_children(run)) == "chromatogramList")
   spec <- xml2::xml_children(xml2::xml_children(run)[[idx_specs]])
   rm(list = c("mzML", "idx_run", "run", "idx_specs"))
+  
+  # - mzML
+  #   - ...
+  #   - fileDescription
+  #     - ...
+  #     - sourceFileList
+  #       - sourceFile
   
   # - run
   #  - spectrumList
@@ -1488,10 +1539,11 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
   #     - binaryDataArray # name="non-standard data array"
   
   len <- length(spec)
-  orig_scans <- scan_nums <- ms1_charges <- raw_files <- scan_titles <- character(len)
-  ms_levs <- ret_times <- ms1_ints <- ms1_masses <- ms1_moverzs <- numeric(len)
+  ret_times <- orig_scans <- scan_nums <- scan_titles <- ms_levs <- 
+    iso_ctr <- iso_lwr <- iso_upr <- character(len)
+  demux <- rep("0", len)
+  ms2_ns <- integer(len)
   ms2_moverzs <- ms2_ints <- vector("list", len)
-  charges <- ms2_ns <- frames <- integer(len)
   
   ## the first scan
   x <- spec[[1]]
@@ -1500,9 +1552,10 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
   ids <- .Internal(strsplit(ids, "=", fixed = TRUE, 
                             perl = FALSE, useBytes = FALSE))
   id_nms <- lapply(ids, `[[`, 1)
+  idx_demux <- which(id_nms == "demux")
   idx_sc <- which(id_nms == "scan")
   if (!length(idx_osc <- which(id_nms == "originalScan"))) idx_osc <- idx_sc
-
+  
   xc <- xml2::xml_children(x)
   xcp_attrs <- xml2::xml_attrs(xc[which(xml2::xml_name(xc) == "cvParam")])
   xcp_names <- lapply(xcp_attrs, `[[`, "name")
@@ -1511,32 +1564,12 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
   idx_title <- which(xcp_names == "spectrum title")
   rm(list = c("x", "ids", "xc", "xcp_attrs", "xcp_names", "xcp_vals", "id_nms"))
   
-  # MS1 indexes
+  # MS2 indexes (no MS1 with DDA -> MS2 goes first)
   for (i in seq_along(spec)) {
     x <- spec[[i]]
     xc <- xml2::xml_children(x)
     
-    if (as.integer(xml2::xml_attr(xc[[idx_mslev]], "value")) == 1) {
-      idx_precursor_1 <- integer()
-      idx_scanList_1 <- grep("scanList", xc)
-      idx_bin_1 <- grep("binaryDataArrayList", xc)
-      
-      scanList <- xml2::xml_children(xc[[idx_scanList_1]])
-      idx_rt_1 <- which(xml2::xml_name(scanList) == "scan")
-      scan_ret <- xml2::xml_children(scanList[[idx_rt_1]])
-      idx_scan_start_1 <- which(xml2::xml_attr(scan_ret, "name") == "scan start time")
-      
-      rm(list = c("scanList", "scan_ret"))
-      break
-    }
-  }
-  
-  # MS2 indexes
-  for (i in seq_along(spec)) {
-    x <- spec[[i]]
-    xc <- xml2::xml_children(x)
-    
-    if (as.integer(xml2::xml_attr(xc[[idx_mslev]], "value")) == 2) {
+    if (xml2::xml_attr(xc[[idx_mslev]], "value") == "2") {
       idx_precursor_2 <- grep("precursorList", xc)
       idx_scanList_2 <- grep("scanList", xc)
       idx_bin_2 <- grep("binaryDataArrayList", xc)
@@ -1544,12 +1577,22 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
       scanList <- xml2::xml_children(xc[[idx_scanList_2]])
       idx_rt_2 <- which(xml2::xml_name(scanList) == "scan")
       scanList_ret <- xml2::xml_children(scanList[[idx_rt_2]])
-      idx_scan_start_2 <- which(xml2::xml_attr(scanList_ret, "name") == "scan start time")
+      scanList_ret_attrs <- xml2::xml_attr(scanList_ret, "name")
+      idx_scan_start_2 <- which(scanList_ret_attrs == "scan start time")
+      ms2_reso <- scanList_ret[[which(scanList_ret_attrs == "mass resolving power")]]
+      ms2_reso <- as.integer(xml2::xml_attr(ms2_reso, "value"))
       
       precursorList <- xml2::xml_children(xc[[idx_precursor_2]])
       precursor <- precursorList[[1]] # (assume one precursor, not yet chimeric)
       precursorc <- xml2::xml_children(precursor)
       idx_selectedIonList <- grep("selectedIonList", precursorc)
+      
+      idx_isolationWindow <- grep("isolationWindow", precursorc)
+      isolationWindowc <- xml2::xml_children(precursorc[[idx_isolationWindow]])
+      iso_nms <- lapply(isolationWindowc, function (x) xml2::xml_attr(x, "name"))
+      idx_ctrmz <- which(iso_nms == "isolation window target m/z")
+      idx_lwrmz <- which(iso_nms == "isolation window lower offset")
+      idx_uprmz <- which(iso_nms == "isolation window upper offset")
       
       selectedIon <- xml2::xml_child(precursorc[[idx_selectedIonList]], 1)
       selectedIonc <- xml2::xml_children(selectedIon)
@@ -1557,11 +1600,63 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
       idx_moverz <- which(selion_nms == "selected ion m/z")
       idx_ms1int <- which(selion_nms == "peak intensity") # zero intensity if DIA
       idx_charge <- which(selion_nms == "charge state") # no "charge state" if DIA
+      
       is_dia <- if (length(idx_charge)) FALSE else TRUE
       
-      rm(list = c("scanList", "scanList_ret", "precursorList", "precursor", 
-                  "precursorc", "selectedIon", "selectedIonc", "selion_nms"))
+      if (is_dia) {
+        ms1_moverzs <- ms1_ints <- ms1_charges <- vector("list", len)
+      }
+      else {
+        ms1_moverzs <- ms1_ints <- ms1_charges <- character(len)
+      }
+      
+      rm(list = c("scanList", "scanList_ret", "scanList_ret_attrs", 
+                  "precursorList", "precursor", "precursorc", 
+                  "selectedIon", "selectedIonc", "selion_nms"))
       break
+    }
+  }
+  
+  # MS1 indexes
+  if (is_dia) {
+    for (i in seq_along(spec)) {
+      x <- spec[[i]]
+      xc <- xml2::xml_children(x)
+      
+      if (as.integer(xml2::xml_attr(xc[[idx_mslev]], "value")) == 1) {
+        # idx_precursor_1 <- integer()
+        idx_scanList_1 <- grep("scanList", xc)
+        idx_bin_1 <- grep("binaryDataArrayList", xc)
+        
+        local({
+          binData <- xml2::xml_children(xc[[idx_bin_1]])[[1]]
+          binDataC <- xml2::xml_children(binData)
+          binDataC <- binDataC[which(xml2::xml_name(binDataC) == "cvParam")]
+          
+          lapply(binDataC, function (v) {
+            attrs <- xml2::xml_attrs(v)
+            oks <- grepl("compression", attrs)
+            
+            if (any(oks))
+              if (attrs[oks][[1]] == "zlib compression")
+                stop("Please uncheck zlib compression in  mzML generations.")
+          })
+        })
+        
+        scanList <- xml2::xml_children(xc[[idx_scanList_1]])
+        idx_rt_1 <- which(xml2::xml_name(scanList) == "scan")
+        scanList_ret <- xml2::xml_children(scanList[[idx_rt_1]])
+        
+        scan_ret_attrs <- xml2::xml_attr(scanList_ret, "name")
+        # need to remove the assumption of fixed resolution with Astral
+        ms1_reso <- scanList_ret[[which(scan_ret_attrs == "mass resolving power")]]
+        ms1_reso <- as.integer(xml2::xml_attr(ms1_reso, "value"))
+        ppm_peak <- floor(1E6/ms1_reso/2)
+        idx_scan_start_1 <- which(scan_ret_attrs == "scan start time")
+        
+        rm(list = c("scanList", "scanList_ret", "scan_ret_attrs"))
+        break
+      }
     }
   }
   
@@ -1577,92 +1672,216 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
     orig_scans[[i]] <- ids[[idx_osc]][[2]]
     
     xc <- xml2::xml_children(x)
+    ms_levs[[i]] <- ms_lev <- xml2::xml_attr(xc[[idx_mslev]], "value")
+    scan_titles[[i]] <- xml2::xml_attr(xc[[idx_title]], "value")
+    # raw_files[[i]] <- gsub("^.* File:\"(.*)\", .*", "\\1", scan_titles[[i]])
     
-    ## MS level, title, raw
-    ms_levs[[i]] <- ms_lev <- as.integer(xml2::xml_attr(xc[[idx_mslev]], "value"))
-    scan_titles[[i]] <- title <- xml2::xml_attr(xc[[idx_title]], "value")
-    raw_files[[i]] <- gsub("^.* File:\"(.*)\", .*", "\\1", title)
-    
-    if (ms_lev == 2) {
-      ## retention
+    if (ms_lev == "2") {
       scanList <- xml2::xml_children(xc[[idx_scanList_2]])
       scanList_ret <- xml2::xml_children(scanList[[idx_rt_2]])
-      ret_times[i] <- xml2::xml_attr(scanList_ret[[idx_scan_start_2]], "value")
+      ret_times[[i]] <- xml2::xml_attr(scanList_ret[[idx_scan_start_2]], "value")
       
-      ## precursorList
       precursorList <- xml2::xml_children(xc[[idx_precursor_2]])
       precursor <- precursorList[[1]] # (assume one precursor, not yet chimeric)
       precursorc <- xml2::xml_children(precursor)
       
+      isolationWindowc <- xml2::xml_children(precursorc[[idx_isolationWindow]])
+      iso_ctr[[i]] <- xml2::xml_attr(isolationWindowc[[idx_ctrmz]], "value")
+      iso_lwr[[i]] <- xml2::xml_attr(isolationWindowc[[idx_lwrmz]], "value")
+      iso_upr[[i]] <- xml2::xml_attr(isolationWindowc[[idx_uprmz]], "value")
+      
       selectedIon <- xml2::xml_child(precursorc[[idx_selectedIonList]], 1)
       selectedIonc <- xml2::xml_children(selectedIon)
-      ms1_moverzs[i] <- xml2::xml_attr(selectedIonc[[idx_moverz]], "value")
       
-      if (is_dia)
-        ms1_charges[i] <- NA_integer_ # not with DIA: 
-      else
-        ms1_charges[i] <- xml2::xml_attr(selectedIonc[[idx_charge]], "value")
-      
-      # may be no precursor intensity
-      if (length(selectedIonc) > 2L) {
-        ms1_ints[i] <- xml2::xml_attr(selectedIonc[[idx_ms1int]], "value")
+      if (is_dia) {
+        # match DIA ms1_moverzs, ms1_charges and ms1_ints later
+        demux[[i]] <- ids[[idx_demux]][[2]]
       }
       else {
-        # message("Missing intensity ", raw_files[[i]], "@", scan_titles[[i]])
-        ms1_ints[i] <- numeric(1)
+        ms1_moverzs[[i]] <- xml2::xml_attr(selectedIonc[[idx_moverz]], "value")
+        ms1_charges[[i]] <- xml2::xml_attr(selectedIonc[[idx_charge]], "value")
+        
+        # may be no precursor intensity
+        # 01CPTAC3_Benchmarking_P_BI_20170523_BL_f12.mzML; scan=54837
+        if (length(selectedIonc) >= idx_ms1int)
+          ms1_ints[[i]] <- xml2::xml_attr(selectedIonc[[idx_ms1int]], "value")
+        else
+          ms1_ints[[i]] <- character(1)
       }
-
+      
       ## binaryDataArrayList
       binData <- xml2::xml_children(xml2::xml_children(xc[[idx_bin_2]]))
       ms2s <- xml2::xml_contents(binData)
-      r1 <- .Call(base64enc:::B64_decode, xml2::xml_text(ms2s[[1]]))
-      r2 <- .Call(base64enc:::B64_decode, xml2::xml_text(ms2s[[2]]))
-      ms2_n <- length(r1)/8L
-      ms2_moverzs[[i]] <- readBin(r1, "double", n = ms2_n, size = 8L)
-      ms2_ints[[i]] <- readBin(r2, "double", n = ms2_n, size = 8L)
-      ms2_ns[i] <- ms2_n
+      
+      if (length(ms2s) == 2L) {
+        r1 <- .Call(base64enc:::B64_decode, xml2::xml_text(ms2s[[1]]))
+        r2 <- .Call(base64enc:::B64_decode, xml2::xml_text(ms2s[[2]]))
+        ms2_n <- as.integer(length(r1)/8L)
+        ms2_moverzs[[i]] <- readBin(r1, "double", n = ms2_n, size = 8L)
+        ms2_ints[[i]] <- readBin(r2, "double", n = ms2_n, size = 8L)
+        ms2_ns[[i]] <- ms2_n
+      } else { # demux; ignored and covered by the next staggered window
+        ms2_moverzs[[i]] <- NA_real_
+        ms2_ints[[i]] <- NA_real_
+        ms2_ns[[i]] <- 0L
+      }
     }
-    else {
+    else if (ms_lev == "1") {
       if (is_dia) {
-        ## retention
         scanList <- xml2::xml_children(xc[[idx_scanList_1]])
         scanList_ret <- xml2::xml_children(scanList[[idx_rt_1]])
-        ret_times[i] <- xml2::xml_attr(scanList_ret[[idx_scan_start_1]], "value")
+        ret_times[[i]] <- xml2::xml_attr(scanList_ret[[idx_scan_start_1]], "value")
         
-        ## binaryDataArrayList
         binData <- xml2::xml_children(xml2::xml_children(xc[[idx_bin_1]]))
         ms2s <- xml2::xml_contents(binData)
         r1 <- .Call(base64enc:::B64_decode, xml2::xml_text(ms2s[[1]]))
         r2 <- .Call(base64enc:::B64_decode, xml2::xml_text(ms2s[[2]]))
-        ms2_n <- length(r1)/8L
-        ms2_moverzs[[i]] <- readBin(r1, "double", n = ms2_n, size = 8L)
-        ms2_ints[[i]] <- readBin(r2, "double", n = ms2_n, size = 8L)
-        ms2_ns[i] <- ms2_n
+        ms2_n <- as.integer(length(r1)/8L)
+        
+        mic <- deisotope(moverzs = readBin(r1, "double", n = ms2_n, size = 8L), 
+                         ms1ints = readBin(r2, "double", n = ms2_n, size = 8L), 
+                         ppm = ppm_peak, offset_upr = 30L, offset_lwr = 30L, 
+                         maxn_prec = 400L)
+        
+        ms2_moverzs[[i]] <- mic[["masses"]] # acutally ms1_moverzs
+        ms2_ints[[i]] <- mic[["intensities"]] # actually ms1_ints
+        ms1_charges[[i]] <- mic[["charges"]]
+        
+        ms2_ns[[i]] <- ms2_n # actually ms1_n
       }
+      # else {
+      # DDA-chimeric
+      # }
     }
   }
   
-  rows <- !(is.na(ms1_charges) | ms1_charges == "")
-  scan_titles <- scan_titles[rows]
-  raw_files <- raw_files[rows]
-  ms1_moverzs <- ms1_moverzs[rows]
-  ms1_masses <- ms1_masses[rows]
-  ms1_ints <- ms1_ints[rows]
-  ms1_charges <- ms1_charges[rows]
-  ret_times <- ret_times[rows]
-  scan_nums <- scan_nums[rows]
-  ms2_moverzs <- ms2_moverzs[rows]
-  ms2_ints <- ms2_ints[rows]
-  ms2_ns <- ms2_ns[rows]
-  
-  charges <- as.integer(ms1_charges)
-  ms1_charges <- paste0(ms1_charges, "+") # assume always "+" for now
-  ms1_moverzs <- as.numeric(ms1_moverzs)
-  ms1_masses <- ms1_moverzs * charges - charges * 1.00727647
-  
-  # ms1_ints not "as.integer": may be > .Machine$integer.max (2147483647)
-  ms1_ints <- as.numeric(ms1_ints)
-  ret_times <- as.numeric(ret_times) * 60
+  if (is_dia) {
+    # TBA: ms1_charges, ms1_moverzs, ms1_masses
+    # extract top-10 MS1 features
+    
+    # ms1_ints: all 0's; use ms2_ints for both MS1 and MS2
+    # ms1_moverzs: all 0's; use ms1_moverzs for both MS1 and MS2
+    # ms1_charges: NULL for MS2 and integer vectors for MS1
+    
+    ###
+    if (FALSE) {
+      df <- tibble::tibble(
+        scan_title = scan_titles,
+        raw_file = raw_file,
+        ms_level = as.integer(ms_levs), 
+        ret_time = as.numeric(ret_times) * 60, 
+        scan_num = as.integer(scan_nums), 
+        orig_scan = orig_scans,
+        ms2_moverz = ms2_moverzs, # for both MS1 and MS2
+        ms2_int = ms2_ints, # for both MS1 and MS2
+        # ms1_moverzs = ms1_moverzs, # placeholder
+        # ms1_ints = ms1_ints, # placeholder
+        ms1_charges = ms1_charges, # NULL for DIA-MS2
+        iso_ctr = as.numeric(iso_ctr), 
+        iso_lwr = as.numeric(iso_lwr), 
+        iso_upr = as.numeric(iso_upr), 
+        # demux = demux, 
+        ms2_n = ms2_ns, # for both MS1 and MS2
+      )
+      
+      # correspondence of row indexes between MS1 and MS2 scans
+      idxes_ms1 <- which(df$ms_level == 1L)
+      diff_ms1 <- c(0, diff(idxes_ms1))
+      oks <- which(diff_ms1 > 1)
+      ms1_stas <- idxes_ms1[oks - 1L]
+      ms2_stas <- ms1_stas + 1L
+      ms2_ends <- idxes_ms1[oks] - 1L
+      rm(list = c("oks", "diff_ms1", "idxes_ms1"))
+      
+      ###
+      for (i in seq_along(ms1_stas)) {
+        # i = 1000
+        idx <- ms1_stas[i]
+        df1 <- df[idx, ]
+        mzs <- df1$ms2_moverz[[1]]
+        css <- df1$ms1_charges[[1]]
+        ys  <- df1$ms2_int[[1]]
+        
+        sta <- ms2_stas[i]
+        end <- ms2_ends[i]
+        df2 <- df[sta:end, ]
+        
+        for (j in seq_len(end - sta + 1)) {
+          # j = 26
+          df2j <- df2[j, ]
+          mctr <- df2j$iso_ctr
+          mlwr <- mctr - df2j$iso_lwr
+          mupr <- mctr + df2j$iso_upr
+          
+          oks <- mzs > mlwr & mzs < mupr
+          row <- ms2_stas[i] + j
+          
+          ms1_moverzs[[row]] <- mzs[oks]
+          ms1_ints[[row]] <- ys[oks]
+          # ms1_charges[[row]] <- css[oks]
+        }
+      }
+      
+      df$ms1_moverzs <- ms1_moverzs
+      df$ms1_ints <- ms1_ints
+      # df$ms1_charges <- ms1_charges
+      
+      # z = df[(row-1):row, ]
+      ###
+      
+      
+      # bads <- unlist(lapply(ms1_charges, is.null))
+      # z <- df[!bads, ]
+    }
+    ###
+    
+    rows_ms1 <- ms_levs == 1L
+    
+    dia <- tibble::tibble(
+      ms1_moverzs = ms2_moverzs[rows_ms1], 
+      ms1_ints = ms2_ints[rows_ms1], 
+      ms1_charges = ms1_charges[rows_ms1], 
+      ret_time = as.numeric(ret_times[rows_ms1]) * 60, 
+      scan_num = as.integer(scan_nums[rows_ms1]), 
+      orig_scan = orig_scans[rows_ms1], 
+      # demux = demux[rows_ms1], 
+    )
+    
+    dia <- dia[with(dia, !is.na(ms1_charges)), ]
+    lens <- lengths(dia$ms1_charges)
+    dia$n <- lens
+    dia <- dia[lens > 0L, ]
+    rm(list = "lens")
+    
+    dia <- tibble::tibble(
+      ms1_moverz = unlist(dia$ms1_moverzs, use.names = FALSE, recursive = FALSE), 
+      ms1_int = unlist(dia$ms1_ints, use.names = FALSE, recursive = FALSE),
+      scan_num = rep(dia$scan_num, dia$n),
+      orig_scan = rep(dia$orig_scan, dia$n), 
+      ret_time = rep(dia$ret_time, dia$n),
+    )
+    dia$imz <- index_mz(dia$ms1_moverz, min(dia$ms1_moverz) - .001, d = 8/1E6)
+    
+    # ms1_ints not "as.integer": may be > .Machine$integer.max (2147483647)
+    # ms1_ints <- as.numeric(ms1_ints) # 0 for dia
+    # ret_times <- as.numeric(ret_times) * 60
+  } 
+  else {
+    rows <- !(is.na(ms1_charges) | ms1_charges == "")
+    scan_titles <- scan_titles[rows]
+    ms1_moverzs <- as.numeric(ms1_moverzs[rows])
+    # ms1_ints not "as.integer": may be > .Machine$integer.max (2147483647)
+    ms1_ints <- as.numeric(ms1_ints[rows])
+    ms1_charges <- as.integer(ms1_charges[rows])
+    ret_times <- as.numeric(ret_times[rows]) * 60
+    scan_nums <- as.integer(scan_nums[rows])
+    orig_scans <- orig_scans[rows]
+    ms_levs <- as.integer(ms_levs[rows])
+    ms2_moverzs <- ms2_moverzs[rows]
+    ms2_ints <- ms2_ints[rows]
+    ms2_ns <- ms2_ns[rows]
+    ms1_masses <- (ms1_moverzs - 1.00727647) * ms1_charges
+  }
   
   # extract the TMT region of MS2 moverz and intensity
   # (also convert reporter-ion intensities to integers)
@@ -1678,28 +1897,25 @@ read_mzml <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper 
   rptr_moverzs <- restmt[["rptr_moverzs"]]
   rptr_ints <- restmt[["rptr_ints"]]
   
-  ms2_moverzs <- if (index_mgf_ms2) 
-    lapply(ms2_moverzs, index_mz, min_ms2mass, ppm_ms2/1E6)
-  else
-    lapply(ms2_moverzs, round, digits = digits)
+  if (index_mgf_ms2) 
+    ms2_moverzs <- lapply(ms2_moverzs, index_mz, min_ms2mass, ppm_ms2/1E6)
   
   tibble::tibble(
     scan_title = scan_titles,
-    raw_file = raw_files,
+    raw_file = raw_file,
+    ms_level = ms_levs, 
     ms1_moverz = ms1_moverzs,
     ms1_mass = ms1_masses,
     ms1_int = ms1_ints,
     ms1_charge = ms1_charges,
     ret_time = ret_times,
     scan_num = scan_nums,
+    orig_scan = orig_scans,
     ms2_moverz = ms2_moverzs,
     ms2_int = ms2_ints,
     
     # before subset by min_ms2mass
     ms2_n = ms2_ns, 
-    
-    # temporarily kept
-    charge = charges,
     
     rptr_moverz = rptr_moverzs, 
     rptr_int = rptr_ints)
@@ -1807,304 +2023,6 @@ mprepBrukerMGF <- function (filepath, n_cores = 32L)
     lapply(files, prepBrukerMGF)
   
   message("Done preparing Bruker's MGFs.")
-}
-
-
-read_mzml_dia <- function (xml_file, tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
-                       ppm_ms1 = 10L, ppm_ms2 = 10L, min_ms2mass = 115L, 
-                       max_ms2mass = 4500L, quant = "none", digits = 4L)
-{
-  ## spectrum
-  xml_root <- xml2::read_xml(xml_file)
-  mzML <- xml2::xml_child(xml_root)
-  idx_run <- which(xml2::xml_name(xml2::xml_children(mzML)) == "run")
-  run <- xml2::xml_children(mzML)[[idx_run]]
-  idx_specs <- which(xml2::xml_name(xml2::xml_children(run)) == "spectrumList")
-  # idx_chrom <- which(xml2::xml_name(xml2::xml_children(run)) == "chromatogramList")
-  spec <- xml2::xml_children(xml2::xml_children(run)[[idx_specs]])
-  rm(list = c("mzML", "idx_run", "run", "idx_specs"))
-  
-  # - run
-  #  - spectrumList
-  #   - spectrum # x
-  #     - ...
-  #     - <cvParam ... name="ms level" value="2"/>
-  #     - <cvParam ... name="total ion current" value="2578.8672"/>
-  #     - <cvParam ... name="spectrum title" value="23aug2017_hela_serum_timecourse_4mz_narrow_1.1.1. File:"FILENAME.raw", ...originalScan=1 demux=0 scan=1/>
-  #     - scanList # xc
-  #       - ...
-  #       - <scan ... originalScan=3 demux=1 scan=4> # originalScan=3 demux=1 scan=4 only only for MS2
-  #         - <cvParam ... name="scan start time" value="0.012728725" .../>
-  #         - <cvParam ... name="ion injection time" value="54.999999701977" .../>
-  #     - precursorList # xc
-  #       - <precursor ... originalScan=3 demux=1 scan=4"> # redundant?
-  #         - <cvParam ... name="isolation window target m/z" value="401.432342529297" .../>
-  #         - selectedIonList
-  #           - selectedIon
-  #             -  <cvParam ... name="selected ion m/z" value="401.432342529297" .../>
-  #             -  <cvParam ... name="charge state" value="3" .../> # No charge state if DIA
-  #             -  <cvParam ... name="peak intensity" value="0" .../> # 0 if DIA
-  #     - binaryDataArrayList # xc
-  #       - binaryDataArray
-  #         - binary
-  #       - binaryDataArray
-  #         - binary
-  #  - chromatogramList
-  #   - chromatogram
-  #    - binaryDataArrayList
-  #     - binaryDataArray # name="time array"
-  #     - binaryDataArray # name="intensity array"
-  #     - binaryDataArray # name="non-standard data array"
-  
-  len <- length(spec)
-  orig_scans <- scan_nums <- ms1_charges <- raw_files <- scan_titles <- character(len)
-  ms_levs <- ret_times <- ms1_ints <- ms1_masses <- ms1_moverzs <- numeric(len)
-  ms2_moverzs <- ms2_ints <- vector("list", len)
-  charges <- ms2_ns <- frames <- integer(len)
-  
-  ## the first scan
-  x <- spec[[1]]
-  ids <- .Internal(strsplit(xml2::xml_attr(x, "id"), " ", fixed = TRUE, 
-                            perl = FALSE, useBytes = FALSE))[[1]]
-  ids <- .Internal(strsplit(ids, "=", fixed = TRUE, 
-                            perl = FALSE, useBytes = FALSE))
-  id_nms <- lapply(ids, `[[`, 1)
-  idx_sc <- which(id_nms == "scan")
-  idx_osc <- which(id_nms == "originalScan")
-  if (!length(idx_osc)) idx_osc <- idx_sc
-  # is_dia <- if (length(idx_osc)) TRUE else FALSE
-
-  xc <- xml2::xml_children(x)
-  xc_params <- xc[which(xml2::xml_name(xc) == "cvParam")]
-  xcp_attrs <- xml2::xml_attrs(xc_params)
-  xcp_names <- lapply(xcp_attrs, `[[`, "name")
-  xcp_vals <- lapply(xcp_attrs, `[[`, "value")
-  
-  idx_mslev <- which(xcp_names == "ms level")
-  idx_title <- which(xcp_names == "spectrum title")
-  
-  if (FALSE) {
-    title <- xml2::xml_attr(xc[[idx_title]], "value")
-    pat_1 <- "\\.[0-9]+.[0-9]+\\.[0-9]+ File:"
-    pat_2 <- "\\.[0-9]+\\.[0-9]+\\. File:"
-    
-    if (grepl(pat_1, title)) {
-      pat_title <- pat_1
-    }
-    else if (grepl(pat_2, title)) {
-      pat_title <- pat_2
-    }
-    else {
-      stop("Unknown format in the title line of mzML. Check the MSConvert version.")
-    }
-    
-    pat_title <- paste0("(.*)", pat_title, ".*")
-    
-    rm(list = c("pat_1", "pat_2", "title"))
-  }
-
-  rm(list = c("x", "ids", "xc", "xc_params", "xcp_attrs", "xcp_names", 
-              "xcp_vals", "id_nms"))
-  
-  # MS1 indexes
-  for (i in seq_along(spec)) {
-    x <- spec[[i]]
-    xc <- xml2::xml_children(x)
-
-    if (as.integer(xml2::xml_attr(xc[[idx_mslev]], "value")) == 1) {
-      idx_precursor_1 <- integer()
-      idx_scanList_1 <- grep("scanList", xc)
-      idx_bin_1 <- grep("binaryDataArrayList", xc)
-      
-      scanList <- xml2::xml_children(xc[[idx_scanList_1]])
-      idx_rt_1 <- which(xml2::xml_name(scanList) == "scan")
-      scan_ret <- xml2::xml_children(scanList[[idx_rt_1]])
-      idx_scan_start_1 <- which(xml2::xml_attr(scan_ret, "name") == "scan start time")
-      
-      rm(list = c("scanList", "scan_ret"))
-      break
-    }
-  }
-  
-  # MS2 indexes
-  for (i in seq_along(spec)) {
-    x <- spec[[i]]
-    xc <- xml2::xml_children(x)
-
-    if (as.integer(xml2::xml_attr(xc[[idx_mslev]], "value")) == 2) {
-      idx_precursor_2 <- grep("precursorList", xc)
-      idx_scanList_2 <- grep("scanList", xc)
-      idx_bin_2 <- grep("binaryDataArrayList", xc)
-      
-      scanList <- xml2::xml_children(xc[[idx_scanList_2]])
-      idx_rt_2 <- which(xml2::xml_name(scanList) == "scan")
-      scanList_ret <- xml2::xml_children(scanList[[idx_rt_2]])
-      idx_scan_start_2 <- which(xml2::xml_attr(scanList_ret, "name") == "scan start time")
-      
-      precursorList <- xml2::xml_children(xc[[idx_precursor_2]])
-      precursor <- precursorList[[1]] # (assume one precursor, not yet chimeric)
-      precursorc <- xml2::xml_children(precursor)
-      idx_selectedIonList <- grep("selectedIonList", precursorc)
-      
-      
-      # xml2::xml_children(precursorc)
-      # selectedIonList <- precursorc[[idx_selectedIonList]]
-      selectedIon <- xml2::xml_child(precursorc[[idx_selectedIonList]], 1)
-      selectedIonc <- xml2::xml_children(selectedIon)
-      selion_nms <- lapply(selectedIonc, function (x) xml2::xml_attr(x, "name"))
-      idx_moverz <- which(selion_nms == "selected ion m/z")
-      idx_ms1int <- which(selion_nms == "peak intensity") # zero intensity if DIA
-      idx_charge <- which(selion_nms == "charge state") # no "charge state" if DIA
-      is_dia <- if (length(idx_charge)) FALSE else TRUE
-
-      rm(list = c("scanList", "scanList_ret", "precursorList", "precursor", 
-                  "precursorc", "selectedIon", "selectedIonc", "selion_nms"))
-      break
-    }
-  }
-  
-  rm(list = c("x", "xc", "i"))
-
-  
-  for (i in seq_along(spec)) {
-    x <- spec[[i]]
-    ids <- .Internal(strsplit(xml2::xml_attr(x, "id"), " ", fixed = TRUE, 
-                              perl = FALSE, useBytes = FALSE))[[1]]
-    ids <- .Internal(strsplit(ids, "=", fixed = TRUE, 
-                              perl = FALSE, useBytes = FALSE))
-    scan_nums[[i]] <- ids[[idx_sc]][[2]]
-    orig_scans[[i]] <- ids[[idx_osc]][[2]]
-    
-    xc <- xml2::xml_children(x)
-    
-    ## MS level, title, raw
-    ms_levs[[i]] <- ms_lev <- as.integer(xml2::xml_attr(xc[[idx_mslev]], "value"))
-    scan_titles[[i]] <- title <- xml2::xml_attr(xc[[idx_title]], "value")
-    # raw_files[[i]] <- gsub(pat_title, "\\1", title)
-    raw_files[[i]] <- gsub("^.* File:\"(.*)\", .*", "\\1", title)
-
-    if (ms_lev == 2) {
-      ## retention
-      scanList <- xml2::xml_children(xc[[idx_scanList_2]])
-      scanList_ret <- xml2::xml_children(scanList[[idx_rt_2]])
-      ret_times[i] <- xml2::xml_attr(scanList_ret[[idx_scan_start_2]], "value")
-      
-      ## precursorList
-      precursorList <- xml2::xml_children(xc[[idx_precursor_2]])
-      # (assume one precursor, not yet chimeric)
-      precursor <- precursorList[[1]]
-      precursorc <- xml2::xml_children(precursor)
-
-      selectedIon <- xml2::xml_child(precursorc[[idx_selectedIonList]], 1)
-      selectedIonc <- xml2::xml_children(selectedIon)
-      ms1_moverzs[i] <- xml2::xml_attr(selectedIonc[[idx_moverz]], "value")
-      
-      if (is_dia)
-        ms1_charges[i] <- NA_integer_ # not with DIA: 
-      else
-        ms1_charges[i] <- xml2::xml_attr(selectedIonc[[idx_charge]], "value")
-
-      # may be no precursor intensity
-      ms1_ints[i] <- xml2::xml_attr(selectedIonc[[idx_ms1int]], "value")
-      
-      # ms1_ints[i] <- if (length(selectedIonc) > 2L)
-      #   xml2::xml_attr(selectedIonc[[idx_ms1int]], "value")
-      # else
-      #   numeric(1)
-      
-      ## binaryDataArrayList
-      binData <- xml2::xml_children(xml2::xml_children(xc[[idx_bin_2]]))
-      ms2s <- xml2::xml_contents(binData)
-      r1 <- .Call(base64enc:::B64_decode, xml2::xml_text(ms2s[[1]]))
-      r2 <- .Call(base64enc:::B64_decode, xml2::xml_text(ms2s[[2]]))
-      ms2_n <- length(r1)/8L
-      ms2_moverzs[[i]] <- readBin(r1, "double", n = ms2_n, size = 8L)
-      ms2_ints[[i]] <- readBin(r2, "double", n = ms2_n, size = 8L)
-      ms2_ns[i] <- ms2_n
-      
-    }
-    else {
-      ## retention
-      scanList <- xml2::xml_children(xc[[idx_scanList_1]])
-      scanList_ret <- xml2::xml_children(scanList[[idx_rt_1]])
-      ret_times[i] <- xml2::xml_attr(scanList_ret[[idx_scan_start_1]], "value")
-
-      ## binaryDataArrayList
-      binData <- xml2::xml_children(xml2::xml_children(xc[[idx_bin_1]]))
-      ms2s <- xml2::xml_contents(binData)
-      r1 <- .Call(base64enc:::B64_decode, xml2::xml_text(ms2s[[1]]))
-      r2 <- .Call(base64enc:::B64_decode, xml2::xml_text(ms2s[[2]]))
-      ms2_n <- length(r1)/8L
-      ms2_moverzs[[i]] <- readBin(r1, "double", n = ms2_n, size = 8L)
-      ms2_ints[[i]] <- readBin(r2, "double", n = ms2_n, size = 8L)
-      ms2_ns[i] <- ms2_n
-    }
-  }
-  
-  rows <- !(is.na(ms1_charges) | ms1_charges == "")
-  scan_titles <- scan_titles[rows]
-  raw_files <- raw_files[rows]
-  ms1_moverzs <- ms1_moverzs[rows]
-  ms1_masses <- ms1_masses[rows]
-  ms1_ints <- ms1_ints[rows]
-  ms1_charges <- ms1_charges[rows]
-  ret_times <- ret_times[rows]
-  scan_nums <- scan_nums[rows]
-  ms2_moverzs <- ms2_moverzs[rows]
-  ms2_ints <- ms2_ints[rows]
-  ms2_ns <- ms2_ns[rows]
-  
-  charges <- as.integer(ms1_charges)
-  ms1_charges <- paste0(ms1_charges, "+") # assume always "+" for now
-  # ms1_moverzs <- round(as.numeric(ms1_moverzs), digits = digits)
-  # ms1_masses <- round(ms1_moverzs * charges - charges * 1.00727647, digits = digits)
-  ms1_moverzs <- as.numeric(ms1_moverzs)
-  ms1_masses <- ms1_moverzs * charges - charges * 1.00727647
-  
-  # ms1_ints not "as.integer": may be > .Machine$integer.max (2147483647)
-  ms1_ints <- as.numeric(ms1_ints)
-  ret_times <- as.numeric(ret_times) * 60
-  
-  # extract the TMT region of MS2 moverz and intensity
-  # (also convert reporter-ion intensities to integers)
-  restmt <- extract_mgf_rptrs(ms2_moverzs = ms2_moverzs, 
-                              ms2_ints = ms2_ints, 
-                              quant = quant, 
-                              tmt_reporter_lower = tmt_reporter_lower, 
-                              tmt_reporter_upper = tmt_reporter_upper, 
-                              exclude_reporter_region = exclude_reporter_region)
-  
-  ms2_moverzs <- restmt[["ms2_moverzs"]]
-  ms2_ints <- restmt[["ms2_ints"]]
-  rptr_moverzs <- restmt[["rptr_moverzs"]]
-  rptr_ints <- restmt[["rptr_ints"]]
-  
-  ms2_moverzs <- if (index_mgf_ms2) 
-    lapply(ms2_moverzs, index_mz, min_ms2mass, ppm_ms2/1E6)
-  else
-    lapply(ms2_moverzs, round, digits = digits)
-  
-  tibble::tibble(
-    scan_title = scan_titles,
-    raw_file = raw_files,
-    ms1_moverz = ms1_moverzs,
-    ms1_mass = ms1_masses,
-    ms1_int = ms1_ints,
-    ms1_charge = ms1_charges,
-    ret_time = ret_times,
-    scan_num = scan_nums,
-    ms2_moverz = ms2_moverzs,
-    ms2_int = ms2_ints,
-    
-    # before subset by min_ms2mass
-    ms2_n = ms2_ns, 
-    
-    # temporarily kept
-    charge = charges,
-    
-    rptr_moverz = rptr_moverzs, 
-    rptr_int = rptr_ints)
 }
 
 

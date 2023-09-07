@@ -129,10 +129,10 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
 ions. The default is 10.}
 
-\item{index_mgf_ms2}{A low-priority feature. Logical; if TRUE, converts
-  upfrontly MS2 m-over-z values from numeric to integers as opposed to
-  \emph{in-situ} conversion during ion matches. The default is FALSE. The
-  \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
+\item{index_mgf_ms2}{Depreciated. A low-priority feature. Logical; if TRUE,
+  converts up-frontly MS2 m-over-z values from numeric to integers as opposed
+  to \emph{on-the-fly} conversion during ion matches. The default is FALSE.
+  The \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
   reducing RAM footprints.
 
   At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between

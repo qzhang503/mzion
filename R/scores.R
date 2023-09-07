@@ -1110,12 +1110,12 @@ hadd_primatches <- function (out_path = NULL, is_notched = FALSE,
                # for localization scores
                "pep_ms2_ideltas.")
   
+  message("Adding theoretical MS2 m/z and intensity values: ", Sys.time())
+  
   tempdir <- file.path(out_path, "temp")
   files <- list.files(path = tempdir, pattern = "^prescores_\\d+.*\\.rds$")
   n_cores <- min(detect_cores(48L)) - 1L
-  
-  message("Adding theoretical MS2 m/z and intensity values: ", Sys.time())
-  
+
   cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
   parallel::clusterExport(cl, list("add_primatches"), 
                           envir = environment(mzion::matchMS))
@@ -1290,14 +1290,15 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
 #' @param vecs A list of vectors.
 #' @param nm The name of sub list in \code{vecs}.
 #' @param sep A separator.
-collapse_vecs <- function (vecs, nm = "theo", sep = ";") 
+#' @param digits A non-negative integer; the number of decimal places to be
+#'   used. The default is 4.
+collapse_vecs <- function (vecs, nm = "theo", sep = ";", digits = 4L) 
 {
-  vecs <- lapply(vecs, round, digits = 4L)
+  vecs <- lapply(vecs, round, digits = digits)
   
   ans <- lapply(vecs, function (v) 
-    .Internal(paste0(list(v), collapse = sep, recycle0 = FALSE))
-  )
-  
+    .Internal(paste0(list(v), collapse = sep, recycle0 = FALSE)))
+
   do.call(rbind, ans)
 }
 
@@ -1539,8 +1540,8 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
             legend("topright", legend = c("Raw", "Smoothed"), 
                    col = c("blue", "red"), pch = 19, bty = "n")
             legend("center", pch = 19, 
-                   legend = c(paste0("Best: ", round(best_co, 2)), 
-                              paste0("Smoothed: ", round(score_co2, 2))))
+                   legend = c(paste0("Best: ", round(best_co, 2L)), 
+                              paste0("Smoothed: ", round(score_co2, 2L))))
             dev.off()
           })
         )
@@ -2470,8 +2471,8 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
                 legend("topright", legend = c("Raw", "Smoothed"), 
                        col = c("blue", "red"), pch = 19, bty = "n")
                 legend("center", pch = 19, 
-                       legend = c(paste0("Raw: ", round(score_co, 2)), 
-                                  paste0("Smoothed: ", round(score_co2, 2))))
+                       legend = c(paste0("Raw: ", round(score_co, 2L)), 
+                                  paste0("Smoothed: ", round(score_co2, 2L))))
                 dev.off()
               })
             )

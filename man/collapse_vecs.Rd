@@ -4,7 +4,7 @@
 \alias{collapse_vecs}
 \title{Pastes vectors to character strings.}
 \usage{
-collapse_vecs(vecs, nm = "theo", sep = ";")
+collapse_vecs(vecs, nm = "theo", sep = ";", digits = 4L)
 }
 \arguments{
 \item{vecs}{A list of vectors.}
@@ -12,6 +12,9 @@ collapse_vecs(vecs, nm = "theo", sep = ";")
 \item{nm}{The name of sub list in \code{vecs}.}
 
 \item{sep}{A separator.}
+
+\item{digits}{A non-negative integer; the number of decimal places to be
+used. The default is 4.}
 }
 \description{
 Pastes vectors to character strings.

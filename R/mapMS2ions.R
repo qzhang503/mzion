@@ -271,11 +271,11 @@ plotMS2ions <- function (duos, out_path = "~", out_name = "bar.png",
   p <- ggplot2::ggplot() + 
     ggplot2::geom_segment(mgf, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                              xend = ms2_moverz, yend = 0), 
-                          color = "gray", size = .1) + 
+                          color = "gray", linewidth = .1) + 
     ggplot2::geom_segment(duo, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                              xend = ms2_moverz, yend = 0, 
                                              color = type), 
-                          size = 1, show.legend = FALSE) + 
+                          linewidth = 1, show.legend = FALSE) + 
     ggplot2::geom_text(duo, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                           label = label, color = type),
                        size = 6, alpha = .5, hjust = 0, angle = 90, vjust = 0, 
@@ -288,7 +288,7 @@ plotMS2ions <- function (duos, out_path = "~", out_name = "bar.png",
       ggplot2::geom_segment(duo2, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                                 xend = ms2_moverz, yend = 0, 
                                                 color = type), 
-                            size = .5, show.legend = FALSE) + 
+                            linewidthlinewidth = .5, show.legend = FALSE) + 
       ggplot2::geom_text(duo2, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                              label = label, color = type),
                          size = 4, alpha = .5, hjust = 0, angle = 90, vjust = 0, 

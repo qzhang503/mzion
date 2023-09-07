@@ -67,7 +67,12 @@ devtools::install_github("qzhang503/mzionShiny")
 
         [+] TPP compatibility
 
-        [-] Use zlib compression (do not compress)
+        [-] Use zlib compression (*do not compress*)
+        
+        [+] Filters 
+          (1) peakPicking: vendor msLevel = 1- 
+          
+          (2) (optional) zeroSamples: removeExtra 1- 
 
     -   [x] `Proteome Discoverer mgf`
 -   Bruker's MS
@@ -79,12 +84,6 @@ devtools::install_github("qzhang503/mzionShiny")
 library(mzionShiny)
 run_app()
 ```
-
-## Help documents
-Enter `?mzion::matchMS` from an R console.
-
-## Specifications of fixed and variable modifications
-The Unimod definition of positions and sites were adopted by Mzion for specifying fixed and variable modifications. The value of a position is in one of "Anywhere", "Protein N-term", "Protein C-term", "Any N-term" or "Any C-term". The last two position labels can be shorthanded as "N-term" and "C-term". A site is a one-letter representation of the twenty amino-acid residues, as well as the terminal sites of "N-term" and "C-term". The general format in specifying a fixed or variable modification is `title (position = site)` where title is a unique character string without space. At a position of "Anywhere", the modification can be shorthanded as `title (site)`, for example, `TMT10plex (K)`. For a terminal modification at any site, it can be abbreviated as `title (position)`, for examples, `Acetyl (Protein N-term)` and `TMT10plex (N-term)`. There are circumstances that both position and site are needed for specifying a modification, for instance, `Gln->pyro-Glu (N-term = Q)`. More examples are available in the help document of Mzion utility of `parse_unimod`.
 
 ## Database searches (via R scripts)
 
@@ -132,6 +131,12 @@ matchMS(
 
 ## See also ?matchMS for SILAC, acetylome workflows etc.
 ```
+
+## Help documents
+Enter `?mzion::matchMS` from an RStudio section.
+
+## Specifications of fixed and variable modifications
+The Unimod definition of positions and sites were adopted by Mzion for specifying fixed and variable modifications. The value of a position is in one of "Anywhere", "Protein N-term", "Protein C-term", "Any N-term" or "Any C-term". The last two position labels can be shorthanded as "N-term" and "C-term". A site is a one-letter representation of the twenty amino-acid residues, as well as the terminal sites of "N-term" and "C-term". The general format in specifying a fixed or variable modification is `title (position = site)` where title is a unique character string without space. At a position of "Anywhere", the modification can be shorthanded as `title (site)`, for example, `TMT10plex (K)`. For a terminal modification at any site, it can be abbreviated as `title (position)`, for examples, `Acetyl (Protein N-term)` and `TMT10plex (N-term)`. There are circumstances that both position and site are needed for specifying a modification, for instance, `Gln->pyro-Glu (N-term = Q)`. More examples are available in the help document of Mzion utility of `parse_unimod`.
 
 ## Data QC and mining
 -   [proteoQ](https://github.com/qzhang503/proteoQ/)
