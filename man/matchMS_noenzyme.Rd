@@ -13,7 +13,6 @@ matchMS_noenzyme(
   mgf_path = NULL,
   noenzyme_maxn = 0L,
   quant = "none",
-  sys_ram = 24L,
   silac_noenzyme = FALSE,
   groups_noenzyme = FALSE
 )
@@ -58,8 +57,6 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 15N)}. It is also possible that an experimenter may construct a
 \code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
 \code{quant = tmt18} is suitable.}
-
-\item{sys_ram}{A tentative quantity of system RAM.}
 
 \item{silac_noenzyme}{Logical; is the search a combination of SILAC and
 noenzyme.}

@@ -5,8 +5,8 @@
 \title{Extracts reporter-ion data from MGF.}
 \usage{
 extract_mgf_rptrs(
-  ms2_moverzs,
-  ms2_ints,
+  xvals,
+  yvals,
   quant = "none",
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
@@ -14,9 +14,9 @@ extract_mgf_rptrs(
 )
 }
 \arguments{
-\item{ms2_moverzs}{Lists of MS2 m-over-z values.}
+\item{xvals}{Lists of MS2 m-over-z values.}
 
-\item{ms2_ints}{Lists of MS2 intensity values.}
+\item{yvals}{Lists of MS2 intensity values.}
 
 \item{quant}{A character string; the quantitation method. The default is
 "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and

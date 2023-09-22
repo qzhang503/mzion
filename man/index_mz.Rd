@@ -2,7 +2,7 @@
 % Please edit documentation in R/mgfs.R
 \name{index_mz}
 \alias{index_mz}
-\title{Converts ms2_moverz to integers.}
+\title{Converts ms2_moverzs to integers.}
 \usage{
 index_mz(x, from = 115L, d = 1e-05)
 }
@@ -14,7 +14,7 @@ index_mz(x, from = 115L, d = 1e-05)
 \item{d}{Numeric; \eqn{ppm * 10E-6}.}
 }
 \description{
-Converts ms2_moverz to integers.
+Converts ms2_moverzs to integers.
 }
 \seealso{
 find_ms1_interval

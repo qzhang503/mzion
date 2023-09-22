@@ -27,7 +27,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                       quant = "none", ppm_reporters = 10L, 
                       by_modules = TRUE, reframe_mgfs = FALSE, ms1_offsets = 0, 
                       ms1_neulosses = NULL, maxn_neulosses_fnl = 1L, 
-                      maxn_neulosses_vnl = 1L, 
+                      maxn_neulosses_vnl = 1L, deisotope_ms2 = TRUE, 
 
                       # dummies
                       fasta, acc_type, acc_pattern,
@@ -109,7 +109,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   # (matches of secondary ions may use `outer` products and no adjustments)
   ppm_ms1_bin <- calc_threeframe_ppm(ppm_ms1)
   ppm_ms2_bin <- calc_threeframe_ppm(ppm_ms2)
-
+  
   pair_mgftheos(mgf_path = mgf_path, n_modules = length(aa_masses_all), 
                 ms1_offsets = comb_ms1_offsets(ms1_offsets = ms1_offsets, 
                                                ms1_neulosses = ms1_neulosses), 
@@ -166,6 +166,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
             ms1_neulosses = ms1_neulosses, 
             maxn_neulosses_fnl = maxn_neulosses_fnl, 
             maxn_neulosses_vnl = maxn_neulosses_vnl, 
+            deisotope_ms2 = deisotope_ms2, 
             mod_indexes = mod_indexes, 
             mgf_path = mgf_path, 
             out_path = out_path, 
@@ -307,6 +308,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL,
 
   if (!file.exists(fi_aa))
     stop("Amino-acid look-ups not found: ", fi_aa)
+  
   if (!file.exists(fi_mi))
     stop("Amino-acid look-ups not found: ", fi_mi)
 

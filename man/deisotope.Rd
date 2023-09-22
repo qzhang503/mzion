@@ -6,35 +6,60 @@
 \usage{
 deisotope(
   moverzs,
-  ms1ints,
-  ppm = 8L,
+  msxints,
+  center = 650,
+  ppm = 6L,
+  ms_lev = 1L,
+  maxn_feats = 300L,
+  max_charge = 4L,
   offset_upr = 30L,
   offset_lwr = 30L,
-  maxn_prec = 400L,
-  min_int = 3e+05,
-  m13c = 1.003355,
-  order_mz = TRUE
+  order_mz = TRUE,
+  step = ppm/1e+06,
+  backward_mass_co = 800/ms_lev,
+  bound = FALSE
 )
 }
 \arguments{
 \item{moverzs}{Mass-to-charge ratios.}
 
-\item{ms1ints}{Precursor intensities.}
+\item{msxints}{MS1 or MS2 peak intensities.}
 
-\item{ppm}{Allowance in mass error.}
+\item{center}{The mass center of an isolation window (only for MS1).}
+
+\item{ppm}{Allowance in mass error when deisotoping.}
+
+\item{ms_lev}{MS level.}
+
+\item{maxn_feats}{The maximum number of MS features.}
+
+\item{max_charge}{The maximum charge state.}
 
 \item{offset_upr}{A cardinal number of upper mass off-sets.}
 
 \item{offset_lwr}{A cardinal number of lower mass off-sets.}
 
-\item{maxn_prec}{The maximum number of precursors.}
+\item{order_mz}{Logical; if TRUE, orders peaks from low to high m-over-z's.}
 
-\item{min_int}{Minimum intensity for considering as a peak.}
+\item{step}{Step size for mass binning.}
 
-\item{m13c}{Mass of 13C.}
+\item{backward_mass_co}{A mass cut-off to initiate backward looking of
+an isotope envelop.}
 
-\item{order_mz}{Logical; if TRUE, orders peaks from low to high moverzs.}
+\item{bound}{Not yet used. Logical; if TRUE, removes precursors outside of
+the boundary of isolation window.}
 }
 \description{
 De-isotopes precursor masses.
+}
+\examples{
+\donttest{
+library(mzion)
+moverzs <- c(881 + 1:10*.1, 882.0674, 882.0981, 882.4034, 882.60, 882.7372)
+msxints <- c(1000 * 1:10, 1652869, 882.0981, 2043015, 2314111, 4314111)
+
+# out <- mzion:::deisotope(moverzs, msxints, ppm = 10L, ms_lev = 1L, 
+#                          maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
+#                          offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
+}
 }

@@ -40,6 +40,8 @@ best match.}
 
 \item{is_decoy}{Logical; is the match from decoy. The default is FALSE.}
 
+\item{type_ms2ions}{Type of MS2 ions.}
+
 \item{width}{Plot width.}
 
 \item{height}{Plot height.}

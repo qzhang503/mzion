@@ -7,6 +7,7 @@
 search_mgf(
   expt_mass_ms1 = NULL,
   expt_moverz_ms2 = NULL,
+  exptcharges_ms2 = NULL,
   theomasses_ms1 = NULL,
   theomasses_ms2 = NULL,
   pep_mod_groups = NULL,
@@ -19,18 +20,21 @@ search_mgf(
 )
 }
 \arguments{
-\item{expt_mass_ms1}{Numeric; the experimental MS1 mass}
+\item{expt_mass_ms1}{Numeric; the experimental MS1 mass.}
 
-\item{expt_moverz_ms2}{A numeric list; the experimental MS2 m/z's}
+\item{expt_moverz_ms2}{A numeric list; the experimental MS2 m/z's.}
+
+\item{exptcharges_ms2}{A list of integers; the charge states of MS2 m/z's.
+Values are \code{NULL} at \code{deisotope_ms2 = FALSE}.}
 
 \item{theomasses_ms1}{Numeric vector; the theoretical MS1 masses at the
-preceding \code{-1}, the current and the following \code{+1} frames}
+preceding \code{-1}, the current and the following \code{+1} frames.}
 
 \item{theomasses_ms2}{Numeric vector; the theoretical MS2 m/z's at the
-preceding \code{-1}, the current and the following \code{+1} frames}
+preceding \code{-1}, the current and the following \code{+1} frames.}
 
 \item{pep_mod_groups}{The index(es) of peptide modification groups; single
-value at \code{by_modules = TRUE}}
+value at \code{by_modules = TRUE}.}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
 for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are

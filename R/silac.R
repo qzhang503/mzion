@@ -272,12 +272,11 @@ add_fixedlab_masses <- function (fixedlabs, aa_masses)
 #'   noenzyme.
 #' @param groups_noenzyme Logical; is the search a combination of group search
 #'   and noenzyme.
-#' @param sys_ram A tentative quantity of system RAM.
 #' @inheritParams matchMS
 matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L, 
                               fasta = NULL, out_path = NULL, mgf_path = NULL, 
                               noenzyme_maxn = 0L, quant = "none", 
-                              sys_ram = 24L, silac_noenzyme = FALSE, 
+                              silac_noenzyme = FALSE, 
                               groups_noenzyme = FALSE) 
 {
   if (groups_noenzyme)
@@ -300,7 +299,7 @@ matchMS_noenzyme <- function (this_call = NULL, min_len = 7L, max_len = 40L,
       fct_mgf <- max(1, sum(unlist(lapply(mgf_files, file.size)))/1024^3)
       
       ans <- tryCatch(
-        find_free_mem(sys_ram)/1024/fct_mgf,
+        find_free_mem()/1024/fct_mgf,
         error = function (e) NA)
       
       if (is.na(ans))

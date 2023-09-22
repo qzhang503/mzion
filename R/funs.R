@@ -2,6 +2,9 @@
 # [1] "bin_ms1masses"      "binTheoSeqs_i"      "binTheoSeqs2"       "bin_theoseqs"       "binTheoSeqs"       
 # [6] "find_ms1_cutpoints" "s_readRDS"          "set_bin_ncores"    
 # 
+# $deisotope.R
+# [1] "deisotope"      "find_lcpeaks"   "sep_ms1rts"     "bin_ms1rts"     "gen_isoenvlope"
+# 
 # $dispatch.R
 #  [1] "find_pos_site"       "contain_pos_site"    "contain_termpos_any" "subset_by_prps"      "subset_protntsite"  
 #  [6] "subset_protntany"    "subset_anyntsite"    "subset_anyntany"     "subset_anysite"      "subset_protctsite"  
@@ -20,8 +23,8 @@
 # [13] "a2ions"          "astarions"       "astar2ions"      "a0ions"          "a02ions"         "x2ions"         
 # 
 # $mapMS2ions.R
-# [1] "mapMS2ions"         "plotMS2ions"        "match_mgf_path"     "match_raw_id"       "add_raw_ids"       
-# [6] "find_secion_types"  "find_mgf_query"     "get_mzion_coltypes" "check_ggname"      
+#  [1] "mapMS2ions"         "plotMS2ions"        "match_mgf_path"     "match_raw_id"       "add_raw_ids"       
+#  [6] "find_secion_types"  "find_mgf_query"     "make_speclib"       "get_mzion_coltypes" "check_ggname"      
 # 
 # $mgfs.R
 #  [1] "load_mgfs"          "readMGF"            "post_readmgf"       "readlineMGFs"       "  f"               

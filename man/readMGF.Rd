@@ -12,7 +12,6 @@ readMGF(
   min_ms2mass = 115L,
   max_ms2mass = 4500L,
   topn_ms2ions = 100L,
-  quant = "none",
   ms1_charge_range = c(2L, 6L),
   ms1_scan_range = c(1L, .Machine$integer.max),
   ret_range = c(0, Inf),
@@ -25,6 +24,16 @@ readMGF(
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
   out_path = file.path(filepath, "mgf_queries.rds"),
+  is_mdda = FALSE,
+  deisotope_ms2 = TRUE,
+  max_ms2_charge = 3L,
+  use_defpeaks = FALSE,
+  maxn_dia_precurs = 300L,
+  maxn_mdda_precurs = 5L,
+  n_mdda_flanks = 6L,
+  ppm_ms1_deisotope = 10L,
+  ppm_ms2_deisotope = 10L,
+  quant = "none",
   digits = 4L
 )
 }
@@ -45,15 +54,6 @@ interrogation.}
 
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
 MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
-
-\item{quant}{A character string; the quantitation method. The default is
-"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
-tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
-plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
-12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
-15N)}. It is also possible that an experimenter may construct a
-\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
-\code{quant = tmt18} is suitable.}
 
 \item{ms1_charge_range}{The range of MS1 charge states.}
 
@@ -98,6 +98,39 @@ of TMT reporter ions is informed by \code{tmt_reporter_lower} and
 \code{mgf_cutmzs}.}
 
 \item{out_path}{An output path.}
+
+\item{is_mdda}{Logical; if TRUE, consider the multiple (chimeric) precursors
+in DDA.}
+
+\item{deisotope_ms2}{Logical; if TRUE, de-isotope MS2 features.}
+
+\item{max_ms2_charge}{Maximum charge states for consideration with MS2
+deisotoping.}
+
+\item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
+charge states pre-calculated by other peak-picking algorithms.}
+
+\item{maxn_dia_precurs}{Maximum number of precursors for consideration in a
+DIA scan.}
+
+\item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
+multi-precursor DDA scan.}
+
+\item{n_mdda_flanks}{The number of preceding and following MS1 scans for
+consideration when averaging isotope envelops of precursors.}
+
+\item{ppm_ms1_deisotope}{Mass error tolerance in MS1 deisotoping.}
+
+\item{ppm_ms2_deisotope}{Mass error tolerance in MS2 deisotoping.}
+
+\item{quant}{A character string; the quantitation method. The default is
+"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
+15N)}. It is also possible that an experimenter may construct a
+\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
+\code{quant = tmt18} is suitable.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

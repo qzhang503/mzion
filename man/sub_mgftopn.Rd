@@ -2,11 +2,12 @@
 % Please edit documentation in R/mgfs.R
 \name{sub_mgftopn}
 \alias{sub_mgftopn}
-\title{Subsets MGFs by top-n}
+\title{Subsets MGFs by top-n entries.}
 \usage{
 sub_mgftopn(
-  ms2_moverzs,
-  ms2_ints,
+  ms2_moverzs = NULL,
+  ms2_ints = NULL,
+  ms2_charges = NULL,
   topn_ms2ions = 100L,
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
@@ -17,7 +18,9 @@ sub_mgftopn(
 \arguments{
 \item{ms2_moverzs}{Lists of MS2 moverz values.}
 
-\item{ms2_ints}{Lists of MS2 intensities}
+\item{ms2_ints}{Lists of MS2 intensities.}
+
+\item{ms2_charges}{Lists of MS2 charges.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

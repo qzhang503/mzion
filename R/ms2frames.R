@@ -87,8 +87,15 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
   }
   
   mgfs[["pep_ms1_offset"]] <- ms1_offset
-  mgfs <- split(mgfs, find_ms1_interval(mgfs[["ms1_mass"]], from = min_mass, 
-                                        ppm = ppm_ms1_bin))
+  
+  if (class(mgfs[1, "ms1_charge", drop = TRUE]) == "list") {
+    mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, min_mass = min_mass, 
+                          ppm_ms1_bin = ppm_ms1_bin)
+  }
+  else {
+    mgfs <- split(mgfs, find_ms1_interval(mgfs[["ms1_mass"]], from = min_mass, 
+                                          ppm = ppm_ms1_bin))
+  }
 
   # to chunks: each chunk has multiple frames: each frame multiple precursors
   ranges <- seq_along(mgfs)
@@ -188,6 +195,52 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
 }
 
 
+#' Makes DIA MGFs
+#' 
+#' Replicates MS2 data by the multiplicity of precursor masses.
+#' 
+#' @param mgfs MGF data.
+#' @inheritParams pair_mgftheos
+make_dia_mgfs <- function (mgfs, mgf_path, min_mass = 200L, ppm_ms1_bin = 10L)
+{
+  mgfs$ms_level <- mgfs$demux <- NULL
+  mgfs$spec_id <- 1:nrow(mgfs) # do not use scan_title (at multiple raw files)
+  
+  ms1_bins <- lapply(mgfs[["ms1_mass"]], find_ms1_interval, from = min_mass, 
+                     ppm = ppm_ms1_bin)
+  # ms1_bins[[i]]: the MS1 bins at the i-th mgf
+  #  for post-search re-scoring of chimeric psms under the same mgf
+  # qs::qsave(ms1_bins, file.path(mgf_path, "tbl_mgf_ms1masses.rds"), preset = "fast")
+  
+  cols_ms2 <- c("ms2_moverzs", "ms2_ints", "rptr_moverzs", "rptr_ints")
+  mgfdata <- mgfs[, cols_ms2, drop = FALSE]
+  mgfs <- mgfs[, -which(names(mgfs) %in% cols_ms2), drop = FALSE]
+  
+  lens <- lengths(mgfs$ms1_charge)
+  col_nms <- names(mgfs)
+  cols_list <- col_nms[unlist(lapply(mgfs, is.list))]
+  cols_flat <- col_nms[!col_nms %in% cols_list]
+  
+  datalist <- lapply(mgfs[, cols_list, drop = FALSE], function (x) { 
+    unlist(x, use.names = FALSE, recursive = FALSE) })
+  dataflat <- lapply(mgfs[, cols_flat, drop = FALSE], rep, lens)
+  ms1_bins <- unlist(ms1_bins, recursive = FALSE, use.names = FALSE)
+  
+  mgfs <- dplyr::bind_cols(
+    dplyr::bind_cols(datalist), dplyr::bind_cols(dataflat))
+  
+  rm(list = c("datalist", "dataflat", "col_nms", "cols_list", "cols_flat", 
+              "cols_ms2"))
+  
+  ord <- order(mgfs$ms1_mass)
+  mgfs <- mgfs[ord, ]
+  ms1_bins <- ms1_bins[ord]
+  mgfs <- dplyr::bind_cols(mgfs, mgfdata[mgfs$spec_id, ])
+  # mgfs$spec_id <- NULL
+  mgfs <- split(mgfs, ms1_bins)
+}
+
+
 #' Help of \link{ms2match_all}
 #'
 #' By MGF chunks
@@ -206,7 +259,7 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
 #' @inheritParams pair_mgftheos
 hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all, 
                        ms1_neulosses = NULL, maxn_neulosses_fnl = 1L, 
-                       maxn_neulosses_vnl = 1L, 
+                       maxn_neulosses_vnl = 1L, deisotope_ms2 = TRUE, 
                        mod_indexes, mgf_path, out_path, 
                        type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
                        maxn_sites_per_vmod = 3L, maxn_fnl_per_seq = 3L, 
@@ -257,6 +310,7 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
         ms1_neulosses = ms1_neulosses, 
         maxn_neulosses_fnl = maxn_neulosses_fnl, 
         maxn_neulosses_vnl = maxn_neulosses_vnl, 
+        deisotope_ms2 = deisotope_ms2, 
         cl = cl, 
         mod_indexes = mod_indexes, 
         mgf_path = mgf_path, 
@@ -376,8 +430,8 @@ ms2match_all <- function (mgth, aa_masses_all, funs_ms2, ms1vmods_all,
                       pep_tot_int = ms1_int, 
                       pep_scan_num = scan_num, 
                       pep_exp_z = ms1_charge, 
-                      pep_ms2_moverzs = ms2_moverz, 
-                      pep_ms2_ints = ms2_int, 
+                      pep_ms2_moverzs = ms2_moverzs, 
+                      pep_ms2_ints = ms2_ints, 
                       pep_frame = frame)
   df[["pep_scan_num"]] <- as.character(df[["pep_scan_num"]])
   df <- reloc_col_after(df, "raw_file", "pep_scan_num")
@@ -538,7 +592,7 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
   ## --- iteration ---
   for (i in seq_len(lenm)) {
     ms1_exptmasses  <- mgfs_cr[["ms1_mass"]]
-    ms2_exptmoverzs <- mgfs_cr[["ms2_moverz"]]
+    ms2_exptmoverzs <- mgfs_cr[["ms2_moverzs"]]
     
     afi <- cri + 1L
     
@@ -1127,14 +1181,16 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
 
 #' Matches an MGF query
 #'
-#' @param expt_mass_ms1 Numeric; the experimental MS1 mass
-#' @param expt_moverz_ms2 A numeric list; the experimental MS2 m/z's
+#' @param expt_mass_ms1 Numeric; the experimental MS1 mass.
+#' @param expt_moverz_ms2 A numeric list; the experimental MS2 m/z's.
+#' @param exptcharges_ms2 A list of integers; the charge states of MS2 m/z's.
+#'   Values are \code{NULL} at \code{deisotope_ms2 = FALSE}.
 #' @param theomasses_ms1 Numeric vector; the theoretical MS1 masses at the
-#'   preceding \code{-1}, the current and the following \code{+1} frames
+#'   preceding \code{-1}, the current and the following \code{+1} frames.
 #' @param theomasses_ms2 Numeric vector; the theoretical MS2 m/z's at the
-#'   preceding \code{-1}, the current and the following \code{+1} frames
+#'   preceding \code{-1}, the current and the following \code{+1} frames.
 #' @param pep_mod_groups The index(es) of peptide modification groups; single
-#'   value at \code{by_modules = TRUE}
+#'   value at \code{by_modules = TRUE}.
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
 #' @inheritParams pair_mgftheos
@@ -1165,12 +1221,15 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
 #'
 #' }
 search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL, 
-                        theomasses_ms1 = NULL, theomasses_ms2 = NULL, 
-                        pep_mod_groups = NULL, 
+                        exptcharges_ms2 = NULL, theomasses_ms1 = NULL, 
+                        theomasses_ms2 = NULL, pep_mod_groups = NULL, 
                         minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                         min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
                         by_modules = FALSE) 
 {
+  if (!is.null(exptcharges_ms2))
+    expt_moverz_ms2[(!is.na(exptcharges_ms2)) & (exptcharges_ms2 > 1L)] <- NA_real_
+
   # --- find MS2 matches ---
   d2 <- ppm_ms2/1E6
   
@@ -1203,13 +1262,11 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
     .Internal(unlist(oks, recursive = FALSE, use.names = FALSE))
   })
   
-  # USE.NAMES = TRUE 
   # (lapply loses names by `[[` whereas map2 reserves names when available)
   ans <- mapply(function (x, y) x[y], ans, oks, SIMPLIFY = FALSE, USE.NAMES = TRUE)
   
   # (2)  removes empty lists
-  oks2 <- lapply(ans, function(x) length(x) > 0L)
-  oks2 <- .Internal(unlist(oks2, recursive = FALSE, use.names = FALSE))
+  oks2 <- lengths(ans, use.names = FALSE) > 0L
   ans <- ans[oks2]
   theomasses_ms1 <- theomasses_ms1[oks2]
   
@@ -1292,6 +1349,7 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
 hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN, 
                            ms1vmods, ms2vmods, cl, ms1_neulosses = NULL, 
                            maxn_neulosses_fnl = 1L, maxn_neulosses_vnl = 1L, 
+                           deisotope_ms2 = TRUE, 
                            mod_indexes, mgf_path, out_path, type_ms2ions = "by", 
                            maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                            maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
@@ -1351,6 +1409,7 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
       maxn_sites_per_vmod = maxn_sites_per_vmod, 
       maxn_fnl_per_seq = maxn_fnl_per_seq, 
       maxn_vnl_per_seq = maxn_vnl_per_seq, 
+      deisotope_ms2 = deisotope_ms2, 
       maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
       minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
       min_ms2mass = min_ms2mass, index_mgf_ms2 = index_mgf_ms2, 
@@ -1370,6 +1429,7 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
       maxn_sites_per_vmod = maxn_sites_per_vmod, 
       maxn_fnl_per_seq = maxn_fnl_per_seq, 
       maxn_vnl_per_seq = maxn_vnl_per_seq, 
+      deisotope_ms2 = deisotope_ms2, 
       maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
       minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
       min_ms2mass = min_ms2mass, index_mgf_ms2 = index_mgf_ms2, 
@@ -1388,6 +1448,7 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
         maxn_sites_per_vmod = maxn_sites_per_vmod, 
         maxn_fnl_per_seq = maxn_neulosses_fnl, 
         maxn_vnl_per_seq = maxn_neulosses_vnl, 
+        deisotope_ms2 = deisotope_ms2, 
         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
         minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
         min_ms2mass = min_ms2mass, index_mgf_ms2 = index_mgf_ms2, 
@@ -1420,8 +1481,8 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
                       pep_tot_int = ms1_int, 
                       pep_scan_num = scan_num, 
                       pep_exp_z = ms1_charge, 
-                      pep_ms2_moverzs = ms2_moverz, 
-                      pep_ms2_ints = ms2_int, )
+                      pep_ms2_moverzs = ms2_moverzs, 
+                      pep_ms2_ints = ms2_ints, )
   # df[["pep_scan_num"]] <- as.character(df[["pep_scan_num"]])
   df <- reloc_col_after(df, "raw_file", "scan_num")
   df <- reloc_col_after(df, "pep_mod_group", "raw_file")
@@ -1451,6 +1512,7 @@ ms2match_one <- function (nms_theo, nms_expt, pep_mod_group, aa_masses, FUN,
                           mod_indexes, mgf_path, out_path, type_ms2ions = "by", 
                           maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                           maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
+                          deisotope_ms2 = TRUE, 
                           maxn_vmods_sitescombi_per_pep = 64L, 
                           minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                           min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
@@ -1502,6 +1564,7 @@ ms2match_one <- function (nms_theo, nms_expt, pep_mod_group, aa_masses, FUN,
                     maxn_sites_per_vmod = maxn_sites_per_vmod, 
                     maxn_fnl_per_seq = maxn_fnl_per_seq, 
                     maxn_vnl_per_seq = maxn_vnl_per_seq, 
+                    deisotope_ms2 = deisotope_ms2, 
                     maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
                     minn_ms2 = minn_ms2, 
                     ppm_ms1 = ppm_ms1, 
@@ -1553,6 +1616,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
                         type_ms2ions = "by", 
                         maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L, 
                         maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
+                        deisotope_ms2 = TRUE, 
                         maxn_vmods_sitescombi_per_pep = 64L, 
                         minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
                         min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
@@ -1638,7 +1702,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
   ## --- iteration ---
   for (i in seq_len(len)) {
     exptmasses_ms1  <- mgfs_cr$ms1_mass
-    exptmoverzs_ms2 <- mgfs_cr$ms2_moverz
+    exptmoverzs_ms2 <- mgfs_cr$ms2_moverzs
+    exptcharges_ms2 <- mgfs_cr$ms2_charges
     
     ### Slower to subset + passed as argument 
     #   compared to direct calculation at ~ 4us
@@ -1647,7 +1712,6 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
     ###
     
     afi <- cri + 1L
-    
     thaf <- theopeps[[afi]]
     thaf_peps <- thaf[["pep_seq"]]
     thaf_masses <- thaf[["mass"]]
@@ -1682,6 +1746,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       search_mgf, 
       expt_mass_ms1 = exptmasses_ms1, 
       expt_moverz_ms2 = exptmoverzs_ms2, 
+      exptcharges_ms2 = exptcharges_ms2, 
       MoreArgs = list(
         pep_mod_groups = pep_mod_group, 
         theomasses_ms1 = c(thbf_masses, thcr_masses, thaf_masses), 
@@ -1697,7 +1762,8 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
       USE.NAMES = FALSE
     )
     
-    if (i == len) break
+    if (i == len) 
+      break
     
     # advance to the next frame
     mgfs_cr <- mgf_frames[[i+1]]

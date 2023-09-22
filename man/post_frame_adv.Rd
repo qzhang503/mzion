@@ -12,6 +12,5 @@ post_frame_adv(res, mgf_frames)
 \item{mgf_frames}{Data of MGF frames.}
 }
 \description{
-Flattens mgfs within each frame (the number of entries equals to the number
-of mgfs).
+Flattens mgfs within each frame.
 }

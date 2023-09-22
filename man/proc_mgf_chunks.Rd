@@ -36,6 +36,15 @@ proc_mgf_chunks(
   tmt_reporter_upper = 135.2,
   exclude_reporter_region = FALSE,
   index_mgf_ms2 = FALSE,
+  is_mdda = FALSE,
+  deisotope_ms2 = TRUE,
+  max_ms2_charge = 3L,
+  use_defpeaks = FALSE,
+  maxn_dia_precurs = 300L,
+  maxn_mdda_precurs = 5L,
+  n_mdda_flanks = 6L,
+  ppm_ms1_deisotope = 10L,
+  ppm_ms2_deisotope = 10L,
   quant = "none",
   digits = 4L
 )
@@ -134,6 +143,30 @@ of TMT reporter ions is informed by \code{tmt_reporter_lower} and
   20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
   the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
   pep_ms2_deltas_sd} are nullified in the outputs.}
+
+\item{is_mdda}{Logical; if TRUE, consider the multiple (chimeric) precursors
+in DDA.}
+
+\item{deisotope_ms2}{Logical; if TRUE, de-isotope MS2 features.}
+
+\item{max_ms2_charge}{Maximum charge states for consideration with MS2
+deisotoping.}
+
+\item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
+charge states pre-calculated by other peak-picking algorithms.}
+
+\item{maxn_dia_precurs}{Maximum number of precursors for consideration in a
+DIA scan.}
+
+\item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
+multi-precursor DDA scan.}
+
+\item{n_mdda_flanks}{The number of preceding and following MS1 scans for
+consideration when averaging isotope envelops of precursors.}
+
+\item{ppm_ms1_deisotope}{Mass error tolerance in MS1 deisotoping.}
+
+\item{ppm_ms2_deisotope}{Mass error tolerance in MS2 deisotoping.}
 
 \item{quant}{A character string; the quantitation method. The default is
 "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and

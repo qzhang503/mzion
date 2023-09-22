@@ -4,10 +4,10 @@
 \alias{find_free_mem}
 \title{Finds the amount of free system memory.}
 \usage{
-find_free_mem(sys_ram = 32L)
+find_free_mem(sys_ram = NULL)
 }
 \arguments{
-\item{sys_ram}{The putative amount of system RAM.}
+\item{sys_ram}{The putative amount of system RAM, e.g., 32L.}
 }
 \description{
 Outputs of free RAM in the unit of MB.

@@ -210,6 +210,21 @@
 #'   \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 #'   ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 #'   and y-ions.
+#' @param is_mdda Logical; if TRUE, consider the multiple (chimeric) precursors
+#'   in DDA.
+#' @param deisotope_ms2 Logical; if TRUE, de-isotope MS2 features.
+#' @param max_ms2_charge Maximum charge states for consideration with MS2
+#'   deisotoping.
+#' @param use_defpeaks Logical; if TRUE, uses MS1 m-over-z's, intensities and
+#'   charge states pre-calculated by other peak-picking algorithms.
+#' @param maxn_dia_precurs Maximum number of precursors for consideration in a
+#'   DIA scan.
+#' @param maxn_mdda_precurs Maximum number of precursors for consideration in a
+#'   multi-precursor DDA scan.
+#' @param n_mdda_flanks The number of preceding and following MS1 scans for
+#'   consideration when averaging isotope envelops of precursors.
+#' @param ppm_ms1_deisotope Mass error tolerance in MS1 deisotoping.
+#' @param ppm_ms2_deisotope Mass error tolerance in MS2 deisotoping.
 #' @param topn_ms2ions A positive integer; the top-n species for uses in MS2 ion
 #'   searches.
 #' @param topn_ms2ion_cuts Advanced feature. Either \code{NA} or a named vector.
@@ -436,6 +451,8 @@
 #'   suggested. Occasionally experimenters may remove the file folder for disk
 #'   space or under infrequent events of modified framework incurred by the
 #'   developer.
+#' @param make_speclib Makes spectrum library from the search results of
+#'   \code{psmQ.txt}.
 #' @param by_modules Not used. Logical. At the TRUE default, searches MS data by
 #'   individual modules of combinatorial fixed and variable modifications. If
 #'   FALSE, search all modules together. The later would probably need more than
@@ -747,9 +764,14 @@ matchMS <- function (out_path = "~/mzion/outs",
                      .path_cache = "~/mzion/.MSearches (1.3.0.1)/Cache/Calls", 
                      .path_fasta = NULL,
                      
-                     topn_ms2ions = 100L,
+                     is_mdda = FALSE, deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
+                     use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
+                     maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
+                     ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
+                     
+                     topn_ms2ions = 150L,
                      topn_ms2ion_cuts = NA, 
-                     min_ms1_charge = 2L, max_ms1_charge = 6L, 
+                     min_ms1_charge = 2L, max_ms1_charge = 4L, 
                      min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                      min_ret_time = 0, max_ret_time = Inf, 
                      calib_ms1mass = FALSE, 
@@ -768,6 +790,8 @@ matchMS <- function (out_path = "~/mzion/outs",
                      svm_cv = TRUE, svm_k  = 3L, 
                      svm_costs = c(.1, .3, 1, 3, 10), svm_def_cost = 1, 
                      svm_iters  = 10L, 
+                     
+                     make_speclib = FALSE, 
                      
                      by_modules = TRUE, 
                      digits = 4L, ...) 
@@ -1274,6 +1298,15 @@ matchMS <- function (out_path = "~/mzion/outs",
               tmt_reporter_lower = tmt_reporter_lower, 
               tmt_reporter_upper = tmt_reporter_upper, 
               index_mgf_ms2 = index_mgf_ms2, 
+              is_mdda = is_mdda, 
+              deisotope_ms2 = deisotope_ms2, 
+              max_ms2_charge = max_ms2_charge, 
+              use_defpeaks = use_defpeaks, 
+              maxn_dia_precurs = maxn_dia_precurs, 
+              maxn_mdda_precurs = maxn_mdda_precurs, 
+              n_mdda_flanks = n_mdda_flanks, 
+              ppm_ms1_deisotope = ppm_ms1_deisotope, 
+              ppm_ms2_deisotope = ppm_ms2_deisotope, 
               quant = quant, 
               digits = digits)
 
@@ -1351,6 +1384,7 @@ matchMS <- function (out_path = "~/mzion/outs",
              ms1_neulosses = ms1_neulosses, 
              maxn_neulosses_fnl = maxn_neulosses_fnl, 
              maxn_neulosses_vnl = maxn_neulosses_vnl, 
+             deisotope_ms2 = deisotope_ms2, 
 
              # dummy for argument matching
              fasta = fasta,

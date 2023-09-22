@@ -1,69 +1,102 @@
 #' De-isotopes precursor masses.
-#' 
+#'
 #' @param moverzs Mass-to-charge ratios.
-#' @param ms1ints Precursor intensities.
-#' @param m13c Mass of 13C.
-#' @param ppm Allowance in mass error.
+#' @param msxints MS1 or MS2 peak intensities.
+#' @param center The mass center of an isolation window (only for MS1).
+#' @param ppm Allowance in mass error when deisotoping.
 #' @param offset_upr A cardinal number of upper mass off-sets.
 #' @param offset_lwr A cardinal number of lower mass off-sets.
-#' @param maxn_prec The maximum number of precursors.
-#' @param min_int Minimum intensity for considering as a peak.
-#' @param order_mz Logical; if TRUE, orders peaks from low to high moverzs.
-deisotope <- function (moverzs, ms1ints, ppm = 8L, offset_upr = 30L, 
-                       offset_lwr = 30L, maxn_prec = 400L, min_int = 3E5, 
-                       m13c = 1.003355, order_mz = TRUE)
+#' @param bound Not yet used. Logical; if TRUE, removes precursors outside of
+#'   the boundary of isolation window.
+#' @param ms_lev MS level.
+#' @param maxn_feats The maximum number of MS features.
+#' @param max_charge The maximum charge state.
+#' @param step Step size for mass binning.
+#' @param order_mz Logical; if TRUE, orders peaks from low to high m-over-z's.
+#' @param backward_mass_co A mass cut-off to initiate backward looking of
+#'   an isotope envelop.
+#' @examples
+#' \donttest{
+#' library(mzion)
+#' moverzs <- c(881 + 1:10*.1, 882.0674, 882.0981, 882.4034, 882.60, 882.7372)
+#' msxints <- c(1000 * 1:10, 1652869, 882.0981, 2043015, 2314111, 4314111)
+#'
+#' # out <- mzion:::deisotope(moverzs, msxints, ppm = 10L, ms_lev = 1L, 
+#' #                          maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
+#' #                          offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
+#' }
+deisotope <- function (moverzs, msxints, center = 650.0, ppm = 6L, ms_lev = 1L, 
+                       maxn_feats = 300L, max_charge = 4L, 
+                       offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE, 
+                       step = ppm/1e6, backward_mass_co = 800/ms_lev, 
+                       bound = FALSE)
 {
-  oks_int <- ms1ints >= 1E4
-  moverzs <- moverzs[oks_int]
-  ms1ints <- ms1ints[oks_int]
-  len <- length(moverzs)
+  ###
+  # if to apply intensity cut-offs, should note the difference intensity 
+  # scales between Thermo's and Bruker's data
+  ###
   
-  # charges temporarily left as character for consistency between DDA and DIA?
-  if (!len)
-    return(list(masses = NA_real_, charges = NA_integer_, intensities = NA_real_))
+  # null_out <- list(masses = NA_real_, charges = NA_integer_, intensities = NA_real_)
+  null_out <- list(masses = NULL, charges = NULL, intensities = NULL)
   
+  if (!(len <- length(moverzs)))
+    return(null_out)
+  
+  # if (len == 1L && is.na(moverzs))
+  #   return(null_out)
+
   from <- moverzs[[1]] - .001
-  step <- ppm/1E6
-  ims <- index_mz(moverzs, from, step)
-
-  peaks <- intens <- rep(NA_real_, maxn_prec)
-  css <- rep(NA_integer_, maxn_prec)
+  ims  <- index_mz(moverzs, from, step)
+  
+  lenp <- min(len, maxn_feats)
+  peaks <- intens <- rep(NA_real_, lenp)
+  css <- rep(NA_integer_, lenp)
   p <- 1L
-
-  # try separate m/z's by grids??
-
-  # try from low to high m/z?
-  while(p <= maxn_prec && len) {
-    imax <- .Internal(which.max(ms1ints))
-    mass <- moverzs[imax]
-    mint <- ms1ints[imax]
+  
+  while(len & p <= maxn_feats) {
+    if (len == 1L) {
+      intens[[p]] <- msxints
+      peaks[[p]] <- moverzs
+      css[[p]] <- 0L
+      p <- p + 1L
+      len <- len -1L
+      next
+    }
     
-    for (ch in 4:0) {
+    imax <- if (p == 1L && ms_lev == 1L)
+      .Internal(which.min(abs(moverzs - center)))
+    else
+      .Internal(which.max(msxints))
+
+    mass <- moverzs[imax]
+    mint <- msxints[imax]
+
+    for (ch in max_charge:0) {
       if (ch == 0L) {
         peaks[[p]] <- mass
         intens[[p]] <- mint
-        css[[p]] <- NA_integer_
         p <- p + 1L
-        
         moverzs <- moverzs[-imax]
-        ms1ints <- ms1ints[-imax]
+        msxints <- msxints[-imax]
         ims <- ims[-imax]
         len <- len - 1L
       }
       else {
-        gap <- m13c/ch
+        gap <- 1.003355/ch
+        
+        # forward looking up to 10 mass entries
         mx  <- mass + gap
-        # forward looking up to 10 masses
-        oks <- abs((mx - moverzs[imax:min(len, imax + 10)])/mx) * 1E6 / 2 <= ppm
+        sta <- min(len, imax + 1L)
+        end <- min(len, imax + 10L)
+        oks <- abs((mx - moverzs[sta:end])/mx) * 1E6 <= ppm
         
         if (any(oks)) {
-          if (ch * mass > 1000) { # not to consider 13C off-sets at mass <= 1000 
-            iths <- index_mz(mass + gap * (-ch - 1L):(ch + 1L), from, step)
-            lwr <- imax - offset_lwr
-            upr <- imax + offset_upr
-            if (lwr < 1L) lwr <- 1L
-            if (upr > len) upr <- len
-
+          # consider 13C off-sets at mass > backward_mass_co 
+          if (ch * mass > backward_mass_co) {
+            iths <- index_mz(mass + gap * (1L - ch):(1 + ch), from, step)
+            if ((lwr <- imax - offset_lwr) < 1L) lwr <- 1L
+            if ((upr <- imax + offset_upr) > len) upr <- len
+            
             iexs <- ims[lwr:upr]
             oks2 <- iexs %fin% iths | (iexs - 1L) %fin% iths | (iexs + 1L) %fin% iths
             hits <- .Internal(which(oks2)) + lwr - 1L
@@ -73,56 +106,93 @@ deisotope <- function (moverzs, ms1ints, ppm = 8L, offset_upr = 30L,
               for (i in (idx - 1L):1) {
                 hi <- hits[[i]]
                 
-                if (ms1ints[[imax]]/ms1ints[[hi]] <= 3)
+                if (msxints[[imax]]/msxints[[hi]] <= 3)
                   mass <- moverzs[[hi]]
                 else
                   break
               }
               
               hits <- hits[i:length(hits)]
+              lenh <- length(hits)
+            }
+            else {
+              lenh <- length(hits)
             }
           }
           else {
-            iths <- index_mz(mass + gap * 1:(ch + 1L), from, step)
-            iexs <- ims[imax:min((imax + 30L), len)]
+            iths <- index_mz(mass + gap * 1:ch, from, step)
+            iexs <- ims[sta:min(imax + offset_upr, len)]
             oks2 <- iexs %fin% iths | (iexs - 1L) %fin% iths | (iexs + 1L) %fin% iths
-            hits <- c(imax, .Internal(which(oks2)) + imax - 1L)
+            hits <- c(imax, .Internal(which(oks2)) + imax) 
+            lenh <- length(hits)
           }
           
-          intens[[p]] <- sum(ms1ints[hits])
-          moverzs <- moverzs[-hits]
-          ms1ints <- ms1ints[-hits]
-          ims <- ims[-hits]
-          len <- len - length(hits)
-          
+          intens[[p]] <- sum(msxints[hits])
           peaks[[p]] <- mass
           css[[p]] <- ch
           p <- p + 1L
           
+          len <- len - lenh
+          moverzs <- moverzs[-hits]
+          msxints <- msxints[-hits]
+          ims <- ims[-hits]
+          
           break
+        }
+        else {
+          # backward looking up to 10 mass entries
+          mx  <- mass - gap
+          end <- max(1L, imax - 1L)
+          sta <- max(1L, imax - 10L)
+          oks <- abs((mx - moverzs[sta:end])/mx) * 1E6 <= ppm
+          
+          if (any(oks)) {
+            iths <- index_mz(mass + gap * -ch:0L, from, step)
+            lwr <- max(imax - offset_lwr, 1L)
+            upr <- imax
+            # if ((lwr <- imax - offset_lwr) < 1L) lwr <- 1L
+            # if ((upr <- imax + offset_upr) > len) upr <- len
+            iexs <- ims[lwr:upr]
+            oks2 <- iexs %fin% iths | (iexs - 1L) %fin% iths | (iexs + 1L) %fin% iths
+            hits <- .Internal(which(oks2)) + lwr - 1L
+            lenh <- length(hits)
+            
+            intens[[p]] <- sum(msxints[hits])
+            peaks[[p]] <- mass <- moverzs[hits[[1]]]
+            css[[p]] <- ch
+            p <- p + 1L
+            
+            len <- len - lenh
+            moverzs <- moverzs[-hits]
+            msxints <- msxints[-hits]
+            ims <- ims[-hits]
+            
+            break
+          }
         }
       }
     }
   }
-
-  okc <- (!is.na(css)) & css > 1L
-  masses <- peaks[okc]
-  charges <- css[okc]
-  intensities <- intens[okc]
   
-  # oki <- intensities > min_int
-  # masses <- masses[oki]
-  # charges <- charges[oki]
-  # intensities <- intensities[oki]
-
+  if (ms_lev == 1L)
+    oks1 <- css > 1L & !is.na(css)
+  else if (ms_lev == 2L)
+    oks1 <- !is.na(peaks)
+  else
+    stop("Unhandled MS level = ", ms_lev)
+  
+  masses <- peaks[oks1]
+  charges <- css[oks1]
+  intensities <- intens[oks1]
+  
   if (order_mz) {
     ord <- order(masses)
-    out <- list(masses = masses[ord], charges = charges[ord], 
-                intensities = intensities[ord])
+    masses <- masses[ord]
+    charges <- charges[ord]
+    intensities <- intensities[ord]
   }
-  else {
-    out <- list(masses = masses, charges = charges, intensities = intensities)
-  }
+  
+  out <- list(masses = masses, charges = charges, intensities = intensities)
 }
 
 

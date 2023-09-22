@@ -30,6 +30,7 @@ ms2match(
   ms1_neulosses = NULL,
   maxn_neulosses_fnl = 1L,
   maxn_neulosses_vnl = 1L,
+  deisotope_ms2 = TRUE,
   fasta,
   acc_type,
   acc_pattern,
@@ -162,6 +163,8 @@ arguments \code{ms1_notches} and \code{ms1_neulosses}. The maximum number
 of variable MS2 neutral losses to be considered when searching against peak
 lists with MS1 mass off-sets. The default is two (one MS2 neutral loss in
 addition to 0).}
+
+\item{deisotope_ms2}{Logical; if TRUE, de-isotope MS2 features.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}

@@ -11,9 +11,9 @@ load_mgfs(
   max_mass = 4500L,
   min_ms2mass = 115L,
   max_ms2mass = 4500L,
-  topn_ms2ions = 100L,
   min_ms1_charge = 2L,
-  max_ms1_charge = 6L,
+  max_ms1_charge = 4L,
+  topn_ms2ions = 100L,
   min_scan_num = 1L,
   max_scan_num = .Machine$integer.max,
   min_ret_time = 0,
@@ -29,6 +29,15 @@ load_mgfs(
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
   enzyme = "trypsin_p",
+  is_mdda = FALSE,
+  deisotope_ms2 = TRUE,
+  max_ms2_charge = 3L,
+  use_defpeaks = FALSE,
+  maxn_dia_precurs = 300L,
+  maxn_mdda_precurs = 5L,
+  n_mdda_flanks = 6L,
+  ppm_ms1_deisotope = 10L,
+  ppm_ms2_deisotope = 10L,
   quant = "none",
   digits = 4L
 )
@@ -55,14 +64,14 @@ load_mgfs(
 \item{max_ms2mass}{A positive integer; the maximum MS2 mass for
 interrogation.}
 
-\item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
-searches.}
-
 \item{min_ms1_charge}{A positive integer; the minimum MS1 charge state for
 considerations. The default is 2.}
 
 \item{max_ms1_charge}{A positive integer; the maximum MS1 charge state for
 considerations. The default is 6.}
+
+\item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
+searches.}
 
 \item{min_scan_num}{Depreciated. A positive integer; the minimum scan number
 for considerations. The default is 1. The setting only applies to MGFs with
@@ -124,6 +133,30 @@ preceding, current and following.}
 \item{enzyme}{A character string; the proteolytic specificity of the assumed
 enzyme will be used to generate peptide sequences from protein entries. The
 default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
+
+\item{is_mdda}{Logical; if TRUE, consider the multiple (chimeric) precursors
+in DDA.}
+
+\item{deisotope_ms2}{Logical; if TRUE, de-isotope MS2 features.}
+
+\item{max_ms2_charge}{Maximum charge states for consideration with MS2
+deisotoping.}
+
+\item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
+charge states pre-calculated by other peak-picking algorithms.}
+
+\item{maxn_dia_precurs}{Maximum number of precursors for consideration in a
+DIA scan.}
+
+\item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
+multi-precursor DDA scan.}
+
+\item{n_mdda_flanks}{The number of preceding and following MS1 scans for
+consideration when averaging isotope envelops of precursors.}
+
+\item{ppm_ms1_deisotope}{Mass error tolerance in MS1 deisotoping.}
+
+\item{ppm_ms2_deisotope}{Mass error tolerance in MS2 deisotoping.}
 
 \item{quant}{A character string; the quantitation method. The default is
 "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and

@@ -1065,7 +1065,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
   df <- post_pepscores(df)
   
   hcalc_tmtint(df = df[, c("raw_file", "pep_mod_group", "pep_scan_num", 
-                           "rptr_moverz", "rptr_int")], 
+                           "rptr_moverzs", "rptr_ints")], 
                quant = quant, 
                ppm_reporters = ppm_reporters, 
                idx = idx, 

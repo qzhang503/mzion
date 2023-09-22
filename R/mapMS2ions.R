@@ -15,6 +15,7 @@
 #' @param rank Positive integer; the rank of a match. The default is one for the
 #'   best match.
 #' @param is_decoy Logical; is the match from decoy. The default is FALSE.
+#' @param type_ms2ions Type of MS2 ions.
 #' @param width Plot width.
 #' @param height Plot height.
 #' @rawNamespace import(ggplot2, except = c("%+%"))
@@ -455,6 +456,7 @@ find_mgf_query <- function (mgf_path, raw_id, scan, to_global = TRUE)
 #' @param mdev_co The cut-off in PSM \code{pep_ms2_deltas_mean}. The default is
 #'   5 (ppm).
 #' @param sd_co The cut-off in PSM \code{pep_ms2_deltas_sd}. The default is 10.
+#' @param type_ms2ions Type of MS2 ions.
 #' @inheritParams mapMS2ions
 #' @export
 make_speclib <- function (out_path = NULL, in_name = "psmQ.txt", score_co = 15, 

@@ -26,6 +26,8 @@ psmT2.txt, psmT3.txt etc.}
 5 (ppm).}
 
 \item{sd_co}{The cut-off in PSM \code{pep_ms2_deltas_sd}. The default is 10.}
+
+\item{type_ms2ions}{Type of MS2 ions.}
 }
 \description{
 Makes spectrum library

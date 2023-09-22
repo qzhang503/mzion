@@ -21,6 +21,7 @@ ms2match_one(
   maxn_sites_per_vmod = 3L,
   maxn_fnl_per_seq = 3L,
   maxn_vnl_per_seq = 3L,
+  deisotope_ms2 = TRUE,
   maxn_vmods_sitescombi_per_pep = 64L,
   minn_ms2 = 6L,
   ppm_ms1 = 10L,
@@ -93,6 +94,8 @@ or \code{0}.}
 permutative neutral losses per peptide sequence for variable modifications.
 To bypass the combinatorial of neutral losses, set \code{maxn_vnl_per_seq =
 1} or \code{0}.}
+
+\item{deisotope_ms2}{Logical; if TRUE, de-isotope MS2 features.}
 
 \item{maxn_vmods_sitescombi_per_pep}{A non-negative integer; the maximum
 number of combinatorial variable modifications per peptide sequence (per

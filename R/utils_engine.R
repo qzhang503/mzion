@@ -192,22 +192,17 @@ find_mass_error_range <- function (x = 500L, ppm = 20L)
 
 #' Post frame advancing.
 #'
-#' Flattens mgfs within each frame (the number of entries equals to the number
-#' of mgfs).
+#' Flattens mgfs within each frame.
 #' 
 #' @param res Results from frame-advanced searches.
 #' @param mgf_frames Data of MGF frames.
 post_frame_adv <- function (res, mgf_frames) 
 {
-  res  <- unlist(res, recursive = FALSE)
-  lens <- lapply(res, length)
-  lens <- unlist(lens, recursive = FALSE, use.names = FALSE)
-  empties <- !lens
-
+  res  <- unlist(res, recursive = FALSE, use.names = FALSE)
   out <- do.call(rbind, mgf_frames)
+  # stopifnot(nrow(out) == length(res))
   out <- dplyr::mutate(out, matches = res)
-  
-  out[!empties, ]
+  out <- out[lengths(res, use.names = FALSE) > 0L, ]
 }
 
 
@@ -428,17 +423,18 @@ detect_cores <- function (max_n_cores = NULL)
 #' 
 #' Outputs of free RAM in the unit of MB.
 #' 
-#' @param sys_ram The putative amount of system RAM.
-find_free_mem <- function (sys_ram = 32L) 
+#' @param sys_ram The putative amount of system RAM, e.g., 32L.
+find_free_mem <- function (sys_ram = NULL) 
 {
   nm_os <- Sys.info()['sysname']
-  
-  gc()
-  
+
   if (nm_os == "Windows") {
     free_mem <- system('wmic OS get FreePhysicalMemory /Value', intern=TRUE)[3]
     free_mem <- gsub("^FreePhysicalMemory=(\\d+)\\r", "\\1", free_mem)
     free_mem <- as.numeric(free_mem)/1024
+    
+    if (!is.null(sys_ram)) 
+      free_mem <- min(sys_ram, free_mem)
   } 
   else {
     # not yet tested for "Linux", "Darwin"
@@ -448,7 +444,7 @@ find_free_mem <- function (sys_ram = 32L)
     
     warning("Cannot determine the amount of RAM with Linux or MAC OS.\n", 
             "To specify, use parameter \"sys_ram\".")
-    free_mem <- sys_ram * .75
+    free_mem <- 24L
   }
   
   free_mem

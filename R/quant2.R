@@ -7,8 +7,8 @@
 hcalc_tmtint <- function (df, quant = "tmt10", ppm_reporters = 10L, idx = 1L, 
                           out_path = NULL)
 {
-  df <- df[, c("raw_file", "pep_mod_group", "pep_scan_num", "rptr_moverz", 
-               "rptr_int")]
+  df <- df[, c("raw_file", "pep_mod_group", "pep_scan_num", "rptr_moverzs", 
+               "rptr_ints")]
   df <- unique(df)
   df <- calc_tmtint(df, quant = quant, ppm_reporters = ppm_reporters)
   df[["uniq_id"]] <- with(df, paste(raw_file, pep_mod_group, pep_scan_num, 
@@ -74,9 +74,9 @@ calc_tmtint <- function (data = NULL, quant = "tmt16", ppm_reporters = 10L)
                tmt18 = c(126.1, 135.2),
                stop("Unknown TMT type."))
   
-  # stopifnot(all(c("rptr_moverz", "rptr_int") %in% names(data)))
+  # stopifnot(all(c("rptr_moverzs", "rptr_ints") %in% names(data)))
 
-  out <- mapply(find_reporter_ints, data[["rptr_moverz"]], data[["rptr_int"]], 
+  out <- mapply(find_reporter_ints, data[["rptr_moverzs"]], data[["rptr_ints"]], 
                 MoreArgs = list(
                   theos = theos,
                   ul = ul,
@@ -95,7 +95,7 @@ calc_tmtint <- function (data = NULL, quant = "tmt16", ppm_reporters = 10L)
       out[[i]] <- as.numeric(out[[i]])
   }
   
-  data[["rptr_moverz"]] <- data[["rptr_int"]] <- NULL
+  data[["rptr_moverzs"]] <- data[["rptr_ints"]] <- NULL
   
   out <- dplyr::bind_cols(data, out)
   
