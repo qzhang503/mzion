@@ -27,10 +27,12 @@
 #  [6] "find_secion_types"  "find_mgf_query"     "make_speclib"       "get_mzion_coltypes" "check_ggname"      
 # 
 # $mgfs.R
-#  [1] "load_mgfs"          "readMGF"            "post_readmgf"       "readlineMGFs"       "  f"               
-#  [6] "read_mgf_chunks"    "proc_mgf_chunks"    "proc_mgfs"          "sub_mgftopn"        "integerize_ms2ints"
-# [11] "extract_mgf_rptrs"  "find_ms1_interval"  "index_mz"           "find_mgf_type"      "readmzML"          
-# [16] "proc_mzml"          "read_mzml"          "prepBrukerMGF"      "mprepBrukerMGF"    
+#  [1] "load_mgfs"           "readMGF"             "post_readmgf"        "readlineMGFs"        "  f"                
+#  [6] "read_mgf_chunks"     "proc_mgf_chunks"     "proc_mgfs"           "sub_mgftopn"         "integerize_ms2ints" 
+# [11] "extract_mgf_rptrs"   "find_ms1_interval"   "index_mz"            "find_mgf_type"       "readmzML"           
+# [16] "proc_mzml"           "read_mzml"           "proc_mdda"           "proc_dia"            "proc_dda"           
+# [21] "find_mslev_brackets" "find_mdda_ms1s"      "find_gatepos"        "collapse_mms1ints"   "find_mdda_mms1s"    
+# [26] "prepBrukerMGF"       "mprepBrukerMGF"     
 # 
 # $ms1_precursors.R
 #  [1] "calc_pepmasses2"           "find_aa_masses"            "find_motif_pat"            "simple_prots_peps"        
@@ -55,8 +57,8 @@
 # [9] "calc_ms2ions_a1_vnl1_fnl0"
 # 
 # $ms2frames.R
-#  [1] "pair_mgftheos"  "hpair_mgths"    "hms2match"      "ms2match_all"   "mframes_adv"    "find_ms2_bypep" "search_mgf"    
-#  [8] "hms2match_one"  "ms2match_one"   "frames_adv"    
+#  [1] "pair_mgftheos"  "hpair_mgths"    "make_dia_mgfs"  "hms2match"      "ms2match_all"   "mframes_adv"    "find_ms2_bypep"
+#  [8] "search_mgf"     "hms2match_one"  "ms2match_one"   "frames_adv"    
 # 
 # $msmsmatches.R
 #  [1] "matchMS"         "try_psmC2Q"      "reproc_psmC"     "psmC2Q"          "post_psmC2Q"     "check_tmt_pars" 

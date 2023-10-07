@@ -88,13 +88,13 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
   
   mgfs[["pep_ms1_offset"]] <- ms1_offset
   
-  if (class(mgfs[1, "ms1_charge", drop = TRUE]) == "list") {
-    mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, min_mass = min_mass, 
-                          ppm_ms1_bin = ppm_ms1_bin)
-  }
-  else {
+  if (is.atomic(mgfs[1, "ms1_charge", drop = TRUE])) {
     mgfs <- split(mgfs, find_ms1_interval(mgfs[["ms1_mass"]], from = min_mass, 
                                           ppm = ppm_ms1_bin))
+  }
+  else {
+    mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, min_mass = min_mass, 
+                          ppm_ms1_bin = ppm_ms1_bin)
   }
 
   # to chunks: each chunk has multiple frames: each frame multiple precursors
@@ -204,7 +204,7 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
 make_dia_mgfs <- function (mgfs, mgf_path, min_mass = 200L, ppm_ms1_bin = 10L)
 {
   mgfs$ms_level <- mgfs$demux <- NULL
-  mgfs$spec_id <- 1:nrow(mgfs) # do not use scan_title (at multiple raw files)
+  mgfs$spec_id <- 1:nrow(mgfs) # do not use scan_title (can have multiple raws)
   
   ms1_bins <- lapply(mgfs[["ms1_mass"]], find_ms1_interval, from = min_mass, 
                      ppm = ppm_ms1_bin)
@@ -212,7 +212,7 @@ make_dia_mgfs <- function (mgfs, mgf_path, min_mass = 200L, ppm_ms1_bin = 10L)
   #  for post-search re-scoring of chimeric psms under the same mgf
   # qs::qsave(ms1_bins, file.path(mgf_path, "tbl_mgf_ms1masses.rds"), preset = "fast")
   
-  cols_ms2 <- c("ms2_moverzs", "ms2_ints", "rptr_moverzs", "rptr_ints")
+  cols_ms2 <- c("ms2_moverzs", "ms2_ints", "ms2_charges", "rptr_moverzs", "rptr_ints")
   mgfdata <- mgfs[, cols_ms2, drop = FALSE]
   mgfs <- mgfs[, -which(names(mgfs) %in% cols_ms2), drop = FALSE]
   

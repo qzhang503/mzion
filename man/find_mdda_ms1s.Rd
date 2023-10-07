@@ -33,5 +33,5 @@ find_mdda_ms1s(
 \item{max_ms1_charge}{The maximum charge state of precursors.}
 }
 \description{
-By single MS1 scan.
+Not used; by single MS1 scan.
 }

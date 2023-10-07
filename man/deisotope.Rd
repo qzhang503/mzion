@@ -12,11 +12,13 @@ deisotope(
   ms_lev = 1L,
   maxn_feats = 300L,
   max_charge = 4L,
+  n_fwd = 20L,
   offset_upr = 30L,
   offset_lwr = 30L,
   order_mz = TRUE,
   step = ppm/1e+06,
   backward_mass_co = 800/ms_lev,
+  iso_ratio = 5,
   bound = FALSE
 )
 }
@@ -35,6 +37,8 @@ deisotope(
 
 \item{max_charge}{The maximum charge state.}
 
+\item{n_fwd}{Forward looking up to \code{n_fwd} mass entries.}
+
 \item{offset_upr}{A cardinal number of upper mass off-sets.}
 
 \item{offset_lwr}{A cardinal number of lower mass off-sets.}
@@ -43,8 +47,11 @@ deisotope(
 
 \item{step}{Step size for mass binning.}
 
-\item{backward_mass_co}{A mass cut-off to initiate backward looking of
-an isotope envelop.}
+\item{backward_mass_co}{A mass cut-off to initiate backward looking of an
+isotope envelop.}
+
+\item{iso_ratio}{Ratio threshold between two adjacent isotope peaks
+(current/before).}
 
 \item{bound}{Not yet used. Logical; if TRUE, removes precursors outside of
 the boundary of isolation window.}
@@ -58,7 +65,7 @@ library(mzion)
 moverzs <- c(881 + 1:10*.1, 882.0674, 882.0981, 882.4034, 882.60, 882.7372)
 msxints <- c(1000 * 1:10, 1652869, 882.0981, 2043015, 2314111, 4314111)
 
-# out <- mzion:::deisotope(moverzs, msxints, ppm = 10L, ms_lev = 1L, 
+# out <- mzion:::deisotope(moverzs, msxints, ppm = 10L, ms_lev = 1L,
 #                          maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
 #                          offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
 }

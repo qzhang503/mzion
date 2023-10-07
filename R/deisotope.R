@@ -11,25 +11,28 @@
 #' @param ms_lev MS level.
 #' @param maxn_feats The maximum number of MS features.
 #' @param max_charge The maximum charge state.
+#' @param n_fwd Forward looking up to \code{n_fwd} mass entries.
 #' @param step Step size for mass binning.
 #' @param order_mz Logical; if TRUE, orders peaks from low to high m-over-z's.
-#' @param backward_mass_co A mass cut-off to initiate backward looking of
-#'   an isotope envelop.
+#' @param backward_mass_co A mass cut-off to initiate backward looking of an
+#'   isotope envelop.
+#' @param iso_ratio Ratio threshold between two adjacent isotope peaks
+#'   (current/before).
 #' @examples
 #' \donttest{
 #' library(mzion)
 #' moverzs <- c(881 + 1:10*.1, 882.0674, 882.0981, 882.4034, 882.60, 882.7372)
 #' msxints <- c(1000 * 1:10, 1652869, 882.0981, 2043015, 2314111, 4314111)
 #'
-#' # out <- mzion:::deisotope(moverzs, msxints, ppm = 10L, ms_lev = 1L, 
+#' # out <- mzion:::deisotope(moverzs, msxints, ppm = 10L, ms_lev = 1L,
 #' #                          maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
 #' #                          offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
 #' }
 deisotope <- function (moverzs, msxints, center = 650.0, ppm = 6L, ms_lev = 1L, 
-                       maxn_feats = 300L, max_charge = 4L, 
+                       maxn_feats = 300L, max_charge = 4L, n_fwd = 20L, 
                        offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE, 
                        step = ppm/1e6, backward_mass_co = 800/ms_lev, 
-                       bound = FALSE)
+                       iso_ratio = 5, bound = FALSE)
 {
   ###
   # if to apply intensity cut-offs, should note the difference intensity 
@@ -84,10 +87,9 @@ deisotope <- function (moverzs, msxints, center = 650.0, ppm = 6L, ms_lev = 1L,
       else {
         gap <- 1.003355/ch
         
-        # forward looking up to 10 mass entries
         mx  <- mass + gap
         sta <- min(len, imax + 1L)
-        end <- min(len, imax + 10L)
+        end <- min(len, imax + n_fwd)
         oks <- abs((mx - moverzs[sta:end])/mx) * 1E6 <= ppm
         
         if (any(oks)) {
@@ -106,7 +108,7 @@ deisotope <- function (moverzs, msxints, center = 650.0, ppm = 6L, ms_lev = 1L,
               for (i in (idx - 1L):1) {
                 hi <- hits[[i]]
                 
-                if (msxints[[imax]]/msxints[[hi]] <= 3)
+                if (msxints[[imax]]/msxints[[hi]] <= iso_ratio)
                   mass <- moverzs[[hi]]
                 else
                   break
@@ -140,10 +142,9 @@ deisotope <- function (moverzs, msxints, center = 650.0, ppm = 6L, ms_lev = 1L,
           break
         }
         else {
-          # backward looking up to 10 mass entries
           mx  <- mass - gap
           end <- max(1L, imax - 1L)
-          sta <- max(1L, imax - 10L)
+          sta <- max(1L, imax - n_fwd)
           oks <- abs((mx - moverzs[sta:end])/mx) * 1E6 <= ppm
           
           if (any(oks)) {

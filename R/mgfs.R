@@ -13,7 +13,7 @@
 #' @inheritParams matchMS
 load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L, 
                        min_ms2mass = 115L, max_ms2mass = 4500L, 
-                       min_ms1_charge = 2L, max_ms1_charge = 4L, topn_ms2ions = 100L, 
+                       min_ms1_charge = 2L, max_ms1_charge = 4L, topn_ms2ions = 150L, 
                        min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                        min_ret_time = 0, max_ret_time = Inf, 
                        ppm_ms1 = 20L, ppm_ms2 = 20L, 
@@ -136,10 +136,10 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
             index_mgf_ms2 = index_mgf_ms2, 
             mgf_cutmzs = mgf_cutmzs, 
             mgf_cutpercs = mgf_cutpercs, 
-            is_mdda = is_mdda, 
+            is_mdda = FALSE, 
+            use_defpeaks = use_defpeaks, 
             deisotope_ms2 = deisotope_ms2, 
             max_ms2_charge = max_ms2_charge, 
-            use_defpeaks = use_defpeaks, 
             maxn_dia_precurs = maxn_dia_precurs, 
             maxn_mdda_precurs = maxn_mdda_precurs, 
             n_mdda_flanks = n_mdda_flanks, 
@@ -168,15 +168,18 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
              index_mgf_ms2 = index_mgf_ms2, 
              mgf_cutmzs = mgf_cutmzs, 
              mgf_cutpercs = mgf_cutpercs, 
-             is_mdda = is_mdda, 
+             
              deisotope_ms2 = deisotope_ms2, 
              max_ms2_charge = max_ms2_charge, 
-             use_defpeaks = use_defpeaks, 
              maxn_dia_precurs = maxn_dia_precurs, 
+             
+             is_mdda = is_mdda, 
+             use_defpeaks = use_defpeaks, 
              maxn_mdda_precurs = maxn_mdda_precurs, 
              n_mdda_flanks = n_mdda_flanks, 
              ppm_ms1_deisotope = ppm_ms1_deisotope, 
              ppm_ms2_deisotope = ppm_ms2_deisotope, 
+             
              quant = quant, 
              digits = digits)
   }
@@ -334,9 +337,9 @@ readMGF <- function (filepath = NULL, filelist = NULL,
                                 exclude_reporter_region = exclude_reporter_region, 
                                 index_mgf_ms2 = index_mgf_ms2, 
                                 is_mdda = is_mdda, 
+                                use_defpeaks = use_defpeaks, 
                                 deisotope_ms2 = deisotope_ms2, 
                                 max_ms2_charge = max_ms2_charge, 
-                                use_defpeaks = use_defpeaks, 
                                 maxn_dia_precurs = maxn_dia_precurs, 
                                 maxn_mdda_precurs = maxn_mdda_precurs, 
                                 n_mdda_flanks = n_mdda_flanks, 
@@ -494,8 +497,9 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
                              raw_file = NULL, 
                              tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                              exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
-                             is_mdda = FALSE, deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
-                             use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
+                             deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
+                             maxn_dia_precurs = 300L, 
+                             is_mdda = FALSE, use_defpeaks = FALSE, 
                              maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                              ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
                              quant = "none", digits = 4L) 
@@ -742,7 +746,6 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                              use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                              maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                              ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
-                             
                              quant = "none", digits = 4L) 
 {
   message("Parsing '", file, "'.")
@@ -946,7 +949,8 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L),
                    MoreArgs = list(
                      ppm = ppm_ms2_deisotope, ms_lev = 2L, 
                      maxn_feats = topn_ms2ions, max_charge = max_ms2_charge, 
-                     offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE
+                     n_fwd = 10L, offset_upr = 30L, offset_lwr = 30L, 
+                     order_mz = TRUE
                    ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
     ms2_moverzs <- lapply(mics, `[[`, "masses")
     ms2_ints <- lapply(mics, `[[`, "intensities")
@@ -1548,7 +1552,7 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
 #' 
 #' @param file A file name to mzML with a prepending path.
 #' @inheritParams readmzML
-proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
+proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L), 
                        ret_range = c(0, Inf), min_mass = 200L, max_mass = 4500L, 
                        ppm_ms1 = 10L, ppm_ms2 = 10L, 
                        min_ms2mass = 115L, max_ms2mass = 4500L, 
@@ -1561,7 +1565,8 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L),
                        ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
                        quant = "none", digits = 4L) 
 {
-  # message("Loading ", file)
+  min_ms1_charge <- ms1_charge_range[1]
+  max_ms1_charge <- ms1_charge_range[2]
   
   df <- read_mzml(file, topn_ms2ions = topn_ms2ions, 
                   tmt_reporter_lower = tmt_reporter_lower, 
@@ -1581,12 +1586,22 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L),
                   ppm_ms2_deisotope = ppm_ms2_deisotope, 
                   quant = quant, digits = digits)
   
+  if (is_mdda && maxn_mdda_precurs == 1L) {
+    # empties <- lapply(df$ms1_moverz, is.null)
+    # empties <- unlist(empties, recursive = FALSE, use.names = FALSE)
+    # df <- df[!empties, ]
+    df$ms1_moverz <- unlist(df$ms1_moverz, recursive = TRUE, use.names = FALSE)
+    df$ms1_mass <- unlist(df$ms1_mass, recursive = TRUE, use.names = FALSE)
+    df$ms1_charge <- unlist(df$ms1_charge, recursive = TRUE, use.names = FALSE)
+    df$ms1_int <- unlist(df$ms1_int, recursive = TRUE, use.names = FALSE)
+  }
+  
   if (is.atomic(df[1, "ms1_charge", drop = TRUE])) {
     df <- df[with(df, !is.na(ms1_mass)), ]
     
     df <- dplyr::filter(df, 
-                        ms1_charge >= ms1_charge_range[1], 
-                        ms1_charge <= ms1_charge_range[2], 
+                        ms1_charge >= min_ms1_charge, 
+                        ms1_charge <= max_ms1_charge, 
                         ret_time >= ret_range[1], ret_time <= ret_range[2], 
                         ms1_mass >= min_mass, ms1_mass <= max_mass, )
   }
@@ -1783,7 +1798,7 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
       scanList_ret <- xml2::xml_children(scanList[[idx_rt_1]])
       
       scan_ret_attrs <- xml2::xml_attr(scanList_ret, "name")
-      # need to remove the assumption of a fixed resolution with Astral
+      # later remove the assumption of a fixed resolution with Astral
       # ms1_reso <- scanList_ret[[which(scan_ret_attrs == "mass resolving power")]]
       # ms1_reso <- as.integer(xml2::xml_attr(ms1_reso, "value"))
       idx_scan_start_1 <- which(scan_ret_attrs == "scan start time")
@@ -1813,7 +1828,11 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
                     idx_ms1int = idx_ms1int, idx_bin_2 = idx_bin_2, 
                     maxn_precurs = maxn_mdda_precurs, 
                     max_ms1_charge = max_ms1_charge, 
-                    topn_ms2ions = topn_ms2ions, idx_scanList_1 = idx_scanList_1, 
+                    topn_ms2ions = topn_ms2ions, quant = quant, 
+                    tmt_reporter_lower = tmt_reporter_lower, 
+                    tmt_reporter_upper = tmt_reporter_upper, 
+                    exclude_reporter_region = exclude_reporter_region, 
+                    idx_scanList_1 = idx_scanList_1, 
                     idx_rt_1 = idx_rt_1, idx_scan_start_1 = idx_scan_start_1, 
                     idx_bin_1 = idx_bin_1, deisotope_ms2 = deisotope_ms2, 
                     n_mdda_flanks = n_mdda_flanks, 
@@ -1905,7 +1924,10 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
                        idx_uprmz = 3L, idx_selectedIonList = 2L, 
                        idx_moverz = 1L, idx_charge = 2L, idx_ms1int = 3L, 
                        idx_bin_2 = 13L, maxn_precurs = 5L, max_ms1_charge = 4L, 
-                       topn_ms2ions = 300L, idx_scanList_1 = 11L, idx_rt_1 = 2L, 
+                       topn_ms2ions = 150L, quant = "none", 
+                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                       exclude_reporter_region = FALSE, 
+                       idx_scanList_1 = 11L, idx_rt_1 = 2L, 
                        idx_scan_start_1 = 1L, idx_bin_1 = 12L, 
                        deisotope_ms2 = TRUE, ppm_ms1_deisotope = 10L, 
                        ppm_ms2_deisotope = 10L, n_mdda_flanks = 6L, 
@@ -1933,7 +1955,7 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
                               perl = FALSE, useBytes = FALSE))
     scan_nums[[i]]  <- ids[[idx_sc]][[2]]
     orig_scans[[i]] <- ids[[idx_osc]][[2]]
-    
+
     xc <- xml2::xml_children(x)
     ms_levs[[i]] <- ms_lev <- as.integer(xml2::xml_attr(xc[[idx_mslev]], "value"))
     scan_titles[[i]] <- xml2::xml_attr(xc[[idx_title]], "value")
@@ -1977,8 +1999,8 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
         if (deisotope_ms2) {
           mic <- deisotope(msx_xs, msx_ys, ppm = ppm_ms2_deisotope, 
                            ms_lev = ms_lev, maxn_feats = topn_ms2ions, 
-                           max_charge = 3L, offset_upr = 30L, offset_lwr = 30L, 
-                           order_mz = TRUE)
+                           max_charge = 3L, n_fwd = 10L, offset_upr = 30L, 
+                           offset_lwr = 30L, order_mz = TRUE)
           msx_moverzs[[i]] <- mic[["masses"]]
           msx_ints[[i]] <- mic[["intensities"]]
           ms2_charges[[i]] <- mic[["charges"]]
@@ -1990,8 +2012,6 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
       }
       else {
         msx_ns[[i]] <- 0L
-        # msx_moverzs[[i]] <- NA_real_
-        # msx_ints[[i]] <- NA_real_
         msx_moverzs[[i]] <- NULL
         msx_ints[[i]] <- NULL
       }
@@ -2011,10 +2031,25 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
     }
   }
   
+  restmt <- extract_mgf_rptrs(msx_moverzs, 
+                              msx_ints, 
+                              quant = quant, 
+                              tmt_reporter_lower = tmt_reporter_lower, 
+                              tmt_reporter_upper = tmt_reporter_upper, 
+                              exclude_reporter_region = exclude_reporter_region)
+  msx_moverzs <- restmt[["xvals"]]
+  msx_ints <- restmt[["yvals"]]
+  rptr_moverzs <- restmt[["rptr_moverzs"]]
+  rptr_ints <- restmt[["rptr_ints"]]
+  
   df <- tibble::tibble(
     scan_title = scan_titles,
     raw_file = raw_file,
     ms_level = ms_levs, 
+    ms1_moverzs = as.numeric(ms0_moverzs), 
+    ms1_masses = list(NULL),
+    ms1_charges = as.integer(ms0_charges), 
+    ms1_ints = as.numeric(ms0_ints), 
     ret_time = as.numeric(ret_times) * 60, 
     scan_num = as.integer(scan_nums), 
     orig_scan = orig_scans,
@@ -2022,9 +2057,8 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
     msx_ints = msx_ints, 
     ms2_charges = ms2_charges, 
     msx_ns = msx_ns, 
-    ms1_moverzs = as.numeric(ms0_moverzs), 
-    ms1_charges = as.integer(ms0_charges), 
-    ms1_ints = as.numeric(ms0_ints), 
+    rptr_moverzs = rptr_moverzs, 
+    rptr_ints = rptr_ints, 
     iso_ctr = as.numeric(iso_ctr), 
     iso_lwr = as.numeric(iso_lwr), 
     iso_upr = as.numeric(iso_upr), 
@@ -2048,19 +2082,19 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
   len <- length(ms1_stas)
   rm(list = c("oks", "diff_ms1", "idxes_ms1"))
   
-  cols <- match(c("ms1_moverzs", "ms1_charges", "ms1_ints"), names(df))
+  cols <- match(c("ms1_moverzs", "ms1_masses", "ms1_charges", "ms1_ints"), 
+                names(df))
 
   for (i in 1:len) {
     stacr <- ms1_stas[i]
     stas1 <- ms1_stas[max(1L, i - n_mdda_flanks):min(len, i + n_mdda_flanks)]
     stas2 <- ms2_stas[i]
     ends2 <- ms2_ends[i]
-    
     df[stas2:ends2, cols] <- 
       find_mdda_mms1s(df1 = df[stas1, ], df2 = df[stas2:ends2, ], 
                       stas1 = stas1, stas2 = stas2, ends2 = ends2, 
                       ppm = ppm_ms1_deisotope, maxn_precurs = maxn_precurs, 
-                      max_ms1_charge = max_ms1_charge)
+                      max_ms1_charge = max_ms1_charge, n_fwd = 20L)
   }
   rm(list = c("stacr", "stas1", "stas2", "ends2", "ms1_stas", "ms2_stas", 
               "ms2_ends", "len"))
@@ -2069,8 +2103,17 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
   df <- df[with(df, ms_level != 1L), ]
   bads <- unlist(lapply(df$ms1_moverzs, is.null))
   df <- df[!bads, ]
-  
-  df
+
+  df <- dplyr::rename(
+    df, 
+    ms1_moverz = ms1_moverzs,
+    ms1_mass = ms1_masses,
+    ms1_charge = ms1_charges,
+    ms1_int = ms1_ints,
+    ms2_moverzs = msx_moverzs,
+    ms2_ints = msx_ints,
+    ms2_n = msx_ns,
+  )
 }
 
 
@@ -2153,7 +2196,7 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
         if (deisotope_ms2) {
           mic <- deisotope(msx_xs, msx_ys, ppm = 10L, ms_lev = ms_lev, 
                            maxn_feats = topn_ms2ions, 
-                           max_charge = max_ms2_charge, 
+                           max_charge = max_ms2_charge, n_fwd = 10L, 
                            offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE)
           msx_moverzs[[i]] <- mic[["masses"]]
           msx_ints[[i]] <- mic[["intensities"]]
@@ -2187,7 +2230,8 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
       
       mic <- deisotope(msx_xs, msx_ys, ppm = ppm_ms1_deisotope, ms_lev = ms_lev, 
                        maxn_feats = maxn_dia_precurs, max_charge = max_ms1_charge, 
-                       offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE)
+                       n_fwd = 20L, offset_upr = 30L, offset_lwr = 30L, 
+                       order_mz = TRUE)
       msx_moverzs[[i]] <- mic[["masses"]]
       msx_ints[[i]] <- mic[["intensities"]]
       ms1_charges[[i]] <- mic[["charges"]] # MS2: NULL; MS1: integer vectors
@@ -2356,7 +2400,8 @@ proc_dda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L,
         if (deisotope_ms2) {
           mic <- deisotope(msx_xs, msx_ys, ppm = ppm_ms2_deisotope, ms_lev = ms_lev, 
                            maxn_feats = topn_ms2ions, max_charge = max_ms2_charge, 
-                           offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE)
+                           n_fwd = 10L, offset_upr = 30L, offset_lwr = 30L, 
+                           order_mz = TRUE)
           msx_moverzs[[i]] <- mic[["masses"]]
           msx_ints[[i]] <- mic[["intensities"]]
           ms2_charges[[i]] <- mic[["charges"]]
@@ -2368,8 +2413,6 @@ proc_dda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L,
       } 
       else {
         msx_ns[[i]] <- 0L
-        # msx_moverzs[[i]] <- NA_real_
-        # msx_ints[[i]] <- NA_real_
         msx_moverzs[[i]] <- NULL
         msx_ints[[i]] <- NULL
       }
@@ -2414,8 +2457,8 @@ proc_dda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L,
     ms_level = ms_levs, 
     ms1_moverz = ms1_moverzs,
     ms1_mass = ms1_masses,
-    ms1_int = ms1_ints,
     ms1_charge = ms1_charges,
+    ms1_int = ms1_ints,
     ret_time = ret_times,
     scan_num = scan_nums,
     orig_scan = orig_scans,
@@ -2480,7 +2523,7 @@ find_mslev_brackets <- function (vals, out_type = c("sim_vec", "sim_list", "full
 
 #' Finds chimeric precursors.
 #' 
-#' By single MS1 scan.
+#' Not used; by single MS1 scan.
 #' 
 #' @param df1 A one-row data frame of precursor data.
 #' @param df2 The data frame of MS2 corresponding to df1.
@@ -2572,17 +2615,26 @@ find_mdda_ms1s <- function (df1, df2, stas1, stas2, ends2, ppm = 6L,
 #' # find_gatepos(diff(c(310L, 311L), 1L) == 1L)
 find_gatepos <- function (vec)
 {
-  if ((lenv <- length(vec)) == 1L) {
-    if (vec)
-      return(list(up_starts = 1L, up_ends = 1L))
-    else
-      return(NULL)
-  }
+  # stopifnot(all(vec %in% c(0L, 1L)))
+  lenv <- length(vec)
   
+  # if (lenv == 1L) {
+  #   if (vec)
+  #     return(list(up_starts = 1L, up_ends = 1L))
+  #   else
+  #     return(NULL)
+  # }
+  
+  if (all(vec))
+    return(list(up_starts = 1L, up_ends = lenv))
+  
+  if (!any(vec)) 
+    return(NULL)
+
   ds <- diff(vec)
   
-  if (!any(ds != 0L)) # +/-1L
-    return(NULL)
+  # if (!any(ds != 0L)) # +/-1L
+  #   return(NULL)
 
   ups <- which(ds == 1L) + 1L
   dns <- which(ds == -1L)
@@ -2593,10 +2645,10 @@ find_gatepos <- function (vec)
     if (ups[[1]] <= dns[[1]])
       list(up_starts = ups, up_ends = dns)
     else
-      list(up_starts = c(1L, ups), up_ends = c(dns, length(vec)))
+      list(up_starts = c(1L, ups), up_ends = c(dns, lenv))
   } 
   else if (lenu > lend)
-    list(up_starts = ups, up_ends = c(dns, length(vec)))
+    list(up_starts = ups, up_ends = c(dns, lenv))
   else
     list(up_starts = c(1L, ups), up_ends = dns)
 }
@@ -2625,13 +2677,17 @@ find_gatepos <- function (vec)
 #' ys <- list(c(24003.98,53431.96,110619.26,10988.55,12291.00,140045.06,67601.16,11413.04,21651.61,16686.06), 
 #'            c(10000.1,40000.1,20000.1,50000.1,2500.2,5000.1,30000.1))
 #' # collapse_mms1ints(xs, ys, 400.1994)
+#' 
+#' xs <- ys <- vector("list", 13L)
+#' xs[[7]] <- 954.607849; xs[[8]] <- 954.630249; xs[[10]] <- 954.622925
+#' ys[[7]] <- 15706.2627; ys[[8]] <- 19803.5879; ys[[10]] <- 31178.9648
+#' # collapse_mms1ints(xs, ys, 951.089731)
 collapse_mms1ints <- function (xs, ys, lwr, step = 1e-5)
 {
   # all xs can be NULL
   oks <- lengths(xs) > 0L
 
   if (!any(oks))
-    # return(list(xmeans = NA_real_, ysum = NA_real_))
     return(list(xmeans = NULL, ysum = NULL))
   
   xs <- xs[oks]
@@ -2648,10 +2704,9 @@ collapse_mms1ints <- function (xs, ys, lwr, step = 1e-5)
     xs[[i]]  <- x[oks]
     ys[[i]]  <- y[oks]
   }
-  # rm(list = c("ix", "x", "y", "oks"))
 
-  unv <- unique(unlist(ixs, recursive = FALSE, use.names = FALSE))
-  unv <- sort(unv)
+  unv <- .Internal(unlist(ixs, recursive = FALSE, use.names = FALSE))
+  unv <- sort(unique(unv))
   x0 <- y0 <- rep(NA_real_, length(unv))
   
   # maps ixs onto unv (presence or absence)
@@ -2679,20 +2734,23 @@ collapse_mms1ints <- function (xs, ys, lwr, step = 1e-5)
     ps12 <- mapply(function (x, y) x:y, ps1, ps2, SIMPLIFY = FALSE, USE.NAMES = FALSE)
     exs <- mapply(function (x, y) (x + 1L):y, ps1, ps2, SIMPLIFY = FALSE, USE.NAMES = FALSE)
     exs <- .Internal(unlist(exs, recursive = FALSE, use.names = FALSE))
-
-    xmeans <- colMeans(xout, na.rm = TRUE)
+    
+    ysum <- colSums(yout, na.rm = TRUE)
+    xmeans <- colSums(xout * yout, na.rm = TRUE)/ysum
+    # xmeans <- colMeans(xout, na.rm = TRUE)
     ms <- lapply(ps12, function (cols) sum(xmeans[cols])/length(cols))
     xmeans[ps1] <- .Internal(unlist(ms, recursive = FALSE, use.names = FALSE))
     xmeans <- xmeans[-exs]
     
-    ysum <- colSums(yout, na.rm = TRUE)
+    # ysum <- colSums(yout, na.rm = TRUE)
     us <- lapply(ps12, function (cols) sum(ysum[cols], na.rm = TRUE))
     ysum[ps1] <- .Internal(unlist(us, recursive = FALSE, use.names = FALSE))
     ysum <- ysum[-exs]
   }
   else {
-    xmeans <- colMeans(xout, na.rm = TRUE)
+    # xmeans <- colMeans(xout, na.rm = TRUE)
     ysum <- colSums(yout, na.rm = TRUE)
+    xmeans <- colSums(xout * yout, na.rm = TRUE)/ysum
   }
   
   list(xmeans = xmeans, ysum = ysum)
@@ -2713,10 +2771,11 @@ collapse_mms1ints <- function (xs, ys, lwr, step = 1e-5)
 #' @param max_ms1_charge Maximum charge state of precursors for consideration.
 #' @param width The width of an MS1 window. A wide window is used for containing
 #'   isotope envelops.
+#' @param n_fwd Forward looking up to \code{n_fwd} mass entries.
 #' @param step The bin size in converting numeric m-over-z values to integers.
 find_mdda_mms1s <- function (df1, df2, stas1, stas2, ends2, ppm = 10L, 
                              maxn_precurs = 5L, max_ms1_charge = 4L, 
-                             width = 2.01, step = ppm/1e6)
+                             n_fwd = 20L, width = 2.01, step = ppm/1e6)
 {
   # for all (6+1+6) MS1 frames subset by one MS2 iso-window
   ansx1 <- ansy1 <- vector("list", len1 <- length(stas1))
@@ -2756,7 +2815,7 @@ find_mdda_mms1s <- function (df1, df2, stas1, stas2, ends2, ppm = 10L,
     ansx2, ansy2, df2$iso_ctr, 
     MoreArgs = list(
       ppm = ppm, ms_lev = 1L, maxn_feats = maxn_precurs, 
-      max_charge = max_ms1_charge, offset_upr = 30L, 
+      max_charge = max_ms1_charge, n_fwd = n_fwd, offset_upr = 30L, 
       offset_lwr = 30L, order_mz = TRUE, bound = FALSE
     ), 
     SIMPLIFY = FALSE, USE.NAMES = FALSE)
@@ -2791,7 +2850,11 @@ find_mdda_mms1s <- function (df1, df2, stas1, stas2, ends2, ppm = 10L,
   df2$ms1_charges[rows] <- charges[rows]
   df2$ms1_ints[rows] <- intensities[rows]
   
-  df2[, c("ms1_moverzs", "ms1_charges", "ms1_ints")]
+  df2$ms1_masses <- mapply(function (x, y) (x - 1.00727647) * y, 
+                           df2$ms1_moverzs, df2$ms1_charges, 
+                           SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
+  df2[, c("ms1_moverzs", "ms1_masses", "ms1_charges", "ms1_ints")]
 }
 
 

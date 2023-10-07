@@ -767,7 +767,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      is_mdda = FALSE, deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                      use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                      maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
-                     ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
+                     ppm_ms1_deisotope = 5L, ppm_ms2_deisotope = 5L, 
                      
                      topn_ms2ions = 150L,
                      topn_ms2ion_cuts = NA, 

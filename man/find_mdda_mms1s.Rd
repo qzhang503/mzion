@@ -13,6 +13,7 @@ find_mdda_mms1s(
   ppm = 10L,
   maxn_precurs = 5L,
   max_ms1_charge = 4L,
+  n_fwd = 20L,
   width = 2.01,
   step = ppm/1e+06
 )
@@ -33,6 +34,8 @@ find_mdda_mms1s(
 \item{maxn_precurs}{Maximum number of precursors for consideration.}
 
 \item{max_ms1_charge}{Maximum charge state of precursors for consideration.}
+
+\item{n_fwd}{Forward looking up to \code{n_fwd} mass entries.}
 
 \item{width}{The width of an MS1 window. A wide window is used for containing
 isotope envelops.}

@@ -1702,7 +1702,7 @@ prep_pepfdr_td <- function (td = NULL, out_path, enzyme = "trypsin_p",
                       pattern = "^pepscores_", full.names = TRUE)
   
   if (!length(files)) 
-    stop("Score results not found.", call. = FALSE)
+    stop("Score results not found.")
   
   if (is.null(td)) {
     td <- lapply(files, qs::qread)
@@ -1847,9 +1847,11 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
     warning("No decoys found.")
     seqs <- min_len:max(td[["pep_len"]], na.rm = TRUE)
     prob_cos <- rep(.5, length(seqs))
-    
     return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
   }
+  
+  # not independent variables: higher pep_exp_z tends to have greater pep_len
+  # td <- dplyr::filter(td, pep_exp_z == 2L, )
   
   # not cols = c("pep_scan_num", "raw_file", "pep_ms1_offset")
   # as only use td at pep_ms1_offset == 0
@@ -1905,9 +1907,8 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   else if (all(is.na(prob_cos))) {
     seqs <- min_len:max(td$pep_len, na.rm = TRUE)
     prob_cos <- rep(target_fdr, length(seqs))
-    
     return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
-  } 
+  }
   
   counts <- as.integer(names(prob_cos))
   names(counts) <- all_lens
@@ -1920,7 +1921,6 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   if (length(prob_cos) == 1L) {
     seqs <- min_len:max_len
     prob_cos <- rep(prob_cos, length(seqs))
-    
     return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
   }
   

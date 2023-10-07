@@ -7,7 +7,7 @@
 proc_mzml(
   file,
   topn_ms2ions = 100L,
-  ms1_charge_range = c(2L, 6L),
+  ms1_charge_range = c(2L, 4L),
   ret_range = c(0, Inf),
   min_mass = 200L,
   max_mass = 4500L,

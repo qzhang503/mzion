@@ -26,7 +26,11 @@ proc_mdda(
   idx_bin_2 = 13L,
   maxn_precurs = 5L,
   max_ms1_charge = 4L,
-  topn_ms2ions = 300L,
+  topn_ms2ions = 150L,
+  quant = "none",
+  tmt_reporter_lower = 126.1,
+  tmt_reporter_upper = 135.2,
+  exclude_reporter_region = FALSE,
   idx_scanList_1 = 11L,
   idx_rt_1 = 2L,
   idx_scan_start_1 = 1L,
@@ -82,6 +86,26 @@ proc_mdda(
 \item{max_ms1_charge}{Maximum precursor charge states.}
 
 \item{topn_ms2ions}{Top-n MS2 ions for consideration.}
+
+\item{quant}{A character string; the quantitation method. The default is
+"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
+15N)}. It is also possible that an experimenter may construct a
+\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
+\code{quant = tmt18} is suitable.}
+
+\item{tmt_reporter_lower}{The lower bound of the region of TMT reporter ions.
+The default is \eqn{126.1}.}
+
+\item{tmt_reporter_upper}{The upper bound of the region of TMT reporter ions.
+The default is \eqn{135.2}.}
+
+\item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
+region of TMT reporter ions. The default is FALSE. The corresponding range
+of TMT reporter ions is informed by \code{tmt_reporter_lower} and
+\code{tmt_reporter_upper}. The argument affects only TMT data.}
 
 \item{idx_scanList_1}{Index of MS1 scanList.}
 

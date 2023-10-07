@@ -13,7 +13,7 @@ load_mgfs(
   max_ms2mass = 4500L,
   min_ms1_charge = 2L,
   max_ms1_charge = 4L,
-  topn_ms2ions = 100L,
+  topn_ms2ions = 150L,
   min_scan_num = 1L,
   max_scan_num = .Machine$integer.max,
   min_ret_time = 0,

@@ -36,11 +36,11 @@ read_mgf_chunks(
   tmt_reporter_upper = 135.2,
   exclude_reporter_region = FALSE,
   index_mgf_ms2 = FALSE,
-  is_mdda = FALSE,
   deisotope_ms2 = TRUE,
   max_ms2_charge = 3L,
-  use_defpeaks = FALSE,
   maxn_dia_precurs = 300L,
+  is_mdda = FALSE,
+  use_defpeaks = FALSE,
   maxn_mdda_precurs = 5L,
   n_mdda_flanks = 6L,
   ppm_ms1_deisotope = 10L,
@@ -144,19 +144,19 @@ of TMT reporter ions is informed by \code{tmt_reporter_lower} and
   the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
   pep_ms2_deltas_sd} are nullified in the outputs.}
 
-\item{is_mdda}{Logical; if TRUE, consider the multiple (chimeric) precursors
-in DDA.}
-
 \item{deisotope_ms2}{Logical; if TRUE, de-isotope MS2 features.}
 
 \item{max_ms2_charge}{Maximum charge states for consideration with MS2
 deisotoping.}
 
-\item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
-charge states pre-calculated by other peak-picking algorithms.}
-
 \item{maxn_dia_precurs}{Maximum number of precursors for consideration in a
 DIA scan.}
+
+\item{is_mdda}{Logical; if TRUE, consider the multiple (chimeric) precursors
+in DDA.}
+
+\item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
+charge states pre-calculated by other peak-picking algorithms.}
 
 \item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
 multi-precursor DDA scan.}
