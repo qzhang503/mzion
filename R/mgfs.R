@@ -944,13 +944,18 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L),
   
   ms2_charges <- vector("list", length(ms2_moverzs))
   
+  is_tmt <- if (grepl("^tmt.*\\d+", quant)) TRUE else FALSE
+  
   if (deisotope_ms2) {
     mics <- mapply(deisotope, ms2_moverzs, ms2_ints, 
                    MoreArgs = list(
-                     ppm = ppm_ms2_deisotope, ms_lev = 2L, 
-                     maxn_feats = topn_ms2ions, max_charge = max_ms2_charge, 
-                     n_fwd = 10L, offset_upr = 30L, offset_lwr = 30L, 
-                     order_mz = TRUE
+                     exclude_reporter_region = is_tmt, 
+                     tmt_reporter_lower = tmt_reporter_lower, 
+                     tmt_reporter_upper = tmt_reporter_upper, 
+                     ppm = ppm_ms2_deisotope, 
+                     ms_lev = 2L, maxn_feats = topn_ms2ions, 
+                     max_charge = max_ms2_charge, n_fwd = 10L, 
+                     offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE
                    ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
     ms2_moverzs <- lapply(mics, `[[`, "masses")
     ms2_ints <- lapply(mics, `[[`, "intensities")
@@ -1960,6 +1965,8 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
     ms_levs[[i]] <- ms_lev <- as.integer(xml2::xml_attr(xc[[idx_mslev]], "value"))
     scan_titles[[i]] <- xml2::xml_attr(xc[[idx_title]], "value")
     
+    is_tmt <- if (grepl("^tmt.*\\d+", quant)) TRUE else FALSE
+    
     if (ms_lev == 2L) {
       scanList <- xml2::xml_children(xc[[idx_scanList_2]])
       scanList_ret <- xml2::xml_children(scanList[[idx_rt_2]])
@@ -1997,10 +2004,13 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
         msx_ys <- readBin(r2, "double", n = msx_n, size = 8L)
         
         if (deisotope_ms2) {
-          mic <- deisotope(msx_xs, msx_ys, ppm = ppm_ms2_deisotope, 
-                           ms_lev = ms_lev, maxn_feats = topn_ms2ions, 
-                           max_charge = 3L, n_fwd = 10L, offset_upr = 30L, 
-                           offset_lwr = 30L, order_mz = TRUE)
+          mic <- deisotope(msx_xs, msx_ys, exclude_reporter_region = is_tmt, 
+                           tmt_reporter_lower = tmt_reporter_lower, 
+                           tmt_reporter_upper = tmt_reporter_upper, 
+                           ppm = ppm_ms2_deisotope, ms_lev = ms_lev, 
+                           maxn_feats = topn_ms2ions, max_charge = 3L, 
+                           n_fwd = 10L, offset_upr = 30L, offset_lwr = 30L, 
+                           order_mz = TRUE)
           msx_moverzs[[i]] <- mic[["masses"]]
           msx_ints[[i]] <- mic[["intensities"]]
           ms2_charges[[i]] <- mic[["charges"]]
@@ -2148,6 +2158,8 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
   ms1_moverzs <- ms1_ints <- ms1_charges <- vector("list", len)
   demux <- if (is_demux) rep("0", len) else NULL
   
+  is_tmt <- if (grepl("^tmt.*\\d+", quant)) TRUE else FALSE
+  
   for (i in 1:len) {
     x <- spec[[i]]
     ids <- .Internal(strsplit(xml2::xml_attr(x, "id"), " ", fixed = TRUE, 
@@ -2194,8 +2206,10 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
         msx_ys <- readBin(r2, "double", n = msx_n, size = 8L)
         
         if (deisotope_ms2) {
-          mic <- deisotope(msx_xs, msx_ys, ppm = 10L, ms_lev = ms_lev, 
-                           maxn_feats = topn_ms2ions, 
+          mic <- deisotope(msx_xs, msx_ys, exclude_reporter_region = is_tmt, 
+                           tmt_reporter_lower = tmt_reporter_lower, 
+                           tmt_reporter_upper = tmt_reporter_upper, 
+                           ppm = 10L, ms_lev = ms_lev, maxn_feats = topn_ms2ions, 
                            max_charge = max_ms2_charge, n_fwd = 10L, 
                            offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE)
           msx_moverzs[[i]] <- mic[["masses"]]
@@ -2228,7 +2242,8 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
       msx_xs <- readBin(r1, "double", n = msx_n, size = 8L)
       msx_ys <- readBin(r2, "double", n = msx_n, size = 8L)
       
-      mic <- deisotope(msx_xs, msx_ys, ppm = ppm_ms1_deisotope, ms_lev = ms_lev, 
+      mic <- deisotope(msx_xs, msx_ys, exclude_reporter_region = FALSE, 
+                       ppm = ppm_ms1_deisotope, ms_lev = ms_lev, 
                        maxn_feats = maxn_dia_precurs, max_charge = max_ms1_charge, 
                        n_fwd = 20L, offset_upr = 30L, offset_lwr = 30L, 
                        order_mz = TRUE)
@@ -2347,11 +2362,12 @@ proc_dda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L,
                       exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE)
 {
   len <- length(spec)
-  
   ret_times <- orig_scans <- scan_nums <- scan_titles <- character(len)
   ms_levs <- msx_ns <- integer(len)
   msx_moverzs <- msx_ints <- ms2_charges <- vector("list", len)
   ms1_moverzs <- ms1_ints <- ms1_charges <- character(len)
+  
+  is_tmt <- if (grepl("^tmt.*\\d+", quant)) TRUE else FALSE
   
   for (i in 1:len) {
     x <- spec[[i]]
@@ -2398,7 +2414,10 @@ proc_dda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L,
         msx_ys <- readBin(r2, "double", n = msx_n, size = 8L)
         
         if (deisotope_ms2) {
-          mic <- deisotope(msx_xs, msx_ys, ppm = ppm_ms2_deisotope, ms_lev = ms_lev, 
+          mic <- deisotope(msx_xs, msx_ys, exclude_reporter_region = is_tmt, 
+                           tmt_reporter_lower = tmt_reporter_lower, 
+                           tmt_reporter_upper = tmt_reporter_upper, 
+                           ppm = ppm_ms2_deisotope, ms_lev = ms_lev, 
                            maxn_feats = topn_ms2ions, max_charge = max_ms2_charge, 
                            n_fwd = 10L, offset_upr = 30L, offset_lwr = 30L, 
                            order_mz = TRUE)
@@ -2814,6 +2833,7 @@ find_mdda_mms1s <- function (df1, df2, stas1, stas2, ends2, ppm = 10L,
     deisotope,
     ansx2, ansy2, df2$iso_ctr, 
     MoreArgs = list(
+      exclude_reporter_region = FALSE, 
       ppm = ppm, ms_lev = 1L, maxn_feats = maxn_precurs, 
       max_charge = max_ms1_charge, n_fwd = n_fwd, offset_upr = 30L, 
       offset_lwr = 30L, order_mz = TRUE, bound = FALSE

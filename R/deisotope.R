@@ -18,6 +18,7 @@
 #'   isotope envelop.
 #' @param iso_ratio Ratio threshold between two adjacent isotope peaks
 #'   (current/before).
+#' @inheritParams matchMS
 #' @examples
 #' \donttest{
 #' library(mzion)
@@ -28,7 +29,9 @@
 #' #                          maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
 #' #                          offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
 #' }
-deisotope <- function (moverzs, msxints, center = 650.0, ppm = 6L, ms_lev = 1L, 
+deisotope <- function (moverzs, msxints, exclude_reporter_region = FALSE, 
+                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                       center = 650.0, ppm = 6L, ms_lev = 1L, 
                        maxn_feats = 300L, max_charge = 4L, n_fwd = 20L, 
                        offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE, 
                        step = ppm/1e6, backward_mass_co = 800/ms_lev, 
@@ -39,21 +42,30 @@ deisotope <- function (moverzs, msxints, center = 650.0, ppm = 6L, ms_lev = 1L,
   # scales between Thermo's and Bruker's data
   ###
   
-  # null_out <- list(masses = NA_real_, charges = NA_integer_, intensities = NA_real_)
   null_out <- list(masses = NULL, charges = NULL, intensities = NULL)
   
   if (!(len <- length(moverzs)))
     return(null_out)
   
-  # if (len == 1L && is.na(moverzs))
-  #   return(null_out)
+  if (exclude_reporter_region) {
+    ok_rptrs <- moverzs > tmt_reporter_lower & moverzs < tmt_reporter_upper
+    rptr_moverzs <- moverzs[ok_rptrs]
+    rptr_ints <- msxints[ok_rptrs]
+
+    no_rptrs <- !ok_rptrs
+    moverzs <- moverzs[no_rptrs]
+    msxints <- msxints[no_rptrs]
+    
+    lenr <- length(rptr_moverzs)
+    len <- len - lenr
+  }
 
   from <- moverzs[[1]] - .001
   ims  <- index_mz(moverzs, from, step)
   
   lenp <- min(len, maxn_feats)
-  peaks <- intens <- rep(NA_real_, lenp)
-  css <- rep(NA_integer_, lenp)
+  peaks <- intens <- rep_len(NA_real_, lenp)
+  css <- rep.int(NA_integer_, lenp)
   p <- 1L
   
   while(len & p <= maxn_feats) {
@@ -86,7 +98,6 @@ deisotope <- function (moverzs, msxints, center = 650.0, ppm = 6L, ms_lev = 1L,
       }
       else {
         gap <- 1.003355/ch
-        
         mx  <- mass + gap
         sta <- min(len, imax + 1L)
         end <- min(len, imax + n_fwd)
@@ -151,8 +162,6 @@ deisotope <- function (moverzs, msxints, center = 650.0, ppm = 6L, ms_lev = 1L,
             iths <- index_mz(mass + gap * -ch:0L, from, step)
             lwr <- max(imax - offset_lwr, 1L)
             upr <- imax
-            # if ((lwr <- imax - offset_lwr) < 1L) lwr <- 1L
-            # if ((upr <- imax + offset_upr) > len) upr <- len
             iexs <- ims[lwr:upr]
             oks2 <- iexs %fin% iths | (iexs - 1L) %fin% iths | (iexs + 1L) %fin% iths
             hits <- .Internal(which(oks2)) + lwr - 1L
@@ -186,6 +195,12 @@ deisotope <- function (moverzs, msxints, center = 650.0, ppm = 6L, ms_lev = 1L,
   charges <- css[oks1]
   intensities <- intens[oks1]
   
+  if (exclude_reporter_region) {
+    masses <- c(rptr_moverzs, masses)
+    charges <- c(rep.int(0L, lenr), charges)
+    intensities <- c(rptr_ints, intensities)
+  }
+
   if (order_mz) {
     ord <- order(masses)
     masses <- masses[ord]
@@ -197,7 +212,7 @@ deisotope <- function (moverzs, msxints, center = 650.0, ppm = 6L, ms_lev = 1L,
 }
 
 
-#' Detection of chromatographic peaks.
+#' Detects chromatographic peaks.
 #' 
 #' May be overkilling.
 #' 
@@ -254,8 +269,8 @@ find_lcpeaks <- function (y, lag = 5L, min_lag = 3L, max_lag = 200L,
   }
   
   # initialization
-  signals <- rep(0L, len)
-  va_y <- su_y <- ss_y <- stdFilter <- avgFilter <- rep(NA_real_, len)
+  signals <- rep.int(0L, len)
+  va_y <- su_y <- ss_y <- stdFilter <- avgFilter <- rep_len(NA_real_, len)
   
   i <- lag
   ys <- y[1:i]

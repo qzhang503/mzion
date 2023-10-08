@@ -7,6 +7,9 @@
 deisotope(
   moverzs,
   msxints,
+  exclude_reporter_region = FALSE,
+  tmt_reporter_lower = 126.1,
+  tmt_reporter_upper = 135.2,
   center = 650,
   ppm = 6L,
   ms_lev = 1L,
@@ -26,6 +29,17 @@ deisotope(
 \item{moverzs}{Mass-to-charge ratios.}
 
 \item{msxints}{MS1 or MS2 peak intensities.}
+
+\item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
+region of TMT reporter ions. The default is FALSE. The corresponding range
+of TMT reporter ions is informed by \code{tmt_reporter_lower} and
+\code{tmt_reporter_upper}. The argument affects only TMT data.}
+
+\item{tmt_reporter_lower}{The lower bound of the region of TMT reporter ions.
+The default is \eqn{126.1}.}
+
+\item{tmt_reporter_upper}{The upper bound of the region of TMT reporter ions.
+The default is \eqn{135.2}.}
 
 \item{center}{The mass center of an isolation window (only for MS1).}
 

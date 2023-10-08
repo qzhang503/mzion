@@ -1850,7 +1850,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
     return(data.frame(pep_len = seqs, pep_prob_co = prob_cos))
   }
   
-  # not independent variables: higher pep_exp_z tends to have greater pep_len
+  # dependent variables: higher pep_exp_z tends to have greater pep_len
   # td <- dplyr::filter(td, pep_exp_z == 2L, )
   
   # not cols = c("pep_scan_num", "raw_file", "pep_ms1_offset")

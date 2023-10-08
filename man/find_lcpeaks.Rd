@@ -2,7 +2,7 @@
 % Please edit documentation in R/deisotope.R
 \name{find_lcpeaks}
 \alias{find_lcpeaks}
-\title{Detection of chromatographic peaks.}
+\title{Detects chromatographic peaks.}
 \usage{
 find_lcpeaks(
   y,
