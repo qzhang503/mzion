@@ -23,19 +23,20 @@
 #' \donttest{
 #' library(mzion)
 #' moverzs <- c(881 + 1:10*.1, 882.0674, 882.0981, 882.4034, 882.60, 882.7372)
-#' msxints <- c(1000 * 1:10, 1652869, 882.0981, 2043015, 2314111, 4314111)
+#' msxints <- c(1000 * 1:10, 1652869, 788368, 2043015, 2314111, 4314111)
 #'
 #' # out <- mzion:::deisotope(moverzs, msxints, ppm = 10L, ms_lev = 1L,
 #' #                          maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
 #' #                          offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
 #' }
-deisotope <- function (moverzs, msxints, exclude_reporter_region = FALSE, 
+deisotope <- function (moverzs, msxints, center = 0, 
+                       exclude_reporter_region = FALSE, 
                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       center = 650.0, ppm = 6L, ms_lev = 1L, 
-                       maxn_feats = 300L, max_charge = 4L, n_fwd = 20L, 
-                       offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE, 
-                       step = ppm/1e6, backward_mass_co = 800/ms_lev, 
-                       iso_ratio = 5, bound = FALSE)
+                       ppm = 5L, ms_lev = 1L, maxn_feats = 300L, max_charge = 4L, 
+                       n_fwd = 20L, offset_upr = 30L, offset_lwr = 30L, 
+                       order_mz = TRUE, step = ppm/1e6, 
+                       backward_mass_co = 800/ms_lev, iso_ratio = 5, 
+                       bound = FALSE)
 {
   ###
   # if to apply intensity cut-offs, should note the difference intensity 
@@ -47,7 +48,28 @@ deisotope <- function (moverzs, msxints, exclude_reporter_region = FALSE,
   if (!(len <- length(moverzs)))
     return(null_out)
   
-  if (exclude_reporter_region) {
+  excl_rptrs <- exclude_reporter_region && ms_lev != 1L
+  
+  if (excl_rptrs) {
+    if (FALSE) {
+      tmts <- c(
+        `126` = 126.127726, `127N` = 127.124761, `127C` = 127.131080,
+        `128N` = 128.128115, `128C` = 128.134435, `129N` = 129.131470,
+        `129C` = 129.137790, `130N` = 130.134825, `130C` = 130.141145,
+        `131N` = 131.138180, `131C` = 131.144499, `132N` = 132.141535,
+        `132C` = 132.147855, `133N` = 133.14489, `133C` = 133.15121,
+        `134N` = 134.148245, `134C` = 134.155114, `135N` = 135.152149)
+      
+      tmt_lwr <- tmts - tmts * 1e-5
+      tmt_upr <- tmts + tmts * 1e-5
+      
+      ok_rptrs <- mapply(function (x, y, m ) m >= x & m <= y, 
+                         tmt_lwr, tmt_upr, MoreArgs = list(moverzs), 
+                         SIMPLIFY = FALSE, USE.NAMES = FALSE)
+      ok_rptrs <- Reduce(`|`, oks_tmt)
+      
+    }
+    
     ok_rptrs <- moverzs > tmt_reporter_lower & moverzs < tmt_reporter_upper
     rptr_moverzs <- moverzs[ok_rptrs]
     rptr_ints <- msxints[ok_rptrs]
@@ -58,6 +80,9 @@ deisotope <- function (moverzs, msxints, exclude_reporter_region = FALSE,
     
     lenr <- length(rptr_moverzs)
     len <- len - lenr
+    
+    if (!len)
+      return(null_out)
   }
 
   from <- moverzs[[1]] - .001
@@ -78,7 +103,7 @@ deisotope <- function (moverzs, msxints, exclude_reporter_region = FALSE,
       next
     }
     
-    imax <- if (p == 1L && ms_lev == 1L)
+    imax <- if (center > 0 && p == 1L && ms_lev == 1L)
       .Internal(which.min(abs(moverzs - center)))
     else
       .Internal(which.max(msxints))
@@ -103,10 +128,13 @@ deisotope <- function (moverzs, msxints, exclude_reporter_region = FALSE,
         end <- min(len, imax + n_fwd)
         oks <- abs((mx - moverzs[sta:end])/mx) * 1E6 <= ppm
         
+        # f <- function(x) `==`(x, 1L)
+        # ps1 <- Position(f, oks)
+        
         if (any(oks)) {
           # consider 13C off-sets at mass > backward_mass_co 
           if (ch * mass > backward_mass_co) {
-            iths <- index_mz(mass + gap * (1L - ch):(1 + ch), from, step)
+            iths <- index_mz(mass + gap * (1L - ch):(1L + ch), from, step)
             if ((lwr <- imax - offset_lwr) < 1L) lwr <- 1L
             if ((upr <- imax + offset_upr) > len) upr <- len
             
@@ -195,7 +223,7 @@ deisotope <- function (moverzs, msxints, exclude_reporter_region = FALSE,
   charges <- css[oks1]
   intensities <- intens[oks1]
   
-  if (exclude_reporter_region) {
+  if (excl_rptrs && lenr) {
     masses <- c(rptr_moverzs, masses)
     charges <- c(rep.int(0L, lenr), charges)
     intensities <- c(rptr_ints, intensities)
@@ -209,6 +237,122 @@ deisotope <- function (moverzs, msxints, exclude_reporter_region = FALSE,
   }
   
   out <- list(masses = masses, charges = charges, intensities = intensities)
+}
+
+
+#' Is logical one.
+#' 
+#' @param x A logical vector.
+is_true <- function(x) `==`(x, 1L)
+
+
+#' Searches for a possible doubled charge state.
+#'
+#' @param ch The initial charge state.
+#' @param p The position in \code{moverzs}.
+#' @param sta The position of start.
+#' @param mass The current m-over-z.
+#' @param moverzs A vector of m-over-z values.
+#' @param max_charge The maximum charge state for consideration.
+#' @param ppm Mass error tolerance.
+#' @param f A function of \code{+} or \code{-} for forward or backward
+#'   searching.
+find_dbl_z <- function(ch = 2L, p = 2L, sta, mass, moverzs, max_charge = 4L, 
+                       ppm = 5L, f = `+`) 
+{
+  # stopifnot(p >= 1L) # no other peaks in between
+  
+  # no other peaks in between
+  if (p <= 1L) 
+    return(ch)
+
+  ans <- ch
+
+  while((ch <- ch * 2L) <= max_charge) {
+    mx  <- f(mass, 1.003355/ch)
+    sta <- f(sta, 1L)
+    end <- f(sta, p - 1L)
+    oks <- abs((mx - moverzs[sta:end])/mx) * 1E6 <= ppm
+    ps  <- Position(is_true, oks)
+    
+    if (is.na(ps)) 
+      break 
+    else
+      ans <- ch
+  }
+  
+  ans
+}
+
+
+#' Finds the charge state of a mass.
+#' 
+#' @inheritParams find_dbl_z
+#' @examples
+#' \donttest{
+#' library(mzion)
+#' moverzs <- c(881 + 1:10*.1, 882.0674, 882.0981, 882.4034, 882.60, 882.7372)
+#' mzion:::find_charage_state(1, moverzs[[1]], moverzs)
+#' mzion:::find_charage_state(5, moverzs[[5]], moverzs)
+#' mzion:::find_charage_state(7, moverzs[[7]], moverzs[-10])
+#' }
+find_charage_state <- function (imax, mass, moverzs, max_charge = 4L, ppm = 5L) 
+{
+  len <- length(moverzs)
+  ans <- 0L
+  
+  # p <- function(f, u) function(x) f(x, u)
+  # g <- function(x, u) Position(p(`>=`, u), x)
+  # end <- g(moverzs, mx * (1 + ppm/1e6))
+  # p <- function(u) function(x) `>=`(x, u)
+  # g <- function(x, u) Position(p(u), x)
+  
+  sta <- min(len, `+`(imax, 1L))
+
+  for (ch in 1:max_charge) {
+    gap <- 1.003355/ch
+    mx  <- `+`(mass, gap)
+    rs  <- .Internal(which(moverzs[sta:len] >= `+`(mx, mx * ppm/1e6)))
+    end <- if (length(rs)) rs[[1]] + sta - 1L else sta
+    oks <- abs((mx - moverzs[sta:end])/mx) * 1E6 <= ppm
+    ps1 <- Position(is_true, oks)
+    
+    if (!is.na(ps1)) {
+      if (ch > 1L) {
+        ans <- find_dbl_z(ch, ps1, sta, mass, moverzs, max_charge, ppm, `+`)
+        break
+      }
+      else {
+        ans <- ch
+      }
+    }
+  }
+
+  if (ans > 0L)
+    return(ans)
+  
+  sta <- max(1L, `-`(imax, 1L))
+  
+  for (ch in 1:max_charge) {
+    gap <- 1.003355/ch
+    mx  <- `-`(mass, gap)
+    rs  <- .Internal(which(moverzs[1:sta] >= `-`(mx, mx * ppm/1e6)))
+    end <- if (length(rs)) rs[[1]] else sta
+    oks <- abs((mx - moverzs[sta:end])/mx) * 1E6 <= ppm
+    ps1 <- Position(is_true, oks)
+    
+    if (!is.na(ps1)) {
+      if (ch > 1L) {
+        ans <- find_dbl_z(ch, ps1, sta, mass, moverzs, max_charge, ppm, `-`)
+        break
+      }
+      else {
+        ans <- ch
+      }
+    }
+  }
+  
+  ans
 }
 
 

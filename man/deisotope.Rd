@@ -7,11 +7,11 @@
 deisotope(
   moverzs,
   msxints,
+  center = 0,
   exclude_reporter_region = FALSE,
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
-  center = 650,
-  ppm = 6L,
+  ppm = 5L,
   ms_lev = 1L,
   maxn_feats = 300L,
   max_charge = 4L,
@@ -30,6 +30,8 @@ deisotope(
 
 \item{msxints}{MS1 or MS2 peak intensities.}
 
+\item{center}{The mass center of an isolation window (only for MS1).}
+
 \item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
 region of TMT reporter ions. The default is FALSE. The corresponding range
 of TMT reporter ions is informed by \code{tmt_reporter_lower} and
@@ -40,8 +42,6 @@ The default is \eqn{126.1}.}
 
 \item{tmt_reporter_upper}{The upper bound of the region of TMT reporter ions.
 The default is \eqn{135.2}.}
-
-\item{center}{The mass center of an isolation window (only for MS1).}
 
 \item{ppm}{Allowance in mass error when deisotoping.}
 
@@ -77,7 +77,7 @@ De-isotopes precursor masses.
 \donttest{
 library(mzion)
 moverzs <- c(881 + 1:10*.1, 882.0674, 882.0981, 882.4034, 882.60, 882.7372)
-msxints <- c(1000 * 1:10, 1652869, 882.0981, 2043015, 2314111, 4314111)
+msxints <- c(1000 * 1:10, 1652869, 788368, 2043015, 2314111, 4314111)
 
 # out <- mzion:::deisotope(moverzs, msxints, ppm = 10L, ms_lev = 1L,
 #                          maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,

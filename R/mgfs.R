@@ -947,8 +947,9 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L),
   is_tmt <- if (grepl("^tmt.*\\d+", quant)) TRUE else FALSE
   
   if (deisotope_ms2) {
-    mics <- mapply(deisotope, ms2_moverzs, ms2_ints, 
+    mics <- mapply(deisotope, moverzs = ms2_moverzs, msxints = ms2_ints, 
                    MoreArgs = list(
+                     center = 0, 
                      exclude_reporter_region = is_tmt, 
                      tmt_reporter_lower = tmt_reporter_lower, 
                      tmt_reporter_upper = tmt_reporter_upper, 
@@ -2002,9 +2003,10 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
         msx_ns[[i]] <- msx_n <- as.integer(length(r1)/8L)
         msx_xs <- readBin(r1, "double", n = msx_n, size = 8L)
         msx_ys <- readBin(r2, "double", n = msx_n, size = 8L)
-        
+
         if (deisotope_ms2) {
-          mic <- deisotope(msx_xs, msx_ys, exclude_reporter_region = is_tmt, 
+          mic <- deisotope(moverzs = msx_xs, msxints = msx_ys, center = 0, 
+                           exclude_reporter_region = is_tmt, 
                            tmt_reporter_lower = tmt_reporter_lower, 
                            tmt_reporter_upper = tmt_reporter_upper, 
                            ppm = ppm_ms2_deisotope, ms_lev = ms_lev, 
@@ -2206,7 +2208,8 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
         msx_ys <- readBin(r2, "double", n = msx_n, size = 8L)
         
         if (deisotope_ms2) {
-          mic <- deisotope(msx_xs, msx_ys, exclude_reporter_region = is_tmt, 
+          mic <- deisotope(moverzs = msx_xs, msxints = msx_ys, center = 0, 
+                           exclude_reporter_region = is_tmt, 
                            tmt_reporter_lower = tmt_reporter_lower, 
                            tmt_reporter_upper = tmt_reporter_upper, 
                            ppm = 10L, ms_lev = ms_lev, maxn_feats = topn_ms2ions, 
@@ -2242,7 +2245,8 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
       msx_xs <- readBin(r1, "double", n = msx_n, size = 8L)
       msx_ys <- readBin(r2, "double", n = msx_n, size = 8L)
       
-      mic <- deisotope(msx_xs, msx_ys, exclude_reporter_region = FALSE, 
+      mic <- deisotope(moverzs = msx_xs, msxints = msx_ys, center = 0, 
+                       exclude_reporter_region = FALSE, 
                        ppm = ppm_ms1_deisotope, ms_lev = ms_lev, 
                        maxn_feats = maxn_dia_precurs, max_charge = max_ms1_charge, 
                        n_fwd = 20L, offset_upr = 30L, offset_lwr = 30L, 
@@ -2412,9 +2416,10 @@ proc_dda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L,
         msx_ns[[i]] <- msx_n <- as.integer(length(r1)/8L)
         msx_xs <- readBin(r1, "double", n = msx_n, size = 8L)
         msx_ys <- readBin(r2, "double", n = msx_n, size = 8L)
-        
+
         if (deisotope_ms2) {
-          mic <- deisotope(msx_xs, msx_ys, exclude_reporter_region = is_tmt, 
+          mic <- deisotope(moverzs = msx_xs, msxints = msx_ys, center = 0, 
+                           exclude_reporter_region = is_tmt, 
                            tmt_reporter_lower = tmt_reporter_lower, 
                            tmt_reporter_upper = tmt_reporter_upper, 
                            ppm = ppm_ms2_deisotope, ms_lev = ms_lev, 
@@ -2565,14 +2570,14 @@ find_mdda_ms1s <- function (df1, df2, stas1, stas2, ends2, ppm = 6L,
   moks <- lapply(df2$iso_ctr, function (m) x > m - 2.01 & x < m + 2.01)
   xs <- lapply(moks, function (m) x[m])
   ys <- lapply(moks, function (m) y[m])
-  
+
   mics <- mapply(
     deisotope,
-    xs, ys,
+    moverzs = xs, msxints = ys,
     MoreArgs = list(
-      ppm = ppm, ms_lev = 1L, maxn_feats = maxn_precurs, 
-      max_charge = max_ms1_charge, offset_upr = 30L, 
-      offset_lwr = 30L, order_mz = TRUE, bound = FALSE
+      center = 0, ppm = ppm, ms_lev = 1L, maxn_feats = maxn_precurs, 
+      max_charge = max_ms1_charge, offset_upr = 30L, offset_lwr = 30L, 
+      order_mz = TRUE, bound = FALSE
     ), 
     SIMPLIFY = FALSE, USE.NAMES = FALSE)
   masses <- lapply(mics, `[[`, "masses")
@@ -2830,8 +2835,7 @@ find_mdda_mms1s <- function (df1, df2, stas1, stas2, ends2, ppm = 10L,
   
   # ansx2[[i]] can be NULL (no precursor found in the isolation window)
   mics <- mapply(
-    deisotope,
-    ansx2, ansy2, df2$iso_ctr, 
+    deisotope, moverzs = ansx2, msxints = ansy2, center = df2$iso_ctr, 
     MoreArgs = list(
       exclude_reporter_region = FALSE, 
       ppm = ppm, ms_lev = 1L, maxn_feats = maxn_precurs, 
@@ -2845,12 +2849,7 @@ find_mdda_mms1s <- function (df1, df2, stas1, stas2, ends2, ppm = 10L,
   
   # (2) subset by isolation window
   moks <- mapply(function (x, m, w) {
-    if (any(oks <- x > m - w & x < m + w)) oks else rep(TRUE, length(x))
-    # if ((len <- length(x)) == 1L && is.na(x))
-    #   FALSE
-    # else {
-    #   if (any(oks <- x > m - w & x < m + w)) oks else rep(TRUE, len)
-    # }
+    if (any(oks <- x > m - w & x < m + w)) oks else rep_len(TRUE, length(x))
   }, x = masses, m = df2$iso_ctr, w = df2$iso_lwr, 
   SIMPLIFY = FALSE, USE.NAMES = FALSE)
   
