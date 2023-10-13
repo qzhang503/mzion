@@ -210,6 +210,9 @@
 #'   \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 #'   ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 #'   and y-ions.
+#' @param reproc_dda_ms1 A shortcut for \code{is_mdda = TRUE, maxn_mdda_precurs
+#'   = 1L}. The net effect is to reprocess the default MS1 m-over-zs and charge
+#'   states.
 #' @param is_mdda Logical; if TRUE, consider the multiple (chimeric) precursors
 #'   in DDA.
 #' @param deisotope_ms2 Logical; if TRUE, de-isotope MS2 features.
@@ -225,6 +228,9 @@
 #'   consideration when averaging isotope envelops of precursors.
 #' @param ppm_ms1_deisotope Mass error tolerance in MS1 deisotoping.
 #' @param ppm_ms2_deisotope Mass error tolerance in MS2 deisotoping.
+#' @param grad_isotope Positive numeric; the gradient threshold between two
+#'   adjacent peaks in an isotopic envelop. The smaller the value the more
+#'   stringent it is in calling a 13C peak.
 #' @param topn_ms2ions A positive integer; the top-n species for uses in MS2 ion
 #'   searches.
 #' @param topn_ms2ion_cuts Advanced feature. Either \code{NA} or a named vector.
@@ -764,10 +770,12 @@ matchMS <- function (out_path = "~/mzion/outs",
                      .path_cache = "~/mzion/.MSearches (1.3.0.1)/Cache/Calls", 
                      .path_fasta = NULL,
                      
-                     is_mdda = FALSE, deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
+                     reproc_dda_ms1 = FALSE, is_mdda = FALSE, 
+                     deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                      use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                      maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                      ppm_ms1_deisotope = 5L, ppm_ms2_deisotope = 5L, 
+                     grad_isotope = 2.5, 
                      
                      topn_ms2ions = 150L,
                      topn_ms2ion_cuts = NA, 
@@ -1272,6 +1280,11 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
 
   ## MGFs
+  if (reproc_dda_ms1) {
+    is_mdda <- TRUE
+    maxn_mdda_precurs = 1L
+  }
+  
   if (is.null(bypass_mgf <- dots$bypass_mgf)) 
     bypass_mgf <- FALSE
   
@@ -1307,6 +1320,7 @@ matchMS <- function (out_path = "~/mzion/outs",
               n_mdda_flanks = n_mdda_flanks, 
               ppm_ms1_deisotope = ppm_ms1_deisotope, 
               ppm_ms2_deisotope = ppm_ms2_deisotope, 
+              grad_isotope = grad_isotope, 
               quant = quant, 
               digits = digits)
 

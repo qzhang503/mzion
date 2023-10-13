@@ -31,6 +31,7 @@ load_mgfs(
   enzyme = "trypsin_p",
   is_mdda = FALSE,
   deisotope_ms2 = TRUE,
+  grad_isotope = 2.5,
   max_ms2_charge = 3L,
   use_defpeaks = FALSE,
   maxn_dia_precurs = 300L,
@@ -138,6 +139,10 @@ default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
 in DDA.}
 
 \item{deisotope_ms2}{Logical; if TRUE, de-isotope MS2 features.}
+
+\item{grad_isotope}{Positive numeric; the gradient threshold between two
+adjacent peaks in an isotopic envelop. The smaller the value the more
+stringent in calling a less abundant peak a preceding isotopic feature.}
 
 \item{max_ms2_charge}{Maximum charge states for consideration with MS2
 deisotoping.}

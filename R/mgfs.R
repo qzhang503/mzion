@@ -22,11 +22,11 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
                        is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                        enzyme = "trypsin_p", 
-                       is_mdda = FALSE, deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
-                       use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
-                       maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
-                       ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
-                       quant = "none", digits = 4L) 
+                       is_mdda = FALSE, deisotope_ms2 = TRUE, grad_isotope = 2.5,
+                       max_ms2_charge = 3L, use_defpeaks = FALSE, 
+                       maxn_dia_precurs = 300L, maxn_mdda_precurs = 5L, 
+                       n_mdda_flanks = 6L, ppm_ms1_deisotope = 10L, 
+                       ppm_ms2_deisotope = 10L, quant = "none", digits = 4L) 
 {
   old_opts <- options()
   options(warn = 1L)
@@ -179,6 +179,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
              n_mdda_flanks = n_mdda_flanks, 
              ppm_ms1_deisotope = ppm_ms1_deisotope, 
              ppm_ms2_deisotope = ppm_ms2_deisotope, 
+             grad_isotope = grad_isotope, 
              
              quant = quant, 
              digits = digits)
@@ -1474,7 +1475,7 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
                       use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                       maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                       ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
-                      quant = "none", digits = 4L)
+                      grad_isotope = 2.5, quant = "none", digits = 4L)
 {
   out <- vector("list", len <- length(filelist))
   
@@ -1510,6 +1511,7 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
                             n_mdda_flanks = n_mdda_flanks, 
                             ppm_ms1_deisotope = ppm_ms1_deisotope, 
                             ppm_ms2_deisotope = ppm_ms2_deisotope, 
+                            grad_isotope = grad_isotope, 
                             quant = quant, 
                             digits = digits)
   }
@@ -1540,6 +1542,7 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
                                   n_mdda_flanks = n_mdda_flanks, 
                                   ppm_ms1_deisotope = ppm_ms1_deisotope, 
                                   ppm_ms2_deisotope = ppm_ms2_deisotope, 
+                                  grad_isotope = grad_isotope, 
                                   quant = quant, 
                                   digits = digits)
     parallel::stopCluster(cl)
@@ -1569,7 +1572,7 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L),
                        use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                        maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                        ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
-                       quant = "none", digits = 4L) 
+                       grad_isotope = 2.5, quant = "none", digits = 4L) 
 {
   min_ms1_charge <- ms1_charge_range[1]
   max_ms1_charge <- ms1_charge_range[2]
@@ -1590,12 +1593,10 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L),
                   n_mdda_flanks = n_mdda_flanks, 
                   ppm_ms1_deisotope = ppm_ms1_deisotope, 
                   ppm_ms2_deisotope = ppm_ms2_deisotope, 
+                  grad_isotope = grad_isotope, 
                   quant = quant, digits = digits)
   
   if (is_mdda && maxn_mdda_precurs == 1L) {
-    # empties <- lapply(df$ms1_moverz, is.null)
-    # empties <- unlist(empties, recursive = FALSE, use.names = FALSE)
-    # df <- df[!empties, ]
     df$ms1_moverz <- unlist(df$ms1_moverz, recursive = TRUE, use.names = FALSE)
     df$ms1_mass <- unlist(df$ms1_mass, recursive = TRUE, use.names = FALSE)
     df$ms1_charge <- unlist(df$ms1_charge, recursive = TRUE, use.names = FALSE)
@@ -1648,7 +1649,7 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
                        use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                        maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                        ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
-                       quant = "none", digits = 4L)
+                       grad_isotope = 2.5, quant = "none", digits = 4L)
 {
   ## spectrum
   xml_root <- xml2::read_xml(xml_file)
@@ -1844,6 +1845,7 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
                     n_mdda_flanks = n_mdda_flanks, 
                     ppm_ms1_deisotope = ppm_ms1_deisotope, 
                     ppm_ms2_deisotope = ppm_ms2_deisotope, 
+                    grad_isotope = grad_isotope, 
                     use_defpeaks = use_defpeaks)
   }
   else if (is_dia) {
@@ -1865,6 +1867,7 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
                    ppm_ms2_deisotope = ppm_ms2_deisotope, 
                    deisotope_ms2 = deisotope_ms2, 
                    max_ms2_charge = max_ms2_charge, 
+                   grad_isotope = grad_isotope, 
                    topn_ms2ions = topn_ms2ions, quant = quant, 
                    tmt_reporter_lower = tmt_reporter_lower, 
                    tmt_reporter_upper = tmt_reporter_upper, 
@@ -1937,7 +1940,7 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
                        idx_scan_start_1 = 1L, idx_bin_1 = 12L, 
                        deisotope_ms2 = TRUE, ppm_ms1_deisotope = 10L, 
                        ppm_ms2_deisotope = 10L, n_mdda_flanks = 6L, 
-                       use_defpeaks = FALSE)
+                       grad_isotope = 2.5, use_defpeaks = FALSE)
 {
   len <- length(spec)
   
@@ -2010,9 +2013,10 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
                            tmt_reporter_lower = tmt_reporter_lower, 
                            tmt_reporter_upper = tmt_reporter_upper, 
                            ppm = ppm_ms2_deisotope, ms_lev = ms_lev, 
-                           maxn_feats = topn_ms2ions, max_charge = 3L, 
+                           maxn_feats = topn_ms2ions, max_charge = 3L,
+                           # smaller values for MS2
                            n_fwd = 10L, offset_upr = 30L, offset_lwr = 30L, 
-                           order_mz = TRUE)
+                           grad_isotope = grad_isotope, order_mz = TRUE)
           msx_moverzs[[i]] <- mic[["masses"]]
           msx_ints[[i]] <- mic[["intensities"]]
           ms2_charges[[i]] <- mic[["charges"]]
@@ -2106,7 +2110,8 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
       find_mdda_mms1s(df1 = df[stas1, ], df2 = df[stas2:ends2, ], 
                       stas1 = stas1, stas2 = stas2, ends2 = ends2, 
                       ppm = ppm_ms1_deisotope, maxn_precurs = maxn_precurs, 
-                      max_ms1_charge = max_ms1_charge, n_fwd = 20L)
+                      max_ms1_charge = max_ms1_charge, n_fwd = 20L, 
+                      grad_isotope = grad_isotope)
   }
   rm(list = c("stacr", "stas1", "stas2", "ends2", "ms1_stas", "ms2_stas", 
               "ms2_ends", "len"))
@@ -2146,7 +2151,7 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
                       maxn_dia_precurs = 300L, max_ms1_charge = 4L, 
                       ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
                       deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
-                      topn_ms2ions = 100L, quant = "none", 
+                      grad_isotope = 2.5, topn_ms2ions = 100L, quant = "none", 
                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                       exclude_reporter_region = FALSE)
 {
@@ -2214,7 +2219,8 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
                            tmt_reporter_upper = tmt_reporter_upper, 
                            ppm = 10L, ms_lev = ms_lev, maxn_feats = topn_ms2ions, 
                            max_charge = max_ms2_charge, n_fwd = 10L, 
-                           offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE)
+                           offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE, 
+                           grad_isotope = grad_isotope)
           msx_moverzs[[i]] <- mic[["masses"]]
           msx_ints[[i]] <- mic[["intensities"]]
           ms2_charges[[i]] <- mic[["charges"]]
@@ -2250,7 +2256,7 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
                        ppm = ppm_ms1_deisotope, ms_lev = ms_lev, 
                        maxn_feats = maxn_dia_precurs, max_charge = max_ms1_charge, 
                        n_fwd = 20L, offset_upr = 30L, offset_lwr = 30L, 
-                       order_mz = TRUE)
+                       order_mz = TRUE, grad_isotope = grad_isotope)
       msx_moverzs[[i]] <- mic[["masses"]]
       msx_ints[[i]] <- mic[["intensities"]]
       ms1_charges[[i]] <- mic[["charges"]] # MS2: NULL; MS1: integer vectors
@@ -2678,6 +2684,108 @@ find_gatepos <- function (vec)
 }
 
 
+#' Finds the positions of logical gates.
+#' 
+#' @param vec A logical vector.
+#' 
+#' @examples
+#' library(mzion)
+#' 
+#' # starts at low and ends at low
+#' # find_gates(c(100, 102, 104:108, 110, 112, 114:117, 119))
+#' 
+#' # low-high
+#' # find_gates(c(100, 102, 104:108, 110, 112, 114:117))
+#' 
+#' # high-low
+#' # find_gates(c(95:100, 102, 104:108, 110:111, 114:117, 119))
+#' 
+#' # high-high
+#' # find_gates(c(95:100, 102, 104:108, 110, 112:113, 116:119))
+#' 
+#' # all-zeros (discrete)
+#' # find_gates(c(6L, 12L, 18L, 164L))
+#' 
+#' # all-ones
+#' # find_gates(1:5)
+#' 
+#' # up-width == 1L
+#' # find_gates(c(143L, 159L, 310L, 311L, 316L))
+#' 
+#' # single TRUE
+#' # find_gates(c(310L, 311L))
+#' 
+#' #' # single value
+#' # find_gates(c(310L))
+#' 
+#' # find_gates(c(281, 326, 335, 336, 337, 437, 447, 448, 449, 450, 553, 554, 557))
+find_gates <- function (vals)
+{
+  if (length(vals) <= 1L)
+    return(NULL)
+  
+  vec <- diff(vals, 1L) == 1L
+  lenv <- length(vec)
+  
+  if (vec[lenv]) {
+    vec <- c(vec, FALSE)
+    lenv <- lenv + 1L
+  }
+  
+  # all discrete
+  if (!any(vec)) 
+    return(NULL)
+  
+  ds <- diff(vec)
+  ups <- which(ds == 1L) + 1L
+  dns <- which(ds == -1L) + 1L
+  lenu <- length(ups)
+  lend <- length(dns)
+  
+  if (lenu == lend) {
+    if (ups[[1]] > dns[[1]]) {
+      ups <- c(1L, ups)
+      dns <- c(dns, lenv)
+    }
+  }
+  else if (lenu < lend)
+    ups <- c(1L, ups)
+  else if (lenu > lend) # should not occur with ensured trailing FALSE
+    dns <- c(dns, ups[lenu])
+  
+  ps <- mapply(function (x, y) x:y, ups, dns, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  lens <- lengths(ps)
+
+  if (any(oks <- lens > 2L)) {
+    ps0 <- ps[!oks]
+    ps1 <- ps[oks]
+    lens1 <- lens[oks]
+    
+    for (i in seq_along(ps1)) {
+      psi <- ps1[[i]]
+      
+      if ((li <- lens1[[i]]) %% 2L) {
+        psi <- c(ps1[[i]], 0L)
+        li <- li + 1L
+      }
+
+      fcts <- rep(1:(li/2L), each = 2L)
+      ps1[[i]] <- split(psi, fcts)
+    }
+    
+    ps1 <- .Internal(unlist(ps1, recursive = FALSE, use.names = FALSE))
+    ps <- c(ps0, ps1)
+
+    ord <- lapply(ps, `[[`, 1)
+    ord <- .Internal(unlist(ord, recursive = FALSE, use.names = FALSE))
+    ord <- order(ord)
+    ps <- ps[ord]
+  }
+
+  ps
+}
+
+
 #' Collapse MS1 intensities.
 #' 
 #' Allow adjacent values in unv and later collapse adjacent columns/values.
@@ -2749,34 +2857,29 @@ collapse_mms1ints <- function (xs, ys, lwr, step = 1e-5)
   
   xout <- do.call(rbind, xout)
   yout <- do.call(rbind, yout)
+  ysum <- colSums(yout, na.rm = TRUE)
+  xmeans <- colSums(xout * yout, na.rm = TRUE)/ysum
   
   # collapses adjacent (+/-1 in index) columns in unv
-  if (any(adjs <- diff(unv, 1L) == 1L)) {
-    ps <- find_gatepos(adjs)
-    ps1 <- ps[[1]]
-    ps2 <- ps[[2]] <- ps[[2]] + 1L
-    ps12 <- mapply(function (x, y) x:y, ps1, ps2, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    exs <- mapply(function (x, y) (x + 1L):y, ps1, ps2, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    exs <- .Internal(unlist(exs, recursive = FALSE, use.names = FALSE))
+  if (!is.null(ps <- find_gates(unv))) {
+    ps1 <- lapply(ps, `[[`, 1)
+    ps2 <- lapply(ps, `[[`, 2)
+    ps1 <- .Internal(unlist(ps1, recursive = FALSE, use.names = FALSE))
+    ps2 <- .Internal(unlist(ps2, recursive = FALSE, use.names = FALSE))
     
-    ysum <- colSums(yout, na.rm = TRUE)
-    xmeans <- colSums(xout * yout, na.rm = TRUE)/ysum
-    # xmeans <- colMeans(xout, na.rm = TRUE)
-    ms <- lapply(ps12, function (cols) sum(xmeans[cols])/length(cols))
+    ms <- lapply(ps, function (cols) {
+      if (cols[[2]]) sum(xmeans[cols])/2 else xmeans[cols]
+    })
     xmeans[ps1] <- .Internal(unlist(ms, recursive = FALSE, use.names = FALSE))
-    xmeans <- xmeans[-exs]
+    xmeans <- xmeans[-ps2]
     
-    # ysum <- colSums(yout, na.rm = TRUE)
-    us <- lapply(ps12, function (cols) sum(ysum[cols], na.rm = TRUE))
+    us <- lapply(ps, function (cols) {
+      if (cols[[2]]) sum(ysum[cols]) else ysum[cols]
+    })
     ysum[ps1] <- .Internal(unlist(us, recursive = FALSE, use.names = FALSE))
-    ysum <- ysum[-exs]
+    ysum <- ysum[-ps2]
   }
-  else {
-    # xmeans <- colMeans(xout, na.rm = TRUE)
-    ysum <- colSums(yout, na.rm = TRUE)
-    xmeans <- colSums(xout * yout, na.rm = TRUE)/ysum
-  }
-  
+
   list(xmeans = xmeans, ysum = ysum)
 }
 
@@ -2799,7 +2902,8 @@ collapse_mms1ints <- function (xs, ys, lwr, step = 1e-5)
 #' @param step The bin size in converting numeric m-over-z values to integers.
 find_mdda_mms1s <- function (df1, df2, stas1, stas2, ends2, ppm = 10L, 
                              maxn_precurs = 5L, max_ms1_charge = 4L, 
-                             n_fwd = 20L, width = 2.01, step = ppm/1e6)
+                             n_fwd = 20L, grad_isotope = 2.5, width = 2.01, 
+                             step = ppm/1e6)
 {
   # for all (6+1+6) MS1 frames subset by one MS2 iso-window
   ansx1 <- ansy1 <- vector("list", len1 <- length(stas1))
@@ -2840,7 +2944,8 @@ find_mdda_mms1s <- function (df1, df2, stas1, stas2, ends2, ppm = 10L,
       exclude_reporter_region = FALSE, 
       ppm = ppm, ms_lev = 1L, maxn_feats = maxn_precurs, 
       max_charge = max_ms1_charge, n_fwd = n_fwd, offset_upr = 30L, 
-      offset_lwr = 30L, order_mz = TRUE, bound = FALSE
+      offset_lwr = 30L, order_mz = TRUE, grad_isotope = grad_isotope, 
+      bound = FALSE
     ), 
     SIMPLIFY = FALSE, USE.NAMES = FALSE)
   masses <- lapply(mics, `[[`, "masses")

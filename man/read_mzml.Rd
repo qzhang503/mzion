@@ -25,6 +25,7 @@ read_mzml(
   n_mdda_flanks = 6L,
   ppm_ms1_deisotope = 10L,
   ppm_ms2_deisotope = 10L,
+  grad_isotope = 2.5,
   quant = "none",
   digits = 4L
 )
@@ -98,6 +99,10 @@ consideration when averaging isotope envelops of precursors.}
 \item{ppm_ms1_deisotope}{Mass error tolerance in MS1 deisotoping.}
 
 \item{ppm_ms2_deisotope}{Mass error tolerance in MS2 deisotoping.}
+
+\item{grad_isotope}{Positive numeric; the gradient threshold between two
+adjacent peaks in an isotopic envelop. The smaller the value the more
+stringent in calling a less abundant peak a preceding isotopic feature.}
 
 \item{quant}{A character string; the quantitation method. The default is
 "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and

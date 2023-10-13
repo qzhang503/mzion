@@ -75,6 +75,7 @@ matchMS(
   use_ms1_cache = TRUE,
   .path_cache = "~/mzion/.MSearches (1.3.0.1)/Cache/Calls",
   .path_fasta = NULL,
+  reproc_dda_ms1 = FALSE,
   is_mdda = FALSE,
   deisotope_ms2 = TRUE,
   max_ms2_charge = 3L,
@@ -84,6 +85,7 @@ matchMS(
   n_mdda_flanks = 6L,
   ppm_ms1_deisotope = 5L,
   ppm_ms2_deisotope = 5L,
+  grad_isotope = 2.5,
   topn_ms2ions = 150L,
   topn_ms2ion_cuts = NA,
   min_ms1_charge = 2L,
@@ -508,6 +510,9 @@ suggested. Occasionally experimenters may remove the file folder for disk
 space or under infrequent events of modified framework incurred by the
 developer.}
 
+\item{reproc_dda_ms1}{A shortcut for \code{is_mdda = TRUE, maxn_mdda_precurs
+= 1L}. The net effect is reprocessing the MS1 m-over-zs and charge states.}
+
 \item{is_mdda}{Logical; if TRUE, consider the multiple (chimeric) precursors
 in DDA.}
 
@@ -531,6 +536,10 @@ consideration when averaging isotope envelops of precursors.}
 \item{ppm_ms1_deisotope}{Mass error tolerance in MS1 deisotoping.}
 
 \item{ppm_ms2_deisotope}{Mass error tolerance in MS2 deisotoping.}
+
+\item{grad_isotope}{Positive numeric; the gradient threshold between two
+adjacent peaks in an isotopic envelop. The smaller the value the more
+stringent in calling a less abundant peak a preceding isotopic feature.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

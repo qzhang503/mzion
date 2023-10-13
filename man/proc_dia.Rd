@@ -33,6 +33,7 @@ proc_dia(
   ppm_ms2_deisotope = 10L,
   deisotope_ms2 = TRUE,
   max_ms2_charge = 3L,
+  grad_isotope = 2.5,
   topn_ms2ions = 100L,
   quant = "none",
   tmt_reporter_lower = 126.1,
@@ -98,6 +99,10 @@ DIA scan.}
 
 \item{max_ms2_charge}{Maximum charge states for consideration with MS2
 deisotoping.}
+
+\item{grad_isotope}{Positive numeric; the gradient threshold between two
+adjacent peaks in an isotopic envelop. The smaller the value the more
+stringent in calling a less abundant peak a preceding isotopic feature.}
 
 \item{topn_ms2ions}{Top-n MS2 ions for consideration.}
 

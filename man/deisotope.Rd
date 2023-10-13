@@ -21,7 +21,7 @@ deisotope(
   order_mz = TRUE,
   step = ppm/1e+06,
   backward_mass_co = 800/ms_lev,
-  iso_ratio = 5,
+  grad_isotope = 2.5,
   bound = FALSE
 )
 }
@@ -51,7 +51,8 @@ The default is \eqn{135.2}.}
 
 \item{max_charge}{The maximum charge state.}
 
-\item{n_fwd}{Forward looking up to \code{n_fwd} mass entries.}
+\item{n_fwd}{Forward looking up to \code{n_fwd} mass entries. The default is
+20 for MS1 and 10 for MS2.}
 
 \item{offset_upr}{A cardinal number of upper mass off-sets.}
 
@@ -64,8 +65,9 @@ The default is \eqn{135.2}.}
 \item{backward_mass_co}{A mass cut-off to initiate backward looking of an
 isotope envelop.}
 
-\item{iso_ratio}{Ratio threshold between two adjacent isotope peaks
-(current/before).}
+\item{grad_isotope}{Positive numeric; the gradient threshold between two
+adjacent peaks in an isotopic envelop. The smaller the value the more
+stringent in calling a less abundant peak a preceding isotopic feature.}
 
 \item{bound}{Not yet used. Logical; if TRUE, removes precursors outside of
 the boundary of isolation window.}
@@ -79,8 +81,31 @@ library(mzion)
 moverzs <- c(881 + 1:10*.1, 882.0674, 882.0981, 882.4034, 882.60, 882.7372)
 msxints <- c(1000 * 1:10, 1652869, 788368, 2043015, 2314111, 4314111)
 
-# out <- mzion:::deisotope(moverzs, msxints, ppm = 10L, ms_lev = 1L,
+# out <- mzion:::deisotope(moverzs, msxints, ppm = 5L, ms_lev = 1L,
 #                          maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
 #                          offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
+
+moverzs <- c(907.968018,908.136475,908.872711,909.073690,909.121,
+             909.273670,909.280212,909.45,909.454981,909.459717,
+             909.473072,909.675781,909.721191,909.78,909.79,
+             909.791633,909.840088,909.969744,910.077278,910.091888,
+             910.124076,910.130798,910.180115,910.218689,910.341797,
+             910.456115,910.463650,910.474152,910.791669,911.126692,
+             911.133219,911.471605)
+msxints <- c(2971101,3013171,5774301,24508055,40267873,
+             1E6,7340374,1E6,154459778,8312258,
+             18375220,22909676,2863776,1.1E6,1.2E6,
+             191655971,7273611,32089542,9125108,5008687,
+             167021373,12912115,3242378,16278636,4731828,
+             98601412,22828501,10539991,26255569,8499971,
+             8305187,37899662)
+# out <- deisotope(moverzs, msxints, center = 909.788696,
+#                  exclude_reporter_region = FALSE,
+#                  ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
+#                  order_mz = TRUE, step = 5/1e6)
+# out <- deisotope(moverzs, msxints, # center = 909.788696,
+#                  exclude_reporter_region = FALSE,
+#                  ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
+#                  order_mz = TRUE, step = 5/1e6)
 }
 }

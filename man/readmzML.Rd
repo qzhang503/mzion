@@ -33,6 +33,7 @@ readmzML(
   n_mdda_flanks = 6L,
   ppm_ms1_deisotope = 10L,
   ppm_ms2_deisotope = 10L,
+  grad_isotope = 2.5,
   quant = "none",
   digits = 4L
 )

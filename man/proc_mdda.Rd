@@ -39,6 +39,7 @@ proc_mdda(
   ppm_ms1_deisotope = 10L,
   ppm_ms2_deisotope = 10L,
   n_mdda_flanks = 6L,
+  grad_isotope = 2.5,
   use_defpeaks = FALSE
 )
 }
@@ -123,6 +124,10 @@ of TMT reporter ions is informed by \code{tmt_reporter_lower} and
 
 \item{n_mdda_flanks}{The number of preceding and following MS1 scans for
 consideration when averaging isotope envelops of precursors.}
+
+\item{grad_isotope}{Positive numeric; the gradient threshold between two
+adjacent peaks in an isotopic envelop. The smaller the value the more
+stringent in calling a less abundant peak a preceding isotopic feature.}
 
 \item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
 charge states pre-calculated by other peak-picking algorithms.}
