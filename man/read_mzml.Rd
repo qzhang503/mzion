@@ -102,7 +102,7 @@ consideration when averaging isotope envelops of precursors.}
 
 \item{grad_isotope}{Positive numeric; the gradient threshold between two
 adjacent peaks in an isotopic envelop. The smaller the value the more
-stringent in calling a less abundant peak a preceding isotopic feature.}
+stringent it is in calling a 13C peak.}
 
 \item{quant}{A character string; the quantitation method. The default is
 "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and

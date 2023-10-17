@@ -2824,6 +2824,19 @@ collapse_mms1ints <- function (xs, ys, lwr, step = 1e-5)
   
   xs <- xs[oks]
   ys <- ys[oks]
+  
+  ###
+  oky <- lapply(ys, `>`, 0)
+  xs <- mapply(function (x, i) x[i], xs, oky, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  ys <- mapply(function (x, i) x[i], ys, oky, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
+  if (!any(oks <- lengths(xs) > 0L))
+    return(list(xmeans = NULL, ysum = NULL))
+  
+  xs <- xs[oks]
+  ys <- ys[oks]
+  ###
+
   ixs <- lapply(xs, index_mz, lwr, step)
   
   # removes duplicated ixs
@@ -2858,6 +2871,7 @@ collapse_mms1ints <- function (xs, ys, lwr, step = 1e-5)
   xout <- do.call(rbind, xout)
   yout <- do.call(rbind, yout)
   ysum <- colSums(yout, na.rm = TRUE)
+  ysum[ysum < 1] <- 1 # intensity values can be 0
   xmeans <- colSums(xout * yout, na.rm = TRUE)/ysum
   
   # collapses adjacent (+/-1 in index) columns in unv

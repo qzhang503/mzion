@@ -142,7 +142,7 @@ in DDA.}
 
 \item{grad_isotope}{Positive numeric; the gradient threshold between two
 adjacent peaks in an isotopic envelop. The smaller the value the more
-stringent in calling a less abundant peak a preceding isotopic feature.}
+stringent it is in calling a 13C peak.}
 
 \item{max_ms2_charge}{Maximum charge states for consideration with MS2
 deisotoping.}

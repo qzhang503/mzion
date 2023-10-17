@@ -67,6 +67,10 @@ deisotope <- function (moverzs, msxints, center = 0,
   
   null_out <- list(masses = NULL, charges = NULL, intensities = NULL)
   
+  # bads <- moverzs < 10 | is.na(moverzs)
+  # moverzs <- moverzs[!bads]
+  # msxints <- msxints[!bads]
+  
   if (!(len_ms <- length(moverzs)))
     return(null_out)
   
@@ -143,86 +147,91 @@ deisotope <- function (moverzs, msxints, center = 0,
       sta <- min(len_ms, imax + 1L)
       end <- min(len_ms, imax + n_fwd)
       oks <- abs((mx - moverzs[sta:end])/mx) * 1E6 <= ppm
+      ioks <- .Internal(which(oks))
+      
+      if (!length(ioks))
+        next
 
-      if (any(oks)) {
-        # backward searches of 13C off-sets 
-        if (ch * mass > backward_mass_co) {
-          iths <- index_mz(mass + gap * (1L - ch):(1L + ch), from, step)
-          if ((lwr <- imax - offset_lwr) < 1L) lwr <- 1L
-          if ((upr <- imax + offset_upr) > len_ms) upr <- len_ms
+      ###
+      # MSConvert can generate artificial peaks at 1/30 intensity (1.64E6)
+      if (all(mint/msxints[sta + ioks - 1L] > 25)) {
+        # try assign a temporary charge state
+        next
+      }
+      ###
+      
+      if (ch * mass > backward_mass_co) {
+        iths <- index_mz(mass + gap * (1L - ch):(1L + ch), from, step)
+        if ((lwr <- imax - offset_lwr) < 1L) lwr <- 1L
+        if ((upr <- imax + offset_upr) > len_ms) upr <- len_ms
+        
+        iexs <- ims[lwr:upr]
+        oks2 <- iexs %fin% iths | (iexs - 1L) %fin% iths | (iexs + 1L) %fin% iths
+        hits <- .Internal(which(oks2)) + lwr - 1L
+        lenh <- length(hits)
+        idx <- .Internal(which(hits == imax))
+        
+        if (idx == 2L) {
+          hi <- hits[[1]]
           
-          iexs <- ims[lwr:upr]
-          oks2 <- iexs %fin% iths | (iexs - 1L) %fin% iths | (iexs + 1L) %fin% iths
-          hits <- .Internal(which(oks2)) + lwr - 1L
-          
-          if ((idx <- .Internal(which(hits == imax))) == 1L) {
-            lenh <- length(hits)
-          }
-          else if (idx == 2L) {
-            hi <- hits[[1]]
-            
-            # in case of a satellite hit close to `mass`
-            if (abs((moverzs[[hi]] + gap)/mass - 1) * 1E6 <= ppm && 
-                mint/msxints[[hi]] <= grad_isotope) {
-              mass <- moverzs[[hi]]
-            }
-
-            lenh <- length(hits)
-          }
-          else {
-            ix <- lenx <- idx - 1L
-            hx <- NULL
-            
-            for (i in seq_len(lenx)) {
-              mzsub <- moverzs[hits[1:ix]]
-              ks <- .Internal(which(abs((mzsub + gap)/mass -1) * 1E6 <= ppm))
-              
-              if (length(ks)) {
-                hsub <- hits[ks]
-                isub <- which.min(abs(moverzs[hsub] + gap - mass))
-                hi <- hsub[isub]
-                h <- ks[isub]
-              }
-              else
-                break
-
-              if (mint/msxints[[hi]] <= grad_isotope*i)
-                mass <- moverzs[[hi]]
-              else
-                break
-              
-              hx <- c(hi, hx)
-              
-              if (h == 1L)
-                break
-              
-              ix <- h - 1L
-            }
-            
-            hits <- c(hx, hits[idx:length(hits)])
-            lenh <- length(hits)
+          if (abs((moverzs[[hi]] + gap)/mass - 1) * 1E6 <= ppm && 
+              mint/msxints[[hi]] <= grad_isotope) {
+            mass <- moverzs[[hi]]
           }
         }
-        else {
-          iths <- index_mz(mass + gap * 1:ch, from, step)
-          iexs <- ims[sta:min(imax + offset_upr, len_ms)]
-          oks2 <- iexs %fin% iths | (iexs - 1L) %fin% iths | (iexs + 1L) %fin% iths
-          hits <- c(imax, .Internal(which(oks2)) + imax) 
+        else if (idx > 2L) {
+          ix <- lenx <- idx - 1L
+          hx <- NULL
+          
+          for (i in seq_len(lenx)) {
+            mzsub <- moverzs[hits[1:ix]]
+            ks <- .Internal(which(abs((mzsub + gap)/mass -1) * 1E6 <= ppm))
+            
+            # all satellite to `mass`
+            if (!length(ks))
+              break
+            
+            hsub <- hits[ks]
+            # isub <- which.min(abs(moverzs[hsub] + gap - mass))
+            isub <- which.max(msxints[hsub])
+            hi <- hsub[isub]
+            h <- ks[isub]
+            
+            if (mint/msxints[[hi]] > grad_isotope * i)
+              break
+            
+            mass <- moverzs[[hi]]
+            hx <- c(hi, hx)
+            
+            if (h == 1L)
+              break
+            
+            ix <- h - 1L
+          }
+          
+          hits <- c(hx, hits[idx:lenh])
           lenh <- length(hits)
         }
-        
-        intens[[p]] <- sum(msxints[hits])
-        peaks[[p]] <- mass
-        css[[p]] <- ch
-        p <- p + 1L
-        
-        len_ms <- len_ms - lenh
-        moverzs <- moverzs[-hits]
-        msxints <- msxints[-hits]
-        ims <- ims[-hits]
-        
-        break
       }
+      else {
+        iths <- index_mz(mass + gap * 1:ch, from, step)
+        iexs <- ims[sta:min(imax + offset_upr, len_ms)]
+        oks2 <- iexs %fin% iths | (iexs - 1L) %fin% iths | (iexs + 1L) %fin% iths
+        hits <- c(imax, .Internal(which(oks2)) + imax) 
+        lenh <- length(hits)
+      }
+      
+      intens[[p]] <- sum(msxints[hits])
+      peaks[[p]] <- mass
+      css[[p]] <- ch
+      p <- p + 1L
+      
+      len_ms <- len_ms - lenh
+      moverzs <- moverzs[-hits]
+      msxints <- msxints[-hits]
+      ims <- ims[-hits]
+      
+      break
     }
     
     # double ppm -> finds from MS2...

@@ -83,8 +83,8 @@ matchMS(
   maxn_dia_precurs = 300L,
   maxn_mdda_precurs = 5L,
   n_mdda_flanks = 6L,
-  ppm_ms1_deisotope = 5L,
-  ppm_ms2_deisotope = 5L,
+  ppm_ms1_deisotope = 8L,
+  ppm_ms2_deisotope = 8L,
   grad_isotope = 2.5,
   topn_ms2ions = 150L,
   topn_ms2ion_cuts = NA,
@@ -511,7 +511,8 @@ space or under infrequent events of modified framework incurred by the
 developer.}
 
 \item{reproc_dda_ms1}{A shortcut for \code{is_mdda = TRUE, maxn_mdda_precurs
-= 1L}. The net effect is reprocessing the MS1 m-over-zs and charge states.}
+= 1L}. The net effect is to reprocess the default MS1 m-over-zs and charge
+states.}
 
 \item{is_mdda}{Logical; if TRUE, consider the multiple (chimeric) precursors
 in DDA.}
@@ -539,7 +540,7 @@ consideration when averaging isotope envelops of precursors.}
 
 \item{grad_isotope}{Positive numeric; the gradient threshold between two
 adjacent peaks in an isotopic envelop. The smaller the value the more
-stringent in calling a less abundant peak a preceding isotopic feature.}
+stringent it is in calling a 13C peak.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

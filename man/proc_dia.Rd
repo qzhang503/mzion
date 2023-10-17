@@ -102,7 +102,7 @@ deisotoping.}
 
 \item{grad_isotope}{Positive numeric; the gradient threshold between two
 adjacent peaks in an isotopic envelop. The smaller the value the more
-stringent in calling a less abundant peak a preceding isotopic feature.}
+stringent it is in calling a 13C peak.}
 
 \item{topn_ms2ions}{Top-n MS2 ions for consideration.}
 

@@ -774,7 +774,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                      use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                      maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
-                     ppm_ms1_deisotope = 5L, ppm_ms2_deisotope = 5L, 
+                     ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
                      grad_isotope = 2.5, 
                      
                      topn_ms2ions = 150L,
@@ -901,10 +901,13 @@ matchMS <- function (out_path = "~/mzion/outs",
   rm(list = "db_ord")
 
   # logical types
+   
+  
   stopifnot(vapply(c(soft_secions, combine_tier_three, calib_ms1mass, 
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
                      add_ms2ints, exclude_reporter_region, index_mgf_ms2, 
-                     svm_cv, rm_dup_term_anywhere), 
+                     svm_reproc, svm_cv, rm_dup_term_anywhere, reproc_dda_ms1 , 
+                     make_speclib, is_mdda, deisotope_ms2, use_defpeaks), 
                    is.logical, logical(1L)))
 
   # numeric types 
@@ -917,7 +920,10 @@ matchMS <- function (out_path = "~/mzion/outs",
                      ppm_ms1, ppm_ms2, ppm_reporters, max_n_prots, digits, 
                      target_fdr, max_pepscores_co, min_pepscores_co, 
                      max_protscores_co, max_protnpep_co, topn_mods_per_seq, 
-                     topn_seqs_per_query, tmt_reporter_lower, tmt_reporter_upper), 
+                     topn_seqs_per_query, tmt_reporter_lower, tmt_reporter_upper, 
+                     max_ms2_charge, maxn_dia_precurs, maxn_mdda_precurs, 
+                     n_mdda_flanks, ppm_ms1_deisotope, ppm_ms2_deisotope, 
+                     grad_isotope), 
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
@@ -966,6 +972,13 @@ matchMS <- function (out_path = "~/mzion/outs",
   max_scan_num <- as.integer(max_scan_num)
   topn_mods_per_seq <- as.integer(topn_mods_per_seq)
   topn_seqs_per_query <- as.integer(topn_seqs_per_query)
+  
+  max_ms2_charge <- as.integer(max_ms2_charge)
+  maxn_dia_precurs <- as.integer(maxn_dia_precurs)
+  maxn_mdda_precurs <- as.integer(maxn_mdda_precurs)
+  n_mdda_flanks <- as.integer(n_mdda_flanks)
+  ppm_ms1_deisotope <- as.integer(ppm_ms1_deisotope)
+  ppm_ms2_deisotope <- as.integer(ppm_ms2_deisotope)
   digits <- as.integer(digits)
   
   stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 10L, minn_ms2 >= 2L, 
@@ -978,7 +991,9 @@ matchMS <- function (out_path = "~/mzion/outs",
             min_ms1_charge >= 1L, max_ms1_charge >= min_ms1_charge, 
             min_scan_num >= 1L, max_scan_num >= min_scan_num, 
             topn_mods_per_seq >= 1L, topn_seqs_per_query >= 1L, 
-            tmt_reporter_lower < tmt_reporter_upper)
+            tmt_reporter_lower < tmt_reporter_upper, max_ms2_charge >= 1L, 
+            maxn_dia_precurs >= 1L, maxn_mdda_precurs >= 1L, n_mdda_flanks >= 1L, 
+            ppm_ms1_deisotope >= 1L, ppm_ms2_deisotope >= 1L)
 
   # (b) doubles
   target_fdr <- round(as.double(target_fdr), digits = 2L)
@@ -1076,16 +1091,13 @@ matchMS <- function (out_path = "~/mzion/outs",
   # system paths
   homedir <- find_dir("~")
   
-  if (is.null(.path_cache)) {
+  if (is.null(.path_cache))
     .path_cache <- "~/mzion/.MSearches/Cache/Calls/"
-  }
-  
-  .path_cache <- create_dir(.path_cache)
-  
-  if (is.null(.path_fasta)) {
+
+  if (is.null(.path_fasta))
     .path_fasta <- file.path(gsub("(.*)\\.[^\\.]*$", "\\1", fasta[1]))
-  }
-  
+
+  .path_cache <- create_dir(.path_cache)
   .path_fasta <- create_dir(.path_fasta)
   .path_ms1masses <- create_dir(file.path(.path_fasta, "ms1masses"))
 
