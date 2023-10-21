@@ -143,23 +143,34 @@ deisotope <- function (moverzs, msxints, center = 0,
         next
       
       gap <- 1.003355/ch
-      mx  <- mass + gap
+      mx <- mass + gap
       sta <- min(len_ms, imax + 1L)
       end <- min(len_ms, imax + n_fwd)
-      oks <- abs((mx - moverzs[sta:end])/mx) * 1E6 <= ppm
+      xsub <- moverzs[sta:end]
+      oks <- abs((mx - xsub)/mx) * 1E6 <= ppm
       ioks <- .Internal(which(oks))
       
       if (!length(ioks))
         next
 
-      ###
-      # MSConvert can generate artificial peaks at 1/30 intensity (1.64E6)
-      if (all(mint/msxints[sta + ioks - 1L] > 25)) {
-        # try assign a temporary charge state
-        next
-      }
-      ###
+      # MSConvert artificial peaks
+      ysub <- msxints[sta + ioks - 1L]
       
+      if (all(mint/ysub > 25))
+        next
+
+      if (ch >= 4L && ch %% 2L == 0L) {
+        gap2 <- gap * 2L
+        mx2 <- mass + gap2
+        oks2 <- abs((mx2 - xsub)/mx2) * 1E6 <= ppm
+        ioks2 <- .Internal(which(oks2))
+        
+        if (length(ioks2) && (max(msxints[sta + ioks2 - 1L])/max(ysub) > 1.5)) {
+          ch <- ch/2L
+          gap <- gap2
+        }
+      }
+
       if (ch * mass > backward_mass_co) {
         iths <- index_mz(mass + gap * (1L - ch):(1L + ch), from, step)
         if ((lwr <- imax - offset_lwr) < 1L) lwr <- 1L
@@ -245,32 +256,53 @@ deisotope <- function (moverzs, msxints, center = 0,
         if (ch == 0L)
           next
         
+        gap <- 1.003355/ch
         mx  <- mass - gap
         end <- max(1L, imax - 1L)
         sta <- max(1L, imax - n_fwd)
-        oks <- abs((mx - moverzs[sta:end])/mx) * 1E6 <= ppm
+        xsub <- moverzs[sta:end]
+        oks <- abs((mx - xsub)/mx) * 1E6 <= ppm
+        ioks <- .Internal(which(oks))
+
+        if (!length(ioks))
+          next
         
-        if (any(oks)) {
-          iths <- index_mz(mass + gap * -ch:0L, from, step)
-          lwr <- max(imax - offset_lwr, 1L)
-          upr <- imax
-          iexs <- ims[lwr:upr]
-          oks2 <- iexs %fin% iths | (iexs - 1L) %fin% iths | (iexs + 1L) %fin% iths
-          hits <- .Internal(which(oks2)) + lwr - 1L
-          lenh <- length(hits)
+        ysub <- msxints[sta + ioks - 1L]
+        
+        if (all(mint/ysub > 25))
+          next
+        
+        if (ch >= 4L && ch %% 2L == 0L) {
+          gap2 <- gap * 2L
+          mx2 <- mass - gap2
+          oks2 <- abs((mx2 - xsub)/mx2) * 1E6 <= ppm
+          ioks2 <- .Internal(which(oks2))
           
-          intens[[p]] <- sum(msxints[hits])
-          peaks[[p]] <- mass <- moverzs[hits[[1]]]
-          css[[p]] <- ch
-          p <- p + 1L
-          
-          len_ms <- len_ms - lenh
-          moverzs <- moverzs[-hits]
-          msxints <- msxints[-hits]
-          ims <- ims[-hits]
-          
-          break
+          if (length(ioks2) && (max(msxints[sta + ioks2 - 1L])/max(ysub) > 1.5)) {
+            ch <- ch/2L
+            gap <- gap2
+          }
         }
+        
+        iths <- index_mz(mass + gap * -ch:0L, from, step)
+        lwr <- max(imax - offset_lwr, 1L)
+        upr <- imax
+        iexs <- ims[lwr:upr]
+        oks2 <- iexs %fin% iths | (iexs - 1L) %fin% iths | (iexs + 1L) %fin% iths
+        hits <- .Internal(which(oks2)) + lwr - 1L
+        lenh <- length(hits)
+        
+        intens[[p]] <- sum(msxints[hits])
+        peaks[[p]] <- mass <- moverzs[hits[[1]]]
+        css[[p]] <- ch
+        p <- p + 1L
+        
+        len_ms <- len_ms - lenh
+        moverzs <- moverzs[-hits]
+        msxints <- msxints[-hits]
+        ims <- ims[-hits]
+        
+        break
       }
     }
     

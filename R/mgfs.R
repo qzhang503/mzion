@@ -1654,22 +1654,45 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
   ## spectrum
   xml_root <- xml2::read_xml(xml_file)
   mzML <- xml2::xml_child(xml_root)
+  mzC <- xml2::xml_children(mzML)
+  
+  idx_sw <- which(xml2::xml_name(mzC) == "softwareList")
+  softwares <- mzC[[idx_sw]]
+  softwaresC <- xml2::xml_children(softwares)
+  idx_pwiz <- which(unlist(lapply(softwaresC, xml2::xml_attr, "id")) == "pwiz")
+  pwiz <- softwaresC[[idx_pwiz]]
+  pwiz_ver <- xml2::xml_attr(pwiz, "version")
+  pwiz_ver <- strsplit(pwiz_ver, ".", fixed = TRUE)[[1]]
+  
+  if ((len_pwiz <- length(pwiz_ver)) >= 2L)
+    pwiz_ver_major <- as.numeric(paste0(pwiz_ver[[1]], ".", pwiz_ver[[2]]))
+  else if (len_pwiz == 1L)
+    pwiz_ver_major <- as.numeric(pwiz_ver)
+  else {
+    warning("Unknown MSConvert version.")
+    pwiz_ver_major <- 3.0
+  }
+
+  if (pwiz_ver_major < 3)
+    stop("Use MSConvert version >= 3.0.")
   
   raw_file <- local({
-    idx_file <- which(xml2::xml_name(xml2::xml_children(mzML)) == "fileDescription")
-    file_des <- xml2::xml_children(mzML)[[idx_file]]
+    idx_file <- which(xml2::xml_name(mzC) == "fileDescription")
+    file_des <- mzC[[idx_file]]
     idx_srcl <- which(xml2::xml_name(xml2::xml_children(file_des)) == "sourceFileList")
     info_raw <- xml2::xml_children(file_des)[[idx_srcl]]
     idx_srcf <- which(xml2::xml_name(xml2::xml_children(info_raw)) == "sourceFile")
     info_fi  <- xml2::xml_children(info_raw)[[idx_srcf]]
     raw_file <- xml2::xml_attr(info_fi, "name")
   })
-  
-  idx_run <- which(xml2::xml_name(xml2::xml_children(mzML)) == "run")
-  run <- xml2::xml_children(mzML)[[idx_run]]
+
+  idx_run <- which(xml2::xml_name(mzC) == "run")
+  run <- mzC[[idx_run]]
   idx_specs <- which(xml2::xml_name(xml2::xml_children(run)) == "spectrumList")
   spec <- xml2::xml_children(xml2::xml_children(run)[[idx_specs]])
-  rm(list = c("mzML", "idx_run", "run", "idx_specs"))
+  rm(list = c("mzML", "mzC", "idx_run", "run", "idx_specs", "idx_sw", 
+              "softwares", "softwaresC", "idx_pwiz", "pwiz", "pwiz_ver", 
+              "pwiz_ver_major", "len_pwiz"))
   
   # - mzML
   #   - ...
