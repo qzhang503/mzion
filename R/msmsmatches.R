@@ -1228,6 +1228,10 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (is.null(bypass_pepmasses <- dots$bypass_pepmasses)) 
     bypass_pepmasses <- FALSE
 
+  ## temporary fix
+  if (maxn_fasta_seqs <= 3L) maxn_fasta_seqs <- 200000L
+  ##
+  
   if (!bypass_pepmasses)
     res <- calc_pepmasses2(
       aa_masses = aa_masses, 
