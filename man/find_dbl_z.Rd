@@ -34,5 +34,5 @@ find_dbl_z(
 searching.}
 }
 \description{
-Searches for a possible doubled charge state.
+Not used.
 }

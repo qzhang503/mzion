@@ -90,7 +90,6 @@ deisotope <- function (moverzs, msxints, center = 0,
                          tmt_lwr, tmt_upr, MoreArgs = list(moverzs), 
                          SIMPLIFY = FALSE, USE.NAMES = FALSE)
       ok_rptrs <- Reduce(`|`, oks_tmt)
-      
     }
     
     ok_rptrs <- moverzs > tmt_reporter_lower & moverzs < tmt_reporter_upper
@@ -150,7 +149,7 @@ deisotope <- function (moverzs, msxints, center = 0,
       if (!length(ioks))
         next
 
-      # handle MSConvert artificial peaks
+      # handle artificial peaks
       ysub <- msxints[sta + ioks - 1L]
       if (all(mint/ysub > 25)) next
 
@@ -369,6 +368,8 @@ is_true <- function(x) `==`(x, 1L)
 
 #' Searches for a possible doubled charge state.
 #'
+#' Not used.
+#' 
 #' @param ch The initial charge state.
 #' @param p The position in \code{moverzs}.
 #' @param sta The position of start.
@@ -407,6 +408,8 @@ find_dbl_z <- function(ch = 2L, p = 2L, sta, mass, moverzs, max_charge = 4L,
 
 
 #' Finds the charge state of a mass.
+#' 
+#' Not used.
 #' 
 #' @inheritParams find_dbl_z
 #' @examples

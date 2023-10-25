@@ -772,10 +772,10 @@ matchMS <- function (out_path = "~/mzion/outs",
                      .path_cache = "~/mzion/.MSearches (1.3.0.1)/Cache/Calls", 
                      .path_fasta = NULL,
                      
-                     reproc_dda_ms1 = TRUE, is_mdda = FALSE, 
+                     reproc_dda_ms1 = FALSE, is_mdda = TRUE, 
                      deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                      use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
-                     maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
+                     maxn_mdda_precurs = 1L, n_mdda_flanks = 6L, 
                      ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
                      grad_isotope = 1.6, fct_iso2 = 3.0, 
                      

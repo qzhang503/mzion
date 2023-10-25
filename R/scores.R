@@ -267,7 +267,6 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
   ## 1. int2 (secondary intensities)
   len <- length(df2[["expt"]])
   df2[["int"]] <- rep_len(NA_real_, len)
-  # df2[["int"]] <- rep_len(0, len)
   df2[["int"]][ith2] <- expt_ints[iex2] # works if iex2 contains NA
   
   facs <- rep(seq_len(len/m), each = m)
@@ -292,7 +291,6 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
 
   nudbl <- rep_len(NA_real_, topn_ms2ions)
   nuint <- rep_len(NA_integer_, topn_ms2ions)
-  # nuint <- rep_len(0L, topn_ms2ions)
   y <- list(expt = expt_moverzs, int = expt_ints, theo = nudbl, idx = nuint, int2 = nuint)
   y[["theo"]][iex] <- df_theo[ith]
   y[["idx"]][iex] <- ith
@@ -301,7 +299,6 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
     ## 3. join `int2` to `y`
     y_idx  <- y[["idx"]]
     ok_iex <- .Internal(which(!is.na(y_idx)))
-    # ok_iex <- .Internal(which(y_idx > 0L))
     y_ith  <- y_idx[ok_iex]
     y[["int2"]][ok_iex] <- int2[y_ith]
     
@@ -991,7 +988,6 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
     return (dfb)
   }
 
-  # df[["uniq_id"]] <- paste(df[["pep_scan_num"]], df[["raw_file"]], sep = "@")
   df[["uniq_id"]] <- paste(df[["pep_scan_num"]], df[["raw_file"]], df[["pep_ms1_offset"]], sep = "@")
   esscols <- c("pep_ms2_moverzs", "pep_ms2_ints", "matches", "pep_n_ms2", "uniq_id")
   path_df2 <- file.path(im_path, paste0("df2_", idx, ".rds"))

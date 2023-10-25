@@ -16,7 +16,7 @@ find_charage_state(imax, mass, moverzs, max_charge = 4L, ppm = 5L)
 \item{ppm}{Mass error tolerance.}
 }
 \description{
-Finds the charge state of a mass.
+Not used.
 }
 \examples{
 \donttest{
