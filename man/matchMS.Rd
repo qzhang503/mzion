@@ -31,7 +31,6 @@ matchMS(
     "all_cterm_tryptic", "all_cterm_nontryptic", "top3", "top3_cterm_tryptic",
     "top3_cterm_nontryptic"),
   noenzyme_maxn = 0L,
-  maxn_fasta_seqs = 200000L,
   maxn_vmods_setscombi = 512L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
@@ -248,9 +247,6 @@ peptide lengths from \code{min_len} to \code{max_len} will be broken
 automatically into continuous sections. At value 1, searches will be
 performed against individual peptide lengths; at value 2, two adjacent
 lengths will be taken at a time, etc.}
-
-\item{maxn_fasta_seqs}{A positive integer; the maximum number of protein
-sequences in fasta files. The default is 200000.}
 
 \item{maxn_vmods_setscombi}{A non-negative integer; the maximum number of
 sets of combinatorial variable modifications. The default is 512.}
