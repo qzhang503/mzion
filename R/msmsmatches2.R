@@ -90,7 +90,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
     out_path, 
     ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
                 "\\.xls$", "\\.csv$", "\\.txt$", "\\.pars$", 
-                "^mgf$", "^mgfs$", "Calls"))
+                "^mgf$", "^mgfs$", "Calls", "^PSM$", "^Peptide$", "^Protein$"))
 
   # pairs expts and theos
   files_a  <-  list.files(mgf_path, pattern = "^expttheo_", full.names = TRUE)

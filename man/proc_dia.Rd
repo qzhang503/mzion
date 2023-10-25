@@ -34,6 +34,7 @@ proc_dia(
   deisotope_ms2 = TRUE,
   max_ms2_charge = 3L,
   grad_isotope = 2.5,
+  fct_iso2 = 3,
   topn_ms2ions = 100L,
   quant = "none",
   tmt_reporter_lower = 126.1,
@@ -101,8 +102,14 @@ DIA scan.}
 deisotoping.}
 
 \item{grad_isotope}{Positive numeric; the gradient threshold between two
-adjacent peaks in an isotopic envelop. The smaller the value the more
-stringent it is in calling a 13C peak.}
+adjacent peaks in an isotopic envelop. The smaller the value, the more
+stringent it is in calling an adjacent peak being a mono-isotopic
+precursor.}
+
+\item{fct_iso2}{A multiplication factor for the fuzzy discrimination of a
+secondary precursor in parallel to a primary precursor in an isotopic
+envelop. The smaller the value, the more stringent it is in calling an
+adjacent peak being a mono-isotopic precursor}
 
 \item{topn_ms2ions}{Top-n MS2 ions for consideration.}
 

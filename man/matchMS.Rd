@@ -75,7 +75,7 @@ matchMS(
   use_ms1_cache = TRUE,
   .path_cache = "~/mzion/.MSearches (1.3.0.1)/Cache/Calls",
   .path_fasta = NULL,
-  reproc_dda_ms1 = FALSE,
+  reproc_dda_ms1 = TRUE,
   is_mdda = FALSE,
   deisotope_ms2 = TRUE,
   max_ms2_charge = 3L,
@@ -85,7 +85,8 @@ matchMS(
   n_mdda_flanks = 6L,
   ppm_ms1_deisotope = 8L,
   ppm_ms2_deisotope = 8L,
-  grad_isotope = 2.5,
+  grad_isotope = 1.6,
+  fct_iso2 = 3,
   topn_ms2ions = 150L,
   topn_ms2ion_cuts = NA,
   min_ms1_charge = 2L,
@@ -539,8 +540,14 @@ consideration when averaging isotope envelops of precursors.}
 \item{ppm_ms2_deisotope}{Mass error tolerance in MS2 deisotoping.}
 
 \item{grad_isotope}{Positive numeric; the gradient threshold between two
-adjacent peaks in an isotopic envelop. The smaller the value the more
-stringent it is in calling a 13C peak.}
+adjacent peaks in an isotopic envelop. The smaller the value, the more
+stringent it is in calling an adjacent peak being a mono-isotopic
+precursor.}
+
+\item{fct_iso2}{A multiplication factor for the fuzzy discrimination of a
+secondary precursor in parallel to a primary precursor in an isotopic
+envelop. The smaller the value, the more stringent it is in calling an
+adjacent peak being a mono-isotopic precursor}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

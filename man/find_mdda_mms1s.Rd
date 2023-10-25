@@ -7,14 +7,13 @@
 find_mdda_mms1s(
   df1,
   df2,
-  stas1,
-  stas2,
-  ends2,
+  n_ms1s = 1L,
   ppm = 10L,
   maxn_precurs = 5L,
   max_ms1_charge = 4L,
   n_fwd = 20L,
   grad_isotope = 2.5,
+  fct_iso2 = 3,
   width = 2.01,
   step = ppm/1e+06
 )
@@ -24,11 +23,7 @@ find_mdda_mms1s(
 
 \item{df2}{A sub data frame of MS2.}
 
-\item{stas1}{Indexes of MS1 starting lines (in the full data frame).}
-
-\item{stas2}{Indexes of MS2 starting lines.}
-
-\item{ends2}{Indexes of MS2 ending lines.}
+\item{n_ms1s}{The number of MS1 frames.}
 
 \item{ppm}{Mass error tolerance.}
 

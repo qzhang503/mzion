@@ -17,6 +17,7 @@
 #' @param order_mz Logical; if TRUE, orders peaks from low to high m-over-z's.
 #' @param backward_mass_co A mass cut-off to initiate backward looking of an
 #'   isotope envelop.
+#' @param fct_iso2 The multiplication factor for the second isotopic peak.
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
@@ -58,7 +59,7 @@ deisotope <- function (moverzs, msxints, center = 0,
                        n_fwd = 20L, offset_upr = 30L, offset_lwr = 30L, 
                        order_mz = TRUE, step = ppm/1e6, 
                        backward_mass_co = 800/ms_lev, grad_isotope = 2.5, 
-                       bound = FALSE)
+                       fct_iso2 = 3.0, bound = FALSE)
 {
   ###
   # if to apply intensity cut-offs, should note the difference intensity 
@@ -66,10 +67,6 @@ deisotope <- function (moverzs, msxints, center = 0,
   ###
   
   null_out <- list(masses = NULL, charges = NULL, intensities = NULL)
-  
-  # bads <- moverzs < 10 | is.na(moverzs)
-  # moverzs <- moverzs[!bads]
-  # msxints <- msxints[!bads]
   
   if (!(len_ms <- length(moverzs)))
     return(null_out)
@@ -114,11 +111,11 @@ deisotope <- function (moverzs, msxints, center = 0,
   from <- moverzs[[1]] - .001
   ims  <- index_mz(moverzs, from, step)
   
-  # hlf_charge <- floor(max_charge/2)
   lenp <- min(len_ms, maxn_feats)
-  peaks <- intens <- rep_len(NA_real_, lenp)
-  css <- rep.int(NA_integer_, lenp)
-  p <- 1L
+  peaks2 <- intens2 <- peaks <- intens <- rep_len(NA_real_, lenp)
+  css2 <- css <- rep.int(NA_integer_, lenp)
+  p2 <- p <- 1L
+  mass2 <- NA_real_
   
   while(len_ms & p <= maxn_feats) {
     if (len_ms == 1L) {
@@ -153,12 +150,11 @@ deisotope <- function (moverzs, msxints, center = 0,
       if (!length(ioks))
         next
 
-      # MSConvert artificial peaks
+      # handle MSConvert artificial peaks
       ysub <- msxints[sta + ioks - 1L]
-      
-      if (all(mint/ysub > 25))
-        next
+      if (all(mint/ysub > 25)) next
 
+      # check charge halving (for simplicity, no recursive halving)
       if (ch >= 4L && ch %% 2L == 0L) {
         gap2 <- gap * 2L
         mx2 <- mass + gap2
@@ -185,9 +181,12 @@ deisotope <- function (moverzs, msxints, center = 0,
         if (idx == 2L) {
           hi <- hits[[1]]
           
-          if (abs((moverzs[[hi]] + gap)/mass - 1) * 1E6 <= ppm && 
-              mint/msxints[[hi]] <= grad_isotope) {
-            mass <- moverzs[[hi]]
+          if (abs((moverzs[[hi]] + gap)/mass - 1) * 1E6 <= ppm) {
+            if ((ri <- mint/msxints[[hi]]) <= grad_isotope)
+              mass <- moverzs[[hi]]
+            else {
+              if (ri <= fct_iso2 * grad_isotope) mass2 <- moverzs[[hi]]
+            }
           }
         }
         else if (idx > 2L) {
@@ -201,16 +200,19 @@ deisotope <- function (moverzs, msxints, center = 0,
             # all satellite to `mass`
             if (!length(ks))
               break
-            
+
             hsub <- hits[ks]
-            # isub <- which.min(abs(moverzs[hsub] + gap - mass))
             isub <- which.max(msxints[hsub])
             hi <- hsub[isub]
             h <- ks[isub]
+            gi <- grad_isotope * i
+            ri <- mint/msxints[[hi]]
             
-            if (mint/msxints[[hi]] > grad_isotope * i)
+            if (ri > gi) {
+              if (ri < fct_iso2 * gi) mass2 <- moverzs[[hi]]
               break
-            
+            }
+
             mass <- moverzs[[hi]]
             hx <- c(hi, hx)
             
@@ -235,6 +237,15 @@ deisotope <- function (moverzs, msxints, center = 0,
       intens[[p]] <- sum(msxints[hits])
       peaks[[p]] <- mass
       css[[p]] <- ch
+
+      if (!is.na(mass2)) {
+        intens2[[p2]] <- intens[[p]]
+        peaks2[[p2]] <- mass2
+        css2[[p2]] <- ch
+        p2 <- p2 + 1L
+        mass2 <- NA_real_
+      }
+      
       p <- p + 1L
       
       len_ms <- len_ms - lenh
@@ -246,16 +257,14 @@ deisotope <- function (moverzs, msxints, center = 0,
     }
     
     # double ppm -> finds from MS2...
-    # if (ms_lev == 1L) {}
-    
-    # double MS1 ppm...
-    
+    # if (ms_lev == 1L) {double MS1 ppm...}
+
     # backward search
     if (ch == 0L) {
       for (ch in max_charge:0) {
         if (ch == 0L)
           next
-        
+
         gap <- 1.003355/ch
         mx  <- mass - gap
         end <- max(1L, imax - 1L)
@@ -316,6 +325,7 @@ deisotope <- function (moverzs, msxints, center = 0,
       len_ms <- len_ms - 1L
     }
   }
+
   
   if (ms_lev == 1L)
     oks1 <- css > 1L & !is.na(css)
@@ -327,6 +337,12 @@ deisotope <- function (moverzs, msxints, center = 0,
   masses <- peaks[oks1]
   charges <- css[oks1]
   intensities <- intens[oks1]
+  
+  if (end2 <- p2 - 1L) {
+    masses <- c(masses, peaks2[1:end2])
+    charges <- c(charges, css2[1:end2])
+    intensities <- c(intensities, intens2[1:end2])
+  }
   
   if (excl_rptrs && len_rptrs) {
     masses <- c(rptr_moverzs, masses)

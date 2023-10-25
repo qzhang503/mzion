@@ -7,24 +7,20 @@
 find_mdda_ms1s(
   df1,
   df2,
-  stas1,
-  stas2,
-  ends2,
-  ppm = 6L,
+  ppm = 8L,
   maxn_precurs = 5L,
-  max_ms1_charge = 4L
+  max_ms1_charge = 4L,
+  n_fwd = 20L,
+  grad_isotope = 2.5,
+  fct_iso2 = 3,
+  width = 2.01,
+  step = ppm/1e+06
 )
 }
 \arguments{
 \item{df1}{A one-row data frame of precursor data.}
 
 \item{df2}{The data frame of MS2 corresponding to df1.}
-
-\item{stas1}{The indexes of df1 starting lines.}
-
-\item{stas2}{The indexes of df2 starting lines.}
-
-\item{ends2}{The indexes of df2 ending lines.}
 
 \item{ppm}{Mass error tolerance.}
 

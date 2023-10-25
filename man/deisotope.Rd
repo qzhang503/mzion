@@ -22,6 +22,7 @@ deisotope(
   step = ppm/1e+06,
   backward_mass_co = 800/ms_lev,
   grad_isotope = 2.5,
+  fct_iso2 = 3,
   bound = FALSE
 )
 }
@@ -66,8 +67,11 @@ The default is \eqn{135.2}.}
 isotope envelop.}
 
 \item{grad_isotope}{Positive numeric; the gradient threshold between two
-adjacent peaks in an isotopic envelop. The smaller the value the more
-stringent it is in calling a 13C peak.}
+adjacent peaks in an isotopic envelop. The smaller the value, the more
+stringent it is in calling an adjacent peak being a mono-isotopic
+precursor.}
+
+\item{fct_iso2}{The multiplication factor for the second isotopic peak.}
 
 \item{bound}{Not yet used. Logical; if TRUE, removes precursors outside of
 the boundary of isolation window.}

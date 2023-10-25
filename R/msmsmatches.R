@@ -229,8 +229,13 @@
 #' @param ppm_ms1_deisotope Mass error tolerance in MS1 deisotoping.
 #' @param ppm_ms2_deisotope Mass error tolerance in MS2 deisotoping.
 #' @param grad_isotope Positive numeric; the gradient threshold between two
-#'   adjacent peaks in an isotopic envelop. The smaller the value the more
-#'   stringent it is in calling a 13C peak.
+#'   adjacent peaks in an isotopic envelop. The smaller the value, the more
+#'   stringent it is in calling an adjacent peak being a mono-isotopic
+#'   precursor.
+#' @param fct_iso2 A multiplication factor for the fuzzy discrimination of a
+#'   secondary precursor in parallel to a primary precursor in an isotopic
+#'   envelop. The smaller the value, the more stringent it is in calling an
+#'   adjacent peak being a mono-isotopic precursor
 #' @param topn_ms2ions A positive integer; the top-n species for uses in MS2 ion
 #'   searches.
 #' @param topn_ms2ion_cuts Advanced feature. Either \code{NA} or a named vector.
@@ -770,12 +775,12 @@ matchMS <- function (out_path = "~/mzion/outs",
                      .path_cache = "~/mzion/.MSearches (1.3.0.1)/Cache/Calls", 
                      .path_fasta = NULL,
                      
-                     reproc_dda_ms1 = FALSE, is_mdda = FALSE, 
+                     reproc_dda_ms1 = TRUE, is_mdda = FALSE, 
                      deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                      use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                      maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                      ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
-                     grad_isotope = 2.5, 
+                     grad_isotope = 1.6, fct_iso2 = 3.0, 
                      
                      topn_ms2ions = 150L,
                      topn_ms2ion_cuts = NA, 
@@ -923,7 +928,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      topn_seqs_per_query, tmt_reporter_lower, tmt_reporter_upper, 
                      max_ms2_charge, maxn_dia_precurs, maxn_mdda_precurs, 
                      n_mdda_flanks, ppm_ms1_deisotope, ppm_ms2_deisotope, 
-                     grad_isotope), 
+                     grad_isotope, fct_iso2), 
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
@@ -1009,7 +1014,9 @@ matchMS <- function (out_path = "~/mzion/outs",
 
   stopifnot(max_pepscores_co >= 0, min_pepscores_co >= 0, max_protscores_co >= 0, 
             min_ret_time >= 0, max_pepscores_co >= min_pepscores_co, 
-            max_ret_time >= min_ret_time, max_protnpep_co >= 1L)
+            max_ret_time >= min_ret_time, max_protnpep_co >= 1L, 
+            grad_isotope >= 1.0, grad_isotope <= 5.0, 
+            fct_iso2 >= 1.0, fct_iso2 <= 6.0)
   
   # named vectors
   if (any(is.na(topn_ms2ion_cuts)))
@@ -1294,6 +1301,10 @@ matchMS <- function (out_path = "~/mzion/outs",
   ## MGFs
   if (reproc_dda_ms1) {
     is_mdda <- TRUE
+    
+    if (maxn_mdda_precurs > 1L)
+      warning("Coerce to `maxn_mdda_precurs = 1` at `reproc_dda_ms1 = TRUE`. ")
+    
     maxn_mdda_precurs = 1L
   }
   
@@ -1333,6 +1344,7 @@ matchMS <- function (out_path = "~/mzion/outs",
               ppm_ms1_deisotope = ppm_ms1_deisotope, 
               ppm_ms2_deisotope = ppm_ms2_deisotope, 
               grad_isotope = grad_isotope, 
+              fct_iso2 = fct_iso2, 
               quant = quant, 
               digits = digits)
 

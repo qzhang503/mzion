@@ -34,6 +34,7 @@ readmzML(
   ppm_ms1_deisotope = 10L,
   ppm_ms2_deisotope = 10L,
   grad_isotope = 2.5,
+  fct_iso2 = 3,
   quant = "none",
   digits = 4L
 )

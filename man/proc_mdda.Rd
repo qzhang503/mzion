@@ -40,6 +40,7 @@ proc_mdda(
   ppm_ms2_deisotope = 10L,
   n_mdda_flanks = 6L,
   grad_isotope = 2.5,
+  fct_iso2 = 3,
   use_defpeaks = FALSE
 )
 }
@@ -126,8 +127,14 @@ of TMT reporter ions is informed by \code{tmt_reporter_lower} and
 consideration when averaging isotope envelops of precursors.}
 
 \item{grad_isotope}{Positive numeric; the gradient threshold between two
-adjacent peaks in an isotopic envelop. The smaller the value the more
-stringent it is in calling a 13C peak.}
+adjacent peaks in an isotopic envelop. The smaller the value, the more
+stringent it is in calling an adjacent peak being a mono-isotopic
+precursor.}
+
+\item{fct_iso2}{A multiplication factor for the fuzzy discrimination of a
+secondary precursor in parallel to a primary precursor in an isotopic
+envelop. The smaller the value, the more stringent it is in calling an
+adjacent peak being a mono-isotopic precursor}
 
 \item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
 charge states pre-calculated by other peak-picking algorithms.}
