@@ -831,8 +831,6 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (is.null(noenzyme_maxn)) noenzyme_maxn <- 0L
   if ((!is.null(custom_enzyme)) && custom_enzyme == "")
     custom_enzyme = c(Cterm = NULL, Nterm = NULL)
-  if (is.numeric(mod_motifs)) mod_motifs <- NULL # temporary
-  if (is.numeric(par_groups)) par_groups <- NULL # temporary
 
   oks <- fasta != ""
   
