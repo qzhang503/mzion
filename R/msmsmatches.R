@@ -831,6 +831,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (is.null(noenzyme_maxn)) noenzyme_maxn <- 0L
   if ((!is.null(custom_enzyme)) && custom_enzyme == "")
     custom_enzyme = c(Cterm = NULL, Nterm = NULL)
+  if (is.numeric(mod_motifs)) mod_motifs <- NULL # temporary
+  if (is.numeric(par_groups)) par_groups <- NULL # temporary
 
   oks <- fasta != ""
   
@@ -903,8 +905,6 @@ matchMS <- function (out_path = "~/mzion/outs",
   rm(list = "db_ord")
 
   # logical types
-   
-  
   stopifnot(vapply(c(soft_secions, combine_tier_three, calib_ms1mass, 
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
                      add_ms2ints, exclude_reporter_region, index_mgf_ms2, 
@@ -1223,15 +1223,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (is.null(bypass_pepmasses <- dots$bypass_pepmasses)) 
     bypass_pepmasses <- FALSE
 
-  ## temporary fix
   maxn_fasta_seqs <- 300000L
-  mod_motifs <- NULL
-  par_groups <- NULL
-  tmt_reporter_lower <- 126.1
-  tmt_reporter_upper <- 135.2 
-  ppm_reporters <- 10L
-  ##
-  
+
   if (!bypass_pepmasses)
     res <- calc_pepmasses2(
       aa_masses = aa_masses, 
