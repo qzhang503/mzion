@@ -1226,10 +1226,10 @@ matchMS <- function (out_path = "~/mzion/outs",
   ## temporary fix
   maxn_fasta_seqs <- 300000L
   mod_motifs <- NULL
-  par_groups = NULL
-  tmt_reporter_lower <- 126.1, 
-  tmt_reporter_upper <- 135.2, 
-  ppm_reporters <- 10L,
+  par_groups <- NULL
+  tmt_reporter_lower <- 126.1
+  tmt_reporter_upper <- 135.2 
+  ppm_reporters <- 10L
   ##
   
   if (!bypass_pepmasses)
