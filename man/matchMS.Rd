@@ -74,18 +74,16 @@ matchMS(
   use_ms1_cache = TRUE,
   .path_cache = "~/mzion/.MSearches (1.3.0.1)/Cache/Calls",
   .path_fasta = NULL,
-  reproc_dda_ms1 = FALSE,
-  is_mdda = TRUE,
   deisotope_ms2 = TRUE,
   max_ms2_charge = 3L,
-  use_defpeaks = FALSE,
-  maxn_dia_precurs = 300L,
-  maxn_mdda_precurs = 1L,
   n_mdda_flanks = 6L,
+  maxn_mdda_precurs = 1L,
   ppm_ms1_deisotope = 8L,
   ppm_ms2_deisotope = 8L,
   grad_isotope = 1.6,
   fct_iso2 = 3,
+  use_defpeaks = FALSE,
+  maxn_dia_precurs = 300L,
   topn_ms2ions = 150L,
   topn_ms2ion_cuts = NA,
   min_ms1_charge = 2L,
@@ -507,29 +505,19 @@ suggested. Occasionally experimenters may remove the file folder for disk
 space or under infrequent events of modified framework incurred by the
 developer.}
 
-\item{reproc_dda_ms1}{A shortcut for \code{is_mdda = TRUE, maxn_mdda_precurs
-= 1L}. The net effect is to reprocess the default MS1 m-over-zs and charge
-states.}
-
-\item{is_mdda}{Logical; if TRUE, consider the multiple (chimeric) precursors
-in DDA.}
-
 \item{deisotope_ms2}{Logical; if TRUE, de-isotope MS2 features.}
 
 \item{max_ms2_charge}{Maximum charge states for consideration with MS2
 deisotoping.}
 
-\item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
-charge states pre-calculated by other peak-picking algorithms.}
-
-\item{maxn_dia_precurs}{Maximum number of precursors for consideration in a
-DIA scan.}
-
-\item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
-multi-precursor DDA scan.}
-
 \item{n_mdda_flanks}{The number of preceding and following MS1 scans for
 consideration when averaging isotope envelops of precursors.}
+
+\item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
+multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
+equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
+= 0}, it is equivalent to DDA using the original monoisotopic masses and
+charge states provided by a peak-picking algorithm (e.g., MSConvert).}
 
 \item{ppm_ms1_deisotope}{Mass error tolerance in MS1 deisotoping.}
 
@@ -544,6 +532,12 @@ precursor.}
 secondary precursor in parallel to a primary precursor in an isotopic
 envelop. The smaller the value, the more stringent it is in calling an
 adjacent peak being a mono-isotopic precursor}
+
+\item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
+charge states pre-calculated by other peak-picking algorithms.}
+
+\item{maxn_dia_precurs}{Maximum number of precursors for consideration in a
+DIA scan.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

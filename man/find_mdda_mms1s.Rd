@@ -14,6 +14,7 @@ find_mdda_mms1s(
   n_fwd = 20L,
   grad_isotope = 2.5,
   fct_iso2 = 3,
+  use_defpeaks = FALSE,
   width = 2.01,
   step = ppm/1e+06
 )
@@ -32,6 +33,8 @@ find_mdda_mms1s(
 \item{max_ms1_charge}{Maximum charge state of precursors for consideration.}
 
 \item{n_fwd}{Forward looking up to \code{n_fwd} mass entries.}
+
+\item{use_defpeaks}{Use default peak info or not.}
 
 \item{width}{The width of an MS1 window. A wide window is used for containing
 isotope envelops.}

@@ -9,7 +9,7 @@ calc_probi_bypep(
   nms,
   expt_moverzs,
   expt_ints,
-  N,
+  N = 500L,
   type_ms2ions = "by",
   topn_ms2ions = 100L,
   ppm_ms2 = 20L,

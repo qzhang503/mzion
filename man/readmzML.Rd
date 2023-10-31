@@ -101,9 +101,6 @@ of TMT reporter ions is informed by \code{tmt_reporter_lower} and
 \item{mgf_cutpercs}{The counts of MS2 features in each region of
 \code{mgf_cutmzs}.}
 
-\item{is_mdda}{Logical; if TRUE, consider the multiple (chimeric) precursors
-in DDA.}
-
 \item{deisotope_ms2}{Logical; if TRUE, de-isotope MS2 features.}
 
 \item{max_ms2_charge}{Maximum charge states for consideration with MS2
@@ -116,7 +113,10 @@ charge states pre-calculated by other peak-picking algorithms.}
 DIA scan.}
 
 \item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
-multi-precursor DDA scan.}
+multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
+equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
+= 0}, it is equivalent to DDA using the original monoisotopic masses and
+charge states provided by a peak-picking algorithm (e.g., MSConvert).}
 
 \item{n_mdda_flanks}{The number of preceding and following MS1 scans for
 consideration when averaging isotope envelops of precursors.}

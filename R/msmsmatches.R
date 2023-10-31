@@ -208,11 +208,6 @@
 #'   \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 #'   ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 #'   and y-ions.
-#' @param reproc_dda_ms1 A shortcut for \code{is_mdda = TRUE, maxn_mdda_precurs
-#'   = 1L}. The net effect is to reprocess the default MS1 m-over-zs and charge
-#'   states.
-#' @param is_mdda Logical; if TRUE, consider the multiple (chimeric) precursors
-#'   in DDA.
 #' @param deisotope_ms2 Logical; if TRUE, de-isotope MS2 features.
 #' @param max_ms2_charge Maximum charge states for consideration with MS2
 #'   deisotoping.
@@ -221,7 +216,10 @@
 #' @param maxn_dia_precurs Maximum number of precursors for consideration in a
 #'   DIA scan.
 #' @param maxn_mdda_precurs Maximum number of precursors for consideration in a
-#'   multi-precursor DDA scan.
+#'   multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
+#'   equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
+#'   = 0}, it is equivalent to DDA using the original monoisotopic masses and
+#'   charge states provided by a peak-picking algorithm (e.g., MSConvert).
 #' @param n_mdda_flanks The number of preceding and following MS1 scans for
 #'   consideration when averaging isotope envelops of precursors.
 #' @param ppm_ms1_deisotope Mass error tolerance in MS1 deisotoping.
@@ -771,13 +769,12 @@ matchMS <- function (out_path = "~/mzion/outs",
                      use_ms1_cache = TRUE, 
                      .path_cache = "~/mzion/.MSearches (1.3.0.1)/Cache/Calls", 
                      .path_fasta = NULL,
-                     
-                     reproc_dda_ms1 = FALSE, is_mdda = TRUE, 
+
                      deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
-                     use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
-                     maxn_mdda_precurs = 1L, n_mdda_flanks = 6L, 
+                     n_mdda_flanks = 6L, maxn_mdda_precurs = 1L, 
                      ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
                      grad_isotope = 1.6, fct_iso2 = 3.0, 
+                     use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                      
                      topn_ms2ions = 150L,
                      topn_ms2ion_cuts = NA, 
@@ -906,8 +903,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   stopifnot(vapply(c(soft_secions, combine_tier_three, calib_ms1mass, 
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
                      add_ms2ints, exclude_reporter_region, index_mgf_ms2, 
-                     svm_reproc, svm_cv, rm_dup_term_anywhere, reproc_dda_ms1 , 
-                     make_speclib, is_mdda, deisotope_ms2, use_defpeaks), 
+                     svm_reproc, svm_cv, rm_dup_term_anywhere, 
+                     make_speclib, deisotope_ms2, use_defpeaks), 
                    is.logical, logical(1L)))
 
   # numeric types 
@@ -986,11 +983,12 @@ matchMS <- function (out_path = "~/mzion/outs",
             maxn_fnl_per_seq >= 0L, maxn_vnl_per_seq >= 0L, 
             maxn_neulosses_fnl >= 0L, maxn_neulosses_vnl >= 0L,
             maxn_vmods_per_pep >= maxn_sites_per_vmod, max_n_prots > 1000L, 
-            min_ms1_charge >= 1L, max_ms1_charge >= min_ms1_charge, 
+            min_ms1_charge >= 1L, max_ms1_charge >= 2L, 
+            max_ms1_charge >= min_ms1_charge, ppm_ms1 > 1, ppm_ms2 > 1, 
             min_scan_num >= 1L, max_scan_num >= min_scan_num, 
             topn_mods_per_seq >= 1L, topn_seqs_per_query >= 1L, 
             tmt_reporter_lower < tmt_reporter_upper, max_ms2_charge >= 1L, 
-            maxn_dia_precurs >= 1L, maxn_mdda_precurs >= 1L, n_mdda_flanks >= 1L, 
+            maxn_dia_precurs >= 1L, maxn_mdda_precurs >= 0L, n_mdda_flanks >= 1L, 
             ppm_ms1_deisotope >= 1L, ppm_ms2_deisotope >= 1L)
 
   # (b) doubles
@@ -1294,18 +1292,9 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
 
   ## MGFs
-  if (reproc_dda_ms1) {
-    is_mdda <- TRUE
-    
-    if (maxn_mdda_precurs > 1L)
-      warning("Coerce to `maxn_mdda_precurs = 1` at `reproc_dda_ms1 = TRUE`. ")
-    
-    maxn_mdda_precurs = 1L
-  }
-  
   if (is.null(bypass_mgf <- dots$bypass_mgf)) 
     bypass_mgf <- FALSE
-  
+
   if (!bypass_mgf)
     load_mgfs(out_path = out_path, 
               mgf_path = mgf_path,
@@ -1329,7 +1318,7 @@ matchMS <- function (out_path = "~/mzion/outs",
               tmt_reporter_lower = tmt_reporter_lower, 
               tmt_reporter_upper = tmt_reporter_upper, 
               index_mgf_ms2 = index_mgf_ms2, 
-              is_mdda = is_mdda, 
+              is_mdda = if (maxn_mdda_precurs) TRUE else FALSE, 
               deisotope_ms2 = deisotope_ms2, 
               max_ms2_charge = max_ms2_charge, 
               use_defpeaks = use_defpeaks, 

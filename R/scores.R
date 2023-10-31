@@ -27,6 +27,7 @@ add_seions <- function (ms2s, type_ms2ions = "by")
     y02s <- (y0s + 1.00727647)/2
     
     c(b2s, bstars, bstar2s, b0s, b02s, y2s, ystars, ystar2s, y0s, y02s)
+    # c(bstars, b0s, ystars, y0s, b2s, bstar2s, b02s, y2s, ystar2s, y02s)
   } 
   else if (type_ms2ions == "ax") {
     as <- ms2s[1:(len/2)]
@@ -41,6 +42,7 @@ add_seions <- function (ms2s, type_ms2ions = "by")
     x2s <- (xs + 1.00727647)/2
     
     c(a2s, astars, astar2s, a0s, a02s, x2s)
+    # c(astars, a0s, a2s, astar2s, a02s, x2s)
   } 
   else if (type_ms2ions == "cz") {
     cs <- ms2s[1:(len/2)]
@@ -248,11 +250,11 @@ list_leftmatch <- function (a, b)
 #' 
 #' mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 434)
 #' }
-calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, 
-                                N, type_ms2ions = "by", topn_ms2ions = 100L, 
-                                ppm_ms2 = 20L, soft_secions = FALSE, 
-                                burn_ins = c(1:2), min_ms2mass = 115L, 
-                                d2 = 1E-5, index_mgf_ms2 = FALSE, 
+calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges, 
+                                N = 500L, type_ms2ions = "by", 
+                                topn_ms2ions = 100L, ppm_ms2 = 20L, 
+                                soft_secions = FALSE, burn_ins = 1:2, 
+                                min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE, 
                                 tally_ms2ints = TRUE, digits = 4L) 
 {
   df_theo <- df[["theo"]]
@@ -260,6 +262,43 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
 
   ## df2
   tt2  <- add_seions(df_theo, type_ms2ions = type_ms2ions)
+  
+  if (FALSE) {
+    m2 <- m/2L
+    
+    if (type_ms2ions == "by") {
+      # idxes_mul <- c(1, 3, 5, 6, 8, 10)
+      # idxes_one <- c(2, 4, 7, 9)
+      rng_mul <- c(1:m2, (2 * m2 + 1):(3 * m2), 
+                   (4 * m2 + 1):(5 * m2), (5 * m2 + 1):(6 * m2), 
+                   (7 * m2 + 1):(8 * m2), (9 * m2 + 1):(10 * m2))
+      rng_one <- c((m2 + 1):(2 * m2), (3 * m2 + 1):(4 * m2), 
+                   (6 * m2 + 1):(7 * m2), (8 * m2 + 1):(9 * m2))
+    } else if (type_ms2ions == "ax") {
+      # idxes_mul <- c(1, 3, 5, 6)
+      # idxes_one <- c(2, 4)
+      rng_mul <- c(1:m2, (2 * m2 + 1):(3 * m2), 
+                   (4 * m2 + 1):(5 * m2), (5 * m2 + 1):(6 * m2))
+      rng_one <- c((m2 + 1):(2 * m2), (3 * m2 + 1):(4 * m2))
+    } else if (type_ms2ions == "cz") {
+      # idxes_one <- NULL
+      # idxes_mul <- c(1, 2)
+      rng_mul <- seq_len(m)
+      rng_one <- NULL
+    }
+    
+    tt2_one <- tt2[rng_one]
+    tt2_mul <- tt2[rng_mul]
+    expt_mul <- expt_one <- expt_moverzs
+    
+    # FALSE & NA -> FALSE; TRUE & NA -> NA
+    nna <- !is.na(expt_charges)
+    expt_one[nna & (expt_charges > 1L)] <- NA_integer_
+    expt_mul[nna & (expt_charges == 1L)] <- NA_integer_
+    df2_one <- match_ex2th2(expt_one, tt2_one, min_ms2mass, d2, index_mgf_ms2)
+    df2_mul <- match_ex2th2(expt_mul, tt2_mul, min_ms2mass, d2, index_mgf_ms2)
+  }
+
   df2  <- match_ex2th2(expt_moverzs, tt2, min_ms2mass, d2, index_mgf_ms2)
   ith2 <- df2[["ith"]]
   iex2 <- df2[["iex"]]
@@ -373,8 +412,8 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints,
 #' @import dplyr
 #' @importFrom purrr map2
 #' @importFrom tibble tibble
-calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, 
-                              N, type_ms2ions = "by", topn_ms2ions = 100L, 
+calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, # expt_charges, 
+                              N = 500L, type_ms2ions = "by", topn_ms2ions = 100L, 
                               ppm_ms2 = 20L, soft_secions = FALSE, 
                               min_ms2mass = 115L, d2 = 1E-5, 
                               index_mgf_ms2 = FALSE, tally_ms2ints = TRUE, 
@@ -390,6 +429,7 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
                 MoreArgs = list(
                   expt_moverzs = expt_moverzs, 
                   expt_ints = expt_ints, 
+                  # expt_charges = expt_charges, 
                   N = N, 
                   type_ms2ions = type_ms2ions, 
                   topn_ms2ions = topn_ms2ions, 
@@ -431,14 +471,15 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints,
 #' @param mts Nested data frame of \code{theo} and matched \code{expt} m-over-z.
 #' @param expt_moverzs Nested list of match and unmatched experimental m-over-z.
 #' @param expt_ints Nested list of match and unmatched experimental intensity.
+#' @param expt_charges Nested list of match and unmatched experimental charges.
 #' @param N Numeric; the number of MS2 features in an MGF query.
 #' @param d2 Bin width in ppm divided by 1E6.
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 #' @import dplyr
 #' @importFrom purrr map
-calc_probi <- function (mts, expt_moverzs, expt_ints, 
-                        N, type_ms2ions = "by", topn_ms2ions = 100L, 
+calc_probi <- function (mts, expt_moverzs, expt_ints, # expt_charges, 
+                        N = 500L, type_ms2ions = "by", topn_ms2ions = 100L, 
                         ppm_ms2 = 20L, soft_secions = FALSE, 
                         min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE, 
                         tally_ms2ints = TRUE, digits = 4L) 
@@ -449,6 +490,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints,
     MoreArgs = list(
       expt_moverzs = expt_moverzs, 
       expt_ints = expt_ints, 
+      # expt_charges = expt_charges, 
       N = N, 
       type_ms2ions = type_ms2ions, 
       topn_ms2ions = topn_ms2ions, 
@@ -484,6 +526,7 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
   # only one experimental set of values and thus `[[1]]`
   expt_moverzs <- entry[["pep_ms2_moverzs"]][[1]]
   expt_ints <- entry[["pep_ms2_ints"]][[1]]
+  # expt_charges <- entry[["ms2_charges"]][[1]]
 
   ## matches between theoreticals and experimentals
   
@@ -522,6 +565,7 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
   out <- calc_probi(mts = mts, 
                     expt_moverzs = expt_moverzs, 
                     expt_ints = expt_ints, 
+                    # expt_charges = expt_charges, 
                     N = N, 
                     type_ms2ions = type_ms2ions, 
                     topn_ms2ions = topn_ms2ions, 
@@ -557,38 +601,36 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
                              index_mgf_ms2 = FALSE, tally_ms2ints = TRUE, 
                              digits = 4L) 
 {
-  if (n_rows <- nrow(df)) {
-    df <- split.data.frame(df, seq_len(n_rows)) 
-    
-    df <- lapply(df, scalc_pepprobs, 
-                 topn_ms2ions = topn_ms2ions, 
-                 type_ms2ions = type_ms2ions, 
-                 ppm_ms2 = ppm_ms2, 
-                 soft_secions = soft_secions, 
-                 min_ms2mass = min_ms2mass, 
-                 d2 = d2, 
-                 index_mgf_ms2 = index_mgf_ms2, 
-                 tally_ms2ints = tally_ms2ints, 
-                 digits = digits)
-    
-    df <- .Internal(unlist(df, recursive = FALSE, use.names = FALSE))
-    df <- dplyr::bind_rows(df)
-    
-    ## do not reverse decoy "pep_seq"s until after adding protein accessions
-    # if (sum(nas <- is.na(df[["pep_ivmod"]])))
-    #   df[nas, "pep_seq"] <- reverse_seqs(df[nas, ][["pep_seq"]])
-  } 
-  else {
-    df <- data.frame(
+  n_rows <- nrow(df)
+  
+  if (!n_rows) {
+    return(data.frame(
       pep_seq = as.character(), 
       pep_ivmod = as.character(), 
       pep_prob = as.numeric(), 
       pri_matches = list(), 
       sec_matches = list(), 
-      pep_scan_num = as.integer())
+      pep_scan_num = as.integer()))
   }
   
-  invisible(df)
+  df <- split.data.frame(df, seq_len(n_rows)) 
+  
+  df <- lapply(df, scalc_pepprobs, 
+               topn_ms2ions = topn_ms2ions, 
+               type_ms2ions = type_ms2ions, 
+               ppm_ms2 = ppm_ms2, 
+               soft_secions = soft_secions, 
+               min_ms2mass = min_ms2mass, 
+               d2 = d2, 
+               index_mgf_ms2 = index_mgf_ms2, 
+               tally_ms2ints = tally_ms2ints, 
+               digits = digits)
+  
+  ## do not reverse decoy "pep_seq"s until after adding protein accessions
+  # if (sum(nas <- is.na(df[["pep_ivmod"]])))
+  #   df[nas, "pep_seq"] <- reverse_seqs(df[nas, ][["pep_seq"]])
+  df <- .Internal(unlist(df, recursive = FALSE, use.names = FALSE))
+  df <- dplyr::bind_rows(df)
 }
 
 
@@ -624,6 +666,13 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     add = TRUE
   )
   
+  if (file.exists(file_aa <- file.path(out_path, "aa_masses_all.rds")))
+    aa_masses_all <- qs::qread(file_aa)
+  else if (file.exists(file_aa <- file.path(.path_bin, "aa_masses_all.rds")))
+    aa_masses_all <- qs::qread(file_aa)
+  else
+    stop("Amino-acid look-ups not found: ", file_aa)
+
   sc_path <- file.path(out_path, "temp")
   tempdir <- create_dir(file.path(out_path, "sc_temp"))
   
@@ -631,11 +680,16 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
   fml_nms <- names(formals(fun))
-  
   fs_im  <- find_targets(out_path, pattern = "^ion_matches_")$files
+  n_im <- length(fs_im)
 
-  if (!length(fs_im)) 
+  if (!n_im) 
     stop("Results of ion matches not found with pattern.")
+  
+  if (by_modules && n_im != length(aa_masses_all)) {
+    stop("Unequal number of modules between ion matches and amino-acid lookups.", 
+         "\nDelete `ion_meatches_` under `temp` and restart.")
+  }
 
   args_except <- c("fdr_type", "by_modules")
 
@@ -670,9 +724,10 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
           .savecall <- FALSE
           return(NULL)
         }
-        else
+        else {
           message("Recalculating peptide scores (not all 'reporters_' found).")
-        
+        }
+
         rm(list = "fs_tmt")
       }
       else {
@@ -681,9 +736,10 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
         return(NULL)
       }
     } 
-    else
+    else {
       message("Recalculating peptide scores (not all 'pepscores_' found).")
-    
+    }
+
     rm(list = c("fs_sc", "n_sc", "fi_sp", "n_sp"))
   }
   else {
@@ -691,14 +747,6 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     dir.create(sc_path, recursive = TRUE, showWarnings = FALSE)
     rm(list = c("cache_pars", "call_pars"))
   }
-  
-  # aa_masses_all for pep_fmod and pep_vmod
-  if (file.exists(file_aa <- file.path(out_path, "aa_masses_all.rds")))
-    aa_masses_all <- qs::qread(file_aa)
-  else if (file.exists(file_aa <- file.path(.path_bin, "aa_masses_all.rds")))
-    aa_masses_all <- qs::qread(file_aa)
-  else
-    stop("Amino-acid look-ups not found: ", file_aa)
 
   pep_fmod_all  <- unlist(lapply(aa_masses_all, attr, "fmods", exact = TRUE))
   pep_vmod_all  <- unlist(lapply(aa_masses_all, attr, "vmods", exact = TRUE))
@@ -937,17 +985,17 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
                        topn_ms2ions = 100L, type_ms2ions = "by", 
                        ppm_ms2 = 20L, soft_secions = FALSE, out_path = NULL, 
                        min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE,
-                       tally_ms2ints = TRUE, 
-                       add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
-                       add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
-                       quant = "none", ppm_reporters = 10, 
+                       tally_ms2ints = TRUE, add_ms2theos = FALSE, 
+                       add_ms2theos2 = FALSE, add_ms2moverzs = FALSE, 
+                       add_ms2ints = FALSE, quant = "none", ppm_reporters = 10, 
                        by_modules = TRUE, digits = 4L) 
 {
   msg <- paste0("\tModule: ", file)
   write(msg, stdout())
 
   cols_a  <- c("pep_scan_num", "raw_file")
-  cols_b  <- c("pep_ms2_moverzs", "pep_ms2_ints", "pri_matches", "sec_matches")
+  cols_b  <- c("pep_ms2_moverzs", "pep_ms2_ints", # "ms2_charges", 
+               "pri_matches", "sec_matches")
   cols_lt <- c(cols_a, cols_b)
   
   cols_sc <- c("pep_seq", "pep_n_ms2", "pep_scan_title", "pep_exp_mz", 
@@ -961,10 +1009,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
                "pep_n_matches", "pep_n_matches2", 
                "pep_ms2_deltas", "pep_ms2_ideltas", "pep_ms2_iexs", 
                "pep_ms2_deltas2", "pep_ms2_ideltas2", "pep_ms2_iexs2", 
-               "pep_ms2_deltas_mean", "pep_ms2_deltas_sd", 
-               
-               # for localization scores
-               "pep_ms2_ideltas.")
+               "pep_ms2_deltas_mean", "pep_ms2_deltas_sd", "pep_ms2_ideltas.")
 
   df <- qs::qread(file.path(im_path, file))
   n_rows <- nrow(df)
@@ -988,8 +1033,10 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
     return (dfb)
   }
 
-  df[["uniq_id"]] <- paste(df[["pep_scan_num"]], df[["raw_file"]], df[["pep_ms1_offset"]], sep = "@")
-  esscols <- c("pep_ms2_moverzs", "pep_ms2_ints", "matches", "pep_n_ms2", "uniq_id")
+  df[["uniq_id"]] <- paste(df[["pep_scan_num"]], 
+                           df[["raw_file"]], df[["pep_ms1_offset"]], sep = "@")
+  esscols <- c("pep_ms2_moverzs", "pep_ms2_ints", # "ms2_charges", 
+               "matches", "pep_n_ms2", "uniq_id")
   path_df2 <- file.path(im_path, paste0("df2_", idx, ".rds"))
   df2 <- df[, -which(names(df) %in% esscols), drop = FALSE]
 
@@ -997,9 +1044,6 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
   df <- df[, esscols, drop = FALSE]
   rm(list = "df2")
 
-  # otherwise, chunksplit return NULL
-  #   -> res[[i]] <- NULL 
-  #   -> length(res) shortened by 1
   probs <- calc_pepprobs_i(
     df,
     topn_ms2ions = topn_ms2ions, 
@@ -1027,7 +1071,6 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
   
   df <- quick_rightjoin(df, probs, "uniq_id")
   rm(list = c("probs"))
-
   df <- df[, -which(names(df) == "uniq_id"), drop = FALSE]
   
   # adds pep_fmod and pep_vmod

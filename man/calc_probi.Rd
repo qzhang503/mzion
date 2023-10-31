@@ -8,7 +8,7 @@ calc_probi(
   mts,
   expt_moverzs,
   expt_ints,
-  N,
+  N = 500L,
   type_ms2ions = "by",
   topn_ms2ions = 100L,
   ppm_ms2 = 20L,
@@ -69,6 +69,8 @@ interrogation. The default is 110.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
+
+\item{expt_charges}{Nested list of match and unmatched experimental charges.}
 }
 \description{
 Helper for score calculations

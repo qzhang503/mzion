@@ -1227,6 +1227,7 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
                         min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
                         by_modules = FALSE) 
 {
+  # don't flip the order of cdn1 & cdn2: FALSE & NA -> FALSE; TRUE & NA <- NA
   if (!is.null(exptcharges_ms2))
     expt_moverz_ms2[(!is.na(exptcharges_ms2)) & (exptcharges_ms2 > 1L)] <- NA_real_
 

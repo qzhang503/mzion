@@ -30,14 +30,11 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                       maxn_neulosses_vnl = 1L, deisotope_ms2 = TRUE, 
 
                       # dummies
-                      fasta, acc_type, acc_pattern,
-                      topn_ms2ions, fixedmods, varmods, 
-                      enzyme, 
-                      maxn_fasta_seqs, maxn_vmods_setscombi, 
-                      min_len, max_len, max_miss, 
+                      fasta, acc_type, acc_pattern, topn_ms2ions, fixedmods, 
+                      varmods, enzyme, maxn_fasta_seqs, maxn_vmods_setscombi, 
+                      min_len, max_len, max_miss, index_mgf_ms2 = FALSE, 
+                      first_search = FALSE, .savecall = TRUE) 
                       
-                      index_mgf_ms2 = FALSE, first_search = FALSE, 
-                      .savecall = TRUE) 
 {
   options(digits = 9L)
   
@@ -72,8 +69,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
     fions   <- list.files(path = file.path(out_path, "temp"), 
                           pattern = "ion_matches_[0-9]+\\.rds$")
 
-    if (length(fions)) {
-      message("Found ", length(fions), " cached ion matches.")
+    if (n_fi <- length(fions)) {
+      message("Found ", n_fi, " cached ion matches.")
 
       if (!file.exists(faa))
         qs::qsave(aa_masses_all, faa)
@@ -88,9 +85,10 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   
   delete_files(
     out_path, 
-    ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.xlsx$", 
+    ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", "\\.xlsx$", 
                 "\\.xls$", "\\.csv$", "\\.txt$", "\\.pars$", 
-                "^mgf$", "^mgfs$", "Calls", "^PSM$", "^Peptide$", "^Protein$"))
+                "^mgf$", "^mgfs$", "^mzML$", "^mzMLs$", 
+                "Calls", "^PSM$", "^Peptide$", "^Protein$"))
 
   # pairs expts and theos
   files_a  <-  list.files(mgf_path, pattern = "^expttheo_", full.names = TRUE)
