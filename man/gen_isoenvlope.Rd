@@ -12,5 +12,5 @@ gen_isoenvlope(mass = 560, charge = 2L)
 \item{charge}{Charge state.}
 }
 \description{
-Generate an isotope envelop
+Not used.
 }

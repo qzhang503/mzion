@@ -125,6 +125,8 @@
 #'   automatically into continuous sections. At value 1, searches will be
 #'   performed against individual peptide lengths; at value 2, two adjacent
 #'   lengths will be taken at a time, etc.
+#' @param maxn_fasta_seqs A positive integer; the maximum number of protein
+#'   sequences in fasta files. The default is 200000.
 #' @param maxn_vmods_setscombi A non-negative integer; the maximum number of
 #'   sets of combinatorial variable modifications. The default is 512.
 #' @param maxn_vmods_per_pep A non-negative integer; the maximum number of
@@ -724,6 +726,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                                        "top3", "top3_cterm_tryptic", 
                                        "top3_cterm_nontryptic"), 
                      noenzyme_maxn = 0L, 
+                     maxn_fasta_seqs = 200000L,
                      maxn_vmods_setscombi = 512L,
                      maxn_vmods_per_pep = 5L,
                      maxn_sites_per_vmod = 3L,
@@ -841,6 +844,10 @@ matchMS <- function (out_path = "~/mzion/outs",
   
   fasta <- fasta[oks]
   
+  lapply(fasta, function (x) {
+    if (!file.exists(x)) stop("FASTA file not existed: ", x)
+  })
+  
   # fixedmods <- gsub("Protein N-term = N-term", "Protein N-term", fixedmods)
   # fixedmods <- gsub("Protein C-term = C-term", "Protein C-term", fixedmods)
   # varmods <- gsub("Protein N-term = N-term", "Protein N-term", varmods)
@@ -908,7 +915,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                    is.logical, logical(1L)))
 
   # numeric types 
-  stopifnot(vapply(c(maxn_vmods_setscombi, maxn_vmods_per_pep, 
+  stopifnot(vapply(c(maxn_fasta_seqs, maxn_vmods_setscombi, maxn_vmods_per_pep, 
                      maxn_sites_per_vmod, maxn_fnl_per_seq, maxn_vnl_per_seq, 
                      ms1_notches, maxn_neulosses_fnl, maxn_neulosses_vnl, 
                      maxn_vmods_sitescombi_per_pep, 
@@ -925,6 +932,7 @@ matchMS <- function (out_path = "~/mzion/outs",
 
   # (a) integers casting for parameter matching when calling cached)
   if (is.infinite(max_len)) max_len <- max_integer
+  if (is.infinite(maxn_fasta_seqs)) maxn_fasta_seqs <- max_integer
   if (is.infinite(maxn_vmods_setscombi)) maxn_vmods_setscombi <- max_integer
   if (is.infinite(maxn_vmods_per_pep)) maxn_vmods_per_pep <- max_integer
   if (is.infinite(maxn_sites_per_vmod)) maxn_sites_per_vmod <- max_integer
@@ -938,6 +946,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (is.infinite(topn_mods_per_seq)) topn_mods_per_seq <- max_integer
   if (is.infinite(topn_seqs_per_query)) topn_seqs_per_query <- max_integer
 
+  maxn_fasta_seqs <- as.integer(maxn_fasta_seqs)
   maxn_vmods_setscombi <- as.integer(maxn_vmods_setscombi)
   maxn_vmods_per_pep <- as.integer(maxn_vmods_per_pep)
   maxn_sites_per_vmod <- as.integer(maxn_sites_per_vmod)
@@ -1218,8 +1227,6 @@ matchMS <- function (out_path = "~/mzion/outs",
   ## Theoretical MS1 masses
   if (is.null(bypass_pepmasses <- dots$bypass_pepmasses)) 
     bypass_pepmasses <- FALSE
-
-  maxn_fasta_seqs <- 300000L
 
   if (!bypass_pepmasses)
     res <- calc_pepmasses2(
@@ -1625,7 +1632,6 @@ matchMS <- function (out_path = "~/mzion/outs",
   df <- reloc_col_after(df, "pep_calc_mr", "pep_exp_z")
   df <- reloc_col_after(df, "pep_delta", "pep_calc_mr")
   
-  # e.g. realization with Acetyl (K) but no TMT (K)
   cols_tmt <- grepl("^I[0-9]{3}[Nc]{0,1}", names(df))
   rows_tmt <- grepl("TMT", df[["pep_fmod"]]) | grepl("TMT", df[["pep_vmod"]])
   df[!rows_tmt, cols_tmt] <- NA_real_

@@ -2965,8 +2965,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
       
       us <- split(x0[, c("uniq_id2", "pep_ivmod2", "pep_ms2_ideltas.")], 
                   x0[["uniq_id"]])
-      # gc()
-      
+
       probs <- lapply(us, findLocFracsDF, locmod_indexes)
       
       if (FALSE) {
@@ -3009,7 +3008,6 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
                            by = "uniq_id2")
       
       rm(list = c("probs", "deltas", "us"))
-      # gc()
     }
     else {
       x0[["pep_locprob"]] <- NA_real_
@@ -3052,8 +3050,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x0[ , "pep_score" := round(pep_score, 2L)]
   x0[ , "pep_locprob" := round(pep_locprob, 2L)]
   x0[ , "pep_locdiff" := round(pep_locdiff, 2L)]
-  # gc()
-  
+
   # 5.1 NEW `pep_rank`s across different `pep_seq`s under the same `query`
   # (this is different to the earlier `uniq_id` to differentiate LOCATIONS)
   # 

@@ -13,7 +13,8 @@
 #' @inheritParams matchMS
 load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L, 
                        min_ms2mass = 115L, max_ms2mass = 4500L, 
-                       min_ms1_charge = 2L, max_ms1_charge = 4L, topn_ms2ions = 150L, 
+                       min_ms1_charge = 2L, max_ms1_charge = 4L, 
+                       topn_ms2ions = 150L, 
                        min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                        min_ret_time = 0, max_ret_time = Inf, 
                        ppm_ms1 = 20L, ppm_ms2 = 20L, 
@@ -216,21 +217,18 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
 readMGF <- function (filepath = NULL, filelist = NULL, 
                      min_mass = 200L, max_mass = 4500L, 
                      min_ms2mass = 115L, max_ms2mass = 4500L, 
-                     topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
+                     topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L), 
                      ms1_scan_range = c(1L, .Machine$integer.max), 
                      ret_range = c(0, Inf), ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                     tmt_reporter_lower = 126.1, 
-                     tmt_reporter_upper = 135.2, 
-                     exclude_reporter_region = FALSE, 
-                     index_mgf_ms2 = FALSE, 
+                     tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                     exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
                      mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
-                     out_path = file.path(filepath, "mgf_queries.rds"), 
+                     out_path = file.path(filepath, "mgf_queries_1.rds"), 
                      is_mdda = FALSE, deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                      use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
-                     maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
-                     ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
-                     quant = "none", 
-                     digits = 4L) 
+                     maxn_mdda_precurs = 1L, n_mdda_flanks = 6L, 
+                     ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
+                     quant = "none", digits = 4L) 
 {
   if (is_mdda) {
     warning("No multi-precursor DDA with MGF. Use mzML to enable the feature.")
@@ -239,7 +237,6 @@ readMGF <- function (filepath = NULL, filelist = NULL,
 
   ## Parsing rules
   pat_mgf <- find_mgf_type(file.path(filepath, filelist[[1]]))
-  
   type_mgf <- pat_mgf$type
   n_bf_begin <- pat_mgf$n_bf_begin
   n_spacer <- pat_mgf$n_spacer
@@ -430,10 +427,7 @@ readlineMGFs <- function (i, file, filepath, raw_file)
   temp_dir <- local({
     path <- file.path(filepath, temp_i)
     ok <- find_dir(path)
-    
-    if (!is.null(ok)) 
-      fs::file_delete(ok)
-    
+    if (!is.null(ok)) fs::file_delete(ok)
     dir.create(path, showWarnings = FALSE)
     find_dir(path)
   })
@@ -509,7 +503,7 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
   filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
 
   if (!(len <- length(filelist))) 
-    stop("No mgf files under ", filepath, call. = FALSE)
+    stop("No mgf files under ", filepath)
   
   if (len == 1L) {
     out <- proc_mgf_chunks(
@@ -651,7 +645,6 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
     af <- stringi::stri_read_lines(file.path(filepath, x))
     bf <- stringi::stri_read_lines(file.path(filepath, y))
     ab <- append(af, bf)
-    
     # perfect case of no gaps: two lines of "" and ""
     if (length(ab) > 2L) ab else NULL
   })
@@ -661,9 +654,7 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
 
   local({
     nms <- list.files(path = file.path(filepath), pattern = "^.*\\_[ab]f.mgf$")
-
-    if (length(nms)) 
-      suppressMessages(file.remove(file.path(filepath, nms)))
+    if (length(nms)) suppressMessages(file.remove(file.path(filepath, nms)))
   })
 
   if (!is.null(gaps)) {
@@ -1120,8 +1111,6 @@ sub_mgftopn <- function (ms2_moverzs = NULL, ms2_ints = NULL, ms2_charges = NULL
         ms2_moverzs[is_long][[i]] <- ans_x
         ms2_ints[is_long][[i]] <- ans_y
         ms2_charges[is_long][[i]] <- ans_z
-        
-        # if (i %% 5000L == 0L) gc()
       }
     }
     else {
@@ -1490,7 +1479,9 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
   
   files <- file.path(filepath, filelist)
   sizes <- max(unlist(lapply(files, file.size)))/1024^3
-  n_cores <- min(detect_cores(32L), floor((find_free_mem()/1024)/(sizes * 8)) + 1L, len)
+  n_cores <- min(detect_cores(32L), 
+                 floor((find_free_mem()/1024)/(sizes * 8)) + 1L, 
+                 len)
   n_cores <- max(1L, n_cores)
   
   if (n_cores == 1L) {
@@ -1610,23 +1601,40 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L),
                   quant = quant, digits = digits)
   
   if (is_mdda) {
-    rows <- lapply(df$ms1_mass, is.null) # or df$ms1_moverzs?
+    rows <- lapply(df$ms1_mass, is.null)
     rows <- unlist(rows, recursive = FALSE, use.names = FALSE)
     df <- df[!rows, ]
+    rm(list = "rows")
     
+    # fuzzy precursor masses and the corresponding scan_nums are duplicated,
     if (maxn_mdda_precurs == 1L) {
+      lens <- lengths(df$ms1_moverz)
+      
+      # In `calcpepsc`, uniq_id: scan_num + raw_file + ms1_offset
+      # In `calc_pepfdr`, uniq_id: scan_num + raw_file
+      # In `post_pepfdr`, `calc_peploc`, `hcalc_tmtint`, `add_rptrs`
+      rows <- lens > 1L
+      df2 <- df[rows, ]
+      scans <- mapply(function (x, y) paste0(x, ".", seq_len(y)), 
+                      as.list(df2$scan_num), lens[rows], 
+                      SIMPLIFY = FALSE, USE.NAMES = FALSE)
+      df$scan_num <- as.list(df$scan_num)
+      df$scan_num[rows] <- scans
+
       x1 <- unlist(df$ms1_moverz, recursive = TRUE, use.names = FALSE)
       x2 <- unlist(df$ms1_mass, recursive = TRUE, use.names = FALSE)
       x3 <- unlist(df$ms1_charge, recursive = TRUE, use.names = FALSE)
       x4 <- unlist(df$ms1_int, recursive = TRUE, use.names = FALSE)
-      lens <- lengths(df$ms1_moverz)
-      df <- df[rep(1:nrow(df), lens), ]
+      x5 <- unlist(df$scan_num, recursive = TRUE, use.names = FALSE)
       
+      df <- df[rep(1:nrow(df), lens), ]
       df$ms1_moverz <- x1
       df$ms1_mass <- x2
       df$ms1_charge <- x3
       df$ms1_int <- x4
-      rm(list = c("x1", "x2", "x3", "x4", "lens"))
+      df$scan_num <- x5
+      
+      rm(list = c("x1", "x2", "x3", "x4", "x5", "rows", "lens"))
     }
   }
 
@@ -2161,8 +2169,6 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
     stas2 <- ms2_stas[i]
     ends2 <- ms2_ends[i]
     
-    # may change here max_ms1_charge 4 -> 6 (took about the same time)
-    # but not change max_ms1_charge in matchMS (caused search space expansion)
     df[stas2:ends2, cols] <- 
       find_mdda_mms1s(df1 = df[stas1, ], df2 = df[stas2:ends2, ], 
                       n_ms1s = length(stas1), ppm = ppm_ms1_deisotope, 
@@ -2200,6 +2206,10 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
     }
     
     rm(list = c("rows1", "rows2", "rows", "cols", "ans2", "df2"))
+    
+    # rows <- lapply(df$ms1_charges, function (x) length(x) == 1L && isTRUE(x <= 1L))
+    # rows <- unlist(rows, recursive = FALSE, use.names = FALSE)
+    # df2 <- df[rows, ]
   }
 
   df$iso_lwr <- df$iso_upr <- df$iso_ctr <- NULL
@@ -2673,14 +2683,8 @@ find_mslev_brackets <- function (vals, out_type = c("sim_vec", "sim_list", "full
 find_gatepos <- function (vec)
 {
   # stopifnot(all(vec %in% c(0L, 1L)))
-  lenv <- length(vec)
   
-  # if (lenv == 1L) {
-  #   if (vec)
-  #     return(list(up_starts = 1L, up_ends = 1L))
-  #   else
-  #     return(NULL)
-  # }
+  lenv <- length(vec)
   
   if (all(vec))
     return(list(up_starts = 1L, up_ends = lenv))

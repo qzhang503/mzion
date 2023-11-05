@@ -13,7 +13,7 @@ beginning charge states 2 instead of 1.}
 
 \item{chs}{The charge states for checking duplicacy.}
 
-\item{ps}{The corresponding positions of the observed \codes{chs} in a
+\item{ps}{The corresponding positions of the observed \code{chs} in a
 m-over-z sequence.}
 
 \item{msxints}{A sequence of intensity values.}

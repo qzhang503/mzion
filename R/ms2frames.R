@@ -204,39 +204,49 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
 make_dia_mgfs <- function (mgfs, mgf_path, min_mass = 200L, ppm_ms1_bin = 10L)
 {
   mgfs$ms_level <- mgfs$demux <- NULL
-  mgfs$spec_id <- 1:nrow(mgfs) # do not use scan_title (can have multiple raws)
-  
+
   ms1_bins <- lapply(mgfs[["ms1_mass"]], find_ms1_interval, from = min_mass, 
                      ppm = ppm_ms1_bin)
-  # ms1_bins[[i]]: the MS1 bins at the i-th mgf
-  #  for post-search re-scoring of chimeric psms under the same mgf
-  # qs::qsave(ms1_bins, file.path(mgf_path, "tbl_mgf_ms1masses.rds"), preset = "fast")
-  
+  ms1_bins <- unlist(ms1_bins, recursive = FALSE, use.names = FALSE)
+
   cols_ms2 <- c("ms2_moverzs", "ms2_ints", "ms2_charges", "rptr_moverzs", "rptr_ints")
-  mgfdata <- mgfs[, cols_ms2, drop = FALSE]
+  data_ms2 <- mgfs[, cols_ms2, drop = FALSE]
   mgfs <- mgfs[, -which(names(mgfs) %in% cols_ms2), drop = FALSE]
   
-  lens <- lengths(mgfs$ms1_charge)
   col_nms <- names(mgfs)
   cols_list <- col_nms[unlist(lapply(mgfs, is.list))]
   cols_flat <- col_nms[!col_nms %in% cols_list]
+  # cols_flat <- cols_flat[cols_flat != "scan_num"]
+
+  # list-format
+  datalist <- mgfs[, cols_list, drop = FALSE]
+  datalist <- lapply(datalist, unlist, use.names = FALSE, recursive = FALSE)
+  datalist <- dplyr::bind_cols(datalist)
   
-  datalist <- lapply(mgfs[, cols_list, drop = FALSE], function (x) { 
-    unlist(x, use.names = FALSE, recursive = FALSE) })
-  dataflat <- lapply(mgfs[, cols_flat, drop = FALSE], rep, lens)
-  ms1_bins <- unlist(ms1_bins, recursive = FALSE, use.names = FALSE)
+  lens <- lengths(mgfs$ms1_charge)
+  seqs <- rep(seq_along(lens), lens)
   
-  mgfs <- dplyr::bind_cols(
-    dplyr::bind_cols(datalist), dplyr::bind_cols(dataflat))
+  # flat-format
+  dataflat <- mgfs[, cols_flat, drop = FALSE]
+  dataflat <- dataflat[seqs, ]
   
+  scans <- mapply(function (x, y) {
+    if (y > 1L) paste0(x, ".", seq_len(y)) else x
+  }, mgfs$scan_num, lens)
+  
+  dataflat$scan_num <- unlist(scans)
+
+  # data_ms2
+  data_ms2 <- data_ms2[seqs, ]
+  mgfs <- dplyr::bind_cols(datalist, dataflat, data_ms2)
+
   rm(list = c("datalist", "dataflat", "col_nms", "cols_list", "cols_flat", 
-              "cols_ms2"))
+              "cols_ms2", "scans"))
   
   ord <- order(mgfs$ms1_mass)
   mgfs <- mgfs[ord, ]
   ms1_bins <- ms1_bins[ord]
-  mgfs <- dplyr::bind_cols(mgfs, mgfdata[mgfs$spec_id, ])
-  # mgfs$spec_id <- NULL
+
   mgfs <- split(mgfs, ms1_bins)
 }
 

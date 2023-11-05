@@ -182,6 +182,9 @@ searches.}
 enzyme will be used to generate peptide sequences from protein entries. The
 default is \code{Trypsin_P}. See also parameter \code{custom_enzyme}.}
 
+\item{maxn_fasta_seqs}{A positive integer; the maximum number of protein
+sequences in fasta files. The default is 200000.}
+
 \item{maxn_vmods_setscombi}{A non-negative integer; the maximum number of
 sets of combinatorial variable modifications. The default is 512.}
 
