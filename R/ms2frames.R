@@ -204,49 +204,51 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
 make_dia_mgfs <- function (mgfs, mgf_path, min_mass = 200L, ppm_ms1_bin = 10L)
 {
   mgfs$ms_level <- mgfs$demux <- NULL
-
-  ms1_bins <- lapply(mgfs[["ms1_mass"]], find_ms1_interval, from = min_mass, 
-                     ppm = ppm_ms1_bin)
-  ms1_bins <- unlist(ms1_bins, recursive = FALSE, use.names = FALSE)
-
+  
+  if (!"scan_num" %in% (col_nms  <- names(mgfs)))
+    stop("Column `scan_num` not found in peaklist. Contact the developer.")
+  
+  # separate MS2 columns
   cols_ms2 <- c("ms2_moverzs", "ms2_ints", "ms2_charges", "rptr_moverzs", "rptr_ints")
+  cols_ms2 <- cols_ms2[cols_ms2 %in% col_nms]
   data_ms2 <- mgfs[, cols_ms2, drop = FALSE]
+  
+  if (!ncol(data_ms2)) 
+    stop("MS2 information not found in peaklist. Contact the developer.")
+  
   mgfs <- mgfs[, -which(names(mgfs) %in% cols_ms2), drop = FALSE]
   
+  # separate flat and list columns
   col_nms <- names(mgfs)
   cols_list <- col_nms[unlist(lapply(mgfs, is.list))]
   cols_flat <- col_nms[!col_nms %in% cols_list]
-  # cols_flat <- cols_flat[cols_flat != "scan_num"]
 
-  # list-format
+  # list columns
   datalist <- mgfs[, cols_list, drop = FALSE]
   datalist <- lapply(datalist, unlist, use.names = FALSE, recursive = FALSE)
   datalist <- dplyr::bind_cols(datalist)
   
+  # flat columns
   lens <- lengths(mgfs$ms1_charge)
   seqs <- rep(seq_along(lens), lens)
-  
-  # flat-format
   dataflat <- mgfs[, cols_flat, drop = FALSE]
   dataflat <- dataflat[seqs, ]
   
   scans <- mapply(function (x, y) {
     if (y > 1L) paste0(x, ".", seq_len(y)) else x
   }, mgfs$scan_num, lens)
-  
   dataflat$scan_num <- unlist(scans)
-
-  # data_ms2
+  
   data_ms2 <- data_ms2[seqs, ]
   mgfs <- dplyr::bind_cols(datalist, dataflat, data_ms2)
 
-  rm(list = c("datalist", "dataflat", "col_nms", "cols_list", "cols_flat", 
-              "cols_ms2", "scans"))
+  # rm(list = c("datalist", "dataflat", "scans", "data_ms2", 
+  #             "col_nms", "cols_list", "cols_flat", "cols_ms2"))
   
   ord <- order(mgfs$ms1_mass)
   mgfs <- mgfs[ord, ]
-  ms1_bins <- ms1_bins[ord]
-
+  ms1_bins <- ceiling(log(mgfs$ms1_mass/min_mass)/log(1+ppm_ms1_bin/1e6))
+  
   mgfs <- split(mgfs, ms1_bins)
 }
 

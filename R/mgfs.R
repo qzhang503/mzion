@@ -1608,18 +1608,17 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L),
     
     # fuzzy precursor masses and the corresponding scan_nums are duplicated,
     if (maxn_mdda_precurs == 1L) {
-      lens <- lengths(df$ms1_moverz)
-      
       # In `calcpepsc`, uniq_id: scan_num + raw_file + ms1_offset
       # In `calc_pepfdr`, uniq_id: scan_num + raw_file
       # In `post_pepfdr`, `calc_peploc`, `hcalc_tmtint`, `add_rptrs`
+      lens <- lengths(df$ms1_moverz)
       rows <- lens > 1L
-      df2 <- df[rows, ]
-      scans <- mapply(function (x, y) paste0(x, ".", seq_len(y)), 
-                      as.list(df2$scan_num), lens[rows], 
-                      SIMPLIFY = FALSE, USE.NAMES = FALSE)
       df$scan_num <- as.list(df$scan_num)
-      df$scan_num[rows] <- scans
+      
+      df$scan_num[rows] <- mapply(function (x, y) paste0(x, ".", seq_len(y)), 
+                                  df[rows, "scan_num", drop = TRUE], 
+                                  lens[rows], 
+                                  SIMPLIFY = FALSE, USE.NAMES = FALSE)
 
       x1 <- unlist(df$ms1_moverz, recursive = TRUE, use.names = FALSE)
       x2 <- unlist(df$ms1_mass, recursive = TRUE, use.names = FALSE)
