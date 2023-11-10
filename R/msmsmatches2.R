@@ -111,7 +111,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   pair_mgftheos(mgf_path = mgf_path, n_modules = length(aa_masses_all), 
                 ms1_offsets = comb_ms1_offsets(ms1_offsets = ms1_offsets, 
                                                ms1_neulosses = ms1_neulosses), 
-                by_modules = by_modules, 
+                quant = quant, by_modules = by_modules, 
                 min_mass = min_mass, max_mass = max_mass, 
                 ppm_ms1_bin = ppm_ms1_bin, .path_bin = .path_bin, 
                 reframe_mgfs = reframe_mgfs, first_search = first_search)

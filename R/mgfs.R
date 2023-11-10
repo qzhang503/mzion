@@ -1350,6 +1350,10 @@ find_mgf_type <- function (file)
   n_to_rt <- grep("^RTINSECONDS", lines)[1] - n_begin
   n_to_charge <- grep("^CHARGE", lines)[1] - n_begin
 
+  # the first entry in the original MGF may have no CHARGE line
+  if (is.na(n_to_charge) && type == "default_pasef")
+    n_to_charge <- 5L
+  
   if (type == "msconv_thermo") {
     # n_bf_begin <- 0L
     # n_spacer <- 0L

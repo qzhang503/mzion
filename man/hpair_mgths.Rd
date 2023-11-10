@@ -11,6 +11,7 @@ hpair_mgths(
   n_modules,
   by_modules = TRUE,
   mgf_path,
+  quant = "none",
   min_mass = 200L,
   max_mass = 4500L,
   ppm_ms1_bin = 10L,
@@ -31,6 +32,15 @@ theo module. At FALSE, results are saved with one mgf paired to all theo
 modules}
 
 \item{mgf_path}{The path to MGF files}
+
+\item{quant}{A character string; the quantitation method. The default is
+"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
+15N)}. It is also possible that an experimenter may construct a
+\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
+\code{quant = tmt18} is suitable.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
 interrogation. The default is an arbitrarily low value (the primary guard

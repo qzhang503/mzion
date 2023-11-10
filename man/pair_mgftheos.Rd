@@ -8,6 +8,7 @@ pair_mgftheos(
   mgf_path,
   n_modules,
   ms1_offsets = 0,
+  quant = "none",
   by_modules = TRUE,
   min_mass = 200L,
   max_mass = 4500L,
@@ -24,6 +25,15 @@ pair_mgftheos(
 
 \item{ms1_offsets}{Off-sets in precursor masses (in relative to the values in
 the original MGFs).}
+
+\item{quant}{A character string; the quantitation method. The default is
+"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
+15N)}. It is also possible that an experimenter may construct a
+\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
+\code{quant = tmt18} is suitable.}
 
 \item{by_modules}{Logical; if TRUE, results are saved with one mgf to one
 theo module. At FALSE, results are saved with one mgf paired to all theo

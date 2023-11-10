@@ -4,12 +4,27 @@
 \alias{make_dia_mgfs}
 \title{Makes DIA MGFs}
 \usage{
-make_dia_mgfs(mgfs, mgf_path, min_mass = 200L, ppm_ms1_bin = 10L)
+make_dia_mgfs(
+  mgfs,
+  mgf_path,
+  quant = "none",
+  min_mass = 200L,
+  ppm_ms1_bin = 10L
+)
 }
 \arguments{
 \item{mgfs}{MGF data.}
 
 \item{mgf_path}{The path to MGF files}
+
+\item{quant}{A character string; the quantitation method. The default is
+"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
+15N)}. It is also possible that an experimenter may construct a
+\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
+\code{quant = tmt18} is suitable.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
 interrogation. The default is an arbitrarily low value (the primary guard

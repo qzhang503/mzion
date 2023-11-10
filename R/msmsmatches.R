@@ -848,6 +848,12 @@ matchMS <- function (out_path = "~/mzion/outs",
     if (!file.exists(x)) stop("FASTA file not existed: ", x)
   })
   
+  # temporary solution: caused by reload_pars in the ShinyApp
+  # may have something to do renderUI
+  if (is.null(ppm_reporters)) ppm_reporters <- 10L
+  if (is.null(tmt_reporter_lower)) tmt_reporter_lower <- 126.1
+  if (is.null(tmt_reporter_upper)) tmt_reporter_upper <- 135.2
+
   # fixedmods <- gsub("Protein N-term = N-term", "Protein N-term", fixedmods)
   # fixedmods <- gsub("Protein C-term = C-term", "Protein C-term", fixedmods)
   # varmods <- gsub("Protein N-term = N-term", "Protein N-term", varmods)

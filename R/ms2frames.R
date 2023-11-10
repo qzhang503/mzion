@@ -11,7 +11,7 @@
 #'   modules
 #' @inheritParams ms2match
 #' @inheritParams matchMS
-pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, 
+pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none", 
                            by_modules = TRUE, min_mass = 200L, max_mass = 4500L, 
                            ppm_ms1_bin = 10L, .path_bin, reframe_mgfs = FALSE, 
                            first_search = FALSE)
@@ -56,8 +56,8 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0,
   mapply(hpair_mgths, ms1_offsets, notches, 
          MoreArgs = list(
            mgfs = mgfs, n_modules = n_modules, by_modules = by_modules, 
-           mgf_path = mgf_path, min_mass = min_mass, max_mass = max_mass, 
-           ppm_ms1_bin = ppm_ms1_bin, .path_bin = .path_bin), 
+           mgf_path = mgf_path, quant = quant, min_mass = min_mass, 
+           max_mass = max_mass, ppm_ms1_bin = ppm_ms1_bin, .path_bin = .path_bin), 
          SIMPLIFY = FALSE, USE.NAMES = FALSE)
   
   qs::qsave(data.frame(ms1_offset = ms1_offsets, notch = notches), 
@@ -74,8 +74,9 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0,
 #' @param mgfs MGF data.
 #' @inheritParams pair_mgftheos
 hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules, 
-                         by_modules = TRUE, mgf_path, min_mass = 200L, 
-                         max_mass = 4500L, ppm_ms1_bin = 10L, .path_bin)
+                         by_modules = TRUE, mgf_path, quant = "none", 
+                         min_mass = 200L, max_mass = 4500L, ppm_ms1_bin = 10L, 
+                         .path_bin)
 {
   if (abs(ms1_offset) > 1e-4) {
     mgfs <- if (ms1_offset > 0)
@@ -93,8 +94,8 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
                                           ppm = ppm_ms1_bin))
   }
   else {
-    mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, min_mass = min_mass, 
-                          ppm_ms1_bin = ppm_ms1_bin)
+    mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, quant = quant, 
+                          min_mass = min_mass, ppm_ms1_bin = ppm_ms1_bin)
   }
 
   # to chunks: each chunk has multiple frames: each frame multiple precursors
@@ -201,16 +202,38 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
 #' 
 #' @param mgfs MGF data.
 #' @inheritParams pair_mgftheos
-make_dia_mgfs <- function (mgfs, mgf_path, min_mass = 200L, ppm_ms1_bin = 10L)
+make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L, 
+                           ppm_ms1_bin = 10L)
 {
   mgfs$ms_level <- mgfs$demux <- NULL
   
-  if (!"scan_num" %in% (col_nms  <- names(mgfs)))
+  col_nms  <- names(mgfs)
+  cols2a <- c("ms2_moverzs", "ms2_ints", "ms2_charges")
+  cols2b <- c("rptr_moverzs", "rptr_ints")
+  
+  if (!"scan_num" %in% col_nms)
     stop("Column `scan_num` not found in peaklist. Contact the developer.")
+
+  lapply(cols2a, function (x) {
+    if (!x %in% col_nms) 
+      stop("Column \"", x, "\" not found. Contact developer.")
+  })
+  
+  if (grepl("^tmt.*\\d+", quant)) {
+    lapply(cols2b, function (x) {
+      if (!x %in% col_nms) 
+        stop("Column \"", x, "\" not found. Contact developer.")
+    })
+    
+    cols_ms2 <- c(cols2a, cols2b)
+  }
+  else {
+    cols_ms2 <- cols2a
+  }
   
   # separate MS2 columns
-  cols_ms2 <- c("ms2_moverzs", "ms2_ints", "ms2_charges", "rptr_moverzs", "rptr_ints")
-  cols_ms2 <- cols_ms2[cols_ms2 %in% col_nms]
+  # cols_ms2 <- c("ms2_moverzs", "ms2_ints", "ms2_charges", "rptr_moverzs", "rptr_ints")
+  # cols_ms2 <- cols_ms2[cols_ms2 %in% col_nms]
   data_ms2 <- mgfs[, cols_ms2, drop = FALSE]
   
   if (!ncol(data_ms2)) 
