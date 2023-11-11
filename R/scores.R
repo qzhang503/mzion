@@ -1757,8 +1757,12 @@ prep_pepfdr_td <- function (td = NULL, out_path, enzyme = "trypsin_p",
   top3s <- cts$pep_mod_group[which_topx2(cts$n, 3)[1:3]]
   top3s <- top3s[!is.na(top3s)]
 
-  enzyme <- tolower(enzyme)
-  is_nes <- enzyme == "noenzyme" || grepl("^semi", enzyme)
+  if (is.null(enzyme))
+    is_nes <- FALSE
+  else {
+    enzyme <- tolower(enzyme)
+    is_nes <- isTRUE(enzyme == "noenzyme") || isTRUE(grepl("^semi", enzyme))
+  }
   
   if (!is_nes)
     if (!nes_fdr_group %in% c("all", "base")) 

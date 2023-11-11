@@ -245,6 +245,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     is_fixed_protct <- any(grepl("Protein C-term", fixedmods))
 
     # --- Forward sequences  ---
+    # (enzyme can be NULL)
     if (isTRUE(enzyme == "noenzyme")) {
       if (max_len > 25L) 
         warning("May be out of RAM at `max_len = ", max_len, "`.\n",
@@ -334,7 +335,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     fwd_peps <- chunksplit(fwd_peps, n_cores, "list")
     
     # (a) Optional semi-enzymatic peptides
-    if (grepl("^semi", enzyme)) {
+    if (isTRUE(grepl("^semi", enzyme))) {
       message("Generating semi-enzymatic peptides.")
       
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
@@ -778,7 +779,7 @@ find_aa_site <- function (pos_site)
 {
   nms <- names(pos_site)
   
-  site <- if (grepl("[NC]{1}-term", nms)) 
+  site <- if (isTRUE(grepl("[NC]{1}-term", nms))) 
     gsub("(Protein|Any) ([NC]{1}-term)", "\\2", nms)
   else 
     pos_site
@@ -1955,9 +1956,25 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   inds_m <- grep("^M", fasta_db)
 
   if (is.null(enzyme)) {
-    patc <- custom_enzyme[["Cterm"]]
-    patn <- custom_enzyme[["Nterm"]]
-    
+    # already checked custom_enzyme names in matchMS
+    if ((len_enz <- length(custom_enzyme)) == 2L) {
+      patc <- custom_enzyme[["Cterm"]]
+      patn <- custom_enzyme[["Nterm"]]
+    }
+    else if (len_enz == 1L) {
+      if ((tm_enz <- names(custom_enzyme)) == "Cterm") {
+        patc <- custom_enzyme[["Cterm"]]
+        patn <- NULL
+      }
+      else if (tm_enz == "Nterm") {
+        patc <- NULL
+        patn <- custom_enzyme[["Nterm"]] 
+      }
+      else {
+        stop("Custom enzyme terminal is not `Cterm` or `Nterm`.")
+      }
+    }
+
     if (!is.null(patc)) {
       if (grepl("\\^", patc)) {
         fasta_db <- lapply(fasta_db, function (x) 
@@ -2024,7 +2041,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
   }
-  else if (enzyme == "argc"|| enzyme == "semiargc") {
+  else if (enzyme == "argc" || enzyme == "semiargc") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
              .Internal(gsub("([R]{1})", paste0("\\1", "@"), x, 
@@ -2032,7 +2049,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
   }
-  else if (enzyme == "lysc_p"|| enzyme == "semilysc_p") {
+  else if (enzyme == "lysc_p" || enzyme == "semilysc_p") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
              .Internal(gsub("([K]{1})([^P]{1})", paste0("\\1", "@", "\\2"), x, 
@@ -2040,7 +2057,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
   }
-  else if (enzyme == "chymotrypsin"|| enzyme == "semichymotrypsin") {
+  else if (enzyme == "chymotrypsin" || enzyme == "semichymotrypsin") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
              .Internal(gsub("([FWY]{1})", paste0("\\1", "@"), x, 
@@ -2048,7 +2065,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
   }
-  else if (enzyme == "gluc"|| enzyme == "semigluc") {
+  else if (enzyme == "gluc" || enzyme == "semigluc") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
              .Internal(gsub("([E]{1})", paste0("\\1", "@"), x, 
@@ -2056,7 +2073,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
   }
-  else if (enzyme == "glun"|| enzyme == "semiglun") {
+  else if (enzyme == "glun" || enzyme == "semiglun") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
              .Internal(gsub("([E]{1})", paste0("@", "\\1"), x, 
@@ -2064,7 +2081,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
   }
-  else if (enzyme == "aspc"|| enzyme == "semiaspc") {
+  else if (enzyme == "aspc" || enzyme == "semiaspc") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
              .Internal(gsub("([D]{1})", paste0("\\1", "@"), x, 
@@ -2072,7 +2089,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
   }
-  else if (enzyme == "aspn"|| enzyme == "semiaspn") {
+  else if (enzyme == "aspn" || enzyme == "semiaspn") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
              .Internal(gsub("([D]{1})", paste0("@", "\\1"), x, 
@@ -2867,7 +2884,8 @@ calcms1mass_noterm_byprot <- function (prot_peps, aa_masses,
 calcms1mass_noterm_bypep <- function (aa_seq, aa_masses, maxn_vmods_per_pep = 5L,
                                       maxn_sites_per_vmod = 3L) 
 {
-  if (is.na(aa_seq)) return(NULL)
+  if (is.na(aa_seq))
+    return(NULL)
   
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
                             useBytes = FALSE))
@@ -2915,15 +2933,22 @@ distri_peps <- function (prps, aa_masses_all, motifs_all, max_miss = 2L,
   # semi enzymes: don't know the maximum number of 
   # C-term peptides that can end with "-"
   # (N-term remains the same)
-  n1 <- if (enzyme == "noenzyme")
-    Inf
-  else 
-    (max_miss + 1L) * 2L
-
-  n2 <- if (grepl("^semi", enzyme) || enzyme == "noenzyme")
-    Inf
-  else
-    ct_counts(max_miss)
+  
+  if (is.null(enzyme)) {
+    n1 <- (max_miss + 1L) * 2L
+    n2 <- ct_counts(max_miss)
+  }
+  else {
+    n1 <- if (enzyme == "noenzyme")
+      Inf
+    else 
+      (max_miss + 1L) * 2L
+    
+    n2 <- if (grepl("^semi", enzyme) || enzyme == "noenzyme")
+      Inf
+    else
+      ct_counts(max_miss)
+  }
 
   # ZN207_HUMAN: MGRKKKK (no N-term pep_seq at 2 misses and min_len >= 7L)
   
@@ -2945,7 +2970,7 @@ ct_counts <- function (max_miss = 2L)
 {
   ct <- integer(max_miss)
 
-  if (max_miss > 0L) {
+  if (max_miss) {
     ct[1] <- 2L
 
     for (i in 1:max_miss) {

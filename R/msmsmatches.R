@@ -829,8 +829,19 @@ matchMS <- function (out_path = "~/mzion/outs",
   if ((!is.na(topn_ms2ion_cuts)) && (topn_ms2ion_cuts == "")) topn_ms2ion_cuts <- NA
   if (!(is.numeric(ms1_notches) && length(ms1_notches))) ms1_notches <- 0
   if (is.null(noenzyme_maxn)) noenzyme_maxn <- 0L
-  if ((!is.null(custom_enzyme)) && custom_enzyme == "")
-    custom_enzyme = c(Cterm = NULL, Nterm = NULL)
+  
+  if (!is.null(custom_enzyme)) {
+    if (!all(names(custom_enzyme) %in% c("Cterm", "Nterm")))
+      stop("Custom enzyme terminals need to be `Cterm` and/or `Nterm`.")
+    
+    if (length(custom_enzyme) > 2L)
+      stop("Custom enzyme cannot have more than 2 terminals.")
+    
+    custom_enzyme <- custom_enzyme[custom_enzyme != ""]
+    
+    if (!length(custom_enzyme))
+      custom_enzyme = c(Cterm = NULL, Nterm = NULL)
+  }
 
   oks <- fasta != ""
   
@@ -1571,10 +1582,12 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (bypass_protacc && file.exists(file_protacc))
     df <- qs::qread(file_protacc)
   else {
-    if (enzyme != "noenzyme" || isTRUE(dots[["direct_prot_acc"]]))
+    if (is.null(enzyme) || 
+        (enzyme != "noenzyme" || isTRUE(dots[["direct_prot_acc"]]))) {
       df <- add_protacc(out_path = out_path, 
                         .path_cache = .path_cache, 
                         .path_fasta = .path_fasta)
+    }
     else {
       silac_noenzyme <- if (isTRUE(dots$silac_noenzyme)) TRUE else FALSE
       
@@ -2063,6 +2076,10 @@ check_tmt_pars <- function (fixedmods, varmods, quant)
     return(NULL)
   
   tmts <- fvmods[grepl("^TMT", fvmods)]
+  
+  if (!length(tmts))
+    warning("No fixed or variable modifications of TMT were specified at ", 
+            "\"quant = ", quant, "\"")
   
   if (quant == "tmt18") {
     ok <- all(grepl("TMTpro18.* |TMT18plex.* ", tmts))

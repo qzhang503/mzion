@@ -361,7 +361,7 @@ set_bin_ncores <- function (len_m, enzyme)
   else 
     min(n_cores, len_m)
   
-  if (enzyme == "noenzyme")
+  if (isTRUE(enzyme == "noenzyme"))
     n_cores <- floor(n_cores/2L)
   
   max(1L, n_cores)

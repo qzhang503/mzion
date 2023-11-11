@@ -64,7 +64,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
   ok_pars <- identical(call_pars, cache_pars)
   
   # suboptimal for handling matchMS_noenzyme()
-  if ((!ok_pars) && enzyme == "noenzyme") 
+  if ((!ok_pars) && isTRUE(enzyme == "noenzyme")) 
     ok_pars <- TRUE
   
   # checks processed mgfs
@@ -1164,7 +1164,7 @@ extract_mgf_rptrs <- function (xvals, yvals, quant = "none",
                                tmt_reporter_upper = 135.2, 
                                exclude_reporter_region = FALSE) 
 {
-  if (grepl("^tmt.*\\d+", quant)) {
+  if (isTRUE(grepl("^tmt.*\\d+", quant))) {
     ok_rptrs <- lapply(xvals, function (x) x > tmt_reporter_lower & 
                          x < tmt_reporter_upper)
     rptr_moverzs <- mapply(function (x, y) x[y], xvals, ok_rptrs, 
@@ -1312,13 +1312,17 @@ find_mgf_type <- function (file)
     scan_pd <- "scans: \"\\d+\""
     scan_default_pasef <- NULL
 
-    if (grepl(file_msconvert_thermo, ln_tit) && grepl(scan_msconv_thermo, ln_tit)) 
+    if (isTRUE(grepl(file_msconvert_thermo, ln_tit)) && 
+        isTRUE(grepl(scan_msconv_thermo, ln_tit))) 
       "msconv_thermo"
-    else if (grepl(file_msconvert_pasef, ln_tit) && grepl(scan_msconv_pasef, ln_tit))
+    else if (isTRUE(grepl(file_msconvert_pasef, ln_tit)) && 
+             isTRUE(grepl(scan_msconv_pasef, ln_tit)))
       "msconv_pasef"
-    else if (grepl(file_pd, ln_tit) && grepl(scan_pd, ln_tit)) 
+    else if (isTRUE(grepl(file_pd, ln_tit)) && 
+             isTRUE(grepl(scan_pd, ln_tit))) 
       "pd"
-    else if (grepl(file_default_pasef, ln_tit) && is.null(scan_default_pasef))
+    else if (isTRUE(grepl(file_default_pasef, ln_tit)) && 
+             isTRUE(is.null(scan_default_pasef)))
       "default_pasef"
     else 
       stop("Unkown format of MGFs.")
@@ -2020,6 +2024,8 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
   ms1_moverzs <- ms1_ints <- ms1_charges <- vector("list", len)
   ms0_moverzs <- ms0_ints <- ms0_charges <- character(len)
   
+  is_tmt <- if (isTRUE(grepl("^tmt.*\\d+", quant))) TRUE else FALSE
+  
   for (i in 1:len) {
     x <- spec[[i]]
     ids <- .Internal(strsplit(xml2::xml_attr(x, "id"), " ", fixed = TRUE, 
@@ -2032,9 +2038,7 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
     xc <- xml2::xml_children(x)
     ms_levs[[i]] <- ms_lev <- as.integer(xml2::xml_attr(xc[[idx_mslev]], "value"))
     scan_titles[[i]] <- xml2::xml_attr(xc[[idx_title]], "value")
-    
-    is_tmt <- if (grepl("^tmt.*\\d+", quant)) TRUE else FALSE
-    
+
     if (ms_lev == 2L) {
       scanList <- xml2::xml_children(xc[[idx_scanList_2]])
       scanList_ret <- xml2::xml_children(scanList[[idx_rt_2]])
@@ -2262,9 +2266,9 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
   ms_levs <- msx_ns <- integer(len)
   msx_moverzs <- msx_ints <- ms2_charges <- vector("list", len)
   ms1_moverzs <- ms1_ints <- ms1_charges <- vector("list", len)
-  demux <- if (is_demux) rep("0", len) else NULL
+  demux <- if (is_demux) rep_len("0", len) else NULL
   
-  is_tmt <- if (grepl("^tmt.*\\d+", quant)) TRUE else FALSE
+  is_tmt <- if (isTRUE(grepl("^tmt.*\\d+", quant))) TRUE else FALSE
   
   for (i in 1:len) {
     x <- spec[[i]]
@@ -2477,7 +2481,7 @@ proc_dda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L,
   msx_moverzs <- msx_ints <- ms2_charges <- vector("list", len)
   ms1_moverzs <- ms1_ints <- ms1_charges <- character(len)
   
-  is_tmt <- if (grepl("^tmt.*\\d+", quant)) TRUE else FALSE
+  is_tmt <- if (isTRUE(grepl("^tmt.*\\d+", quant))) TRUE else FALSE
   
   for (i in 1:len) {
     x <- spec[[i]]
