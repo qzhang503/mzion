@@ -1,7 +1,7 @@
 Mzion
 ================
 true
-2023-09-13
+2023-11-12
 
 - [Installation](#installation)
 - [Peaklist formats](#peaklist-formats)
@@ -47,8 +47,6 @@ devtools::install_github("qzhang503/mzionShiny")
     1)  peakPicking: vendor msLevel = 1-
 
     2)  (optional) zeroSamples: removeExtra 1-
-
-  - [x] `Proteome Discoverer mgf`
 - Bruker’s MS
   - [x] `DataAnalysis mgf`
 

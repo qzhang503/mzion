@@ -23,7 +23,6 @@ ms2match_all(
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
   min_ms2mass = 115L,
-  index_mgf_ms2 = FALSE,
   df0 = NULL
 )
 }
@@ -102,20 +101,6 @@ default is 20.}
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
-
-\item{index_mgf_ms2}{Depreciated. A low-priority feature. Logical; if TRUE,
-  converts up-frontly MS2 m-over-z values from numeric to integers as opposed
-  to \emph{on-the-fly} conversion during ion matches. The default is FALSE.
-  The \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
-  reducing RAM footprints.
-
-  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
-  theoretical and experimental MS2 m-over-z values is limited by the
-  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
-  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
-  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
-  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
-  pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{df0}{An output template}
 }

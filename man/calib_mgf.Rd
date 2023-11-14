@@ -5,9 +5,9 @@
 \title{MGF precursor mass calibration.}
 \usage{
 calib_mgf(
-  mgf_path = NULL,
-  aa_masses_all = NULL,
-  out_path = NULL,
+  mgf_path,
+  aa_masses_all,
+  out_path,
   .path_bin,
   mod_indexes = NULL,
   type_ms2ions = "by",
@@ -25,7 +25,6 @@ calib_mgf(
   min_ms2mass = 115L,
   quant = "none",
   ppm_reporters = 10L,
-  index_mgf_ms2 = FALSE,
   by_modules = TRUE,
   fasta = NULL,
   acc_type = NULL,
@@ -128,20 +127,6 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
 ions. The default is 10.}
-
-\item{index_mgf_ms2}{Depreciated. A low-priority feature. Logical; if TRUE,
-  converts up-frontly MS2 m-over-z values from numeric to integers as opposed
-  to \emph{on-the-fly} conversion during ion matches. The default is FALSE.
-  The \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
-  reducing RAM footprints.
-
-  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
-  theoretical and experimental MS2 m-over-z values is limited by the
-  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
-  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
-  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
-  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
-  pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
 individual modules of combinatorial fixed and variable modifications. If

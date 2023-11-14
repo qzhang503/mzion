@@ -4,12 +4,17 @@
 \alias{make_mztab}
 \title{Makes an mzTab file.}
 \usage{
-make_mztab(out_path = stop("Provide the path.", call. = FALSE))
+make_mztab(
+  mzion_path = stop("Provide the path.", call. = FALSE),
+  proteoq_path = mzion_path
+)
 }
 \arguments{
-\item{out_path}{A parent path where the outputs of \code{PSM}, \code{Peptide}
-and \code{Protein} files and folders are.}
+\item{mzion_path}{The parent parthwhere \code{mzion} search was performed.}
+
+\item{proteoq_path}{A parent path where the \code{proteoQ} post-processing
+was performed.}
 }
 \description{
-With \code{mzion} searches and proteoQ preprocessing.
+With \code{mzion} searches and \code{proteoQ} post-processing.
 }

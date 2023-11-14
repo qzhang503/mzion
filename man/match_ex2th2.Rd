@@ -4,7 +4,7 @@
 \alias{match_ex2th2}
 \title{Matches between secondary experimentals and theoreticals.}
 \usage{
-match_ex2th2(expt, theo, min_ms2mass = 115L, d = 1e-05, index_mgf_ms2 = FALSE)
+match_ex2th2(expt, theo, min_ms2mass = 115L, d = 1e-05)
 }
 \arguments{
 \item{expt}{A vector of experimental m-over-z values.}
@@ -15,21 +15,7 @@ match_ex2th2(expt, theo, min_ms2mass = 115L, d = 1e-05, index_mgf_ms2 = FALSE)
 interrogation. The default is 110.}
 
 \item{d}{Bin size, e.g., \eqn{20 ppm / 2 * 1E-6}.}
-
-\item{index_mgf_ms2}{Depreciated. A low-priority feature. Logical; if TRUE,
-  converts up-frontly MS2 m-over-z values from numeric to integers as opposed
-  to \emph{on-the-fly} conversion during ion matches. The default is FALSE.
-  The \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
-  reducing RAM footprints.
-
-  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
-  theoretical and experimental MS2 m-over-z values is limited by the
-  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
-  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
-  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
-  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
-  pep_ms2_deltas_sd} are nullified in the outputs.}
 }
 \description{
-At \code{index_mgf_ms2 = FALSE}.
+Matches between secondary experimentals and theoreticals.
 }

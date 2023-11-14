@@ -254,7 +254,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
                                 N = 500L, type_ms2ions = "by", 
                                 topn_ms2ions = 100L, ppm_ms2 = 20L, 
                                 soft_secions = FALSE, burn_ins = 1:2, 
-                                min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE, 
+                                min_ms2mass = 115L, d2 = 1E-5, 
                                 tally_ms2ints = TRUE, digits = 4L) 
 {
   df_theo <- df[["theo"]]
@@ -295,11 +295,11 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
     nna <- !is.na(expt_charges)
     expt_one[nna & (expt_charges > 1L)] <- NA_integer_
     expt_mul[nna & (expt_charges == 1L)] <- NA_integer_
-    df2_one <- match_ex2th2(expt_one, tt2_one, min_ms2mass, d2, index_mgf_ms2)
-    df2_mul <- match_ex2th2(expt_mul, tt2_mul, min_ms2mass, d2, index_mgf_ms2)
+    df2_one <- match_ex2th2(expt_one, tt2_one, min_ms2mass, d2)
+    df2_mul <- match_ex2th2(expt_mul, tt2_mul, min_ms2mass, d2)
   }
 
-  df2  <- match_ex2th2(expt_moverzs, tt2, min_ms2mass, d2, index_mgf_ms2)
+  df2  <- match_ex2th2(expt_moverzs, tt2, min_ms2mass, d2)
   ith2 <- df2[["ith"]]
   iex2 <- df2[["iex"]]
 
@@ -416,7 +416,7 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, # expt_charges,
                               N = 500L, type_ms2ions = "by", topn_ms2ions = 100L, 
                               ppm_ms2 = 20L, soft_secions = FALSE, 
                               min_ms2mass = 115L, d2 = 1E-5, 
-                              index_mgf_ms2 = FALSE, tally_ms2ints = TRUE, 
+                              tally_ms2ints = TRUE, 
                               digits = 4L) 
 {
   ## for different positions: $TNLAMMR$`0000500`, $TNLAMMR$`0000050`
@@ -438,7 +438,6 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, # expt_charges,
                   burn_ins = c(1:2),
                   min_ms2mass = min_ms2mass, 
                   d2 = d2, 
-                  index_mgf_ms2 = index_mgf_ms2, 
                   tally_ms2ints = tally_ms2ints, 
                   digits = digits
                 ), 
@@ -481,7 +480,7 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, # expt_charges,
 calc_probi <- function (mts, expt_moverzs, expt_ints, # expt_charges, 
                         N = 500L, type_ms2ions = "by", topn_ms2ions = 100L, 
                         ppm_ms2 = 20L, soft_secions = FALSE, 
-                        min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE, 
+                        min_ms2mass = 115L, d2 = 1E-5, 
                         tally_ms2ints = TRUE, digits = 4L) 
 {
   out <- mapply(
@@ -498,7 +497,6 @@ calc_probi <- function (mts, expt_moverzs, expt_ints, # expt_charges,
       ppm_ms2 = ppm_ms2, 
       min_ms2mass = min_ms2mass, 
       d2 = d2, 
-      index_mgf_ms2 = index_mgf_ms2, 
       tally_ms2ints = tally_ms2ints, 
       digits = digits
     ), 
@@ -520,7 +518,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints, # expt_charges,
 #' @import purrr
 scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by", 
                             ppm_ms2 = 20L, soft_secions = FALSE, 
-                            min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE, 
+                            min_ms2mass = 115L, d2 = 1E-5, 
                             tally_ms2ints = TRUE, digits = 4L) 
 {
   # only one experimental set of values and thus `[[1]]`
@@ -573,7 +571,6 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 100L, type_ms2ions = "by",
                     soft_secions = soft_secions, 
                     min_ms2mass = min_ms2mass, 
                     d2 = d2, 
-                    index_mgf_ms2 = index_mgf_ms2, 
                     tally_ms2ints = tally_ms2ints, 
                     digits = digits)
 
@@ -598,7 +595,7 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
                              ppm_ms2 = 20L, soft_secions = FALSE, 
                              out_path = "~/mzion/outs", 
                              min_ms2mass = 115L, d2 = 1E-5, 
-                             index_mgf_ms2 = FALSE, tally_ms2ints = TRUE, 
+                             tally_ms2ints = TRUE, 
                              digits = 4L) 
 {
   n_rows <- nrow(df)
@@ -622,7 +619,6 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 100L, type_ms2ions = "by",
                soft_secions = soft_secions, 
                min_ms2mass = min_ms2mass, 
                d2 = d2, 
-               index_mgf_ms2 = index_mgf_ms2, 
                tally_ms2ints = tally_ms2ints, 
                digits = digits)
   
@@ -644,7 +640,7 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
                             min_len = 7L, max_len = 40L, ppm_ms2 = 20L, 
                             soft_secions = FALSE, 
                             out_path = "~/mzion/outs", 
-                            min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
+                            min_ms2mass = 115L, 
                             tally_ms2ints = TRUE, 
                             mgf_path, maxn_vmods_per_pep = 5L, maxn_sites_per_vmod = 3L,
                             maxn_vmods_sitescombi_per_pep = 64L, minn_ms2 = 6L, 
@@ -790,7 +786,6 @@ calc_pepscores <- function (topn_ms2ions = 100L, type_ms2ions = "by",
     out_path = out_path, 
     min_ms2mass = min_ms2mass, 
     d2 = d2, 
-    index_mgf_ms2 = index_mgf_ms2, 
     tally_ms2ints = tally_ms2ints, 
     add_ms2theos = add_ms2theos, 
     add_ms2theos2 = add_ms2theos2, 
@@ -984,7 +979,7 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all, 
                        topn_ms2ions = 100L, type_ms2ions = "by", 
                        ppm_ms2 = 20L, soft_secions = FALSE, out_path = NULL, 
-                       min_ms2mass = 115L, d2 = 1E-5, index_mgf_ms2 = FALSE,
+                       min_ms2mass = 115L, d2 = 1E-5, 
                        tally_ms2ints = TRUE, add_ms2theos = FALSE, 
                        add_ms2theos2 = FALSE, add_ms2moverzs = FALSE, 
                        add_ms2ints = FALSE, quant = "none", ppm_reporters = 10, 
@@ -1053,7 +1048,6 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
     out_path = out_path, 
     min_ms2mass = min_ms2mass, 
     d2 = d2, 
-    index_mgf_ms2 = index_mgf_ms2, 
     tally_ms2ints = tally_ms2ints, 
     digits = digits)
   
@@ -1130,7 +1124,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
 hadd_primatches <- function (out_path = NULL, is_notched = FALSE, 
                              add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                              add_ms2moverzs = FALSE, add_ms2ints = FALSE, 
-                             by_modules = TRUE, index_mgf_ms2 = FALSE) 
+                             by_modules = TRUE) 
 {
   # the same as those in calcpepsc
   cols_sc <- c("pep_seq", "pep_n_ms2", "pep_scan_title", "pep_exp_mz", "pep_exp_mr", 
@@ -1164,8 +1158,7 @@ hadd_primatches <- function (out_path = NULL, is_notched = FALSE,
                            add_ms2theos = add_ms2theos, 
                            add_ms2theos2 = add_ms2theos2, 
                            add_ms2moverzs = add_ms2moverzs, 
-                           add_ms2ints = add_ms2ints, 
-                           index_mgf_ms2 = index_mgf_ms2)
+                           add_ms2ints = add_ms2ints)
   parallel::stopCluster(cl)
   
   ms_files <- order_fracs(type = "ms2info", tempdir, by_modules)
@@ -1204,7 +1197,7 @@ hadd_primatches <- function (out_path = NULL, is_notched = FALSE,
 #' @inheritParams matchMS
 add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE, 
                             add_ms2theos2 = FALSE, add_ms2moverzs = FALSE, 
-                            add_ms2ints = FALSE, index_mgf_ms2 = FALSE) 
+                            add_ms2ints = FALSE) 
 {
   df <- qs::qread(file.path(tempdir, file))
   
@@ -1286,20 +1279,10 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
     p1s.[[i]] <- ps1
   }
   
-  if (index_mgf_ms2) {
-    # need to convert theoretical m/z to integers; 
-    # even so the resolution is limited by bin with (e.g. 10 ppm)
-    pep_ms2_deltas <- NA_character_
-    pep_ms2_deltas2 <- NA_character_
-    pep_ms2_deltas_mean <- NA_real_
-    pep_ms2_deltas_sd <- NA_real_
-  }
-  else {
-    df[["pep_ms2_deltas"]] <- do.call(rbind, d1s)
-    df[["pep_ms2_deltas2"]] <- do.call(rbind, d2s)
-    df[["pep_ms2_deltas_mean"]] <- do.call(rbind, me1s)
-    df[["pep_ms2_deltas_sd"]] <- do.call(rbind, sd1s)
-  }
+  df[["pep_ms2_deltas"]] <- do.call(rbind, d1s)
+  df[["pep_ms2_deltas2"]] <- do.call(rbind, d2s)
+  df[["pep_ms2_deltas_mean"]] <- do.call(rbind, me1s)
+  df[["pep_ms2_deltas_sd"]] <- do.call(rbind, sd1s)
 
   df[["pep_ms2_ideltas"]] <- do.call(rbind, p1s)
   df[["pep_ms2_ideltas2"]] <- do.call(rbind, p2s)
@@ -2757,17 +2740,14 @@ find_ppm_outer_bycombi <- function (X, Y, ppm_ms2 = 20L)
 
 #' Matches between secondary experimentals and theoreticals.
 #' 
-#' At \code{index_mgf_ms2 = FALSE}.
-#' 
 #' @param expt A vector of experimental m-over-z values.
 #' @param theo A vector of theoretical m-over-z values.
 #' @param d Bin size, e.g., \eqn{20 ppm / 2 * 1E-6}.
 #' @inheritParams matchMS
-match_ex2th2 <- function (expt, theo, min_ms2mass = 115L, d = 1E-5, 
-                          index_mgf_ms2 = FALSE) 
+match_ex2th2 <- function (expt, theo, min_ms2mass = 115L, d = 1E-5) 
 {
   th  <- index_mz(theo, from = min_ms2mass, d = d)
-  ex  <- if (index_mgf_ms2) expt else index_mz(expt, from = min_ms2mass, d = d)
+  ex <- index_mz(expt, from = min_ms2mass, d = d)
   t2e <- fastmatch::fmatch(c(th, th - 1L, th + 1L), ex, nomatch = 0L)
   
   l  <- length(th)

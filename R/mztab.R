@@ -1,14 +1,16 @@
 #' Makes an mzTab file.
 #'
-#' With \code{mzion} searches and proteoQ preprocessing.
+#' With \code{mzion} searches and \code{proteoQ} post-processing.
 #'
-#' @param out_path A parent path where the outputs of \code{PSM}, \code{Peptide}
-#'   and \code{Protein} files and folders are.
+#' @param mzion_path The parent parthwhere \code{mzion} search was performed.
+#' @param proteoq_path A parent path where the \code{proteoQ} post-processing
+#'   was performed.
 #' @import dplyr
-make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE)) 
+make_mztab <- function (mzion_path = stop("Provide the path.", call. = FALSE), 
+                        proteoq_path = mzion_path) 
 {
   ## MTD
-  load(file.path(out_path, "Calls", "matchMS.rda"))
+  load(file.path(mzion_path, "Calls", "matchMS.rda"))
 
   # Header
   hdrs <- local({
@@ -20,14 +22,26 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
   # Instrument and MGF format
   ans_mgfs <- local({
     mgf_path <- call_pars$mgf_path
-    info_mgfs <- qs::qread(file.path(mgf_path, "info_format.rds"))
     
+    fi_fmt <- file.path(mgf_path, "info_format.rds")
+    
+    if (file.exists(fi_fmt)) {
+      info_mgfs <- qs::qread(fi_fmt)
+    }
+    else {
+      # the only non-MGF is MSConvert-mzML
+      info_mgfs <- list(data_format = "Thermo-RAW", mgf_format = "MSconvert")
+    }
+
     data_format <- info_mgfs$data_format
     val_data_format <- paste0("[MS, , ", data_format, ", ]")
     mgf_format <- info_mgfs$mgf_format
     val_mgf_format <- paste0("[MS, , ", mgf_format, ", ]")
     
-    mgf_queries <- qs::qread(file.path(mgf_path, "mgf_queries.rds"))
+    query_files <- list.files(mgf_path, pattern = "^mgf_queries_.*\\.rds", 
+                              full.names = TRUE)
+    mgf_queries <- lapply(query_files, qs::qread) |>
+      dplyr::bind_rows()
     raw_files <- names(qs::qread(file.path(mgf_path, "raw_indexes.rds")))
     
     ans_mgfs <- vector("list", length(raw_files))
@@ -36,9 +50,7 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
       nm_format <- paste0("ms_run[", i, "]-format")
       nm_location <- paste0("ms_run[", i, "]-location")
       nm_id_format <- paste0("ms_run[", i, "]-id_format")
-      
       val_location <- raw_files[i]
-      
       nms <- c(nm_format, nm_location, nm_id_format)
       vals <- c(val_data_format, val_location, val_mgf_format)
       
@@ -49,18 +61,17 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
   })
   
   # Software settings
-  load(file.path(out_path, "Calls", "mzion.rda"))
-  
-  proteom_info <- devtools::session_info$otherPkgs[[1]]
-  proteom_ver <- proteom_info$Version
+  load(file.path(mzion_path, "Calls", "mzion.rda"))
+  pkgs <- devtools::session_info()
+  mzion_ver <- pkgs$packages["mzion", "loadedversion"]
 
   ans_software_1 <- local({
     ln_software_1 <- data.frame(nm = "software[1]", 
                                 val = paste0("[MS, MS:0000000, mzion,", 
-                                             proteom_ver, "]"))
+                                             mzion_ver, "]"))
     
     idxes <- which(unlist(lapply(call_pars, is.null)))
-    call_pars[[idxes]] <- "NULL"
+    call_pars[idxes] <- "NULL"
     rm(list = "idxes")
     
     fixedmods <- call_pars$fixedmods
@@ -132,10 +143,10 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
   mtd <- cbind(field = "MTD", mtd)
 
   ## Proteins
-  df_prots <- readr::read_tsv(file.path(out_path, "Protein", "Protein.txt"), 
+  df_prots <- readr::read_tsv(file.path(proteoq_path, "Protein", "Protein.txt"), 
                               show_col_types = FALSE) 
 
-  df_peps <- readr::read_tsv(file.path(out_path, "Peptide", "Peptide.txt"), 
+  df_peps <- readr::read_tsv(file.path(proteoq_path, "Peptide", "Peptide.txt"), 
                              show_col_types = FALSE) 
 
   df_shared_prot_accs <- local({
@@ -220,7 +231,7 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
   prt <- local({
     df <- df_prots[, grepl("^I[0-9]+", names(df_prots))]
     colnames(df) <- paste0("protein_abundance_study_variable[", 1:ncol(df), "]")
-    data.frame(cbind(prot_acc = df_prots$prot_acc, df), check.names = FALSE)
+    df <- data.frame(cbind(prot_acc = df_prots$prot_acc, df), check.names = FALSE)
     dplyr::left_join(prt, df, by = c("accession" = "prot_acc"))
   })
   
@@ -255,7 +266,7 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
                   database_version = "null", 
                   search_engine = "mzion", 
                   "best_search_engine_score[1]" = df_peps$pep_score, 
-                  modifications = df_peps$pep_vmod, 
+                  modifications = df_peps$pep_seq_mod, 
 
                   opt_global_missed_cleavages = df_peps$pep_miss, 
                   reliability = 1L, )
@@ -267,12 +278,12 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
   })
   
   ## PSMs
-  psm_files <- list.files(path = file.path(out_path, "PSM"),
+  psm_files <- list.files(path = file.path(proteoq_path, "PSM"),
                           pattern = "TMTset[0-9]+_LCMSinj[0-9]+_PSM_N\\.txt$",
                           all.files = TRUE)
 
   df_psms <- lapply(psm_files, 
-                    function (x) readr::read_tsv(file.path(out_path, "PSM", x), 
+                    function (x) readr::read_tsv(file.path(proteoq_path, "PSM", x), 
                                                  show_col_types = FALSE)) |> 
     dplyr::bind_rows()
 
@@ -348,13 +359,13 @@ make_mztab <- function (out_path = stop("Provide the path.", call. = FALSE))
   lines_psm <- paste(lines_psm, collapse = "\n")
   lines_psm <- paste(lines_psm, "\n")
 
-  dir.create(file.path(out_path, "mzTab"), showWarnings = FALSE, recursive = TRUE)
-  out_file <- file.path(out_path, "mzTab", "mztab.mzTab")
+  dir.create(file.path(proteoq_path, "mzTab"), showWarnings = FALSE, recursive = TRUE)
+  out_file <- file.path(proteoq_path, "mzTab", "mztab.mzTab")
   
   out <- Reduce(append, list(lines_mtd, lines_prt, lines_pep, lines_psm))
   writeLines(out, out_file)
 
-  out
+  invisible(NULL)
 }
 
 

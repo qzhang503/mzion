@@ -263,20 +263,6 @@
 #'   The default is \eqn{126.1}.
 #' @param tmt_reporter_upper The upper bound of the region of TMT reporter ions.
 #'   The default is \eqn{135.2}.
-#' @param index_mgf_ms2 Depreciated. A low-priority feature. Logical; if TRUE,
-#'   converts up-frontly MS2 m-over-z values from numeric to integers as opposed
-#'   to \emph{on-the-fly} conversion during ion matches. The default is FALSE.
-#'   The \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
-#'   reducing RAM footprints.
-#'
-#'   At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
-#'   theoretical and experimental MS2 m-over-z values is limited by the
-#'   \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
-#'   instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
-#'   20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
-#'   the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
-#'   pep_ms2_deltas_sd} are nullified in the outputs.
-#'
 #' @param min_ms1_charge A positive integer; the minimum MS1 charge state for
 #'   considerations. The default is 2.
 #' @param max_ms1_charge A positive integer; the maximum MS1 charge state for
@@ -750,8 +736,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      tmt_reporter_lower = 126.1, 
                      tmt_reporter_upper = 135.2, 
                      exclude_reporter_region = FALSE, 
-                     index_mgf_ms2 = FALSE, 
-                     
+
                      ppm_reporters = 10L,
                      quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
                      
@@ -926,7 +911,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   # logical types
   stopifnot(vapply(c(soft_secions, combine_tier_three, calib_ms1mass, 
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
-                     add_ms2ints, exclude_reporter_region, index_mgf_ms2, 
+                     add_ms2ints, exclude_reporter_region, 
                      svm_reproc, svm_cv, rm_dup_term_anywhere, 
                      make_speclib, deisotope_ms2, use_defpeaks), 
                    is.logical, logical(1L)))
@@ -1341,8 +1326,6 @@ matchMS <- function (out_path = "~/mzion/outs",
               exclude_reporter_region = exclude_reporter_region, 
               tmt_reporter_lower = tmt_reporter_lower, 
               tmt_reporter_upper = tmt_reporter_upper, 
-              index_mgf_ms2 = index_mgf_ms2, 
-              is_mdda = if (maxn_mdda_precurs) TRUE else FALSE, 
               deisotope_ms2 = deisotope_ms2, 
               max_ms2_charge = max_ms2_charge, 
               use_defpeaks = use_defpeaks, 
@@ -1392,7 +1375,7 @@ matchMS <- function (out_path = "~/mzion/outs",
               reframe_mgfs = reframe_mgfs, 
               ppm_ms2 = ppm_ms2, min_mass = min_mass, max_mass = max_mass, 
               min_ms2mass = min_ms2mass, quant = quant, 
-              ppm_reporters = ppm_reporters, index_mgf_ms2 = index_mgf_ms2, 
+              ppm_reporters = ppm_reporters, 
               by_modules = by_modules, fasta = fasta, acc_type = acc_type, 
               acc_pattern = acc_pattern, topn_ms2ions = topn_ms2ions, 
               fixedmods = fixedmods, varmods = NULL, # the first search
@@ -1424,7 +1407,6 @@ matchMS <- function (out_path = "~/mzion/outs",
              min_ms2mass = min_ms2mass,
              quant = quant,
              ppm_reporters = ppm_reporters,
-             index_mgf_ms2 = index_mgf_ms2, 
              by_modules = by_modules, 
              ms1_offsets = ms1_offsets, 
              ms1_neulosses = ms1_neulosses, 
@@ -1470,7 +1452,6 @@ matchMS <- function (out_path = "~/mzion/outs",
                    soft_secions = soft_secions, 
                    out_path = out_path,
                    min_ms2mass = min_ms2mass,
-                   index_mgf_ms2 = index_mgf_ms2, 
                    tally_ms2ints = tally_ms2ints, 
 
                    # dummies
@@ -1509,8 +1490,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                     add_ms2theos2 = add_ms2theos2, 
                     add_ms2moverzs = add_ms2moverzs, 
                     add_ms2ints = add_ms2ints, 
-                    by_modules = by_modules, 
-                    index_mgf_ms2 = index_mgf_ms2)
+                    by_modules = by_modules)
 
   ## Peptide FDR 
   if (is.null(bypass_pepfdr <- dots$bypass_pepfdr)) 
@@ -1632,9 +1612,15 @@ matchMS <- function (out_path = "~/mzion/outs",
 
   ## Clean-ups
   # (raw_file etc. already mapped if `from_group_search`)
-  if (!isTRUE(from_group_search <- dots$from_group_search)) 
-    df <- map_raw_n_scan(df, mgf_path)
-  
+  if (!isTRUE(from_group_search <- dots$from_group_search)) {
+    if (file.exists(file.path(mgf_path, "scan_indexes.rds"))) {
+      df <- map_raw_n_scan_old(df, mgf_path) # backward-compatible
+    }
+    else {
+      df <- map_raw_n_scan(df, mgf_path)
+    }
+  }
+
   df <- dplyr::mutate(df, pep_expect = 10^((pep_score_co - pep_score)/10) * target_fdr)
   df[["pep_score_co"]] <- NULL
   df$pep_delta <- df$pep_exp_mr - df$pep_calc_mr
@@ -2205,6 +2191,58 @@ check_locmods <- function (locmods, fixedmods, varmods, ms1_neulosses = NULL)
 #' @param df A data frame.
 #' @inheritParams matchMS
 map_raw_n_scan <- function (df, mgf_path) 
+{
+  file_raw <- file.path(mgf_path, "raw_indexes.rds")
+  
+  if (file.exists(file_raw)) {
+    raws <- qs::qread(file_raw)
+    pos <- match(as.character(df$raw_file), as.character(raws))
+    df$raw_file <- names(raws)[pos]
+  }
+  else {
+    stop("File not found: ", file_raw)
+  }
+  
+  files_scan <- list.files(mgf_path, pattern = "^scan_map_.*\\.rds$")
+
+  if (!(len_sc <- length(files_scan))) {
+    stop("No `scan_map` files found.")
+  }
+    
+  
+  if (len_sc != length(raws))
+    stop("The number of `scan_map` files is different to the number of RAWs.")
+  
+  dfs <- split(df, df$raw_file)
+  raws_in_df <- names(dfs)
+  ids <- match(raws_in_df, gsub("^scan_map_(.*)\\.rds$", "\\1", files_scan))
+
+  if (any(bads <- is.na(ids))) {
+    stop("Files do not have matched `scan_map`", 
+         paste(raws_in_df[bads], collapse = ", "))
+  }
+
+  files_scan <- files_scan[ids]
+
+  for (i in ids) {
+    scans <- qs::qread(file.path(mgf_path, files_scan[[i]]))
+    pos <- match(dfs[[i]]$pep_scan_title, as.character(scans))
+    dfs[[i]]$pep_scan_title <- names(scans)[pos]
+  }
+  
+  df <- dplyr::bind_rows(dfs)
+
+  invisible(df)
+}
+
+
+#' Maps raw_file and scan_title from indexes to real values.
+#' 
+#' For backward compatibility.
+#' 
+#' @param df A data frame.
+#' @inheritParams matchMS
+map_raw_n_scan_old <- function (df, mgf_path) 
 {
   file_raw <- file.path(mgf_path, "raw_indexes.rds")
   file_scan <- file.path(mgf_path, "scan_indexes.rds")

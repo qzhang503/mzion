@@ -61,6 +61,8 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
   
   if (len_bts && use_ms1_cache) {
     .path_bin <- file.path(.path_ms1masses, .time_stamp, fun, .time_bin)
+    # in the next version...
+    # .path_bin <- fs::fs_path(.path_bin)
     bins <- list.files(path = .path_bin, pattern = "binned_theopeps_\\d+\\.rds$")
 
     if (length(bins) == len_m) {

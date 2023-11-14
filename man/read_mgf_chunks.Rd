@@ -5,7 +5,9 @@
 \title{Reads mgfs in chunks.}
 \usage{
 read_mgf_chunks(
-  filepath = "~/mzion/mgf/temp_1",
+  filepath,
+  temp_dir,
+  raw_id = 1L,
   topn_ms2ions = 100L,
   ms1_charge_range = c(2L, 6L),
   ms1_scan_range = c(1L, .Machine$integer.max),
@@ -35,11 +37,9 @@ read_mgf_chunks(
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
   exclude_reporter_region = FALSE,
-  index_mgf_ms2 = FALSE,
   deisotope_ms2 = TRUE,
   max_ms2_charge = 3L,
   maxn_dia_precurs = 300L,
-  is_mdda = FALSE,
   use_defpeaks = FALSE,
   maxn_mdda_precurs = 5L,
   n_mdda_flanks = 6L,
@@ -51,6 +51,10 @@ read_mgf_chunks(
 }
 \arguments{
 \item{filepath}{The file path to a list of MGF or mzML files.}
+
+\item{temp_dir}{A temporary path of MGFs.}
+
+\item{raw_id}{An ID to RAW file name.}
 
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
 MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
@@ -129,20 +133,6 @@ The default is \eqn{135.2}.}
 region of TMT reporter ions. The default is FALSE. The corresponding range
 of TMT reporter ions is informed by \code{tmt_reporter_lower} and
 \code{tmt_reporter_upper}. The argument affects only TMT data.}
-
-\item{index_mgf_ms2}{Depreciated. A low-priority feature. Logical; if TRUE,
-  converts up-frontly MS2 m-over-z values from numeric to integers as opposed
-  to \emph{on-the-fly} conversion during ion matches. The default is FALSE.
-  The \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
-  reducing RAM footprints.
-
-  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
-  theoretical and experimental MS2 m-over-z values is limited by the
-  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
-  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
-  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
-  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
-  pep_ms2_deltas_sd} are nullified in the outputs.}
 
 \item{deisotope_ms2}{Logical; if TRUE, de-isotope MS2 features.}
 

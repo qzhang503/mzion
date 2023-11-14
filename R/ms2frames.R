@@ -26,7 +26,7 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
   if (length(tempfiles))
     unlink(tempfiles)
   
-  mgf_files <- list.files(mgf_path, pattern = "^mgf_queries_\\d+\\.rds$", 
+  mgf_files <- list.files(mgf_path, pattern = "^mgf_queries_.*\\.rds$", 
                           full.names = TRUE)
   mgfs <- lapply(mgf_files, qs::qread)
   
@@ -301,8 +301,7 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
                        maxn_vnl_per_seq = 3L, 
                        maxn_vmods_sitescombi_per_pep = 64L, 
                        minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                       min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
-                       by_modules = FALSE, df0 = NULL)
+                       min_ms2mass = 115L, by_modules = FALSE, df0 = NULL)
 {
   pth <- if (by_modules) "theo" else "mgftheo"
   pex <- if (by_modules) "expt" else "mgftheo"
@@ -357,7 +356,7 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
         maxn_vnl_per_seq = maxn_vnl_per_seq, 
         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
         minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
-        min_ms2mass = min_ms2mass, index_mgf_ms2 = index_mgf_ms2, 
+        min_ms2mass = min_ms2mass, 
         df0 = df0)
     }
   }
@@ -385,7 +384,6 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
       ppm_ms1 = ppm_ms1, 
       ppm_ms2 = ppm_ms2, 
       min_ms2mass = min_ms2mass, 
-      index_mgf_ms2 = index_mgf_ms2, 
       df0 = df0)
   }
   
@@ -411,7 +409,7 @@ ms2match_all <- function (mgth, aa_masses_all, funs_ms2, ms1vmods_all,
                           maxn_vnl_per_seq = 3L, 
                           maxn_vmods_sitescombi_per_pep = 64L, 
                           minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                          min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
+                          min_ms2mass = 115L, 
                           df0 = NULL)
 {
   msg <- paste0("Matching expt-theo pair: ", mgth)
@@ -445,8 +443,7 @@ ms2match_all <- function (mgth, aa_masses_all, funs_ms2, ms1vmods_all,
     minn_ms2 = minn_ms2, 
     ppm_ms1 = ppm_ms1, 
     ppm_ms2 = ppm_ms2, 
-    min_ms2mass = min_ms2mass, 
-    index_mgf_ms2 = index_mgf_ms2)
+    min_ms2mass = min_ms2mass)
 
   if (!dir.exists(tempdir <- file.path(out_path, "temp")))
     create_dir(tempdir)
@@ -505,7 +502,7 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
                          maxn_vnl_per_seq = 3L, 
                          maxn_vmods_sitescombi_per_pep = 64L, 
                          minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                         min_ms2mass = 115L, index_mgf_ms2 = FALSE) 
+                         min_ms2mass = 115L) 
 {
   lenm <- length(mgf_frames)
   frames <- as.integer(names(mgf_frames))
@@ -690,7 +687,6 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
         ppm_ms1 = ppm_ms1, 
         ppm_ms2 = ppm_ms2, 
         min_ms2mass = min_ms2mass, 
-        index_mgf_ms2 = index_mgf_ms2, 
         by_modules = FALSE
       ), 
       SIMPLIFY = FALSE,
@@ -1076,8 +1072,7 @@ mframes_adv <- function (mgf_frames = NULL, theopeps = NULL,
 #' 
 #' @return Lists of (1) theo, (2) expt, (3) ith, (4) iex and (5) m.
 find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL, 
-                            ppm_ms2 = 10L, min_ms2mass = 115L, minn_ms2 = 6L, 
-                            index_mgf_ms2 = FALSE) 
+                            ppm_ms2 = 10L, min_ms2mass = 115L, minn_ms2 = 6L) 
 {
   # `theos`
   #   the same pep_seq at different applicable ivmods and NLs
@@ -1259,8 +1254,7 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
                         exptcharges_ms2 = NULL, theomasses_ms1 = NULL, 
                         theomasses_ms2 = NULL, pep_mod_groups = NULL, 
                         minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                        min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
-                        by_modules = FALSE) 
+                        min_ms2mass = 115L, by_modules = FALSE)
 {
   # don't flip the order of cdn1 & cdn2: FALSE & NA -> FALSE; TRUE & NA <- NA
   if (!is.null(exptcharges_ms2))
@@ -1268,12 +1262,8 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
 
   # --- find MS2 matches ---
   d2 <- ppm_ms2/1E6
-  
-  ex <- if (index_mgf_ms2) # already indexed
-    expt_moverz_ms2
-  else
-    index_mz(expt_moverz_ms2, min_ms2mass, d2)
-  
+  ex <- index_mz(expt_moverz_ms2, min_ms2mass, d2)
+
   # lapply by the same pep_seq at different ivmods and/or NLs
   ans <- if (length(theomasses_ms2)) 
     lapply(theomasses_ms2, find_ms2_bypep, 
@@ -1282,8 +1272,7 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
            d = d2, 
            ppm_ms2 = ppm_ms2, 
            min_ms2mass = min_ms2mass, 
-           minn_ms2 = minn_ms2, 
-           index_mgf_ms2 = index_mgf_ms2)
+           minn_ms2 = minn_ms2)
   else 
     theomasses_ms2
   
@@ -1391,8 +1380,8 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
                            maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
                            maxn_vmods_sitescombi_per_pep = 64L, 
                            minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                           min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
-                           df0 = NULL) 
+                           min_ms2mass = 115L, df0 = NULL)
+                           
 {
   nm_fmods <- attr(aa_masses, "fmods", exact = TRUE)
   nm_vmods <- attr(aa_masses, "vmods", exact = TRUE)
@@ -1448,7 +1437,7 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
       deisotope_ms2 = deisotope_ms2, 
       maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
       minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
-      min_ms2mass = min_ms2mass, index_mgf_ms2 = index_mgf_ms2, 
+      min_ms2mass = min_ms2mass, 
       df0 = df0)
   }
   else {
@@ -1468,7 +1457,7 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
       deisotope_ms2 = deisotope_ms2, 
       maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
       minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
-      min_ms2mass = min_ms2mass, index_mgf_ms2 = index_mgf_ms2, 
+      min_ms2mass = min_ms2mass, 
       df0 = df0)
     
     # neutral losses: maxn_neulosses_vnl and maxn_neulosses_fnl
@@ -1487,7 +1476,7 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
         deisotope_ms2 = deisotope_ms2, 
         maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
         minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
-        min_ms2mass = min_ms2mass, index_mgf_ms2 = index_mgf_ms2, 
+        min_ms2mass = min_ms2mass, 
         df0 = df0)
     }
 
@@ -1551,7 +1540,7 @@ ms2match_one <- function (nms_theo, nms_expt, pep_mod_group, aa_masses, FUN,
                           deisotope_ms2 = TRUE, 
                           maxn_vmods_sitescombi_per_pep = 64L, 
                           minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                          min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
+                          min_ms2mass = 115L, 
                           df0 = NULL)
 {
   out_name   <- gsub("^theo", "ion_matches", nms_theo)
@@ -1606,7 +1595,6 @@ ms2match_one <- function (nms_theo, nms_expt, pep_mod_group, aa_masses, FUN,
                     ppm_ms1 = ppm_ms1, 
                     ppm_ms2 = ppm_ms2, 
                     min_ms2mass = min_ms2mass, 
-                    index_mgf_ms2 = index_mgf_ms2, 
                     FUN = FUN), 
     .scheduling = "dynamic")
   
@@ -1655,8 +1643,7 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
                         deisotope_ms2 = TRUE, 
                         maxn_vmods_sitescombi_per_pep = 64L, 
                         minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                        min_ms2mass = 115L, index_mgf_ms2 = FALSE, 
-                        FUN) 
+                        min_ms2mass = 115L, FUN)
 {
   len <- length(mgf_frames)
   
@@ -1791,7 +1778,6 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
         ppm_ms1 = ppm_ms1, 
         ppm_ms2 = ppm_ms2, 
         min_ms2mass = min_ms2mass, 
-        index_mgf_ms2 = index_mgf_ms2, 
         by_modules = TRUE
       ), 
       SIMPLIFY = FALSE,

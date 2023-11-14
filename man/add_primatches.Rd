@@ -10,8 +10,7 @@ add_primatches(
   add_ms2theos = FALSE,
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
-  add_ms2ints = FALSE,
-  index_mgf_ms2 = FALSE
+  add_ms2ints = FALSE
 )
 }
 \arguments{
@@ -40,20 +39,6 @@ add_primatches(
 
 \item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
 intensity values (\code{pep_ms2_ints}).}
-
-\item{index_mgf_ms2}{Depreciated. A low-priority feature. Logical; if TRUE,
-  converts up-frontly MS2 m-over-z values from numeric to integers as opposed
-  to \emph{on-the-fly} conversion during ion matches. The default is FALSE.
-  The \code{index_mgf_ms2 = TRUE} might be useful for very large MS files by
-  reducing RAM footprints.
-
-  At \code{index_mgf_ms2 = TRUE}, the resolution of mass deltas between
-  theoretical and experimental MS2 m-over-z values is limited by the
-  \code{bin_width}, which is the ceiling half of the \code{ppm_ms2}. For
-  instance, the \code{bin_width} is 10 ppm at the default \code{ppm_ms2 =
-  20}. Due to the low resolution in mass deltas at \code{index_mgf_ms2 = TRUE},
-  the fields of \code{pep_ms2_deltas, pep_ms2_deltas2, pep_ms2_deltas_mean,
-  pep_ms2_deltas_sd} are nullified in the outputs.}
 }
 \description{
 Applied to both targets and decoys as feature "pep_ms2_deltas_mean" may be

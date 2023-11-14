@@ -76,29 +76,33 @@ mapMS2ions <- function (out_path = NULL, in_name = "psmQ.txt",
                         type_ms2ions = "by", width = 12.5, height = 6) 
 {
   if (is.null(out_path) || is.na(out_path) || out_path == "") {
-    warning("\"out_path\" cannot be empty.", call. = FALSE)
+    warning("\"out_path\" cannot be empty.")
     return(NULL)
   }
   
   if (is.null(raw_file) || is.na(raw_file) || raw_file == "" ) {
-    warning("\"raw_file\" cannot be empty.", call. = FALSE)
+    warning("\"raw_file\" cannot be empty.")
     return(NULL)
   }
   
   if (is.null(in_name) || is.na(in_name) || in_name == "" ) {
-    warning("\"in_name\" is empty; assume `psmQ.txt`.", call. = FALSE)
+    warning("\"in_name\" is empty; assume `psmQ.txt`.")
     in_name <- "psmQ.txt"
   }
   
   if (is.null(out_name) || out_name == "") {
-    warning("\"out_name\" is empty; use `bar.png`.", call. = FALSE)
+    warning("\"out_name\" is empty; use `bar.png`.")
     out_name <- "bar.png"
   }
   
   out_name <- check_ggname(out_name)
   
   # MGF
-  fi_psm <- file.path(out_path, in_name)
+  if (!file.exists(fi_psm <- file.path(out_path, in_name))) {
+    warning("PSM file not found: ", fi_psm)
+    return(NULL)
+  }
+  
   mgf_path <- match_mgf_path(out_path)
   raw_id <- match_raw_id(raw_file, mgf_path)
   scan <- as.character(scan)
@@ -110,8 +114,16 @@ mapMS2ions <- function (out_path = NULL, in_name = "psmQ.txt",
     return(NULL)
   }
 
-  mgf <- data.frame(ms2_moverz = mgf_ok$ms2_moverz[[1]], 
-                    ms2_int = mgf_ok$ms2_int[[1]])
+  req_cols <- c("ms2_moverzs", "ms2_ints")
+  
+  if (!all(oks <- req_cols %in% names(mgf_ok))) {
+    warning("Developer: missing PSM columns ", 
+            paste(req_cols[!oks], collapse = ", "))
+    return(NULL)
+  }
+
+  mgf <- data.frame(ms2_moverz = mgf_ok$ms2_moverzs[[1]], 
+                    ms2_int = mgf_ok$ms2_ints[[1]])
   mgf$iex <- seq_len(nrow(mgf))
   
   ## PSMs
@@ -119,41 +131,42 @@ mapMS2ions <- function (out_path = NULL, in_name = "psmQ.txt",
                  "pep_ms2_theos2", "pep_ms2_exptints", "pep_ms2_exptints2", 
                  "pep_n_matches", "pep_n_matches2")
   
-  if (file.exists(fi_psm)) {
-    gl_vals <- ls(all.names = TRUE, envir = .GlobalEnv)
-    ok_psms <- any(gl_vals == ".psms")
-
-    ok_file <- if (any(gl_vals == ".psm_file"))
-      identical(get(".psm_file", envir = .GlobalEnv), fi_psm)
-    else
-      FALSE
-
-    if (ok_psms && ok_file) {
-      .psms <- get(".psms", envir = .GlobalEnv)
-    }
-    else {
-      # some columns in psmQ.txt not in psmC.txt
-      .psms <- suppressWarnings(
-        readr::read_tsv(fi_psm, show_col_types = FALSE, 
-                        col_types = get_mzion_coltypes()))
-      .psms <- .psms[, -which(names(.psms) %in% cols_excl), drop = FALSE]
-      assign(".psms", .psms, envir = .GlobalEnv)
-      assign(".psm_file", file.path(out_path, in_name), envir = .GlobalEnv)
-    }
-    
-    psm <- .psms |>
-      dplyr::filter(pep_scan_num == scan, 
-                    .data$raw_file == .env$raw_file, 
-                    pep_rank == rank,
-                    pep_isdecoy == is_decoy) 
-    psm <- psm[, -grep("^prot_", names(psm)), drop = FALSE]
-    # can be duplicated by prot_accs
-    psm <- unique(psm)
+  gl_vals <- ls(all.names = TRUE, envir = .GlobalEnv)
+  ok_psms <- any(gl_vals == ".psms")
+  
+  ok_file <- if (any(gl_vals == ".psm_file"))
+    identical(get(".psm_file", envir = .GlobalEnv), fi_psm)
+  else
+    FALSE
+  
+  if (ok_psms && ok_file) {
+    .psms <- get(".psms", envir = .GlobalEnv)
   }
   else {
-    warning("PSM file not found: ", fi_psm)
+    # some columns in psmQ.txt not in psmC.txt
+    .psms <- suppressWarnings(
+      readr::read_tsv(fi_psm, show_col_types = FALSE, 
+                      col_types = get_mzion_coltypes()))
+    .psms <- .psms[, -which(names(.psms) %in% cols_excl), drop = FALSE]
+    assign(".psms", .psms, envir = .GlobalEnv)
+    assign(".psm_file", file.path(out_path, in_name), envir = .GlobalEnv)
+  }
+  
+  req_psmcols <- c("pep_scan_num", "raw_file", "pep_rank", "pep_isdecoy")
+  
+  if (!all(oks <- req_psmcols %in% names(.psms))) {
+    warning("Developer: missing PSM columns ", 
+            paste(req_psmcols[!oks], collapse = ", "))
     return(NULL)
   }
+
+  psm <- .psms |>
+    dplyr::filter(pep_scan_num == scan, 
+                  .data$raw_file == .env$raw_file, 
+                  pep_rank == rank,
+                  pep_isdecoy == is_decoy) 
+  psm <- psm[, -grep("^prot_", names(psm)), drop = FALSE]
+  psm <- unique(psm) # can be duplicated by prot_accs
   
   if (!(nrow <- nrow(psm))) {
     warning("PSM entry not found. Check the correctness of scan number etc.")
@@ -174,14 +187,13 @@ mapMS2ions <- function (out_path = NULL, in_name = "psmQ.txt",
     ion_types <- unlist(strsplit(type_ms2ions, ""))
     
     if (length(ion_types) != 2L)
-      stop("Not a two-character `type_ms2ions = ", type_ms2ions, "`.", 
-           call. = FALSE)
+      stop("Not a two-character `type_ms2ions = ", type_ms2ions, "`.")
     
     cols_pri <- c("pep_ms2_deltas", "pep_ms2_ideltas", "pep_ms2_iexs")
 
     if (!all(oks <- cols_pri %in% names(psm))) {
-      warning("PSM columns not found: ", paste(cols_pri[!oks], collapse = ", "), 
-              "\nPlease use the latest version of mzion.")
+      warning("Developer: missing PSM columns ", 
+              paste(cols_pri[!oks], collapse = ", "))
       return(NULL)
     }
 
@@ -211,8 +223,8 @@ mapMS2ions <- function (out_path = NULL, in_name = "psmQ.txt",
     cols_sec <- c("pep_ms2_deltas2", "pep_ms2_ideltas2", "pep_ms2_iexs2")
     
     if (!all(oks <- cols_sec %in% names(psm))) {
-      warning("PSM columns not found: ", paste(cols_sec[!oks], collapse = ", "), 
-              "\nPlease use the latest version of mzion.")
+      warning("Developer: missing PSM columns ", 
+              paste(cols_sec[!oks], collapse = ", "))
       return(NULL)
     }
 
@@ -327,7 +339,7 @@ match_mgf_path <- function (out_path)
   rda <- file.path(out_path, "Calls", "matchMS.rda")
   
   if (!file.exists(rda))
-    stop("Parameter file not found: ", rda, call. = FALSE)
+    stop("Parameter file not found: ", rda)
   
   load(rda)
   
@@ -346,14 +358,13 @@ match_raw_id <- function (raw_file, mgf_path)
   if (!file.exists(file))
     stop("File not found ", file)
   
-  raw_lookup <- qs::qread(file)
-  raw_id <- unname(raw_lookup[raw_file])
+  raw_map <- qs::qread(file)
+  raw_id <- unname(raw_map[raw_file])
   
   if (is.na(raw_id)) {
     stop(raw_file, " not found in ", file, ".\n", 
          "Aside from the possibility of incorrect `raw_file`, ",
-         "have the folder name been changed?", 
-         call. = FALSE)
+         "have the folder name been changed?")
   }
   
   raw_id
@@ -416,10 +427,10 @@ find_mgf_query <- function (mgf_path, raw_id, scan, to_global = TRUE)
   }
   else {
     files <- list.files(path = file.path(mgf_path), 
-                        pattern = "mgf_queries[_]*[0-9]*\\.rds$")
+                        pattern = "mgf_queries_.*\\.rds$")
     
     if (!length(files)) {
-      warning("No parsed `mgf_queries.rds` under ", mgf_path, call. = FALSE)
+      warning("No parsed `mgf_queries.rds` under ", mgf_path)
       return(NULL)
     }
 
@@ -521,7 +532,7 @@ make_speclib <- function (out_path = NULL, in_name = "psmQ.txt", score_co = 15,
 
   if (all(is.na(df$pep_ms2_moverzs)) || all(is.na(df$pep_ms2_ints))) {
     mgf_path  <- match_mgf_path(out_path)
-    mgf_files <- list.files(file.path(mgf_path), "mgf_queries[_]*[0-9]*\\.rds$")
+    mgf_files <- list.files(file.path(mgf_path), "mgf_queries_.*\\.rds$")
     
     if (!length(mgf_files)) {
       warning("Processed `mgf_queries.rds` not found under ", mgf_path)

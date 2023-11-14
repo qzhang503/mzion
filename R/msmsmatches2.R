@@ -32,7 +32,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                       # dummies
                       fasta, acc_type, acc_pattern, topn_ms2ions, fixedmods, 
                       varmods, enzyme, maxn_fasta_seqs, maxn_vmods_setscombi, 
-                      min_len, max_len, max_miss, index_mgf_ms2 = FALSE, 
+                      min_len, max_len, max_miss, 
                       first_search = FALSE, .savecall = TRUE) 
                       
 {
@@ -64,6 +64,19 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   cache_pars  <- cache_pars[sort(names(cache_pars))]
   call_pars   <- mget(fml_incl, envir = fun_env, inherits = FALSE)
   call_pars   <- call_pars[sort(names(call_pars))]
+  
+  # temporary fix, update find_dir on the next ver and delete this
+  if (".path_bin" %in% names(cache_pars) && ".path_bin" %in% names(call_pars)) {
+    if (!(is.null(cache_pars$.path_bin) || 
+          "fs_path" %in% class(cache_pars$.path_bin))) {
+      cache_pars$.path_bin <- fs::fs_path(cache_pars$.path_bin)
+    }
+    
+    if (!(is.null(call_pars$.path_bin) || 
+          "fs_path" %in% class(call_pars$.path_bin))) {
+      call_pars$.path_bin <- fs::fs_path(call_pars$.path_bin)
+    }
+  }
   
   if (identical(cache_pars, call_pars)) {
     fions   <- list.files(path = file.path(out_path, "temp"), 
@@ -178,7 +191,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
             ppm_ms1 = ppm_ms1_bin, 
             ppm_ms2 = ppm_ms2_bin, 
             min_ms2mass = min_ms2mass, 
-            index_mgf_ms2 = index_mgf_ms2, 
             by_modules = by_modules, 
             df0 = df0)
 
@@ -244,15 +256,15 @@ reverse_seqs <- function (seqs)
 #' @param .path_bin The file path to binned precursor masses.
 #' @param reframe_mgfs Logical; if TRUE, recalculates the frame indexes of MGFs
 #' @inheritParams matchMS
-calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL, 
-                       .path_bin, mod_indexes = NULL, type_ms2ions = "by", 
+calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin, 
+                       mod_indexes = NULL, type_ms2ions = "by", 
                        maxn_vmods_per_pep = 5L,maxn_sites_per_vmod = 3L, 
                        maxn_fnl_per_seq = 3L, maxn_vnl_per_seq = 3L, 
                        maxn_vmods_sitescombi_per_pep = 64L, minn_ms2 = 6L, 
                        ppm_ms1 = 20L, reframe_mgfs = TRUE, 
                        ppm_ms2 = 20L, min_mass = 200L, 
                        max_mass = 4500L, min_ms2mass = 115L, quant = "none", 
-                       ppm_reporters = 10L, index_mgf_ms2 = FALSE, 
+                       ppm_reporters = 10L, 
                        by_modules = TRUE, fasta = NULL, acc_type = NULL, 
                        acc_pattern = NULL, topn_ms2ions = 100L, 
                        fixedmods = NULL, varmods = NULL, enzyme = "trypsin_p", 
@@ -262,9 +274,8 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL,
   on.exit(
     if (exists(".savecall", envir = fun_env)) {
       if (.savecall) save_call2(path = file.path(out_path, "Calls"), fun = fun)
-    }, add = TRUE
-  )
-  
+    }, add = TRUE)
+
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
   args <- names(formals(fun))
@@ -339,7 +350,6 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL,
            quant = "none",
            ppm_reporters = ppm_reporters,
            reframe_mgfs = reframe_mgfs, 
-           index_mgf_ms2 = index_mgf_ms2, 
            by_modules = by_modules, 
            fasta = fasta,
            acc_type = acc_type,
@@ -365,7 +375,6 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL,
                  soft_secions = FALSE, 
                  out_path = out_path,
                  min_ms2mass = min_ms2mass,
-                 index_mgf_ms2 = index_mgf_ms2, 
                  tally_ms2ints = TRUE, 
                  
                  # dummies
@@ -396,7 +405,7 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL,
   file.rename(fi_mi2, fi_mi)
   
   ## mass calibration
-  fs_mgf <- list.files(mgf_path, "^mgf_queries.*\\.rds$")
+  fs_mgf <- list.files(mgf_path, "^mgf_queries_.*\\.rds$")
   fi_ion <- file.path(out_path, "temp", "prescores_1_1.rds")
 
   if (!length(fs_mgf))
@@ -411,11 +420,13 @@ calib_mgf <- function (mgf_path = NULL, aa_masses_all = NULL, out_path = NULL,
     stop("Column not found in search results: `raw_file`")
 
   dfs <- split(df, df[["raw_file"]])
-  ord <- sort(as.integer(gsub("^mgf_queries_(\\d+)\\.rds", "\\1", fs_mgf)))
-  dfs <- dfs[ord]
-  fs_mgf <- fs_mgf[ord]
-  rm(list = c("df", "ord"))
-  
+  raws <- qs::qread(file.path(mgf_path, "raw_indexes.rds"))
+  ord <- match(names(dfs), as.character(raws))
+  names(dfs) <- names(raws)[ord]
+
+  ord_mgf <- match(gsub("^mgf_queries_(.*)\\.rds$", "\\1", fs_mgf), names(dfs))
+  fs_mgf <- fs_mgf[ord_mgf]
+
   len <- length(dfs)
   n_cores <- min(len, detect_cores(32L))
   
@@ -483,7 +494,7 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
   }
   
   diff_ms1 <- (df[["pep_exp_mr"]] - df[["theo_ms1"]])/df[["theo_ms1"]] * 1E6
-  mdiff    <- median(diff_ms1, na.rm = TRUE)/1E6
+  mdiff <- median(diff_ms1, na.rm = TRUE)/1E6
 
   if (n_row <= 100L || mdiff <= 1e-6) {
     mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - mdiff
@@ -494,8 +505,7 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
   else {
     cvs <- lapply(range, cv_ms1err, k = 10, df = df) 
     cvs <- unlist(cvs, recursive = FALSE, use.names = FALSE)
-    
-    stopifnot(length(cvs) == length(range))
+    # stopifnot(length(cvs) == length(range))
     
     if (all(is.na(cvs))) {
       mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - mdiff

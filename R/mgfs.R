@@ -19,14 +19,14 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
                        min_ret_time = 0, max_ret_time = Inf, 
                        ppm_ms1 = 20L, ppm_ms2 = 20L, 
                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
+                       exclude_reporter_region = FALSE, 
                        is_ms1_three_frame = TRUE, is_ms2_three_frame = TRUE, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                        enzyme = "trypsin_p", 
-                       is_mdda = FALSE, deisotope_ms2 = TRUE, 
+                       deisotope_ms2 = TRUE, 
                        grad_isotope = 2.5, fct_iso2 = 3.0,
                        max_ms2_charge = 3L, use_defpeaks = FALSE, 
-                       maxn_dia_precurs = 300L, maxn_mdda_precurs = 5L, 
+                       maxn_dia_precurs = 300L, maxn_mdda_precurs = 1L, 
                        n_mdda_flanks = 6L, ppm_ms1_deisotope = 10L, 
                        ppm_ms2_deisotope = 10L, quant = "none", digits = 4L) 
 {
@@ -67,20 +67,29 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
   if ((!ok_pars) && isTRUE(enzyme == "noenzyme")) 
     ok_pars <- TRUE
   
-  # checks processed mgfs
-  raws_indexes <- file.path(mgf_path, "raw_indexes.rds")
+  scns <- list.files(mgf_path, pattern = "^scan_map_.*\\.rds$")
+  ques <- list.files(mgf_path, pattern = "^mgf_queries_.*\\.rds$")
+  n_scns <- length(scns)
+  n_ques <- length(ques)
   
-  if (file.exists(raws_indexes)) {
-    raws <- qs::qread(raws_indexes)
-    ques <- list.files(mgf_path, pattern = "^mgf_queries_\\d+\\.rds$")
-    ok_mgfs <- if (length(raws) == length(ques)) TRUE else FALSE
-    rm(list = c("raws", "ques", "raws_indexes"))
+  if (n_scns) {
+    ok_mgfs <- if (n_scns == n_ques) TRUE else FALSE
   }
   else {
-    ok_mgfs <- FALSE
-    rm(list = c("raws_indexes"))
+    # backward compatible
+    if (file.exists(raws_indexes <- file.path(mgf_path, "raw_indexes.rds"))) {
+      raws <- qs::qread(raws_indexes)
+      ques <- list.files(mgf_path, pattern = "^mgf_queries_\\d+\\.rds$")
+      ok_mgfs <- if (length(raws) == length(ques)) TRUE else FALSE
+      rm(list = c("raws", "raws_indexes"))
+    }
+    else {
+      ok_mgfs <- FALSE
+    }
   }
 
+  rm(list = c("scns", "ques", "n_scns", "n_ques"))
+  
   if (ok_pars && ok_mgfs) {
     message("Found cached MGFs.")
     .savecall <- FALSE
@@ -108,8 +117,8 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
                 "fraction_scheme.rda", "label_scheme.rda", 
                 "label_scheme_full.rda"))
   
-  fi_mgf   <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mgf$")
-  fi_mzml  <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mzML$")
+  fi_mgf   <- list.files(path = mgf_path, pattern = "^.*\\.(mgf|MGF)$")
+  fi_mzml  <- list.files(path = mgf_path, pattern = "^.*\\.(mzML|mzml)$")
   len_mgf  <- length(fi_mgf)
   len_mzml <- length(fi_mzml)
   
@@ -120,8 +129,8 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
   
   if (len_mgf) {
     readMGF(filepath = mgf_path,
-            out_path = out_path, 
             filelist = filelist, 
+            out_path = out_path, 
             min_mass = min_mass,
             max_mass = max_mass, 
             min_ms2mass = min_ms2mass,
@@ -135,10 +144,8 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
             tmt_reporter_lower = tmt_reporter_lower, 
             tmt_reporter_upper = tmt_reporter_upper, 
             exclude_reporter_region = exclude_reporter_region, 
-            index_mgf_ms2 = index_mgf_ms2, 
             mgf_cutmzs = mgf_cutmzs, 
             mgf_cutpercs = mgf_cutpercs, 
-            is_mdda = FALSE, 
             use_defpeaks = use_defpeaks, 
             deisotope_ms2 = deisotope_ms2, 
             max_ms2_charge = max_ms2_charge, 
@@ -152,8 +159,8 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
   }
   else if (len_mzml) {
     readmzML(filepath = mgf_path,
-             out_path = out_path, 
              filelist = filelist, 
+             out_path = out_path, 
              min_mass = min_mass,
              max_mass = max_mass, 
              min_ms2mass = min_ms2mass,
@@ -167,15 +174,11 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
              tmt_reporter_lower = tmt_reporter_lower, 
              tmt_reporter_upper = tmt_reporter_upper, 
              exclude_reporter_region = exclude_reporter_region, 
-             index_mgf_ms2 = index_mgf_ms2, 
              mgf_cutmzs = mgf_cutmzs, 
              mgf_cutpercs = mgf_cutpercs, 
-             
              deisotope_ms2 = deisotope_ms2, 
              max_ms2_charge = max_ms2_charge, 
              maxn_dia_precurs = maxn_dia_precurs, 
-             
-             is_mdda = is_mdda, 
              use_defpeaks = use_defpeaks, 
              maxn_mdda_precurs = maxn_mdda_precurs, 
              n_mdda_flanks = n_mdda_flanks, 
@@ -214,25 +217,24 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
 #' @import stringi
 #' @import readr
 #' @import fs
-readMGF <- function (filepath = NULL, filelist = NULL, 
+readMGF <- function (filepath = NULL, filelist = NULL, out_path = NULL, 
                      min_mass = 200L, max_mass = 4500L, 
                      min_ms2mass = 115L, max_ms2mass = 4500L, 
                      topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L), 
                      ms1_scan_range = c(1L, .Machine$integer.max), 
                      ret_range = c(0, Inf), ppm_ms1 = 10L, ppm_ms2 = 10L, 
                      tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                     exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
+                     exclude_reporter_region = FALSE, 
                      mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
-                     out_path = file.path(filepath, "mgf_queries_1.rds"), 
-                     is_mdda = FALSE, deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
+                     deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                      use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                      maxn_mdda_precurs = 1L, n_mdda_flanks = 6L, 
                      ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
                      quant = "none", digits = 4L) 
 {
-  if (is_mdda) {
+  if (maxn_mdda_precurs >= 1L) {
     warning("No multi-precursor DDA with MGF. Use mzML to enable the feature.")
-    is_mdda <- FALSE
+    maxn_mdda_precurs <- 0L
   }
 
   ## Parsing rules
@@ -296,6 +298,9 @@ readMGF <- function (filepath = NULL, filelist = NULL,
   }
 
   ## Reads from chunks
+  warning("An mzML or MGF with multiple RAWs not supported since v1.3.4. ", 
+          "Each peaklist file need contain exactly one RAW file.")
+  
   out <- vector("list", len)
   
   for (i in seq_along(filelist)) {
@@ -304,7 +309,9 @@ readMGF <- function (filepath = NULL, filelist = NULL,
     
     message("Loading '", file, "'.")
     
-    out[[i]] <- read_mgf_chunks(filepath = temp_dir,
+    out[[i]] <- read_mgf_chunks(filepath = filepath, 
+                                temp_dir = temp_dir, 
+                                raw_id = i, 
                                 topn_ms2ions = topn_ms2ions,
                                 ms1_charge_range = ms1_charge_range, 
                                 ms1_scan_range = ms1_scan_range, 
@@ -334,8 +341,6 @@ readMGF <- function (filepath = NULL, filelist = NULL,
                                 tmt_reporter_lower = tmt_reporter_lower, 
                                 tmt_reporter_upper = tmt_reporter_upper, 
                                 exclude_reporter_region = exclude_reporter_region, 
-                                index_mgf_ms2 = index_mgf_ms2, 
-                                is_mdda = is_mdda, 
                                 use_defpeaks = use_defpeaks, 
                                 deisotope_ms2 = deisotope_ms2, 
                                 max_ms2_charge = max_ms2_charge, 
@@ -359,11 +364,10 @@ readMGF <- function (filepath = NULL, filelist = NULL,
     })
   }
   
-  ## Clean up
-  out <- dplyr::bind_rows(out)
-  
-  post_readmgf(out, min_mass = min_mass, max_mass = max_mass, ppm_ms1 = ppm_ms1, 
-               filepath = filepath)
+  raws <- unlist(out, recursive = FALSE, use.names = TRUE)
+  qs::qsave(raws, file.path(filepath, "raw_indexes.rds"), preset = "fast")
+
+  invisible(NULL)
 }
 
 
@@ -372,37 +376,31 @@ readMGF <- function (filepath = NULL, filelist = NULL,
 #' Calculates mass \code{frame}s etc.
 #' 
 #' @param df A data frame of processed peak lists.
+#' @param raw_id An ID to replace the original RAW file name.
 #' @inheritParams readMGF
-post_readmgf <- function (df, min_mass = 200L, max_mass = 4500L, ppm_ms1 = 10L, 
-                          filepath) 
+post_readmgf <- function (df, raw_id, mgf_path, min_mass = 200L, 
+                          max_mass = 4500L, ppm_ms1 = 10L) 
 {
-  if (is.atomic(df[1, "ms1_charge", drop = TRUE])) {
-    df <- dplyr::arrange(df, ms1_mass)
-    # df <- dplyr::filter(df, ms1_mass >= min_mass, ms1_mass <= max_mass)
-  }
-
-  raws_files <- df$raw_file
-  raws <- raws_files[!duplicated.default(raws_files)]
-  inds <- seq_along(raws)
-  names(inds) <- raws
-  qs::qsave(inds, file.path(filepath, "raw_indexes.rds"), preset = "fast")
-  df$raw_file <- unname(inds[raws_files])
+  raw <- unique(df$raw_file)
+  
+  if (length(raw) > 1L)
+    stop("An mzML or MGF with multiple RAWs not supported since v1.3.4. ", 
+         "Each peaklist file need contain exactly one RAW file.")
+  
+  raw_map <- raw_id
+  names(raw_map) <- raw
+  df$raw_file <- raw_id
   
   scans <- df$scan_title
-  inds2 <- seq_along(scans)
-  names(inds2) <- scans
-  qs::qsave(inds2, file.path(filepath, "scan_indexes.rds"), preset = "fast")
-  df$scan_title <- unname(inds2[scans])
+  scans_map <- df$scan_title <- seq_along(scans)
+  names(scans_map) <- scans
   
-  df  <- split(df, df$raw_file)
-  nms <- names(df)
-  
-  for (i in seq_along(df)) {
-    qs::qsave(df[[i]], file.path(filepath, paste0("mgf_queries_", nms[i], ".rds")), 
-              preset = "fast")
-  }
+  qs::qsave(df, file.path(mgf_path, paste0("mgf_queries_", raw, ".rds")), 
+            preset = "fast")
+  qs::qsave(scans_map, file.path(mgf_path, paste0("scan_map_", raw, ".rds")), 
+            preset = "fast")
 
-  invisible(NULL)
+  invisible(raw_map)
 }
 
 
@@ -453,6 +451,8 @@ readlineMGFs <- function (i, file, filepath, raw_file)
 
 #' Reads mgfs in chunks.
 #'
+#' @param temp_dir A temporary path of MGFs.
+#' @param raw_id An ID to RAW file name.
 #' @param type_mgf The type of MGF format.
 #' @param n_bf_begin The number of lines before \code{BEGIN IONS}. Zero for PD
 #'   and MSConvert.
@@ -478,7 +478,7 @@ readlineMGFs <- function (i, file, filepath, raw_file)
 #' @param raw_file The raw file name. Is NULL for PD and MSConvert.
 #' @inheritParams readMGF
 #' @inheritParams matchMS
-read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
+read_mgf_chunks <- function (filepath, temp_dir, raw_id = 1L, 
                              topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L), 
                              ms1_scan_range = c(1L, .Machine$integer.max), 
                              ret_range = c(0, Inf), min_mass = 200L, 
@@ -492,22 +492,22 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
                              sep_pepmass = " ", nfields_pepmass = 2L, 
                              raw_file = NULL, 
                              tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                             exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
+                             exclude_reporter_region = FALSE, 
                              deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                              maxn_dia_precurs = 300L, 
-                             is_mdda = FALSE, use_defpeaks = FALSE, 
+                             use_defpeaks = FALSE, 
                              maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                              ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
                              quant = "none", digits = 4L) 
 {
-  filelist <- list.files(path = file.path(filepath), pattern = "^.*\\.mgf$")
-
+  filelist <- list.files(path = temp_dir, pattern = "^.*\\.mgf$")
+  
   if (!(len <- length(filelist))) 
-    stop("No mgf files under ", filepath)
+    stop("No mgf files under ", temp_dir)
   
   if (len == 1L) {
     out <- proc_mgf_chunks(
-      file.path(filepath, filelist),
+      file.path(temp_dir, filelist),
       topn_ms2ions = topn_ms2ions,
       ms1_charge_range = ms1_charge_range, 
       ms1_scan_range = ms1_scan_range, 
@@ -537,8 +537,6 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
       tmt_reporter_lower = tmt_reporter_lower, 
       tmt_reporter_upper = tmt_reporter_upper, 
       exclude_reporter_region = exclude_reporter_region, 
-      index_mgf_ms2 = index_mgf_ms2, 
-      is_mdda = is_mdda, 
       deisotope_ms2 = deisotope_ms2, 
       max_ms2_charge = max_ms2_charge, 
       use_defpeaks = use_defpeaks, 
@@ -575,7 +573,7 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
       envir = environment(mzion::matchMS)
     )
     
-    out <- parallel::clusterApply(cl, file.path(filepath, filelist),
+    out <- parallel::clusterApply(cl, file.path(temp_dir, filelist),
                                   proc_mgf_chunks,
                                   topn_ms2ions = topn_ms2ions,
                                   ms1_charge_range = ms1_charge_range, 
@@ -606,8 +604,6 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
                                   tmt_reporter_lower = tmt_reporter_lower, 
                                   tmt_reporter_upper = tmt_reporter_upper, 
                                   exclude_reporter_region = exclude_reporter_region, 
-                                  index_mgf_ms2 = index_mgf_ms2, 
-                                  is_mdda = is_mdda, 
                                   deisotope_ms2 = deisotope_ms2, 
                                   max_ms2_charge = max_ms2_charge, 
                                   use_defpeaks = use_defpeaks, 
@@ -623,40 +619,40 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
     
     out <- dplyr::bind_rows(out)
   }
-
+  
   # adds back broken mgf entries
   afs <- local({
-    afs <- list.files(path = file.path(filepath), pattern = "^.*\\_af.mgf$")
+    afs <- list.files(path = temp_dir, pattern = "^.*\\_af.mgf$")
     idxes <- sort(as.integer(gsub("^chunk_(\\d+)_af\\.mgf", "\\1", afs)))
     afs <- paste0("chunk_", idxes, "_af.mgf")
     afs <- afs[-length(afs)]
   })
-
+  
   bfs <- local({
-    bfs <- list.files(path = file.path(filepath), pattern = "^.*\\_bf.mgf$")
+    bfs <- list.files(path = temp_dir, pattern = "^.*\\_bf.mgf$")
     idxes <- sort(as.integer(gsub("^chunk_(\\d+)_bf\\.mgf", "\\1", bfs)))
     bfs <- paste0("chunk_", idxes, "_bf.mgf")
     bfs <- bfs[-1]
   })
-
+  
   # stopifnot(length(afs) == length(bfs))
-
+  
   gaps <- purrr::map2(afs, bfs, function (x, y) {
-    af <- stringi::stri_read_lines(file.path(filepath, x))
-    bf <- stringi::stri_read_lines(file.path(filepath, y))
+    af <- stringi::stri_read_lines(file.path(temp_dir, x))
+    bf <- stringi::stri_read_lines(file.path(temp_dir, y))
     ab <- append(af, bf)
     # perfect case of no gaps: two lines of "" and ""
     if (length(ab) > 2L) ab else NULL
   })
   
   gaps <- unlist(gaps, use.names = FALSE)
-  write(gaps, file.path(filepath, "gaps.mgf"))
-
+  write(gaps, file.path(temp_dir, "gaps.mgf"))
+  
   local({
-    nms <- list.files(path = file.path(filepath), pattern = "^.*\\_[ab]f.mgf$")
-    if (length(nms)) suppressMessages(file.remove(file.path(filepath, nms)))
+    nms <- list.files(path = file.path(temp_dir), pattern = "^.*\\_[ab]f.mgf$")
+    if (length(nms)) suppressMessages(file.remove(file.path(temp_dir, nms)))
   })
-
+  
   if (!is.null(gaps)) {
     out <- dplyr::bind_rows(
       out,
@@ -689,8 +685,6 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
                 tmt_reporter_lower = tmt_reporter_lower, 
                 tmt_reporter_upper = tmt_reporter_upper, 
                 exclude_reporter_region = exclude_reporter_region, 
-                index_mgf_ms2 = index_mgf_ms2, 
-                is_mdda = is_mdda, 
                 deisotope_ms2 = deisotope_ms2, 
                 max_ms2_charge = max_ms2_charge, 
                 use_defpeaks = use_defpeaks, 
@@ -703,13 +697,14 @@ read_mgf_chunks <- function (filepath = "~/mzion/mgf/temp_1",
                 digits = digits)
     )
   }
-
+  
   if (type_mgf == "default_pasef") {
     out <- dplyr::mutate(out, scan_id = as.character(scan_num), 
                          scan_num = as.character(row_number()))
-  } 
-
-  invisible(out)
+  }
+  
+  post_readmgf(out, raw_id = raw_id, mgf_path = filepath, min_mass = min_mass, 
+               max_mass = max_mass, ppm_ms1 = ppm_ms1) 
 }
 
 
@@ -734,7 +729,6 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                              tmt_reporter_lower = 126.1, 
                              tmt_reporter_upper = 135.2, 
                              exclude_reporter_region = FALSE, 
-                             index_mgf_ms2 = FALSE, is_mdda = FALSE, 
                              deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                              use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                              maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
@@ -802,8 +796,6 @@ proc_mgf_chunks <- function (file, topn_ms2ions = 100L,
                    tmt_reporter_lower = tmt_reporter_lower, 
                    tmt_reporter_upper = tmt_reporter_upper, 
                    exclude_reporter_region = exclude_reporter_region, 
-                   index_mgf_ms2 = index_mgf_ms2, 
-                   is_mdda = is_mdda, 
                    deisotope_ms2 = deisotope_ms2, 
                    max_ms2_charge = max_ms2_charge, 
                    use_defpeaks = use_defpeaks, 
@@ -833,8 +825,8 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L),
                        n_to_charge = 4L, sep_ms2s = " ", nfields_ms2s = 2L, 
                        sep_pepmass = " ", nfields_pepmass = 2L, raw_file = NULL, 
                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
-                       is_mdda = FALSE, deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
+                       exclude_reporter_region = FALSE, 
+                       deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                        use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                        maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                        ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
@@ -984,20 +976,11 @@ proc_mgfs <- function (lines, topn_ms2ions = 100L, ms1_charge_range = c(2L, 6L),
                           max_ms2mass = max_ms2mass)
   
   ms2_moverzs <- mz_n_int[["ms2_moverzs"]]
+  # ms2_moverzs <- lapply(ms2_moverzs, round, digits = digits)
   ms2_ints <- mz_n_int[["ms2_ints"]]
   ms2_charges <- mz_n_int[["ms2_charges"]]
   lens <- mz_n_int[["lens"]]
   rm(list = "mz_n_int")
-  
-  if (index_mgf_ms2) {
-    ms2_moverzs <- lapply(ms2_moverzs, index_mz, min_ms2mass, ppm_ms2/1E6)
-    # dups <- lapply(ms2_moverzs, duplicated.default)
-    # ms2_moverzs <- mapply(function (x, y) x[!y], ms2_moverzs, dups, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    # ms2_ints <- mapply(function (x, y) x[!y], ms2_ints, dups, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    # rm(list = "dups")
-  }
-  else
-    ms2_moverzs <- lapply(ms2_moverzs, round, digits = digits)
 
   df <- tibble::tibble(
     scan_title = scan_titles,
@@ -1468,9 +1451,8 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
                       ret_range = c(0, Inf), ppm_ms1 = 10L, ppm_ms2 = 10L, 
                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                       exclude_reporter_region = FALSE, 
-                      index_mgf_ms2 = FALSE, 
                       mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
-                      is_mdda = FALSE, deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
+                      deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                       use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                       maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                       ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
@@ -1493,8 +1475,9 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
   n_cores <- max(1L, n_cores)
   
   if (n_cores == 1L) {
-    for (i in 1:len)
-      out[[i]] <- proc_mzml(files[[i]], 
+    for (i in 1:len) {
+      out[[i]] <- proc_mzml(file = files[[i]], raw_id = i, 
+                            filepath = filepath, 
                             topn_ms2ions = topn_ms2ions, 
                             ms1_charge_range = ms1_charge_range, 
                             ret_range = ret_range, 
@@ -1509,8 +1492,6 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
                             tmt_reporter_lower = tmt_reporter_lower, 
                             tmt_reporter_upper = tmt_reporter_upper, 
                             exclude_reporter_region = exclude_reporter_region, 
-                            index_mgf_ms2 = index_mgf_ms2, 
-                            is_mdda = is_mdda, 
                             deisotope_ms2 = deisotope_ms2, 
                             max_ms2_charge = max_ms2_charge, 
                             use_defpeaks = use_defpeaks, 
@@ -1523,45 +1504,50 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
                             fct_iso2 = fct_iso2,
                             quant = quant, 
                             digits = digits)
+    }
   }
   else {
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-    out <- parallel::clusterApply(cl, files, proc_mzml, 
-                                  topn_ms2ions = topn_ms2ions, 
-                                  ms1_charge_range = ms1_charge_range, 
-                                  ret_range = ret_range, 
-                                  min_mass = min_mass, 
-                                  max_mass = max_mass, 
-                                  ppm_ms1 = ppm_ms1, 
-                                  ppm_ms2 = ppm_ms2, 
-                                  min_ms2mass = min_ms2mass, 
-                                  max_ms2mass = max_ms2mass, 
-                                  mgf_cutmzs = mgf_cutmzs, 
-                                  mgf_cutpercs = mgf_cutpercs, 
-                                  tmt_reporter_lower = tmt_reporter_lower, 
-                                  tmt_reporter_upper = tmt_reporter_upper, 
-                                  exclude_reporter_region = exclude_reporter_region, 
-                                  index_mgf_ms2 = index_mgf_ms2, 
-                                  is_mdda = is_mdda, 
-                                  deisotope_ms2 = deisotope_ms2, 
-                                  max_ms2_charge = max_ms2_charge, 
-                                  use_defpeaks = use_defpeaks, 
-                                  maxn_dia_precurs = maxn_dia_precurs, 
-                                  maxn_mdda_precurs = maxn_mdda_precurs, 
-                                  n_mdda_flanks = n_mdda_flanks, 
-                                  ppm_ms1_deisotope = ppm_ms1_deisotope, 
-                                  ppm_ms2_deisotope = ppm_ms2_deisotope, 
-                                  grad_isotope = grad_isotope, 
-                                  fct_iso2 = fct_iso2, 
-                                  quant = quant, 
-                                  digits = digits)
+    out <- parallel::clusterMap(
+      cl, proc_mzml, 
+      files, seq_along(files), 
+      MoreArgs = list(filepath = filepath, 
+                      topn_ms2ions = topn_ms2ions, 
+                      ms1_charge_range = ms1_charge_range, 
+                      ret_range = ret_range, 
+                      min_mass = min_mass, 
+                      max_mass = max_mass, 
+                      ppm_ms1 = ppm_ms1, 
+                      ppm_ms2 = ppm_ms2, 
+                      min_ms2mass = min_ms2mass, 
+                      max_ms2mass = max_ms2mass, 
+                      mgf_cutmzs = mgf_cutmzs, 
+                      mgf_cutpercs = mgf_cutpercs, 
+                      tmt_reporter_lower = tmt_reporter_lower, 
+                      tmt_reporter_upper = tmt_reporter_upper, 
+                      exclude_reporter_region = exclude_reporter_region, 
+                      deisotope_ms2 = deisotope_ms2, 
+                      max_ms2_charge = max_ms2_charge, 
+                      use_defpeaks = use_defpeaks, 
+                      maxn_dia_precurs = maxn_dia_precurs, 
+                      maxn_mdda_precurs = maxn_mdda_precurs, 
+                      n_mdda_flanks = n_mdda_flanks, 
+                      ppm_ms1_deisotope = ppm_ms1_deisotope, 
+                      ppm_ms2_deisotope = ppm_ms2_deisotope, 
+                      grad_isotope = grad_isotope, 
+                      fct_iso2 = fct_iso2, 
+                      quant = quant, 
+                      digits = digits), 
+      SIMPLIFY = FALSE, USE.NAMES = FALSE, 
+      .scheduling = "dynamic"
+    )
     parallel::stopCluster(cl)
   }
   
-  out <- dplyr::bind_rows(out)
+  raws <- unlist(out, recursive = FALSE, use.names = TRUE)
+  qs::qsave(raws, file.path(filepath, "raw_indexes.rds"), preset = "fast")
 
-  post_readmgf(out, min_mass = min_mass, max_mass = max_mass, ppm_ms1 = ppm_ms1, 
-               filepath = filepath)
+  invisible(NULL)
 }
 
 
@@ -1570,15 +1556,18 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
 #' No scan range subsetting with PASEF timsTOF.
 #' 
 #' @param file A file name to mzML with a prepending path.
+#' @param raw_id A RAW file ID.
+#' @param filepath A file path of MGF.
 #' @inheritParams readmzML
-proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L), 
+proc_mzml <- function (file, raw_id, filepath, topn_ms2ions = 100L, 
+                       ms1_charge_range = c(2L, 4L), 
                        ret_range = c(0, Inf), min_mass = 200L, max_mass = 4500L, 
                        ppm_ms1 = 10L, ppm_ms2 = 10L, 
                        min_ms2mass = 115L, max_ms2mass = 4500L, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
-                       is_mdda = FALSE, deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
+                       exclude_reporter_region = FALSE, 
+                       deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                        use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                        maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                        ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
@@ -1592,10 +1581,9 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L),
                   tmt_reporter_lower = tmt_reporter_lower, 
                   tmt_reporter_upper = tmt_reporter_upper, 
                   exclude_reporter_region = exclude_reporter_region, 
-                  index_mgf_ms2 = index_mgf_ms2, ppm_ms1 = ppm_ms1, 
-                  ppm_ms2 = ppm_ms2, min_ms2mass = min_ms2mass, 
-                  max_ms2mass = max_ms2mass, max_ms1_charge = max_ms1_charge, 
-                  is_mdda = is_mdda, 
+                  ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
+                  min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
+                  max_ms1_charge = max_ms1_charge, 
                   deisotope_ms2 = deisotope_ms2, 
                   max_ms2_charge = max_ms2_charge, 
                   use_defpeaks = use_defpeaks, 
@@ -1608,7 +1596,7 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L),
                   fct_iso2 = fct_iso2,
                   quant = quant, digits = digits)
   
-  if (is_mdda) {
+  if (maxn_mdda_precurs) {
     rows <- lapply(df$ms1_mass, is.null)
     rows <- unlist(rows, recursive = FALSE, use.names = FALSE)
     df <- df[!rows, ]
@@ -1647,12 +1635,12 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L),
 
   if (is.atomic(df[1, "ms1_charge", drop = TRUE])) {
     df <- df[with(df, !is.na(ms1_mass)), ]
-    
     df <- dplyr::filter(df, 
                         ms1_charge >= min_ms1_charge, 
                         ms1_charge <= max_ms1_charge, 
                         ret_time >= ret_range[1], ret_time <= ret_range[2], 
                         ms1_mass >= min_mass, ms1_mass <= max_mass, )
+    df <- dplyr::arrange(df, ms1_mass)
   }
 
   # subsets by top-n and min_ms2mass
@@ -1666,13 +1654,13 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L),
                           min_ms2mass = min_ms2mass, 
                           max_ms2mass = max_ms2mass)
   
-  # can be integers if "index_mgf_ms2 = TRUE"
   df[["ms2_moverzs"]] <- mz_n_int[["ms2_moverzs"]]
   df[["ms2_ints"]] <- mz_n_int[["ms2_ints"]]
   df[["ms2_charges"]] <- mz_n_int[["ms2_charges"]]
   df[["ms2_n"]] <- mz_n_int[["lens"]]
 
-  invisible(df)
+  post_readmgf(df, raw_id = raw_id, mgf_path = filepath, min_mass = min_mass, 
+               max_mass = max_mass, ppm_ms1 = ppm_ms1)
 }
 
 
@@ -1684,10 +1672,10 @@ proc_mzml <- function (file, topn_ms2ions = 100L, ms1_charge_range = c(2L, 4L),
 #' @inheritParams matchMS
 read_mzml <- function (xml_file, topn_ms2ions = 100L, 
                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE, 
+                       exclude_reporter_region = FALSE, 
                        ppm_ms1 = 10L, ppm_ms2 = 10L, min_ms2mass = 115L, 
                        max_ms2mass = 4500L, max_ms1_charge = 4L, 
-                       is_mdda = FALSE, deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
+                       deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
                        use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                        maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                        ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
@@ -1887,7 +1875,7 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
   # ms1_: ms1 only
   # ms0_: by other peak-pickings, e.g., MSConvert
   
-  if (is_mdda) {
+  if (maxn_mdda_precurs) {
     df <- proc_mdda(spec, raw_file = raw_file, idx_sc = idx_sc, idx_osc = idx_osc, 
                     idx_mslev = idx_mslev, idx_title = idx_title, 
                     idx_scanList_2 = idx_scanList_2, idx_rt_2 = idx_rt_2, 
@@ -1958,8 +1946,7 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
                    topn_ms2ions = topn_ms2ions, quant = quant, 
                    tmt_reporter_lower = tmt_reporter_lower, 
                    tmt_reporter_upper = tmt_reporter_upper, 
-                   exclude_reporter_region = exclude_reporter_region, 
-                   index_mgf_ms2 = index_mgf_ms2)
+                   exclude_reporter_region = exclude_reporter_region)
   }
 }
 
@@ -2473,7 +2460,7 @@ proc_dda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L,
                       max_ms2_charge = 3L, ppm_ms2_deisotope = 10L, 
                       topn_ms2ions = 100L, quant = "none", 
                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                      exclude_reporter_region = FALSE, index_mgf_ms2 = FALSE)
+                      exclude_reporter_region = FALSE)
 {
   len <- length(spec)
   ret_times <- orig_scans <- scan_nums <- scan_titles <- character(len)
@@ -2582,10 +2569,7 @@ proc_dda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L,
   msx_ints <- restmt[["yvals"]]
   rptr_moverzs <- restmt[["rptr_moverzs"]]
   rptr_ints <- restmt[["rptr_ints"]]
-  
-  if (index_mgf_ms2) 
-    msx_moverzs <- lapply(msx_moverzs, index_mz, min_ms2mass, ppm_ms2/1E6)
-  
+
   df <- tibble::tibble(
     scan_title = scan_titles,
     raw_file = raw_file,
