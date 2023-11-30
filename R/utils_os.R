@@ -365,7 +365,8 @@ find_dir <- function (path, create = FALSE)
   else {
     if (create) {
       dir.create(file.path(path), recursive = TRUE, showWarnings = FALSE)
-      path <- p1
+      # ensure fs_path class for argument matches 
+      path <- fs::path(p1)
     } 
     else {
       message(path, " not found.")

@@ -109,6 +109,16 @@ consideration when averaging isotope envelops of precursors.}
 
 \item{ppm_ms2_deisotope}{Mass error tolerance in MS2 deisotoping.}
 
+\item{grad_isotope}{Positive numeric; the gradient threshold between two
+adjacent peaks in an isotopic envelop. The smaller the value, the more
+stringent it is in calling an adjacent peak being a mono-isotopic
+precursor.}
+
+\item{fct_iso2}{A multiplication factor for the fuzzy discrimination of a
+secondary precursor in parallel to a primary precursor in an isotopic
+envelop. The smaller the value, the more stringent it is in calling an
+adjacent peak being a mono-isotopic precursor}
+
 \item{quant}{A character string; the quantitation method. The default is
 "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
 tmt18}. For other multiplicities of \code{tmt}, use the compatible higher

@@ -26,7 +26,7 @@ find_charge_state(
 
 \item{mint}{The maximum intensity (corresponding to the peak at \code{imax}).}
 
-\item{moverzs}{Mass-to-charge ratios.}
+\item{moverzs}{MS1 or MS2 Mass-to-charge ratios.}
 
 \item{msxints}{MS1 or MS2 peak intensities.}
 

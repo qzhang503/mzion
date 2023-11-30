@@ -20,6 +20,3 @@ Cut points.
 The cut-points will be used as the boundary in data binning. Note that the
 upper bound is open.
 }
-\seealso{
-find_ms1_interval
-}

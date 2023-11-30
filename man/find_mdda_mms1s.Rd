@@ -34,6 +34,16 @@ find_mdda_mms1s(
 
 \item{n_fwd}{Forward looking up to \code{n_fwd} mass entries.}
 
+\item{grad_isotope}{Positive numeric; the gradient threshold between two
+adjacent peaks in an isotopic envelop. The smaller the value, the more
+stringent it is in calling an adjacent peak being a mono-isotopic
+precursor.}
+
+\item{fct_iso2}{A multiplication factor for the fuzzy discrimination of a
+secondary precursor in parallel to a primary precursor in an isotopic
+envelop. The smaller the value, the more stringent it is in calling an
+adjacent peak being a mono-isotopic precursor}
+
 \item{use_defpeaks}{Use default peak info or not.}
 
 \item{width}{The width of an MS1 window. A wide window is used for containing

@@ -16,6 +16,3 @@ index_mz(x, from = 115L, d = 1e-05)
 \description{
 Converts ms2_moverzs to integers.
 }
-\seealso{
-find_ms1_interval
-}

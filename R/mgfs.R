@@ -77,15 +77,18 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
   }
   else {
     # backward compatible
-    if (file.exists(raws_indexes <- file.path(mgf_path, "raw_indexes.rds"))) {
-      raws <- qs::qread(raws_indexes)
-      ques <- list.files(mgf_path, pattern = "^mgf_queries_\\d+\\.rds$")
-      ok_mgfs <- if (length(raws) == length(ques)) TRUE else FALSE
-      rm(list = c("raws", "raws_indexes"))
-    }
-    else {
-      ok_mgfs <- FALSE
-    }
+    ok_mgfs <- local({
+      raws_indexes <- file.path(mgf_path, "raw_indexes.rds")
+      
+      if (file.exists(raws_indexes)) {
+        raws <- qs::qread(raws_indexes)
+        ques <- list.files(mgf_path, pattern = "^mgf_queries_\\d+\\.rds$")
+        if (length(raws) == length(ques)) TRUE else FALSE
+      }
+      else {
+        FALSE
+      }
+    })
   }
 
   rm(list = c("scns", "ques", "n_scns", "n_ques"))
@@ -377,6 +380,7 @@ readMGF <- function (filepath = NULL, filelist = NULL, out_path = NULL,
 #' 
 #' @param df A data frame of processed peak lists.
 #' @param raw_id An ID to replace the original RAW file name.
+#' @param mgf_path A path to mzML or MGF files.
 #' @inheritParams readMGF
 post_readmgf <- function (df, raw_id, mgf_path, min_mass = 200L, 
                           max_mass = 4500L, ppm_ms1 = 10L) 
@@ -568,8 +572,7 @@ read_mgf_chunks <- function (filepath, temp_dir, raw_id = 1L,
         "proc_mgfs", 
         "which_topx2", 
         "index_mz", 
-        "integerize_ms2ints", 
-        "find_ms1_interval"), 
+        "integerize_ms2ints"), 
       envir = environment(mzion::matchMS)
     )
     
@@ -1176,31 +1179,11 @@ extract_mgf_rptrs <- function (xvals, yvals, quant = "none",
 }
 
 
-#' Calculates the frame numbers for a list of experimental MS1 mass by
-#' intervals.
-#'
-#' Needs correct \code{from}.
-#' @param mass Numeric; a list of MS1 masses.
-#' @inheritParams find_ms1_cutpoints
-#' @examples
-#' \donttest{
-#' library(mzion)
-#' mzion:::find_ms1_interval(c(500, 800.1))
-#' }
-#' @return Frame numbers.
-#' @seealso find_ms1_cutpoints
-find_ms1_interval <- function (mass = 1800.0, from = 200L, ppm = 10L) 
-{
-  ceiling(log(unlist(mass, recursive = FALSE, use.names = FALSE)/from)/log(1+ppm/1e6))
-}
-
-
 #' Converts ms2_moverzs to integers.
 #'
 #' @param from Numeric; the starting MS1 mass.
 #' @param x Numeric; MS2 mass.
 #' @param d Numeric; \eqn{ppm * 10E-6}.
-#' @seealso find_ms1_interval
 index_mz <- function (x, from = 115L, d = 1E-5) ceiling(log(x/from)/log(1+d))
 
 
@@ -1443,6 +1426,7 @@ find_mgf_type <- function (file)
 #' Reads mzML files.
 #'
 #' @inheritParams readMGF
+#' @inheritParams matchMS
 readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL, 
                       min_mass = 200L, max_mass = 4500L, 
                       min_ms2mass = 115L, max_ms2mass = 4500L, 
@@ -1470,8 +1454,9 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
   files <- file.path(filepath, filelist)
   sizes <- max(unlist(lapply(files, file.size)))/1024^3
   n_cores <- min(detect_cores(32L), 
-                 floor((find_free_mem()/1024)/(sizes * 8)) + 1L, 
+                 find_free_mem()/1024/sizes/7.5 + 1, 
                  len)
+  n_cores <- find_min_ncores(len, n_cores) 
   n_cores <- max(1L, n_cores)
   
   if (n_cores == 1L) {
@@ -1559,6 +1544,7 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
 #' @param raw_id A RAW file ID.
 #' @param filepath A file path of MGF.
 #' @inheritParams readmzML
+#' @inheritParams matchMS
 proc_mzml <- function (file, raw_id, filepath, topn_ms2ions = 100L, 
                        ms1_charge_range = c(2L, 4L), 
                        ret_range = c(0, Inf), min_mass = 200L, max_mass = 4500L, 
@@ -1786,7 +1772,11 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
   rm(list = c("x", "ids", "xc", "xcp_attrs", "xcp_names", "xcp_vals", "id_nms"))
   
   # MS2 indexes (no MS1 with DDA -> MS2 goes first)
-  for (i in 1:(len <- length(spec))) {
+  len <- length(spec)
+  allowance <- min(100L, len)
+  count <- 0L
+  
+  for (i in 1:len) {
     x <- spec[[i]]
     xc <- xml2::xml_children(x)
     
@@ -1820,7 +1810,23 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
       selion_nms <- lapply(selectedIonc, function (x) xml2::xml_attr(x, "name"))
       idx_moverz <- which(selion_nms == "selected ion m/z")
       idx_ms1int <- which(selion_nms == "peak intensity") # DIA: zero intensity
+      
+      ## MSConcert: no "peak intensity"
+      if (!length(idx_ms1int)) {
+        if (count <= allowance) {
+          count <- count + 1L
+          next
+        }
+        else {
+          warning("The field of `peak intensity` not found.")
+          idx_ms1int <- 3L
+        }
+      }
+      ##
+      
       idx_charge <- which(selion_nms == "charge state") # DIA: no "charge state"
+
+      # better let user define as MSConvert may be missing "charge state"
       is_dia <- if (length(idx_charge)) FALSE else TRUE
       
       rm(list = c("scanList", "scanList_ret", "scanList_ret_attrs", 
@@ -1998,6 +2004,7 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
                        grad_isotope = 2.5, fct_iso2 = 3.0, use_defpeaks = FALSE)
 {
   len <- length(spec)
+  is_tmt <- if (isTRUE(grepl("^tmt.*\\d+", quant))) TRUE else FALSE
   
   ret_times <- orig_scans <- scan_nums <- scan_titles <- 
     iso_ctr <- iso_lwr <- iso_upr <- character(len)
@@ -2010,9 +2017,7 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
   msx_moverzs <- msx_ints <- ms2_charges <- vector("list", len)
   ms1_moverzs <- ms1_ints <- ms1_charges <- vector("list", len)
   ms0_moverzs <- ms0_ints <- ms0_charges <- character(len)
-  
-  is_tmt <- if (isTRUE(grepl("^tmt.*\\d+", quant))) TRUE else FALSE
-  
+
   for (i in 1:len) {
     x <- spec[[i]]
     ids <- .Internal(strsplit(xml2::xml_attr(x, "id"), " ", fixed = TRUE, 
@@ -2708,7 +2713,7 @@ find_gatepos <- function (vec)
 
 #' Finds the positions of logical gates.
 #' 
-#' @param vec A logical vector.
+#' @param vals A logical vector.
 #' 
 #' @examples
 #' library(mzion)
@@ -2944,6 +2949,7 @@ collapse_mms1ints <- function (xs, ys, lwr, step = 1e-5)
 #' @param n_fwd Forward looking up to \code{n_fwd} mass entries.
 #' @param step The bin size in converting numeric m-over-z values to integers.
 #' @param use_defpeaks Use default peak info or not.
+#' @inheritParams matchMS
 find_mdda_mms1s <- function (df1, df2, n_ms1s = 1L, ppm = 10L, 
                              maxn_precurs = 5L, max_ms1_charge = 4L, 
                              n_fwd = 20L, grad_isotope = 2.5, fct_iso2 = 3.0, 

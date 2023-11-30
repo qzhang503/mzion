@@ -1105,3 +1105,33 @@ bind_dfs <- function (dfs)
 }
 
 
+#' Find the minimal number of cores.
+#' 
+#' @param x The number of files.
+#' @param n The number of cores where \code{x > n > 1}.
+find_min_ncores <- function (x = 25, n = 6)
+{
+  if (x <= 0)
+    stop("`x` needs to be greater than zero.")
+  
+  if (n <= 1L)
+    return(n)
+  
+  if (x <= n)
+    return(x)
+  
+  len <- ceiling(x/n)
+  len2 <- ceiling(x/(n2 <- n - 1L))
+  # len2 >= len
+  
+  while(len2 == len) {
+    n <- n2
+    len <- len2
+    n2 <- n - 1L # ok n2 == 0L
+    len2 <- ceiling(x/n2)
+  }
+  
+  n
+}
+
+

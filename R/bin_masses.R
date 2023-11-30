@@ -61,8 +61,7 @@ bin_ms1masses <- function (res = NULL, min_mass = 200L, max_mass = 4500L,
   
   if (len_bts && use_ms1_cache) {
     .path_bin <- file.path(.path_ms1masses, .time_stamp, fun, .time_bin)
-    # in the next version...
-    # .path_bin <- fs::fs_path(.path_bin)
+    .path_bin <- fs::fs_path(.path_bin) # ensure class fs_path for arg matches
     bins <- list.files(path = .path_bin, pattern = "binned_theopeps_\\d+\\.rds$")
 
     if (length(bins) == len_m) {
@@ -314,7 +313,6 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 200L,
 #' @param to Numeric; the ending MS1 mass.
 #' @param ppm Numeric; the ppm for data binning.
 #' @return Cut points.
-#' @seealso find_ms1_interval
 find_ms1_cutpoints <- function (from = 200L, to = 4500L, ppm = 10L) 
 {
   d <- ppm/1e6

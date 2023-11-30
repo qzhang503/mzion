@@ -18,6 +18,8 @@ post_readmgf(
 
 \item{raw_id}{An ID to replace the original RAW file name.}
 
+\item{mgf_path}{A path to mzML or MGF files.}
+
 \item{min_mass}{Numeric; the minimum mass of MS1 species. The value needs to
 match the one in  \link{binTheoSeqs}.}
 

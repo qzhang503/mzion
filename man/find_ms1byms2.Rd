@@ -7,7 +7,7 @@
 find_ms1byms2(moverzs, msxints, charges, center, iso_lwr, iso_upr)
 }
 \arguments{
-\item{moverzs}{Mass-to-charge ratios.}
+\item{moverzs}{MS1 or MS2 Mass-to-charge ratios.}
 
 \item{msxints}{MS1 or MS2 peak intensities.}
 

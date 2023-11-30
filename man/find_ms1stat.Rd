@@ -31,7 +31,7 @@ find_ms1stat(
 )
 }
 \arguments{
-\item{moverzs}{Mass-to-charge ratios.}
+\item{moverzs}{MS1 or MS2 Mass-to-charge ratios.}
 
 \item{msxints}{MS1 or MS2 peak intensities.}
 
@@ -102,9 +102,11 @@ moverzs <- c(881 + 1:10*.1, 882.0674, 882.0981, 882.4034, 882.60, 882.7372)
 msxints <- c(1000 * 1:10, 1652869, 788368, 2043015, 2314111, 4314111)
 n_ms1s <- rep_len(1L, length(msxints))
 
-# out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, ppm = 5L, ms_lev = 1L,
-#                             maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
-#                             offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
+if (FALSE) {
+  out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, ppm = 5L, ms_lev = 1L,
+                              maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
+                              offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
+}
 
 moverzs <- c(907.968018,908.136475,908.872711,909.073690,909.121,
              909.273670,909.280212,909.45,909.454981,909.459717,
@@ -122,13 +124,15 @@ msxints <- c(2971101,3013171,5774301,24508055,40267873,
              8305187,37899662)
 n_ms1s <- rep_len(1L, length(msxints))
 
-# out <- find_ms1stat(moverzs, msxints, n_ms1s, center = 909.788696,
-#                     exclude_reporter_region = FALSE,
-#                     ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
-#                     order_mz = TRUE, step = 5/1e6)
-# out <- find_ms1stat(moverzs, msxints, n_ms1s, # center = 909.788696,
-#                     exclude_reporter_region = FALSE,
-#                     ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
-#                     order_mz = TRUE, step = 5/1e6)
+if (FALSE) {
+  out <- find_ms1stat(moverzs, msxints, n_ms1s, center = 909.788696,
+                      exclude_reporter_region = FALSE,
+                      ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
+                      order_mz = TRUE, step = 5/1e6)
+  out <- find_ms1stat(moverzs, msxints, n_ms1s, # center = 909.788696,
+                      exclude_reporter_region = FALSE,
+                      ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
+                      order_mz = TRUE, step = 5/1e6)
+}
 }
 }

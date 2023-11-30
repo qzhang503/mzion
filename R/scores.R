@@ -470,7 +470,6 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, # expt_charges,
 #' @param mts Nested data frame of \code{theo} and matched \code{expt} m-over-z.
 #' @param expt_moverzs Nested list of match and unmatched experimental m-over-z.
 #' @param expt_ints Nested list of match and unmatched experimental intensity.
-#' @param expt_charges Nested list of match and unmatched experimental charges.
 #' @param N Numeric; the number of MS2 features in an MGF query.
 #' @param d2 Bin width in ppm divided by 1E6.
 #' @inheritParams matchMS

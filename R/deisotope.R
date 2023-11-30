@@ -1,6 +1,6 @@
 #' De-isotopes precursor masses.
 #'
-#' @param moverzs Mass-to-charge ratios.
+#' @param moverzs MS1 or MS2 Mass-to-charge ratios.
 #' @param msxints MS1 or MS2 peak intensities.
 #' @param n_ms1s The underlying counts that have contributed to \code{moverzs}
 #'   and \code{maxints}.
@@ -32,9 +32,11 @@
 #' msxints <- c(1000 * 1:10, 1652869, 788368, 2043015, 2314111, 4314111)
 #' n_ms1s <- rep_len(1L, length(msxints))
 #'
-#' # out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, ppm = 5L, ms_lev = 1L,
-#' #                             maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
-#' #                             offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
+#' if (FALSE) {
+#'   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, ppm = 5L, ms_lev = 1L,
+#'                               maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
+#'                               offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
+#' }
 #'
 #' moverzs <- c(907.968018,908.136475,908.872711,909.073690,909.121,
 #'              909.273670,909.280212,909.45,909.454981,909.459717,
@@ -52,14 +54,16 @@
 #'              8305187,37899662)
 #' n_ms1s <- rep_len(1L, length(msxints))
 #'
-#' # out <- find_ms1stat(moverzs, msxints, n_ms1s, center = 909.788696,
-#' #                     exclude_reporter_region = FALSE,
-#' #                     ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
-#' #                     order_mz = TRUE, step = 5/1e6)
-#' # out <- find_ms1stat(moverzs, msxints, n_ms1s, # center = 909.788696,
-#' #                     exclude_reporter_region = FALSE,
-#' #                     ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
-#' #                     order_mz = TRUE, step = 5/1e6)
+#' if (FALSE) {
+#'   out <- find_ms1stat(moverzs, msxints, n_ms1s, center = 909.788696,
+#'                       exclude_reporter_region = FALSE,
+#'                       ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
+#'                       order_mz = TRUE, step = 5/1e6)
+#'   out <- find_ms1stat(moverzs, msxints, n_ms1s, # center = 909.788696,
+#'                       exclude_reporter_region = FALSE,
+#'                       ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
+#'                       order_mz = TRUE, step = 5/1e6)
+#' }
 #' }
 find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0, 
                           exclude_reporter_region = FALSE, 
@@ -149,18 +153,6 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
                             ms_lev = ms_lev, ppm = ppm, fct_bg = fct_bg)
 
     if (ch == 0L) {
-      if (FALSE) {
-        # not ideal: e.g. at max_charge = 4, 
-        #  a z = 5 peak will not be identified but assigned z = 2 here
-        if (ms_lev == 1L && !use_defpeaks) {
-          peaks[[p]] <- center
-          css[[p]] <- 2L # arbitrary, better learn from MS2
-        }
-        else {
-          peaks[[p]] <- mass
-        }
-      }
-
       peaks[[p]] <- mass
       intens[[p]] <- mint
       len_ms <- len_ms - 1L
@@ -176,7 +168,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     sta1 <- min(len_ms, imax + 1L)
     end1 <- min(len_ms, imax + offset_upr)
 
-    # find mono-isotopic m/z
+    # find monoisotopic m/z
     if (ch * mass > backward_mass_co) {
       iths <- index_mz(mass + gap * (-ch-1L):(1L+ch), from, step)
       if ((lwr <- imax - offset_lwr) < 1L) lwr <- 1L
@@ -307,15 +299,14 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
 #' @param lenm The length of \code{moverzs}.
 #' @inheritParams find_ms1stat 
 find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s, lenm, 
-                               max_charge = 4L, n_fwd = 20L, 
-                               ms_lev = 1L, ppm = 8, fct_bg = 10)
+                               max_charge = 4L, n_fwd = 20L, ms_lev = 1L, 
+                               ppm = 8, fct_bg = 10)
 {
   # find results for all ch -> uses the best...
   # distinguish left, right or both left and right evidence
   # if left-only evidence -> monomass must < mass
 
   # stopifnot(max_charge >= 2L, ppm >= 1)
-  
   gaps <- 1.003355/2:max_charge
   err <- ppm/1e6
 
@@ -334,27 +325,65 @@ find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s, lenm,
   }
 
   mxs1 <- mass + gaps
-  mxs2 <- mass - gaps
   ioks1 <- lapply(mxs1, function (x) .Internal(which(abs(xsub1/x - 1L) <= err)))
-  ioks2 <- lapply(mxs2, function (x) .Internal(which(abs(xsub2/x - 1L) <= err)))
   lens1 <- lengths(ioks1)
-  lens2 <- lengths(ioks2)
   chs1 <- .Internal(which(lens1 > 0L))
-  chs2 <- .Internal(which(lens2 > 0L))
   l1 <- length(chs1)
-  l2 <- length(chs2)
   
-  if (!(l1 || l2)) {
-    gap <- 1.003355
-    mx1 <- mass + gap
-    mx2 <- mass - gap
-    iok1 <- .Internal(which(abs(xsub1/mx1 - 1L) <= err))
-    iok2 <- .Internal(which(abs(xsub1/mx2 - 1L) <= err))
-    len1 <- length(iok1)
-    len2 <- length(iok2)
+  # l2 not use in the case
+  if (l1 > 1L) {
+    p1s <- lapply(ioks1[chs1], function (xs) {
+      if (length(xs) == 1L)
+        sta1 + xs - 1L
+      else {
+        ps <- sta1 + xs - 1L
+        i <- which.max(msxints[ps])
+        sta1 + xs[i] - 1L
+      }
+    })
+    p1s <- .Internal(unlist(p1s, recursive = FALSE, use.names = FALSE))
     
-    if (len1 || len2) return(1L) else return(0L)
+    if (ms_lev == 1L) {
+      ansduo <- check_chduo(duo = c(1L, 3L), chs1, p1s, msxints)
+      chs1 <- ansduo$chs
+      p1s <- ansduo$ps
+      
+      if (max_charge >= 6L) {
+        ansduo <- check_chduo(duo = c(2L, 5L), chs1, p1s, msxints)
+        chs1 <- ansduo$chs
+        p1s <- ansduo$ps
+      }
+    }
+    
+    if (FALSE && ms_lev == 1L) {
+      if (length(chs1) > 1L) {
+        chx1 <- chs1 + 1L
+        unqs <- !as.integer(chx1 * 2L) %in% chx1
+        chs1 <- chs1[unqs]
+        p1s <- p1s[unqs]
+      }
+      
+      nsubs <- n_ms1s[p1s]
+      
+      if (max(nsubs) == min(nsubs)) {
+        chs1 <- chs1[which.max(msxints[p1s])]
+        return(chs1 + 1L)
+      }
+      
+      chs1 <- chs1[which.max(n_ms1s[p1s])]
+      return(chs1 + 1L)
+    }
+    else {
+      chs1 <- chs1[which.max(msxints[p1s])]
+      return(chs1 + 1L)
+    }
   }
+  
+  mxs2 <- mass - gaps
+  ioks2 <- lapply(mxs2, function (x) .Internal(which(abs(xsub2/x - 1L) <= err)))
+  lens2 <- lengths(ioks2)
+  chs2 <- .Internal(which(lens2 > 0L))
+  l2 <- length(chs2)
   
   if (l1 == 1L) {
     if (l2 == 0L) {
@@ -404,7 +433,7 @@ find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s, lenm,
     p2s <- .Internal(unlist(p2s, recursive = FALSE, use.names = FALSE))
     yp1 <- max(msxints[p1])
     yp2 <- max(msxints[p2s])
-
+    
     if (FALSE & ms_lev == 1L) {
       np1 <- max(n_ms1s[p1])
       np2 <- max(ns2 <- n_ms1s[p2s])
@@ -474,54 +503,18 @@ find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s, lenm,
     }
   }
   
-  if (l1 > 1L) {
-    p1s <- lapply(ioks1[chs1], function (xs) {
-      if (length(xs) == 1L)
-        sta1 + xs - 1L
-      else {
-        ps <- sta1 + xs - 1L
-        i <- which.max(msxints[ps])
-        sta1 + xs[i] - 1L
-      }
-    })
-    p1s <- .Internal(unlist(p1s, recursive = FALSE, use.names = FALSE))
+  if (!(l1 || l2)) {
+    gap <- 1.003355
+    mx1 <- mass + gap
+    mx2 <- mass - gap
+    iok1 <- .Internal(which(abs(xsub1/mx1 - 1L) <= err))
+    iok2 <- .Internal(which(abs(xsub1/mx2 - 1L) <= err))
+    len1 <- length(iok1)
+    len2 <- length(iok2)
     
-    if (ms_lev == 1L) {
-      ansduo <- check_chduo(duo = c(1L, 3L), chs1, p1s, msxints)
-      chs1 <- ansduo$chs
-      p1s <- ansduo$ps
-      
-      if (max_charge >= 6L) {
-        ansduo <- check_chduo(duo = c(2L, 5L), chs1, p1s, msxints)
-        chs1 <- ansduo$chs
-        p1s <- ansduo$ps
-      }
-    }
-    
-    if (FALSE && ms_lev == 1L) {
-      if (length(chs1) > 1L) {
-        chx1 <- chs1 + 1L
-        unqs <- !as.integer(chx1 * 2L) %in% chx1
-        chs1 <- chs1[unqs]
-        p1s <- p1s[unqs]
-      }
-      
-      nsubs <- n_ms1s[p1s]
-      
-      if (max(nsubs) == min(nsubs)) {
-        chs1 <- chs1[which.max(msxints[p1s])]
-        return(chs1 + 1L)
-      }
-      
-      chs1 <- chs1[which.max(n_ms1s[p1s])]
-      return(chs1 + 1L)
-    }
-    else {
-      chs1 <- chs1[which.max(msxints[p1s])]
-      return(chs1 + 1L)
-    }
+    if (len1 || len2) return(1L) else return(0L)
   }
-  
+
   if (l2 == 1L) { # && l1 == 0
     return(chs2 + 1L)
   }
@@ -573,7 +566,7 @@ find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s, lenm,
 }
 
 
-#' Checks the duplicacy detween charge states 2 and 4.
+#' Checks the duplicacy between charge states 2 and 4.
 #'
 #' @param duo The potentially duplicated charge states. The values are off by
 #'   one less in that the input charge states are derived from searches
@@ -659,7 +652,7 @@ find_dbl_z <- function(ch = 2L, p = 2L, sta, mass, moverzs, max_charge = 4L,
 
 #' Detects chromatographic peaks.
 #' 
-#' May be overkilling.
+#' May be over-killing.
 #' 
 #' https://stackoverflow.com/questions/22583391/peak-signal-detection-in-realtime-timeseries-data
 #' https://stackoverflow.com/questions/58942623/isolating-peaks-in-from-time-series-data-in-r
@@ -889,13 +882,5 @@ gen_isoenvlope <- function (mass = 560, charge = 2L)
   # C19 H25 O5 N5 S3
   nc <- 19; nh <- 25; no <- 5; nn <- 5; ns <- 3
 }
-
-
-
-
-
-
-
-
 
 

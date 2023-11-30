@@ -7,7 +7,7 @@
 find_gates(vals)
 }
 \arguments{
-\item{vec}{A logical vector.}
+\item{vals}{A logical vector.}
 }
 \description{
 Finds the positions of logical gates.

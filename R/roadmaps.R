@@ -36,7 +36,6 @@
 #         - index_mz
 #         - sub_mgftopn
 #         - integerize_ms2ints
-#         - find_ms1_interval
 #     // END parallel
 # 
 # calc_tmtint (quant2.R)

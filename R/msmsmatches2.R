@@ -65,16 +65,18 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   call_pars   <- mget(fml_incl, envir = fun_env, inherits = FALSE)
   call_pars   <- call_pars[sort(names(call_pars))]
   
-  # temporary fix, update find_dir on the next ver and delete this
-  if (".path_bin" %in% names(cache_pars) && ".path_bin" %in% names(call_pars)) {
-    if (!(is.null(cache_pars$.path_bin) || 
-          "fs_path" %in% class(cache_pars$.path_bin))) {
-      cache_pars$.path_bin <- fs::fs_path(cache_pars$.path_bin)
-    }
-    
-    if (!(is.null(call_pars$.path_bin) || 
-          "fs_path" %in% class(call_pars$.path_bin))) {
-      call_pars$.path_bin <- fs::fs_path(call_pars$.path_bin)
+  # backward compatibility of old cached parameters
+  if (TRUE) {
+    if (".path_bin" %in% names(cache_pars) && ".path_bin" %in% names(call_pars)) {
+      if (!(is.null(cache_pars$.path_bin) || 
+            "fs_path" %in% class(cache_pars$.path_bin))) {
+        cache_pars$.path_bin <- fs::fs_path(cache_pars$.path_bin)
+      }
+      
+      if (!(is.null(call_pars$.path_bin) || 
+            "fs_path" %in% class(call_pars$.path_bin))) {
+        call_pars$.path_bin <- fs::fs_path(call_pars$.path_bin)
+      }
     }
   }
   

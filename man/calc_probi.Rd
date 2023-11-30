@@ -54,8 +54,6 @@ interrogation. The default is 110.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
-
-\item{expt_charges}{Nested list of match and unmatched experimental charges.}
 }
 \description{
 Helper for score calculations

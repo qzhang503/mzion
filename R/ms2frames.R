@@ -90,8 +90,8 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
   mgfs[["pep_ms1_offset"]] <- ms1_offset
   
   if (is.atomic(mgfs[1, "ms1_charge", drop = TRUE])) {
-    mgfs <- split(mgfs, find_ms1_interval(mgfs[["ms1_mass"]], from = min_mass, 
-                                          ppm = ppm_ms1_bin))
+    ms1_bins <- ceiling(log(mgfs[["ms1_mass"]]/min_mass)/log(1+ppm_ms1_bin/1e6))
+    mgfs <- split(mgfs, ms1_bins)
   }
   else {
     mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, quant = quant, 

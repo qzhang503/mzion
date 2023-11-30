@@ -36,7 +36,7 @@ find_lcpeaks(
 \item{influence}{The influence.}
 }
 \description{
-May be overkilling.
+May be over-killing.
 }
 \details{
 https://stackoverflow.com/questions/22583391/peak-signal-detection-in-realtime-timeseries-data

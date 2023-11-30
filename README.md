@@ -1,7 +1,7 @@
 Mzion
 ================
 true
-2023-11-12
+2023-11-15
 
 - [Installation](#installation)
 - [Peaklist formats](#peaklist-formats)

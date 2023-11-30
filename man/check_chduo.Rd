@@ -2,7 +2,7 @@
 % Please edit documentation in R/deisotope.R
 \name{check_chduo}
 \alias{check_chduo}
-\title{Checks the duplicacy detween charge states 2 and 4.}
+\title{Checks the duplicacy between charge states 2 and 4.}
 \usage{
 check_chduo(duo = c(1L, 3L), chs, ps, msxints, cutoff = 1.5)
 }
@@ -21,5 +21,5 @@ m-over-z sequence.}
 \item{cutoff}{A discriminating cut-off threshold.}
 }
 \description{
-Checks the duplicacy detween charge states 2 and 4.
+Checks the duplicacy between charge states 2 and 4.
 }
