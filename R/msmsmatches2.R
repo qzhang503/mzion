@@ -66,17 +66,15 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   call_pars   <- call_pars[sort(names(call_pars))]
   
   # backward compatibility of old cached parameters
-  if (TRUE) {
-    if (".path_bin" %in% names(cache_pars) && ".path_bin" %in% names(call_pars)) {
-      if (!(is.null(cache_pars$.path_bin) || 
-            "fs_path" %in% class(cache_pars$.path_bin))) {
-        cache_pars$.path_bin <- fs::fs_path(cache_pars$.path_bin)
-      }
-      
-      if (!(is.null(call_pars$.path_bin) || 
-            "fs_path" %in% class(call_pars$.path_bin))) {
-        call_pars$.path_bin <- fs::fs_path(call_pars$.path_bin)
-      }
+  if (".path_bin" %in% names(cache_pars) && ".path_bin" %in% names(call_pars)) {
+    if (!(is.null(cache_pars$.path_bin) || 
+          "fs_path" %in% class(cache_pars$.path_bin))) {
+      cache_pars$.path_bin <- fs::fs_path(cache_pars$.path_bin)
+    }
+    
+    if (!(is.null(call_pars$.path_bin) || 
+          "fs_path" %in% class(call_pars$.path_bin))) {
+      call_pars$.path_bin <- fs::fs_path(call_pars$.path_bin)
     }
   }
   
@@ -100,10 +98,12 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   
   delete_files(
     out_path, 
-    ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", "\\.xlsx$", 
-                "\\.xls$", "\\.csv$", "\\.txt$", "\\.pars$", 
+    ignores = c(mgf_path, "\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", 
+                "\\.xlsx$", "\\.xls$", "\\.csv$", "\\.txt$", "\\.pars$", 
                 "^mgf$", "^mgfs$", "^mzML$", "^mzMLs$", 
-                "Calls", "^PSM$", "^Peptide$", "^Protein$"))
+                "Calls", "^PSM$", "^Peptide$", "^Protein$", 
+                "fraction_scheme.rda", "label_scheme.rda", 
+                "label_scheme_full.rda"))
 
   # pairs expts and theos
   files_a  <-  list.files(mgf_path, pattern = "^expttheo_", full.names = TRUE)

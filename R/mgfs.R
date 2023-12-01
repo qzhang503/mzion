@@ -113,13 +113,13 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
   
   delete_files(
     out_path, 
-    ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.mzML$", "\\.xlsx$", 
-                "\\.xls$", "\\.csv$", "\\.txt$", "\\.tsv$", "\\.pars$", 
-                "^mgf$", "^mgfs$", "Calls", 
-                # in case of reprocessing after proteoQ
+    ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", 
+                "\\.xlsx$", "\\.xls$", "\\.csv$", "\\.txt$", "\\.pars$", 
+                "^mgf$", "^mgfs$", "^mzML$", "^mzMLs$", 
+                "Calls", "^PSM$", "^Peptide$", "^Protein$", 
                 "fraction_scheme.rda", "label_scheme.rda", 
                 "label_scheme_full.rda"))
-  
+
   fi_mgf   <- list.files(path = mgf_path, pattern = "^.*\\.(mgf|MGF)$")
   fi_mzml  <- list.files(path = mgf_path, pattern = "^.*\\.(mzML|mzml)$")
   len_mgf  <- length(fi_mgf)
@@ -1782,36 +1782,102 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
     
     if (xml2::xml_attr(xc[[idx_mslev]], "value") == "2") {
       idx_precursor_2 <- grep("precursorList", xc)
+      if (!length(idx_precursor_2)) {
+        warning("Fields of `precursorList` not found.")
+        idx_precursor_2 <- 12L
+      }
+      
       idx_scanList_2 <- grep("scanList", xc)
+      if (!length(idx_scanList_2)) {
+        warning("Fields of `scanList` not found.")
+        idx_scanList_2 <- 11L
+      }
+      
       idx_bin_2 <- grep("binaryDataArrayList", xc)
+      if (!length(idx_bin_2)) {
+        warning("Fields of `binaryDataArrayList` not found.")
+        idx_bin_2 <- 13L
+      }
       
       scanList <- xml2::xml_children(xc[[idx_scanList_2]])
+      
       idx_rt_2 <- which(xml2::xml_name(scanList) == "scan")
+      if (!length(idx_rt_2)) {
+        warning("Fields of `scan` not found.")
+        idx_rt_2 <- 2L
+      }
+      
       scanList_ret <- xml2::xml_children(scanList[[idx_rt_2]])
       scanList_ret_attrs <- xml2::xml_attr(scanList_ret, "name")
-      idx_scan_start_2 <- which(scanList_ret_attrs == "scan start time")
-      ms2_reso <- scanList_ret[[which(scanList_ret_attrs == "mass resolving power")]]
-      ms2_reso <- as.integer(xml2::xml_attr(ms2_reso, "value"))
+      
+      idx_scan_start_2 <- which(scanList_ret_attrs == "scan start time") # 1
+      if (!length(idx_scan_start_2)) {
+        warning("Fields of `scan start time` not found.")
+        idx_scan_start_2 <- 1L
+      }
+
+      idx_ms2_reso <- which(scanList_ret_attrs == "mass resolving power")
+      if (length(idx_ms2_reso)) {
+        ms2_reso <- scanList_ret[[idx_ms2_reso]]
+        ms2_reso <- as.integer(xml2::xml_attr(ms2_reso, "value"))
+      } else {
+        warning("Fields of `mass resolving power` not found.")
+        ms2_reso <- 120000L
+      }
+
+      # entire MS2 is empty
+      if (length(xc) < idx_precursor_2) {
+        next
+      }
       
       precursorList <- xml2::xml_children(xc[[idx_precursor_2]])
       precursor <- precursorList[[1]] # assume one precursor
       precursorc <- xml2::xml_children(precursor)
-      idx_selectedIonList <- grep("selectedIonList", precursorc)
       
+      idx_selectedIonList <- grep("selectedIonList", precursorc)
+      if (!length(idx_selectedIonList)) {
+        warning("Fields of `selectedIonList` not found.")
+        idx_selectedIonList <- 2L
+      }
+
       idx_isolationWindow <- grep("isolationWindow", precursorc)
+      if (!length(idx_isolationWindow)) {
+        warning("Fields of `isolationWindow` not found.")
+        idx_isolationWindow <- 1L
+      }
+
       isolationWindowc <- xml2::xml_children(precursorc[[idx_isolationWindow]])
       iso_nms <- lapply(isolationWindowc, function (x) xml2::xml_attr(x, "name"))
+      
       idx_ctrmz <- which(iso_nms == "isolation window target m/z")
+      if (!length(idx_ctrmz)) {
+        warning("Fields of `isolation window target m/z` not found.")
+        idx_ctrmz <- 1L
+      }
+
       idx_lwrmz <- which(iso_nms == "isolation window lower offset")
+      if (!length(idx_lwrmz)) {
+        warning("Fields of `isolation window lower offset` not found.")
+        idx_lwrmz <- 2L
+      }
+      
       idx_uprmz <- which(iso_nms == "isolation window upper offset")
+      if (!length(idx_uprmz)) {
+        warning("Fields of `isolation window upper offset` not found.")
+        idx_uprmz <- 3L
+      }
       
       selectedIon <- xml2::xml_child(precursorc[[idx_selectedIonList]], 1)
       selectedIonc <- xml2::xml_children(selectedIon)
       selion_nms <- lapply(selectedIonc, function (x) xml2::xml_attr(x, "name"))
-      idx_moverz <- which(selion_nms == "selected ion m/z")
-      idx_ms1int <- which(selion_nms == "peak intensity") # DIA: zero intensity
       
-      ## MSConcert: no "peak intensity"
+      idx_moverz <- which(selion_nms == "selected ion m/z")
+      if (!length(idx_moverz)) {
+        warning("Fields of `selected ion m/z` not found.")
+        idx_moverz <- 1L
+      }
+      
+      idx_ms1int <- which(selion_nms == "peak intensity") # DIA: zero intensity
       if (!length(idx_ms1int)) {
         if (count <= allowance) {
           count <- count + 1L
@@ -1822,8 +1888,7 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
           idx_ms1int <- 3L
         }
       }
-      ##
-      
+
       idx_charge <- which(selion_nms == "charge state") # DIA: no "charge state"
 
       # better let user define as MSConvert may be missing "charge state"
@@ -1843,7 +1908,16 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
     
     if (as.integer(xml2::xml_attr(xc[[idx_mslev]], "value")) == 1) {
       idx_scanList_1 <- grep("scanList", xc)
+      if (!length(idx_scanList_1)) {
+        warning("Fields of `scanList` not found.")
+        idx_scanList_1 <- 11L
+      }
+
       idx_bin_1 <- grep("binaryDataArrayList", xc)
+      if (!length(idx_bin_1)) {
+        warning("Fields of `binaryDataArrayList` not found.")
+        idx_bin_1 <- 12L
+      }
       
       local({
         binData <- xml2::xml_children(xc[[idx_bin_1]])[[1]]
@@ -1861,7 +1935,13 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
       })
       
       scanList <- xml2::xml_children(xc[[idx_scanList_1]])
+      
       idx_rt_1 <- which(xml2::xml_name(scanList) == "scan")
+      if (!length(idx_rt_1)) {
+        warning("Fields of `scan` not found.")
+        idx_rt_1 <- 2L
+      }
+      
       scanList_ret <- xml2::xml_children(scanList[[idx_rt_1]])
       
       scan_ret_attrs <- xml2::xml_attr(scanList_ret, "name")
@@ -1869,6 +1949,10 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
       # ms1_reso <- scanList_ret[[which(scan_ret_attrs == "mass resolving power")]]
       # ms1_reso <- as.integer(xml2::xml_attr(ms1_reso, "value"))
       idx_scan_start_1 <- which(scan_ret_attrs == "scan start time")
+      if (!length(idx_scan_start_1)) {
+        warning("Fields of `scan start time` not found.")
+        idx_scan_start_1 <- 1L
+      }
       
       rm(list = c("scanList", "scanList_ret", "scan_ret_attrs"))
       break
@@ -2035,6 +2119,11 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
       scanList <- xml2::xml_children(xc[[idx_scanList_2]])
       scanList_ret <- xml2::xml_children(scanList[[idx_rt_2]])
       ret_times[[i]] <- xml2::xml_attr(scanList_ret[[idx_scan_start_2]], "value")
+      
+      # entire MS2 is empty
+      if (length(xc) < idx_precursor_2) {
+        next
+      }
       
       precursorList <- xml2::xml_children(xc[[idx_precursor_2]])
       precursor <- precursorList[[1]] # (assume one precursor, not yet chimeric)
@@ -2280,6 +2369,11 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
       scanList_ret <- xml2::xml_children(scanList[[idx_rt_2]])
       ret_times[[i]] <- xml2::xml_attr(scanList_ret[[idx_scan_start_2]], "value")
       
+      # entire MS2 is empty
+      if (length(xc) < idx_precursor_2) {
+        next
+      }
+      
       precursorList <- xml2::xml_children(xc[[idx_precursor_2]])
       precursor <- precursorList[[1]] # (assume one precursor, not yet chimeric)
       precursorc <- xml2::xml_children(precursor)
@@ -2493,6 +2587,11 @@ proc_dda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L,
       scanList_ret <- xml2::xml_children(scanList[[idx_rt_2]])
       ret_times[[i]] <- xml2::xml_attr(scanList_ret[[idx_scan_start_2]], "value")
       
+      # entire MS2 is empty
+      if (length(xc) < idx_precursor_2) {
+        next
+      }
+
       precursorList <- xml2::xml_children(xc[[idx_precursor_2]])
       precursor <- precursorList[[1]] # (assume one precursor, not yet chimeric)
       precursorc <- xml2::xml_children(precursor)

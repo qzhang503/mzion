@@ -580,7 +580,7 @@ delete_files <- function (path, ignores = NULL, ...)
   if (!is.null(ignores)) {
     nms <- local({
       dirs <- list.dirs(path, full.names = FALSE, recursive = recursive)
-      dirs <- dirs[! dirs == ""]
+      dirs <- dirs[dirs != ""]
 
       idxes_kept <- purrr::map_lgl(dirs, function (x) any(grepl(x, ignores)))
       
