@@ -557,8 +557,9 @@ match_calltime <- function (path = "~/mzion/.MSearches/Cache/Calls",
 #' 
 #' @param path A file path.
 #' @param ignores The file extensions to be ignored.
+#' @param paths_excluded The path to be ignored.
 #' @param ... Arguments for file.remove.
-delete_files <- function (path, ignores = NULL, ...) 
+delete_files <- function (path, ignores = NULL, paths_excluded = NULL, ...) 
 {
   
   # Hadley Ch.19 Quasiquotation, note 97
@@ -577,27 +578,26 @@ delete_files <- function (path, ignores = NULL, ...)
   
   nms <- do.call(list.files, args)
   
-  if (!is.null(ignores)) {
-    nms <- local({
-      dirs <- list.dirs(path, full.names = FALSE, recursive = recursive)
-      dirs <- dirs[dirs != ""]
-
-      idxes_kept <- purrr::map_lgl(dirs, function (x) any(grepl(x, ignores)))
-      
-      nms_kept <- list.files(path = file.path(path, dirs[idxes_kept]),
-                             recursive = TRUE, full.names = TRUE)
-      
-      nms[! nms %in% nms_kept]
-    })
+  if (length(nms) && length(paths_excluded)) {
+    ignore_case <- if (Sys.info()['sysname'] == "Windows") TRUE else FALSE
     
-    nms <- local({
-      exts <- gsub("^.*(\\.[^.]*)$", "\\1", nms)
-      idxes_kept <- purrr::map_lgl(exts, function (x) any(grepl(x, ignores)))
-      
-      nms[!idxes_kept]
-    })
+    for (i in seq_along(paths_excluded))
+      nms <- nms[!grepl(paths_excluded[[i]], nms, ignore.case = ignore_case)]
   }
-  
+
+  if (!is.null(ignores)) {
+    dirs <- list.dirs(path, full.names = FALSE, recursive = recursive)
+    dirs <- dirs[dirs != ""]
+    oks <- purrr::map_lgl(dirs, function (x) any(grepl(x, ignores)))
+    nms_oks <- list.files(path = file.path(path, dirs[oks]),recursive = TRUE, 
+                          full.names = TRUE)
+    nms <- nms[!nms %in% nms_oks]
+    
+    exts <- gsub("^.*(\\.[^.]*)$", "\\1", nms)
+    oks <- purrr::map_lgl(exts, function (x) any(grepl(x, ignores)))
+    nms <- nms[!oks]
+  }
+
   if (length(nms)) 
     suppressMessages(file.remove(file.path(nms)))
 

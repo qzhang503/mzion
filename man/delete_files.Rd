@@ -4,12 +4,14 @@
 \alias{delete_files}
 \title{Deletes files under a directory.}
 \usage{
-delete_files(path, ignores = NULL, ...)
+delete_files(path, ignores = NULL, paths_excluded = NULL, ...)
 }
 \arguments{
 \item{path}{A file path.}
 
 \item{ignores}{The file extensions to be ignored.}
+
+\item{paths_excluded}{The path to be ignored.}
 
 \item{...}{Arguments for file.remove.}
 }

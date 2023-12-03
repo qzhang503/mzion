@@ -96,6 +96,7 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
   else {
     mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, quant = quant, 
                           min_mass = min_mass, ppm_ms1_bin = ppm_ms1_bin)
+    mgfs <- mgfs[names(mgfs) != "-Inf"] # unknown precursors
   }
 
   # to chunks: each chunk has multiple frames: each frame multiple precursors
@@ -265,13 +266,14 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
   data_ms2 <- data_ms2[seqs, ]
   mgfs <- dplyr::bind_cols(datalist, dataflat, data_ms2)
 
-  # rm(list = c("datalist", "dataflat", "scans", "data_ms2", 
-  #             "col_nms", "cols_list", "cols_flat", "cols_ms2"))
-  
   ord <- order(mgfs$ms1_mass)
   mgfs <- mgfs[ord, ]
   ms1_bins <- ceiling(log(mgfs$ms1_mass/min_mass)/log(1+ppm_ms1_bin/1e6))
   
+  # ms1_bins can be -Inf or NA since
+  # (1) ms1_moverz can be NA because not yet determined by the current algorithm
+  # (2) ms1_mass can also be NA due to ms1_charge being NA
+  # (3) ms1_charge can be zero since undetermined
   mgfs <- split(mgfs, ms1_bins)
 }
 

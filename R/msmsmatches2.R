@@ -98,12 +98,13 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   
   delete_files(
     out_path, 
-    ignores = c(mgf_path, "\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", 
+    ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", 
                 "\\.xlsx$", "\\.xls$", "\\.csv$", "\\.txt$", "\\.pars$", 
                 "^mgf$", "^mgfs$", "^mzML$", "^mzMLs$", 
                 "Calls", "^PSM$", "^Peptide$", "^Protein$", 
                 "fraction_scheme.rda", "label_scheme.rda", 
-                "label_scheme_full.rda"))
+                "label_scheme_full.rda"), 
+    paths_excluded = mgf_path)
 
   # pairs expts and theos
   files_a  <-  list.files(mgf_path, pattern = "^expttheo_", full.names = TRUE)
