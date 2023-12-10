@@ -11,7 +11,8 @@ calc_peploc(
   is_notched = FALSE,
   locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"),
   topn_mods_per_seq = 3L,
-  topn_seqs_per_query = 3L
+  topn_seqs_per_query = 3L,
+  maxn_mdda_precurs = 1L
 )
 }
 \arguments{
@@ -51,6 +52,12 @@ modifications.}
   The same \code{MS query} refers to the identity in \code{MS scan number}
   and \code{MS raw file name}. Target and decoys matches are treated
   separately.}
+
+\item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
+multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
+equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
+= 0}, it is equivalent to DDA using the original monoisotopic masses and
+charge states provided by a peak-picking algorithm (e.g., MSConvert).}
 }
 \description{
 A score delta between the best and the second best.

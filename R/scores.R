@@ -2214,7 +2214,9 @@ fill_probs <- function (nas, prob_cos, target_fdr = .01)
 #' 
 #' @param prob_cos Probability cut-offs (in data frame).
 #' @param out_path An output path.
-post_pepfdr <- function (prob_cos = NULL, out_path = NULL) 
+#' @inheritParams matchMS
+post_pepfdr <- function (prob_cos = NULL, maxn_mdda_precurs = 1L, n_13c = 0L, 
+                         out_path = NULL) 
 {
   if (is.null(prob_cos)) {
     file_prob <- file.path(out_path, "temp", "pep_probco.rds")
@@ -2239,22 +2241,31 @@ post_pepfdr <- function (prob_cos = NULL, out_path = NULL)
     df <- qs::qread(file.path(out_path, "temp", x))
     u  <- df[, c("raw_file", "pep_scan_num", "pep_seq", "pep_ivmod", 
                  "pep_ms1_offset")]
-    df[!duplicated.data.frame(u), ]
+    df <- df[!duplicated.data.frame(u), ]
   })
   
   names(td) <- ok_targets$idxes
-  ok <- lapply(td, nrow) > 0L
-  td <- dplyr::bind_rows(td[ok])
-  rm(list = c("ok_targets", "files", "ok"))
-  
-  if (!nrow(td)) 
+
+  if (!any(ok <- unlist(lapply(td, nrow) > 0L)))
     stop("No PSM matches for scoring. Consider different search parameters.")
   
+  td <- td[ok]
+  rm(list = c("ok_targets", "files", "ok"))
+
+  td <- lapply(td, rm_dup13c, maxn_mdda_precurs = maxn_mdda_precurs, n_13c = n_13c)
+
+  td <- lapply(td, function (df) {
+    df <- df |> 
+      dplyr::left_join(prob_cos, by = "pep_len") |>
+      dplyr::mutate(pep_issig = ifelse(pep_prob <= pep_prob_co, TRUE, FALSE))
+  })
+
+  # may delay the combine...
+  td <- dplyr::bind_rows(td)
+
   # Adjusted p-values (just to moderate pep_score)
   td <- td |> 
-    dplyr::left_join(prob_cos, by = "pep_len") |>
-    dplyr::mutate(pep_issig = ifelse(pep_prob <= pep_prob_co, TRUE, FALSE), 
-                  pep_adjp = p.adjust(pep_prob, "BH"))
+    dplyr::mutate(pep_adjp = p.adjust(pep_prob, "BH"))
   
   adjp_cos <- lapply(prob_cos$pep_prob_co, function (x) {
     row <- which.min(abs(log10(td$pep_prob/x)))
@@ -2787,7 +2798,8 @@ match_ex2th2 <- function (expt, theo, min_ms2mass = 115L, d = 1E-5)
 calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL, 
                          is_notched = FALSE, 
                          locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
-                         topn_mods_per_seq = 3L, topn_seqs_per_query = 3L) 
+                         topn_mods_per_seq = 3L, topn_seqs_per_query = 3L, 
+                         maxn_mdda_precurs = 1L) 
 {
   message("Calculating peptide localization scores and deltas.")
 
@@ -3112,17 +3124,27 @@ calcpeprank_3 <- function (x0)
 find_bestnotch <- function (x)
 {
   # favors pep_ms1_offset == 0
+  cols <- names(x)
   x <- data.table::rbindlist(list(x[x$pep_ms1_offset == 0], 
                                   x[x$pep_ms1_offset != 0]), 
                              use.names = FALSE)
-  x[, pep_rank0 := data.table::frank(-pep_score, ties.method = "first"), 
-    by = list(query_id)]
+  
+  if ("pep_score" %in% cols) {
+    x[, pep_rank0 := data.table::frank(-pep_score, ties.method = "first"), 
+      by = list(query_id)]
+  }
+  else if ("pep_prob" %in% cols) {
+    x[, pep_rank0 := data.table::frank(pep_prob, ties.method = "first"), 
+      by = list(query_id)]
+  }
+  else {
+    return(x)
+  }
 
   # the best query at each query_id
   g <- x[, c("pep_rank0", "query_id", "pep_ms1_offset")]
   g <- g[g$pep_rank0 == 1L, ]
   g[["pep_rank0"]] <- NULL
-  
   g[["keep"]] <- TRUE
   g[, uid := paste(query_id, pep_ms1_offset, sep = ".")]
   g[["pep_ms1_offset"]] <- g[["query_id"]] <- NULL
@@ -3518,6 +3540,96 @@ tsoutliers <- function (x, iterate = 2, lambda = NULL)
   }
   
   invisible(list(index = outliers, replacements = x[outliers]))
+}
+
+
+#' Removes duplicated entries in 13C results.
+#'
+#' Removes "n_13c != 0" entries with better matches at "n_13c == 0". By each
+#' module as the same combination of raw_file + pep_scan_num can also be
+#' duplicated across modification modules.
+#'
+#' @param df A data frame.
+#' @inheritParams matchMS
+rm_dup13c <- function (df, maxn_mdda_precurs = 1L, n_13c = 0L)
+{
+  if (length(n_13c) == 1L && n_13c == 0L) # maxn_mdda_precurs < 1L || 
+    return(df)
+
+  esscols <- c("pep_ms1_offset", "pep_scan_num", "raw_file")
+  cols <- names(df)
+  
+  if (!all(esscols %in% cols))
+    return(df)
+  
+  key <- if ("pep_score" %in% cols)
+    1L
+  else if ("pep_prob" %in%  cols)
+    2L
+  else
+    0L
+  
+  if (!key)
+    return(df)
+  
+  rows <- df$pep_ms1_offset == 0
+  df0 <- df[rows, ]
+  df1 <- df[!rows, ]
+  rm(list = c("rows", "df"))
+  
+  # no need of `pep_isdecoy`
+  ids0 <- with(df0, paste(raw_file, gsub("\\.\\d+$", "", pep_scan_num), sep = "."))
+  ids1 <- with(df1, paste(raw_file, gsub("\\.\\d+$", "", pep_scan_num), sep = "."))
+
+  oks <- ids1 %in% unique(ids0)
+  df1a <- df1[!oks, ]
+  df1b <- df1[oks, ]
+  rm(list = c("oks", "df1"))
+  
+  oks <- ids0 %in% unique(ids1)
+  df0a <- df0[!oks, ]
+  df0b <- df0[oks, ]
+  rm(list = c("ids0", "ids1", "oks", "df0"))
+  
+  dfb <- dplyr::bind_rows(df0b, df1b)
+  rm(list = c("df0b", "df1b"))
+  
+  if (nrow(dfb)) {
+    dfb$scan_nums. <- gsub("\\.\\d+$", "", dfb$pep_scan_num)
+    dfb$query_id <- with(dfb, paste(raw_file, scan_nums., sep = "."))
+    dfb$scan_nums. <- NULL
+    
+    dfb <- split(dfb, dfb$query_id)
+    
+    # if best(x0) better than best(x1) and x0 is decoy -> still keep x0
+    if (key == 1L) {
+      dfb <- lapply(dfb, function (x) {
+        rows <- x$pep_ms1_offset == 0
+        x0 <- x[rows, ]
+        x1 <- x[!rows, ]
+        s0 <- max(x0$pep_score, na.rm = TRUE)
+        s1 <- max(x1$pep_score, na.rm = TRUE)
+        if (s1 - s0 > .23) x1 else x0 # see below; can be just 0
+      })
+    }
+    else {
+      dfb <- lapply(dfb, function (x) {
+        rows <- x$pep_ms1_offset == 0
+        x0 <- x[rows, ]
+        x1 <- x[!rows, ]
+        s0 <- min(x0$pep_prob, na.rm = TRUE)
+        s1 <- min(x1$pep_prob, na.rm = TRUE)
+        if (s1 / s0 < .95) x1 else x0 # 10^-(.23/10); can be just 1
+      })
+    }
+    
+    dfb <- dplyr::bind_rows(dfb)
+    dfb$query_id <- NULL
+    df <- dplyr::bind_rows(df0a, df1a, dfb)
+  }
+  else {
+    df <- dplyr::bind_rows(df0a, df1a)
+  }
 }
 
 

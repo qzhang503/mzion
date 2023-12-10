@@ -1509,7 +1509,8 @@ matchMS <- function (out_path = "~/mzion/outs",
                             nes_fdr_group = nes_fdr_group, 
                             out_path = out_path)
     
-    ans <- post_pepfdr(prob_cos, out_path)
+    ans <- post_pepfdr(prob_cos = prob_cos, maxn_mdda_precurs = maxn_mdda_precurs, 
+                       n_13c = n_13c, out_path = out_path)
 
     if (svm_reproc) {
       message("SVM reprocessing of peptide probabilities.")
@@ -1543,7 +1544,8 @@ matchMS <- function (out_path = "~/mzion/outs",
                 locmods = locmods, 
                 is_notched = is_notched,
                 topn_mods_per_seq = topn_mods_per_seq, 
-                topn_seqs_per_query = topn_seqs_per_query)
+                topn_seqs_per_query = topn_seqs_per_query, 
+                maxn_mdda_precurs = maxn_mdda_precurs)
   }
 
   ## Protein accessions
@@ -1608,6 +1610,10 @@ matchMS <- function (out_path = "~/mzion/outs",
     qs::qsave(df, file_protfdr, preset = "fast")
   }
   
+  # second removals after combining pep_mod_group's
+  df <- rm_dup13c(df, maxn_mdda_precurs = maxn_mdda_precurs, n_13c = n_13c)
+
+  # add optional reporters
   df <- add_rptrs(df, quant, out_path)
 
   ## Clean-ups
