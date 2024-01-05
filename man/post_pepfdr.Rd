@@ -8,7 +8,8 @@ post_pepfdr(
   prob_cos = NULL,
   maxn_mdda_precurs = 1L,
   n_13c = 0L,
-  out_path = NULL
+  out_path = NULL,
+  fct_score = 5L
 )
 }
 \arguments{

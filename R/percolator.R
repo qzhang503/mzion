@@ -77,8 +77,7 @@ cv_svm <- function (train, test, costs = c(10E-2, 10E-1, 1, 5, 50), ...)
 #'
 #' @param df A data frame of \code{psmC.txt}.
 #' @param prob_cos Probability cot-offs (as a function of pep_len).
-#' @param fct_score The factor in converting probability p-values to scores. The
-#'   value is always 10.
+#' @param fct_score The factor in converting probability p-values to scores. 
 #' @param k The k-folds for cross validation.
 #' @param cross_valid Logical; to perform cross validations or not.
 #' @param costs The costs for cross validations.
@@ -92,7 +91,7 @@ perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL,
                        min_len = 7L, max_len = 40L, max_pepscores_co = 50, 
                        min_pepscores_co = 0, enzyme = "trypsin_p", 
                        fdr_group = "base", nes_fdr_group = "base", 
-                       fct_score = 10, k = 10, cross_valid = FALSE, 
+                       fct_score = 5, k = 10, cross_valid = FALSE, 
                        costs = c(.1, .3, 1, 3, 10), def_cost = 1L, 
                        svm_kernel = "radial",
                        svm_feats  = c("pep_score", "pep_ret_range", 
@@ -333,7 +332,8 @@ perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL,
       df$pep_delta <- df$pep_exp_mr - df$pep_calc_mr
     
     if (!"pep_expect" %in% names(df))
-      df <- dplyr::mutate(df, pep_expect = 10^((pep_score_co - pep_score)/10) * fdrm)
+      df <- dplyr::mutate(df, pep_expect = 
+                            10^((pep_score_co - pep_score)/fct_score) * fdrm)
     
     if (!"pep_prob" %in% names(df))
       df <- dplyr::mutate(df, pep_prob = 10^(-pep_score/fct_score))

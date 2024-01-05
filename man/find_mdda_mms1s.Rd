@@ -12,7 +12,7 @@ find_mdda_mms1s(
   maxn_precurs = 5L,
   max_ms1_charge = 4L,
   n_fwd = 20L,
-  grad_isotope = 2.5,
+  grad_isotope = 1.6,
   fct_iso2 = 3,
   use_defpeaks = FALSE,
   width = 2.01,

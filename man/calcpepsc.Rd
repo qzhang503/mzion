@@ -9,7 +9,10 @@ calcpepsc(
   im_path,
   pep_fmod_all,
   pep_vmod_all,
-  topn_ms2ions = 100L,
+  maxn_mdda_precurs = 1L,
+  max_len = 40L,
+  n_ms2_bg = 20000L,
+  topn_ms2ions = 150L,
   type_ms2ions = "by",
   ppm_ms2 = 20L,
   soft_secions = FALSE,
@@ -36,6 +39,17 @@ at \code{by_modules = TRUE} or \code{temp} at \code{by_modules = FALSE}}
 \item{pep_fmod_all}{Attributes of \code{pep_fmod} from \code{aa_masses_all}}
 
 \item{pep_vmod_all}{Attributes of \code{pep_vmod} from \code{aa_masses_all}}
+
+\item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
+multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
+equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
+= 0}, it is equivalent to DDA using the original monoisotopic masses and
+charge states provided by a peak-picking algorithm (e.g., MSConvert).}
+
+\item{max_len}{A positive integer; the maximum length of peptide sequences
+for considerations. Longer peptides will be excluded. The default is 40.}
+
+\item{n_ms2_bg}{The count of MS2 background noises.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

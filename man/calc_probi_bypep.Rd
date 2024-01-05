@@ -9,9 +9,10 @@ calc_probi_bypep(
   nms,
   expt_moverzs,
   expt_ints,
-  N = 500L,
+  max_len = 40L,
+  N = 20000L,
   type_ms2ions = "by",
-  topn_ms2ions = 100L,
+  topn_ms2ions = 150L,
   ppm_ms2 = 20L,
   soft_secions = FALSE,
   min_ms2mass = 115L,
@@ -28,6 +29,9 @@ calc_probi_bypep(
 \item{expt_moverzs}{Nested list of match and unmatched experimental m-over-z.}
 
 \item{expt_ints}{Nested list of match and unmatched experimental intensity.}
+
+\item{max_len}{A positive integer; the maximum length of peptide sequences
+for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{N}{Numeric; the number of MS2 features in an MGF query.}
 

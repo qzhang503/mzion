@@ -24,7 +24,7 @@ load_mgfs <- function (out_path, mgf_path, min_mass = 200L, max_mass = 4500L,
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                        enzyme = "trypsin_p", 
                        deisotope_ms2 = TRUE, 
-                       grad_isotope = 2.5, fct_iso2 = 3.0,
+                       grad_isotope = 1.6, fct_iso2 = 3.0,
                        max_ms2_charge = 3L, use_defpeaks = FALSE, 
                        maxn_dia_precurs = 300L, maxn_mdda_precurs = 1L, 
                        n_mdda_flanks = 6L, ppm_ms1_deisotope = 10L, 
@@ -1441,7 +1441,7 @@ readmzML <- function (filepath = NULL, filelist = NULL, out_path = NULL,
                       use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                       maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                       ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
-                      grad_isotope = 2.5, fct_iso2 = 3.0, quant = "none", 
+                      grad_isotope = 1.6, fct_iso2 = 3.0, quant = "none", 
                       digits = 4L)
 {
   # if (maxn_mdda_precurs > 1L && use_defpeaks) {
@@ -1558,7 +1558,7 @@ proc_mzml <- function (file, raw_id, filepath, topn_ms2ions = 100L,
                        use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                        maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                        ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
-                       grad_isotope = 2.5, fct_iso2 = 3.0, quant = "none", 
+                       grad_isotope = 1.6, fct_iso2 = 3.0, quant = "none", 
                        digits = 4L) 
 {
   min_ms1_charge <- ms1_charge_range[1]
@@ -1666,7 +1666,7 @@ read_mzml <- function (xml_file, topn_ms2ions = 100L,
                        use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
                        maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
                        ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
-                       grad_isotope = 2.5, fct_iso2 = 3.0, quant = "none", 
+                       grad_isotope = 1.6, fct_iso2 = 3.0, quant = "none", 
                        digits = 4L)
 {
   ## spectrum
@@ -2086,7 +2086,7 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
                        idx_scan_start_1 = 1L, idx_bin_1 = 12L, 
                        deisotope_ms2 = TRUE, ppm_ms1_deisotope = 10L, 
                        ppm_ms2_deisotope = 10L, n_mdda_flanks = 6L, 
-                       grad_isotope = 2.5, fct_iso2 = 3.0, use_defpeaks = FALSE)
+                       grad_isotope = 1.6, fct_iso2 = 3.0, use_defpeaks = FALSE)
 {
   len <- length(spec)
   is_tmt <- if (isTRUE(grepl("^tmt.*\\d+", quant))) TRUE else FALSE
@@ -2127,7 +2127,7 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
       }
       
       precursorList <- xml2::xml_children(xc[[idx_precursor_2]])
-      precursor <- precursorList[[1]] # (assume one precursor, not yet chimeric)
+      precursor <- precursorList[[1]] # (assume one precursor by MSConvert)
       precursorc <- xml2::xml_children(precursor)
       
       isolationWindowc <- xml2::xml_children(precursorc[[idx_isolationWindow]])
@@ -2252,6 +2252,9 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
   cols <- match(c("ms1_moverzs", "ms1_masses", "ms1_charges", "ms1_ints"), 
                 names(df))
 
+  # go from z = min_ms1_charge:max_ms1_charge first 
+  # if (max_ms1_charge < 6) max_ms1_charge:6
+  
   for (i in 1:len) {
     stacr <- ms1_stas[i]
     stas1 <- ms1_stas[max(1L, i - n_mdda_flanks):min(len, i + n_mdda_flanks)]
@@ -2301,6 +2304,9 @@ proc_mdda <- function (spec, raw_file, idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L
     # df2 <- df[rows, ]
   }
 
+  # look for z > 4 against NA charges...
+  # next arbitrary z = 2 - 4
+  
   df$iso_lwr <- df$iso_upr <- df$iso_ctr <- NULL
   df <- df[with(df, ms_level != 1L), ]
   bads <- unlist(lapply(df$ms1_moverzs, is.null))
@@ -2336,22 +2342,23 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
                       maxn_dia_precurs = 300L, max_ms1_charge = 4L, 
                       ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
                       deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
-                      grad_isotope = 2.5, fct_iso2 = 3.0, topn_ms2ions = 100L, 
+                      grad_isotope = 1.6, fct_iso2 = 3.0, topn_ms2ions = 100L, 
                       quant = "none", tmt_reporter_lower = 126.1, 
                       tmt_reporter_upper = 135.2, exclude_reporter_region = FALSE)
 {
   len <- length(spec)
-  
+  is_tmt <- if (isTRUE(grepl("^tmt.*\\d+", quant))) TRUE else FALSE
+  # if (is_tmt) stop("TMT not yet supported with DIA workflows.")
+
   ret_times <- orig_scans <- scan_nums <- scan_titles <- 
     iso_ctr <- iso_lwr <- iso_upr <- character(len)
   
   ms_levs <- msx_ns <- integer(len)
   msx_moverzs <- msx_ints <- ms2_charges <- vector("list", len)
   ms1_moverzs <- ms1_ints <- ms1_charges <- vector("list", len)
+  
   demux <- if (is_demux) rep_len("0", len) else NULL
-  
-  is_tmt <- if (isTRUE(grepl("^tmt.*\\d+", quant))) TRUE else FALSE
-  
+
   for (i in 1:len) {
     x <- spec[[i]]
     ids <- .Internal(strsplit(xml2::xml_attr(x, "id"), " ", fixed = TRUE, 
@@ -2407,11 +2414,12 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
                               center = 0, exclude_reporter_region = is_tmt, 
                               tmt_reporter_lower = tmt_reporter_lower, 
                               tmt_reporter_upper = tmt_reporter_upper, 
-                              ppm = 10L, ms_lev = ms_lev, 
+                              ppm = ppm_ms2_deisotope, ms_lev = ms_lev, 
                               maxn_feats = topn_ms2ions, 
                               max_charge = max_ms2_charge, n_fwd = 10L, 
-                              offset_upr = 30L, offset_lwr = 30L, order_mz = TRUE, 
-                              grad_isotope = grad_isotope, fct_iso2 = fct_iso2)
+                              offset_upr = 30L, offset_lwr = 30L, 
+                              grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+                              order_mz = TRUE)
           msx_moverzs[[i]] <- mic[["masses"]]
           msx_ints[[i]] <- mic[["intensities"]]
           ms2_charges[[i]] <- mic[["charges"]]
@@ -2446,8 +2454,8 @@ proc_dia <- function (spec, raw_file, is_demux = FALSE, idx_sc = 5L, idx_osc = 3
                           maxn_feats = maxn_dia_precurs, 
                           max_charge = max_ms1_charge, 
                           n_fwd = 20L, offset_upr = 30L, offset_lwr = 30L, 
-                          order_mz = TRUE, grad_isotope = grad_isotope, 
-                          fct_iso2 = fct_iso2)
+                          grad_isotope = grad_isotope, 
+                          fct_iso2 = fct_iso2, order_mz = TRUE)
       msx_moverzs[[i]] <- mic[["masses"]]
       msx_ints[[i]] <- mic[["intensities"]]
       ms1_charges[[i]] <- mic[["charges"]] # MS2: NULL; MS1: integer vectors
@@ -3052,7 +3060,7 @@ collapse_mms1ints <- function (xs, ys, lwr, step = 1e-5)
 #' @inheritParams matchMS
 find_mdda_mms1s <- function (df1, df2, n_ms1s = 1L, ppm = 10L, 
                              maxn_precurs = 5L, max_ms1_charge = 4L, 
-                             n_fwd = 20L, grad_isotope = 2.5, fct_iso2 = 3.0, 
+                             n_fwd = 20L, grad_isotope = 1.6, fct_iso2 = 3.0, 
                              use_defpeaks = FALSE, width = 2.01, step = ppm/1e6)
 {
   # for all (6+1+6) MS1 frames subset by one MS2 iso-window

@@ -29,7 +29,7 @@ load_mgfs(
   mgf_cutpercs = numeric(),
   enzyme = "trypsin_p",
   deisotope_ms2 = TRUE,
-  grad_isotope = 2.5,
+  grad_isotope = 1.6,
   fct_iso2 = 3,
   max_ms2_charge = 3L,
   use_defpeaks = FALSE,

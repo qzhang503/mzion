@@ -22,7 +22,7 @@ find_ms1stat(
   order_mz = TRUE,
   step = ppm/1e+06,
   backward_mass_co = 800/ms_lev,
-  grad_isotope = 2.5,
+  grad_isotope = 1.6,
   fct_iso2 = 3,
   fct_bg = 15,
   fct_bg2 = 5,

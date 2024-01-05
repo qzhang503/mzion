@@ -17,7 +17,7 @@ perco_svm(
   enzyme = "trypsin_p",
   fdr_group = "base",
   nes_fdr_group = "base",
-  fct_score = 10,
+  fct_score = 5,
   k = 10,
   cross_valid = FALSE,
   costs = c(0.1, 0.3, 1, 3, 10),
@@ -86,8 +86,7 @@ will be used at \code{"all_cterm_nontryptic"}. The same applied to
 difference of only peptides from the \code{base} group being used. See also
 parameter \code{fdr_group}.}
 
-\item{fct_score}{The factor in converting probability p-values to scores. The
-value is always 10.}
+\item{fct_score}{The factor in converting probability p-values to scores.}
 
 \item{k}{The k-folds for cross validation.}
 

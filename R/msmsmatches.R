@@ -1430,6 +1430,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
 
   ## Peptide scores
+  fct_score <- 5
+  
   if (is.null(bypass_from_pepscores <- dots$bypass_from_pepscores)) 
     bypass_from_pepscores <- FALSE
 
@@ -1443,6 +1445,9 @@ matchMS <- function (out_path = "~/mzion/outs",
     if (is.null(tally_ms2ints <- dots$tally_ms2ints)) 
       tally_ms2ints <- TRUE
     
+    if (is.null(n_ms2_bg <- dots$n_ms2_bg))
+      n_ms2_bg <- max_len * 250L
+
     calc_pepscores(topn_ms2ions = topn_ms2ions,
                    type_ms2ions = type_ms2ions,
                    target_fdr = target_fdr,
@@ -1452,8 +1457,10 @@ matchMS <- function (out_path = "~/mzion/outs",
                    soft_secions = soft_secions, 
                    out_path = out_path,
                    min_ms2mass = min_ms2mass,
+                   maxn_mdda_precurs = maxn_mdda_precurs, 
+                   n_ms2_bg = n_ms2_bg, 
                    tally_ms2ints = tally_ms2ints, 
-
+                   
                    # dummies
                    mgf_path = mgf_path,
                    maxn_vmods_per_pep = maxn_vmods_per_pep,
@@ -1507,10 +1514,11 @@ matchMS <- function (out_path = "~/mzion/outs",
                             enzyme = enzyme, 
                             fdr_group = fdr_group, 
                             nes_fdr_group = nes_fdr_group, 
-                            out_path = out_path)
+                            out_path = out_path, 
+                            fct_score = fct_score)
     
     ans <- post_pepfdr(prob_cos = prob_cos, maxn_mdda_precurs = maxn_mdda_precurs, 
-                       n_13c = n_13c, out_path = out_path)
+                       n_13c = n_13c, out_path = out_path, fct_score = fct_score)
 
     if (svm_reproc) {
       message("SVM reprocessing of peptide probabilities.")
@@ -1525,7 +1533,8 @@ matchMS <- function (out_path = "~/mzion/outs",
                             cross_valid = svm_cv, k  = svm_k, 
                             costs = svm_costs, 
                             def_cost = svm_def_cost, 
-                            svm_iters = svm_iters)
+                            svm_iters = svm_iters, 
+                            fct_score = fct_score)
 
       # post_pepfdr(prob_cos, out_path)
       message("Completed SVM reprocessing.")
@@ -1627,7 +1636,8 @@ matchMS <- function (out_path = "~/mzion/outs",
     }
   }
 
-  df <- dplyr::mutate(df, pep_expect = 10^((pep_score_co - pep_score)/10) * target_fdr)
+  df <- dplyr::mutate(df, pep_expect = 
+                        10^((pep_score_co - pep_score)/fct_score) * target_fdr)
   df[["pep_score_co"]] <- NULL
   df$pep_delta <- df$pep_exp_mr - df$pep_calc_mr
 

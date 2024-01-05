@@ -15,7 +15,7 @@ calc_pepfdr(
   enzyme = "trypsin_p",
   fdr_group = "base",
   nes_fdr_group = "base",
-  fct_score = 10,
+  fct_score = 5,
   out_path
 )
 }

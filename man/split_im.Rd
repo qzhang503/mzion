@@ -4,7 +4,14 @@
 \alias{split_im}
 \title{Split \code{ion_matches_.rds}}
 \usage{
-split_im(files, sc_path, tempdir, max_size = 1e+07)
+split_im(
+  files,
+  sc_path,
+  tempdir,
+  maxn_mdda_precurs = 1L,
+  col_key = "orig_scan",
+  max_size = 1e+07
+)
 }
 \arguments{
 \item{files}{File names such as \code{ion_matches_1.rds, ion_matches_2.rds}}
@@ -12,6 +19,15 @@ split_im(files, sc_path, tempdir, max_size = 1e+07)
 \item{sc_path}{A file path to \code{ion_matches_1.rds}}
 
 \item{tempdir}{A temporary directory}
+
+\item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
+multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
+equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
+= 0}, it is equivalent to DDA using the original monoisotopic masses and
+charge states provided by a peak-picking algorithm (e.g., MSConvert).}
+
+\item{col_key}{The column key for continuous chunk splitting. The same value
+under the col_key will remain in the same chunk.}
 
 \item{max_size}{The maximum file size}
 }

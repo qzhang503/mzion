@@ -6,14 +6,16 @@
 \usage{
 calc_pepprobs_i(
   df,
-  topn_ms2ions = 100L,
+  topn_ms2ions = 150L,
   type_ms2ions = "by",
   ppm_ms2 = 20L,
   soft_secions = FALSE,
+  max_len = 40L,
+  n_ms2_bg = 20000L,
   out_path = "~/mzion/outs",
   min_ms2mass = 115L,
-  d2 = 1e-05,
   tally_ms2ints = TRUE,
+  d2 = 1e-05,
   digits = 4L
 )
 }
@@ -37,14 +39,19 @@ FALSE. For instance, the signal of \code{b5^*} will be ignored if its
 primary ion \code{b5} is not matched. The impacts of \code{soft_secions =
 TRUE} on search performance has not yet been assessed.}
 
+\item{max_len}{A positive integer; the maximum length of peptide sequences
+for considerations. Longer peptides will be excluded. The default is 40.}
+
+\item{n_ms2_bg}{The count of MS2 background noises.}
+
 \item{out_path}{A file path of outputs.}
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
 
-\item{d2}{Bin width in ppm divided by 1E6.}
-
 \item{tally_ms2ints}{Logical; tally MS2 intensities or not.}
+
+\item{d2}{Bin width in ppm divided by 1E6.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

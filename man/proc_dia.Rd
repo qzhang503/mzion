@@ -33,7 +33,7 @@ proc_dia(
   ppm_ms2_deisotope = 10L,
   deisotope_ms2 = TRUE,
   max_ms2_charge = 3L,
-  grad_isotope = 2.5,
+  grad_isotope = 1.6,
   fct_iso2 = 3,
   topn_ms2ions = 100L,
   quant = "none",

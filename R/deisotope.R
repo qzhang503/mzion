@@ -71,9 +71,10 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
                           ppm = 8L, ms_lev = 1L, maxn_feats = 300L, 
                           max_charge = 4L, n_fwd = 20L, offset_upr = 30L, 
                           offset_lwr = 30L, order_mz = TRUE, step = ppm/1e6, 
-                          backward_mass_co = 800/ms_lev, grad_isotope = 2.5, 
-                          fct_iso2 = 3.0, fct_bg = 15, fct_bg2 = 5, 
-                          use_defpeaks = FALSE, bound = FALSE)
+                          # backward_mass_co = 1000/ms_lev, 
+                          backward_mass_co = 800/ms_lev, 
+                          grad_isotope = 1.6, fct_iso2 = 3.0, fct_bg = 15, 
+                          fct_bg2 = 5, use_defpeaks = FALSE, bound = FALSE)
 {
   ###
   # if to apply intensity cut-offs, should note the difference intensity 
@@ -170,10 +171,10 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
 
     # find monoisotopic m/z
     if (ch * mass > backward_mass_co) {
-      iths <- index_mz(mass + gap * (-ch-1L):(1L+ch), from, step)
       if ((lwr <- imax - offset_lwr) < 1L) lwr <- 1L
       if ((upr <- imax + offset_upr) > len_ms) upr <- len_ms
-      
+
+      iths <- index_mz(mass + gap * (-ch-1L):(1L+ch), from, step)
       iexs <- ims[lwr:upr]
       oks2 <- iexs %fin% iths | (iexs - 1L) %fin% iths | (iexs + 1L) %fin% iths
       hits <- .Internal(which(oks2)) + lwr - 1L
@@ -503,6 +504,8 @@ find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s, lenm,
     }
   }
   
+  # z = 1
+  # may only needed when min_change >= 2L 
   if (!(l1 || l2)) {
     gap <- 1.003355
     mx1 <- mass + gap

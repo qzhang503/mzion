@@ -5,17 +5,19 @@
 \title{Calculates the scores of peptides.}
 \usage{
 calc_pepscores(
-  topn_ms2ions = 100L,
+  topn_ms2ions = 150L,
   type_ms2ions = "by",
   target_fdr = 0.01,
   min_len = 7L,
   max_len = 40L,
   ppm_ms2 = 20L,
-  soft_secions = FALSE,
-  out_path = "~/mzion/outs",
-  min_ms2mass = 115L,
+  maxn_mdda_precurs = 1L,
+  n_ms2_bg = 20000L,
   tally_ms2ints = TRUE,
-  mgf_path,
+  soft_secions = FALSE,
+  out_path = NULL,
+  mgf_path = NULL,
+  min_ms2mass = 115L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
   maxn_vmods_sitescombi_per_pep = 64L,
@@ -23,11 +25,11 @@ calc_pepscores(
   ppm_ms1 = 20L,
   quant = "none",
   ppm_reporters = 10,
-  fasta,
-  acc_type,
-  acc_pattern,
-  fixedmods,
-  varmods,
+  fasta = NULL,
+  acc_type = NULL,
+  acc_pattern = NULL,
+  fixedmods = NULL,
+  varmods = NULL,
   enzyme = "trypsin_p",
   maxn_fasta_seqs = 200000L,
   maxn_vmods_setscombi = 64L,
@@ -61,6 +63,16 @@ for considerations. Longer peptides will be excluded. The default is 40.}
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
 
+\item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
+multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
+equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
+= 0}, it is equivalent to DDA using the original monoisotopic masses and
+charge states provided by a peak-picking algorithm (e.g., MSConvert).}
+
+\item{n_ms2_bg}{The count of MS2 background noises.}
+
+\item{tally_ms2ints}{Logical; tally MS2 intensities or not.}
+
 \item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
 ions to primary ions even when the primaries are absent. The default is
 FALSE. For instance, the signal of \code{b5^*} will be ignored if its
@@ -68,11 +80,6 @@ primary ion \code{b5} is not matched. The impacts of \code{soft_secions =
 TRUE} on search performance has not yet been assessed.}
 
 \item{out_path}{A file path of outputs.}
-
-\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
-interrogation. The default is 110.}
-
-\item{tally_ms2ints}{Logical; tally MS2 intensities or not.}
 
 \item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
   supply the files.
@@ -83,6 +90,9 @@ interrogation. The default is 110.}
 
   With MSConvert, the default \code{titleMaker} is required for correct
   parsing (don't think it can be altered by users, but just in case).}
+
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
 
 \item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
 \code{Anywhere} (non-terminal) variable modifications per peptide. The
