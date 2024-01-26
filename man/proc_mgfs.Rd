@@ -6,16 +6,19 @@
 \usage{
 proc_mgfs(
   lines,
-  topn_ms2ions = 100L,
-  ms1_charge_range = c(2L, 6L),
-  ms1_scan_range = c(1L, .Machine$integer.max),
-  ret_range = c(0, Inf),
+  topn_ms2ions = 150L,
+  min_ms1_charge = 2L,
+  max_ms1_charge = 4L,
+  min_scan_num = 1L,
+  max_scan_num = .Machine$integer.max,
+  min_ret_time = 0,
+  max_ret_time = Inf,
   min_mass = 200L,
   max_mass = 4500L,
-  ppm_ms1 = 10L,
-  ppm_ms2 = 10L,
   min_ms2mass = 115L,
   max_ms2mass = 4500L,
+  ppm_ms1 = 10L,
+  ppm_ms2 = 10L,
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
   type_mgf = "msconv_thermo",
@@ -38,7 +41,7 @@ proc_mgfs(
   deisotope_ms2 = TRUE,
   max_ms2_charge = 3L,
   use_defpeaks = FALSE,
-  maxn_dia_precurs = 300L,
+  maxn_dia_precurs = 1000L,
   maxn_mdda_precurs = 5L,
   n_mdda_flanks = 6L,
   ppm_ms1_deisotope = 10L,
@@ -53,27 +56,45 @@ proc_mgfs(
 \item{topn_ms2ions}{A non-negative integer; the top-n species for uses in
 MS2 ion searches. The default is to use the top-100 ions in an MS2 event.}
 
-\item{ms1_charge_range}{The range of MS1 charge states.}
+\item{min_ms1_charge}{A positive integer; the minimum MS1 charge state for
+considerations. The default is 2.}
 
-\item{ms1_scan_range}{The range of MS1 scan numbers.}
+\item{max_ms1_charge}{A positive integer; the maximum MS1 charge state for
+considerations. The default is 6.}
 
-\item{ret_range}{The range of retention time in seconds.}
+\item{min_scan_num}{Depreciated. A positive integer; the minimum scan number
+for considerations. The default is 1. The setting only applies to MGFs with
+numeric scan numbers. For example, it has no effects on Bruker's timsTOF
+data.}
+
+\item{max_scan_num}{Depreciated. A positive integer; the maximum scan number
+for considerations. The default is the maximum machine integer. The setting
+only applies to MGFs with numeric scan numbers.}
+
+\item{min_ret_time}{A non-negative numeric; the minimum retention time in
+seconds for considerations. The default is 0.}
+
+\item{max_ret_time}{Numeric; the maximum retention time in seconds for
+considerations. The default is \code{Inf}. At a negative value, e.g. -800,
+data in the last 800s of LC retention time will be excluded.}
 
 \item{min_mass}{Numeric; the minimum mass of MS1 species. The value needs to
 match the one in  \link{binTheoSeqs}.}
 
-\item{max_mass}{A maximum mass of precursors for considerations.}
+\item{max_mass}{A positive integer; the maximum precursor mass for
+interrogation.}
+
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
+
+\item{max_ms2mass}{A positive integer; the maximum MS2 mass for
+interrogation.}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
-
-\item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
-
-\item{max_ms2mass}{A positive integer; the maximum MS2 mass for
-interrogation.}
 
 \item{mgf_cutmzs}{Cut points of MS1 m-over-z values in peak picking.}
 
@@ -136,8 +157,7 @@ deisotoping.}
 \item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
 charge states pre-calculated by other peak-picking algorithms.}
 
-\item{maxn_dia_precurs}{Maximum number of precursors for consideration in a
-DIA scan.}
+\item{maxn_dia_precurs}{Maximum number of DIA precursors.}
 
 \item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
 multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is

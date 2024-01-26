@@ -24,7 +24,16 @@ proc_mdda(
   idx_charge = 2L,
   idx_ms1int = 3L,
   idx_bin_2 = 13L,
+  min_mass = 200L,
+  max_mass = 4500,
+  min_ms2mass = 115L,
+  max_ms2mass = 4500L,
+  min_scan_num = 1L,
+  max_scan_num = .Machine$integer.max,
+  min_ret_time = 0,
+  max_ret_time = Inf,
   maxn_precurs = 5L,
+  min_ms1_charge = 2L,
   max_ms1_charge = 4L,
   topn_ms2ions = 150L,
   quant = "none",
@@ -36,6 +45,7 @@ proc_mdda(
   idx_scan_start_1 = 1L,
   idx_bin_1 = 12L,
   deisotope_ms2 = TRUE,
+  max_ms2_charge = 3L,
   ppm_ms1_deisotope = 10L,
   ppm_ms2_deisotope = 10L,
   n_mdda_flanks = 6L,
@@ -83,7 +93,39 @@ proc_mdda(
 
 \item{idx_bin_2}{Index of MS2 binary data.}
 
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is an arbitrarily low value (the primary guard
+against low molecular-weight precursors is \code{min_len}).}
+
+\item{max_mass}{A positive integer; the maximum precursor mass for
+interrogation.}
+
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
+
+\item{max_ms2mass}{A positive integer; the maximum MS2 mass for
+interrogation.}
+
+\item{min_scan_num}{Depreciated. A positive integer; the minimum scan number
+for considerations. The default is 1. The setting only applies to MGFs with
+numeric scan numbers. For example, it has no effects on Bruker's timsTOF
+data.}
+
+\item{max_scan_num}{Depreciated. A positive integer; the maximum scan number
+for considerations. The default is the maximum machine integer. The setting
+only applies to MGFs with numeric scan numbers.}
+
+\item{min_ret_time}{A non-negative numeric; the minimum retention time in
+seconds for considerations. The default is 0.}
+
+\item{max_ret_time}{Numeric; the maximum retention time in seconds for
+considerations. The default is \code{Inf}. At a negative value, e.g. -800,
+data in the last 800s of LC retention time will be excluded.}
+
 \item{maxn_precurs}{Maximum number of chimeric precursors.}
+
+\item{min_ms1_charge}{A positive integer; the minimum MS1 charge state for
+considerations. The default is 2.}
 
 \item{max_ms1_charge}{Maximum precursor charge states.}
 
@@ -118,6 +160,9 @@ of TMT reporter ions is informed by \code{tmt_reporter_lower} and
 \item{idx_bin_1}{Index of MS1 binary data.}
 
 \item{deisotope_ms2}{Logical; to deisotope MS2 features or not.}
+
+\item{max_ms2_charge}{Maximum charge states for consideration with MS2
+deisotoping.}
 
 \item{ppm_ms1_deisotope}{Mass error tolerance in MS1 deisotoping.}
 

@@ -215,8 +215,12 @@
 #'   deisotoping.
 #' @param use_defpeaks Logical; if TRUE, uses MS1 m-over-z's, intensities and
 #'   charge states pre-calculated by other peak-picking algorithms.
-#' @param maxn_dia_precurs Maximum number of precursors for consideration in a
-#'   DIA scan.
+#' @param maxn_dia_precurs Maximum number of DIA precursors.
+#' @param n_dia_ms2s Allowance for considering DIA-MS2 bins of retention times
+#'   being aligned with a DIA-MS1 bin of retention time. For instance, only the
+#'   center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
+#'   preceding and following bins will also be considered at \code{n_dia_ms2s =
+#'   2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.
 #' @param maxn_mdda_precurs Maximum number of precursors for consideration in a
 #'   multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
 #'   equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
@@ -276,8 +280,9 @@
 #'   only applies to MGFs with numeric scan numbers.
 #' @param min_ret_time A non-negative numeric; the minimum retention time in
 #'   seconds for considerations. The default is 0.
-#' @param max_ret_time A non-negative numeric; the maximum retention time in
-#'   seconds for considerations. The default is \code{Inf}.
+#' @param max_ret_time Numeric; the maximum retention time in seconds for
+#'   considerations. The default is \code{Inf}. At a negative value, e.g. -800,
+#'   data in the last 800s of LC retention time will be excluded.
 #' @param ppm_ms1 A positive integer; the mass tolerance of MS1 species. The
 #'   default is 20.
 #' @param ppm_ms2 A positive integer; the mass tolerance of MS2 species. The
@@ -310,12 +315,7 @@
 #'   of matches.
 #' @param max_pepscores_co A positive numeric; the upper limit in the cut-offs
 #'   of peptide scores for discriminating significant and insignificant
-#'   identities. Note that a probability p-value of, e.g., \eqn{1e-20} may not
-#'   be interpreted as more probable than \eqn{1e-10} (beyond the precision of a
-#'   probability test). Also note that the numeric limit when converting
-#'   probability to scores (\eqn{-10 \times log10(p)}); e.g. \eqn{-10 \times
-#'   log10(e-324)} yielded \code{Inf} instead of 3240. For reasons like these,
-#'   a high value of \code{max_pepscores_co} is not recommended.
+#'   identities.
 #' @param min_pepscores_co A non-negative numeric; the lower limit in the
 #'   cut-offs of peptide scores for discriminating significant and insignificant
 #'   identities.
@@ -743,7 +743,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      target_fdr = 0.01,
                      fdr_type = c("protein", "peptide", "psm"),
                      fdr_group = c("base", "all", "top3"), 
-                     max_pepscores_co = 50, min_pepscores_co = 0, 
+                     max_pepscores_co = 70, min_pepscores_co = 0, 
                      max_protscores_co = Inf, 
                      max_protnpep_co = 10L, 
                      method_prot_es_co = c("median", "mean", "max", "min"), 
@@ -762,7 +762,9 @@ matchMS <- function (out_path = "~/mzion/outs",
                      n_mdda_flanks = 6L, maxn_mdda_precurs = 1L, 
                      ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
                      grad_isotope = 1.6, fct_iso2 = 3.0, 
-                     use_defpeaks = FALSE, maxn_dia_precurs = 300L, 
+                     use_defpeaks = FALSE, 
+                     
+                     maxn_dia_precurs = 1000L, n_dia_ms2s = 0L, 
                      
                      topn_ms2ions = 150L,
                      topn_ms2ion_cuts = NA, 
@@ -928,8 +930,8 @@ matchMS <- function (out_path = "~/mzion/outs",
                      max_protscores_co, max_protnpep_co, topn_mods_per_seq, 
                      topn_seqs_per_query, tmt_reporter_lower, tmt_reporter_upper, 
                      max_ms2_charge, maxn_dia_precurs, maxn_mdda_precurs, 
-                     n_mdda_flanks, ppm_ms1_deisotope, ppm_ms2_deisotope, 
-                     grad_isotope, fct_iso2), 
+                     n_dia_ms2s, n_mdda_flanks, ppm_ms1_deisotope, 
+                     ppm_ms2_deisotope, grad_isotope, fct_iso2), 
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
@@ -981,6 +983,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   
   max_ms2_charge <- as.integer(max_ms2_charge)
   maxn_dia_precurs <- as.integer(maxn_dia_precurs)
+  n_dia_ms2s <- as.integer(n_dia_ms2s)
   maxn_mdda_precurs <- as.integer(maxn_mdda_precurs)
   n_mdda_flanks <- as.integer(n_mdda_flanks)
   ppm_ms1_deisotope <- as.integer(ppm_ms1_deisotope)
@@ -1016,9 +1019,12 @@ matchMS <- function (out_path = "~/mzion/outs",
 
   stopifnot(max_pepscores_co >= 0, min_pepscores_co >= 0, max_protscores_co >= 0, 
             min_ret_time >= 0, max_pepscores_co >= min_pepscores_co, 
-            max_ret_time >= min_ret_time, max_protnpep_co >= 1L, 
+            max_protnpep_co >= 1L, 
             grad_isotope >= 1.0, grad_isotope <= 5.0, 
             fct_iso2 >= 1.0, fct_iso2 <= 6.0)
+  
+  if (max_ret_time > 0 && max_ret_time < min_ret_time)
+    stop("max_ret_time > min_ret_time is not TRUE at positive max_ret_time.")
   
   # named vectors
   if (any(is.na(topn_ms2ion_cuts)))
@@ -1330,6 +1336,7 @@ matchMS <- function (out_path = "~/mzion/outs",
               max_ms2_charge = max_ms2_charge, 
               use_defpeaks = use_defpeaks, 
               maxn_dia_precurs = maxn_dia_precurs, 
+              n_dia_ms2s = n_dia_ms2s, 
               maxn_mdda_precurs = maxn_mdda_precurs, 
               n_mdda_flanks = n_mdda_flanks, 
               ppm_ms1_deisotope = ppm_ms1_deisotope, 

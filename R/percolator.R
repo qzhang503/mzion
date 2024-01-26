@@ -88,7 +88,7 @@ cv_svm <- function (train, test, costs = c(10E-2, 10E-1, 1, 5, 50), ...)
 #' @inheritParams matchMS
 perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL, 
                        target_fdr = .01, fdr_type = "protein", 
-                       min_len = 7L, max_len = 40L, max_pepscores_co = 50, 
+                       min_len = 7L, max_len = 40L, max_pepscores_co = 70, 
                        min_pepscores_co = 0, enzyme = "trypsin_p", 
                        fdr_group = "base", nes_fdr_group = "base", 
                        fct_score = 5, k = 10, cross_valid = FALSE, 

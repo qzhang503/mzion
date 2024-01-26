@@ -8,7 +8,7 @@ sub_mgftopn(
   ms2_moverzs = NULL,
   ms2_ints = NULL,
   ms2_charges = NULL,
-  topn_ms2ions = 100L,
+  topn_ms2ions = 150L,
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
   min_ms2mass = 115L,
@@ -30,7 +30,8 @@ searches.}
 \item{mgf_cutpercs}{The counts of MS2 features in each region of
 \code{mgf_cutmzs}.}
 
-\item{min_ms2mass}{A minimum m/z of MS2 ions for considerations.}
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
 
 \item{max_ms2mass}{A positive integer; the maximum MS2 mass for
 interrogation.}

@@ -6,23 +6,32 @@
 \usage{
 read_mzml(
   xml_file,
-  topn_ms2ions = 100L,
+  filepath,
+  topn_ms2ions = 150L,
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
   exclude_reporter_region = FALSE,
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
+  min_mass = 200L,
+  max_mass = 4500L,
   min_ms2mass = 115L,
   max_ms2mass = 4500L,
+  min_ms1_charge = 2L,
   max_ms1_charge = 4L,
+  min_scan_num = 1L,
+  max_scan_num = .Machine$integer.max,
+  min_ret_time = 0,
+  max_ret_time = Inf,
   deisotope_ms2 = TRUE,
   max_ms2_charge = 3L,
   use_defpeaks = FALSE,
-  maxn_dia_precurs = 300L,
+  maxn_dia_precurs = 1000L,
+  n_dia_ms2s = 0L,
   maxn_mdda_precurs = 5L,
   n_mdda_flanks = 6L,
-  ppm_ms1_deisotope = 10L,
-  ppm_ms2_deisotope = 10L,
+  ppm_ms1_deisotope = 8L,
+  ppm_ms2_deisotope = 8L,
   grad_isotope = 1.6,
   fct_iso2 = 3,
   quant = "none",
@@ -31,6 +40,8 @@ read_mzml(
 }
 \arguments{
 \item{xml_file}{A file name of mzML.}
+
+\item{filepath}{A file path of MGF.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}
@@ -52,14 +63,40 @@ default is 20.}
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
 
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is an arbitrarily low value (the primary guard
+against low molecular-weight precursors is \code{min_len}).}
+
+\item{max_mass}{A positive integer; the maximum precursor mass for
+interrogation.}
+
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
 
 \item{max_ms2mass}{A positive integer; the maximum MS2 mass for
 interrogation.}
 
+\item{min_ms1_charge}{A positive integer; the minimum MS1 charge state for
+considerations. The default is 2.}
+
 \item{max_ms1_charge}{A positive integer; the maximum MS1 charge state for
 considerations. The default is 6.}
+
+\item{min_scan_num}{Depreciated. A positive integer; the minimum scan number
+for considerations. The default is 1. The setting only applies to MGFs with
+numeric scan numbers. For example, it has no effects on Bruker's timsTOF
+data.}
+
+\item{max_scan_num}{Depreciated. A positive integer; the maximum scan number
+for considerations. The default is the maximum machine integer. The setting
+only applies to MGFs with numeric scan numbers.}
+
+\item{min_ret_time}{A non-negative numeric; the minimum retention time in
+seconds for considerations. The default is 0.}
+
+\item{max_ret_time}{Numeric; the maximum retention time in seconds for
+considerations. The default is \code{Inf}. At a negative value, e.g. -800,
+data in the last 800s of LC retention time will be excluded.}
 
 \item{deisotope_ms2}{Logical; if TRUE, de-isotope MS2 features.}
 
@@ -69,8 +106,13 @@ deisotoping.}
 \item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
 charge states pre-calculated by other peak-picking algorithms.}
 
-\item{maxn_dia_precurs}{Maximum number of precursors for consideration in a
-DIA scan.}
+\item{maxn_dia_precurs}{Maximum number of DIA precursors.}
+
+\item{n_dia_ms2s}{Allowance for considering DIA-MS2 bins of retention times
+being aligned with a DIA-MS1 bin of retention time. For instance, only the
+center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
+preceding and following bins will also be considered at \code{n_dia_ms2s =
+2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.}
 
 \item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
 multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is

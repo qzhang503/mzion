@@ -7,7 +7,6 @@
 find_mdda_mms1s(
   df1,
   df2,
-  n_ms1s = 1L,
   ppm = 10L,
   maxn_precurs = 5L,
   max_ms1_charge = 4L,
@@ -23,8 +22,6 @@ find_mdda_mms1s(
 \item{df1}{A sub data frame of MS1.}
 
 \item{df2}{A sub data frame of MS2.}
-
-\item{n_ms1s}{The number of MS1 frames.}
 
 \item{ppm}{Mass error tolerance.}
 
@@ -48,8 +45,6 @@ adjacent peak being a mono-isotopic precursor}
 
 \item{width}{The width of an MS1 window. A wide window is used for containing
 isotope envelops.}
-
-\item{step}{The bin size in converting numeric m-over-z values to integers.}
 }
 \description{
 Averages of multiple MS1 scans.

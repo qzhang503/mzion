@@ -2,7 +2,7 @@
 % Please edit documentation in R/deisotope.R
 \name{sep_ms1rts}
 \alias{sep_ms1rts}
-\title{Chunks of precursor lists by continous retention-time bins.}
+\title{Chunks of precursor lists by continuous retention-time bins.}
 \usage{
 sep_ms1rts(df)
 }

@@ -61,7 +61,7 @@ matchMS(
   target_fdr = 0.01,
   fdr_type = c("protein", "peptide", "psm"),
   fdr_group = c("base", "all", "top3"),
-  max_pepscores_co = 50,
+  max_pepscores_co = 70,
   min_pepscores_co = 0,
   max_protscores_co = Inf,
   max_protnpep_co = 10L,
@@ -83,7 +83,8 @@ matchMS(
   grad_isotope = 1.6,
   fct_iso2 = 3,
   use_defpeaks = FALSE,
-  maxn_dia_precurs = 300L,
+  maxn_dia_precurs = 1000L,
+  n_dia_ms2s = 0L,
   topn_ms2ions = 150L,
   topn_ms2ion_cuts = NA,
   min_ms1_charge = 2L,
@@ -383,12 +384,7 @@ of matches.}
 
 \item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
 of peptide scores for discriminating significant and insignificant
-identities. Note that a probability p-value of, e.g., \eqn{1e-20} may not
-be interpreted as more probable than \eqn{1e-10} (beyond the precision of a
-probability test). Also note that the numeric limit when converting
-probability to scores (\eqn{-10 \times log10(p)}); e.g. \eqn{-10 \times
-log10(e-324)} yielded \code{Inf} instead of 3240. For reasons like these,
-a high value of \code{max_pepscores_co} is not recommended.}
+identities.}
 
 \item{min_pepscores_co}{A non-negative numeric; the lower limit in the
 cut-offs of peptide scores for discriminating significant and insignificant
@@ -525,8 +521,13 @@ adjacent peak being a mono-isotopic precursor}
 \item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
 charge states pre-calculated by other peak-picking algorithms.}
 
-\item{maxn_dia_precurs}{Maximum number of precursors for consideration in a
-DIA scan.}
+\item{maxn_dia_precurs}{Maximum number of DIA precursors.}
+
+\item{n_dia_ms2s}{Allowance for considering DIA-MS2 bins of retention times
+being aligned with a DIA-MS1 bin of retention time. For instance, only the
+center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
+preceding and following bins will also be considered at \code{n_dia_ms2s =
+2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}
@@ -566,8 +567,9 @@ only applies to MGFs with numeric scan numbers.}
 \item{min_ret_time}{A non-negative numeric; the minimum retention time in
 seconds for considerations. The default is 0.}
 
-\item{max_ret_time}{A non-negative numeric; the maximum retention time in
-seconds for considerations. The default is \code{Inf}.}
+\item{max_ret_time}{Numeric; the maximum retention time in seconds for
+considerations. The default is \code{Inf}. At a negative value, e.g. -800,
+data in the last 800s of LC retention time will be excluded.}
 
 \item{calib_ms1mass}{Logical; if TRUE, calibrates precursor masses.}
 

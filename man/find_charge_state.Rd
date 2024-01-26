@@ -15,8 +15,8 @@ find_charge_state(
   max_charge = 4L,
   n_fwd = 20L,
   ms_lev = 1L,
-  ppm = 8,
-  fct_bg = 10
+  is_dda = TRUE,
+  ppm = 8
 )
 }
 \arguments{
@@ -42,10 +42,9 @@ and \code{maxints}.}
 
 \item{ms_lev}{MS level.}
 
-\item{ppm}{Allowance in mass error when deisotoping.}
+\item{is_dda}{Logical; is DDA or not.}
 
-\item{fct_bg}{A ratio factor to discriminate background noises from isotopic
-features.}
+\item{ppm}{Allowance in mass error when deisotoping.}
 }
 \description{
 Finds charge state.

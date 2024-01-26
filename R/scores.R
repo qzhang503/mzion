@@ -389,26 +389,6 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
   x    <- x[ok_y]
 
   ## 8. Probability
-  if (FALSE) {
-    i=4; rng <- 500:20000; x_ <- 3:6; m <- 46
-    k1_ <- c(38, 50, 56, 134)
-    k2_ <- c(49, 63, 70, 149)
-    prs1 <- stats::dhyper(x = x_[i], m = m, n = rng, k = k1_[i])
-    prs2 <- stats::dhyper(x = x_[i], m = m, n = rng, k = k2_[i])
-    plot(sc1 <- -log10(prs1))
-    lines(sc2 <- -log10(prs2))
-    plot((sc1 - sc2)[1:5000])
-    
-    i=4; rng <- 500:20000; x_ <- 3:6; m <- 46
-    k1_ <- c(38, 50, 56, 134)
-    k2_ <- c(49, 63, 70, 149)
-    prs1 <- stats::dhyper(x = x_[i], m = m, n = rng, k = k1_[i])
-    prs2 <- stats::dhyper(x = x_[i], m = m, n = rng, k = k2_[i])
-    plot(-log10(prs1))
-    lines(-log10(prs2))
-    plot((-log10(prs1) + log10(prs2))[1:5000])
-  }
-  
   # excludes unstable burn-in scores
   # burn_ins is different to min_n_ms2
   #   min_n_ms2 - guard against low-quality specta with low number of matches
@@ -417,7 +397,6 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
   k_ <- k[-burn_ins]
   
   if (length(x_)) {
-    # prs <- stats::dhyper(x = x_, m = m, n = N, k = k_)
     N_ <- floor(N*m/max_len/2L + topn_ms2ions)
     prs <- stats::dhyper(x = x_, m = m, n = N_, k = k_)
     pr  <- min(prs, na.rm = TRUE)
@@ -2054,7 +2033,7 @@ keep_pepfdr_best <- function (td, cols = c("pep_scan_num", "raw_file"))
 #' }
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein", 
                          min_len = 7L, max_len = 40L, is_notched = FALSE, 
-                         max_pepscores_co = 50, min_pepscores_co = 0, 
+                         max_pepscores_co = 70, min_pepscores_co = 0, 
                          enzyme = "trypsin_p", fdr_group = "base", 
                          nes_fdr_group = "base", fct_score = 5, out_path)
 {
@@ -2082,14 +2061,13 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   # dependent variables: higher pep_exp_z tends to have greater pep_len
   # td <- dplyr::filter(td, pep_exp_z == 2L, )
   
-  # not cols = c("pep_scan_num", "raw_file", "pep_ms1_offset")
-  # as only use td at pep_ms1_offset == 0
+  # not cols <- c("pep_scan_num", "raw_file", "pep_ms1_offset")
+  #  as only use td at pep_ms1_offset == 0
   td <- keep_pepfdr_best(td, cols = c("pep_scan_num", "raw_file"))
   qs::qsave(td, file.path(out_path, "temp", "td_pepfdr.rds"), preset = "fast")
-
+  
   # --- 
   all_lens <- sort(unique(td$pep_len))
-  
   prob_cos <- lapply(all_lens, probco_bypeplen, 
                      td = td, 
                      fdr_type = fdr_type, 
@@ -2098,36 +2076,6 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
                      fct_score = fct_score, 
                      out_path = out_path)
   prob_cos <- unlist(prob_cos)
-  
-  # to fill gapped prob_cos...
-  if (FALSE) {
-    nas  <- is.na(prob_cos)
-    nnas <- which(!nas)
-    first_na <- which(nas)[1]
-    last_nna <- nna[length(nnas)]
-    
-    # need to handle when the first is NA...
-    
-    # NA exists before the last non-NA
-    if (first_na < last_nna) {
-      prs <- prob_cos[1:last_nna]
-      bads <- is.na(prs)
-      oks <- !bads
-      ibads <- which(bads)
-      ioks <- which(oks)
-      
-      for (i in seq_along(ibads)) {
-        bi <- ibads[i]
-        # oi_bf < ioks[ioks <bi]
-        # oi_bf <- oi_bf[length(oi_bf)]
-      }
-      
-      # replace up to the first non-NA
-      prob_cos[1:last_nna] <- prs
-    }
-    
-    prob_cos
-  }
   
   if (length(prob_cos) == 1L && !is.na(prob_cos))
     return(data.frame(pep_len = all_lens, pep_prob_co = prob_cos))
@@ -2142,11 +2090,9 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   counts <- as.integer(names(prob_cos))
   names(counts) <- all_lens
   names(prob_cos) <- all_lens
-  
   prob_nas <- prob_cos[is.na(prob_cos)]
   prob_cos <- prob_cos[!is.na(prob_cos)]
-  # prob_cos[prob_cos < 1E-20] <- 1E-20
-  
+
   if (length(prob_cos) == 1L) {
     seqs <- min_len:max_len
     prob_cos <- rep(prob_cos, length(seqs))
@@ -2157,8 +2103,8 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   # (At least two non-trivial prob_cos)
   #########################################
   
-  lens <- find_optlens(all_lens, counts, 50L) # changed from 128L
-  
+  lens  <- find_optlens(all_lens, counts, 50L)
+
   # no fittings
   if (length(lens) <= 3L) {
     prob_cos <- prob_cos[!is.na(names(prob_cos))]
@@ -2175,176 +2121,64 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   prob_cos <- prob_cos[ok_lens]
   counts <- counts[ok_lens]
   
-  valley <- find_probco_valley(prob_cos)
-  best_co <- -fct_score * log10(prob_cos[as.character(valley)])
-  
-  prob_cos <- local({
-    start <- which(names(prob_cos) == valley)
-    end <- length(prob_cos)
-    x <- -log10(prob_cos[start:end])
-    
-    # first pass
-    fit_lm <- stats::lm(x ~ as.integer(names(x)))
-    res_lm <- stats::residuals(fit_lm)
-    bad_lm <- x[abs(res_lm) > 5]
-    
-    if (length(bad_lm)) {
-      rm(list = c("fit_lm", "res_lm"))
-      
-      x_ok <- x[! names(x) %in% names(bad_lm)]
-      fit_lm <- stats::lm(x_ok ~ as.integer(names(x_ok)))
-      coefs <- stats::coef(fit_lm)
-      slp <- coefs[[2]]
-      
-      if (is.na(slp)) slp <- 0
-      
-      x[names(bad_lm)] <- slp * as.integer(names(bad_lm)) + coefs[[1]]
-      rm(list = c("x_ok", "fit_lm", "coefs", "bad_lm"))
-    }
-    
-    # second pass
-    ans <- tsoutliers(x)
-    x[ans$index] <- ans$replacements
-    prob_cos[start:end] <- 1/10^x
-    
-    prob_cos
-  })
-  
   ## fittings
   df <- data.frame(x = as.numeric(names(prob_cos)), 
                    y = -fct_score * log10(prob_cos))
+  df7 <- df[df$x <= 7L, ]
+  df  <- df[df$x >  7L, ]
+  nr  <- nrow(df) # >= 3L
   
-  # valley left
-  df_left <- df[df$x <= valley, ]
-  nrow_left <- nrow(df_left)
-  rank_left <- 4L # often results in: originals == fitted <-> no fitting
-  # rank_left <- min(nrow_left, 4L)
-  
-  if (nrow_left == 0L) {
-    newx_left <- NULL
-    newy_left <- NULL
-  }
-  else if (nrow_left == 1L) {
-    newx_left <- df_left$x[1]
-    newy_left <- df_left$y[1]
+  # may consider an empirical slope of -.3 at pep_len >= 19
+  if (nr <= 4L) {
+    fit <- stats::lm(y ~ x, df)
   }
   else {
-    fit_left <- if (nrow_left <= rank_left) {
-      lm(y ~ x, df_left)
-    } 
-    else {
-      local({
-        fit_ns <- tryCatch(
-          stats::lm(y ~ splines::ns(x, rank_left), df_left),
-          error = function(e) NA
-        )
-        
-        fit_bs <- tryCatch(
-          stats::lm(y ~ splines::bs(x, rank_left), df_left),
-          error = function(e) NA
-        )
-        
-        res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
-        res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
-        
-        if (res1 <= res2) fit_ns else fit_bs
-      })
-    }
+    fits <- lapply(pmin(nr - 2L, 4), find_fdr_fits, df) # 4:5
+    res <- lapply(fits, attr, "res", exact = TRUE)
+    oks <- unlist(lapply(res, is.finite), recursive = FALSE, use.names = FALSE)
+    fits <- fits[oks]
+    res <- res[oks]
     
-    newx_left <- min(df_left$x, na.rm = TRUE):max(df_left$x, na.rm = TRUE)
-    
-    if (all(is.na(fit_left)))
+    if (!length(fits))
       stop("Contact the developer.")
     
-    newy_left <- predict(fit_left, data.frame(x = newx_left))
-    names(newy_left) <- newx_left
+    fit <- fits[[which.min(res)]]
   }
   
-  # valley right (small rank to down-weight wiggly high `pep_len` points)
-  df_right <- df[df$x > valley, ]
-  nrow_right <- nrow(df_right)
-  rank_right <- 4L # changed from 3 to 4
-  
-  if (nrow_right == 0L) {
-    newx_right <- NULL
-    newy_right <- NULL
-  } 
-  else if (nrow_right == 1L) {
-    newx_right <- df_right$x
-    newy_right <- df_right$y
-  } 
-  else {
-    if (nrow_right >= rank_right) {
-      fit_right <- local({
-        fit_ns <- tryCatch(
-          stats::lm(y ~ splines::ns(x, rank_right), df_right),
-          error = function(e) NA
-        )
-        
-        fit_bs <- tryCatch(
-          stats::lm(y ~ splines::bs(x, rank_right), df_right),
-          error = function(e) NA
-        )
-        
-        res1 <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
-        res2 <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
-        
-        if (res1 <= res2) fit_ns else fit_bs
-      })
-      
-      newx_right <- min(df_right$x, na.rm = TRUE):max(df_right$x, na.rm = TRUE)
-      newy_right <- predict(fit_right, data.frame(x = newx_right))
-      names(newy_right) <- newx_right
-    } 
-    else {
-      fit_right <- tryCatch(
-        stats::lm(y ~ x, df_right),
-        error = function(e) NA
-      )
-      
-      slope <- if (class(fit_right) == "lm") 
-        unname(stats::coef(fit_right)[2])
-      else 
-        .1
-      
-      newx_right <- valley:max(df_right$x, na.rm = TRUE)
-      newy_right <- best_co + slope * (newx_right - valley)
-      names(newy_right) <- newx_right
-      
-      # excludes the `valley` itself (already in left fitting)
-      newx_right <- newx_right[-1]
-      newy_right <- newy_right[-1]
-    }
-  }
-  
-  # left + right
-  newx <- c(newx_left, newx_right)
-  newy <- c(newy_left, newy_right)
+  newx <- min(df$x, na.rm = TRUE):max(df$x, na.rm = TRUE)
+  newy <- predict(fit, data.frame(x = newx))
 
-  max_pepscores_co <- if (length(idx <- which(names(prob_cos) == 10L)))
-    max(-fct_score*log10(prob_cos[[idx]]), max_pepscores_co)
-  else if (length(idx <- which(names(prob_cos) == 11L)))
-    max(-fct_score*log10(prob_cos[[idx]]), max_pepscores_co)
-  else
-    max(-fct_score*log10(prob_cos[[1]])/2, max_pepscores_co)
+  if (nrow(df7)) {
+    newx <- c(df7$x, newx)
+    newy <- c(df7$y, newy)
+  }
   
+  names(newy) <- newx
+
+  max_pepscores_co <- if (length(idx <- which(names(prob_cos) == 8L)))
+    max(-fct_score*log10(prob_cos[[idx]]), max_pepscores_co)
+  else if (length(idx <- which(names(prob_cos) == 9L)))
+    max(-fct_score*log10(prob_cos[[idx]]), max_pepscores_co)
+  else if (length(idx <- which(names(prob_cos) == 7L)))
+    max(-fct_score*log10(prob_cos[[idx]])/2, max_pepscores_co)
+  else
+    max_pepscores_co
+
   newy[newy < min_pepscores_co] <- min_pepscores_co
   newy[newy > max_pepscores_co] <- max_pepscores_co
   
   local({
-    n_row <- nrow(df)
-    
-    df_new <- rbind2(
-      cbind(df, type = rep("Original", n_row)), 
-      data.frame(x = newx, y = newy, type = "Fitted")
-    )
-    
-    n_row2 <- nrow(df_new) - n_row
+    df <- rbind2(df7, df)
+    n1 <- nrow(df)
+    dfp <- rbind2(
+      cbind(df, type = rep("Original", n1)), 
+      data.frame(x = newx, y = newy, type = "Fitted"))
+    n2 <- nrow(dfp) - n1
     
     try(
       local({
         pdf(file.path(out_path, "temp", "pepscore_len.pdf")) 
-        plot(y ~ x, df_new, col = c(rep("blue", n_row), rep("red", n_row2)), 
+        plot(y ~ x, dfp, col = c(rep("blue", n1), rep("red", n2)), 
              xlab = "pep_len", ylab = "score_co", pch = 19)
         legend("topright", legend = c("Raw", "Smoothed"), 
                col = c("blue", "red"), pch = 19, bty = "n")
@@ -2385,6 +2219,33 @@ fill_probco_nas <- function (prob_nas = NULL, prob_no_uses = NULL, prob_cos,
                          pep_prob_co = prob_cos)
   
   prob_cos <- dplyr::arrange(prob_cos, pep_len)
+}
+
+
+#' Helper to find the best regression.
+#' 
+#' @param knot The number of knots.
+#' @param df A data frame.
+find_fdr_fits <- function (knot, df)
+{
+  fit_ns <- tryCatch(stats::lm(y ~ splines::ns(x, knot), df), 
+                     error = function(e) NA)
+  fit_bs <- tryCatch(stats::lm(y ~ splines::bs(x, knot), df), 
+                     error = function(e) NA)
+  res_ns <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
+  res_bs <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
+  
+  if (res_ns <= res_bs) {
+    fit <- fit_ns
+    res <- res_ns
+  }
+  else {
+    fit <- fit_bs
+    res <- res_bs
+  }
+  
+  attr(fit, "res") <- res
+  fit
 }
 
 

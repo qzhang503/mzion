@@ -4,16 +4,23 @@
 \alias{collapse_mms1ints}
 \title{Collapse MS1 intensities.}
 \usage{
-collapse_mms1ints(xs, ys, lwr, step = 1e-05)
+collapse_mms1ints(
+  xs = NULL,
+  ys = NULL,
+  zs = NULL,
+  lwr = 115L,
+  step = 1e-05,
+  coll = TRUE
+)
 }
 \arguments{
-\item{xs}{Vectors of m-over-z values.}
+\item{xs}{Vectors of SORTED m-over-z values.}
 
-\item{ys}{Vectors of intensity values.}
+\item{ys}{Vectors of intensity values corresponding to xs.}
 
 \item{lwr}{The lower mass limit.}
 
-\item{step}{The step size for mass bins.}
+\item{step}{The bin size in converting numeric m-over-z values to integers.}
 }
 \description{
 Allow adjacent values in unv and later collapse adjacent columns/values.

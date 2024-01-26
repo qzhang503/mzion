@@ -4,14 +4,7 @@
 \alias{post_readmgf}
 \title{Post-processing of MGF or mzML}
 \usage{
-post_readmgf(
-  df,
-  raw_id,
-  mgf_path,
-  min_mass = 200L,
-  max_mass = 4500L,
-  ppm_ms1 = 10L
-)
+post_readmgf(df, raw_id, mgf_path)
 }
 \arguments{
 \item{df}{A data frame of processed peak lists.}
@@ -19,14 +12,6 @@ post_readmgf(
 \item{raw_id}{An ID to replace the original RAW file name.}
 
 \item{mgf_path}{A path to mzML or MGF files.}
-
-\item{min_mass}{Numeric; the minimum mass of MS1 species. The value needs to
-match the one in  \link{binTheoSeqs}.}
-
-\item{max_mass}{A maximum mass of precursors for considerations.}
-
-\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
-default is 20.}
 }
 \description{
 Calculates mass \code{frame}s etc.

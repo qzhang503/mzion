@@ -5,11 +5,10 @@
 #' @param n_ms1s The underlying counts that have contributed to \code{moverzs}
 #'   and \code{maxints}.
 #' @param center The mass center of an isolation window (only for MS1).
+#' @param is_dda Logical; is DDA or not.
 #' @param ppm Allowance in mass error when deisotoping.
 #' @param offset_upr A cardinal number of upper mass off-sets.
 #' @param offset_lwr A cardinal number of lower mass off-sets.
-#' @param bound Not yet used. Logical; if TRUE, removes precursors outside of
-#'   the boundary of isolation window.
 #' @param ms_lev MS level.
 #' @param maxn_feats The maximum number of MS features.
 #' @param max_charge The maximum charge state.
@@ -20,10 +19,6 @@
 #' @param backward_mass_co A mass cut-off to initiate backward looking of an
 #'   isotope envelop.
 #' @param fct_iso2 The multiplication factor for the second isotopic peak.
-#' @param fct_bg A ratio factor to discriminate background noises from isotopic
-#'   features.
-#' @param fct_bg2 A second ratio factor to discriminate background noises from
-#'   isotopic features.
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
@@ -35,7 +30,7 @@
 #' if (FALSE) {
 #'   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, ppm = 5L, ms_lev = 1L,
 #'                               maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
-#'                               offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
+#'                               offset_lwr = 8L, order_mz = TRUE)
 #' }
 #'
 #' moverzs <- c(907.968018,908.136475,908.872711,909.073690,909.121,
@@ -68,13 +63,11 @@
 find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0, 
                           exclude_reporter_region = FALSE, 
                           tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                          ppm = 8L, ms_lev = 1L, maxn_feats = 300L, 
+                          is_dda = TRUE, ppm = 8L, ms_lev = 1L, maxn_feats = 300L, 
                           max_charge = 4L, n_fwd = 20L, offset_upr = 30L, 
                           offset_lwr = 30L, order_mz = TRUE, step = ppm/1e6, 
-                          # backward_mass_co = 1000/ms_lev, 
-                          backward_mass_co = 800/ms_lev, 
-                          grad_isotope = 1.6, fct_iso2 = 3.0, fct_bg = 15, 
-                          fct_bg2 = 5, use_defpeaks = FALSE, bound = FALSE)
+                          backward_mass_co = 800/ms_lev, grad_isotope = 1.6, 
+                          fct_iso2 = 3.0, use_defpeaks = FALSE)
 {
   ###
   # if to apply intensity cut-offs, should note the difference intensity 
@@ -151,7 +144,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     ch <- find_charge_state(mass = mass, imax = imax, mint = mint, 
                             moverzs = moverzs, msxints = msxints, n_ms1s = n_ms1s, 
                             lenm = len_ms, max_charge = max_charge, n_fwd = n_fwd, 
-                            ms_lev = ms_lev, ppm = ppm, fct_bg = fct_bg)
+                            ms_lev = ms_lev, is_dda = is_dda, ppm = ppm)
 
     if (ch == 0L) {
       peaks[[p]] <- mass
@@ -281,7 +274,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     intensities <- c(rptr_ints, intensities)
   }
   
-  if (order_mz <- FALSE) {
+  if (order_mz) {
     ord <- order(masses)
     masses <- masses[ord]
     charges <- charges[ord]
@@ -301,7 +294,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
 #' @inheritParams find_ms1stat 
 find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s, lenm, 
                                max_charge = 4L, n_fwd = 20L, ms_lev = 1L, 
-                               ppm = 8, fct_bg = 10)
+                               is_dda = TRUE, ppm = 8)
 {
   # find results for all ch -> uses the best...
   # distinguish left, right or both left and right evidence
@@ -320,10 +313,10 @@ find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s, lenm,
   ysub1 <- msxints[sta1:end1]
   ysub2 <- msxints[sta2:end2]
   
-  if (ms_lev == 1L) {
-    nsub1 <- n_ms1s[sta1:end1]
-    nsub2 <- n_ms1s[sta2:end2]
-  }
+  # if (ms_lev == 1L) {
+  #   nsub1 <- n_ms1s[sta1:end1]
+  #   nsub2 <- n_ms1s[sta2:end2]
+  # }
 
   mxs1 <- mass + gaps
   ioks1 <- lapply(mxs1, function (x) .Internal(which(abs(xsub1/x - 1L) <= err)))
@@ -401,7 +394,7 @@ find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s, lenm,
       yp1 <- max(msxints[p1])
       yp2 <- max(msxints[p2])
       
-      if (ms_lev == 1L) {
+      if (ms_lev == 1L && is_dda) {
         np1 <- max(n_ms1s[p1])
         np2 <- max(n_ms1s[p2])
         
@@ -759,7 +752,7 @@ find_lcpeaks <- function (y, lag = 5L, min_lag = 3L, max_lag = 200L,
 }
 
 
-#' Chunks of precursor lists by continous retention-time bins.
+#' Chunks of precursor lists by continuous retention-time bins.
 #' 
 #' Not used.
 #' 

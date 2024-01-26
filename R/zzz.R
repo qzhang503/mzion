@@ -1,9 +1,9 @@
 
 .onAttach <- function(libname, pkgname) {
-  packageStartupMessage("Welcome to mzion.\n\n",
+  packageStartupMessage("Welcome to Mzion.\n\n",
                         "============================================================================================\n",
-                        "NEW features (v1.3.3.4):\n",
-                        "[x] MS1, MS2 de-isotoping and chimeric peptide searches.\n\n",
+                        # "NEW features (v1.3.3.4):\n",
+                        # "[x] MS1, MS2 de-isotoping and chimeric peptide searches.\n\n",
                         "[x] For documents, enter \"?matchMS\".\n", 
 
                         # "Notes:\n",

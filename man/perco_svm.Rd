@@ -12,7 +12,7 @@ perco_svm(
   fdr_type = "protein",
   min_len = 7L,
   max_len = 40L,
-  max_pepscores_co = 50,
+  max_pepscores_co = 70,
   min_pepscores_co = 0,
   enzyme = "trypsin_p",
   fdr_group = "base",
@@ -55,12 +55,7 @@ for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{max_pepscores_co}{A positive numeric; the upper limit in the cut-offs
 of peptide scores for discriminating significant and insignificant
-identities. Note that a probability p-value of, e.g., \eqn{1e-20} may not
-be interpreted as more probable than \eqn{1e-10} (beyond the precision of a
-probability test). Also note that the numeric limit when converting
-probability to scores (\eqn{-10 \times log10(p)}); e.g. \eqn{-10 \times
-log10(e-324)} yielded \code{Inf} instead of 3240. For reasons like these,
-a high value of \code{max_pepscores_co} is not recommended.}
+identities.}
 
 \item{min_pepscores_co}{A non-negative numeric; the lower limit in the
 cut-offs of peptide scores for discriminating significant and insignificant

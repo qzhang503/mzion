@@ -36,6 +36,9 @@ library(mzion)
 # up-width == 1L
 # find_gates(c(143L, 159L, 310L, 311L, 316L))
 
+# all discrete
+# find_gates(c(143L, 159L, 310L, 316L))
+
 # single TRUE
 # find_gates(c(310L, 311L))
 

@@ -12,6 +12,7 @@ find_ms1stat(
   exclude_reporter_region = FALSE,
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
+  is_dda = TRUE,
   ppm = 8L,
   ms_lev = 1L,
   maxn_feats = 300L,
@@ -24,10 +25,7 @@ find_ms1stat(
   backward_mass_co = 800/ms_lev,
   grad_isotope = 1.6,
   fct_iso2 = 3,
-  fct_bg = 15,
-  fct_bg2 = 5,
-  use_defpeaks = FALSE,
-  bound = FALSE
+  use_defpeaks = FALSE
 )
 }
 \arguments{
@@ -50,6 +48,8 @@ The default is \eqn{126.1}.}
 
 \item{tmt_reporter_upper}{The upper bound of the region of TMT reporter ions.
 The default is \eqn{135.2}.}
+
+\item{is_dda}{Logical; is DDA or not.}
 
 \item{ppm}{Allowance in mass error when deisotoping.}
 
@@ -80,17 +80,8 @@ precursor.}
 
 \item{fct_iso2}{The multiplication factor for the second isotopic peak.}
 
-\item{fct_bg}{A ratio factor to discriminate background noises from isotopic
-features.}
-
-\item{fct_bg2}{A second ratio factor to discriminate background noises from
-isotopic features.}
-
 \item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
 charge states pre-calculated by other peak-picking algorithms.}
-
-\item{bound}{Not yet used. Logical; if TRUE, removes precursors outside of
-the boundary of isolation window.}
 }
 \description{
 De-isotopes precursor masses.
@@ -105,7 +96,7 @@ n_ms1s <- rep_len(1L, length(msxints))
 if (FALSE) {
   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, ppm = 5L, ms_lev = 1L,
                               maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
-                              offset_lwr = 8L, order_mz = TRUE, bound = FALSE)
+                              offset_lwr = 8L, order_mz = TRUE)
 }
 
 moverzs <- c(907.968018,908.136475,908.872711,909.073690,909.121,
