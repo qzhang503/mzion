@@ -213,14 +213,16 @@
 #' @param deisotope_ms2 Logical; if TRUE, de-isotope MS2 features.
 #' @param max_ms2_charge Maximum charge states for consideration with MS2
 #'   deisotoping.
-#' @param use_defpeaks Logical; if TRUE, uses MS1 m-over-z's, intensities and
-#'   charge states pre-calculated by other peak-picking algorithms.
+#' @param use_defpeaks Depreciated. Logical; if TRUE, uses MS1 m-over-z's,
+#'   intensities and charge states pre-calculated by other peak-picking
+#'   algorithms.
 #' @param maxn_dia_precurs Maximum number of DIA precursors.
 #' @param n_dia_ms2s Allowance for considering DIA-MS2 bins of retention times
 #'   being aligned with a DIA-MS1 bin of retention time. For instance, only the
 #'   center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
 #'   preceding and following bins will also be considered at \code{n_dia_ms2s =
 #'   2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.
+#' @param topn_dia_ms2ions The top-N MS2 ions for DIA.
 #' @param maxn_mdda_precurs Maximum number of precursors for consideration in a
 #'   multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
 #'   equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
@@ -765,6 +767,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      use_defpeaks = FALSE, 
                      
                      maxn_dia_precurs = 1000L, n_dia_ms2s = 0L, 
+                     topn_dia_ms2ions = 500L, 
                      
                      topn_ms2ions = 150L,
                      topn_ms2ion_cuts = NA, 
@@ -929,9 +932,10 @@ matchMS <- function (out_path = "~/mzion/outs",
                      target_fdr, max_pepscores_co, min_pepscores_co, 
                      max_protscores_co, max_protnpep_co, topn_mods_per_seq, 
                      topn_seqs_per_query, tmt_reporter_lower, tmt_reporter_upper, 
-                     max_ms2_charge, maxn_dia_precurs, maxn_mdda_precurs, 
-                     n_dia_ms2s, n_mdda_flanks, ppm_ms1_deisotope, 
-                     ppm_ms2_deisotope, grad_isotope, fct_iso2), 
+                     max_ms2_charge, maxn_dia_precurs, topn_dia_ms2ions, 
+                     maxn_mdda_precurs, n_dia_ms2s, n_mdda_flanks, 
+                     ppm_ms1_deisotope, ppm_ms2_deisotope, grad_isotope, 
+                     fct_iso2), 
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
@@ -983,6 +987,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   
   max_ms2_charge <- as.integer(max_ms2_charge)
   maxn_dia_precurs <- as.integer(maxn_dia_precurs)
+  topn_dia_ms2ions <- as.integer(topn_dia_ms2ions)
   n_dia_ms2s <- as.integer(n_dia_ms2s)
   maxn_mdda_precurs <- as.integer(maxn_mdda_precurs)
   n_mdda_flanks <- as.integer(n_mdda_flanks)
@@ -1002,7 +1007,8 @@ matchMS <- function (out_path = "~/mzion/outs",
             min_scan_num >= 1L, max_scan_num >= min_scan_num, 
             topn_mods_per_seq >= 1L, topn_seqs_per_query >= 1L, 
             tmt_reporter_lower < tmt_reporter_upper, max_ms2_charge >= 1L, 
-            maxn_dia_precurs >= 1L, maxn_mdda_precurs >= 0L, n_mdda_flanks >= 1L, 
+            maxn_dia_precurs >= 1L, topn_dia_ms2ions >= 1L, 
+            maxn_mdda_precurs >= 0L, n_mdda_flanks >= 1L, 
             ppm_ms1_deisotope >= 1L, ppm_ms2_deisotope >= 1L)
 
   # (b) doubles
@@ -1310,41 +1316,44 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (is.null(bypass_mgf <- dots$bypass_mgf)) 
     bypass_mgf <- FALSE
 
-  if (!bypass_mgf)
-    load_mgfs(out_path = out_path, 
-              mgf_path = mgf_path,
-              min_mass = min_mass,
-              max_mass = max_mass, 
-              min_ms2mass = min_ms2mass,
-              max_ms2mass = max_ms2mass,
-              topn_ms2ions = topn_ms2ions,
-              min_ms1_charge = min_ms1_charge, 
-              max_ms1_charge = max_ms1_charge, 
-              min_scan_num = min_scan_num, 
-              max_scan_num = max_scan_num, 
-              min_ret_time = min_ret_time,
-              max_ret_time = max_ret_time, 
-              ppm_ms1 = ppm_ms1, 
-              ppm_ms2 = ppm_ms2,
-              mgf_cutmzs = mgf_cutmzs, 
-              mgf_cutpercs = mgf_cutpercs, 
-              enzyme = enzyme, 
-              exclude_reporter_region = exclude_reporter_region, 
-              tmt_reporter_lower = tmt_reporter_lower, 
-              tmt_reporter_upper = tmt_reporter_upper, 
-              deisotope_ms2 = deisotope_ms2, 
-              max_ms2_charge = max_ms2_charge, 
-              use_defpeaks = use_defpeaks, 
-              maxn_dia_precurs = maxn_dia_precurs, 
-              n_dia_ms2s = n_dia_ms2s, 
-              maxn_mdda_precurs = maxn_mdda_precurs, 
-              n_mdda_flanks = n_mdda_flanks, 
-              ppm_ms1_deisotope = ppm_ms1_deisotope, 
-              ppm_ms2_deisotope = ppm_ms2_deisotope, 
-              grad_isotope = grad_isotope, 
-              fct_iso2 = fct_iso2, 
-              quant = quant, 
-              digits = digits)
+  if (!bypass_mgf) {
+    load_mgfs(
+      out_path = out_path, 
+      mgf_path = mgf_path, 
+      topn_ms2ions = topn_ms2ions, 
+      topn_dia_ms2ions = topn_dia_ms2ions, 
+      maxn_dia_precurs = maxn_dia_precurs, 
+      n_dia_ms2s = n_dia_ms2s, 
+      min_mass = min_mass, 
+      max_mass = max_mass, 
+      min_ms2mass = min_ms2mass, 
+      max_ms2mass = max_ms2mass,
+      min_ms1_charge = min_ms1_charge, 
+      max_ms1_charge = max_ms1_charge, 
+      min_scan_num = min_scan_num, 
+      max_scan_num = max_scan_num, 
+      min_ret_time = min_ret_time, 
+      max_ret_time = max_ret_time, 
+      ppm_ms1 = ppm_ms1, 
+      ppm_ms2 = ppm_ms2, 
+      tmt_reporter_lower = tmt_reporter_lower, 
+      tmt_reporter_upper = tmt_reporter_upper, 
+      exclude_reporter_region = exclude_reporter_region, 
+      mgf_cutmzs = mgf_cutmzs, 
+      mgf_cutpercs = mgf_cutpercs, 
+      enzyme = enzyme, 
+      deisotope_ms2 = deisotope_ms2, 
+      grad_isotope = grad_isotope, 
+      fct_iso2 = fct_iso2, 
+      max_ms2_charge = max_ms2_charge, 
+      use_defpeaks = use_defpeaks, 
+      maxn_mdda_precurs = maxn_mdda_precurs, 
+      n_mdda_flanks = n_mdda_flanks, 
+      ppm_ms1_deisotope = ppm_ms1_deisotope, 
+      ppm_ms2_deisotope = ppm_ms2_deisotope, 
+      quant = quant, 
+      digits = digits)
+  }
 
   ## MSMS matches
   if (is.null(bypass_ms2match <- dots$bypass_ms2match)) 

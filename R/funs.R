@@ -19,21 +19,18 @@
 # character(0)
 # 
 # $ion_ladder.R
-#  [1] "ms2ions_by_type" "byions"          "czions"          "axions"          "bions_base"      "yions_base"     
-#  [7] "cions_base"      "zions_base"      "c2ions"          "z2ions"          "aions_base"      "xions_base"     
-# [13] "a2ions"          "astarions"       "astar2ions"      "a0ions"          "a02ions"         "x2ions"         
+#  [1] "ms2ions_by_type" "byions"          "czions"          "axions"          "bions_base"      "yions_base"      "cions_base"     
+#  [8] "zions_base"      "c2ions"          "z2ions"          "aions_base"      "xions_base"      "a2ions"          "astarions"      
+# [15] "astar2ions"      "a0ions"          "a02ions"         "x2ions"         
 # 
 # $mapMS2ions.R
-#  [1] "mapMS2ions"         "plotMS2ions"        "match_mgf_path"     "match_raw_id"       "add_raw_ids"       
-#  [6] "find_secion_types"  "find_mgf_query"     "make_speclib"       "get_mzion_coltypes" "check_ggname"      
+#  [1] "mapMS2ions"         "plotMS2ions"        "match_mgf_path"     "match_raw_id"       "add_raw_ids"        "find_secion_types" 
+#  [7] "find_mgf_query"     "make_speclib"       "get_mzion_coltypes" "check_ggname"      
 # 
 # $mgfs.R
-#  [1] "load_mgfs"           "readMGF"             "post_readmgf"        "readlineMGFs"        "  f"                
-#  [6] "read_mgf_chunks"     "proc_mgf_chunks"     "proc_mgfs"           "sub_mgftopn"         "integerize_ms2ints" 
-# [11] "extract_mgf_rptrs"   "index_mz"            "find_mgf_type"       "readmzML"            "proc_mzml"          
-# [16] "read_mzml"           "proc_mdda"           "proc_dia"            "proc_dda"            "find_mslev_brackets"
-# [21] "find_gatepos"        "find_gates"          "collapse_mms1ints"   "find_mdda_mms1s"     "find_ms1byms2"      
-# [26] "prepBrukerMGF"       "mprepBrukerMGF"     
+#  [1] "load_mgfs"          "readMGF"            "post_readmgf"       "readlineMGFs"       "  f"                "read_mgf_chunks"   
+#  [7] "proc_mgf_chunks"    "proc_mgfs"          "reset_rettimes"     "sub_mgftopn"        "integerize_ms2ints" "extract_mgf_rptrs" 
+# [13] "index_mz"           "find_mgf_type"      "prepBrukerMGF"      "mprepBrukerMGF"    
 # 
 # $ms1_precursors.R
 #  [1] "calc_pepmasses2"           "find_aa_masses"            "find_motif_pat"            "simple_prots_peps"        
@@ -62,9 +59,8 @@
 #  [8] "search_mgf"     "hms2match_one"  "ms2match_one"   "frames_adv"    
 # 
 # $msmsmatches.R
-#  [1] "matchMS"            "try_psmC2Q"         "reproc_psmC"        "psmC2Q"             "post_psmC2Q"       
-#  [6] "check_tmt_pars"     "checkMGF"           "check_locmods"      "map_raw_n_scan"     "map_raw_n_scan_old"
-# [11] "check_fdr_group"    "check_notches"     
+#  [1] "matchMS"            "try_psmC2Q"         "reproc_psmC"        "psmC2Q"             "post_psmC2Q"        "check_tmt_pars"    
+#  [7] "checkMGF"           "check_locmods"      "map_raw_n_scan"     "map_raw_n_scan_old" "check_fdr_group"    "check_notches"     
 # 
 # $msmsmatches2.R
 # [1] "ms2match"              "reverse_peps_in_frame" "reverse_seqs"          "calib_mgf"             "calib_ms1"            
@@ -73,6 +69,12 @@
 # $mzion.R
 # character(0)
 # 
+# $mzml.R
+#  [1] "readmzML"          "hloadMZML"         "loadMZML"          "extrDDA"           "hdeisoDDA"         "deisoDDA"         
+#  [7] "deconvDDA1"        "deconvDDA2"        "extrDIA"           "deisoDIA"          "deconvDIA"         "subDIA_MS1"       
+# [13] "traceDIA"          "htraceDIA"         "find_gates"        "find_lc_gates"     "find_gate_edges"   "trace_ms"         
+# [19] "collapse_mms1ints" "collapse_xyz"      "calc_ms1xys"       "find_mdda_mms1s"   "find_ms1byms2"     "sep_vec"          
+# 
 # $mztab.R
 # [1] "make_mztab"
 # 
@@ -80,11 +82,10 @@
 # [1] "create_folds" "cv_svm"       "perco_svm"   
 # 
 # $quant2.R
-#  [1] "hcalc_tmtint"       "calc_tmtint"        "add_rptrs"          "find_int_cols"      "find_reporter_ints"
-#  [6] "find_reporters_ppm" "msub_protpep"       "sub_protpep"        "add_protacc2"       "add_protacc"       
-# [11] "hannot_decoys"      "groupProts"         "map_pepprot"        "collapse_sortpeps"  "pcollapse_sortpeps"
-# [16] "chunksplit_spmat"   "find_group_breaks"  "cut_proteinGroups"  "sparseD_fourquad"   "as_dist"           
-# [21] "greedysetcover3"   
+#  [1] "hcalc_tmtint"       "calc_tmtint"        "add_rptrs"          "find_int_cols"      "find_reporter_ints" "find_reporters_ppm"
+#  [7] "msub_protpep"       "sub_protpep"        "add_protacc2"       "add_protacc"        "hannot_decoys"      "groupProts"        
+# [13] "map_pepprot"        "collapse_sortpeps"  "pcollapse_sortpeps" "chunksplit_spmat"   "find_group_breaks"  "cut_proteinGroups" 
+# [19] "sparseD_fourquad"   "as_dist"            "greedysetcover3"   
 # 
 # $roadmaps.R
 # character(0)
@@ -93,13 +94,14 @@
 #  [1] "add_seions"             "list_leftmatch"         "calc_probi_byvmods"     "calc_probi_bypep"       "calc_probi"            
 #  [6] "scalc_pepprobs"         "calc_pepprobs_i"        "calc_pepscores"         "split_im"               "order_fracs"           
 # [11] "order_fracs3"           "combine_fracs"          "move_scfiles"           "find_decoy"             "find_targets"          
-# [16] "calcpepsc"              "hadd_primatches"        "add_primatches"         "collapse_vecs"          "post_pepscores"        
-# [21] "find_pepscore_co1"      "find_pepscore_co2"      "probco_bypeplen"        "sub_td_byfdrtype"       "find_optlens"          
-# [26] "find_probco_valley"     "prep_pepfdr_td"         "keep_pepfdr_best"       "calc_pepfdr"            "fill_probco_nas"       
-# [31] "fill_probs"             "post_pepfdr"            "calc_protfdr"           "aggr_prot_es"           "calc_protfdr_i"        
-# [36] "fit_protfdr"            "  f"                    "find_ppm_outer_bycombi" "match_ex2th2"           "calc_peploc"           
-# [41] "calcpeprank_1"          "calcpeprank_2"          "calcpeprank_3"          "find_bestnotch"         "find_chunkbreaks"      
-# [46] "findLocFracsDF"         "concatFracs"            "na.interp"              "is.constant"            "tsoutliers"            
+# [16] "calcpepsc"              "find_iexunv"            "addChim"                "hadd_primatches"        "add_primatches"        
+# [21] "collapse_vecs"          "post_pepscores"         "find_pepscore_co1"      "find_pepscore_co2"      "probco_bypeplen"       
+# [26] "sub_td_byfdrtype"       "find_optlens"           "find_probco_valley"     "prep_pepfdr_td"         "keep_pepfdr_best"      
+# [31] "calc_pepfdr"            "fill_probco_nas"        "find_fdr_fits"          "fill_probs"             "post_pepfdr"           
+# [36] "calc_protfdr"           "aggr_prot_es"           "calc_protfdr_i"         "fit_protfdr"            "  f"                   
+# [41] "find_ppm_outer_bycombi" "match_ex2th2"           "calc_peploc"            "calcpeprank_1"          "calcpeprank_2"         
+# [46] "calcpeprank_3"          "find_bestnotch"         "find_chunkbreaks"       "findLocFracsDF"         "concatFracs"           
+# [51] "na.interp"              "is.constant"            "tsoutliers"             "rm_dup13c"             
 # 
 # $silac.R
 # [1] "matchMS_silac_mix"   "matchMS_par_groups"  "add_fixedlab_masses" "matchMS_noenzyme"    "combine_ion_matches"
@@ -121,6 +123,7 @@
 # [26] "vec_to_list"           "split_matrix"          "split_vec"             "fold_vec"              "rep_vec"              
 # [31] "accumulate_char"       "combi_mat"             "make_zero_df"          "calc_threeframe_ppm"   "get_ms1charges"       
 # [36] "finds_uniq_vec"        "my_dataframe"          "flatten_list"          "calc_rev_ms2"          "bind_dfs"             
+# [41] "find_min_ncores"      
 # 
 # $utils_os.R
 #  [1] "`names_pos<-`"          "ins_cols_after"         "add_cols_at"            "replace_cols_at"        "reloc_col_after"       

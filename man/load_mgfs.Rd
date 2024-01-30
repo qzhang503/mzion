@@ -8,6 +8,9 @@ load_mgfs(
   out_path = NULL,
   mgf_path = NULL,
   topn_ms2ions = 150L,
+  maxn_dia_precurs = 1000L,
+  topn_dia_ms2ions = 500L,
+  n_dia_ms2s = 0L,
   min_mass = 200L,
   max_mass = 4500L,
   min_ms2mass = 115L,
@@ -33,12 +36,10 @@ load_mgfs(
   fct_iso2 = 3,
   max_ms2_charge = 3L,
   use_defpeaks = FALSE,
-  maxn_dia_precurs = 1000L,
-  n_dia_ms2s = 0L,
   maxn_mdda_precurs = 1L,
   n_mdda_flanks = 6L,
-  ppm_ms1_deisotope = 10L,
-  ppm_ms2_deisotope = 10L,
+  ppm_ms1_deisotope = 8L,
+  ppm_ms2_deisotope = 8L,
   quant = "none",
   digits = 4L
 )
@@ -58,6 +59,16 @@ load_mgfs(
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}
+
+\item{maxn_dia_precurs}{Maximum number of DIA precursors.}
+
+\item{topn_dia_ms2ions}{The top-n DIA-MS2 ions for deisotoping.}
+
+\item{n_dia_ms2s}{Allowance for considering DIA-MS2 bins of retention times
+being aligned with a DIA-MS1 bin of retention time. For instance, only the
+center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
+preceding and following bins will also be considered at \code{n_dia_ms2s =
+2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
 interrogation. The default is an arbitrarily low value (the primary guard
@@ -141,16 +152,9 @@ adjacent peak being a mono-isotopic precursor}
 \item{max_ms2_charge}{Maximum charge states for consideration with MS2
 deisotoping.}
 
-\item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
-charge states pre-calculated by other peak-picking algorithms.}
-
-\item{maxn_dia_precurs}{Maximum number of DIA precursors.}
-
-\item{n_dia_ms2s}{Allowance for considering DIA-MS2 bins of retention times
-being aligned with a DIA-MS1 bin of retention time. For instance, only the
-center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
-preceding and following bins will also be considered at \code{n_dia_ms2s =
-2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.}
+\item{use_defpeaks}{Depreciated. Logical; if TRUE, uses MS1 m-over-z's,
+intensities and charge states pre-calculated by other peak-picking
+algorithms.}
 
 \item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
 multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is

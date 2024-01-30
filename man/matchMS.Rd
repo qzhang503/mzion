@@ -85,6 +85,7 @@ matchMS(
   use_defpeaks = FALSE,
   maxn_dia_precurs = 1000L,
   n_dia_ms2s = 0L,
+  topn_dia_ms2ions = 500L,
   topn_ms2ions = 150L,
   topn_ms2ion_cuts = NA,
   min_ms1_charge = 2L,
@@ -518,8 +519,9 @@ secondary precursor in parallel to a primary precursor in an isotopic
 envelop. The smaller the value, the more stringent it is in calling an
 adjacent peak being a mono-isotopic precursor}
 
-\item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
-charge states pre-calculated by other peak-picking algorithms.}
+\item{use_defpeaks}{Depreciated. Logical; if TRUE, uses MS1 m-over-z's,
+intensities and charge states pre-calculated by other peak-picking
+algorithms.}
 
 \item{maxn_dia_precurs}{Maximum number of DIA precursors.}
 
@@ -528,6 +530,8 @@ being aligned with a DIA-MS1 bin of retention time. For instance, only the
 center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
 preceding and following bins will also be considered at \code{n_dia_ms2s =
 2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.}
+
+\item{topn_dia_ms2ions}{The top-N MS2 ions for DIA.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

@@ -80,8 +80,9 @@ precursor.}
 
 \item{fct_iso2}{The multiplication factor for the second isotopic peak.}
 
-\item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
-charge states pre-calculated by other peak-picking algorithms.}
+\item{use_defpeaks}{Depreciated. Logical; if TRUE, uses MS1 m-over-z's,
+intensities and charge states pre-calculated by other peak-picking
+algorithms.}
 }
 \description{
 De-isotopes precursor masses.

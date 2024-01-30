@@ -14,6 +14,8 @@ sub_td_byfdrtype(td, fdr_type = "protein", fct_score = 5)
 
   Note that \code{fdr_type = protein} is comparable to \code{fdr_type =
   peptide} with the additional filtration of data at \code{prot_tier == 1}.}
+
+\item{fct_score}{A factor to convert p-values to scores.}
 }
 \description{
 Subsets targets and decoys by fdr_type.

@@ -25,6 +25,8 @@ charge states provided by a peak-picking algorithm (e.g., MSConvert).}
 the range of \code{-1:2}. The default is 0.}
 
 \item{out_path}{An output path.}
+
+\item{fct_score}{A factor to convert p-values to scores.}
 }
 \description{
 Post processing after peptide FDR.

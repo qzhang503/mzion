@@ -109,8 +109,9 @@ of TMT reporter ions is informed by \code{tmt_reporter_lower} and
 \item{max_ms2_charge}{Maximum charge states for consideration with MS2
 deisotoping.}
 
-\item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
-charge states pre-calculated by other peak-picking algorithms.}
+\item{use_defpeaks}{Depreciated. Logical; if TRUE, uses MS1 m-over-z's,
+intensities and charge states pre-calculated by other peak-picking
+algorithms.}
 
 \item{maxn_dia_precurs}{Maximum number of DIA precursors.}
 

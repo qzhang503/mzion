@@ -1617,6 +1617,7 @@ find_pepscore_co2 <- function (td, target_fdr = 0.01)
 #' 
 #' @param td A target-decoy pair.
 #' @param len Numeric; the length of peptides.
+#' @param fct_score A factor to convert p-values to scores.
 #' @inheritParams matchMS
 probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01, 
                              min_pepscores_co = 0, fct_score = 5, out_path) 
@@ -1783,6 +1784,7 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
 #' Subsets targets and decoys by fdr_type.
 #' 
 #' @param td A data frame of targets and decoys.
+#' @param fct_score A factor to convert p-values to scores.
 #' @inheritParams matchMS
 sub_td_byfdrtype <- function (td, fdr_type = "protein", fct_score = 5)
 {
@@ -2287,6 +2289,7 @@ fill_probs <- function (nas, prob_cos, target_fdr = .01)
 #' 
 #' @param prob_cos Probability cut-offs (in data frame).
 #' @param out_path An output path.
+#' @param fct_score A factor to convert p-values to scores.
 #' @inheritParams matchMS
 post_pepfdr <- function (prob_cos = NULL, maxn_mdda_precurs = 1L, n_13c = 0L, 
                          out_path = NULL, fct_score = 5L) 

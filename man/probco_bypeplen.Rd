@@ -33,6 +33,8 @@ levels of PSM, peptide or protein. The default is 0.01. See also argument
 cut-offs of peptide scores for discriminating significant and insignificant
 identities.}
 
+\item{fct_score}{A factor to convert p-values to scores.}
+
 \item{out_path}{A file path of outputs.}
 }
 \description{

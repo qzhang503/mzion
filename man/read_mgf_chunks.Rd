@@ -162,8 +162,9 @@ deisotoping.}
 
 \item{maxn_dia_precurs}{Maximum number of DIA precursors.}
 
-\item{use_defpeaks}{Logical; if TRUE, uses MS1 m-over-z's, intensities and
-charge states pre-calculated by other peak-picking algorithms.}
+\item{use_defpeaks}{Depreciated. Logical; if TRUE, uses MS1 m-over-z's,
+intensities and charge states pre-calculated by other peak-picking
+algorithms.}
 
 \item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
 multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
