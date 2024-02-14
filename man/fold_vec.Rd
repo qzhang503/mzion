@@ -4,7 +4,7 @@
 \alias{fold_vec}
 \title{Folds a vector evenly}
 \usage{
-fold_vec(vec, fold)
+fold_vec(vec, fold = 5L)
 }
 \arguments{
 \item{vec}{A vector}
@@ -12,5 +12,9 @@ fold_vec(vec, fold)
 \item{fold}{The number of folds}
 }
 \description{
-Folds a vector evenly
+Only for the special case that \code{length(vec)} is exactly n-times of the
+\code{fold}.
+}
+\seealso{
+\link{fold_vec2} for a more generalized solution.
 }

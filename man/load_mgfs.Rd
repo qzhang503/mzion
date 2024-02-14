@@ -10,7 +10,9 @@ load_mgfs(
   topn_ms2ions = 150L,
   maxn_dia_precurs = 1000L,
   topn_dia_ms2ions = 500L,
-  n_dia_ms2s = 0L,
+  delayed_diams2_tracing = FALSE,
+  n_dia_ms2bins = 3L,
+  n_dia_scans = 4L,
   min_mass = 200L,
   max_mass = 4500L,
   min_ms2mass = 115L,
@@ -64,11 +66,15 @@ searches.}
 
 \item{topn_dia_ms2ions}{The top-n DIA-MS2 ions for deisotoping.}
 
-\item{n_dia_ms2s}{Allowance for considering DIA-MS2 bins of retention times
-being aligned with a DIA-MS1 bin of retention time. For instance, only the
-center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
-preceding and following bins will also be considered at \code{n_dia_ms2s =
-2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.}
+\item{delayed_diams2_tracing}{Logical; if TRUE, delays the tracing of MS1-MS2
+after ion matches.}
+
+\item{n_dia_ms2bins}{Allowance in adjacent DIA-MS2 bins for retention time
+alignment with a DIA-MS1.}
+
+\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
+constructing a peak profile and thus for determining the apex scan number
+of an moverz value along LC.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
 interrogation. The default is an arbitrarily low value (the primary guard

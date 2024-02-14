@@ -84,8 +84,10 @@ matchMS(
   fct_iso2 = 3,
   use_defpeaks = FALSE,
   maxn_dia_precurs = 1000L,
-  n_dia_ms2s = 0L,
-  topn_dia_ms2ions = 500L,
+  n_dia_ms2bins = 1L,
+  n_dia_scans = 4L,
+  topn_dia_ms2ions = 2400L,
+  delayed_diams2_tracing = FALSE,
   topn_ms2ions = 150L,
   topn_ms2ion_cuts = NA,
   min_ms1_charge = 2L,
@@ -525,13 +527,19 @@ algorithms.}
 
 \item{maxn_dia_precurs}{Maximum number of DIA precursors.}
 
-\item{n_dia_ms2s}{Allowance for considering DIA-MS2 bins of retention times
-being aligned with a DIA-MS1 bin of retention time. For instance, only the
-center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
-preceding and following bins will also be considered at \code{n_dia_ms2s =
-2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.}
+\item{n_dia_ms2bins}{Allowance in adjacent DIA-MS2 bins for retention time
+alignment with a DIA-MS1.}
 
-\item{topn_dia_ms2ions}{The top-N MS2 ions for DIA.}
+\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
+constructing a peak profile and thus for determining the apex scan number
+of an moverz value along LC.}
+
+\item{topn_dia_ms2ions}{Top-N DIA-MS2 features (for deisotoping). For
+example, 100 features per Th of isolation window (2400 for an isolation
+windown of 24Th).}
+
+\item{delayed_diams2_tracing}{Logical; if TRUE, delays the tracing of MS1-MS2
+after ion matches.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

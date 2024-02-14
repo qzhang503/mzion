@@ -4,18 +4,26 @@
 \alias{find_lc_gates}
 \title{Finds the gates of retention times.}
 \usage{
-find_lc_gates(ys, gap = 4L)
+find_lc_gates(ys, n_dia_scans = 4L)
 }
 \arguments{
-\item{ys}{A vector of corresponding signal intensities.}
+\item{ys}{A vector of intensity value for the same (approximate) mass along
+LC.}
 
-\item{gap}{The size of gap for LC peaks collapsion.}
+\item{n_dia_scans}{The number of adjacent MS scans for constructing a peak
+profile and thus for determining the apex scan number of an moverz value
+along LC.}
+}
+\value{
+Scan indexes of LC peaks.
 }
 \description{
 Finds the gates of retention times.
 }
 \examples{
 library(mzion)
+
+find_lc_gates(c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), 2)
 
 # find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50))
 # find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50))

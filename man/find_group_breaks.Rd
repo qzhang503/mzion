@@ -4,12 +4,18 @@
 \alias{find_group_breaks}
 \title{Chunksplits by groups.}
 \usage{
-find_group_breaks(vec, n_chunks = 5L)
+find_group_breaks(vec, fold = 5L, by_rngs = TRUE)
 }
 \arguments{
 \item{vec}{A sorted vector.}
 
-\item{n_chunks}{The number of chunks}
+\item{fold}{The number of folds.}
+
+\item{by_rngs}{Logical; if TRUE return ranges of indexes or else return the
+indexes of breaks.}
+}
+\value{
+Ranges or indexes of breaks
 }
 \description{
 Chunksplits by groups.
@@ -18,9 +24,7 @@ Chunksplits by groups.
 \donttest{
 library(mzion)
 
-vec <- rep(LETTERS[1:5], 1:5)
-vec <- sort(vec)
-
+vec <- sort(rep(LETTERS[1:5], 1:5))
 mzion:::find_group_breaks(vec, 3)
 }
 }

@@ -8,9 +8,11 @@ readmzML(
   filelist = NULL,
   mgf_path = NULL,
   topn_ms2ions = 150L,
-  topn_dia_ms2ions = 500L,
+  topn_dia_ms2ions = 2400L,
+  delayed_diams2_tracing = FALSE,
   maxn_dia_precurs = 1000L,
-  n_dia_ms2s = 0L,
+  n_dia_ms2bins = 1L,
+  n_dia_scans = 4L,
   min_mass = 200L,
   max_mass = 4500L,
   min_ms2mass = 115L,
@@ -38,8 +40,8 @@ readmzML(
   use_defpeaks = FALSE,
   maxn_mdda_precurs = 1L,
   n_mdda_flanks = 6L,
-  ppm_ms1_deisotope = 10L,
-  ppm_ms2_deisotope = 10L,
+  ppm_ms1_deisotope = 8L,
+  ppm_ms2_deisotope = 8L,
   quant = "none",
   digits = 4L
 )
@@ -62,13 +64,17 @@ searches.}
 
 \item{topn_dia_ms2ions}{The top-n DIA-MS2 ions for deisotoping.}
 
+\item{delayed_diams2_tracing}{Logical; if TRUE, delays the tracing of MS1-MS2
+after ion matches.}
+
 \item{maxn_dia_precurs}{Maximum number of DIA precursors.}
 
-\item{n_dia_ms2s}{Allowance for considering DIA-MS2 bins of retention times
-being aligned with a DIA-MS1 bin of retention time. For instance, only the
-center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
-preceding and following bins will also be considered at \code{n_dia_ms2s =
-2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.}
+\item{n_dia_ms2bins}{Allowance in adjacent DIA-MS2 bins for retention time
+alignment with a DIA-MS1.}
+
+\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
+constructing a peak profile and thus for determining the apex scan number
+of an moverz value along LC.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
 interrogation. The default is an arbitrarily low value (the primary guard

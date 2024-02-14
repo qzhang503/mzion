@@ -4,10 +4,12 @@
 \alias{split_vec}
 \title{Split a vector by values}
 \usage{
-split_vec(vec)
+split_vec(vec, use_names = TRUE)
 }
 \arguments{
 \item{vec}{A vector.}
+
+\item{use_names}{Logical; uses names or not.}
 }
 \description{
 Split a vector by values

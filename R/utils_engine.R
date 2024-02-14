@@ -775,6 +775,7 @@ split_matrix <- function (M, by = "row")
 #' Split a vector by values
 #' 
 #' @param vec A vector.
+#' @param use_names Logical; uses names or not.
 #' 
 #' @examples
 #' \dontrun{
@@ -815,7 +816,7 @@ split_matrix <- function (M, by = "row")
 #' microbenchmark(mzion:::split_vec(vec), split(vec, vec))
 #' }
 #' 
-split_vec <- function (vec) 
+split_vec <- function (vec, use_names = TRUE) 
 {
   vals <- unique(vec)
   len <- length(vals)
@@ -825,21 +826,29 @@ split_vec <- function (vec)
   for (i in seq_len(len)) 
     out[[i]] <- vec[vec == vals[i]]
   
-  names(out) <- vals
+  if (use_names)
+    names(out) <- vals
   
   out
 }
 
 
 #' Folds a vector evenly
+#'
+#' Only for the special case that \code{length(vec)} is exactly n-times of the
+#' \code{fold}.
 #' 
 #' @param vec A vector
 #' @param fold The number of folds
-fold_vec <- function (vec, fold) 
+#' @seealso \link{fold_vec2} for a more generalized solution.
+fold_vec <- function (vec, fold = 5L) 
 {
+  # !!! only applicable when length(vec) is n-times of fold !!!
+
   ans <- vector("list", fold)
+  # `r` must be integer
   r <- length(vec)/fold
-  
+
   sta <- 1L
   end <- r
   
@@ -850,6 +859,69 @@ fold_vec <- function (vec, fold)
   }
 
   ans
+}
+
+
+#' Folds a vector evenly
+#'
+#' A more general form of \link{fold_vec} handling fractional
+#' \code{length(vec)/fold}.
+#'
+#' @param vec A vector
+#' @param fold The number of folds
+#' @param remove_allna_subvec Logical; if TRUE, removes all NA sub vectors. This
+#'   can occur with the rounding of lengths. E.g., at \code{length(vec) == 15}
+#'   and \code{fold = 6}, the 6-th subvec will be all NA.
+#' @examples
+#' vec <- sort(rep(LETTERS[1:5], 1:5))
+#' mzion:::fold_vec2(vec, 6L)
+#' @seealso \link{find_group_breaks}
+fold_vec2 <- function (vec, fold = 5L, remove_allna_subvec = TRUE) 
+{
+  len <- length(vec)
+  r <- ceiling(len/fold)
+  
+  if (remove_allna_subvec) {
+    dif <- r * fold -len
+    
+    if (dif > 0) {
+      mod <- len %/% r
+      fold <- if (dif %% r == 0L) mod else mod + 1L
+    }
+  }
+
+  # faster than mapply
+  ans <- vector("list", fold)
+  sta <- 1L
+  end <- r
+  
+  for (i in 1:fold) {
+    ans[[i]] <- vec[sta:end]
+    sta <- sta + r
+    end <- end + r
+  }
+
+  alast <- ans[[fold]]
+  ans[[fold]] <- alast[!is.na(alast)]
+  
+  ans
+}
+
+
+#' Separates a vector into chunks.
+#' 
+#' @param vec A vector.
+#' @param fold The number of folds.
+#' @examples
+#' vec <- sort(rep(LETTERS[1:5], 1:5))
+#' mzion:::sep_vec(vec, 6L)
+#' @return A vector of fold indexes.
+sep_vec <- function (vec, fold = 5L)
+{
+  len <- length(vec)
+  seqs <- seq_along(vec)
+  mod <- len / fold
+  (seqs - 1L) %/% mod + 1L
 }
 
 

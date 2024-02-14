@@ -278,8 +278,7 @@
 #     map_pepprot
 #       pcollapse_sortpeps
 #         collapse_sortpeps
-#         chunksplit_spmat
-#           find_group_breaks
+#         find_group_breaks
 #     cut_proteinGroups
 #       as_lgldist
 #         proteoCpp::to_lgldistC

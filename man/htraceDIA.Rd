@@ -5,8 +5,9 @@
 \title{Helper of tracing DIA.}
 \usage{
 htraceDIA(
-  df,
+  filename,
   raw_id,
+  temp_dir,
   mgf_path,
   min_ret_time = 0L,
   max_ret_time = Inf,
@@ -14,22 +15,27 @@ htraceDIA(
   max_mass = 4500L,
   min_ms2mass = 115L,
   max_ms2mass = 4500L,
-  ppm_ms1 = 20L,
-  ppm_ms2 = 20L,
-  n_dia_ms2s = 0L,
+  ppm_ms1 = 8L,
+  ppm_ms2 = 8L,
+  n_dia_ms2bins = 1L,
+  n_dia_scans = 4L,
+  delayed_diams2_tracing = FALSE,
   topn_ms2ions = 150L,
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
   quant = "none",
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
-  exclude_reporter_region = FALSE
+  exclude_reporter_region = FALSE,
+  n_para = 1L
 )
 }
 \arguments{
-\item{df}{A data frame.}
+\item{filename}{A filename.}
 
 \item{raw_id}{A raw file id.}
+
+\item{temp_dir}{A temporary directory.}
 
 \item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
   supply the files.
@@ -67,11 +73,15 @@ default is 20.}
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
 
-\item{n_dia_ms2s}{Allowance for considering DIA-MS2 bins of retention times
-being aligned with a DIA-MS1 bin of retention time. For instance, only the
-center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
-preceding and following bins will also be considered at \code{n_dia_ms2s =
-2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.}
+\item{n_dia_ms2bins}{Allowance in adjacent DIA-MS2 bins for retention time
+alignment with a DIA-MS1.}
+
+\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
+constructing a peak profile and thus for determining the apex scan number
+of an moverz value along LC.}
+
+\item{delayed_diams2_tracing}{Logical; if TRUE, delays the tracing of MS1-MS2
+after ion matches.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}
@@ -100,6 +110,10 @@ The default is \eqn{135.2}.}
 region of TMT reporter ions. The default is FALSE. The corresponding range
 of TMT reporter ions is informed by \code{tmt_reporter_lower} and
 \code{tmt_reporter_upper}. The argument affects only TMT data.}
+
+\item{n_para}{The allowance of parallel processing.}
+
+\item{gap}{The size of gap.}
 }
 \description{
 Helper of tracing DIA.

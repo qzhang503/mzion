@@ -217,12 +217,16 @@
 #'   intensities and charge states pre-calculated by other peak-picking
 #'   algorithms.
 #' @param maxn_dia_precurs Maximum number of DIA precursors.
-#' @param n_dia_ms2s Allowance for considering DIA-MS2 bins of retention times
-#'   being aligned with a DIA-MS1 bin of retention time. For instance, only the
-#'   center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
-#'   preceding and following bins will also be considered at \code{n_dia_ms2s =
-#'   2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.
-#' @param topn_dia_ms2ions The top-N MS2 ions for DIA.
+#' @param n_dia_ms2bins Allowance in adjacent DIA-MS2 bins for retention time
+#'   alignment with a DIA-MS1.
+#' @param n_dia_scans Allowance in the number of adjacent MS scans for
+#'   constructing a peak profile and thus for determining the apex scan number
+#'   of an moverz value along LC.
+#' @param topn_dia_ms2ions Top-N DIA-MS2 features (for deisotoping). For
+#'   example, 100 features per Th of isolation window (2400 for an isolation
+#'   windown of 24Th).
+#' @param delayed_diams2_tracing Logical; if TRUE, delays the tracing of MS1-MS2
+#'   after ion matches.
 #' @param maxn_mdda_precurs Maximum number of precursors for consideration in a
 #'   multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
 #'   equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
@@ -766,8 +770,9 @@ matchMS <- function (out_path = "~/mzion/outs",
                      grad_isotope = 1.6, fct_iso2 = 3.0, 
                      use_defpeaks = FALSE, 
                      
-                     maxn_dia_precurs = 1000L, n_dia_ms2s = 0L, 
-                     topn_dia_ms2ions = 500L, 
+                     maxn_dia_precurs = 1000L, n_dia_ms2bins = 1L, 
+                     n_dia_scans = 4L, topn_dia_ms2ions = 2400L, 
+                     delayed_diams2_tracing = FALSE, 
                      
                      topn_ms2ions = 150L,
                      topn_ms2ion_cuts = NA, 
@@ -918,7 +923,8 @@ matchMS <- function (out_path = "~/mzion/outs",
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
                      add_ms2ints, exclude_reporter_region, 
                      svm_reproc, svm_cv, rm_dup_term_anywhere, 
-                     make_speclib, deisotope_ms2, use_defpeaks), 
+                     make_speclib, deisotope_ms2, use_defpeaks, 
+                     delayed_diams2_tracing), 
                    is.logical, logical(1L)))
 
   # numeric types 
@@ -933,9 +939,9 @@ matchMS <- function (out_path = "~/mzion/outs",
                      max_protscores_co, max_protnpep_co, topn_mods_per_seq, 
                      topn_seqs_per_query, tmt_reporter_lower, tmt_reporter_upper, 
                      max_ms2_charge, maxn_dia_precurs, topn_dia_ms2ions, 
-                     maxn_mdda_precurs, n_dia_ms2s, n_mdda_flanks, 
-                     ppm_ms1_deisotope, ppm_ms2_deisotope, grad_isotope, 
-                     fct_iso2), 
+                     maxn_mdda_precurs, n_dia_ms2bins, n_dia_scans, 
+                     n_mdda_flanks, ppm_ms1_deisotope, ppm_ms2_deisotope, 
+                     grad_isotope, fct_iso2), 
                    is.numeric, logical(1L)))
 
   # (a) integers casting for parameter matching when calling cached)
@@ -988,7 +994,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   max_ms2_charge <- as.integer(max_ms2_charge)
   maxn_dia_precurs <- as.integer(maxn_dia_precurs)
   topn_dia_ms2ions <- as.integer(topn_dia_ms2ions)
-  n_dia_ms2s <- as.integer(n_dia_ms2s)
+  n_dia_ms2bins <- as.integer(n_dia_ms2bins)
+  n_dia_scans <- as.integer(n_dia_scans)
   maxn_mdda_precurs <- as.integer(maxn_mdda_precurs)
   n_mdda_flanks <- as.integer(n_mdda_flanks)
   ppm_ms1_deisotope <- as.integer(ppm_ms1_deisotope)
@@ -1007,10 +1014,16 @@ matchMS <- function (out_path = "~/mzion/outs",
             min_scan_num >= 1L, max_scan_num >= min_scan_num, 
             topn_mods_per_seq >= 1L, topn_seqs_per_query >= 1L, 
             tmt_reporter_lower < tmt_reporter_upper, max_ms2_charge >= 1L, 
-            maxn_dia_precurs >= 1L, topn_dia_ms2ions >= 1L, 
+            maxn_dia_precurs >= 1L, topn_dia_ms2ions >= 1L, n_dia_ms2bins >= 0L, 
             maxn_mdda_precurs >= 0L, n_mdda_flanks >= 1L, 
             ppm_ms1_deisotope >= 1L, ppm_ms2_deisotope >= 1L)
-
+  
+  if (n_dia_scans < 2L)
+    stop("Choose a larger value of n_dia_scans for defining peak profiles.")
+  
+  if (n_dia_ms2bins > n_dia_scans)
+    stop("Choose a smaller value of n_dia_ms2bins than n_dia_scans.")
+  
   # (b) doubles
   target_fdr <- round(as.double(target_fdr), digits = 2L)
   
@@ -1321,9 +1334,13 @@ matchMS <- function (out_path = "~/mzion/outs",
       out_path = out_path, 
       mgf_path = mgf_path, 
       topn_ms2ions = topn_ms2ions, 
+      
       topn_dia_ms2ions = topn_dia_ms2ions, 
+      delayed_diams2_tracing = delayed_diams2_tracing, 
       maxn_dia_precurs = maxn_dia_precurs, 
-      n_dia_ms2s = n_dia_ms2s, 
+      n_dia_ms2bins = n_dia_ms2bins, 
+      n_dia_scans = n_dia_scans, 
+      
       min_mass = min_mass, 
       max_mass = max_mass, 
       min_ms2mass = min_ms2mass, 

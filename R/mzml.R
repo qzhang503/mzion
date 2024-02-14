@@ -3,8 +3,10 @@
 #' @param filelist A list of mzML files.
 #' @inheritParams load_mgfs
 readmzML <- function (filelist = NULL, mgf_path = NULL, 
-                      topn_ms2ions = 150L, topn_dia_ms2ions = 500L, 
-                      maxn_dia_precurs = 1000L, n_dia_ms2s = 0L, 
+                      topn_ms2ions = 150L, topn_dia_ms2ions = 2400L, 
+                      delayed_diams2_tracing = FALSE, 
+                      maxn_dia_precurs = 1000L, 
+                      n_dia_ms2bins = 1L, n_dia_scans = 4L, 
                       min_mass = 200L, max_mass = 4500L, 
                       min_ms2mass = 115L, max_ms2mass = 4500L, 
                       min_ms1_charge = 2L, max_ms1_charge = 4L, 
@@ -19,7 +21,7 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
                       deisotope_ms2 = TRUE, grad_isotope = 1.6, fct_iso2 = 3.0,
                       max_ms2_charge = 3L, use_defpeaks = FALSE, 
                       maxn_mdda_precurs = 1L, n_mdda_flanks = 6L, 
-                      ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
+                      ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
                       quant = "none", digits = 4L)
 {
   # - hloadMZML (helper)
@@ -28,98 +30,98 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
   #     - extrDDA
   # 
   # [Y] is_dia?
-  # - deisoDIA (helper)
-  #   - deconvDIA
-  # - subDIA_MS1
+  # - hdeisoDIA (helper)
+  #   - deisoDIA
+  # - hsubDIAMS1 (helper)
+  #   - subDIAMS1
   # - htraceDIA (helper)
   #   - traceDIA
+  #     -traceMS
+  # 
   # [Y] is_dda?
-  # - hdeisoDDA
+  # - hdeisoDDA (helper)
   #   - deisoDDA
   #     - deconvDDA1
   #     - deconvDDA2
   
+  
+  # traceMS
+  #   collapse_xyz
+  #     find_gates
+  #   find_lc_gates
+  #     fill_lc_gaps
+  #     find_gate_edges
+  # 
+  # find_mdda_mms1s
+  #   collapse_mms1ints
+  #     find_gates
+  #       find_gate_edges
+  #   find_ms1stat
+  # 
+
+  
   temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
-  
-  peakfiles <- hloadMZML(
-    filelist = filelist, 
-    mgf_path = mgf_path, 
-    temp_dir = temp_dir, 
-    topn_ms2ions = topn_ms2ions, 
-    min_mass = min_mass, 
-    max_mass = max_mass, 
-    min_ms2mass = min_ms2mass, 
-    max_ms2mass = max_ms2mass, 
-    min_ms1_charge = min_ms1_charge, 
-    max_ms1_charge = max_ms1_charge, 
-    min_scan_num = min_scan_num, 
-    max_scan_num = max_scan_num, 
-    min_ret_time = min_ret_time, 
-    max_ret_time = max_ret_time, 
-    ppm_ms1 = ppm_ms1, 
-    ppm_ms2 = ppm_ms2, 
-    tmt_reporter_lower = tmt_reporter_lower, 
-    tmt_reporter_upper = tmt_reporter_upper, 
-    exclude_reporter_region = exclude_reporter_region, 
-    mgf_cutmzs = mgf_cutmzs, 
-    mgf_cutpercs = mgf_cutpercs, 
-    deisotope_ms2 = deisotope_ms2, 
-    max_ms2_charge = max_ms2_charge, 
-    use_defpeaks = use_defpeaks, 
-    maxn_mdda_precurs = maxn_mdda_precurs, 
-    n_mdda_flanks = n_mdda_flanks, 
-    ppm_ms1_deisotope = ppm_ms1_deisotope, 
-    ppm_ms2_deisotope = ppm_ms2_deisotope, 
-    grad_isotope = grad_isotope, 
-    fct_iso2 = fct_iso2, 
-    quant = quant, 
-    digits = digits)
-  is_dia <- attr(peakfiles[[1]], "is_dia", exact = TRUE)
-  iso_width <- attr(peakfiles[[1]], "iso_width", exact = TRUE)
-  peakfiles <- unlist(peakfiles)
-  # free up xml pointers
-  gc()
-  
+
+  if (TRUE) {
+    peakfiles <- hloadMZML(filelist, mgf_path, temp_dir)
+    is_dia <- attr(peakfiles[[1]], "is_dia", exact = TRUE)
+    iso_width <- attr(peakfiles[[1]], "iso_width", exact = TRUE)
+    peakfiles <- unlist(peakfiles)
+    gc() # free up xml pointers
+  }
+  else {
+    is_dia <- TRUE
+    peakfiles <- "23aug2017_hela_serum_timecourse_wide_1a.raw.rds"
+    iso_width <- 12.0054016
+  }
+
+  lenf <- length(peakfiles)
+  rams <- find_free_mem()/1024
+  n_pcs <- detect_cores(64L) - 1L
+  n_cores <- max(min(n_pcs, ceiling(rams/5L), lenf), 1L)
+  r_cores <- round(n_pcs/n_cores)
+  n_para <- max(min(n_pcs, r_cores), 1L)
+
   if (isTRUE(is_dia)) {
     message("Deisotoping DIA-MS.")
 
-    if (iso_width > 2.5 && topn_ms2ions <= 500L) {
-      topn_ms2ions <- as.integer(iso_width * 40)
-      warning("Increase the maximum number of MS2 features to ", topn_ms2ions, 
-              " for wide-window DIA.")
-    }
-    
-    n_pcs <- detect_cores(64L) - 1L
-    n_cores <- min(n_pcs, ceiling(find_free_mem()/1024/5L), length(peakfiles))
-    n_para <- min(n_pcs, round(n_pcs/n_cores))
-    
-    if (n_cores == 1L) {
-      dia_files <- lapply(
-        peakfiles, deisoDIA,
-        temp_dir = temp_dir, 
-        maxn_dia_precurs = maxn_dia_precurs, 
-        topn_dia_ms2ions = topn_dia_ms2ions, 
-        min_ms1_charge = min_ms1_charge, 
-        max_ms1_charge = max_ms1_charge, 
-        min_ret_time = min_ret_time, 
-        max_ret_time = max_ret_time, 
-        ppm_ms1_deisotope = ppm_ms1_deisotope, 
-        ppm_ms2_deisotope = ppm_ms2_deisotope, 
-        deisotope_ms2 = deisotope_ms2, 
-        max_ms2_charge = max_ms2_charge, 
-        grad_isotope = grad_isotope, 
-        fct_iso2 = fct_iso2, 
-        quant = quant, 
-        tmt_reporter_lower = tmt_reporter_lower, 
-        tmt_reporter_upper = tmt_reporter_upper, 
-        exclude_reporter_region = exclude_reporter_region, 
-        n_para = n_para)
+    # `else` is only slightly faster than `if` 
+    if (n_cores <= 1L) {
+      if (TRUE) {
+        dia_files <- lapply(
+          peakfiles, hdeisoDIA,
+          temp_dir = temp_dir, 
+          min_mass = min_mass, max_mass = max_mass,
+          min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
+          maxn_dia_precurs = maxn_dia_precurs, 
+          topn_dia_ms2ions = topn_dia_ms2ions, 
+          min_ms1_charge = min_ms1_charge, 
+          max_ms1_charge = max_ms1_charge, 
+          min_ret_time = min_ret_time, 
+          max_ret_time = max_ret_time, 
+          ppm_ms1_deisotope = ppm_ms1_deisotope, 
+          ppm_ms2_deisotope = ppm_ms2_deisotope, 
+          deisotope_ms2 = deisotope_ms2, 
+          max_ms2_charge = max_ms2_charge, 
+          grad_isotope = grad_isotope, 
+          fct_iso2 = fct_iso2, 
+          quant = quant, 
+          tmt_reporter_lower = tmt_reporter_lower, 
+          tmt_reporter_upper = tmt_reporter_upper, 
+          exclude_reporter_region = exclude_reporter_region, 
+          n_para = n_para)
+      }
+      else {
+        dia_files <- "dia_23aug2017_hela_serum_timecourse_wide_1a.raw.rds"
+      }
     }
     else {
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
       dia_files <- parallel::clusterApply(
-        cl, peakfiles, deisoDIA,
+        cl, peakfiles, hdeisoDIA,
         temp_dir = temp_dir, 
+        min_mass = min_mass, max_mass = max_mass,
+        min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
         maxn_dia_precurs = maxn_dia_precurs, 
         topn_dia_ms2ions = topn_dia_ms2ions, 
         min_ms1_charge = min_ms1_charge, 
@@ -140,50 +142,95 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
       parallel::stopCluster(cl)
     }
 
-    len_files <- length(dia_files)
-    dia_paths <- file.path(temp_dir, dia_files)
+    message("Subset DIA-MS1 by isolation windows.")
+    n_para2 <- min(n_para, 8L) # 8L: not rate-limiting
     
-    if (len_files == 1L) {
-      dfs <- lapply(dia_paths, subDIA_MS1)
+    if (n_cores <= 1L) {
+      if (TRUE) {
+        subfiles <- lapply(dia_files, hsubDIAMS1, temp_dir = temp_dir, 
+                           n_para = n_para2)
+      }
+      else {
+        subfiles <- qs::qread(file.path(temp_dir, "subfiles.rds"))
+      }
+      
     }
     else {
-      n_cores <- max(min(parallel::detectCores() - 1L, len_files), 1L)
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-      dfs <- parallel::clusterApply(cl, dia_paths, subDIA_MS1)
+      subfiles <- parallel::clusterApply(
+        cl, dia_files, hsubDIAMS1, temp_dir = temp_dir, n_para = n_para2)
       parallel::stopCluster(cl)
     }
     
-    raws <- mapply(
-      htraceDIA, dfs, seq_along(dfs), 
-      MoreArgs = list(
-        mgf_path = mgf_path, 
-        min_ret_time = min_ret_time, 
-        max_ret_time = max_ret_time, 
-        min_mass = min_mass, 
-        max_mass = max_mass, 
-        min_ms2mass = min_ms2mass, 
-        max_ms2mass = max_ms2mass, 
-        ppm_ms1 = ppm_ms1, 
-        ppm_ms2 = ppm_ms2, 
-        n_dia_ms2s = n_dia_ms2s, 
-        topn_ms2ions = topn_ms2ions, 
-        mgf_cutmzs = mgf_cutmzs, 
-        mgf_cutpercs = mgf_cutpercs, 
-        quant = quant, 
-        tmt_reporter_lower = tmt_reporter_lower, 
-        tmt_reporter_upper = tmt_reporter_upper, 
-        exclude_reporter_region = exclude_reporter_region
-      ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    message("Tracing DIA-MS.")
+    n_para3 <- max(floor(min(n_para, 26L/lenf)), 1L)
+    if (lenf > n_para3) n_para3 <- find_min_ncores(lenf, n_para3)
+    
+    if (n_cores <= 1L) {
+      raws <- mapply(
+        htraceDIA, 
+        subfiles, seq_along(subfiles), 
+        MoreArgs = list(
+          temp_dir = temp_dir, 
+          mgf_path = mgf_path, 
+          min_ret_time = min_ret_time, 
+          max_ret_time = max_ret_time, 
+          min_mass = min_mass, 
+          max_mass = max_mass, 
+          min_ms2mass = min_ms2mass, 
+          max_ms2mass = max_ms2mass, 
+          ppm_ms1 = ppm_ms1_deisotope, 
+          ppm_ms2 = ppm_ms2_deisotope, 
+          n_dia_ms2bins = n_dia_ms2bins, 
+          n_dia_scans = n_dia_scans, 
+          topn_ms2ions = topn_dia_ms2ions, 
+          # topn_ms2ions = topn_ms2ions, 
+          delayed_diams2_tracing = delayed_diams2_tracing, 
+          mgf_cutmzs = mgf_cutmzs, 
+          mgf_cutpercs = mgf_cutpercs, 
+          quant = quant, 
+          tmt_reporter_lower = tmt_reporter_lower, 
+          tmt_reporter_upper = tmt_reporter_upper, 
+          exclude_reporter_region = exclude_reporter_region, 
+          n_para = n_para3), 
+        SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    }
+    else {
+      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+      raws <- parallel::clusterMap(
+        cl, htraceDIA, 
+        subfiles, seq_along(subfiles), 
+        MoreArgs = list(
+          temp_dir = temp_dir, 
+          mgf_path = mgf_path, 
+          min_ret_time = min_ret_time, 
+          max_ret_time = max_ret_time, 
+          min_mass = min_mass, 
+          max_mass = max_mass, 
+          min_ms2mass = min_ms2mass, 
+          max_ms2mass = max_ms2mass, 
+          ppm_ms1 = ppm_ms1_deisotope, 
+          ppm_ms2 = ppm_ms2_deisotope, 
+          n_dia_ms2bins = n_dia_ms2bins, 
+          n_dia_scans = n_dia_scans,
+          topn_ms2ions = topn_dia_ms2ions, 
+          # topn_ms2ions = topn_ms2ions, 
+          delayed_diams2_tracing = delayed_diams2_tracing, 
+          mgf_cutmzs = mgf_cutmzs, 
+          mgf_cutpercs = mgf_cutpercs, 
+          quant = quant, 
+          tmt_reporter_lower = tmt_reporter_lower, 
+          tmt_reporter_upper = tmt_reporter_upper, 
+          exclude_reporter_region = exclude_reporter_region, 
+          n_para = n_para3), 
+        SIMPLIFY = FALSE, USE.NAMES = FALSE)
+      parallel::stopCluster(cl)
+    }
   }
   else {
     message("Deisotoping DDA-MS.")
-    
-    n_pcs <- detect_cores(64L) - 1L
-    n_cores <- min(n_pcs, ceiling(find_free_mem()/1024/5L), length(peakfiles))
-    # n_para <- min(n_pcs, round(n_pcs/n_cores) * 2L)
-    n_para <- min(n_pcs, round(n_pcs/n_cores))
 
-    if (n_cores == 1L) {
+    if (n_cores <= 1L) {
       raws <- mapply(
         hdeisoDDA, 
         peakfiles, seq_along(peakfiles), 
@@ -192,7 +239,8 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
           temp_dir = temp_dir, 
           ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
           maxn_mdda_precurs = maxn_mdda_precurs, 
-          topn_ms2ions = topn_ms2ions, n_mdda_flanks = n_mdda_flanks, 
+          topn_ms2ions = topn_ms2ions, 
+          n_mdda_flanks = n_mdda_flanks, 
           min_mass = min_mass, max_mass = max_mass, 
           min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
           min_ms1_charge = min_ms1_charge, max_ms1_charge = max_ms1_charge, 
@@ -221,7 +269,8 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
           temp_dir = temp_dir, 
           ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
           maxn_mdda_precurs = maxn_mdda_precurs, 
-          topn_ms2ions = topn_ms2ions, n_mdda_flanks = n_mdda_flanks, 
+          topn_ms2ions = topn_ms2ions, 
+          n_mdda_flanks = n_mdda_flanks, 
           min_mass = min_mass, max_mass = max_mass, 
           min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
           min_ms1_charge = min_ms1_charge, max_ms1_charge = max_ms1_charge, 
@@ -257,22 +306,7 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
 #' @param temp_dir A temporary file folder.
 #' @inheritParams readMGF
 #' @inheritParams matchMS
-hloadMZML <- function (filelist = NULL, mgf_path = NULL, temp_dir = NULL, 
-                       topn_ms2ions = 150L, min_mass = 200L, max_mass = 4500L, 
-                       min_ms2mass = 115L, max_ms2mass = 4500L, 
-                       min_ms1_charge = 2L, max_ms1_charge = 4L, 
-                       min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
-                       min_ret_time = 0, max_ret_time = Inf, 
-                       ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       exclude_reporter_region = FALSE, 
-                       mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
-                       deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
-                       use_defpeaks = FALSE, 
-                       maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
-                       ppm_ms1_deisotope = 10L, ppm_ms2_deisotope = 10L, 
-                       grad_isotope = 1.6, fct_iso2 = 3.0, quant = "none", 
-                       digits = 4L)
+hloadMZML <- function (filelist = NULL, mgf_path = NULL, temp_dir = NULL)
 {
   # if (maxn_mdda_precurs > 1L && use_defpeaks) {
   #   warning("Default peaks not used at maxn_mdda_precurs > 1;", 
@@ -288,73 +322,17 @@ hloadMZML <- function (filelist = NULL, mgf_path = NULL, temp_dir = NULL,
                  len)
   n_cores <- find_min_ncores(len, n_cores) 
   n_cores <- max(1L, n_cores)
-
-  if (n_cores == 1L) {
+  
+  if (n_cores <= 1L) {
     out_names <- vector("list", len)
     
     for (i in 1:len) {
-      out_names[[i]] <- loadMZML(
-        files[[i]], 
-        temp_dir = temp_dir, 
-        topn_ms2ions = topn_ms2ions, 
-        tmt_reporter_lower = tmt_reporter_lower, 
-        tmt_reporter_upper = tmt_reporter_upper, 
-        exclude_reporter_region = exclude_reporter_region, 
-        ppm_ms1 = ppm_ms1, 
-        ppm_ms2 = ppm_ms2, 
-        min_mass = min_mass, 
-        max_mass = max_mass, 
-        min_ms2mass = min_ms2mass, 
-        max_ms2mass = max_ms2mass, 
-        min_ms1_charge = min_ms1_charge, 
-        max_ms1_charge = max_ms1_charge, 
-        min_scan_num = min_scan_num, 
-        max_scan_num = max_scan_num, 
-        min_ret_time = min_ret_time, 
-        max_ret_time = max_ret_time, 
-        deisotope_ms2 = deisotope_ms2, 
-        max_ms2_charge = max_ms2_charge, 
-        use_defpeaks = use_defpeaks, 
-        maxn_mdda_precurs = maxn_mdda_precurs, 
-        n_mdda_flanks = n_mdda_flanks, 
-        ppm_ms1_deisotope = ppm_ms1_deisotope, 
-        ppm_ms2_deisotope = ppm_ms2_deisotope, 
-        grad_isotope = grad_isotope,
-        fct_iso2 = fct_iso2,
-        quant = quant, digits = digits)
+      out_names[[i]] <- loadMZML(files[[i]], temp_dir = temp_dir)
     }
   }
   else {
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-    out_names <- parallel::clusterApply(
-      cl, files, loadMZML, 
-      temp_dir = temp_dir, 
-      topn_ms2ions = topn_ms2ions, 
-      tmt_reporter_lower = tmt_reporter_lower, 
-      tmt_reporter_upper = tmt_reporter_upper, 
-      exclude_reporter_region = exclude_reporter_region, 
-      ppm_ms1 = ppm_ms1, 
-      ppm_ms2 = ppm_ms2, 
-      min_mass = min_mass, 
-      max_mass = max_mass, 
-      min_ms2mass = min_ms2mass, 
-      max_ms2mass = max_ms2mass, 
-      min_ms1_charge = min_ms1_charge, 
-      max_ms1_charge = max_ms1_charge, 
-      min_scan_num = min_scan_num, 
-      max_scan_num = max_scan_num, 
-      min_ret_time = min_ret_time, 
-      max_ret_time = max_ret_time, 
-      deisotope_ms2 = deisotope_ms2, 
-      max_ms2_charge = max_ms2_charge, 
-      use_defpeaks = use_defpeaks, 
-      maxn_mdda_precurs = maxn_mdda_precurs, 
-      n_mdda_flanks = n_mdda_flanks, 
-      ppm_ms1_deisotope = ppm_ms1_deisotope, 
-      ppm_ms2_deisotope = ppm_ms2_deisotope, 
-      grad_isotope = grad_isotope,
-      fct_iso2 = fct_iso2,
-      quant = quant, digits = digits)
+    out_names <- parallel::clusterApply(cl, files, loadMZML, temp_dir = temp_dir)
     parallel::stopCluster(cl)
   }
   
@@ -368,23 +346,7 @@ hloadMZML <- function (filelist = NULL, mgf_path = NULL, temp_dir = NULL,
 #'
 #' @param xml_file A file name of mzML.
 #' @param temp_dir A temporary file folder.
-#' @inheritParams matchMS
-#' @inheritParams load_mgfs
-loadMZML <- function (xml_file = NULL, temp_dir = NULL, topn_ms2ions = 150L, 
-                      tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                      exclude_reporter_region = FALSE, 
-                      ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                      min_mass = 200L, max_mass = 4500L, 
-                      min_ms2mass = 115L, max_ms2mass = 4500L, 
-                      min_ms1_charge = 2L, max_ms1_charge = 4L, 
-                      min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
-                      min_ret_time = 0, max_ret_time = Inf, 
-                      deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
-                      use_defpeaks = FALSE, 
-                      maxn_mdda_precurs = 5L, n_mdda_flanks = 6L, 
-                      ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
-                      grad_isotope = 1.6, fct_iso2 = 3.0, quant = "none", 
-                      digits = 4L)
+loadMZML <- function (xml_file = NULL, temp_dir = NULL)
 {
   ## spectrum
   xml_root <- xml2::read_xml(xml_file)
@@ -605,7 +567,7 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL, topn_ms2ions = 150L,
       upr_off_set <- 
         as.numeric(xml2::xml_attr(isolationWindowc[[idx_uprmz]], "value"))
       iso_width <- upr_off_set + lwr_offset
-
+      
       selectedIon <- xml2::xml_child(precursorc[[idx_selectedIonList]], 1)
       selectedIonc <- xml2::xml_children(selectedIon)
       selion_nms <- lapply(selectedIonc, function (x) xml2::xml_attr(x, "name"))
@@ -751,7 +713,7 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL, topn_ms2ions = 150L,
       idx_scan_lwr_1 = idx_scan_lwr_1, idx_scan_upr_1 = idx_scan_upr_1, 
       idx_scan_lwr_2 = idx_scan_lwr_2, idx_scan_upr_2 = idx_scan_upr_2)
   }
-
+  
   attr(filename, "is_dia") <- is_dia
   attr(filename, "iso_width") <- iso_width
   invisible(filename)
@@ -1036,6 +998,10 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
   
   msx_charges <- vector("list", length(msx_moverzs))
   
+  ##
+  # need to subset early by min_ and max_ masses...
+  ##
+  
   if (deisotope_ms2) {
     if (n_para > 1L) {
       # may subset data at ms_level == 2L
@@ -1082,8 +1048,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         quant = quant, 
         tmt_reporter_lower = tmt_reporter_lower, 
         tmt_reporter_upper = tmt_reporter_upper, 
-        exclude_reporter_region = exclude_reporter_region 
-      )
+        exclude_reporter_region = exclude_reporter_region)
       msx_moverzs <- out[[1]]
       msx_ints <- out[[2]]
       msx_charges <- out[[3]]
@@ -1106,11 +1071,11 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
       grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
       use_defpeaks = use_defpeaks)
-    
     ms1_moverzs <- ans$ms1_moverzs
     ms1_masses <- ans$ms1_masses
     ms1_charges <- ans$ms1_charges
     ms1_ints <- ans$ms1_ints
+    rm(list = "ans")
     
     # look up ms2 for undetermined precursor charge states
     if (deisotope_ms2) {
@@ -1126,7 +1091,6 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
                        iso_lwr = iso_lwr[rows], iso_upr = iso_upr[rows], 
                        SIMPLIFY = FALSE, USE.NAMES = FALSE)
         ans2 <- dplyr::bind_rows(ans2)
-        
         ans2$ms1_moverzs <- as.list(ans2$ms1_moverzs)
         ans2$ms1_masses <- as.list(ans2$ms1_masses)
         ans2$ms1_charges <- as.list(ans2$ms1_charges)
@@ -1136,9 +1100,10 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         ms1_masses[rows] <- ans2$ms1_masses
         ms1_charges[rows] <- ans2$ms1_charges
         ms1_ints[rows] <- ans2$ms1_ints
+        rm(list = "ans2")
       }
       
-      rm(list = c("rows1", "rows2", "rows", "ans2"))
+      rm(list = c("rows1", "rows2", "rows"))
     }
   }
   else {
@@ -1329,7 +1294,7 @@ deconvDDA2 <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
 #' 
 #' @param is_demux Is demux DIA or not.
 #' @param idx_demux Index of demux.
-#' @inheritParams deisoDIA
+#' @inheritParams hdeisoDIA
 #' @inheritParams extrDDA
 extrDIA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL, 
                      is_demux = FALSE, 
@@ -1404,51 +1369,56 @@ extrDIA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL,
     }
   }
   
+  # mzML: ret_times in minutes; MGF: in seconds
+  ret_times <- as.numeric(ret_times) * 60
+  scan_nums <- as.integer(scan_nums)
+  iso_ctr <- as.numeric(iso_ctr)
+  iso_lwr <- as.numeric(iso_lwr) 
+  iso_upr <- as.numeric(iso_upr) 
+  demux <- as.integer(demux)
+  
   out <- list(
     # either MS1 or MS2
     msx_moverzs = msx_moverzs, 
     msx_ints = msx_ints, 
     msx_ns = msx_ns,
-    
     scan_title = scan_titles,
     raw_file = raw_file, # single
-    ms_level = ms_levs, 
-    # mzML: ret_times in minutes; MGF: in seconds
-    ret_time = as.numeric(ret_times) * 60, 
-    scan_num = as.integer(scan_nums), 
+    ms_level = ms_levs, # NA for MS1
+    ret_time = ret_times, 
+    scan_num = scan_nums, 
     orig_scan = orig_scans,
-    iso_ctr = as.numeric(iso_ctr), 
-    iso_lwr = as.numeric(iso_lwr), 
-    iso_upr = as.numeric(iso_upr), 
-    demux = as.integer(demux)
+    iso_ctr = iso_ctr, 
+    iso_lwr = iso_lwr, 
+    iso_upr = iso_upr, 
+    demux = demux
   )
-  
+
   out_name <- paste0(raw_file, ".rds")
   qs::qsave(out, file.path(temp_dir, out_name), preset = "fast")
   invisible(out_name)
 }
 
 
-#' Helper of \link{deconvDIA}.
+#' Helper of \link{deisoDIA}.
 #' 
 #' @param filename A peaklist filename.
 #' @param temp_dir A temp_dir to the filename.
 #' @param n_para The allowance of parallel processing.
 #' @inheritParams extrDDA
 #' @inheritParams matchMS
-deisoDIA <- function (filename = NULL, temp_dir = NULL, 
-                      ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                      min_mass = 200L, # max_mass = 4500L,
-                      min_ms2mass = 115L, # max_ms2mass = 4500L, 
-                      maxn_dia_precurs = 500L, topn_dia_ms2ions = 500L, 
-                      min_ms1_charge = 2L, max_ms1_charge = 4L, 
-                      min_ret_time = 0, max_ret_time = Inf, 
-                      ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
-                      deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
-                      grad_isotope = 1.6, fct_iso2 = 3.0, 
-                      quant = "none", 
-                      tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                      exclude_reporter_region = FALSE, n_para = 1L)
+hdeisoDIA <- function (filename = NULL, temp_dir = NULL, 
+                       min_mass = 200L, max_mass = 4500L,
+                       min_ms2mass = 115L, max_ms2mass = 4500L, 
+                       maxn_dia_precurs = 500L, topn_dia_ms2ions = 5000L, 
+                       min_ms1_charge = 2L, max_ms1_charge = 4L, 
+                       min_ret_time = 0, max_ret_time = Inf, 
+                       ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
+                       deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
+                       grad_isotope = 1.6, fct_iso2 = 3.0, 
+                       quant = "none", 
+                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                       exclude_reporter_region = FALSE, n_para = 1L)
 {
   ans <- qs::qread(file.path(temp_dir, filename))
   msx_ns <- ans$msx_ns
@@ -1466,17 +1436,46 @@ deisoDIA <- function (filename = NULL, temp_dir = NULL,
   msx_ints <- ans$msx_ints
   rm(list = "ans")
   
-  if (n_para > 1L) {
-    # n_cores <- max(min(parallel::detectCores() - 1L, 128L), 1L)
-    n_cores <- n_para
-    n_chunks <- n_cores * 4L
-    grps <- sep_vec(msx_moverzs, n_chunks)
+  # need first disotope to learn charge states before data cleaning by 
+  #  min_ms2mass and max_ms2mass
+  if (n_para <= 1L) {
+    out <- deisoDIA(
+      msx_moverzs, msx_ints, ms_level, 
+      min_mass = min_mass, max_mass = max_mass,
+      min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
+      maxn_dia_precurs = maxn_dia_precurs, 
+      topn_dia_ms2ions = topn_dia_ms2ions, 
+      min_ms1_charge = min_ms1_charge, 
+      max_ms1_charge = max_ms1_charge, 
+      ppm_ms1_deisotope = ppm_ms1_deisotope, 
+      ppm_ms2_deisotope = ppm_ms2_deisotope, 
+      deisotope_ms2 = deisotope_ms2, 
+      max_ms2_charge = max_ms2_charge, 
+      grad_isotope = grad_isotope, 
+      fct_iso2 = fct_iso2, 
+      quant = quant, 
+      tmt_reporter_lower = tmt_reporter_lower, 
+      tmt_reporter_upper = tmt_reporter_upper, 
+      exclude_reporter_region = exclude_reporter_region)
     
-    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    msx_moverzs <- out[[1]]
+    msx_ints <- out[[2]]
+    msx_charges <- out[[3]]
+    msx_masses <- out[[4]] # new
+    rm(list = "out")
+  }
+  else {
+    grps <- sep_vec(msx_moverzs, n_para * 4L)
+    
+    cl <- parallel::makeCluster(getOption("cl.cores", n_para))
     out <- parallel::clusterMap(
-      cl, deconvDIA, 
+      cl, deisoDIA, 
       split(msx_moverzs, grps), split(msx_ints, grps), split(ms_level, grps), 
       MoreArgs = list(
+        min_mass = min_mass, 
+        max_mass = max_mass,
+        min_ms2mass = min_ms2mass, 
+        max_ms2mass = max_ms2mass, 
         maxn_dia_precurs = maxn_dia_precurs, 
         topn_dia_ms2ions = topn_dia_ms2ions, 
         min_ms1_charge = min_ms1_charge, 
@@ -1497,41 +1496,17 @@ deisoDIA <- function (filename = NULL, temp_dir = NULL,
     msx_moverzs <- lapply(out, `[[`, 1L)
     msx_ints <- lapply(out, `[[`, 2L)
     msx_charges <- lapply(out, `[[`, 3L)
+    msx_masses <<- lapply(out, `[[`, 4L) # new
     rm(list = "out")
     
     msx_moverzs <- unlist(msx_moverzs, recursive = FALSE, use.names = FALSE)
     msx_ints <- unlist(msx_ints, recursive = FALSE, use.names = FALSE)
     msx_charges <- unlist(msx_charges, recursive = FALSE, use.names = FALSE)
-    
-    ms1_moverzs <- ms1_ints <- ms1_charges <- vector("list", length(msx_moverzs))
+    msx_masses <- unlist(msx_masses, recursive = FALSE, use.names = FALSE) # new
   }
-  else {
-    out <- deconvDIA(
-      msx_moverzs, msx_ints, ms_level, 
-      maxn_dia_precurs = maxn_dia_precurs, 
-      topn_dia_ms2ions = topn_dia_ms2ions, 
-      min_ms1_charge = min_ms1_charge, 
-      max_ms1_charge = max_ms1_charge, 
-      ppm_ms1_deisotope = ppm_ms1_deisotope, 
-      ppm_ms2_deisotope = ppm_ms2_deisotope, 
-      deisotope_ms2 = deisotope_ms2, 
-      max_ms2_charge = max_ms2_charge, 
-      grad_isotope = grad_isotope, 
-      fct_iso2 = fct_iso2, 
-      quant = quant, 
-      tmt_reporter_lower = tmt_reporter_lower, 
-      tmt_reporter_upper = tmt_reporter_upper, 
-      exclude_reporter_region = exclude_reporter_region
-    )
-    
-    msx_moverzs <- out[[1]]
-    msx_ints <- out[[2]]
-    msx_charges <- out[[3]]
-    rm(list = "out")
-    
-    ms1_moverzs <- ms1_ints <- ms1_charges <- vector("list", length(msx_moverzs))
-  }
-
+  
+  ms1_moverzs <- ms1_ints <- ms1_charges <- vector("list", length(msx_moverzs))
+  
   df <- tibble::tibble(
     scan_title = scan_title,
     raw_file = raw_file,
@@ -1539,16 +1514,17 @@ deisoDIA <- function (filename = NULL, temp_dir = NULL,
     ret_time = ret_time, 
     scan_num = scan_num, 
     orig_scan = orig_scan,
-    # either MS1 or MS2
+    # full MS1 or MS2
     msx_moverzs = msx_moverzs, 
     msx_ints = msx_ints, 
     msx_charges = msx_charges, 
+    msx_masses = msx_masses, # new
     msx_ns = msx_ns, 
     
     # MS1 placeholder
     ms1_moverzs = ms1_moverzs, 
     ms1_ints = ms1_ints, 
-    # MS1: vector or empty vector for MS1; MS2: NULL
+    # MS1: vector or empty vector; MS2: NULL
     ms1_charges = ms1_charges, 
     
     iso_ctr = iso_ctr, 
@@ -1567,17 +1543,18 @@ deisoDIA <- function (filename = NULL, temp_dir = NULL,
 #' @param msx_moverzs Vectors of moverzs.
 #' @param msx_ints Vectors of intensities.
 #' @param ms_level Vectors of MS levels.
-#' @param topn_dia_ms2ions Top-N DIA-MS2 features for deisotoping.
-#' @inheritParams deisoDIA
+#' @inheritParams hdeisoDIA
 #' @inheritParams matchMS
-deconvDIA <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL, 
-                       maxn_dia_precurs = 500L, topn_dia_ms2ions = 500L, 
-                       min_ms1_charge = 2L, max_ms1_charge = 4L, 
-                       ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
-                       deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
-                       grad_isotope = 1.6, fct_iso2 = 3.0, quant = "none", 
-                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       exclude_reporter_region = FALSE)
+deisoDIA <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL, 
+                      min_mass = 200L, max_mass = 4500L,
+                      min_ms2mass = 115L, max_ms2mass = 4500L, 
+                      maxn_dia_precurs = 500L, topn_dia_ms2ions = 5000L, 
+                      min_ms1_charge = 2L, max_ms1_charge = 4L, 
+                      ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
+                      deisotope_ms2 = TRUE, max_ms2_charge = 3L, 
+                      grad_isotope = 1.6, fct_iso2 = 3.0, quant = "none", 
+                      tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                      exclude_reporter_region = FALSE)
 {
   if (!(len <- length(msx_moverzs)))
     return(NULL)
@@ -1585,70 +1562,131 @@ deconvDIA <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
   is_tmt <- if (isTRUE(grepl("^tmt.*\\d+", quant))) TRUE else FALSE
   # if (is_tmt) stop("TMT not yet supported with DIA workflows.")
   
-  msx_charges <- vector("list", len)
+  msx_masses <- msx_charges <- vector("list", len)
   
   for (i in 1:len) {
     ms_lev <- ms_level[[i]]
     
     if (ms_lev == 2L && deisotope_ms2) {
-      mic <- find_ms1stat(moverzs = msx_moverzs[[i]], msxints = msx_ints[[i]], 
-                          center = 0, exclude_reporter_region = is_tmt, 
-                          tmt_reporter_lower = tmt_reporter_lower, 
-                          tmt_reporter_upper = tmt_reporter_upper, 
-                          is_dda = FALSE, ppm = ppm_ms2_deisotope, 
-                          ms_lev = 2L, maxn_feats = topn_dia_ms2ions, 
-                          max_charge = max_ms2_charge, n_fwd = 10L, 
-                          offset_upr = 30L, offset_lwr = 30L, 
-                          grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
-                          order_mz = FALSE)
+      mic <- find_ms1stat(
+        moverzs = msx_moverzs[[i]], msxints = msx_ints[[i]], 
+        center = 0, exclude_reporter_region = is_tmt, 
+        tmt_reporter_lower = tmt_reporter_lower, 
+        tmt_reporter_upper = tmt_reporter_upper, 
+        is_dda = FALSE, ppm = ppm_ms2_deisotope, 
+        ms_lev = 2L, maxn_feats = topn_dia_ms2ions, 
+        max_charge = max_ms2_charge, n_fwd = 10L, 
+        offset_upr = 30L, offset_lwr = 30L, 
+        grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+        order_mz = FALSE)
+      
+      xs <- mic[["masses"]]
+      ys <- mic[["intensities"]]
+      zs <- mic[["charges"]]
+      ms <- (xs - 1.00727647) * zs
+      oks <- is.na(zs) | (ms >= min_ms2mass & ms <= max_ms2mass)
+
+      msx_moverzs[[i]] <- xs[oks]
+      msx_ints[[i]] <- ys[oks]
+      msx_charges[[i]] <- zs[oks]
+      # no need at ms_lev == 2L
+      msx_masses[[i]] <- ms[oks]
     }
     else if (ms_lev == 1L) {
-      mic <- find_ms1stat(moverzs = msx_moverzs[[i]], msxints = msx_ints[[i]], 
-                          center = 0, exclude_reporter_region = FALSE, 
-                          is_dda = FALSE, ppm = ppm_ms1_deisotope, 
-                          ms_lev = 1L, 
-                          # by the width of MS1: 395 - 1005???
-                          maxn_feats = maxn_dia_precurs, 
-                          max_charge = max_ms1_charge, 
-                          n_fwd = 20L, offset_upr = 30L, offset_lwr = 30L, 
-                          grad_isotope = grad_isotope, 
-                          fct_iso2 = fct_iso2, order_mz = FALSE)
+      mic <- find_ms1stat(
+        moverzs = msx_moverzs[[i]], msxints = msx_ints[[i]], 
+        center = 0, exclude_reporter_region = FALSE, 
+        is_dda = FALSE, ppm = ppm_ms1_deisotope, 
+        ms_lev = 1L, 
+        # by the width of MS1: 395 - 1005???
+        maxn_feats = maxn_dia_precurs, 
+        max_charge = max_ms1_charge, 
+        n_fwd = 20L, offset_upr = 30L, offset_lwr = 30L, 
+        grad_isotope = grad_isotope, 
+        fct_iso2 = fct_iso2, order_mz = FALSE)
+      
+      xs <- mic[["masses"]]
+      ys <- mic[["intensities"]]
+      zs <- mic[["charges"]] # MS2: NULL; MS1: integer vectors
+      ms <- (xs - 1.00727647) * zs
+      oks <- is.na(zs) | (ms >= min_mass & ms <= max_mass)
+
+      msx_moverzs[[i]] <- xs[oks]
+      msx_ints[[i]] <- ys[oks]
+      msx_charges[[i]] <- zs[oks]
+      msx_masses[[i]] <- ms[oks]
     }
-    
-    msx_moverzs[[i]] <- mic[["masses"]]
-    msx_ints[[i]] <- mic[["intensities"]]
-    msx_charges[[i]] <- mic[["charges"]] # MS2: NULL; MS1: integer vectors
   }
   
-  list(msx_moverzs = msx_moverzs, msx_ints = msx_ints, msx_charges = msx_charges)
+  # msx_charges and msx_masses can be NA for MS2
+  list(msx_moverzs = msx_moverzs, msx_ints = msx_ints, 
+       msx_charges = msx_charges, msx_masses = msx_masses)
 }
 
 
-#' Get precursor mass candidates for each DIA window.
+#' Helper of \link{subDIAMS1} for parallel processing.
 #' 
-#' Subset by MS2 isolation windows.
-#' 
-#' @param filename A filename with prepending path.
-subDIA_MS1 <- function (filename = NULL)
+#' @param filename A filename.
+#' @param temp_dir A temporary file folder.
+#' @param n_para The allowance of parallel processing.
+hsubDIAMS1 <- function (filename = NULL, temp_dir = NULL, n_para = 1L)
 {
-  df <- qs::qread(filename)
+  df <- qs::qread(file.path(temp_dir, filename))
   
-  # correspondence of row indexes between MS1 and MS2 scans
+  if (n_para <= 1L)
+    return(subDIAMS1(df))
+  
+  idxes <- findInterval(1:nrow(df), which(df$ms_level == 1L))
+  ends2 <- find_group_breaks(idxes, n_para, by_rngs = FALSE)
+  stas1 <- c(1L, ends2[1:(n_para - 1L)] + 1L)
+  
+  dfs <- mapply(function (x, y) df[x:y, ], stas1, ends2, 
+                SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  rm(list = c("df", "idxes", "ends2", "stas1"))
+  
+  cl <- parallel::makeCluster(getOption("cl.cores", n_para))
+  ans <- parallel::clusterApply(cl, dfs, subDIAMS1)
+  parallel::stopCluster(cl)
+  rm(list = "dfs")
+  
+  df <- dplyr::bind_rows(ans)
+  out_name <- paste0("sub", filename)
+  qs::qsave(df, file.path(temp_dir, out_name), preset = "fast")
+  invisible(out_name)
+}
+
+
+#' Gets precursor mass candidates for each DIA window.
+#' 
+#' Subsets by MS2 isolation windows.
+#' 
+#' @param df A data frame.
+subDIAMS1 <- function (df)
+{
+  nr <- nrow(df)
   idxes_ms1 <- which(df$ms_level == 1L)
+  len <- length(idxes_ms1)
+
+  # adds a non-consecutive trailing index
+  idxes_ms1x <- c(idxes_ms1, idxes_ms1[len] + 2L)
   
-  if (length(idxes_ms1) == 1L) {
-    ms1_stas <- idxes_ms1
-    ms2_stas <- ms1_stas + 1L
-    ms2_ends <- nrow(df)
+  # Keep the last MS1 for each segment of consecutive MS1 scans
+  diff_ms1 <- c(0L, diff(idxes_ms1x))
+  oks <- which(diff_ms1 > 1L)
+  ms1_stas <- idxes_ms1x[oks - 1L]
+  ms2_stas <- ms1_stas + 1L # the last value can be arbitrary if ends with MS1
+  ms2_ends <- idxes_ms1x[oks] - 1L # the last is arbitrary
+  
+  if (nr > idxes_ms1[len]) { # with MS2s after the last MS1
+    ms2_ends[len] <- nr
   }
-  else {
-    diff_ms1 <- c(0L, diff(idxes_ms1))
-    oks <- which(diff_ms1 > 1L)
-    ms1_stas <- idxes_ms1[oks - 1L]
-    ms2_stas <- ms1_stas + 1L
-    ms2_ends <- idxes_ms1[oks] - 1L
-    rm(list = c("oks", "diff_ms1", "idxes_ms1"))
+  else { # no MS2s after the last MS1
+    len1 <- length(ms1_stas)
+    ms1_stas <- ms1_stas[-len1]
+    ms2_stas <- ms2_stas[-len1]
+    ms2_ends <- ms2_ends[-len1]
   }
+  rm(list = c("oks", "diff_ms1", "idxes_ms1", "idxes_ms1x"))
   
   for (i in seq_along(ms1_stas)) {
     idx <- ms1_stas[i]
@@ -1669,140 +1707,66 @@ subDIA_MS1 <- function (filename = NULL)
     half  <- df2$iso_upr[[1]]
     cents <- df2$iso_ctr
     
-    # the first center not the smallest: up then down
+    # the first center not the smallest: up first then down
     if ((imin <- which.min(cents)) > 1L) {
       edg_b <- c(cents[[1]] - half, cents[1:(imin-1L)] + half)
+      len_b <- length(edg_b)
+      # edg_b[[1]] <- edg_b[[1]] - .5
+      # edg_b[[len_b]] <- edg_b[[len_b]] + .5
+      
       cuts_b <- findInterval(xs, edg_b)
       xs_b <- split(xs, cuts_b)
       ys_b <- split(ys, cuts_b)
       css_b <- split(css, cuts_b)
-      xs_b <- xs_b[-1]
-      ys_b <- ys_b[-1]
-      css_b <- css_b[-1]
-      rows_b <- as.integer(names(xs_b))
+      
+      bins_b <- as.integer(names(xs_b))
+      oks_b <- bins_b > 0L & bins_b < len_b
+      # bins_b <- bins_b[oks_b]
+      xs_b <- xs_b[oks_b]
+      ys_b <- ys_b[oks_b]
+      css_b <- css_b[oks_b]
       
       edg_a <- c(cents[[imin]] - half, cents[imin:length(cents)] + half)
+      len_a <- length(edg_a)
+      # edg_a[[1]] <- edg_a[[1]] - .5
+      # edg_a[[len_a]] <- edg_a[[len_a]] + .5
+      
       cuts_a <- findInterval(xs, edg_a)
       xs_a <- split(xs, cuts_a)
       ys_a <- split(ys, cuts_a)
       css_a <- split(css, cuts_a)
-      xs_a <- xs_a[-(nitv <- length(xs_a))]
-      ys_a <- ys_a[-nitv]
-      css_a <- css_a[-nitv]
-      rows_a <- as.integer(names(xs_a))
       
-      rows <- c(as.integer(names(xs_b)), as.integer(names(xs_a)) + imin - 1L)
-      df$ms1_moverzs[rows2][rows] <- c(xs_b, xs_a)
-      df$ms1_ints[rows2][rows] <- c(ys_b, ys_a)
-      df$ms1_charges[rows2][rows] <- c(css_b, css_a)
+      bins_a <- as.integer(names(xs_a))
+      oks_a <- bins_a > 0L & bins_a < len_a
+      # bins_a <- bins_a[oks_a]
+      xs_a <- xs_a[oks_a]
+      ys_a <- ys_a[oks_a]
+      css_a <- css_a[oks_a]
+      
+      bins <- c(as.integer(names(xs_b)), as.integer(names(xs_a)) + imin - 1L)
+      df$ms1_moverzs[rows2][bins] <- c(xs_b, xs_a)
+      df$ms1_ints[rows2][bins] <- c(ys_b, ys_a)
+      df$ms1_charges[rows2][bins] <- c(css_b, css_a)
     }
     else {
       edges <- c(cents[[1]] - half, cents + half)
+      len_ab <- length(edges)
+      # edges[[1]] <- edges[[1]] - .5
+      # edges[[len_ab]] <- edges[[len_ab]] + .5
+      
       cuts <- findInterval(xs, edges)
       xs_cuts <- split(xs, cuts)
       ys_cuts <- split(ys, cuts)
       css_cuts <- split(css, cuts)
       
       # excludes precursors outside the isolation window
-      rows <- as.integer(names(xs_cuts))
-      oks <- rows & rows <= length(rows2)
-      rows <- rows[oks]
-      df$ms1_moverzs[rows2][rows] <- xs_cuts[oks]
-      df$ms1_ints[rows2][rows] <- ys_cuts[oks]
-      df$ms1_charges[rows2][rows] <- css_cuts[oks]
+      bins <- as.integer(names(xs_cuts))
+      oks <- bins > 0L & bins < len_ab
+      bins <- bins[oks]
+      df$ms1_moverzs[rows2][bins] <- xs_cuts[oks]
+      df$ms1_ints[rows2][bins] <- ys_cuts[oks]
+      df$ms1_charges[rows2][bins] <- css_cuts[oks]
     }
-  }
-  
-  df
-}
-
-
-#' Traces DIA-MS2 against MS1.
-#'
-#' For a single MS1 range, e.g., 592.5 to 604.5.
-#'
-#' @param df A data frame.
-#' @param step1 A step size for MS1.
-#' @param step2 A step size for MS2.
-#' @inheritParams matchMS
-traceDIA <- function (df, min_mass = 200L, min_ms2mass = 115L, step1 = 1E-5, 
-                        step2 = 1E-5, n_dia_ms2s = 0L)
-{
-  # n_dia_ms2s > 1L not yet optimized, longer sequences ms2s than topn_ms2_ions...
-  
-  mat1 <- trace_ms(xs = df[["ms1_moverz"]], ys = df[["ms1_int"]], 
-                   zs = df[["ms1_charge"]], from = min_mass, step = step1)
-  mat1x <- mat1[["x"]]
-  mat1y <- mat1[["y"]]
-  mat1z <- mat1[["z"]]
-  rm(list = "mat1")
-  
-  if (!n_dia_ms2s) {
-    for (j in 1:nrow(df)) {
-      m1xj <- mat1x[j, ]
-      m1yj <- mat1y[j, ]
-      m1zj <- mat1z[j, ]
-      oks1 <- !is.na(m1xj)
-      m1xj <- m1xj[oks1]
-      m1yj <- m1yj[oks1]
-      m1zj <- m1zj[oks1]
-      
-      df$ms1_moverz[[j]] <- m1xj
-      df$ms1_int[[j]] <- m1yj
-      df$ms1_charge[[j]] <- m1zj
-    }
-    
-    return(df)
-  }
-  
-  mat2 <- trace_ms(xs = df[["ms2_moverzs"]], ys = df[["ms2_ints"]], 
-                   zs = df[["ms2_charges"]], from = min_ms2mass, step = step2)
-  mat2x <- mat2[["x"]]
-  mat2y <- mat2[["y"]]
-  mat2z <- mat2[["z"]]
-  rm(list = "mat2")
-  
-  len <- nrow(df)
-  len2 <- len - n_dia_ms2s
-  
-  for (j in 1:len) {
-    m1xj <- mat1x[j, ]
-    m1yj <- mat1y[j, ]
-    m1zj <- mat1z[j, ]
-    oks1 <- !is.na(m1xj)
-    m1xj <- m1xj[oks1]
-    m1yj <- m1yj[oks1]
-    m1zj <- m1zj[oks1]
-    
-    sta <- if (j > n_dia_ms2s) j - n_dia_ms2s + 1L else 1L
-    end <- if (j < len2) j + n_dia_ms2s - 1L else len
-    js <- sta:end
-    m2xj <- mat2x[js, ]
-    m2yj <- mat2y[js, ]
-    m2zj <- mat2z[js, ]
-    
-    if (n_dia_ms2s == 1L) {
-      oks2 <- !is.na(m2xj)
-      m2xj <- m2xj[oks2]
-      m2yj <- m2yj[oks2]
-      m2zj <- m2zj[oks2]
-    }
-    else {
-      ysum <- colSums(m2yj, na.rm = TRUE)
-      oks2 <- ysum > 0
-      ysum <- ysum[oks2]
-      m2xj <- colSums(m2xj[, oks2] * m2yj[, oks2], na.rm = TRUE)/ysum
-      m2yj <- ysum
-      m2zj <- colMeans(m2zj[, oks2], na.rm = TRUE)
-      m2zj <- as.integer(m2zj)
-    }
-    
-    df$ms1_moverz[[j]] <- m1xj
-    df$ms1_int[[j]] <- m1yj
-    df$ms1_charge[[j]] <- m1zj
-    df$ms2_moverzs[[j]] <- m2xj
-    df$ms2_ints[[j]] <- m2yj
-    df$ms2_charges[[j]] <- m2zj
   }
   
   df
@@ -1811,23 +1775,30 @@ traceDIA <- function (df, min_mass = 200L, min_ms2mass = 115L, step1 = 1E-5,
 
 #' Helper of tracing DIA.
 #' 
-#' @param df A data frame.
-#' @param raw_id A raw file id. 
+#' @param filename A filename.
+#' @param raw_id A raw file id.
+#' @param temp_dir A temporary directory. 
+#' @param gap The size of gap.
+#' @param n_para The allowance of parallel processing.
 #' @inheritParams load_mgfs
-htraceDIA <- function (df, raw_id, mgf_path, 
+htraceDIA <- function (filename, raw_id, temp_dir, mgf_path, 
                        min_ret_time = 0L, max_ret_time = Inf, 
                        min_mass = 200L, max_mass = 4500L, 
                        min_ms2mass = 115L, max_ms2mass = 4500L, 
-                       ppm_ms1 = 20L, ppm_ms2 = 20L, n_dia_ms2s = 0L, 
-                       topn_ms2ions = 150L, 
+                       ppm_ms1 = 8L, ppm_ms2 = 8L, 
+                       n_dia_ms2bins = 1L, n_dia_scans = 4L, 
+                       delayed_diams2_tracing = FALSE, topn_ms2ions = 150L, 
                        mgf_cutmzs = numeric(), mgf_cutpercs = numeric(), 
                        quant = "none", 
                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                       exclude_reporter_region = FALSE)
+                       exclude_reporter_region = FALSE, n_para = 1L)
 {
   ### cleanDIAMS
-  df <- df[with(df, ms_level != 1L), ]
+  df <- qs::qread(file.path(temp_dir, filename))
+  df$msx_masses <- NULL
+  
   # NULL: no MS1 in the bins
+  df <- df[with(df, ms_level != 1L), ]
   bads <- unlist(lapply(df$ms1_moverzs, is.null), recursive = FALSE, 
                  use.names = FALSE)
   df <- df[!bads, ]
@@ -1844,7 +1815,10 @@ htraceDIA <- function (df, raw_id, mgf_path,
   df <- dplyr::filter(df, ret_time >= min_ret_time, ret_time <= max_ret_time)
   rm(list = "rts")
   
-  ## Trace MS1 - MS2
+  ## traces MS2
+  ws <- dnorm(-n_dia_scans:n_dia_scans, mean = 0, sd = 2)
+  ws <- ws/ws[n_dia_scans+1L]
+  
   cols <- c("ms1_moverz", "ms1_int", "ms1_charge", 
             "ms2_moverzs", "ms2_ints", "ms2_charges")
   
@@ -1853,20 +1827,43 @@ htraceDIA <- function (df, raw_id, mgf_path,
   
   dfs <- split(df, df$iso_ctr)
   rm(list = "df")
-  n_cores <- max(min(parallel::detectCores() - 1L, ceiling(length(dfs)/2L)), 1L)
-  cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-  dfs <- parallel::clusterApply(cl, dfs, traceDIA, 
-                                min_mass = min_mass, 
-                                min_ms2mass = min_ms2mass, 
-                                step1 = ppm_ms1/1e6, step2 = ppm_ms2/1e6, 
-                                n_dia_ms2s = n_dia_ms2s)
-  parallel::stopCluster(cl)
+  
+  subdir <- create_dir(file.path(temp_dir, paste0("sub_", raw_id)))
+  
+  if (n_para <= 1L) {
+    dfs <- mapply(
+      traceDIA, dfs, seq_along(dfs), 
+      MoreArgs = list(
+        ws = ws, n_dia_scans = n_dia_scans, n_dia_ms2bins = n_dia_ms2bins, 
+        temp_dir = subdir, min_mass = min_mass, min_ms2mass = min_ms2mass, 
+        step1 = ppm_ms1/1e6, step2 = ppm_ms2/1e6, 
+        delayed_diams2_tracing = delayed_diams2_tracing
+      ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  }
+  else {
+    cl <- parallel::makeCluster(getOption("cl.cores", n_para))
+    
+    dfs <- parallel::clusterMap(
+      cl, traceDIA, dfs, seq_along(dfs),
+      MoreArgs = list(
+        ws = ws, n_dia_scans = n_dia_scans, n_dia_ms2bins = n_dia_ms2bins, 
+        temp_dir = subdir, 
+        min_mass = min_mass, 
+        min_ms2mass = min_ms2mass, 
+        step1 = ppm_ms1/1e6, step2 = ppm_ms2/1e6, 
+        delayed_diams2_tracing = delayed_diams2_tracing
+      ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    
+    parallel::stopCluster(cl)
+  }
+  
   df <- dplyr::bind_rows(dfs)
   rm(list = "dfs")
+  unlink(subdir, recursive = TRUE)
   
-  ### 
+  ## Clean up
   lens <- lengths(df$ms1_moverz)
-  df <- df[lens > 0L, ] # 69701
+  df <- df[lens > 0L, ]
   # use singular names for consistency with DDA
   df$ms1_mass <- mapply(function (x, y) (x - 1.00727647) * y, 
                         df$ms1_moverz, df$ms1_charge, 
@@ -1884,7 +1881,7 @@ htraceDIA <- function (df, raw_id, mgf_path,
   df$rptr_moverzs <- restmt[["rptr_moverzs"]]
   df$rptr_ints <- restmt[["rptr_ints"]]
   df$iso_lwr <- df$iso_upr <- df$iso_ctr <- NULL
-
+  
   mz_n_int <- sub_mgftopn(ms2_moverzs = df[["ms2_moverzs"]], 
                           ms2_ints = df[["ms2_ints"]], 
                           ms2_charges = df[["ms2_charges"]], 
@@ -1904,6 +1901,314 @@ htraceDIA <- function (df, raw_id, mgf_path,
   #  In `post_pepfdr`, `calc_peploc`, `hcalc_tmtint`, `add_rptrs`
   
   post_readmgf(df, raw_id = raw_id, mgf_path = mgf_path)
+}
+
+
+#' Traces DIA-MS2 against MS1.
+#'
+#' For a single MS1 range, e.g., 592.5 to 604.5.
+#'
+#' @param df A data frame.
+#' @param icenter The index of an isolation center.
+#' @param ws Weights.
+#' @param temp_dir A temporary directory.
+#' @param n_dia_scans The number of adjacent MS scans for constructing a peak
+#'   profile and thus for determining the apex scan number of an moverz value
+#'   along LC.
+#' @param step1 A step size for MS1.
+#' @param step2 A step size for MS2.
+#' @param tracing_ms1 Logical; tracing MS1 or not.
+#' @inheritParams load_mgfs
+traceDIA <- function (df = NULL, icenter = 1L, ws = NULL, n_dia_scans = 4L, 
+                      n_dia_ms2bins = 1L, min_mass = 200L, min_ms2mass = 115L, 
+                      step1 = 1E-5, step2 = 1E-5, temp_dir = NULL, 
+                      tracing_ms1 = TRUE, delayed_diams2_tracing = FALSE)
+{
+  len <- nrow(df)
+  
+  ###
+  if (tracing_ms1) {
+    mat1 <- traceMS(
+      xs = df[["ms1_moverz"]], 
+      ys = df[["ms1_int"]], 
+      zs = df[["ms1_charge"]], 
+      n_dia_scans = n_dia_scans, 
+      from = min_mass, 
+      step = step1, 
+      icenter = icenter, 
+      ms_lev = 1L, 
+      temp_dir = temp_dir)
+    
+    mat1x <- mat1[["x"]]
+    mat1y <- mat1[["y"]]
+    mat1z <- mat1[["z"]]
+    ns1 <- mat1[["n"]]
+    ps1 <- mat1[["p"]] # scans <-> rows
+    rm(list = "mat1")
+    gc()
+    
+    ans1 <- spreadMS(mat1x, mat1y, mat1z, ns1, ps1)
+    mat1x <- ans1[["x"]]
+    mat1y <- ans1[["y"]]
+    mat1z <- ans1[["z"]]
+    rm(list = c("ans1", "ns1", "ps1"))
+    gc()
+    
+    if (delayed_diams2_tracing) {
+      ansx1 <- ansy1 <- ansz1 <- vector("list", len)
+      
+      for (i in 1:len) {
+        m1xi <- mat1x[i, ]
+        m1yi <- mat1y[i, ]
+        m1zi <- mat1z[i, ]
+        oks1 <- !is.na(m1xi)
+        ansx1[[i]] <- m1xi[oks1]
+        ansy1[[i]] <- m1yi[oks1]
+        ansz1[[i]] <- m1zi[oks1]
+      }
+      
+      df$ms1_moverz <- ansx1
+      df$ms1_int <- ansy1
+      df$ms1_charge <- ansz1
+      
+      return(df)
+    }
+  }
+  else {
+    if (delayed_diams2_tracing)
+      return(df)
+  }
+  ###
+  
+  mat2 <- traceMS(
+    xs = df[["ms2_moverzs"]], 
+    ys = df[["ms2_ints"]], 
+    zs = df[["ms2_charges"]], 
+    n_dia_scans = n_dia_scans, 
+    from = min_ms2mass, 
+    step = step2, 
+    icenter = icenter, 
+    ms_lev = 2L, 
+    temp_dir = temp_dir)
+  
+  mat2x <- mat2[["x"]]
+  mat2y <- mat2[["y"]]
+  mat2z <- mat2[["z"]]
+  ns2 <- mat2[["n"]]
+  ps2 <- mat2[["p"]]
+  rm(list = "mat2")
+  gc()
+  
+  ansx1 <- ansy1 <- ansz1 <- ansn1 <- 
+    ansn2 <- ansx2 <- ansy2 <- ansz2 <- vector("list", len)
+
+  for (i in c(1, len)) {
+    ###
+    if (tracing_ms1) {
+      m1xi <- mat1x[i, ]
+      m1yi <- mat1y[i, ]
+      m1zi <- mat1z[i, ]
+      oks1 <- !is.na(m1xi)
+      ansx1[[i]] <- m1xi[oks1]
+      ansy1[[i]] <- m1yi[oks1]
+      ansz1[[i]] <- m1zi[oks1]
+    }
+    ###
+    
+    m2xi <- mat2x[i, ]
+    m2yi <- mat2y[i, ]
+    m2zi <- mat2z[i, ]
+    oks2 <- !is.na(m2xi)
+    ansx2[[i]] <- m2xi[oks2]
+    ansy2[[i]] <- m2yi[oks2]
+    ansz2[[i]] <- m2zi[oks2]
+  }
+  
+  if (len > 2L) {
+    for (i in 2:(len - 1L)) {
+      ###
+      if (tracing_ms1) {
+        m1xi <- mat1x[i, ]
+        m1yi <- mat1y[i, ]
+        m1zi <- mat1z[i, ]
+        oks1 <- !is.na(m1xi)
+        ansx1[[i]] <- m1xi[oks1]
+        ansy1[[i]] <- m1yi[oks1]
+        ansz1[[i]] <- m1zi[oks1]
+      }
+      ###
+      
+      m2xi <- mat2x[i, ]
+      m2yi <- mat2y[i, ]
+      m2zi <- mat2z[i, ]
+      oks2 <- !is.na(m2xi)
+      ansx2[[i]] <- m2xi[oks2]
+      ansy2[[i]] <- m2yi[oks2]
+      ansz2[[i]] <- m2zi[oks2]
+    }
+    
+    ###
+    # check overlapped masses from the adjacent bins???
+    if (tracing_ms1) {
+      if (FALSE) {
+        ans1 <- comb_mstraces(xs = ansx1, ys = ansy1, zs = ansz1, ws = ws, 
+                              n_dia_ms2bins = n_dia_ms2bins,)
+        ax1 <- ans1[["x"]]
+        ay1 <- ans1[["y"]]
+        az1 <- ans1[["z"]]
+        rm(list = "ans1")
+        
+        df$ms1_moverz <- ax1
+        df$ms1_int <- ay1
+        df$ms1_charge <- az1
+      }
+      else {
+        df$ms1_moverz <- ansx1
+        df$ms1_int <- ansy1
+        df$ms1_charge <- ansz1
+      }
+    }
+    ###
+    
+    # rm(list = c("mat1x", "mat1y", "mat1z", "mat2x", "mat2y", "mat2z"))
+    rm(list = c("mat2x", "mat2y", "mat2z"))
+    
+    # if (n_dia_ms2bins <= n_dia_scans) no overlapped masses from the adjacent bins?
+    
+    if (FALSE) {
+      ans2 <- comb_mstraces(xs = ansx2, ys = ansy2, zs = ansz2, ws = ws, 
+                            n_dia_ms2bins = n_dia_ms2bins)
+      ax2 <- ans2[["x"]]
+      ay2 <- ans2[["y"]]
+      az2 <- ans2[["z"]]
+      rm(list = "ans2")
+      
+      df$ms2_moverzs <- ax2
+      df$ms2_ints <- ay2
+      df$ms2_charges <- az2
+    }
+    else {
+      df$ms2_moverzs <- ansx2
+      df$ms2_ints <- ansy2
+      df$ms2_charges <- ansz2
+    }
+  }
+  
+  # need to order or not???
+  ords <- lapply(df$ms2_moverzs, order)
+  df$ms2_moverzs <- mapply(function (x, y) x[y], df$ms2_moverzs, ords,
+                           SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  df$ms2_ints <- mapply(function (x, y) x[y], df$ms2_ints, ords,
+                        SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  df$ms2_charges <- mapply(function (x, y) x[y], df$ms2_charges, ords,
+                           SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
+  df
+}
+
+
+#' Spreads MS data across adjacent scans.
+#' 
+#' @param matx The data matrix of moverzs.
+#' @param maty The data matrix of intensities.
+#' @param matz The data matrix of charge states.
+spreadMS <- function (matx, maty, matz, ns, ps)
+{
+  nr <- nrow(matx)
+  nc <- ncol(matx)
+  gap1 <- 2L
+  gap2 <- 2L
+  gap0 <- 1L
+
+  # ignore the range of the first n_exclude and the last n_exclude
+  for (i in 1:nc) {
+    ni <- ns[[i]]
+    pi <- ps[[i]]
+
+    for (j in seq_along(rows1 <- pi[ni == 1L])) {
+      if (length(rows1)) {
+        rj1 <- rows1[[j]]
+        rng1 <- max((rj1 - gap1), 1L):min((rj1 + gap1), nr)
+        matx[rng1, i] <- matx[rj1, i]
+        maty[rng1, i] <- maty[rj1, i]
+        matz[rng1, i] <- matz[rj1, i]
+      }
+    }
+    
+    for (j in seq_along(rows2 <- pi[ni == 2L])) {
+      if (length(rows2)) {
+        rj2 <- rows2[[j]]
+        rng2 <- max((rj2 - gap2), 1L):min((rj2 + gap2), nr)
+        matx[rng2, i] <- matx[rj2, i]
+        maty[rng2, i] <- maty[rj2, i]
+        matz[rng2, i] <- matz[rj2, i]
+      }
+    }
+    
+    for (j in seq_along(rows0 <- pi[ni >= 3L])) {
+      if (length(rows0)) {
+        rj0 <- rows0[[j]]
+        rng0 <- max((rj0 - gap0), 1L):min((rj0 + gap0), nr)
+        matx[rng0, i] <- matx[rj0, i]
+        maty[rng0, i] <- maty[rj0, i]
+        matz[rng0, i] <- matz[rj0, i]
+      }
+    }
+  }
+  
+  list(x = matx, y = maty, z = matz)
+}
+
+
+#' Combines adjacent MS2 traces.
+#' 
+#' @param xs Vectors of MS2 moverzs.
+#' @param ys Vectors of MS2 intensities.
+#' @param zs Vectors of MS2 charge states.
+#' @param ws Weights.
+#' @inheritParams matchMS
+#' @importFrom fastmatch %fin% 
+comb_mstraces <- function (xs, ys, zs, ws, n_dia_ms2bins = 1L)
+{
+  if (!n_dia_ms2bins)
+    return(list(x = xs, y = ys, z = zs))
+  
+  ansz <- ansy <- ansx <- vector("list", len <- length(xs))
+  
+  for (i in 1:n_dia_ms2bins) {
+    ansx[[i]] <- xs[[i]]
+    ansy[[i]] <- ys[[i]]
+    ansz[[i]] <- zs[[i]]
+  }
+  
+  sta <- n_dia_ms2bins + 1L
+  end <- len - n_dia_ms2bins
+  
+  for (i in sta:end) {
+    bf <- i - n_dia_ms2bins
+    af <- i + n_dia_ms2bins
+    rng <- bf:af
+    # xbf <- .Internal(unlist(xs[bf:(i-1)], recursive = FALSE, use.names = FALSE))
+    # xaf <- .Internal(unlist(xs[(i+1):af], recursive = FALSE, use.names = FALSE))
+    # xcr <- xs[[i]]
+    # ixbf <- index_mz(xbf, from, step)
+    # ixaf <- index_mz(xaf, from, step)
+    # ixcr <- index_mz(xcr, from, step)
+    # oks_bf <- ixbf %fin% ixcr | (ixbf - 1L) %fin% ixcr | (ixbf + 1L) %fin% ixcr
+
+    ansx[[i]] <- .Internal(unlist(xs[rng], recursive = FALSE, use.names = FALSE))
+    ansy[[i]] <- .Internal(unlist(mapply(function (y, w) y * w, ys[rng], ws), 
+                                  recursive = FALSE, use.names = FALSE))
+    ansz[[i]] <- .Internal(unlist(zs[rng], recursive = FALSE, use.names = FALSE))
+  }
+  
+  for (i in (end+1):len) {
+    ansx[[i]] <- xs[[i]]
+    ansy[[i]] <- ys[[i]]
+    ansz[[i]] <- zs[[i]]
+  }
+  
+  list(x = ansx, y = ansy, z = ansz)
 }
 
 
@@ -1956,8 +2261,9 @@ find_gates <- function (vals)
   
   ps <- mapply(function (x, y) x:y, ups, dns, SIMPLIFY = FALSE, USE.NAMES = FALSE)
   lens <- lengths(ps)
+  oks <- lens > 2L
   
-  if (any(oks <- lens > 2L)) {
+  if (any(oks)) {
     ps0 <- ps[!oks]
     ps1 <- ps[oks]
     lens1 <- lens[oks]
@@ -1984,90 +2290,6 @@ find_gates <- function (vals)
   }
   
   ps
-}
-
-
-#' Finds the gates of retention times.
-#' 
-#' @param ys A vector of corresponding signal intensities.
-#' @param gap The size of gap for LC peaks collapsion.
-#' 
-#' @examples
-#' library(mzion)
-#' 
-#' # find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50))
-#' # find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50))
-#' 
-#' # all discrete
-#' # find_lc_gates(c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50))
-find_lc_gates <- function (ys, gap = 4L)
-{
-  xs <- which(ys > 0)
-  yxs <- ys[xs]
-  
-  # all discrete
-  if (is.null(edges <- find_gate_edges(xs)))
-    return(.Internal(which(ys > 0)))
-  
-  ups <- edges[["ups"]]
-  dns <- edges[["dns"]]
-  rm(list = "edges")
-  
-  # all discrete (already handled above)
-  if (FALSE && is.null(ups)) {
-    xus <- xs
-    len <- length(xs)
-    
-    if (len > 1L) {
-      for (i in 2:len) {
-        ix <- i - 1
-        gi <- xus[[i]] - xus[[ix]]
-        
-        if ((!is.na(gi)) && gi <= gap) {
-          if (yxs[[i]] >= yxs[[ix]])
-            xus[[ix]] <- NA_integer_
-          else
-            xus[[i]] <- NA_integer_
-        }
-      }
-    }
-    
-    return(xus[!is.na(xus)])
-  }
-  
-  xus <- xs[ups]
-  xds <- xs[dns]
-  ps <- mapply(function (x, y) x:y, ups, dns, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  len <- length(ps)
-  xps <- rep_len(NA_integer_, len)
-  ymaxs <- rep_len(NA_real_, len)
-  
-  for (i in seq_len(len)) {
-    pi <- ps[[i]]
-    xi <- xs[pi]
-    yi <- yxs[pi]
-    mi <- which.max(yi)
-    xps[[i]] <- xi[[1]] + mi - 1L
-    ymaxs[[i]] <- yi[[mi]]
-  }
-  
-  if (len > 1L) {
-    for (i in 2:len) {
-      ix <- i - 1
-      gi <- xus[[i]] - xds[[ix]]
-      
-      if (gi <= gap) {
-        if (ymaxs[[i]] >= ymaxs[[ix]])
-          xus[[ix]] <- NA_integer_
-        else
-          xus[[i]] <- NA_integer_
-      }
-    }
-  }
-  
-  oks <- !is.na(xus)
-  # list(xvals = xps[oks], yvals = ymaxs[oks])
-  xps[oks]
 }
 
 
@@ -2113,57 +2335,359 @@ find_gate_edges <- function (vals)
 
 
 #' Traces MS peaks.
-#' 
+#'
 #' For both moverzs and intensities.
-#' 
-#' @param xs Vectors of moverzs.
+#'
+#' @param xs Vectors of moverzs at a given isolation center (\code{icenter}).
+#'   Each entry corresponds to a full vector of MS1 or MS2.
 #' @param ys Vectors of intensities.
 #' @param zs Vectors of charge states.
+#' @param temp_dir A temporary directory.
+#' @param icenter The index of an isolation center.
+#' @param ms_lev The level of MS.
 #' @param from The starting value for mass binning.
 #' @param step A step size for mass binning.
-#' @param gap The gap size for collapsing moverzs.
+#' @param n_dia_scans The number of adjacent MS scans for constructing a peak
+#'   profile and thus for determining the apex scan number of an moverz value
+#'   along LC.
 #' @param reord Logical; re-order data or not.
-trace_ms <- function (xs, ys, zs, from = 115L, step = 1E-5, gap = 4L, 
-                      reord = TRUE)
+traceMS <- function (xs, ys, zs, n_dia_scans = 4L, from = 115L, step = 1E-5, 
+                     icenter = 1L, ms_lev = 2L, temp_dir = NULL, reord = TRUE)
 {
   if (reord) {
     ords <- lapply(xs, order)
-    xs <- mapply(function (x, ord) x[ord], xs, ords, 
-                 SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    ys <- mapply(function (x, ord) x[ord], ys, ords, 
-                 SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    zs <- mapply(function (x, ord) x[ord], zs, ords, 
-                 SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    rm(list = "ords")
+    
+    for (i in seq_along(xs)) {
+      ordi <- ords[[i]]
+      xs[[i]] <- xs[[i]][ordi]
+      ys[[i]] <- ys[[i]][ordi]
+      zs[[i]] <- zs[[i]][ordi]
+    }
+    rm(list = "ords", "ordi")
   }
   
-  ans <- collapse_xyz(xs = xs, ys = ys, zs = zs, lwr = from, step = step)
-  ansx <- ans[["xvals"]]
-  ansy <- ans[["yvals"]]
-  ansz <- ans[["zvals"]]
+  # collapses MS data by each scan
+  ans <- collapse_xyz(
+    xs = xs, ys = ys, zs = zs, temp_dir = temp_dir, icenter = icenter, 
+    ms_lev = ms_lev, lwr = from, step = step)
+  ansx <- ans[["x"]]
+  ansy <- ans[["y"]]
+  ansz <- ans[["z"]]
   rm(list = c("ans"))
+  gc()
   
+  # traces MS data across scans; rows: scans; columns: masses
   nrc <- dim(ansy)
   nr <- nrc[[1]]
   nc <- nrc[[2]]
-  null_charge <- null_mass <- rep_len(NA_integer_, nr)
-  null_inty <- rep_len(NA_real_, nr)
+  rm(list = "nrc")
+  
+  xout <- yout <- matrix(rep_len(NA_integer_, nc * nr), ncol = nc)
+  zout <- matrix(rep_len(NA_integer_, nc * nr), ncol = nc)
+  ps <- ns <- vector("list", nc)
   
   for (i in 1:nc) {
-    rows <- find_lc_gates(ansy[, i], gap = gap)
-    x1 <- ansx[rows, i]
-    y1 <- ansy[rows, i]
-    z1 <- ansz[rows, i]
+    gates <- find_lc_gates(ansy[, i], n_dia_scans = n_dia_scans)
+    ps[[i]] <- rows <- gates[["xs"]] # scans, row indexes
+    ns[[i]] <- gates[["ns"]] # number of observing scans
     
-    ansx[, i] <- null_mass
-    ansy[, i] <- null_inty
-    ansz[, i] <- null_charge
-    ansx[rows, i] <- x1
-    ansy[rows, i] <- y1
-    ansz[rows, i] <- z1
+    xout[rows, i] <- ansx[rows, i]
+    yout[rows, i] <- ansy[rows, i]
+    zout[rows, i] <- ansz[rows, i]
+  }
+  rm(list = c("ansx", "ansy", "ansz"))
+  gc()
+  
+  list(x = xout, y = yout, z = zout, n = ns, p = ps)
+}
+
+
+#' Collapse MS data.
+#'
+#' Almost identical to \link{collapse_mms1ints} with the addition of zs.
+#'
+#' @param xs Vectors of moverzs at a given isolation center (\code{icenter}).
+#'   Each entry corresponds to a full vector of MS1 or MS2.
+#' @param ys Vectors of intensities.
+#' @param zs Vectors of charge states.
+#' @param temp_dir A temporary directory.
+#' @param icenter The index of an isolation center.
+#' @param ms_lev The level of MS.
+#' @param lwr A lower bound as the starting point in mass binning.
+#' @param step A step size for mass binning.
+#' @importFrom fastmatch %fin%
+#' @return Matrices of moverzs, intensities and charge states. Columns: masses;
+#'   rows: scans.
+collapse_xyz <- function (xs, ys, zs, temp_dir, icenter = 1L, ms_lev = 2L, 
+                          lwr = 115L, step = 1e-5)
+{
+  # xs can be smaller than lwr since no ms2 mass cut-offs (some z undetermined)
+  null_out <- list(x = NULL, y = NULL, z = NULL)
+  
+  # all xs are NULL
+  if (!any(oksx <- lengths(xs) > 0L))
+    return(null_out)
+  
+  xs <- xs[oksx]
+  ys <- ys[oksx]
+  zs <- zs[oksx]
+  rm(list = "oksx")
+  
+  # remove zero intensities
+  oky <- lapply(ys, `>`, 0)
+  
+  for (i in seq_along(oky)) {
+    oki <- oky[[i]]
+    xs[[i]] <- xs[[i]][oki]
+    ys[[i]] <- ys[[i]][oki]
+    zs[[i]] <- zs[[i]][oki]
+  }
+  rm(list = "oky", "oki")
+  
+  # does this again after ys removals
+  if (!any(oks <- lengths(xs) > 0L))
+    return(null_out)
+  
+  xs <- xs[oks]
+  ys <- ys[oks]
+  zs <- zs[oks]
+  rm(list = "oks")
+  
+  ixs <- lapply(xs, index_mz, lwr, step)
+  
+  # remove duplicated ixs
+  for (i in seq_along(ixs)) {
+    ix <- ixs[[i]]
+    oks <- !duplicated(ix)
+    ixs[[i]] <- ix[oks]
+    xs[[i]]  <- xs[[i]][oks]
+    ys[[i]]  <- ys[[i]][oks]
+    zs[[i]]  <- zs[[i]][oks]
+  }
+  rm(list = c("oks", "ix"))
+  
+  unv <- .Internal(unlist(ixs, recursive = FALSE, use.names = FALSE))
+  unv <- sort(unique(unv))
+  lenu <- length(unv)
+  lenx <- length(xs)
+  ups <- lapply(ixs, function (x) unv %in% x)
+  
+  mapcoll_xyz(vals = xs, ps = ups, lenx = lenx, lenu = lenu, temp_dir = temp_dir, 
+              icenter = icenter, ms_lev = ms_lev, type = "xs")
+  rm(list = "xs")
+  gc()
+  
+  mapcoll_xyz(vals = ys, ps = ups, lenx = lenx, lenu = lenu, temp_dir = temp_dir, 
+              icenter = icenter, ms_lev = ms_lev, type = "ys")
+  rm(list = "ys")
+  gc()
+  
+  mapcoll_xyz(vals = zs, ps = ups, lenx = lenx, lenu = lenu, temp_dir = temp_dir, 
+              icenter = icenter, ms_lev = ms_lev, type = "zs")
+  rm(list = c("zs", "ups"))
+  gc()
+  
+  x_nm <- paste0("xs", ms_lev, "_diauniv_", icenter, ".rds")
+  y_nm <- paste0("ys", ms_lev, "_diauniv_", icenter, ".rds")
+  z_nm <- paste0("zs", ms_lev, "_diauniv_", icenter, ".rds")
+  xout <- qs::qread(file.path(temp_dir, x_nm))
+  yout <- qs::qread(file.path(temp_dir, y_nm))
+  zout <- qs::qread(file.path(temp_dir, z_nm))
+  
+  ### collapses adjacent entries
+  ps <- find_gates(unv)
+  lenp <- length(ps)
+  
+  # all discrete values
+  if (is.null(ps))
+    return(list(x = xout, y = yout, z = zout))
+
+  ps2 <- lapply(ps, `[[`, 2)
+  ps2 <- .Internal(unlist(ps2, recursive = FALSE, use.names = FALSE))
+  
+  for (i in 1:lenp) {
+    c12 <- ps[[i]]
+    c2 <- c12[[2]]
+    
+    # with values in both columns, simply overwrite: 1 <- 2; 
+    # c2 can be 0
+    if (!c2)
+      next
+    
+    c1 <- c12[[1]]
+    oks <- !is.na(xout[, c2])
+    xout[oks, c1] <- xout[oks, c2]
+    yout[oks, c1] <- yout[oks, c2]
+    zout[oks, c1] <- zout[oks, c2]
   }
   
-  list(x = ansx, y = ansy, z = ansz)
+  xout <- xout[, -ps2, drop = FALSE]
+  yout <- yout[, -ps2, drop = FALSE]
+  zout <- zout[, -ps2, drop = FALSE]
+  
+  list(x = xout, y = yout, z = zout)
+}
+
+
+#' Sub modules in data collapsion.
+#'
+#' For RAM efficiency.
+#'
+#' @param vals Data in one of moverzs, intensities or charge states.
+#' @param ps Positions of \code{vals} in universe. Should be the same for among
+#'   moverzs, intensities and charge states.
+#' @param lenx The length of \code{vals}.
+#' @param lenu The number of entries in the universe.
+#' @param temp_dir A temporary directory.
+#' @param icenter The index of an isolation center.
+#' @param ms_lev The level of MS.
+#' @param type The type of data in one of xs, ys and zs.
+#' @param direct_out Logical; if TRUE, return outputs directly.
+mapcoll_xyz <- function (vals, ps, lenx, lenu, temp_dir, icenter = 1L, 
+                         ms_lev = 2L, type = "xs", direct_out = FALSE)
+{
+  out <- if (type == "zs")
+    rep_len(list(rep_len(NA_integer_, lenu)), lenx)
+  else if (type %in% c("xs", "ys"))
+    rep_len(list(rep_len(NA_real_, lenu)), lenx)
+  else
+    rep_len(list(rep_len(NA_real_, lenu)), lenx)
+  
+  for (i in 1:lenx) {
+    cols <- ps[[i]]
+    out[[i]][cols] <- vals[[i]]
+  }
+  
+  out <- do.call(rbind, out)
+  
+  if (direct_out)
+    return(out)
+  
+  out_name <- paste0(type, ms_lev, "_diauniv_", icenter, ".rds")
+  qs::qsave(out, file.path(temp_dir, out_name), preset = "fast")
+  
+  invisible(NULL)
+}
+
+
+#' Finds the gates of retention times.
+#'
+#' @param ys A vector of intensity value for the same (approximate) mass along
+#'   LC.
+#' @param n_dia_scans The number of adjacent MS scans for constructing a peak
+#'   profile and thus for determining the apex scan number of an moverz value
+#'   along LC.
+#' @examples
+#' library(mzion)
+#'
+#' find_lc_gates(c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), 2)
+#'
+#' # find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50))
+#' # find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50))
+#'
+#' # all discrete
+#' # find_lc_gates(c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50))
+#' @return Scan indexes of LC peaks.
+find_lc_gates <- function (ys, n_dia_scans = 4L)
+{
+  # should not occur
+  # if (n_dia_scans <= 0L) return(.Internal(which(ys > 0)))
+  
+  ys <- fill_lc_gaps(ys, n_dia_scans)
+  xs <- .Internal(which(ys > 0))
+  nx <- length(xs)
+  
+  # a case of one one-hit wonder across LC
+  if (nx == 1L)
+    return(list(xs = xs, ns = 1L))
+  
+  ysub <- ys[xs]
+  edges <- find_gate_edges(xs)
+  
+  # all discrete one-hit wonders
+  if (is.null(edges))
+    return(list(xs = xs, ns = rep_len(1L, nx)))
+  
+  ups <- edges[["ups"]]
+  dns <- edges[["dns"]]
+  rm(list = "edges")
+  
+  xus <- xs[ups]
+  xds <- xs[dns]
+  widths <- xds - xus + 1L
+  ps <- mapply(function (x, y) x:y, ups, dns, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  xs1 <- xs[-.Internal(unlist(ps, recursive = FALSE, use.names = TRUE))]
+  
+  nps <- length(ps)
+  xps <- rep_len(NA_integer_, nps)
+  # yps <- rep_len(NA_real_, nps)
+  
+  for (i in seq_len(nps)) {
+    pi <- ps[[i]]
+    xi <- xs[pi]
+    yi <- ysub[pi]
+    mi <- which.max(yi)
+    xps[[i]] <- xi[[1]] + mi - 1L
+    # yps[[i]] <- yi[[mi]]
+  }
+  
+  if (FALSE) {
+    if (nps > 1L) {
+      for (i in 2:nps) {
+        ix <- i - 1
+        
+        if ((xus[[i]] - xds[[ix]]) <= n_dia_scans) {
+          if (yps[[i]] >= yps[[ix]])
+            xus[[ix]] <- NA_integer_
+          else
+            xus[[i]] <- NA_integer_
+        }
+      }
+    }
+    
+    oks <- !is.na(xus)
+    xps <- xps[oks]
+  }
+  
+  list(xs = c(xs1, xps), ns = c(rep_len(1L, length(xs1)), widths))
+}
+
+
+#' Fills LC gaps.
+#'
+#' @param ys A vector of intensity values.
+#' @param n_dia_scans The number of adjacent MS scans for constructing a peak
+#'   profile and thus for determining the apex scan number of an moverz value
+#'   along LC.
+#' @examples
+#' ys <- c(10,0,0,0,11,0,15,0,0,12,0,10,0,0,10)
+#' fill_lc_gaps(ys, 3)
+#' fill_lc_gaps(ys, 2)
+#'
+#' ys <- c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10)
+#' fill_lc_gaps(ys, 3)
+#' fill_lc_gaps(ys, 2)
+fill_lc_gaps <- function (ys, n_dia_scans = 4L)
+{
+  if (n_dia_scans <= 1L)
+    return(ys)
+  
+  xs <- .Internal(which(ys > 0))
+  ds <- diff(xs)
+  oks <- ds <= n_dia_scans & ds > 1L
+  ps <- .Internal(which(oks))
+  ng <- length(ps)
+  
+  if (!ng)
+    return(ys)
+  
+  for (i in seq_along(ps)) {
+    p <- ps[i]
+    rng <- (xs[p]+1L):(xs[p+1]-1L)
+    ys[rng] <- 1.0
+  }
+  
+  ys
 }
 
 
@@ -2185,18 +2709,18 @@ trace_ms <- function (xs, ys, zs, from = 115L, step = 1E-5, gap = 4L,
 #'            392.2030,392.2887,392.6641,392.7812,393.0833,393.2975))
 #' ys <- list(c(12827.41,337002.19,617819.69,18045.10,205851.53,15194.98,11318.61,
 #'              12970.02,118604.48,75726.89,11676.51,23723.18,55749.93))
-#' # collapse_mms1ints(xs, ys, 389.6529)
+#' # collapse_mms1ints(xs, ys, lwr = 389.6529)
 #' 
 #' xs <- list(c(400.6596,401.7076,402.1813,402.1944,402.1969,402.2094,402.5438,402.7112,403.1812,404.1777), 
 #'            c(400.6599,401.7075,402.1954,402.1975,402.7112,403.1822,404.2777))
 #' ys <- list(c(24003.98,53431.96,110619.26,10988.55,12291.00,140045.06,67601.16,11413.04,21651.61,16686.06), 
 #'            c(10000.1,40000.1,20000.1,50000.1,2500.2,5000.1,30000.1))
-#' # collapse_mms1ints(xs, ys, 400.1994)
+#' # collapse_mms1ints(xs, ys, lwr = 400.1994)
 #' 
 #' xs <- ys <- vector("list", 13L)
 #' xs[[7]] <- 954.607849; xs[[8]] <- 954.630249; xs[[10]] <- 954.622925
 #' ys[[7]] <- 15706.2627; ys[[8]] <- 19803.5879; ys[[10]] <- 31178.9648
-#' # collapse_mms1ints(xs, ys, 951.089731)
+#' # collapse_mms1ints(xs, ys, lwr = 951.089731)
 collapse_mms1ints <- function (xs = NULL, ys = NULL, zs = NULL, lwr = 115L, 
                                step = 1e-5, coll = TRUE)
 {
@@ -2264,9 +2788,9 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, zs = NULL, lwr = 115L,
       return(list(xvals = xout, yvals = yout))
   }
   
-  ps1 <- lapply(ps, `[[`, 1)
+  # ps1 <- lapply(ps, `[[`, 1)
+  # ps1 <- .Internal(unlist(ps1, recursive = FALSE, use.names = FALSE))
   ps2 <- lapply(ps, `[[`, 2)
-  ps1 <- .Internal(unlist(ps1, recursive = FALSE, use.names = FALSE))
   ps2 <- .Internal(unlist(ps2, recursive = FALSE, use.names = FALSE))
   
   for (i in seq_along(ps)) {
@@ -2288,108 +2812,6 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, zs = NULL, lwr = 115L,
     calc_ms1xys(xout, yout)
   else
     list(xvals = xout, yvals = yout)
-}
-
-
-#' Collapse MS data.
-#' 
-#' Almost identical to \link{collapse_mms1ints} with the addition of zs.
-#' 
-#' @param zs Vectors of charge states.
-#' @inheritParams collapse_mms1ints
-#' @importFrom fastmatch %fin%
-collapse_xyz <- function (xs = NULL, ys = NULL, zs = NULL, lwr = 115L, 
-                          step = 1e-5)
-{
-  null_out <- list(xvals = NULL, yvals = NULL, zvals = NULL)
-  
-  # all xs are NULL
-  if (!any(oks <- lengths(xs) > 0L))
-    return(null_out)
-  
-  xs <- xs[oks]
-  ys <- ys[oks]
-  zs <- zs[oks]
-  
-  # remove zero intensities
-  oky <- lapply(ys, `>`, 0)
-  xs <- mapply(function (x, i) x[i], xs, oky, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  ys <- mapply(function (x, i) x[i], ys, oky, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  zs <- mapply(function (x, i) x[i], zs, oky, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  
-  if (!any(oks <- lengths(xs) > 0L))
-    return(null_out)
-  
-  xs <- xs[oks]
-  ys <- ys[oks]
-  zs <- zs[oks]
-  ixs <- lapply(xs, index_mz, lwr, step)
-  
-  # remove duplicated ixs
-  for (i in seq_along(ixs)) {
-    ix <- ixs[[i]]
-    x <- xs[[i]]
-    y <- ys[[i]]
-    z <- zs[[i]]
-    oks <- !duplicated(ix)
-    ixs[[i]] <- ix[oks]
-    xs[[i]]  <- x[oks]
-    ys[[i]]  <- y[oks]
-    zs[[i]]  <- z[oks]
-  }
-  
-  unv <- .Internal(unlist(ixs, recursive = FALSE, use.names = FALSE))
-  unv <- sort(unique(unv))
-  
-  xps <- lapply(ixs, function (x) unv %fin% x)
-  z0 <- x0 <- y0 <- rep(NA_real_, length(unv))
-  
-  xout <- mapply(function (i, v) {
-    x0[i] <- v
-    x0
-  }, xps, xs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  
-  yout <- mapply(function (i, v) {
-    y0[i] <- v
-    y0
-  }, xps, ys, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  
-  zout <- mapply(function (i, v) {
-    z0[i] <- v
-    z0
-  }, xps, zs, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  
-  xout <- do.call(rbind, xout)
-  yout <- do.call(rbind, yout)
-  zout <- do.call(rbind, zout)
-  
-  # all discrete values
-  if (is.null(ps <- find_gates(unv)))
-    return(list(xvals = xout, yvals = yout, zvals = zout))
-  
-  ps1 <- lapply(ps, `[[`, 1)
-  ps2 <- lapply(ps, `[[`, 2)
-  ps1 <- .Internal(unlist(ps1, recursive = FALSE, use.names = FALSE))
-  ps2 <- .Internal(unlist(ps2, recursive = FALSE, use.names = FALSE))
-  
-  for (i in seq_along(ps)) {
-    cols <- ps[[i]]
-    
-    # possible to have values in both columns but simply overwrite: 1 <- 2
-    if (c2 <- cols[2]) {
-      c1 <- cols[1]
-      oks <- !is.na(xout[, c2])
-      xout[oks, c1] <- xout[oks, c2]
-      yout[oks, c1] <- yout[oks, c2]
-      zout[oks, c1] <- zout[oks, c2]
-    }
-  }
-  
-  xout <- xout[, -ps2, drop = FALSE]
-  yout <- yout[, -ps2, drop = FALSE]
-  zout <- zout[, -ps2, drop = FALSE]
-  
-  list(xvals = xout, yvals = yout, zvals = zout)
 }
 
 
@@ -2559,16 +2981,4 @@ find_ms1byms2 <- function (moverzs = NULL, msxints = NULL, charges = NULL,
        ms1_charges = charges, ms1_ints = msxints)
 }
 
-
-#' Separates a vector into groups.
-#' 
-#' @param vec A vector.
-#' @param n_chunks The number of chunks.
-sep_vec <- function (vec, n_chunks)
-{
-  seqs <- seq_along(vec)
-  labs <- levels(cut(seqs, n_chunks))
-  lwrs <- floor(as.numeric( sub("\\((.+),.*", "\\1", labs)))
-  grps <- findInterval(seqs, lwrs)
-}
 

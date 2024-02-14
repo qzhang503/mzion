@@ -12,7 +12,8 @@
 load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L, 
                        maxn_dia_precurs = 1000L, # max MS1 deisotoping features
                        topn_dia_ms2ions = 500L, # max MS2 deisotoping features
-                       n_dia_ms2s = 0L, 
+                       delayed_diams2_tracing = FALSE, 
+                       n_dia_ms2bins = 3L, n_dia_scans = 4L, 
                        min_mass = 200L, max_mass = 4500L, 
                        min_ms2mass = 115L, max_ms2mass = 4500L, 
                        min_ms1_charge = 2L, max_ms1_charge = 4L, 
@@ -164,7 +165,9 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
       topn_ms2ions = topn_ms2ions, 
       topn_dia_ms2ions = topn_dia_ms2ions, 
       maxn_dia_precurs = maxn_dia_precurs, 
-      n_dia_ms2s = n_dia_ms2s, 
+      n_dia_ms2bins = n_dia_ms2bins, 
+      n_dia_scans = n_dia_scans, 
+      delayed_diams2_tracing = delayed_diams2_tracing, 
       min_mass = min_mass, 
       max_mass = max_mass, 
       min_ms2mass = min_ms2mass, 
@@ -1235,11 +1238,21 @@ extract_mgf_rptrs <- function (xvals, yvals, quant = "none",
 
 
 #' Converts ms2_moverzs to integers.
-#' 
+#'
+#' Note that as.integer is needed. When an indexed x equals 0 but is double, it
+#' can cause %fin% to fail.
+#'
 #' @param from Numeric; the starting MS1 mass.
 #' @param x Numeric; MS2 mass.
 #' @param d Numeric; \eqn{ppm * 10E-6}.
-index_mz <- function (x, from = 115L, d = 1E-5) ceiling(log(x/from)/log(1+d))
+#' @examples
+#' xs <- ceiling(log(c(114.0916, 114.9999)/115)/log(1+8E-6))
+#' match(xs, xs); fastmatch::fmatch(xs, xs)
+#' 
+#' ys <- as.integer(xs)
+#' match(ys, ys); fastmatch::fmatch(ys, ys)
+index_mz <- function (x, from = 115L, d = 1E-5) 
+  as.integer(ceiling(log(x/from)/log(1+d)))
 
 
 #' Finds the type of MGF.

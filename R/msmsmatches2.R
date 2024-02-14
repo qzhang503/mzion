@@ -269,7 +269,7 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                        max_mass = 4500L, min_ms2mass = 115L, quant = "none", 
                        ppm_reporters = 10L, 
                        by_modules = TRUE, fasta = NULL, acc_type = NULL, 
-                       acc_pattern = NULL, topn_ms2ions = 100L, 
+                       acc_pattern = NULL, topn_ms2ions = 150L, 
                        fixedmods = NULL, varmods = NULL, enzyme = "trypsin_p", 
                        maxn_fasta_seqs = 200000L, maxn_vmods_setscombi = 512L,
                        min_len = 7L, max_len = 40L, max_miss = 2L)

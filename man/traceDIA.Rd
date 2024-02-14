@@ -5,16 +5,33 @@
 \title{Traces DIA-MS2 against MS1.}
 \usage{
 traceDIA(
-  df,
+  df = NULL,
+  icenter = 1L,
+  ws = NULL,
+  n_dia_scans = 4L,
+  n_dia_ms2bins = 1L,
   min_mass = 200L,
   min_ms2mass = 115L,
   step1 = 1e-05,
   step2 = 1e-05,
-  n_dia_ms2s = 0L
+  temp_dir = NULL,
+  tracing_ms1 = TRUE,
+  delayed_diams2_tracing = FALSE
 )
 }
 \arguments{
 \item{df}{A data frame.}
+
+\item{icenter}{The index of an isolation center.}
+
+\item{ws}{Weights.}
+
+\item{n_dia_scans}{The number of adjacent MS scans for constructing a peak
+profile and thus for determining the apex scan number of an moverz value
+along LC.}
+
+\item{n_dia_ms2bins}{Allowance in adjacent DIA-MS2 bins for retention time
+alignment with a DIA-MS1.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
 interrogation. The default is an arbitrarily low value (the primary guard
@@ -27,11 +44,12 @@ interrogation. The default is 110.}
 
 \item{step2}{A step size for MS2.}
 
-\item{n_dia_ms2s}{Allowance for considering DIA-MS2 bins of retention times
-being aligned with a DIA-MS1 bin of retention time. For instance, only the
-center bin of MS2 will be considered at \code{n_dia_ms2s = 1}. The
-preceding and following bins will also be considered at \code{n_dia_ms2s =
-2}, etc. Setting \code{n_dia_ms2s = 0L} will bypass MS2 feature alignments.}
+\item{temp_dir}{A temporary directory.}
+
+\item{tracing_ms1}{Logical; tracing MS1 or not.}
+
+\item{delayed_diams2_tracing}{Logical; if TRUE, delays the tracing of MS1-MS2
+after ion matches.}
 }
 \description{
 For a single MS1 range, e.g., 592.5 to 604.5.

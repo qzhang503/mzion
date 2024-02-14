@@ -4,18 +4,38 @@
 \alias{collapse_xyz}
 \title{Collapse MS data.}
 \usage{
-collapse_xyz(xs = NULL, ys = NULL, zs = NULL, lwr = 115L, step = 1e-05)
+collapse_xyz(
+  xs,
+  ys,
+  zs,
+  temp_dir,
+  icenter = 1L,
+  ms_lev = 2L,
+  lwr = 115L,
+  step = 1e-05
+)
 }
 \arguments{
-\item{xs}{Vectors of SORTED m-over-z values.}
+\item{xs}{Vectors of moverzs at a given isolation center (\code{icenter}).
+Each entry corresponds to a full vector of MS1 or MS2.}
 
-\item{ys}{Vectors of intensity values corresponding to xs.}
+\item{ys}{Vectors of intensities.}
 
 \item{zs}{Vectors of charge states.}
 
-\item{lwr}{The lower mass limit.}
+\item{temp_dir}{A temporary directory.}
 
-\item{step}{The bin size in converting numeric m-over-z values to integers.}
+\item{icenter}{The index of an isolation center.}
+
+\item{ms_lev}{The level of MS.}
+
+\item{lwr}{A lower bound as the starting point in mass binning.}
+
+\item{step}{A step size for mass binning.}
+}
+\value{
+Matrices of moverzs, intensities and charge states. Columns: masses;
+  rows: scans.
 }
 \description{
 Almost identical to \link{collapse_mms1ints} with the addition of zs.

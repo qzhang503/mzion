@@ -277,7 +277,6 @@ find_reporters_ppm <- function (theos, expts, ppm_reporters = 10L, len)
 {
   d <- outer(theos, expts, "find_ppm_error")
   row_cols <- which(abs(d) <= ppm_reporters, arr.ind = TRUE)
-  
   row_cols[, 2]
 }
 
@@ -973,7 +972,12 @@ pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, fct = 4L)
     vec <- collapse_sortpeps(Mat, ncol, peps)
   }
   else {
-    Mats <- chunksplit_spmat(Mat, peps, n_cores * fct)
+    if (is.null(peps)) 
+      peps <- rownames(Mat)
+    
+    Mats <- 
+      lapply(find_group_breaks(peps, n_cores * fct), function (x) Mat[x, ])
+
     rm(list = c("Mat", "peps"))
     gc()
     
@@ -982,9 +986,10 @@ pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, fct = 4L)
     parallel::clusterEvalQ(cl, library(Matrix))
     vecs <- parallel::clusterApplyLB(cl, Mats, collapse_sortpeps)
     parallel::stopCluster(cl)
+    rm(list = "Mats")
     gc()
     
-    vec <- integer(sum(unlist(lapply(vecs, length))))
+    vec <- integer(sum(lengths(vecs)))
     len <- length(vecs)
     sta <- 0L
     
@@ -1019,74 +1024,84 @@ pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, fct = 4L)
 }
 
 
-#' Splits sparse matrix by chunks.
-#'
-#' The same peptide sequence spans multiple consecutive rows will stay in the
-#' same chunk.
-#' 
-#' @param Mat A sparse matrix.
-#' @param peps The names of peptide sequences.
-#' @param n_chunks The number of chunks.
-chunksplit_spmat <- function (Mat, peps = NULL, n_chunks = 4L) 
-{
-  if (is.null(peps))
-    peps <- rownames(Mat)
-
-  breaks <- find_group_breaks(peps, n_chunks)
-  breaks <- c(unname(breaks), length(peps))
-  
-  Mats <- vector("list", n_chunks)
-  
-  start <- 1L
-  
-  for (i in seq_along(Mats)) {
-    end <- breaks[i]
-    Mats[[i]] <- Mat[start:end, ]
-    start <- end + 1
-  }
-  
-  Mats
-}
-
-
 #' Chunksplits by groups.
-#' 
+#'
 #' @param vec A sorted vector.
-#' @param n_chunks The number of chunks
-#' @examples 
+#' @param fold The number of folds.
+#' @param by_rngs Logical; if TRUE return ranges of indexes or else return the
+#'   indexes of breaks.
+#' @examples
 #' \donttest{
 #' library(mzion)
-#' 
-#' vec <- rep(LETTERS[1:5], 1:5)
-#' vec <- sort(vec)
-#' 
+#'
+#' vec <- sort(rep(LETTERS[1:5], 1:5))
 #' mzion:::find_group_breaks(vec, 3)
 #' }
-find_group_breaks <- function (vec, n_chunks = 5L) 
+#' @return Ranges or indexes of breaks
+find_group_breaks <- function (vec, fold = 5L, by_rngs = TRUE) 
 {
   # !!! vec must be sorted !!!
-
-  if (n_chunks <= 1L)
-    return (vec)
-  
-  tv <- table(vec)
-  
-  if (n_chunks >= length(tv)) 
-    return(split(vec, vec))
+  # or the same values form a continuum
   
   len <- length(vec)
-  clens <- cumsum(tv)
-  labs <- levels(cut(1:len, n_chunks))
   
-  x <- cbind(lower = floor(as.numeric( sub("\\((.+),.*", "\\1", labs))),
-             upper = ceiling(as.numeric( sub("[^,]*,([^]]*)\\]", "\\1", labs))))
+  if (fold <= 1L)
+    return (if (by_rngs) 1:len else len)
   
-  x1 <- x[, 1]
+  uv <- unique(vec)
   
-  inds <- lapply(x1[2:length(x1)], function (x) max(which(clens <= x)))
-  inds <- unlist(inds)
+  ### A faster bypass; still works without bypassing
+  if (FALSE) {
+    nu <- length(uv)
+    
+    if (nu == fold) {
+      if (by_rngs)
+        return(lapply(uv, function (x) .Internal(which(vec == x))))
+      else {
+        ans <- integer(nu)
+        
+        for (i in 1:nu) {
+          oks <- .Internal(which(vec == uv[[i]]))
+          ans[[i]] <- oks[length(oks)]
+        }
+        
+        return(ans)
+      }
+    }
+  }
+  ###
   
-  clens[inds] 
+  tv <- lapply(uv, function (x) sum(vec == x))
+  tv <- .Internal(unlist(tv, recursive = FALSE, use.names = FALSE))
+  n  <- length(tv)
+  cs <- cumsum(tv)
+  
+  if (fold >= n)
+    return(if (by_rngs) mapply(`:`, c(1L, cs[1:(n-1L)] + 1L), cs) else cs)
+  
+  r <- ceiling(len/fold)
+  dif <- r * fold -len
+  
+  if (dif > 0) {
+    mod <- len %/% r
+    fold <- if (dif %% r == 0L) mod else mod + 1L
+  }
+  
+  rs <- 1:fold * r
+  rs <- rs[rs < len] # not `<=`
+  
+  inds <- lapply(rs, function (x) max(which(cs <= x)))
+  inds <- .Internal(unlist(inds, recursive = FALSE, use.names = FALSE))
+  brs <- cs[inds]
+  
+  if (by_rngs) {
+    ends <- c(brs, len)
+    stas <- c(1L, brs + 1L)
+    mapply(`:`, stas, ends, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  }
+  else {
+    c(brs, len)
+  }
 }
 
 
@@ -1143,8 +1158,8 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
       gc()
     }
     
-    rm(list = c("D", "start", "end", "rows", "max_chunksize", "nrows_per_chunk", 
-                "n_chunks", "cols"))
+    rm(list = c("D", "start", "end", "rows", "max_chunksize", 
+                "nrows_per_chunk", "n_chunks", "cols"))
     gc()
   } 
   else {

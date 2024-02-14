@@ -29,7 +29,7 @@ calib_mgf(
   fasta = NULL,
   acc_type = NULL,
   acc_pattern = NULL,
-  topn_ms2ions = 100L,
+  topn_ms2ions = 150L,
   fixedmods = NULL,
   varmods = NULL,
   enzyme = "trypsin_p",

@@ -2,21 +2,20 @@
 % Please edit documentation in R/mzml.R
 \name{deisoDIA}
 \alias{deisoDIA}
-\title{Helper of \link{deconvDIA}.}
+\title{Deisotopes DIA-MS from MSConvert peaklists.}
 \usage{
 deisoDIA(
-  filename = NULL,
-  temp_dir = NULL,
-  ppm_ms1 = 10L,
-  ppm_ms2 = 10L,
+  msx_moverzs = NULL,
+  msx_ints = NULL,
+  ms_level = NULL,
   min_mass = 200L,
+  max_mass = 4500L,
   min_ms2mass = 115L,
+  max_ms2mass = 4500L,
   maxn_dia_precurs = 500L,
-  topn_dia_ms2ions = 500L,
+  topn_dia_ms2ions = 5000L,
   min_ms1_charge = 2L,
   max_ms1_charge = 4L,
-  min_ret_time = 0,
-  max_ret_time = Inf,
   ppm_ms1_deisotope = 8L,
   ppm_ms2_deisotope = 8L,
   deisotope_ms2 = TRUE,
@@ -26,44 +25,40 @@ deisoDIA(
   quant = "none",
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
-  exclude_reporter_region = FALSE,
-  n_para = 1L
+  exclude_reporter_region = FALSE
 )
 }
 \arguments{
-\item{filename}{A peaklist filename.}
+\item{msx_moverzs}{Vectors of moverzs.}
 
-\item{temp_dir}{A temp_dir to the filename.}
+\item{msx_ints}{Vectors of intensities.}
 
-\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
-default is 20.}
-
-\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
-default is 20.}
+\item{ms_level}{Vectors of MS levels.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
 interrogation. The default is an arbitrarily low value (the primary guard
 against low molecular-weight precursors is \code{min_len}).}
 
+\item{max_mass}{A positive integer; the maximum precursor mass for
+interrogation.}
+
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
 
+\item{max_ms2mass}{A positive integer; the maximum MS2 mass for
+interrogation.}
+
 \item{maxn_dia_precurs}{Maximum number of DIA precursors.}
 
-\item{topn_dia_ms2ions}{The top-N MS2 ions for DIA.}
+\item{topn_dia_ms2ions}{Top-N DIA-MS2 features (for deisotoping). For
+example, 100 features per Th of isolation window (2400 for an isolation
+windown of 24Th).}
 
 \item{min_ms1_charge}{A positive integer; the minimum MS1 charge state for
 considerations. The default is 2.}
 
 \item{max_ms1_charge}{A positive integer; the maximum MS1 charge state for
 considerations. The default is 6.}
-
-\item{min_ret_time}{A non-negative numeric; the minimum retention time in
-seconds for considerations. The default is 0.}
-
-\item{max_ret_time}{Numeric; the maximum retention time in seconds for
-considerations. The default is \code{Inf}. At a negative value, e.g. -800,
-data in the last 800s of LC retention time will be excluded.}
 
 \item{ppm_ms1_deisotope}{Mass error tolerance in MS1 deisotoping.}
 
@@ -103,9 +98,7 @@ The default is \eqn{135.2}.}
 region of TMT reporter ions. The default is FALSE. The corresponding range
 of TMT reporter ions is informed by \code{tmt_reporter_lower} and
 \code{tmt_reporter_upper}. The argument affects only TMT data.}
-
-\item{n_para}{The allowance of parallel processing.}
 }
 \description{
-Helper of \link{deconvDIA}.
+Deisotopes DIA-MS from MSConvert peaklists.
 }

@@ -14,5 +14,13 @@ index_mz(x, from = 115L, d = 1e-05)
 \item{d}{Numeric; \eqn{ppm * 10E-6}.}
 }
 \description{
-Converts ms2_moverzs to integers.
+Note that as.integer is needed. When an indexed x equals 0 but is double, it
+can cause %fin% to fail.
+}
+\examples{
+xs <- ceiling(log(c(114.0916, 114.9999)/115)/log(1+8E-6))
+match(xs, xs); fastmatch::fmatch(xs, xs)
+
+ys <- as.integer(xs)
+match(ys, ys); fastmatch::fmatch(ys, ys)
 }
