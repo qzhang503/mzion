@@ -19,5 +19,5 @@ comb_mstraces(xs, ys, zs, ws, n_dia_ms2bins = 1L)
 alignment with a DIA-MS1.}
 }
 \description{
-Combines adjacent MS2 traces.
+Not used.
 }

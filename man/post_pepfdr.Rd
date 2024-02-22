@@ -4,22 +4,10 @@
 \alias{post_pepfdr}
 \title{Post processing after peptide FDR.}
 \usage{
-post_pepfdr(
-  prob_cos = NULL,
-  maxn_mdda_precurs = 1L,
-  n_13c = 0L,
-  out_path = NULL,
-  fct_score = 5L
-)
+post_pepfdr(prob_cos = NULL, n_13c = 0L, out_path = NULL, fct_score = 5L)
 }
 \arguments{
 \item{prob_cos}{Probability cut-offs (in data frame).}
-
-\item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
-multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
-equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
-= 0}, it is equivalent to DDA using the original monoisotopic masses and
-charge states provided by a peak-picking algorithm (e.g., MSConvert).}
 
 \item{n_13c}{Number(s) of 13C off-sets in precursor masses, for example, over
 the range of \code{-1:2}. The default is 0.}

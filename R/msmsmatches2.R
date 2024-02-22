@@ -43,9 +43,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
       if (.savecall) {
         save_call2(path = file.path(out_path, "Calls"), fun = fun)
       }
-    }, add = TRUE
-  )
-  
+    }, add = TRUE)
+
   # Check cached 
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
@@ -158,44 +157,46 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                          maxn_sites_per_vmod = maxn_sites_per_vmod)
   ms2vmods_all <- lapply(ms1vmods_all, lapply, make_ms2vmods)
   
-  df0 <- tibble::tibble(scan_title = integer(), raw_file = integer(), 
-                        pep_mod_group = integer(), pep_exp_mz = numeric(), 
-                        pep_exp_mr = numeric(), pep_tot_int = numeric(), 
-                        pep_exp_z = numeric(), pep_ret_range = numeric(), 
-                        pep_scan_num = character(), 
-                        pep_ms2_moverzs = list(list()), 
-                        pep_ms2_ints = list(list()), 
-                        pep_n_ms2 = integer(), 
-                        rptr_moverz = list(list()), 
-                        rptr_int = list(list()), 
-                        pep_ms1_offset = numeric(), 
-                        matches = list(list()), 
-                        pep_fmod = character(), 
-                        pep_vmod = character())
+  df0 <- tibble::tibble(
+    scan_title = integer(), raw_file = integer(), 
+    pep_mod_group = integer(), pep_exp_mz = numeric(), 
+    pep_exp_mr = numeric(), pep_tot_int = numeric(), 
+    pep_exp_z = numeric(), pep_ret_range = numeric(), 
+    pep_scan_num = character(), 
+    pep_ms2_moverzs = list(list()), 
+    pep_ms2_ints = list(list()), 
+    pep_n_ms2 = integer(), 
+    rptr_moverz = list(list()), 
+    rptr_int = list(list()), 
+    pep_ms1_offset = numeric(), 
+    matches = list(list()), 
+    pep_fmod = character(), 
+    pep_vmod = character())
 
-  hms2match(aa_masses_all = aa_masses_all, 
-            funs_ms2 = funs_ms2, 
-            ms1vmods_all = ms1vmods_all, 
-            ms2vmods_all = ms2vmods_all, 
-            ms1_neulosses = ms1_neulosses, 
-            maxn_neulosses_fnl = maxn_neulosses_fnl, 
-            maxn_neulosses_vnl = maxn_neulosses_vnl, 
-            deisotope_ms2 = deisotope_ms2, 
-            mod_indexes = mod_indexes, 
-            mgf_path = mgf_path, 
-            out_path = out_path, 
-            type_ms2ions = type_ms2ions, 
-            maxn_vmods_per_pep = maxn_vmods_per_pep, 
-            maxn_sites_per_vmod = maxn_sites_per_vmod, 
-            maxn_fnl_per_seq = maxn_fnl_per_seq, 
-            maxn_vnl_per_seq = maxn_vnl_per_seq, 
-            maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-            minn_ms2 = minn_ms2, 
-            ppm_ms1 = ppm_ms1_bin, 
-            ppm_ms2 = ppm_ms2_bin, 
-            min_ms2mass = min_ms2mass, 
-            by_modules = by_modules, 
-            df0 = df0)
+  hms2match(
+    aa_masses_all = aa_masses_all, 
+    funs_ms2 = funs_ms2, 
+    ms1vmods_all = ms1vmods_all, 
+    ms2vmods_all = ms2vmods_all, 
+    ms1_neulosses = ms1_neulosses, 
+    maxn_neulosses_fnl = maxn_neulosses_fnl, 
+    maxn_neulosses_vnl = maxn_neulosses_vnl, 
+    deisotope_ms2 = deisotope_ms2, 
+    mod_indexes = mod_indexes, 
+    mgf_path = mgf_path, 
+    out_path = out_path, 
+    type_ms2ions = type_ms2ions, 
+    maxn_vmods_per_pep = maxn_vmods_per_pep, 
+    maxn_sites_per_vmod = maxn_sites_per_vmod, 
+    maxn_fnl_per_seq = maxn_fnl_per_seq, 
+    maxn_vnl_per_seq = maxn_vnl_per_seq, 
+    maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+    minn_ms2 = minn_ms2, 
+    ppm_ms1 = ppm_ms1_bin, 
+    ppm_ms2 = ppm_ms2_bin, 
+    min_ms2mass = min_ms2mass, 
+    by_modules = by_modules, 
+    df0 = df0)
 
   qs::qsave(aa_masses_all, faa)
   

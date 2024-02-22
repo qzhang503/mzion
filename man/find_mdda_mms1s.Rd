@@ -7,9 +7,6 @@
 find_mdda_mms1s(
   msx_moverzs = NULL,
   msx_ints = NULL,
-  ms1_moverzs = NULL,
-  ms1_charges = NULL,
-  ms1_ints = NULL,
   iso_ctr = NULL,
   iso_lwr = NULL,
   ppm = 10L,
@@ -27,12 +24,6 @@ find_mdda_mms1s(
 \item{msx_moverzs}{Vectors of moverzs (full spectrum).}
 
 \item{msx_ints}{Vectors of intensities (full spectrum.}
-
-\item{ms1_moverzs}{Vectors of MS1 moverzs (associated with MS2).}
-
-\item{ms1_charges}{Vectors of MS1 charge states (associated with MS2).}
-
-\item{ms1_ints}{Vectors of MS1 intensities (associated with MS2).}
 
 \item{iso_ctr}{Vectors of isolation centers.}
 

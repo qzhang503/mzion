@@ -4,16 +4,10 @@
 \alias{rm_dup13c}
 \title{Removes duplicated entries in 13C results.}
 \usage{
-rm_dup13c(df, maxn_mdda_precurs = 1L, n_13c = 0L)
+rm_dup13c(df, n_13c = 0L)
 }
 \arguments{
 \item{df}{A data frame.}
-
-\item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
-multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
-equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
-= 0}, it is equivalent to DDA using the original monoisotopic masses and
-charge states provided by a peak-picking algorithm (e.g., MSConvert).}
 
 \item{n_13c}{Number(s) of 13C off-sets in precursor masses, for example, over
 the range of \code{-1:2}. The default is 0.}

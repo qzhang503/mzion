@@ -94,10 +94,14 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
 
   rm(list = c("scns", "ques", "n_scns", "n_ques"))
   
-  if (ok_pars && ok_mgfs) {
+  file_type_acqu <- file.path(mgf_path, "type_acqu.rds")
+  ok_type_acqu <- file.exists(file_type_acqu)
+
+  if (ok_pars && ok_mgfs && ok_type_acqu) {
     message("Found cached MGFs.")
     .savecall <- FALSE
-    return(NULL)
+    type_acqu <- qs::qread(file_type_acqu)
+    return(type_acqu)
   }
   
   message("Processing raw MGFs.")
@@ -125,7 +129,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
   filelist <- if (len_mgf) fi_mgf else fi_mzml
 
   if (len_mgf) {
-    readMGF(
+    type_acqu <- readMGF(
       filepath = mgf_path,
       filelist = filelist, 
       out_path = out_path, 
@@ -159,7 +163,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
       digits = digits)
   }
   else if (len_mzml) {
-    readmzML(
+    type_acqu <- readmzML(
       filelist = filelist, 
       mgf_path = mgf_path, 
       topn_ms2ions = topn_ms2ions, 
@@ -206,7 +210,9 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
   
   .savecall <- TRUE
 
-  invisible(NULL)
+  qs::qsave(type_acqu, file.path(mgf_path, "type_acqu.rds"))
+  
+  type_acqu
 }
 
 
@@ -380,7 +386,7 @@ readMGF <- function (filepath = NULL, filelist = NULL, out_path = NULL,
   raws <- unlist(out, recursive = FALSE, use.names = TRUE)
   qs::qsave(raws, file.path(filepath, "raw_indexes.rds"), preset = "fast")
 
-  invisible(NULL)
+  type_acqu <- "dda"
 }
 
 

@@ -5,14 +5,16 @@
 \title{Collapse MS data.}
 \usage{
 collapse_xyz(
-  xs,
-  ys,
-  zs,
-  temp_dir,
+  xs = NULL,
+  ys = NULL,
+  zs = NULL,
+  temp_dir = NULL,
   icenter = 1L,
   ms_lev = 2L,
   lwr = 115L,
-  step = 1e-05
+  step = 1e-05,
+  cleanup = TRUE,
+  direct_out = FALSE
 )
 }
 \arguments{
@@ -32,11 +34,21 @@ Each entry corresponds to a full vector of MS1 or MS2.}
 \item{lwr}{A lower bound as the starting point in mass binning.}
 
 \item{step}{A step size for mass binning.}
+
+\item{cleanup}{Logical; cleans up xs, ys and zs or not. Set the value to
+FALSE to maintain one-to-one correspondence between input (data frame) and
+the outputs. This will help, e.g., keep track of scan numbers in the input.}
+
+\item{direct_out}{Logical; if TRUE, return outputs directly.}
 }
 \value{
 Matrices of moverzs, intensities and charge states. Columns: masses;
   rows: scans.
 }
 \description{
-Almost identical to \link{collapse_mms1ints} with the addition of zs.
+Similar to \link{collapse_mms1ints} with the addition of zs.
+}
+\details{
+Values of \code{xs} can be smaller than \code{lwr} since no ms2_mass cut-offs
+(some z undetermined).
 }

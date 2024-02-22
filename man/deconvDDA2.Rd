@@ -2,7 +2,7 @@
 % Please edit documentation in R/mzml.R
 \name{deconvDDA2}
 \alias{deconvDDA2}
-\title{Deisotopes DDA-MS2}
+\title{Helper of DDA-MS2 deisotoping.}
 \usage{
 deconvDDA2(
   msx_moverzs = NULL,
@@ -65,5 +65,5 @@ envelop. The smaller the value, the more stringent it is in calling an
 adjacent peak being a mono-isotopic precursor}
 }
 \description{
-Deisotopes DDA-MS2
+Helper of DDA-MS2 deisotoping.
 }

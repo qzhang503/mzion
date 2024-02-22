@@ -50,7 +50,6 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
   }
   
   mgfs <- dplyr::bind_rows(mgfs)
-
   notches <- seq_along(ms1_offsets)
   
   mapply(hpair_mgths, ms1_offsets, notches, 
@@ -91,6 +90,7 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
   
   if (is.atomic(mgfs[1, "ms1_charge", drop = TRUE])) {
     ms1_bins <- ceiling(log(mgfs[["ms1_mass"]]/min_mass)/log(1+ppm_ms1_bin/1e6))
+    ms1_bins <- as.integer(ms1_bins)
     mgfs <- split(mgfs, ms1_bins)
   }
   else {
@@ -269,6 +269,7 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
   ord <- order(mgfs$ms1_mass)
   mgfs <- mgfs[ord, ]
   ms1_bins <- ceiling(log(mgfs$ms1_mass/min_mass)/log(1+ppm_ms1_bin/1e6))
+  ms1_bins <- as.integer(ms1_bins)
   
   # ms1_bins can be -Inf or NA since
   # (1) ms1_moverz can be NA because not yet determined by the current algorithm
@@ -1132,7 +1133,7 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
         es[!tine] <- NA_real_
         
         thok <- thi[ith]
-        tine2 <- fastmatch::fmatch(c(thok, thok - 1L, thok + 1L), ex) # 2us
+        tine2 <- fastmatch::fmatch(c(thok, thok - 1L, thok + 1L), ex)
         iex <- vector("integer", nth)
         
         for (j in 1:nth) {

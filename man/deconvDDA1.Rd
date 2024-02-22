@@ -2,7 +2,7 @@
 % Please edit documentation in R/mzml.R
 \name{deconvDDA1}
 \alias{deconvDDA1}
-\title{Deisotoping MS1.}
+\title{Deisotoping DDA-MS1.}
 \usage{
 deconvDDA1(
   msx_moverzs = NULL,
@@ -37,12 +37,6 @@ deconvDDA1(
 \item{iso_ctr}{A vector of isolation centers.}
 
 \item{iso_lwr}{A vecor of isolation lowers.}
-
-\item{ms1_moverzs}{Vectors of MS1 moverzs (associated with MS2).}
-
-\item{ms1_charges}{Vectors of MS1 charge states (associated with MS2).}
-
-\item{ms1_ints}{Vectors of MS1 intensities (associated with MS2).}
 
 \item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
 multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
@@ -93,5 +87,5 @@ adjacent peak being a mono-isotopic precursor}
 \item{use_defpeaks}{Use default peak info or not.}
 }
 \description{
-Deisotoping MS1.
+Deisotoping DDA-MS1.
 }

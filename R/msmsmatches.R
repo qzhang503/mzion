@@ -1326,11 +1326,13 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
 
   ## MGFs
+  file_type_acqu <- file.path(mgf_path, "type_acqu.rds")
+  
   if (is.null(bypass_mgf <- dots$bypass_mgf)) 
     bypass_mgf <- FALSE
 
-  if (!bypass_mgf) {
-    load_mgfs(
+  if ((!bypass_mgf) || (!file.exists(file_type_acqu))) {
+    type_acqu <- load_mgfs(
       out_path = out_path, 
       mgf_path = mgf_path, 
       topn_ms2ions = topn_ms2ions, 
@@ -1371,6 +1373,9 @@ matchMS <- function (out_path = "~/mzion/outs",
       quant = quant, 
       digits = digits)
   }
+  else {
+    type_acqu <- qs::qread(file_type_acqu)
+  }
 
   ## MSMS matches
   if (is.null(bypass_ms2match <- dots$bypass_ms2match)) 
@@ -1393,7 +1398,7 @@ matchMS <- function (out_path = "~/mzion/outs",
     mod_indexes <- NULL
   }
   
-  if (calib_ms1mass)
+  if (calib_ms1mass) {
     calib_mgf(mgf_path = mgf_path, aa_masses_all = aa_masses_all[1], # base
               out_path = out_path, .path_bin = .path_bin_calib, 
               mod_indexes = mod_indexes[names(mod_indexes) %in% fixedmods], 
@@ -1415,6 +1420,7 @@ matchMS <- function (out_path = "~/mzion/outs",
               enzyme = enzyme, maxn_fasta_seqs = maxn_fasta_seqs, 
               maxn_vmods_setscombi = maxn_vmods_setscombi,
               min_len = min_len, max_len = max_len, max_miss = max_miss)
+  }
 
   if (!bypass_ms2match) {
     if (min_ms2mass < 5L) 
@@ -1474,6 +1480,8 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (is.null(bypass_pepscores <- dots$bypass_pepscores)) 
     bypass_pepscores <- FALSE
   
+  maxn_mdda_precurs2 <- if (type_acqu == "dia") 500L else maxn_mdda_precurs
+  
   if (!bypass_pepscores) {
     if (is.null(tally_ms2ints <- dots$tally_ms2ints)) 
       tally_ms2ints <- TRUE
@@ -1490,7 +1498,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                    soft_secions = soft_secions, 
                    out_path = out_path,
                    min_ms2mass = min_ms2mass,
-                   maxn_mdda_precurs = maxn_mdda_precurs, 
+                   maxn_mdda_precurs = maxn_mdda_precurs2, 
                    n_ms2_bg = n_ms2_bg, 
                    tally_ms2ints = tally_ms2ints, 
                    
@@ -1550,8 +1558,8 @@ matchMS <- function (out_path = "~/mzion/outs",
                             out_path = out_path, 
                             fct_score = fct_score)
     
-    ans <- post_pepfdr(prob_cos = prob_cos, maxn_mdda_precurs = maxn_mdda_precurs, 
-                       n_13c = n_13c, out_path = out_path, fct_score = fct_score)
+    ans <- post_pepfdr(prob_cos = prob_cos, n_13c = n_13c, out_path = out_path, 
+                       fct_score = fct_score)
 
     if (svm_reproc) {
       message("SVM reprocessing of peptide probabilities.")
@@ -1586,8 +1594,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                 locmods = locmods, 
                 is_notched = is_notched,
                 topn_mods_per_seq = topn_mods_per_seq, 
-                topn_seqs_per_query = topn_seqs_per_query, 
-                maxn_mdda_precurs = maxn_mdda_precurs)
+                topn_seqs_per_query = topn_seqs_per_query)
   }
 
   ## Protein accessions
@@ -1653,7 +1660,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
   
   # second removals after combining pep_mod_group's
-  df <- rm_dup13c(df, maxn_mdda_precurs = maxn_mdda_precurs, n_13c = n_13c)
+  df <- rm_dup13c(df, n_13c = n_13c)
 
   # add optional reporters
   df <- add_rptrs(df, quant, out_path)

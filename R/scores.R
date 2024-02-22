@@ -680,10 +680,8 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
       if (.savecall) {
         save_call2(path = file.path(out_path, "Calls"), fun = fun)
       }
-    }, 
-    add = TRUE
-  )
-  
+    }, add = TRUE)
+
   if (file.exists(file_aa <- file.path(out_path, "aa_masses_all.rds")))
     aa_masses_all <- qs::qread(file_aa)
   else if (file.exists(file_aa <- file.path(.path_bin, "aa_masses_all.rds")))
@@ -935,7 +933,6 @@ order_fracs3 <- function (type = "list_table", tempdir, by_modules = TRUE)
 }
 
 
-
 #' Combines results from fractions
 #' 
 #' @param files A list of file names.
@@ -1069,15 +1066,15 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
     return (dfb)
   }
 
-  df[["uniq_id"]] <- paste(df[["pep_scan_num"]], 
-                           df[["raw_file"]], df[["pep_ms1_offset"]], sep = "@")
+  df[["uniq_id"]] <- paste(df[["pep_scan_num"]], df[["raw_file"]], 
+                           df[["pep_ms1_offset"]], sep = "@")
   esscols <- c("pep_ms2_moverzs", "pep_ms2_ints", # "ms2_charges", 
                "matches", "pep_n_ms2", "uniq_id")
 
   ## chimeric intensity value masking
   if (maxn_mdda_precurs > 1L) {
-    df$gid <- paste(df[["orig_scan"]], 
-                    df[["raw_file"]], df[["pep_ms1_offset"]], sep = "@")
+    df$gid <- paste(df[["orig_scan"]], df[["raw_file"]], df[["pep_ms1_offset"]], 
+                    sep = "@")
     dfs <- split(df, df$gid)
     rows <- lapply(dfs, function (x) nrow(x) == 1L)
     rows <- unlist(rows, recursive = FALSE, use.names = FALSE)
@@ -1224,11 +1221,12 @@ find_iexunv <- function (mi)
   mi <- mapply(function (x, y) x[!is.na(y)], mi, nms, 
                USE.NAMES = FALSE,SIMPLIFY = FALSE)
   mi <- mi[lengths(mi) > 0L]
-
-  if (!length(mi))
+  len <- length(mi)
+  
+  if (!len)
     return(NULL)
   
-  iexs <- vector("list", len <- length(mi))
+  iexs <- vector("list", len)
   
   # go through all peptides under a match
   for (i in 1:len) {
@@ -1242,12 +1240,12 @@ find_iexunv <- function (mi)
       iexs[[i]] <- ps[[which.max(lapply(ps, `[[`, "m"))]]$iex
     }
   }
-  
-  unique(unlist(iexs))
+
+  unique(.Internal(unlist(iexs, recursive = FALSE, use.names = FALSE)))
 }
 
 
-#' Preparation for scoring of chemiric spectra.
+#' Preparation for scoring of chimeric spectra.
 #' 
 #' @param df A data frame for scoring.
 addChim <- function (df)
@@ -1261,13 +1259,13 @@ addChim <- function (df)
   mts <- df$matches
 
   iexs <- lapply(mts, find_iexunv)
-  univ <- unique(unlist(iexs))
+  unv <- unique(.Internal(unlist(iexs, recursive = FALSE, use.names = FALSE)))
   
   # for-loop to keep attributes
   for (i in seq_along(mts)) {
     mi <- mts[[i]]
     iex <- iexs[[i]]
-    yi <- univ[!univ %in% iex]
+    yi <- unv[!unv %in% iex]
     
     if (!length(yi))
       next
@@ -2291,8 +2289,8 @@ fill_probs <- function (nas, prob_cos, target_fdr = .01)
 #' @param out_path An output path.
 #' @param fct_score A factor to convert p-values to scores.
 #' @inheritParams matchMS
-post_pepfdr <- function (prob_cos = NULL, maxn_mdda_precurs = 1L, n_13c = 0L, 
-                         out_path = NULL, fct_score = 5L) 
+post_pepfdr <- function (prob_cos = NULL, n_13c = 0L, out_path = NULL, 
+                         fct_score = 5L) 
 {
   if (is.null(prob_cos)) {
     file_prob <- file.path(out_path, "temp", "pep_probco.rds")
@@ -2328,7 +2326,7 @@ post_pepfdr <- function (prob_cos = NULL, maxn_mdda_precurs = 1L, n_13c = 0L,
   td <- td[ok]
   rm(list = c("ok_targets", "files", "ok"))
 
-  td <- lapply(td, rm_dup13c, maxn_mdda_precurs = maxn_mdda_precurs, n_13c = n_13c)
+  td <- lapply(td, rm_dup13c, n_13c = n_13c)
 
   td <- lapply(td, function (df) {
     df <- df |> 
@@ -2874,8 +2872,7 @@ match_ex2th2 <- function (expt, theo, min_ms2mass = 115L, d = 1E-5)
 calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL, 
                          is_notched = FALSE, 
                          locmods = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
-                         topn_mods_per_seq = 3L, topn_seqs_per_query = 3L, 
-                         maxn_mdda_precurs = 1L) 
+                         topn_mods_per_seq = 3L, topn_seqs_per_query = 3L) 
 {
   message("Calculating peptide localization scores and deltas.")
 
@@ -3627,9 +3624,9 @@ tsoutliers <- function (x, iterate = 2, lambda = NULL)
 #'
 #' @param df A data frame.
 #' @inheritParams matchMS
-rm_dup13c <- function (df, maxn_mdda_precurs = 1L, n_13c = 0L)
+rm_dup13c <- function (df, n_13c = 0L)
 {
-  if (length(n_13c) == 1L && n_13c == 0L) # maxn_mdda_precurs < 1L || 
+  if (length(n_13c) == 1L && n_13c == 0L) 
     return(df)
 
   esscols <- c("pep_ms1_offset", "pep_scan_num", "raw_file")

@@ -15,7 +15,8 @@ traceDIA(
   step1 = 1e-05,
   step2 = 1e-05,
   temp_dir = NULL,
-  tracing_ms1 = TRUE,
+  join_ms = FALSE,
+  spread_ohw = FALSE,
   delayed_diams2_tracing = FALSE
 )
 }
@@ -46,11 +47,14 @@ interrogation. The default is 110.}
 
 \item{temp_dir}{A temporary directory.}
 
-\item{tracing_ms1}{Logical; tracing MS1 or not.}
+\item{join_ms}{Logical; if TRUE, combine adjacent entries.}
+
+\item{spread_ohw}{logical; if TRUE, spread one-hit wonders to the nearest
+neighbors.}
 
 \item{delayed_diams2_tracing}{Logical; if TRUE, delays the tracing of MS1-MS2
 after ion matches.}
 }
 \description{
-For a single MS1 range, e.g., 592.5 to 604.5.
+For a single MS1 isolation range, e.g., 592.5 to 604.5.
 }

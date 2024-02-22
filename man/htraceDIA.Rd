@@ -20,7 +20,7 @@ htraceDIA(
   n_dia_ms2bins = 1L,
   n_dia_scans = 4L,
   delayed_diams2_tracing = FALSE,
-  topn_ms2ions = 150L,
+  topn_dia_ms2ions = 2400L,
   mgf_cutmzs = numeric(),
   mgf_cutpercs = numeric(),
   quant = "none",
@@ -83,8 +83,7 @@ of an moverz value along LC.}
 \item{delayed_diams2_tracing}{Logical; if TRUE, delays the tracing of MS1-MS2
 after ion matches.}
 
-\item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
-searches.}
+\item{topn_dia_ms2ions}{The top-n DIA-MS2 ions for deisotoping.}
 
 \item{mgf_cutmzs}{Cut points of MS1 m-over-z values in peak picking.}
 

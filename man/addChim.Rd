@@ -2,7 +2,7 @@
 % Please edit documentation in R/scores.R
 \name{addChim}
 \alias{addChim}
-\title{Preparation for scoring of chemiric spectra.}
+\title{Preparation for scoring of chimeric spectra.}
 \usage{
 addChim(df)
 }
@@ -10,5 +10,5 @@ addChim(df)
 \item{df}{A data frame for scoring.}
 }
 \description{
-Preparation for scoring of chemiric spectra.
+Preparation for scoring of chimeric spectra.
 }
