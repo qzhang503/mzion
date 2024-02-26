@@ -1,7 +1,9 @@
 #' De-isotopes precursor masses.
 #'
-#' @param moverzs MS1 or MS2 Mass-to-charge ratios.
-#' @param msxints MS1 or MS2 peak intensities.
+#' @param moverzs MS1 or MS2 Mass-to-charge ratios. The inputs are typically at
+#'   weighted-mean statistics.
+#' @param msxints MS1 or MS2 peak intensities. The inputs are typically at mean
+#'   statistics.
 #' @param n_ms1s The underlying counts that have contributed to \code{moverzs}
 #'   and \code{maxints}.
 #' @param center The mass center of an isolation window (only for MS1).
@@ -115,6 +117,8 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       return(null_out)
   }
   
+  grad_isotope2 <- fct_iso2 * grad_isotope
+  
   from <- moverzs[[1]] - .001
   ims  <- index_mz(moverzs, from, step)
   
@@ -122,8 +126,8 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
   peaks_fuz <- intens_fuz <- peaks <- intens <- rep_len(NA_real_, lenp)
   css_fuz <- css <- rep.int(NA_integer_, lenp)
   p_fuz <- p <- 1L
-  mass_fuz <- NA_real_
-  
+  ymean_fuz <- ymono_fuz <- mass_fuz <- NA_real_
+
   while(len_ms & p <= maxn_feats) {
     if (len_ms == 1L) {
       intens[[p]] <- msxints
@@ -140,11 +144,13 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     
     mass <- moverzs[imax]
     mint <- msxints[imax]
+    n_ms1 <- n_ms1s[imax]
 
-    ch <- find_charge_state(mass = mass, imax = imax, mint = mint, 
-                            moverzs = moverzs, msxints = msxints, n_ms1s = n_ms1s, 
-                            lenm = len_ms, max_charge = max_charge, n_fwd = n_fwd, 
-                            ms_lev = ms_lev, is_dda = is_dda, ppm = ppm)
+    ch <- find_charge_state(
+      mass = mass, imax = imax, mint = mint, 
+      moverzs = moverzs, msxints = msxints, n_ms1s = n_ms1s, 
+      lenm = len_ms, max_charge = max_charge, n_fwd = n_fwd, 
+      ms_lev = ms_lev, is_dda = is_dda, ppm = ppm)
 
     if (ch == 0L) {
       peaks[[p]] <- mass
@@ -161,6 +167,12 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     err <- ppm/1e6
     sta1 <- min(len_ms, imax + 1L)
     end1 <- min(len_ms, imax + offset_upr)
+    ymono <- msxints[imax]
+    
+    # additional guard for downstream MS1 peak tracing: 
+    #  use ymean (the mean of monoisotopics) 
+    #  so it won't overwhelem the real apex value when tracing peaks along LC
+    ymean <- ymono/n_ms1
 
     # find monoisotopic m/z
     if (ch * mass > backward_mass_co) {
@@ -174,18 +186,31 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       lenh <- length(hits)
       idx <- .Internal(which(hits == imax))
       
+      # only one preceding hit
       if (idx == 2L) {
         hi <- hits[[1]]
-        
-        if (abs((moverzs[[hi]] + gap)/mass - 1) <= err) {
-          if ((ri <- mint/msxints[[hi]]) <= grad_isotope)
+
+        if (abs((moverzs[[hi]] + gap)/mass - 1) <= err) { # not satellite to `mass`
+          yhi <- msxints[[hi]]
+          ri <- mint/yhi
+          
+          if (ri <= grad_isotope) { # the preceding intensity pass the 1st threshold
             mass <- moverzs[[hi]]
+            ymono <- yhi
+            n_ms1 <- n_ms1s[hi]
+            ymean <- ymono/n_ms1
+          }
           else {
-            if (ri <= fct_iso2 * grad_isotope) mass_fuz <- moverzs[[hi]]
+            if (ri <= grad_isotope2) { # the preceding intensity pass the 2nd threshold
+              mass_fuz <- moverzs[[hi]]
+              ymono_fuz <- yhi
+              n_ms1_fuz <- n_ms1s[hi]
+              ymean_fuz <- ymono_fuz/n_ms1_fuz
+            }
           }
         }
       }
-      else if (idx > 2L) {
+      else if (idx > 2L) { # two or more preceding matches
         ix <- lenx <- idx - 1L
         hx <- NULL
         
@@ -194,22 +219,36 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
           ks <- .Internal(which(abs((mzsub + gap)/mass - 1) <= err))
           
           # all satellite to `mass`
-          if (!length(ks)) {
+          if (!length(ks))
             break
-          }
-          
+
           hsub <- hits[ks]
-          isub <- which.max(msxints[hsub])
+          isub <- .Internal(which.max(msxints[hsub]))
           hi <- hsub[isub]
           h <- ks[isub]
           gi <- grad_isotope * i
-          ri <- mint/msxints[[hi]]
+          yhi <- msxints[[hi]]
+          ri <- mint/yhi
           
-          if (ri > gi) {
-            if (ri < fct_iso2 * gi) mass_fuz <- moverzs[[hi]]
-            break
+          if (ri <= gi) { # the preceding intensity pass the 1st threshold
+            ymono <- yhi
           }
-          
+          else {
+            if (ri <= fct_iso2 * gi) { # the preceding pass the 2st threshold
+              mass_fuz <- moverzs[[hi]]
+              ymono_fuz <- yhi
+              ###
+              n_ms1_fuz <- n_ms1s[hi]
+              ymean_fuz <- ymono_fuz/n_ms1_fuz
+              ###
+              
+              break
+            }
+            else {
+              break
+            }
+          }
+
           mass <- moverzs[[hi]]
           hx <- c(hi, hx)
           
@@ -231,12 +270,14 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       lenh <- length(hits)
     }
     
-    intens[[p]] <- sum(msxints[hits])
+    # intens[[p]] <- ymono
+    intens[[p]] <- ymean
     peaks[[p]] <- mass
     css[[p]] <- ch
     
     if (!is.na(mass_fuz)) {
-      intens_fuz[[p_fuz]] <- intens[[p]]
+      # intens_fuz[[p_fuz]] <- ymono_fuz
+      intens_fuz[[p_fuz]] <- ymean_fuz
       peaks_fuz[[p_fuz]] <- mass_fuz
       css_fuz[[p_fuz]] <- ch
       p_fuz <- p_fuz + 1L

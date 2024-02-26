@@ -26,9 +26,11 @@ find_charge_state(
 
 \item{mint}{The maximum intensity (corresponding to the peak at \code{imax}).}
 
-\item{moverzs}{MS1 or MS2 Mass-to-charge ratios.}
+\item{moverzs}{MS1 or MS2 Mass-to-charge ratios. The inputs are typically at
+weighted-mean statistics.}
 
-\item{msxints}{MS1 or MS2 peak intensities.}
+\item{msxints}{MS1 or MS2 peak intensities. The inputs are typically at mean
+statistics.}
 
 \item{n_ms1s}{The underlying counts that have contributed to \code{moverzs}
 and \code{maxints}.}

@@ -2,11 +2,11 @@
 % Please edit documentation in R/mzml.R
 \name{mapcoll_xyz}
 \alias{mapcoll_xyz}
-\title{Sub modules in data collapsion.}
+\title{Maps data onto the universe.}
 \usage{
 mapcoll_xyz(
   vals,
-  ps,
+  ups,
   lenx,
   lenu,
   temp_dir,
@@ -19,7 +19,7 @@ mapcoll_xyz(
 \arguments{
 \item{vals}{Data in one of moverzs, intensities or charge states.}
 
-\item{ps}{Positions of \code{vals} in universe. Should be the same for among
+\item{ups}{Positions of \code{vals} in universe. Should be the same for among
 moverzs, intensities and charge states.}
 
 \item{lenx}{The length of \code{vals}.}
@@ -35,6 +35,10 @@ moverzs, intensities and charge states.}
 \item{type}{The type of data in one of xs, ys and zs.}
 
 \item{direct_out}{Logical; if TRUE, return outputs directly.}
+}
+\value{
+A matrix where rows correspond to \code{vals} and columns to
+  \code{ups}.
 }
 \description{
 For RAM efficiency.

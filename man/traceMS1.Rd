@@ -4,20 +4,30 @@
 \alias{traceMS1}
 \title{Helper of MS1 tracing.}
 \usage{
-traceMS1(df, min_mass = 200L, step = 8e-06, n_dia_scans = 4L)
+traceMS1(
+  df,
+  n_ms1peakpicking_flanks = 4L,
+  replace_ms1_by_apex = TRUE,
+  min_mass = 200L,
+  step = 8e-06,
+  filename = NULL,
+  temp_dir = NULL
+)
 }
 \arguments{
 \item{df}{MS1 data.}
 
-\item{min_mass}{A positive integer; the minimum precursor mass for
-interrogation. The default is an arbitrarily low value (the primary guard
-against low molecular-weight precursors is \code{min_len}).}
+\item{n_ms1peakpicking_flanks}{The number of flanking MS1 scans for precursor
+peak picking.}
+
+\item{replace_ms1_by_apex}{Logical; if TRUE, fill all entries within a gate
+by its apex values.}
 
 \item{step}{Step size.}
 
-\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
-constructing a peak profile and thus for determining the apex scan number
-of an moverz value along LC.}
+\item{filename}{A peaklist filename.}
+
+\item{temp_dir}{A temp_dir to the filename.}
 }
 \description{
 Helper of MS1 tracing.

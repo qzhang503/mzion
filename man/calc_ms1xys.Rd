@@ -2,15 +2,19 @@
 % Please edit documentation in R/mzml.R
 \name{calc_ms1xys}
 \alias{calc_ms1xys}
-\title{Makes MS1 matrixes of moverzs and intensities}
+\title{Makes MS1 matrices of moverzs and intensities}
 \usage{
-calc_ms1xys(xs, ys)
+calc_ms1xys(matx, maty)
 }
 \arguments{
-\item{xs}{Vectors of moverzs}
+\item{matx}{A matrix of moverzs onto the data universe.}
 
-\item{ys}{Vectors of intensities}
+\item{maty}{Vectors of intensities onto the data universe.}
+}
+\value{
+A list of x: the weighted means of moverzs; y: the means of
+  intensities; n: the numbers of observations.
 }
 \description{
-Makes MS1 matrixes of moverzs and intensities
+Makes MS1 matrices of moverzs and intensities
 }

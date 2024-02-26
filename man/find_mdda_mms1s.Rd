@@ -21,13 +21,14 @@ find_mdda_mms1s(
 )
 }
 \arguments{
-\item{msx_moverzs}{Vectors of moverzs (full spectrum).}
+\item{msx_moverzs}{Vectors of bracketing (e.g. +/-6 scans) full-spectrum
+moverzs.}
 
-\item{msx_ints}{Vectors of intensities (full spectrum.}
+\item{msx_ints}{Vectors of bracketing full-spectrum intensities.}
 
-\item{iso_ctr}{Vectors of isolation centers.}
+\item{iso_ctr}{Vectors of isolation centers (e.g. top-12 scans) for MS2.}
 
-\item{iso_lwr}{Vectors of isolation lowers.}
+\item{iso_lwr}{Vectors of isolation lowers for MS2.}
 
 \item{ppm}{Mass error tolerance.}
 
@@ -53,6 +54,10 @@ adjacent peak being a mono-isotopic precursor}
 isotope envelops.}
 
 \item{step}{A step size.}
+}
+\value{
+A list. x: monoisotopic moverzs (weighted mean statistics); y:
+  intensities (mean); z: charge states.
 }
 \description{
 Averages of multiple MS1 scans.

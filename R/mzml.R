@@ -75,6 +75,14 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
     is_dia <- TRUE
     peakfiles <- "23aug2017_hela_serum_timecourse_wide_1a.raw.rds"
     iso_width <- 12.0054016
+    
+    is_dia <- FALSE
+    peakfiles <- "20230108_AST_Neo1_DDA_UHG_HeLa_200ng_2th2p5ms_Cycle_01_20230808143253.raw.rds"
+    iso_width <- 2.0
+    
+    is_dia <- FALSE
+    peakfiles <- "01CPTAC3_Benchmarking_W_BI_20170508_BL_f02.raw.rds"
+    iso_width <- 0.699999988
   }
 
   lenf <- length(peakfiles)
@@ -967,15 +975,17 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
                       exclude_reporter_region = FALSE, use_defpeaks = FALSE, 
                       n_para = 1L)
 {
+  ###
   # msx_: full spectra of ms1 and ms2, differentiated by ms_lev
+  ###
   
   ans <- qs::qread(file.path(temp_dir, filename))
   msx_moverzs <- ans$msx_moverzs
   msx_ints <- ans$msx_ints
   msx_ns <- ans$msx_ns
-  ms1_moverzs <- ans$ms1_moverzs
-  ms1_ints <- ans$ms1_ints
-  ms1_charges <- ans$ms1_charges
+  ms1_moverzs <- ans$ms1_moverzs # by MSConvert
+  ms1_ints <- ans$ms1_ints # by MSConvert
+  ms1_charges <- ans$ms1_charges # by MSConvert
   scan_title <- ans$scan_title
   raw_file <- ans$raw_file # scalar
   ms_level <- ans$ms_level
@@ -994,6 +1004,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     tmt_reporter_lower = tmt_reporter_lower, 
     tmt_reporter_upper = tmt_reporter_upper, 
     exclude_reporter_region = exclude_reporter_region)
+  
   msx_moverzs <- restmt[["xvals"]]
   msx_ints <- restmt[["yvals"]]
   rptr_moverzs <- restmt[["rptr_moverzs"]]
@@ -1003,7 +1014,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
   msx_charges <- vector("list", length(msx_moverzs))
   
   ##
-  # need to subset early by min_ and max_ masses...
+  # try to subset early by min_ and max_ masses...
   # even at unknown z, not very likely to have z >= 2 at small m/z...
   ##
   
@@ -1052,6 +1063,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         tmt_reporter_lower = tmt_reporter_lower, 
         tmt_reporter_upper = tmt_reporter_upper, 
         exclude_reporter_region = exclude_reporter_region)
+      
       msx_moverzs <- out[[1]]
       msx_ints <- out[[2]]
       msx_charges <- out[[3]]
@@ -1060,11 +1072,22 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
   }
 
   if (maxn_mdda_precurs) {
-    if (FALSE) {
+    if (FALSE) { # check RAM issue
       n_cores <- n_para
-      n_chunks <- n_cores * 4L
-      grps <- sep_vec(msx_moverzs, n_chunks)
+      n_chunks <- n_cores
       
+      grps <- local({
+        idxes_ms1 <- which(ms_level == 1L)
+        diff_ms1 <- c(0L, diff(idxes_ms1))
+        oks <- which(diff_ms1 > 1L) # non-consecutive MS1s
+        ms1_stas <- idxes_ms1[oks - 1L]
+        ms2_stas <- ms1_stas + 1L
+        ms2_ends <- idxes_ms1[oks] - 1L
+        
+        brs <- floor(length(ms2_ends)/n_chunks) * 1:(n_chunks - 1L)
+        grps <- findInterval(seq_along(ms_level), ms2_ends[brs])
+      })
+
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
       ans <- parallel::clusterMap(
         cl, deconvDDA1, 
@@ -1080,9 +1103,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
           max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
           grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
           use_defpeaks = use_defpeaks
-        ), 
-        SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic"
-      )
+        ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
       parallel::stopCluster(cl)
       
       ms1_moverzs <- unlist(lapply(ans, function (x) x[["ms1_moverzs"]]), 
@@ -1116,11 +1137,12 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
         use_defpeaks = use_defpeaks)
       
+      # list(NULL) at ms_level == 1L
       ms1_moverzs <- ans$ms1_moverzs
       ms1_masses <- ans$ms1_masses
       ms1_charges <- ans$ms1_charges
       ms1_ints <- ans$ms1_ints
-      # for MS1 tracing    
+      # for LFQ MS1    
       ms1_stas <- ans$ms1_stas
       ms2_stas <- ans$ms2_stas
       ms2_ends <- ans$ms2_ends
@@ -1129,12 +1151,15 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
 
     # look up ms2 for undetermined precursor charge states
     if (deisotope_ms2) {
-      rows1 <- lapply(ms1_moverzs, is.null)
+      rows1 <- lapply(ms1_moverzs, is.null) # all MS1 and some MS2
       rows1 <- .Internal(unlist(rows1, recursive = FALSE, use.names = FALSE))
       rows2 <- ms_level == 2L
-      rows <- .Internal(which(rows1 & rows2))
+      rows <- .Internal(which(rows2 & rows1)) # MS2 without precursor info
+      nrows <- length(rows)
       
-      if (length(rows)) {
+      if (nrows) {
+        # msx_moverzs[rows] and msx_ints[rows] not NULL; msx_charges[rows] are NULL
+        # msx_charges[rows] <- NA_real_
         ans2 <- mapply(find_ms1byms2, 
                        moverzs = msx_moverzs[rows], msxints = msx_ints[rows], 
                        charges = msx_charges[rows], center = iso_ctr[rows], 
@@ -1147,10 +1172,13 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         ans2$ms1_charges <- as.list(ans2$ms1_charges)
         ans2$ms1_ints <- as.list(ans2$ms1_ints)
         
-        # outputs contain NA
+        # outputs contain NA and back to list(NULL)
         nas <- which(is.na(ans2$ms1_moverzs))
-        ans2$ms1_ints[nas] <- ans2$ms1_charges[nas] <- 
-          ans2$ms1_masses[nas] <- ans2$ms1_moverzs[nas] <- list(NULL)
+        
+        if (length(nas)) {
+          ans2$ms1_ints[nas] <- ans2$ms1_charges[nas] <- 
+            ans2$ms1_masses[nas] <- ans2$ms1_moverzs[nas] <- list(NULL)
+        }
 
         ms1_moverzs[rows] <- ans2$ms1_moverzs
         ms1_masses[rows] <- ans2$ms1_masses
@@ -1162,13 +1190,15 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       rm(list = c("rows1", "rows2", "rows"))
     }
     
-    # Pools precursor for LFQ MS1 tracing
+    # Pools precursors at ms_level == 2 to ms_level == 1 for LFQ MS1;
+    # Up to this point, ms1_moverzs are list(NULL) at ms_level == 1L;
+    # Not to trace all MS1 features by only those assigned to MS2 scans.
     for (i in seq_along(ms1_stas)) {
       rng1 <- ms1_stas[[i]]
       rng2 <- ms2_stas[i]:ms2_ends[i]
       
       # isolation windows can have overlaps -> 
-      #   the same precursor at multiple windows and thus duplicated entries
+      #   the same precursor at multiple windows -> duplicated MS1 entries
       xs <- .Internal(unlist(ms1_moverzs[rng2], recursive = FALSE, use.names = FALSE))
       ys <- .Internal(unlist(ms1_ints[rng2], recursive = FALSE, use.names = FALSE))
       zs <- .Internal(unlist(ms1_charges[rng2], recursive = FALSE, use.names = FALSE))
@@ -1180,6 +1210,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         ms1_ints[[rng1]] <- ys[ord]
         ms1_charges[[rng1]] <- zs[ord]
         ms1_masses[[rng1]] <- ms[ord]
+        rm(list = "ord")
       }
     }
     rm(list = c("rng1", "rng2", "xs", "ys", "zs", "ms"))
@@ -1190,9 +1221,8 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
                          SIMPLIFY = FALSE, USE.NAMES = FALSE)
   }
 
-  # With name changes after this point: 
-  #  ms2_moverzs at ms_level == 1L are <-> full-spectrum ms1_moverzs
-  #  ms2_charges at ms_level == 1L are list(NULL)
+  # msx_moverzs at ms_level == 1L correspond to full-spectrum ms1_moverzs
+  # msx_charges at ms_level == 1L are list(NULL)
   df <- tibble::tibble(
     scan_title = scan_title,
     raw_file = raw_file,
@@ -1205,27 +1235,46 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     ret_time = ret_time, 
     scan_num = scan_num, 
     orig_scan = orig_scan,
-    ms2_moverzs = msx_moverzs, 
-    ms2_ints = msx_ints, 
-    ms2_charges = msx_charges, 
-    ms2_n = msx_ns, 
+    msx_moverzs = msx_moverzs, 
+    msx_ints = msx_ints, 
+    msx_charges = msx_charges, 
+    msx_n = msx_ns, 
     rptr_moverzs = rptr_moverzs, 
-    rptr_ints = rptr_ints, )
+    rptr_ints = rptr_ints)
   
   ## LFQ: replaces intensities with apex values
-  step <- ppm_ms1_deisotope * 1E-6
+  step <- ppm_ms1_deisotope * 1E-6 * 2L # doubling for tracing
   rows <- df[["ms_level"]] == 1L
+  
+  ## Obtains ms1_int from the corresponding full MS1 (msx_ints)
+  if (FALSE) {
+    cols <- c("ms1_moverz", "ms1_int", "msx_moverzs", "msx_ints")
+    df[rows, cols] <- getMS1Int(df[rows, cols], from = min_mass, step = step)
+  }
 
-  # includes n_dia_scans in pars later... 
-  mat <- traceMS1(df[rows, ], min_mass = min_mass, step = step, n_dia_scans = 4L)
+  # later use apex values to update retention times...
+  
+  # includes n_ms1peakpicking_flanks in matchMS() later... 
+  mat <- traceMS1(
+    df[rows, c("ms1_moverz", "ms1_int", "ms1_charge", "ms1_mass")], 
+    n_ms1peakpicking_flanks = 128L, # forward/backward looking void allowance
+    replace_ms1_by_apex = TRUE, 
+    min_mass = min_mass, step = step, 
+    filename = filename, temp_dir = temp_dir)
+  
   matx <- mat[["x"]] # columns: masses; rows: scans
   maty <- mat[["y"]]
+  # apex <- mat[["p"]]
   rm(list = "mat")
   gc()
+  
+  # !!! maintain identical row correspondence to avoid e.g. left_join
+  # stopifnot(nrow(matx) == nrow(df))
 
-  keys <- c("ms_level", "ms1_moverz", "ms1_int")
-  df[, keys] <- updateMS1Int(
-    df = df[, keys], matx = matx, maty = maty, min_mass = min_mass, step = step)
+  # df[["orig_ms1_ints"]] <- df[["ms1_int"]]
+  cols <- c("ms_level", "ms1_moverz", "ms1_int")
+  df[, cols] <- updateMS1Int(
+    df = df[, cols], matx = matx, maty = maty, min_mass = min_mass, step = step)
   
   ## cleans up
   df <- df[!rows, ]
@@ -1269,16 +1318,88 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     df <- dplyr::arrange(df, ms1_mass)
   }
   
-  df
+  df <- dplyr::rename(
+    df, 
+    ms2_moverzs = msx_moverzs, 
+    ms2_ints = msx_ints, 
+    ms2_charges = msx_charges, 
+    ms2_n = msx_n)
+}
+
+
+#' Gets MS1 intensity values from full MS1 data.
+#'
+#' @param df1 Data frame corresponding to \code{ms_level == 1L}.
+#' @param from The starting point for mass binning
+#' @param step A step size.
+#' @param set_missing_zero Logical; if TRUE, set 0-intensity for peaks not
+#'   found.
+getMS1Int <- function (df1, from = 200L, step = 8E-6, set_missing_zero = FALSE)
+{
+  for (i in 1:nrow(df1)) {
+    xs1 <- df1$ms1_moverz[[i]]
+    len <- length(xs1)
+    
+    if (!len)
+      next
+    
+    ys <- df1$msx_ints[[i]]
+    ixxs <- as.integer(ceiling(log(df1$msx_moverzs[[i]]/from)/log(1+step)))
+    ixs1 <- as.integer(ceiling(log(xs1/from)/log(1+step)))
+    ps0 <- match(ixs1, ixxs)
+    oks <- !is.na(ps0)
+    
+    if (all(oks)) {
+      df1[["ms1_int"]][[i]] <- ys[ps0]
+    }
+    else {
+      ps1 <- match(ixs1 + 1L, ixxs)
+      ps2 <- match(ixs1 - 1L, ixxs)
+      i1 <- .Internal(which(!is.na(ps1)))
+      i2 <- .Internal(which(!is.na(ps2)))
+      i0 <- .Internal(which(oks))
+      
+      if (length(i0)) {
+        df1[["ms1_int"]][[i]][i0] <- ys[ps0[i0]]
+      }
+      
+      if (length(i1)) {
+        df1[["ms1_int"]][[i]][i1] <- ys[ps1[i1]]
+      }
+      
+      if (length(i2)) {
+        df1[["ms1_int"]][[i]][i2] <- ys[ps2[i2]]
+      }
+      
+      # not matched at all
+      if (set_missing_zero) {
+        i012 <- c(i0, i1, i2)
+        
+        if (length(i012) < len) {
+          bads <- !1:len %in% i012
+          df1[["ms1_int"]][[i]][bads] <- 0
+        }
+      }
+    }
+  }
+  
+  df1
 }
 
 
 #' Helper of MS1 tracing.
-#' 
+#'
 #' @param df MS1 data.
 #' @param step Step size.
-#' @inheritParams matchMS
-traceMS1 <- function (df, min_mass = 200L, step = 8E-6, n_dia_scans = 4L)
+#' @param n_ms1peakpicking_flanks The number of flanking MS1 scans for precursor
+#'   peak picking.
+#' @param replace_ms1_by_apex Logical; if TRUE, fill all entries within a gate
+#'   by its apex values.
+#' @param filename A peaklist filename.
+#' @param temp_dir A temp_dir to the filename.
+traceMS1 <- function (df, n_ms1peakpicking_flanks = 4L, replace_ms1_by_apex = TRUE, 
+                      min_mass = 200L, step = 8E-6, filename = NULL, temp_dir = NULL)
+
 {
   rows <- which(lengths(df$ms1_moverz) == 0L)
   
@@ -1307,13 +1428,14 @@ traceMS1 <- function (df, min_mass = 200L, step = 8E-6, n_dia_scans = 4L)
     xs = df[["ms1_moverz"]], 
     ys = df[["ms1_int"]], 
     zs = df[["ms1_charge"]], 
-    n_dia_scans = n_dia_scans, 
+    n_dia_scans = n_ms1peakpicking_flanks, 
     from = min_mass, 
     step = step, 
     reord = FALSE, # already ordered
-    cleanup = FALSE, 
-    fill_gates = TRUE, 
-    direct_out = TRUE)
+    cleanup = FALSE, # already cleaned
+    replace_ms1_by_apex = replace_ms1_by_apex, 
+    direct_out = TRUE, 
+    temp_dir = temp_dir)
 }
 
 
@@ -1344,10 +1466,8 @@ updateMS1Int <- function (df, matx, maty, min_mass = 200L, step = 8E-6)
   ms2_stas <- ms2_stas[ord]
   ms2_ends <- ms2_ends[ord]
   rm(list = c("oks", "diff_ms1", "idxes_ms1", "bads", "nas", "ord"))
-  
-  df1 <- df[with(df, ms_level == 1L), ]
-  
-  for (i in 1:nrow(df1)) {
+
+  for (i in seq_along(ms2_stas)) {
     ms2sta <- ms2_stas[[i]]
     
     if (is.na(ms2sta))
@@ -1366,13 +1486,32 @@ updateMS1Int <- function (df, matx, maty, min_mass = 200L, step = 8E-6)
     for (j in 1:nrow(df2)) {
       xsj <- df2[["ms1_moverz"]][[j]]
       ixsj <- as.integer(ceiling(log(xsj/min_mass)/log(1+step)))
-      ps <- match(ixsj, ixs)
-      df2[["ms1_int"]][[j]] <- ys[ps]
+      ps0 <- match(ixsj, ixs)
+      
+      if (any(nas0 <- is.na(ps0))) {
+        ps1 <- match(ixsj + 1L, ixs)
+        ps2 <- match(ixsj - 1L, ixs)
+
+        if (length(i0 <- which(!nas0))) {
+          df2[["ms1_int"]][[j]][i0] <- ys[ps0[!is.na(ps0)]]
+        }
+        
+        if (length(i1 <- which(!is.na(ps1)))) {
+          df2[["ms1_int"]][[j]][i1] <- ys[ps1[!is.na(ps1)]]
+        }
+        
+        if (length(i2 <- which(!is.na(ps2)))) {
+          df2[["ms1_int"]][[j]][i2] <- ys[ps2[!is.na(ps2)]]
+        }
+      }
+      else {
+        df2[["ms1_int"]][[j]] <- ys[ps0]
+      }
     }
     
-    df[ms2sta:ms2end, ] <- df2
+    df[["ms1_int"]][ms2sta:ms2end] <- df2[["ms1_int"]]
   }
-  
+
   df
 }
 
@@ -1429,17 +1568,18 @@ deconvDDA1 <- function (msx_moverzs = NULL, msx_ints = NULL,
       grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
       use_defpeaks = use_defpeaks)
 
+    # Precursor x, y and z values for each MS2
     xs <- ans[["x"]]
     ys <- ans[["y"]]
     zs <- ans[["z"]]
     
+    # updates corresponding MS1 x, y and z for each MS2
     oks <- .Internal(which(lengths(xs) > 0L))
     ms1_moverzs[rng2][oks] <- xs[oks]
     ms1_ints[rng2][oks] <- ys[oks]
     ms1_charges[rng2][oks] <- zs[oks]
   }
-  rm(list = c("rng1", "rng2", # "ms1_stas", "ms2_stas", "ms2_ends", 
-              "xs", "ys", "zs", "oks"))
+  rm(list = c("rng1", "rng2", "xs", "ys", "zs", "oks"))
   
   ms1_masses <- mapply(function (x, y) (x - 1.00727647) * y, 
                        ms1_moverzs, ms1_charges, 
@@ -1471,8 +1611,12 @@ deconvDDA2 <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
   
   for (i in 1:len) {
     if (ms_level[[i]] == 2L) {
+      xi <- msx_moverzs[[i]]
+      yi <- msx_ints[[i]]
+      ni <- rep_len(1L, length(xi))
+
       mic <- find_ms1stat(
-        moverzs = msx_moverzs[[i]], msxints = msx_ints[[i]], center = 0, 
+        moverzs = xi, msxints = yi, n_ms1s = ni, center = 0, 
         tmt_reporter_lower = tmt_reporter_lower, 
         tmt_reporter_upper = tmt_reporter_upper, 
         # no deisotoping for TMT-MS2 reporter ions
@@ -1484,6 +1628,7 @@ deconvDDA2 <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
         n_fwd = 10L, offset_upr = 30L, offset_lwr = 30L, 
         grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
         order_mz = FALSE)
+      
       msx_moverzs[[i]] <- mic[["masses"]]
       msx_ints[[i]] <- mic[["intensities"]]
       msx_charges[[i]] <- mic[["charges"]]
@@ -1778,8 +1923,12 @@ deisoDIA <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
     if (ms_lev == 2L && deisotope_ms2) {
       # to collapse MS2 if is DIA...
       
+      xi <- msx_moverzs[[i]]
+      yi <- msx_ints[[i]]
+      ni <- rep_len(1L, length(xi))
+      
       mic <- find_ms1stat(
-        moverzs = msx_moverzs[[i]], msxints = msx_ints[[i]], 
+        moverzs = xi, msxints = yi, n_ms1s = ni, 
         center = 0, exclude_reporter_region = is_tmt, 
         tmt_reporter_lower = tmt_reporter_lower, 
         tmt_reporter_upper = tmt_reporter_upper, 
@@ -1803,8 +1952,12 @@ deisoDIA <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
       msx_masses[[i]] <- ms[oks]
     }
     else if (ms_lev == 1L) {
+      xi <- msx_moverzs[[i]]
+      yi <- msx_ints[[i]]
+      ni <- rep_len(1L, length(xi))
+      
       mic <- find_ms1stat(
-        moverzs = msx_moverzs[[i]], msxints = msx_ints[[i]], 
+        moverzs = xi, msxints = yi, n_ms1s = ni, 
         center = 0, exclude_reporter_region = FALSE, 
         is_dda = FALSE, ppm = ppm_ms1_deisotope, 
         ms_lev = 1L, 
@@ -2632,13 +2785,15 @@ find_gate_edges <- function (vals)
 #' @param cleanup Logical; cleans up xs, ys and zs or not. Set the value to
 #'   FALSE to maintain one-to-one correspondence between input (data frame) and
 #'   the outputs. This will help, e.g., keep track of scan numbers in the input.
-#' @param fill_gates Logical; if TRUE, fill all entries within a gate by its
-#'   apex values.
+#' @param replace_ms1_by_apex Logical; if TRUE, fill all entries within a gate
+#'   by its apex values.
 #' @param direct_out Logical; if TRUE, return outputs directly.
-#' @param direct_out Logical; if TRUE, return outputs directly.
+#' @param filename A peaklist filename.
+#' @param temp_dir A temp_dir to the filename.
 traceLCMS <- function (xs, ys, zs, n_dia_scans = 4L, from = 115L, step = 8E-6, 
-                       icenter = 1L, ms_lev = 2L, temp_dir = NULL, reord = TRUE, 
-                       cleanup = TRUE, fill_gates = FALSE, direct_out = FALSE)
+                       icenter = 1L, ms_lev = 2L, temp_dir = NULL, filename = NULL, 
+                       reord = TRUE, cleanup = TRUE, replace_ms1_by_apex = FALSE, 
+                       direct_out = FALSE)
 {
   lens <- lengths(xs)
   
@@ -2646,7 +2801,7 @@ traceLCMS <- function (xs, ys, zs, n_dia_scans = 4L, from = 115L, step = 8E-6,
     ords <- lapply(xs, order)
 
     for (i in seq_along(xs)) {
-      if (lens[[i]] > 0L) {
+      if (lens[[i]]) {
         ordi <- ords[[i]]
         xs[[i]] <- xs[[i]][ordi]
         ys[[i]] <- ys[[i]][ordi]
@@ -2656,8 +2811,8 @@ traceLCMS <- function (xs, ys, zs, n_dia_scans = 4L, from = 115L, step = 8E-6,
     rm(list = "ords", "ordi")
   }
   
-  # collapses MS data by the indexes of mass bins; 
-  # matrix outputs; rows: scans; columns: e.g., masses at "x"
+  ## collapses MS data by the indexes of mass bins; 
+  # matrix outputs; rows: scans; columns: masses at "x", intensities at "y" ...
   ans <- collapse_xyz(
     xs = xs, ys = ys, zs = zs, temp_dir = temp_dir, icenter = icenter, 
     ms_lev = ms_lev, lwr = from, step = step, cleanup = cleanup, 
@@ -2669,42 +2824,48 @@ traceLCMS <- function (xs, ys, zs, n_dia_scans = 4L, from = 115L, step = 8E-6,
   rm(list = c("ans"))
   gc()
   
-  # traces MS data matrices across LC scans; rows: scans; columns: masses
+  ## traces MS data matrices across LC scans; rows: scans; columns: masses
   nrc <- dim(ansy)
   nr <- nrc[[1]]
   nc <- nrc[[2]]
-  rm(list = "nrc")
-  
+
   xout <- yout <- matrix(rep_len(NA_real_, nc * nr), ncol = nc)
   zout <- matrix(rep_len(NA_integer_, nc * nr), ncol = nc)
-  ranges <- apex <- ns <- vector("list", nc)
+  ranges <- apexes <- ns <- vector("list", nc)
   
-  for (i in 1:nc) {
-    gates <- find_lc_gates(ansy[, i], n_dia_scans = n_dia_scans)
-    apex[[i]] <- rows <- gates[["apex"]] # scans, row indexes
-    ns[[i]] <- gates[["ns"]] # number of observing scans
-
-    if (fill_gates) {
-      ranges[[i]] <- rng <- gates[["ranges"]]
+  if (replace_ms1_by_apex) {
+    for (i in 1:nc) {
+      gates <- find_lc_gates(ansy[, i], n_dia_scans = n_dia_scans)
+      apexes[[i]] <- rows <- gates[["apex"]]
+      ns[[i]] <- gates[["ns"]] # number of observing scans
+      ranges[[i]] <- rngs <- gates[["ranges"]]
       
       for (j in seq_along(rows)) {
-        rgj <- rng[[j]]
-        rj <- rows[[j]]
-        xout[rgj, i] <- ansx[rj, i]
-        yout[rgj, i] <- ansy[rj, i]
-        zout[rgj, i] <- ansz[rj, i]
+        rgj <- rngs[[j]]
+        rwj <- rows[[j]]
+        xout[rgj, i] <- ansx[rwj, i]
+        yout[rgj, i] <- ansy[rwj, i]
+        zout[rgj, i] <- ansz[rwj, i]
       }
     }
-    else {
+  }
+  else {
+    for (i in 1:nc) {
+      gates <- find_lc_gates(ansy[, i], n_dia_scans = n_dia_scans)
+      apexes[[i]] <- rows <- gates[["apex"]]
+      ns[[i]] <- gates[["ns"]] # number of observing scans
+      ranges[[i]] <- rngs <- gates[["ranges"]]
+
       xout[rows, i] <- ansx[rows, i]
       yout[rows, i] <- ansy[rows, i]
       zout[rows, i] <- ansz[rows, i]
     }
   }
+
   rm(list = c("ansx", "ansy", "ansz"))
   gc()
   
-  list(x = xout, y = yout, z = zout, n = ns, p = apex, range = ranges)
+  list(x = xout, y = yout, z = zout, n = ns, p = apexes, range = ranges)
 }
 
 
@@ -2787,19 +2948,19 @@ collapse_xyz <- function (xs = NULL, ys = NULL, zs = NULL, temp_dir = NULL,
   lenx <- length(xs)
   ups <- lapply(ixs, function (x) unv %in% x)
   
-  xout <- mapcoll_xyz(vals = xs, ps = ups, lenx = lenx, lenu = lenu, 
+  xout <- mapcoll_xyz(vals = xs, ups = ups, lenx = lenx, lenu = lenu, 
                       temp_dir = temp_dir, icenter = icenter, ms_lev = ms_lev, 
                       type = "xs", direct_out = direct_out)
   rm(list = "xs")
   gc()
   
-  yout <- mapcoll_xyz(vals = ys, ps = ups, lenx = lenx, lenu = lenu, 
+  yout <- mapcoll_xyz(vals = ys, ups = ups, lenx = lenx, lenu = lenu, 
                       temp_dir = temp_dir, icenter = icenter, ms_lev = ms_lev, 
                       type = "ys", direct_out = direct_out)
   rm(list = "ys")
   gc()
   
-  zout <- mapcoll_xyz(vals = zs, ps = ups, lenx = lenx, lenu = lenu, 
+  zout <- mapcoll_xyz(vals = zs, ups = ups, lenx = lenx, lenu = lenu, 
                       temp_dir = temp_dir, icenter = icenter, ms_lev = ms_lev, 
                       type = "zs", direct_out = direct_out)
   rm(list = c("zs", "ups"))
@@ -2849,12 +3010,12 @@ collapse_xyz <- function (xs = NULL, ys = NULL, zs = NULL, temp_dir = NULL,
 }
 
 
-#' Sub modules in data collapsion.
+#' Maps data onto the universe.
 #'
 #' For RAM efficiency.
 #'
 #' @param vals Data in one of moverzs, intensities or charge states.
-#' @param ps Positions of \code{vals} in universe. Should be the same for among
+#' @param ups Positions of \code{vals} in universe. Should be the same for among
 #'   moverzs, intensities and charge states.
 #' @param lenx The length of \code{vals}.
 #' @param lenu The number of entries in the universe.
@@ -2863,7 +3024,9 @@ collapse_xyz <- function (xs = NULL, ys = NULL, zs = NULL, temp_dir = NULL,
 #' @param ms_lev The level of MS.
 #' @param type The type of data in one of xs, ys and zs.
 #' @param direct_out Logical; if TRUE, return outputs directly.
-mapcoll_xyz <- function (vals, ps, lenx, lenu, temp_dir, icenter = 1L, 
+#' @return A matrix where rows correspond to \code{vals} and columns to
+#'   \code{ups}.
+mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L, 
                          ms_lev = 2L, type = "xs", direct_out = FALSE)
 {
   if (!length(vals))
@@ -2877,7 +3040,7 @@ mapcoll_xyz <- function (vals, ps, lenx, lenu, temp_dir, icenter = 1L,
     rep_len(list(rep_len(NA_real_, lenu)), lenx)
   
   for (i in 1:lenx) {
-    cols <- ps[[i]]
+    cols <- ups[[i]]
     out[[i]][cols] <- vals[[i]]
   }
   
@@ -3032,7 +3195,6 @@ fill_lc_gaps <- function (ys, n_dia_scans = 4L)
 #' 
 #' @param xs Vectors of SORTED m-over-z values.
 #' @param ys Vectors of intensity values corresponding to xs.
-#' @param zs Vectors of charge-state vaues corresponding to xs.
 #' @param lwr The lower mass limit.
 #' @param step The bin size in converting numeric m-over-z values to integers.
 #' @param coll Logical; to further collapse results or not.
@@ -3056,15 +3218,16 @@ fill_lc_gaps <- function (ys, n_dia_scans = 4L)
 #' xs[[7]] <- 954.607849; xs[[8]] <- 954.630249; xs[[10]] <- 954.622925
 #' ys[[7]] <- 15706.2627; ys[[8]] <- 19803.5879; ys[[10]] <- 31178.9648
 #' # collapse_mms1ints(xs, ys, lwr = 951.089731)
-collapse_mms1ints <- function (xs = NULL, ys = NULL, zs = NULL, lwr = 115L, 
-                               step = 1e-5, coll = TRUE)
+collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5, 
+                               coll = TRUE)
 {
   null_out <- if (coll)
     list(x = NULL, y = NULL, n = NULL)
   else
     list(x = NULL, y = NULL)
   
-  # all xs are NULL
+  ## clean ups
+  # 1. all xs are NULL
   if (!any(oks <- lengths(xs) > 0L))
     return(null_out)
   
@@ -3072,7 +3235,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, zs = NULL, lwr = 115L,
   xs <- xs[oks]
   ys <- ys[oks]
   
-  # remove zero intensities
+  # 2. remove zero intensities
   oky <- lapply(ys, `>`, 0)
   
   for (i in seq_along(xs)) {
@@ -3081,6 +3244,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, zs = NULL, lwr = 115L,
     ys[[i]] <- ys[[i]][oki]
   }
   
+  # 2.1 checks again
   if (!any(oks <- lengths(xs) > 0L))
     return(null_out)
   
@@ -3089,7 +3253,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, zs = NULL, lwr = 115L,
   ys <- ys[oks]
   ixs <- lapply(xs, index_mz, lwr, step)
   
-  # remove duplicated ixs
+  # 3. remove duplicated ixs
   for (i in seq_along(ixs)) {
     ix <- ixs[[i]]
     x <- xs[[i]]
@@ -3099,63 +3263,86 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, zs = NULL, lwr = 115L,
     xs[[i]]  <- x[oks]
     ys[[i]]  <- y[oks]
   }
+  rm(list = c("x", "y", "ix", "oks"))
   
+  ## maps ixs vectors to unv (presence or absence)
   unv <- .Internal(unlist(ixs, recursive = FALSE, use.names = FALSE))
   unv <- sort(unique(unv))
   lenu <- length(unv)
   lenx <- length(xs)
+  ups <- lapply(ixs, function (x) unv %in% x)
   
-  # map ixs onto unv (presence or absence)
   # note one-to-one correspondence between ixs and xs
-  xps <- lapply(ixs, function (x) unv %in% x)
-  xout <- mapcoll_xyz(xs, xps, lenx, lenu, direct_out = TRUE)
-  yout <- mapcoll_xyz(ys, xps, lenx, lenu, direct_out = TRUE)
-
+  xmat <- mapcoll_xyz(vals = xs, ups = ups, lenx = lenx, lenu = lenu, 
+                      direct_out = TRUE)
+  # rm(list = "xs")
+  # gc()
+  
+  ymat <- mapcoll_xyz(vals = ys, ups = ups, lenx = lenx, lenu = lenu, 
+                      direct_out = TRUE)
+  # rm(list = c("ys", "ups"))
+  # gc()
+  
+  ## collapses adjacent entries
+  ps <- find_gates(unv)
+  lenp <- length(ps)
+  
   # all discrete values
-  if (is.null(ps <- find_gates(unv))) {
+  if (is.null(ps)) {
     if (coll)
-      return(calc_ms1xys(xout, yout))
+      return(calc_ms1xys(xmat, ymat))
     else
-      return(list(x = xout, y = yout))
+      return(list(x = xmat, y = ymat))
   }
   
-  # ps1 <- lapply(ps, `[[`, 1)
-  # ps1 <- .Internal(unlist(ps1, recursive = FALSE, use.names = FALSE))
-  ps2 <- lapply(ps, `[[`, 2)
-  ps2 <- .Internal(unlist(ps2, recursive = FALSE, use.names = FALSE))
-  
-  for (i in seq_along(ps)) {
-    cols <- ps[[i]]
+  # ps2 <- lapply(ps, `[[`, 2)
+  # ps2 <- .Internal(unlist(ps2, recursive = FALSE, use.names = FALSE))
+  ps2 <- vector("integer", lenp) # columns to be removed
+
+  # collapses matrix columns with +/-1 in bin indexes
+  for (i in 1:lenp) {
+    c12 <- ps[[i]]
+    c2 <- c12[[2]]
     
-    # possible to have values in both columns but simply overwrite: 1 <- 2
-    if (c2 <- cols[2]) {
-      c1 <- cols[1]
-      oks <- .Internal(which(!is.na(xout[, c2])))
-      xout[oks, c1] <- xout[oks, c2]
-      yout[oks, c1] <- yout[oks, c2]
-    }
+    # with values in both columns, simply overwrite: 1 <- 2; 
+    # c2 can be 0
+    if (!c2)
+      next
+    
+    # with values in both columns but simply overwrite: 1 <- 2
+    ps2[[i]] <- c2
+    c1 <- c12[1]
+    rows <- .Internal(which(!is.na(xmat[, c2])))
+    xmat[rows, c1] <- xmat[rows, c2]
+    ymat[rows, c1] <- ymat[rows, c2]
   }
   
-  xout <- xout[, -ps2, drop = FALSE]
-  yout <- yout[, -ps2, drop = FALSE]
+  # note that at least one ps2 are not 0
+  # identical(xmat[, -c(0, 2:3), drop = FALSE], xmat[, -c(2:3), drop = FALSE])
+  # !identical(xmat[, 0, drop = FALSE], xmat)
+  xmat <- xmat[, -ps2, drop = FALSE]
+  ymat <- ymat[, -ps2, drop = FALSE]
   
   if (coll)
-    calc_ms1xys(xout, yout)
+    calc_ms1xys(xmat, ymat)
   else
-    list(x = xout, y = yout)
+    list(x = xmat, y = ymat)
 }
 
 
-#' Makes MS1 matrixes of moverzs and intensities
-#' 
-#' @param xs Vectors of moverzs
-#' @param ys Vectors of intensities
-calc_ms1xys <- function (xs, ys)
+#' Makes MS1 matrices of moverzs and intensities
+#'
+#' @param matx A matrix of moverzs onto the data universe.
+#' @param maty Vectors of intensities onto the data universe.
+#' @return A list of x: the weighted means of moverzs; y: the means of
+#'   intensities; n: the numbers of observations.
+calc_ms1xys <- function (matx, maty)
 {
-  ysum <- colSums(ys, na.rm = TRUE)
-  xmeans <- colSums(xs * ys, na.rm = TRUE)/ysum
-  n <- colSums(!is.na(ys), na.rm = TRUE)
-  list(x = xmeans, y = ysum, n = n)
+  ysums <- colSums(maty, na.rm = TRUE)
+  xmeans <- colSums(matx * maty, na.rm = TRUE)/ysums
+  ns <- colSums(!is.na(maty), na.rm = TRUE)
+  # use ysums, not ysums/ns, for deisotoping
+  list(x = xmeans, y = ysums, n = ns)
 }
 
 
@@ -3163,12 +3350,13 @@ calc_ms1xys <- function (xs, ys)
 #'
 #' Averages of multiple MS1 scans.
 #'
-#' @param msx_moverzs Vectors of moverzs (full spectrum).
-#' @param msx_ints Vectors of intensities (full spectrum.
-#' @param iso_ctr Vectors of isolation centers.
-#' @param iso_lwr Vectors of isolation lowers.
+#' @param msx_moverzs Vectors of bracketing (e.g. +/-6 scans) full-spectrum
+#'   moverzs.
+#' @param msx_ints Vectors of bracketing full-spectrum intensities.
+#' @param iso_ctr Vectors of isolation centers (e.g. top-12 scans) for MS2.
+#' @param iso_lwr Vectors of isolation lowers for MS2.
 #' @param ppm Mass error tolerance.
-#' @param step A step size. 
+#' @param step A step size.
 #' @param maxn_precurs Maximum number of precursors for consideration.
 #' @param max_ms1_charge Maximum charge state of precursors for consideration.
 #' @param width The width of an MS1 window. A wide window is used for containing
@@ -3176,6 +3364,8 @@ calc_ms1xys <- function (xs, ys)
 #' @param n_fwd Forward looking up to \code{n_fwd} mass entries.
 #' @param use_defpeaks Use default peak info or not.
 #' @inheritParams matchMS
+#' @return A list. x: monoisotopic moverzs (weighted mean statistics); y:
+#'   intensities (mean); z: charge states.
 find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL, 
                              iso_ctr = NULL, iso_lwr = NULL, 
                              ppm = 10L, maxn_precurs = 5L, max_ms1_charge = 4L, 
@@ -3187,34 +3377,39 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
   # for all MS2s from averaged (6+1+6 -> 1) MS1s 
   ansn2 <- ansx2 <- ansy2 <- vector("list", len2 <- length(iso_ctr))
   
-  # go through MS2
+  # go through MS2 entries
   for (i in 1:len2) {
     m2  <- iso_ctr[[i]]
     lwr <- m2 - width
     upr <- m2 + width
     
-    # go through MS1s
+    # gather e.g. +/-6 MS1s
     for (j in 1:len1) {
       x1s <- msx_moverzs[[j]]
       y1s <- msx_ints[[j]]
-      oks <- x1s > lwr & x1s < upr
+      oks <- .Internal(which(x1s > lwr & x1s < upr))
       ansx1[[j]] <- x1s[oks]
       ansy1[[j]] <- y1s[oks]
     }
     
-    # collapse MS1s
+    # collapsed MS1s
     ans <- collapse_mms1ints(xs = ansx1, ys = ansy1, lwr =  lwr, step = step)
-    ansx <- ans[["x"]]
-    ansy <- ans[["y"]]
-    ansn <- ans[["n"]]
+    ansx <- ans[["x"]] # the weighted-mean of precursor moverzs
+    ansy <- ans[["y"]] # the mean of precursor intensities
+    ansn <- ans[["n"]] # the numbers of precursor observations
+
+    # assign precursor info to the corresponding MS2 entry
+    if (is.null(ansx))
+      next
     
-    if (!is.null(ansx)) {
-      ansx2[[i]] <- ansx
-      ansy2[[i]] <- ansy
-      ansn2[[i]] <- ansn
-    }
+    ansx2[[i]] <- ansx
+    ansy2[[i]] <- ansy
+    ansn2[[i]] <- ansn
   }
-  
+  rm(list = c("ansx1", "ansy1", "ansx", "ansy", "ansn", "ans", "len1", 
+              "m2", "lwr", "upr", "x1s", "y1s", "oks"))
+
+  ## Deisotopes precursors for each MS2 scan
   # ansx2[[i]] can be NULL (no precursor found in the isolation window)
   mics <- mapply(
     find_ms1stat, 
@@ -3225,30 +3420,34 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
       max_charge = max_ms1_charge, n_fwd = n_fwd, offset_upr = 30L, 
       offset_lwr = 30L, order_mz = FALSE, grad_isotope = grad_isotope, 
       fct_iso2 = fct_iso2, use_defpeaks = use_defpeaks
-    ), 
-    SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  masses <- lapply(mics, `[[`, "masses")
-  charges <- lapply(mics, `[[`, "charges")
-  intensities <- lapply(mics, `[[`, "intensities")
-  
+    ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+
   # (2) subset by isolation window
   # ( `width = 2.01` contains isotope envelope and now need subsetting)
-  moks <- mapply(function (x, m, w) {
-    if (any(oks <- x > m - w & x < m + w)) oks else rep_len(TRUE, length(x))
-  }, x = masses, m = iso_ctr, w = iso_lwr, 
-  SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  xs <- ys <- zs <- vector("list", len2)
   
-  # masses may be NULL and the corresponding moks is logical(0)
-  masses <- mapply(function (x, i) x[i], x = masses, i = moks, 
-                   SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  charges <- mapply(function (x, i) x[i], x = charges, i = moks, 
-                    SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  intensities <- mapply(function (x, i) x[i], x = intensities, i = moks, 
-                        SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  # impurities <- lapply(intensities, function (x) x/sum(x))
-  # rm(list = "moks")
+  for (i in seq_len(len2)) {
+    mic <- mics[[i]]
+    masses <- mic[["masses"]]
+    intensities <- mic[["intensities"]]
+    charges <- mic[["charges"]]
+    
+    m <- iso_ctr[[i]]
+    w <- iso_lwr[[i]]
+    oks <- masses > m - w & masses < m + w
+    oks <- .Internal(which(oks))
+    
+    # accepts all
+    if (!length(oks))
+      oks <- seq_along(masses)
+    
+    xs[[i]] <- masses[oks]
+    ys[[i]] <- intensities[oks]
+    zs[[i]] <- charges[oks]
+  }
+  # impurities <- lapply(ys, function (x) x/sum(x))
   
-  list(x = masses, y = intensities, z = charges)
+  list(x = xs, y = ys, z = zs)
 }
 
 
@@ -3266,13 +3465,20 @@ find_ms1byms2 <- function (moverzs = NULL, msxints = NULL, charges = NULL,
   na_out <- list(ms1_moverzs = NA_real_, ms1_masses = NA_real_, 
                  ms1_charges = NA_integer_, ms1_ints = NA_real_)
   
-  if (!(len_ms <- length(moverzs))) return(na_out)
+  if (!(len_ms <- length(moverzs)))
+    return(na_out)
   
   oks <- (moverzs >= center - iso_lwr) & (moverzs <= center + iso_upr)
+  oks <- .Internal(which(oks))
   moverzs <- moverzs[oks]
-  if (!(len_ms <- length(moverzs))) return(na_out)
+  
+  if (!(len_ms <- length(moverzs)))
+    return(na_out)
+  
   msxints <- msxints[oks]
   charges <- charges[oks]
+  
+  charges[is.null(charges)] <- NA_integer_
   charges[is.na(charges)] <- 2L # arbitrary
   masses <- (moverzs - 1.00727647) * charges
   
@@ -3281,8 +3487,12 @@ find_ms1byms2 <- function (moverzs = NULL, msxints = NULL, charges = NULL,
                 ms1_charges = charges, ms1_ints = msxints))
   
   okc <- !is.na(charges)
+  okc <- .Internal(which(okc))
   charges <- charges[okc]
-  if (!(len_ms <- length(charges))) return(na_out)
+  
+  if (!(len_ms <- length(charges)))
+    return(na_out)
+  
   moverzs <- moverzs[okc]
   msxints <- msxints[okc]
   masses <- masses[okc]
@@ -3291,7 +3501,7 @@ find_ms1byms2 <- function (moverzs = NULL, msxints = NULL, charges = NULL,
     return(list(ms1_moverzs = moverzs, ms1_masses = masses, 
                 ms1_charges = charges, ms1_ints = msxints))
   
-  idx <- which.max(msxints)
+  idx <- .Internal(which.max(msxints))
   moverzs <- moverzs[idx]
   charges <- charges[idx]
   msxints <- msxints[idx]

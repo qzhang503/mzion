@@ -14,9 +14,10 @@ traceLCMS(
   icenter = 1L,
   ms_lev = 2L,
   temp_dir = NULL,
+  filename = NULL,
   reord = TRUE,
   cleanup = TRUE,
-  fill_gates = FALSE,
+  replace_ms1_by_apex = FALSE,
   direct_out = FALSE
 )
 }
@@ -40,7 +41,9 @@ along LC.}
 
 \item{ms_lev}{The level of MS.}
 
-\item{temp_dir}{A temporary directory.}
+\item{temp_dir}{A temp_dir to the filename.}
+
+\item{filename}{A peaklist filename.}
 
 \item{reord}{Logical; re-order data or not.}
 
@@ -48,8 +51,8 @@ along LC.}
 FALSE to maintain one-to-one correspondence between input (data frame) and
 the outputs. This will help, e.g., keep track of scan numbers in the input.}
 
-\item{fill_gates}{Logical; if TRUE, fill all entries within a gate by its
-apex values.}
+\item{replace_ms1_by_apex}{Logical; if TRUE, fill all entries within a gate
+by its apex values.}
 
 \item{direct_out}{Logical; if TRUE, return outputs directly.}
 }

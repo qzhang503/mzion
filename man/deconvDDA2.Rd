@@ -20,9 +20,10 @@ deconvDDA2(
 )
 }
 \arguments{
-\item{msx_moverzs}{Vectors of moverzs (full spectrum).}
+\item{msx_moverzs}{Vectors of bracketing (e.g. +/-6 scans) full-spectrum
+moverzs.}
 
-\item{msx_ints}{Vectors of intensities (full spectrum.}
+\item{msx_ints}{Vectors of bracketing full-spectrum intensities.}
 
 \item{ms_level}{Vectors of MS levels}
 

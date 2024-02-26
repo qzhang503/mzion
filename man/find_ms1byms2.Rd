@@ -14,9 +14,11 @@ find_ms1byms2(
 )
 }
 \arguments{
-\item{moverzs}{MS1 or MS2 Mass-to-charge ratios.}
+\item{moverzs}{MS1 or MS2 Mass-to-charge ratios. The inputs are typically at
+weighted-mean statistics.}
 
-\item{msxints}{MS1 or MS2 peak intensities.}
+\item{msxints}{MS1 or MS2 peak intensities. The inputs are typically at mean
+statistics.}
 
 \item{charges}{MS2 charges.}
 

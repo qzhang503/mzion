@@ -4,21 +4,12 @@
 \alias{collapse_mms1ints}
 \title{Collapse MS1 intensities.}
 \usage{
-collapse_mms1ints(
-  xs = NULL,
-  ys = NULL,
-  zs = NULL,
-  lwr = 115L,
-  step = 1e-05,
-  coll = TRUE
-)
+collapse_mms1ints(xs = NULL, ys = NULL, lwr = 115L, step = 1e-05, coll = TRUE)
 }
 \arguments{
 \item{xs}{Vectors of SORTED m-over-z values.}
 
 \item{ys}{Vectors of intensity values corresponding to xs.}
-
-\item{zs}{Vectors of charge-state vaues corresponding to xs.}
 
 \item{lwr}{The lower mass limit.}
 
