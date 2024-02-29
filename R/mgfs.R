@@ -29,7 +29,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
                        max_ms2_charge = 3L, use_defpeaks = FALSE, 
                        maxn_mdda_precurs = 1L, n_mdda_flanks = 6L, 
                        ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
-                       quant = "none", digits = 4L) 
+                       quant = "none", use_lfq_intensity = TRUE, digits = 4L) 
 {
   old_opts <- options()
   options(warn = 1L)
@@ -48,7 +48,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
   fun <- fun[length(fun)] # may be called as mzion:::load_mgfs
   fun_env <- environment()
   
-  args_except <- c("out_path")
+  args_except <- c("out_path", "use_lfq_intensity")
   args <- names(formals(fun))
   args_must <- args[!args %in% args_except]
   
@@ -202,6 +202,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
       ppm_ms1_deisotope = ppm_ms1_deisotope, 
       ppm_ms2_deisotope = ppm_ms2_deisotope, 
       quant = quant, 
+      use_lfq_intensity = use_lfq_intensity, 
       digits = digits)
   }
   else {

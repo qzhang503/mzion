@@ -29,10 +29,12 @@ deisoDDA(
   grad_isotope = 1.6,
   fct_iso2 = 3,
   quant = "none",
+  use_lfq_intensity = TRUE,
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
   exclude_reporter_region = FALSE,
   use_defpeaks = FALSE,
+  n_peakfiles = 1L,
   n_para = 1L
 )
 }
@@ -121,6 +123,10 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 15N)}. It is also possible that an experimenter may construct a
 \code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
 \code{quant = tmt18} is suitable.}
+
+\item{use_lfq_intensity}{Logical; if TRUE, replace spectrum-centric precursor
+intensities with peptide-centric intensities in DDA-MS. Require mzML data
+format. The feature enables LFQ and can also be applied to TMT experiments.}
 
 \item{tmt_reporter_lower}{The lower bound of the region of TMT reporter ions.
 The default is \eqn{126.1}.}

@@ -58,6 +58,7 @@ matchMS(
   exclude_reporter_region = FALSE,
   ppm_reporters = 10L,
   quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
+  use_lfq_intensity = TRUE,
   target_fdr = 0.01,
   fdr_type = c("protein", "peptide", "psm"),
   fdr_group = c("base", "all", "top3"),
@@ -369,6 +370,10 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 15N)}. It is also possible that an experimenter may construct a
 \code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
 \code{quant = tmt18} is suitable.}
+
+\item{use_lfq_intensity}{Logical; if TRUE, replace spectrum-centric precursor
+intensities with peptide-centric intensities in DDA-MS. Require mzML data
+format. The feature enables LFQ and can also be applied to TMT experiments.}
 
 \item{target_fdr}{A numeric; the targeted false-discovery rate (FDR) at the
 levels of PSM, peptide or protein. The default is 0.01. See also argument

@@ -307,6 +307,9 @@
 #'   15N)}. It is also possible that an experimenter may construct a
 #'   \code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
 #'   \code{quant = tmt18} is suitable.
+#' @param use_lfq_intensity Logical; if TRUE, replace spectrum-centric precursor
+#'   intensities with peptide-centric intensities in DDA-MS. Require mzML data
+#'   format. The feature enables LFQ and can also be applied to TMT experiments.
 #' @param target_fdr A numeric; the targeted false-discovery rate (FDR) at the
 #'   levels of PSM, peptide or protein. The default is 0.01. See also argument
 #'   \code{fdr_type}.
@@ -745,6 +748,7 @@ matchMS <- function (out_path = "~/mzion/outs",
 
                      ppm_reporters = 10L,
                      quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
+                     use_lfq_intensity = TRUE, 
                      
                      target_fdr = 0.01,
                      fdr_type = c("protein", "peptide", "psm"),
@@ -1371,6 +1375,7 @@ matchMS <- function (out_path = "~/mzion/outs",
       ppm_ms1_deisotope = ppm_ms1_deisotope, 
       ppm_ms2_deisotope = ppm_ms2_deisotope, 
       quant = quant, 
+      use_lfq_intensity = use_lfq_intensity, 
       digits = digits)
   }
   else {
@@ -1603,7 +1608,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   
   if (bypass_from_protacc) 
     return(NULL)
-
+  
   if (is.null(bypass_protacc <- dots$bypass_protacc)) 
     bypass_protacc <- FALSE
   
@@ -1712,17 +1717,28 @@ matchMS <- function (out_path = "~/mzion/outs",
   })
 
   ## psmC to psmQ
-  df <- df[, c("prot_acc", "pep_seq", "pep_issig", "pep_isdecoy", 
-               "prot_issig", "prot_n_pep")]
+  if (is.null(bypass_psmC2Q <- dots$bypass_psmC2Q)) 
+    bypass_psmC2Q <- FALSE
   
-  df <- dplyr::filter(df, pep_issig, !pep_isdecoy, !grepl("^-", prot_acc))
+  if (bypass_psmC2Q) {
+    df <- readr::read_tsv(file.path(out_path, "psmQ.txt"), 
+                          col_types = get_mzion_coltypes())
+  }
+  else {
+    df <- df[, c("prot_acc", "pep_seq", "pep_issig", "pep_isdecoy", 
+                 "prot_issig", "prot_n_pep")]
+    
+    df <- dplyr::filter(df, pep_issig, !pep_isdecoy, !grepl("^-", prot_acc))
+    
+    df <- try_psmC2Q(df, 
+                     out_path = out_path,
+                     fdr_type = fdr_type, # for workflow controls 
+                     combine_tier_three = combine_tier_three, 
+                     max_n_prots = max_n_prots)
+  }
 
-  df <- try_psmC2Q(df, 
-                   out_path = out_path,
-                   fdr_type = fdr_type, # for workflow controls 
-                   combine_tier_three = combine_tier_three, 
-                   max_n_prots = max_n_prots)
-
+  
+  
   message("Completed at: ", Sys.time())
   
   .savecall <- TRUE

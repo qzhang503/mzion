@@ -43,6 +43,7 @@ readmzML(
   ppm_ms1_deisotope = 8L,
   ppm_ms2_deisotope = 8L,
   quant = "none",
+  use_lfq_intensity = TRUE,
   digits = 4L
 )
 }
@@ -183,6 +184,10 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 15N)}. It is also possible that an experimenter may construct a
 \code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
 \code{quant = tmt18} is suitable.}
+
+\item{use_lfq_intensity}{Logical; if TRUE, replace spectrum-centric precursor
+intensities with peptide-centric intensities in DDA-MS. Require mzML data
+format. The feature enables LFQ and can also be applied to TMT experiments.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

@@ -4,7 +4,15 @@
 \alias{collapse_mms1ints}
 \title{Collapse MS1 intensities.}
 \usage{
-collapse_mms1ints(xs = NULL, ys = NULL, lwr = 115L, step = 1e-05, coll = TRUE)
+collapse_mms1ints(
+  xs = NULL,
+  ys = NULL,
+  lwr = 115L,
+  step = 1e-05,
+  reord = FALSE,
+  coll = TRUE,
+  cleanup = TRUE
+)
 }
 \arguments{
 \item{xs}{Vectors of SORTED m-over-z values.}
@@ -15,7 +23,12 @@ collapse_mms1ints(xs = NULL, ys = NULL, lwr = 115L, step = 1e-05, coll = TRUE)
 
 \item{step}{The bin size in converting numeric m-over-z values to integers.}
 
+\item{reord}{Logical; re-order data or not.}
+
 \item{coll}{Logical; to further collapse results or not.}
+
+\item{cleanup}{Logical; to perform data row clean-ups or not. Rows may drop
+at \code{cleanup = TRUE}.}
 }
 \description{
 Allow adjacent values in unv and later collapse adjacent columns/values.
@@ -29,9 +42,9 @@ ys <- list(c(12827.41,337002.19,617819.69,18045.10,205851.53,15194.98,11318.61,
              12970.02,118604.48,75726.89,11676.51,23723.18,55749.93))
 # collapse_mms1ints(xs, ys, lwr = 389.6529)
 
-xs <- list(c(400.6596,401.7076,402.1813,402.1944,402.1969,402.2094,402.5438,402.7112,403.1812,404.1777), 
+xs <- list(c(400.6596,401.7076,402.1813,402.1944,402.1969,402.2094,402.5438,402.7112,403.1812,404.1777),
            c(400.6599,401.7075,402.1954,402.1975,402.7112,403.1822,404.2777))
-ys <- list(c(24003.98,53431.96,110619.26,10988.55,12291.00,140045.06,67601.16,11413.04,21651.61,16686.06), 
+ys <- list(c(24003.98,53431.96,110619.26,10988.55,12291.00,140045.06,67601.16,11413.04,21651.61,16686.06),
            c(10000.1,40000.1,20000.1,50000.1,2500.2,5000.1,30000.1))
 # collapse_mms1ints(xs, ys, lwr = 400.1994)
 
