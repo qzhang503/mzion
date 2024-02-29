@@ -38,7 +38,6 @@ hdeisoDDA(
   tmt_reporter_upper = 135.2,
   exclude_reporter_region = FALSE,
   use_defpeaks = FALSE,
-  n_peakfiles = 1L,
   n_para = 1L
 )
 }
@@ -148,8 +147,6 @@ of TMT reporter ions is informed by \code{tmt_reporter_lower} and
 \item{use_defpeaks}{Depreciated. Logical; if TRUE, uses MS1 m-over-z's,
 intensities and charge states pre-calculated by other peak-picking
 algorithms.}
-
-\item{n_peakfiles}{The number of peaklist files.}
 
 \item{n_para}{The allowance of parallel processing.}
 }

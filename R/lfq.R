@@ -60,7 +60,7 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
              "msx_moverzs", "msx_ints", "msx_charges", "orig_scan")
   rows1 <- df[["ms_level"]] == 1L
   df1 <- df[rows1, cols1]
-  rm(list = "cols1")
+  # rm(list = "cols1")
   
   ## Remove non-essential MS2 xyz values
   # try subset by the sub_unv of +/2 mins to reduce 13C peak interference...
@@ -71,15 +71,16 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
   rm(list = "ans_bins")
   gc()
   
-  # if (n_chunks > 1L) {}
-
+  # at least two chunks
+  if (n_chunks <= 1L)
+    n_chunks <- 2L
+  
   df1s <- chunksplit(df1, n_chunks, type = "row")
-  rm(list = "df1")
   end1s <- cumsum(lapply(df1s, nrow))
   sta1s <- c(1L, end1s[1:(n_chunks-1L)] + 1L)
-
+  
   ## Adds gaps
-  gaps <- lapply(df1s, function (x) floor(min(gap, nrow(x)/2L)))
+  gaps <- lapply(df1s, function (x) ceiling(min(gap, nrow(x)/2L)))
   df1s_bf <- df1s_af <- vector("list", n_chunks)
   
   for (i in 2:n_chunks) {
@@ -91,9 +92,8 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
   for (i in 1:n_chunks) {
     df1s[[i]] <- dplyr::bind_rows(df1s_bf[[i]], df1s[[i]], df1s_af[[i]])
   }
-  rm(list = c("df1s_bf", "df1s_af"))
+  rm(list = c("df1s_bf", "df1s_af", "df1"))
   
-  ## 
   if (n_chunks > 2L) {
     types <- c("first", rep("middle", n_chunks - 2L), "last")
   } else {
@@ -116,7 +116,7 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
     ms2_stax[[i]] <- ms2_stas[stai:endi]
     ms2_endx[[i]] <- ms2_ends[stai:endi]
   }
-  rm(list = c("stai", "endi"))
+  # rm(list = c("stai", "endi"))
   
   cols <- c("ms_level", "ms1_moverz", "ms1_int")
   for (i in 1:(n_chunks - 1L)) {

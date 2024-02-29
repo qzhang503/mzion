@@ -84,12 +84,18 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
     peakfiles <- "01CPTAC3_Benchmarking_W_BI_20170508_BL_f02.raw.rds"
     iso_width <- 0.699999988
     
-    peakfiles <- qs::qread("~/peakfiles_bi_g1.rds")
+    # peakfiles <- qs::qread("~/peakfiles_bi_g1.rds")
   }
 
   lenf <- length(peakfiles)
   rams <- find_free_mem()/1024
   n_pcs <- detect_cores(64L) - 1L
+  
+  ### 
+  # rams <- 24
+  # n_pcs <- 15
+  ###
+  
   n_cores <- max(min(n_pcs, ceiling(rams/5L), lenf), 1L)
   r_cores <- round(n_pcs/n_cores)
   n_para <- max(min(n_pcs, r_cores), 1L)
@@ -271,7 +277,6 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
           tmt_reporter_upper = tmt_reporter_upper, 
           exclude_reporter_region = exclude_reporter_region, 
           use_defpeaks = use_defpeaks, 
-          n_peakfiles = length(peakfiles), 
           n_para = n_para
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
     }
@@ -304,7 +309,6 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
           tmt_reporter_upper = tmt_reporter_upper, 
           exclude_reporter_region = exclude_reporter_region, 
           use_defpeaks = use_defpeaks, 
-          n_peakfiles = length(peakfiles), 
           n_para = n_para
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
       parallel::stopCluster(cl)
@@ -883,7 +887,6 @@ extrDDA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL,
 #' Helper of \link{deisoDDA}.
 #' 
 #' @param raw_id A raw file id.
-#' @param n_peakfiles The number of peaklist files.
 #' @param n_para The allowance of parallel processing. 
 #' @inheritParams deisoDDA
 hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL, 
@@ -902,7 +905,7 @@ hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL,
                        quant = "none", use_lfq_intensity = TRUE, 
                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                        exclude_reporter_region = FALSE, use_defpeaks = FALSE, 
-                       n_peakfiles = 1L, n_para = 1L)
+                       n_para = 1L)
 {
   df <- deisoDDA(
     filename, 
@@ -934,7 +937,6 @@ hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL,
     tmt_reporter_upper = tmt_reporter_upper, 
     exclude_reporter_region = exclude_reporter_region, 
     use_defpeaks = use_defpeaks, 
-    n_peakfiles = n_peakfiles, 
     n_para = n_para)
   
   # subsets by top-n and min_ms2mass
@@ -982,7 +984,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
                       quant = "none", use_lfq_intensity = TRUE, 
                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                       exclude_reporter_region = FALSE, use_defpeaks = FALSE, 
-                      n_peakfiles = 1L, n_para = 1L)
+                      n_para = 1L)
 {
   ###
   # msx_: full spectra of ms1 and ms2, differentiated by ms_lev
@@ -1257,21 +1259,21 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     msx_n = msx_ns, 
     rptr_moverzs = rptr_moverzs, 
     rptr_ints = rptr_ints)
-  
 
   ## LFQ: replaces intensities with apex values
   if (use_lfq_intensity) {
     # df[["orig_ms1_ints"]] <- df[["ms1_int"]]
-    n_chunks <- n_para * n_peakfiles * 4L
     step = ppm_ms1 * 1e-6
     
     # later subset by +/- 2 mins...
     ans_prep <- prep_traceXY(
       df[, c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", "ms_level", 
              "msx_moverzs", "msx_ints", "msx_charges", "orig_scan")], 
-      from = min_mass, step = 1e-5, n_chunks = n_chunks, gap = 128L, 
-      # to be included in parameters later...
-      n_dia_scans = 4L)
+      from = min_mass, step = step, 
+      # 128L MS1 scans corresponds to ~ 2 mins in LC; not yet tested with Astral
+      n_chunks = ceiling(sum(df$ms_level == 1L)/512L), # 1024L, more RAM, same speed 
+      # included n_dia_scans in parameters later...
+      gap = 128L, n_dia_scans = 4L)
     
     dfs <- ans_prep$dfs
     df1s <- ans_prep$df1s
@@ -1281,16 +1283,33 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     gc()
     
     cols <- c("ms_level", "ms1_moverz", "ms1_int")
-    
-    cl <- parallel::makeCluster(getOption("cl.cores", 2L))
-    out <- parallel::clusterMap(
-      cl, htraceXY, 
-      lapply(df1s, `[[`, "msx_moverzs"), lapply(df1s, `[[`, "msx_ints"), 
-      lapply(dfs, `[`, cols), gaps, types, 
-      MoreArgs = list(
-        n_dia_scans = 4L, from = min_mass, step = step
-      ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
-    parallel::stopCluster(cl)
+
+    if (TRUE) {
+      cl <- parallel::makeCluster(getOption("cl.cores", 2L))
+      out <- parallel::clusterMap(
+        cl, htraceXY, 
+        lapply(df1s, `[[`, "msx_moverzs"), lapply(df1s, `[[`, "msx_ints"), 
+        lapply(dfs, `[`, cols), gaps, types, 
+        MoreArgs = list(
+          n_dia_scans = 4L, from = min_mass, step = step
+        ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
+      parallel::stopCluster(cl)
+    }
+    else { # slow
+      valxs <- lapply(df1s, `[[`, "msx_moverzs")
+      valys <- lapply(df1s, `[[`, "msx_ints")
+      valdf <- lapply(dfs, `[`, cols)
+      out <- vector("list", lenvs <- length(df1s))
+      
+      for (i in seq_along(df1s)) {
+        out[[i]] <- htraceXY(
+          xs = valxs[[i]], ys = valys[[i]], df = valdf[[i]], gap = gaps[[i]], 
+          type = types[[i]], n_dia_scans = 4L, from = min_mass, step = step
+        )
+      }
+      
+      rm(list = c("valxs", "valys", "valdf"))
+    }
 
     out <- dplyr::bind_rows(out)
     df[, cols] <- out

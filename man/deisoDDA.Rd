@@ -34,7 +34,6 @@ deisoDDA(
   tmt_reporter_upper = 135.2,
   exclude_reporter_region = FALSE,
   use_defpeaks = FALSE,
-  n_peakfiles = 1L,
   n_para = 1L
 )
 }
