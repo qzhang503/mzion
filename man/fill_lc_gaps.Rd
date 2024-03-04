@@ -17,6 +17,8 @@ along LC.}
 Fills LC gaps.
 }
 \examples{
+library(mzion)
+
 ys <- c(10,0,0,0,11,0,15,0,0,12,0,10,0,0,10)
 fill_lc_gaps(ys, 3)
 fill_lc_gaps(ys, 2)

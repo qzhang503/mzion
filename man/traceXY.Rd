@@ -11,7 +11,7 @@ traceXY(
   from = 115L,
   step = 1e-05,
   reord = TRUE,
-  cleanup = TRUE,
+  cleanup = FALSE,
   replace_ms1_by_apex = FALSE
 )
 }

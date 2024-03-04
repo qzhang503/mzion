@@ -7,7 +7,7 @@
 getMSrowIndexes(ms_level, pad_nas = FALSE)
 }
 \arguments{
-\item{ms_level}{A vector of MS levles.}
+\item{ms_level}{A vector of MS levels.}
 
 \item{pad_nas}{Logical; if TRUE, adds padding values to keep the same length.}
 }

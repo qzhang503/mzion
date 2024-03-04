@@ -20,7 +20,7 @@ htraceXY(
 
 \item{ys}{Vectors of MS1 intensities.}
 
-\item{df}{A data frame of both MS1 and MS2.}
+\item{df}{A data frame of both MS1 and MS2 staggering the range of \code{xs}.}
 
 \item{gap}{A gap size.}
 

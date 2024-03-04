@@ -4,18 +4,20 @@
 \alias{subMSfull}
 \title{Subsets full MS by the universe of monoisotopic moverzs.}
 \usage{
-subMSfull(xs, ys, unv, from = 200L, step = 1e-05)
+subMSfull(xs, ys, ms1s, from = 200L, step = 1e-05, gap = 256L)
 }
 \arguments{
-\item{xs}{Vectors of moverzs values.}
+\item{xs}{Vectors of full-spectrum moverz values.}
 
-\item{ys}{Vectors of intensity values.}
+\item{ys}{Vectors of full-spectrum intensity values.}
 
-\item{unv}{The universe.}
+\item{ms1s}{Vectors of MS2-specific MS1 moverz values.}
 
-\item{from}{The starting mozerz for calculating bin indexes.}
+\item{from}{The starting movzerz for calculating bin indexes.}
 
 \item{step}{The size of bins.}
+
+\item{gap}{The gap of MS1 scans.}
 }
 \description{
 Some non-monoisotopic moverzs can be removed.

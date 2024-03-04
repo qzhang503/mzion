@@ -2,22 +2,23 @@
 #' 
 #' Some non-monoisotopic moverzs can be removed.
 #' 
-#' @param xs Vectors of moverzs values.
-#' @param ys Vectors of intensity values.
-#' @param unv The universe.
-#' @param from The starting mozerz for calculating bin indexes.
+#' @param xs Vectors of full-spectrum moverz values.
+#' @param ys Vectors of full-spectrum intensity values.
+#' @param ms1s Vectors of MS2-specific MS1 moverz values.
+#' @param from The starting movzerz for calculating bin indexes.
 #' @param step The size of bins.
+#' @param gap The gap of MS1 scans.
 #' @importFrom fastmatch %fin%
-subMSfull <- function (xs, ys, unv, from = 200L, step = 1E-5)
+subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
 {
   len <- length(xs)
   yout <- xout <- vector("list", len)
   
-  unv <- unlist(unv, recursive = FALSE, use.names = FALSE)
-  unv <- index_mz(unv, from, step)
-  unv <- sort(unique(unv))
-  
-  # for each xi, keeps entries found in unv.
+  # ms1s <- unlist(ms1s, recursive = FALSE, use.names = FALSE)
+  # ms1s <- index_mz(ms1s, from, step)
+  # ms1s <- sort(unique(ms1s))
+
+  # for each xi, keeps entries found in ms1s.
   for (i in 1:len) {
     xi <- xs[[i]]
     li <- length(xi)
@@ -25,10 +26,16 @@ subMSfull <- function (xs, ys, unv, from = 200L, step = 1E-5)
     if (!li)
       next
     
+    sta <- max(1, i - gap)
+    end <- min(i + gap, len)
+    ms1s_sub <- unlist(ms1s[sta:end], recursive = FALSE, use.names = FALSE)
+    ms1s_sub <- index_mz(ms1s_sub, from, step)
+    ms1s_sub <- sort(unique(ms1s_sub))
+    
     ix <- as.integer(ceiling(log(xi/from)/log(1+step)))
-    ps0 <- fastmatch::fmatch(ix, unv)
-    ps1 <- fastmatch::fmatch(ix + 1L, unv)
-    ps2 <- fastmatch::fmatch(ix - 1L, unv)
+    ps0 <- fastmatch::fmatch(ix, ms1s_sub)
+    ps1 <- fastmatch::fmatch(ix + 1L, ms1s_sub)
+    ps2 <- fastmatch::fmatch(ix - 1L, ms1s_sub)
     i0 <- .Internal(which(!is.na(ps0)))
     i1 <- .Internal(which(!is.na(ps1)))
     i2 <- .Internal(which(!is.na(ps2)))
@@ -57,16 +64,20 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
                           gap = 128L, n_dia_scans = 4L)
 {
   cols1 <- c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", 
-             "msx_moverzs", "msx_ints", "msx_charges", "orig_scan")
+             "msx_moverzs", "msx_ints", "msx_charges")
   rows1 <- df[["ms_level"]] == 1L
   df1 <- df[rows1, cols1]
-  # rm(list = "cols1")
-  
+  len1 <- nrow(df1)
+
+  # msx_moverzs at ms_level == 1L correspond to full-spectrum ms1_moverzs
+  # msx_charges at ms_level == 1L are list(NULL)
+
   ## Remove non-essential MS2 xyz values
-  # try subset by the sub_unv of +/2 mins to reduce 13C peak interference...
-  ans_bins <- subMSfull(df1$msx_moverzs, df1$msx_ints, df1$ms1_moverz, 
-                        from = from, step = step)
-  df1$msx_moverzs <- ans_bins$x
+  ans_bins <- subMSfull(
+    xs = df1$msx_moverzs, ys = df1$msx_ints, ms1s = df1$ms1_moverz, from = from, 
+    step = step, gap = gap)
+  
+  df1$msx_moverzs <- ans_bins$x # moverzs are sorted
   df1$msx_ints <- ans_bins$y
   rm(list = "ans_bins")
   gc()
@@ -79,7 +90,7 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
   end1s <- cumsum(lapply(df1s, nrow))
   sta1s <- c(1L, end1s[1:(n_chunks-1L)] + 1L)
   
-  ## Adds gaps
+  ## Adds 2-min gaps before and after
   gaps <- lapply(df1s, function (x) ceiling(min(gap, nrow(x)/2L)))
   df1s_bf <- df1s_af <- vector("list", n_chunks)
   
@@ -100,31 +111,31 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
     types <- c("first", "last")
   }
   
-  ##  Splits df, sta1s, end1s, n_chunks
+  ##  Splits df
   pos_levs <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)
-  ms1_stas <- pos_levs$ms1_stas
-  ms2_stas <- pos_levs$ms2_stas
-  ms2_ends <- pos_levs$ms2_ends
-  rm(list = "pos_levs")
-  
-  ms1_stax <- ms2_stax <- ms2_endx <- dfs <- vector("list", n_chunks)
+  ms1_stas <- pos_levs$ms1_stas # ms1_stas: row indexes in `df`
+
+  # removing the trailing index
+  if (FALSE) {
+    if ((n1 <- length(ms1_stas)) > len1) {
+      ms1_stas <- ms1_stas[-n1]
+    }
+    rm(list = "pos_levs", "n1")
+  }
+
+  cols <- c("ms_level", "ms1_moverz", "ms1_int")
+  ms1_stax <- dfs <- vector("list", n_chunks)
   
   for (i in 1:n_chunks) {
-    stai <- sta1s[[i]]
-    endi <- end1s[[i]]
-    ms1_stax[[i]] <- ms1_stas[stai:endi]
-    ms2_stax[[i]] <- ms2_stas[stai:endi]
-    ms2_endx[[i]] <- ms2_ends[stai:endi]
+    stai <- sta1s[[i]][[1]]
+    ms1_stax[[i]] <- ms1_stas[stai]
   }
-  # rm(list = c("stai", "endi"))
-  
-  cols <- c("ms_level", "ms1_moverz", "ms1_int")
+
   for (i in 1:(n_chunks - 1L)) {
     rowx <- ms1_stax[[i]][[1]]:(ms1_stax[[i+1]][[1]] - 1L) # ms2_endx may be NA
-    dfs[[i]] <- df[rowx, cols]
+    dfs[[i]] <- df[rowx, cols] # both df1 and df2 data
   }
   dfs[[n_chunks]] <- df[ms1_stax[[n_chunks]][[1]]:nrow(df), cols]
-  rm(list = c("rowx", "cols", "ms1_stax", "ms2_stax", "ms2_endx"))
 
   list(dfs = dfs, df1s = df1s, gaps = gaps, types = types)
 }
@@ -134,7 +145,7 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
 #' 
 #' @param xs Vectors of MS1 moverzs.
 #' @param ys Vectors of MS1 intensities.
-#' @param df A data frame of both MS1 and MS2.
+#' @param df A data frame of both MS1 and MS2 staggering the range of \code{xs}.
 #' @param gap A gap size.
 #' @param type The type of data subtype.
 #' @param from The starting point for mass binning.
@@ -143,25 +154,27 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
 htraceXY <- function (xs, ys, df, gap = 128L, type = c("first", "middle", "last"), 
                       n_dia_scans = 4L, from = 200L, step = 1E5)
 {
-  mat <- traceXY(xs = xs, ys = ys, 
-                 n_dia_scans = n_dia_scans, from = from, step = step, 
-                 reord = FALSE, cleanup = FALSE, replace_ms1_by_apex = TRUE)
+  mat <- traceXY(xs = xs, ys = ys, n_dia_scans = n_dia_scans, from = from, 
+                 step = step, reord = FALSE, cleanup = FALSE, # otherwise rows drop
+                 replace_ms1_by_apex = TRUE)
   matx <- mat[["x"]]
   maty <- mat[["y"]]
   rm(list = "mat")
   gc()
-
+  
   if (type == "first") {
     stai <- 1L
     endi <- nrow(matx) - gap
     matx <- matx[stai:endi, ]
     maty <- maty[stai:endi, ]
-  } else if (type == "last") {
+  }
+  else if (type == "last") {
     stai <- gap + 1L
     endi <- nrow(matx)
     matx <- matx[stai:endi, ]
     maty <- maty[stai:endi, ]
-  } else {
+  }
+  else {
     stai <- gap + 1L
     endi <- nrow(matx) - gap
     matx <- matx[stai:endi, ]
@@ -187,7 +200,7 @@ htraceXY <- function (xs, ys, df, gap = 128L, type = c("first", "middle", "last"
 #'   by its apex values.
 #' @inheritParams matchMS
 traceXY <- function (xs, ys, n_dia_scans = 4L, from = 115L, step = 1E-5, 
-                     reord = TRUE, cleanup = TRUE, replace_ms1_by_apex = FALSE)
+                     reord = TRUE, cleanup = FALSE, replace_ms1_by_apex = FALSE)
 {
   lens <- lengths(xs)
   
@@ -208,9 +221,10 @@ traceXY <- function (xs, ys, n_dia_scans = 4L, from = 115L, step = 1E-5,
   # matrix outputs; rows: scans; columns: masses at "x", intensities at "y" ...
   
   # xs can be numeric(0)?
-  # RAM expensive step...
+  # cleanup = FALSE; otherwise rows drop
+  # often coll == cleanup
   ans <- collapse_mms1ints(xs = xs, ys = ys, lwr = from, step = step, 
-                           reord = FALSE, coll = FALSE, cleanup = TRUE)
+                           reord = FALSE, coll = FALSE, cleanup = FALSE)
   ansx <- ans[["x"]]
   ansy <- ans[["y"]]
   rm(list = c("ans"))
@@ -221,6 +235,10 @@ traceXY <- function (xs, ys, n_dia_scans = 4L, from = 115L, step = 1E-5,
   nr <- nrc[[1]]
   nc <- nrc[[2]]
   rm(list = "nrc")
+  
+  if (nr != length(xs)) {
+    stop("Developer: rows drop during MS1 tracing.")
+  }
   
   xmat <- ymat <- matrix(rep_len(NA_real_, nc * nr), ncol = nc)
   ranges <- apexes <- ns <- vector("list", nc)
@@ -269,12 +287,14 @@ traceXY <- function (xs, ys, n_dia_scans = 4L, from = 115L, step = 1E-5,
 updateMS1Int <- function (df, matx, maty, from = 200L, step = 1E-5)
                           
 {
+  nrow <- nrow(matx)
+  
   pos_levs <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)
   ms1_stas <- pos_levs$ms1_stas
   ms2_stas <- pos_levs$ms2_stas
   ms2_ends <- pos_levs$ms2_ends
   rm(list = "pos_levs")
-
+  
   for (i in seq_along(ms2_stas)) {
     ms2sta <- ms2_stas[[i]]
     

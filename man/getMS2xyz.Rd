@@ -7,7 +7,6 @@
 getMS2xyz(
   msx_moverzs = NULL,
   msx_ints = NULL,
-  ms_level = NULL,
   topn_ms2ions = 150L,
   quant = "none",
   tmt_reporter_lower = 126.1,
@@ -20,12 +19,9 @@ getMS2xyz(
 )
 }
 \arguments{
-\item{msx_moverzs}{Vectors of bracketing (e.g. +/-6 scans) full-spectrum
-moverzs.}
+\item{msx_moverzs}{MS2 moverzs.}
 
-\item{msx_ints}{Vectors of bracketing full-spectrum intensities.}
-
-\item{ms_level}{Vectors of MS levels}
+\item{msx_ints}{MS2 intensities.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

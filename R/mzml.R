@@ -90,12 +90,6 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
   lenf <- length(peakfiles)
   rams <- find_free_mem()/1024
   n_pcs <- detect_cores(64L) - 1L
-  
-  ### 
-  # rams <- 24
-  # n_pcs <- 15
-  ###
-  
   n_cores <- max(min(n_pcs, ceiling(rams/5L), lenf), 1L)
   r_cores <- round(n_pcs/n_cores)
   n_para <- max(min(n_pcs, r_cores), 1L)
@@ -1032,15 +1026,18 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
   
   if (deisotope_ms2) {
     if (n_para > 1L) {
-      # may subset data at ms_level == 2L
       n_cores <- n_para
       n_chunks <- n_cores * 4L
-      grps <- sep_vec(msx_moverzs, n_chunks)
+      
+      oks <- ms_level == 2L
+      msx_moverzx <- msx_moverzs[oks]
+      msx_intx <- msx_ints[oks]
+      grps <- sep_vec(msx_moverzx, n_chunks)
       
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
       out <- parallel::clusterMap(
         cl, getMS2xyz, 
-        split(msx_moverzs, grps), split(msx_ints, grps), split(ms_level, grps), 
+        split(msx_moverzx, grps), split(msx_intx, grps), 
         MoreArgs = list(
           topn_ms2ions = topn_ms2ions, 
           max_ms2_charge = max_ms2_charge, 
@@ -1054,18 +1051,20 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
       parallel::stopCluster(cl)
       
-      msx_moverzs <- unlist(lapply(out, function (x) x[[1]]), 
-                            recursive = FALSE, use.names = FALSE)
-      msx_ints <- unlist(lapply(out, function (x) x[[2]]), 
-                         recursive = FALSE, use.names = FALSE)
-      msx_charges <- unlist(lapply(out, function (x) x[[3]]), 
-                            recursive = FALSE, use.names = FALSE)
-      rm(list = c("out", "n_chunks", "cl", "grps"))
+      msx_moverzs[oks] <- unlist(lapply(out, function (x) x[[1]]), 
+                                 recursive = FALSE, use.names = FALSE)
+      msx_ints[oks] <- unlist(lapply(out, function (x) x[[2]]), 
+                              recursive = FALSE, use.names = FALSE)
+      msx_charges[oks] <- unlist(lapply(out, function (x) x[[3]]), 
+                                 recursive = FALSE, use.names = FALSE)
+      rm(list = c("out", "n_chunks", "cl", "grps", "oks", 
+                  "msx_moverzx", "msx_intx"))
     }
     else {
-      # may subset data at ms_level == 2L
+      oks <- ms_level == 2L
+      
       out <- getMS2xyz(
-        msx_moverzs, msx_ints, ms_level, 
+        msx_moverzs[oks], msx_ints[oks], 
         topn_ms2ions = topn_ms2ions, 
         max_ms2_charge = max_ms2_charge, 
         ppm_ms2_deisotope = ppm_ms2_deisotope, 
@@ -1076,29 +1075,18 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         tmt_reporter_upper = tmt_reporter_upper, 
         exclude_reporter_region = exclude_reporter_region)
       
-      msx_moverzs <- out[[1]]
-      msx_ints <- out[[2]]
-      msx_charges <- out[[3]]
-      rm(list = "out")
+      msx_moverzs[oks] <- out[[1]]
+      msx_ints[oks] <- out[[2]]
+      msx_charges[oks] <- out[[3]]
+      rm(list = c("out", "oks"))
     }
   }
   
   if (maxn_mdda_precurs) {
-    if (FALSE) { # check RAM issue
+    if (FALSE) { # slower but keep the codes for group split examples
       n_cores <- n_para
-      n_chunks <- n_cores
-      
-      grps <- local({
-        idxes_ms1 <- which(ms_level == 1L)
-        diff_ms1 <- c(0L, diff(idxes_ms1))
-        oks <- which(diff_ms1 > 1L) # non-consecutive MS1s
-        ms1_stas <- idxes_ms1[oks - 1L]
-        ms2_stas <- ms1_stas + 1L
-        ms2_ends <- idxes_ms1[oks] - 1L
-        
-        brs <- floor(length(ms2_ends)/n_chunks) * 1:(n_chunks - 1L)
-        grps <- findInterval(seq_along(ms_level), ms2_ends[brs])
-      })
+      n_chunks <- n_cores^2
+      grps <- find_ms2ends(ms_level, n_chunks)
       
       cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
       ans <- parallel::clusterMap(
@@ -1135,32 +1123,31 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       rm(list = c("ans", "grps", "cl"))
       gc()
     }
-    else {
-      ans <- getMS1xyz(
-        msx_moverzs = msx_moverzs, msx_ints = msx_ints, 
-        ms_level = ms_level, iso_ctr = iso_ctr, iso_lwr = iso_lwr, 
-        ms1_moverzs = ms1_moverzs, ms1_charges = ms1_charges, ms1_ints = ms1_ints, 
-        maxn_mdda_precurs = maxn_mdda_precurs, n_mdda_flanks = n_mdda_flanks,  
-        topn_ms2ions = topn_ms2ions, quant = quant, 
-        tmt_reporter_lower = tmt_reporter_lower, 
-        tmt_reporter_upper = tmt_reporter_upper, 
-        exclude_reporter_region = exclude_reporter_region, 
-        max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
-        grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
-        use_defpeaks = use_defpeaks)
-      
-      # list(NULL) at ms_level == 1L
-      ms1_moverzs <- ans$ms1_moverzs
-      ms1_masses <- ans$ms1_masses
-      ms1_charges <- ans$ms1_charges
-      ms1_ints <- ans$ms1_ints
-      # for LFQ MS1
-      # compiles ms1_ends later: multiple MS1s followed by multipe MS2s... 
-      ms1_stas <- ans$ms1_stas
-      ms2_stas <- ans$ms2_stas
-      ms2_ends <- ans$ms2_ends
-      rm(list = "ans")
-    }
+    
+    ans <- getMS1xyz(
+      msx_moverzs = msx_moverzs, msx_ints = msx_ints, 
+      ms_level = ms_level, iso_ctr = iso_ctr, iso_lwr = iso_lwr, 
+      ms1_moverzs = ms1_moverzs, ms1_charges = ms1_charges, ms1_ints = ms1_ints, 
+      maxn_mdda_precurs = maxn_mdda_precurs, n_mdda_flanks = n_mdda_flanks,  
+      topn_ms2ions = topn_ms2ions, quant = quant, 
+      tmt_reporter_lower = tmt_reporter_lower, 
+      tmt_reporter_upper = tmt_reporter_upper, 
+      exclude_reporter_region = exclude_reporter_region, 
+      max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
+      grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+      use_defpeaks = use_defpeaks)
+    
+    # list(NULL) at ms_level == 1L
+    ms1_moverzs <- ans$ms1_moverzs
+    ms1_masses <- ans$ms1_masses
+    ms1_charges <- ans$ms1_charges
+    ms1_ints <- ans$ms1_ints
+    # for LFQ MS1
+    # compiles ms1_ends later: multiple MS1s followed by multiple MS2s... 
+    ms1_stas <- ans$ms1_stas
+    ms2_stas <- ans$ms2_stas
+    ms2_ends <- ans$ms2_ends
+    rm(list = "ans")
     
     # look up ms2 for undetermined precursor charge states
     if (deisotope_ms2) {
@@ -1185,7 +1172,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         ans2$ms1_charges <- as.list(ans2$ms1_charges)
         ans2$ms1_ints <- as.list(ans2$ms1_ints)
         
-        # outputs contain NA and revent them back to list(NULL)
+        # outputs contain NA and revert them back to list(NULL)
         nas <- which(is.na(ans2$ms1_moverzs))
         
         if (length(nas)) {
@@ -1209,10 +1196,10 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     #  that have been assigned to MS2 scans.
     ###
     
-    # Pools precursors at ms_level == 2 to ms_level == 1 for LFQ MS1;
+    # Pools precursors at ms_level == 2 to the preceding ms_level == 1 for LFQ MS1;
     for (i in seq_along(ms1_stas)) {
       rng1 <- ms1_stas[[i]]
-      rng2 <- ms2_stas[i]:ms2_ends[i]
+      rng2 <- ms2_stas[[i]]:ms2_ends[[i]]
       
       # isolation windows can have overlaps -> 
       #   the same precursor at multiple windows -> duplicated MS1 entries
@@ -1231,7 +1218,6 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       }
     }
     rm(list = c("rng1", "rng2", "xs", "ys", "zs", "ms"))
-    # rm(list = c("ms1_stas", "ms2_stas", "ms2_ends"))
   }
   else {
     ms1_masses <- mapply(function (x, y) (x - 1.00727647) * y, 
@@ -1265,21 +1251,35 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     # df[["orig_ms1_ints"]] <- df[["ms1_int"]]
     step = ppm_ms1 * 1e-6
     
-    # later subset by +/- 2 mins...
+    # estimated number of MS1 scans at a 2-min range of retention times
+    rt_gap <- local({
+      df1 <- df[with(df, ms_level == 1), ]
+      len <- nrow(df1)
+      rts <- df1$ret_time
+      df1 <- dplyr::arrange(df1, ret_time)
+      max_rt <- rts[len]
+      
+      mid_len <- as.integer(len/2)
+      mid_rt <- rts[mid_len]
+      
+      grs <- which(rts > mid_rt + 120)
+      upr <- if (length(grs)) grs[[1]] else len
+      upr - mid_len
+    })
+    
     ans_prep <- prep_traceXY(
       df[, c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", "ms_level", 
-             "msx_moverzs", "msx_ints", "msx_charges", "orig_scan")], 
+             "msx_moverzs", "msx_ints", "msx_charges")], 
       from = min_mass, step = step, 
-      # 128L MS1 scans corresponds to ~ 2 mins in LC; not yet tested with Astral
       n_chunks = ceiling(sum(df$ms_level == 1L)/512L), # 1024L, more RAM, same speed 
       # included n_dia_scans in parameters later...
-      gap = 128L, n_dia_scans = 4L)
+      gap = rt_gap, n_dia_scans = 4L)
     
     dfs <- ans_prep$dfs
     df1s <- ans_prep$df1s
     gaps <- ans_prep$gaps
     types <- ans_prep$types
-    rm(list = "ans_prep")
+    rm(list = c("ans_prep", "rt_gap"))
     gc()
     
     cols <- c("ms_level", "ms1_moverz", "ms1_int")
@@ -1304,8 +1304,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       for (i in seq_along(df1s)) {
         out[[i]] <- htraceXY(
           xs = valxs[[i]], ys = valys[[i]], df = valdf[[i]], gap = gaps[[i]], 
-          type = types[[i]], n_dia_scans = 4L, from = min_mass, step = step
-        )
+          type = types[[i]], n_dia_scans = 4L, from = min_mass, step = step)
       }
       
       rm(list = c("valxs", "valys", "valdf"))
@@ -1374,21 +1373,36 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
 }
 
 
-
 #' Obtains the indexes of MS1 and MS2 starts and ends.
 #' 
-#' @param ms_level A vector of MS levles.
+#' @param ms_level A vector of MS levels.
 #' @param pad_nas Logical; if TRUE, adds padding values to keep the same length.
 getMSrowIndexes <- function (ms_level, pad_nas = FALSE)
 {
+  # add a trailing `1`
+  len <- length(ms_level)
+  
+  if (ms_level[len] == 2L) {
+    ms_level <- c(ms_level, 1L)
+    len <- len + 1L
+    add_trailing <- TRUE
+  }
+  else {
+    add_trailing <- FALSE
+  }
+  
   idxes_ms1 <- which(ms_level == 1L)
   diff_ms1 <- c(0L, diff(idxes_ms1))
   oks <- which(diff_ms1 > 1L) # non-consecutive MS1s
-  ms1_stas <- idxes_ms1[oks - 1L]
+  ms1_stas <- idxes_ms1[oks - 1L] # excludes the last non-consecutive MS1 index
   ms2_stas <- ms1_stas + 1L
   ms2_ends <- idxes_ms1[oks] - 1L
   
   if (pad_nas) {
+    if (add_trailing) {
+      idxes_ms1 <- idxes_ms1[-length(idxes_ms1)]
+    }
+    
     bads <- idxes_ms1[!idxes_ms1 %in% ms1_stas]
     nas <- rep_len(NA_integer_, length(bads))
     ms1_stas <- c(bads, ms1_stas)
@@ -1405,6 +1419,32 @@ getMSrowIndexes <- function (ms_level, pad_nas = FALSE)
 }
 
 
+#' Finds group indexes with end points at \code{vals = 2L}.
+#' 
+#' For chunk-splitting with each chuck ending at value 2.
+#' 
+#' @param vals An integer vector of (MS levels of) 1 or 2.
+#' @param n_chunks The number of chunks.
+#' 
+#' @examples
+#' library(mzion)
+#' 
+#' vals1 <- c(rep(1, 2), rep(2, 5), 1, rep(2, 4), rep(1, 3), rep(2, 4), 1)
+#' grps1 <- find_ms2ends(vals1, 3)
+#' 
+#' vals2 <- c(rep(1, 2), rep(2, 5), 1, rep(2, 4), rep(1, 3), rep(2, 4))
+#' grps2 <- find_ms2ends(vals2, 3)
+find_ms2ends <- function (vals, n_chunks = 3L)
+{
+  if (n_chunks <= 1L)
+    return(rep_len(1L, length(vals)))
+
+  ms2_ends <- getMSrowIndexes(vals)$ms2_ends
+  brs <- floor(length(ms2_ends)/n_chunks) * 1:(n_chunks - 1L)
+  findInterval(seq_along(vals), ms2_ends[brs] + 1L)
+}
+
+
 #' Deisotoping DDA-MS1.
 #' 
 #' @param ms_level Vectors of MS levels
@@ -1413,15 +1453,15 @@ getMSrowIndexes <- function (ms_level, pad_nas = FALSE)
 #' @inheritParams find_mdda_mms1s
 #' @inheritParams matchMS
 getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL, 
-                        ms_level = NULL, iso_ctr = NULL, iso_lwr = NULL, 
-                        ms1_moverzs = NULL, ms1_charges = NULL, ms1_ints = NULL, 
-                        maxn_mdda_precurs = 1L, n_mdda_flanks = 6L, 
-                        topn_ms2ions = 150L, quant = "none", 
-                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                        exclude_reporter_region = FALSE, 
-                        max_ms1_charge = 4L, ppm_ms1_deisotope = 8L, 
-                        grad_isotope = 1.6, fct_iso2 = 3.0, 
-                        use_defpeaks = FALSE)
+                       ms_level = NULL, iso_ctr = NULL, iso_lwr = NULL, 
+                       ms1_moverzs = NULL, ms1_charges = NULL, ms1_ints = NULL, 
+                       maxn_mdda_precurs = 1L, n_mdda_flanks = 6L, 
+                       topn_ms2ions = 150L, quant = "none", 
+                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                       exclude_reporter_region = FALSE, 
+                       max_ms1_charge = 4L, ppm_ms1_deisotope = 8L, 
+                       grad_isotope = 1.6, fct_iso2 = 3.0, 
+                       use_defpeaks = FALSE)
 {
   ## Low priority: no data filtration by scan_nums; 
   #  plus, as.integer(scan_nums) may be invalid with Bruker's
@@ -1436,7 +1476,7 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL,
   ms2_stas <- pos_levs$ms2_stas
   ms2_ends <- pos_levs$ms2_ends
   rm(list = "pos_levs")
-
+  
   # go from z = min_ms1_charge:max_ms1_charge first,  
   # then if (max_ms1_charge < 6) max_ms1_charge:6
   
@@ -1455,7 +1495,7 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL,
       max_ms1_charge = max_ms1_charge, n_fwd = 20L, 
       grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
       use_defpeaks = use_defpeaks)
-
+    
     # Precursor x, y and z values for each MS2
     xs <- ans[["x"]]
     ys <- ans[["y"]]
@@ -1481,15 +1521,15 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL,
 
 #' Deisotoping DDA-MS2.
 #' 
-#' @param ms_level Vectors of MS levels
-#' @inheritParams find_mdda_mms1s
+#' @param msx_moverzs MS2 moverzs.
+#' @param msx_ints MS2 intensities.
 #' @inheritParams matchMS
-getMS2xyz <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL, 
-                        topn_ms2ions = 150L, quant = "none", 
-                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
-                        exclude_reporter_region = FALSE, 
-                        max_ms2_charge = 3L, ppm_ms2_deisotope = 10L, 
-                        grad_isotope = 1.6, fct_iso2 = 3.0)
+getMS2xyz <- function (msx_moverzs = NULL, msx_ints = NULL, 
+                       topn_ms2ions = 150L, quant = "none", 
+                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
+                       exclude_reporter_region = FALSE, 
+                       max_ms2_charge = 3L, ppm_ms2_deisotope = 10L, 
+                       grad_isotope = 1.6, fct_iso2 = 3.0)
 {
   if (!(len <- length(msx_moverzs)))
     return(NULL)
@@ -1498,29 +1538,27 @@ getMS2xyz <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
   is_tmt <- if (isTRUE(grepl("^tmt.*\\d+", quant))) TRUE else FALSE
   
   for (i in 1:len) {
-    if (ms_level[[i]] == 2L) {
-      xi <- msx_moverzs[[i]]
-      yi <- msx_ints[[i]]
-      ni <- rep_len(1L, length(xi))
-
-      mic <- find_ms1stat(
-        moverzs = xi, msxints = yi, n_ms1s = ni, center = 0, 
-        tmt_reporter_lower = tmt_reporter_lower, 
-        tmt_reporter_upper = tmt_reporter_upper, 
-        # no deisotoping for TMT-MS2 reporter ions
-        exclude_reporter_region = is_tmt, 
-        ppm = ppm_ms2_deisotope, ms_lev = 2L, 
-        maxn_feats = topn_ms2ions, 
-        max_charge = max_ms2_charge,
-        # smaller values for DDA-MS2
-        n_fwd = 10L, offset_upr = 30L, offset_lwr = 30L, 
-        grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
-        order_mz = FALSE)
-      
-      msx_moverzs[[i]] <- mic[["masses"]]
-      msx_ints[[i]] <- mic[["intensities"]]
-      msx_charges[[i]] <- mic[["charges"]]
-    }
+    xi <- msx_moverzs[[i]]
+    yi <- msx_ints[[i]]
+    ni <- rep_len(1L, length(xi))
+    
+    mic <- find_ms1stat(
+      moverzs = xi, msxints = yi, n_ms1s = ni, center = 0, 
+      tmt_reporter_lower = tmt_reporter_lower, 
+      tmt_reporter_upper = tmt_reporter_upper, 
+      # no deisotoping for TMT-MS2 reporter ions
+      exclude_reporter_region = is_tmt, 
+      ppm = ppm_ms2_deisotope, ms_lev = 2L, 
+      maxn_feats = topn_ms2ions, 
+      max_charge = max_ms2_charge,
+      # smaller values for DDA-MS2
+      n_fwd = 10L, offset_upr = 30L, offset_lwr = 30L, 
+      grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+      order_mz = FALSE)
+    
+    msx_moverzs[[i]] <- mic[["masses"]]
+    msx_ints[[i]] <- mic[["intensities"]]
+    msx_charges[[i]] <- mic[["charges"]]
   }
   
   list(msx_moverzs = msx_moverzs, msx_ints = msx_ints, msx_charges = msx_charges)
@@ -3046,6 +3084,8 @@ find_lc_gates <- function (ys, n_dia_scans = 4L)
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
 #' @examples
+#' library(mzion)
+#' 
 #' ys <- c(10,0,0,0,11,0,15,0,0,12,0,10,0,0,10)
 #' fill_lc_gaps(ys, 3)
 #' fill_lc_gaps(ys, 2)
@@ -3112,6 +3152,11 @@ fill_lc_gaps <- function (ys, n_dia_scans = 4L)
 collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5, 
                                reord = FALSE, coll = TRUE, cleanup = TRUE)
 {
+  ### 
+  # the utility is often called heavily;
+  # DO NOT gc() that will slow things down
+  ### 
+  
   null_out <- if (coll)
     list(x = NULL, y = NULL, n = NULL)
   else
@@ -3183,13 +3228,11 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   xmat <- mapcoll_xyz(vals = xs, ups = ups, lenx = lenx, lenu = lenu, 
                       direct_out = TRUE)
   # rm(list = "xs")
-  # gc()
-  
+
   ymat <- mapcoll_xyz(vals = ys, ups = ups, lenx = lenx, lenu = lenu, 
                       direct_out = TRUE)
   # rm(list = c("ys", "ups"))
-  # gc()
-  
+
   ## collapses adjacent entries
   ps <- find_gates(unv)
   lenp <- length(ps)
@@ -3221,8 +3264,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
     xmat[rows, c1] <- xmat[rows, c2]
     ymat[rows, c1] <- ymat[rows, c2]
   }
-  # gc()
-  
+
   # note that at least one ps2 are not 0
   # identical(xmat[, -c(0, 2:3), drop = FALSE], xmat[, -c(2:3), drop = FALSE])
   # !identical(xmat[, 0, drop = FALSE], xmat)
@@ -3247,7 +3289,7 @@ calc_ms1xys <- function (matx, maty)
   ysums <- colSums(maty, na.rm = TRUE)
   xmeans <- colSums(matx * maty, na.rm = TRUE)/ysums
   ns <- colSums(!is.na(maty), na.rm = TRUE)
-  # use ysums, not ysums/ns, for deisotoping
+  # use tallied ysums, not ysums/ns, for deisotoping
   list(x = xmeans, y = ysums, n = ns)
 }
 
@@ -3300,6 +3342,7 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
     
     # collapsed MS1s
     # assume xs are already ordered from low to high
+    # often coll == cleanup
     ans <- collapse_mms1ints(xs = ansx1, ys = ansy1, lwr = lwr, step = step, 
                              reord = FALSE, coll = TRUE, cleanup = TRUE)
     ansx <- ans[["x"]] # the weighted-mean of precursor moverzs
