@@ -984,61 +984,88 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
   # msx_: full spectra of ms1 and ms2, differentiated by ms_lev
   ###
   
-  # reads parsed peak lists
-  ans <- qs::qread(file.path(temp_dir, filename))
-  msx_moverzs <- ans$msx_moverzs
-  msx_ints <- ans$msx_ints
-  msx_ns <- ans$msx_ns
-  ms1_moverzs <- ans$ms1_moverzs # by MSConvert
-  ms1_ints <- ans$ms1_ints # by MSConvert
-  ms1_charges <- ans$ms1_charges # by MSConvert
-  scan_title <- ans$scan_title
-  raw_file <- ans$raw_file # scalar
-  ms_level <- ans$ms_level
-  ret_time <- ans$ret_time 
-  scan_num <- ans$scan_num
-  orig_scan <- ans$orig_scan
-  iso_ctr <- ans$iso_ctr
-  iso_lwr <- ans$iso_lwr
-  iso_upr <- ans$iso_upr
-  rm(list = "ans")
-  
-  restmt <- extract_mgf_rptrs(
-    msx_moverzs, 
-    msx_ints, 
-    quant = quant, 
-    tmt_reporter_lower = tmt_reporter_lower, 
-    tmt_reporter_upper = tmt_reporter_upper, 
-    exclude_reporter_region = exclude_reporter_region)
-  
-  msx_moverzs <- restmt[["xvals"]]
-  msx_ints <- restmt[["yvals"]]
-  rptr_moverzs <- restmt[["rptr_moverzs"]]
-  rptr_ints <- restmt[["rptr_ints"]]
-  rm(list = "restmt")
-  
-  msx_charges <- vector("list", length(msx_moverzs))
-  
-  ##
-  # try to subset early by min_ and max_ masses...
-  # even at unknown z, not very likely to have z >= 2 at small m/z...
-  ##
-  
-  if (deisotope_ms2) {
-    if (n_para > 1L) {
-      n_cores <- n_para
-      n_chunks <- n_cores * 4L
-      
-      oks <- ms_level == 2L
-      msx_moverzx <- msx_moverzs[oks]
-      msx_intx <- msx_ints[oks]
-      grps <- sep_vec(msx_moverzx, n_chunks)
-      
-      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-      out <- parallel::clusterMap(
-        cl, getMS2xyz, 
-        split(msx_moverzx, grps), split(msx_intx, grps), 
-        MoreArgs = list(
+  if (TRUE) {
+    # reads parsed peak lists
+    ans <- qs::qread(file.path(temp_dir, filename))
+    msx_moverzs <- ans$msx_moverzs
+    msx_ints <- ans$msx_ints
+    msx_ns <- ans$msx_ns
+    ms1_moverzs <- ans$ms1_moverzs # by MSConvert
+    ms1_ints <- ans$ms1_ints # by MSConvert
+    ms1_charges <- ans$ms1_charges # by MSConvert
+    scan_title <- ans$scan_title
+    raw_file <- ans$raw_file # scalar
+    ms_level <- ans$ms_level
+    ret_time <- ans$ret_time 
+    scan_num <- ans$scan_num
+    orig_scan <- ans$orig_scan
+    iso_ctr <- ans$iso_ctr
+    iso_lwr <- ans$iso_lwr
+    iso_upr <- ans$iso_upr
+    rm(list = "ans")
+    
+    restmt <- extract_mgf_rptrs(
+      msx_moverzs, 
+      msx_ints, 
+      quant = quant, 
+      tmt_reporter_lower = tmt_reporter_lower, 
+      tmt_reporter_upper = tmt_reporter_upper, 
+      exclude_reporter_region = exclude_reporter_region)
+    
+    msx_moverzs <- restmt[["xvals"]]
+    msx_ints <- restmt[["yvals"]]
+    rptr_moverzs <- restmt[["rptr_moverzs"]]
+    rptr_ints <- restmt[["rptr_ints"]]
+    rm(list = "restmt")
+    
+    msx_charges <- vector("list", length(msx_moverzs))
+    
+    ##
+    # try to subset early by min_ and max_ masses...
+    # even at unknown z, not very likely to have z >= 2 at small m/z...
+    ##
+    
+    if (deisotope_ms2) {
+      if (n_para > 1L) {
+        n_cores <- n_para
+        n_chunks <- n_cores * 4L
+        
+        oks <- ms_level == 2L
+        msx_moverzx <- msx_moverzs[oks]
+        msx_intx <- msx_ints[oks]
+        grps <- sep_vec(msx_moverzx, n_chunks)
+        
+        cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+        out <- parallel::clusterMap(
+          cl, getMS2xyz, 
+          split(msx_moverzx, grps), split(msx_intx, grps), 
+          MoreArgs = list(
+            topn_ms2ions = topn_ms2ions, 
+            max_ms2_charge = max_ms2_charge, 
+            ppm_ms2_deisotope = ppm_ms2_deisotope, 
+            grad_isotope = grad_isotope, 
+            fct_iso2 = fct_iso2, 
+            quant = quant, 
+            tmt_reporter_lower = tmt_reporter_lower, 
+            tmt_reporter_upper = tmt_reporter_upper, 
+            exclude_reporter_region = exclude_reporter_region 
+          ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
+        parallel::stopCluster(cl)
+        
+        msx_moverzs[oks] <- unlist(lapply(out, function (x) x[[1]]), 
+                                   recursive = FALSE, use.names = FALSE)
+        msx_ints[oks] <- unlist(lapply(out, function (x) x[[2]]), 
+                                recursive = FALSE, use.names = FALSE)
+        msx_charges[oks] <- unlist(lapply(out, function (x) x[[3]]), 
+                                   recursive = FALSE, use.names = FALSE)
+        rm(list = c("out", "n_chunks", "cl", "grps", "oks", 
+                    "msx_moverzx", "msx_intx"))
+      }
+      else {
+        oks <- ms_level == 2L
+        
+        out <- getMS2xyz(
+          msx_moverzs[oks], msx_ints[oks], 
           topn_ms2ions = topn_ms2ions, 
           max_ms2_charge = max_ms2_charge, 
           ppm_ms2_deisotope = ppm_ms2_deisotope, 
@@ -1047,204 +1074,183 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
           quant = quant, 
           tmt_reporter_lower = tmt_reporter_lower, 
           tmt_reporter_upper = tmt_reporter_upper, 
-          exclude_reporter_region = exclude_reporter_region 
-        ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
-      parallel::stopCluster(cl)
-      
-      msx_moverzs[oks] <- unlist(lapply(out, function (x) x[[1]]), 
-                                 recursive = FALSE, use.names = FALSE)
-      msx_ints[oks] <- unlist(lapply(out, function (x) x[[2]]), 
-                              recursive = FALSE, use.names = FALSE)
-      msx_charges[oks] <- unlist(lapply(out, function (x) x[[3]]), 
-                                 recursive = FALSE, use.names = FALSE)
-      rm(list = c("out", "n_chunks", "cl", "grps", "oks", 
-                  "msx_moverzx", "msx_intx"))
+          exclude_reporter_region = exclude_reporter_region)
+        
+        msx_moverzs[oks] <- out[[1]]
+        msx_ints[oks] <- out[[2]]
+        msx_charges[oks] <- out[[3]]
+        rm(list = c("out", "oks"))
+      }
     }
-    else {
-      oks <- ms_level == 2L
+    
+    if (maxn_mdda_precurs) {
+      if (FALSE) { # slower but keep the codes for group split examples
+        n_cores <- n_para
+        n_chunks <- n_cores^2
+        grps <- find_ms2ends(ms_level, n_chunks)
+        
+        cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+        ans <- parallel::clusterMap(
+          cl, getMS1xyz, 
+          split(msx_moverzs, grps), split(msx_ints, grps), split(ms_level, grps), 
+          split(iso_ctr, grps), split(iso_lwr, grps), split(ms1_moverzs, grps), 
+          split(ms1_charges, grps), split(ms1_ints, grps), 
+          MoreArgs = list(
+            maxn_mdda_precurs = maxn_mdda_precurs, n_mdda_flanks = n_mdda_flanks,  
+            topn_ms2ions = topn_ms2ions, quant = quant, 
+            tmt_reporter_lower = tmt_reporter_lower, 
+            tmt_reporter_upper = tmt_reporter_upper, 
+            exclude_reporter_region = exclude_reporter_region, 
+            max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
+            grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+            use_defpeaks = use_defpeaks
+          ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
+        parallel::stopCluster(cl)
+        
+        ms1_moverzs <- unlist(lapply(ans, function (x) x[["ms1_moverzs"]]), 
+                              recursive = FALSE, use.names = FALSE)
+        ms1_masses <- unlist(lapply(ans, function (x) x[["ms1_masses"]]), 
+                             recursive = FALSE, use.names = FALSE)
+        ms1_charges <- unlist(lapply(ans, function (x) x[["ms1_charges"]]), 
+                              recursive = FALSE, use.names = FALSE)
+        ms1_ints <- unlist(lapply(ans, function (x) x[["ms1_ints"]]), 
+                           recursive = FALSE, use.names = FALSE)
+        ms1_stas <- unlist(lapply(ans, function (x) x[["ms1_stas"]]), 
+                           recursive = FALSE, use.names = FALSE)
+        ms2_stas <- unlist(lapply(ans, function (x) x[["ms2_stas"]]), 
+                           recursive = FALSE, use.names = FALSE)
+        ms2_ends <- unlist(lapply(ans, function (x) x[["ms2_ends"]]), 
+                           recursive = FALSE, use.names = FALSE)
+        rm(list = c("ans", "grps", "cl"))
+        gc()
+      }
       
-      out <- getMS2xyz(
-        msx_moverzs[oks], msx_ints[oks], 
-        topn_ms2ions = topn_ms2ions, 
-        max_ms2_charge = max_ms2_charge, 
-        ppm_ms2_deisotope = ppm_ms2_deisotope, 
-        grad_isotope = grad_isotope, 
-        fct_iso2 = fct_iso2, 
-        quant = quant, 
+      ans <- getMS1xyz(
+        msx_moverzs = msx_moverzs, msx_ints = msx_ints, 
+        ms_level = ms_level, iso_ctr = iso_ctr, iso_lwr = iso_lwr, 
+        ms1_moverzs = ms1_moverzs, ms1_charges = ms1_charges, ms1_ints = ms1_ints, 
+        maxn_mdda_precurs = maxn_mdda_precurs, n_mdda_flanks = n_mdda_flanks,  
+        topn_ms2ions = topn_ms2ions, quant = quant, 
         tmt_reporter_lower = tmt_reporter_lower, 
         tmt_reporter_upper = tmt_reporter_upper, 
-        exclude_reporter_region = exclude_reporter_region)
+        exclude_reporter_region = exclude_reporter_region, 
+        max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
+        grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+        use_defpeaks = use_defpeaks)
       
-      msx_moverzs[oks] <- out[[1]]
-      msx_ints[oks] <- out[[2]]
-      msx_charges[oks] <- out[[3]]
-      rm(list = c("out", "oks"))
-    }
-  }
-  
-  if (maxn_mdda_precurs) {
-    if (FALSE) { # slower but keep the codes for group split examples
-      n_cores <- n_para
-      n_chunks <- n_cores^2
-      grps <- find_ms2ends(ms_level, n_chunks)
+      # list(NULL) at ms_level == 1L
+      ms1_moverzs <- ans$ms1_moverzs
+      ms1_masses <- ans$ms1_masses
+      ms1_charges <- ans$ms1_charges
+      ms1_ints <- ans$ms1_ints
+      # for LFQ MS1
+      # compiles ms1_ends later: multiple MS1s followed by multiple MS2s... 
+      ms1_stas <- ans$ms1_stas
+      ms2_stas <- ans$ms2_stas
+      ms2_ends <- ans$ms2_ends
+      rm(list = "ans")
       
-      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-      ans <- parallel::clusterMap(
-        cl, getMS1xyz, 
-        split(msx_moverzs, grps), split(msx_ints, grps), split(ms_level, grps), 
-        split(iso_ctr, grps), split(iso_lwr, grps), split(ms1_moverzs, grps), 
-        split(ms1_charges, grps), split(ms1_ints, grps), 
-        MoreArgs = list(
-          maxn_mdda_precurs = maxn_mdda_precurs, n_mdda_flanks = n_mdda_flanks,  
-          topn_ms2ions = topn_ms2ions, quant = quant, 
-          tmt_reporter_lower = tmt_reporter_lower, 
-          tmt_reporter_upper = tmt_reporter_upper, 
-          exclude_reporter_region = exclude_reporter_region, 
-          max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
-          grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
-          use_defpeaks = use_defpeaks
-        ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
-      parallel::stopCluster(cl)
-      
-      ms1_moverzs <- unlist(lapply(ans, function (x) x[["ms1_moverzs"]]), 
-                            recursive = FALSE, use.names = FALSE)
-      ms1_masses <- unlist(lapply(ans, function (x) x[["ms1_masses"]]), 
-                           recursive = FALSE, use.names = FALSE)
-      ms1_charges <- unlist(lapply(ans, function (x) x[["ms1_charges"]]), 
-                            recursive = FALSE, use.names = FALSE)
-      ms1_ints <- unlist(lapply(ans, function (x) x[["ms1_ints"]]), 
-                         recursive = FALSE, use.names = FALSE)
-      ms1_stas <- unlist(lapply(ans, function (x) x[["ms1_stas"]]), 
-                         recursive = FALSE, use.names = FALSE)
-      ms2_stas <- unlist(lapply(ans, function (x) x[["ms2_stas"]]), 
-                         recursive = FALSE, use.names = FALSE)
-      ms2_ends <- unlist(lapply(ans, function (x) x[["ms2_ends"]]), 
-                         recursive = FALSE, use.names = FALSE)
-      rm(list = c("ans", "grps", "cl"))
-      gc()
-    }
-    
-    ans <- getMS1xyz(
-      msx_moverzs = msx_moverzs, msx_ints = msx_ints, 
-      ms_level = ms_level, iso_ctr = iso_ctr, iso_lwr = iso_lwr, 
-      ms1_moverzs = ms1_moverzs, ms1_charges = ms1_charges, ms1_ints = ms1_ints, 
-      maxn_mdda_precurs = maxn_mdda_precurs, n_mdda_flanks = n_mdda_flanks,  
-      topn_ms2ions = topn_ms2ions, quant = quant, 
-      tmt_reporter_lower = tmt_reporter_lower, 
-      tmt_reporter_upper = tmt_reporter_upper, 
-      exclude_reporter_region = exclude_reporter_region, 
-      max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
-      grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
-      use_defpeaks = use_defpeaks)
-    
-    # list(NULL) at ms_level == 1L
-    ms1_moverzs <- ans$ms1_moverzs
-    ms1_masses <- ans$ms1_masses
-    ms1_charges <- ans$ms1_charges
-    ms1_ints <- ans$ms1_ints
-    # for LFQ MS1
-    # compiles ms1_ends later: multiple MS1s followed by multiple MS2s... 
-    ms1_stas <- ans$ms1_stas
-    ms2_stas <- ans$ms2_stas
-    ms2_ends <- ans$ms2_ends
-    rm(list = "ans")
-    
-    # look up ms2 for undetermined precursor charge states
-    if (deisotope_ms2) {
-      rows1 <- lapply(ms1_moverzs, is.null) # all MS1 and some MS2
-      rows1 <- .Internal(unlist(rows1, recursive = FALSE, use.names = FALSE))
-      rows2 <- ms_level == 2L
-      rows <- .Internal(which(rows2 & rows1)) # MS2 without precursor info
-      nrows <- length(rows)
-      
-      if (nrows) {
-        # msx_moverzs[rows] and msx_ints[rows] not NULL; msx_charges[rows]: NULL
-        # msx_charges[rows] <- NA_real_
-        ans2 <- mapply(find_ms1byms2, 
-                       moverzs = msx_moverzs[rows], msxints = msx_ints[rows], 
-                       charges = msx_charges[rows], center = iso_ctr[rows], 
-                       iso_lwr = iso_lwr[rows], iso_upr = iso_upr[rows], 
-                       SIMPLIFY = FALSE, USE.NAMES = FALSE)
+      # look up ms2 for undetermined precursor charge states
+      if (deisotope_ms2) {
+        rows1 <- lapply(ms1_moverzs, is.null) # all MS1 and some MS2
+        rows1 <- .Internal(unlist(rows1, recursive = FALSE, use.names = FALSE))
+        rows2 <- ms_level == 2L
+        rows <- .Internal(which(rows2 & rows1)) # MS2 without precursor info
+        nrows <- length(rows)
         
-        ans2 <- dplyr::bind_rows(ans2)
-        ans2$ms1_moverzs <- as.list(ans2$ms1_moverzs)
-        ans2$ms1_masses <- as.list(ans2$ms1_masses)
-        ans2$ms1_charges <- as.list(ans2$ms1_charges)
-        ans2$ms1_ints <- as.list(ans2$ms1_ints)
-        
-        # outputs contain NA and revert them back to list(NULL)
-        nas <- which(is.na(ans2$ms1_moverzs))
-        
-        if (length(nas)) {
-          ans2$ms1_ints[nas] <- ans2$ms1_charges[nas] <- 
-            ans2$ms1_masses[nas] <- ans2$ms1_moverzs[nas] <- list(NULL)
+        if (nrows) {
+          # msx_moverzs[rows] and msx_ints[rows] not NULL; msx_charges[rows]: NULL
+          # msx_charges[rows] <- NA_real_
+          ans2 <- mapply(find_ms1byms2, 
+                         moverzs = msx_moverzs[rows], msxints = msx_ints[rows], 
+                         charges = msx_charges[rows], center = iso_ctr[rows], 
+                         iso_lwr = iso_lwr[rows], iso_upr = iso_upr[rows], 
+                         SIMPLIFY = FALSE, USE.NAMES = FALSE)
+          
+          ans2 <- dplyr::bind_rows(ans2)
+          ans2$ms1_moverzs <- as.list(ans2$ms1_moverzs)
+          ans2$ms1_masses <- as.list(ans2$ms1_masses)
+          ans2$ms1_charges <- as.list(ans2$ms1_charges)
+          ans2$ms1_ints <- as.list(ans2$ms1_ints)
+          
+          # outputs contain NA and revert them back to list(NULL)
+          nas <- which(is.na(ans2$ms1_moverzs))
+          
+          if (length(nas)) {
+            ans2$ms1_ints[nas] <- ans2$ms1_charges[nas] <- 
+              ans2$ms1_masses[nas] <- ans2$ms1_moverzs[nas] <- list(NULL)
+          }
+          
+          ms1_moverzs[rows] <- ans2$ms1_moverzs
+          ms1_masses[rows] <- ans2$ms1_masses
+          ms1_charges[rows] <- ans2$ms1_charges
+          ms1_ints[rows] <- ans2$ms1_ints
+          rm(list = c("ans2", "nas"))
         }
         
-        ms1_moverzs[rows] <- ans2$ms1_moverzs
-        ms1_masses[rows] <- ans2$ms1_masses
-        ms1_charges[rows] <- ans2$ms1_charges
-        ms1_ints[rows] <- ans2$ms1_ints
-        rm(list = c("ans2", "nas"))
+        rm(list = c("rows1", "rows2", "rows"))
       }
       
-      rm(list = c("rows1", "rows2", "rows"))
-    }
-    
-    ###
-    # Up to this point, ms1_moverzs are list(NULL) at ms_level == 1L;
-    # Not to trace all MS1 features by only the monoisotopic 
-    #  that have been assigned to MS2 scans.
-    ###
-    
-    # Pools precursors at ms_level == 2 to the preceding ms_level == 1 for LFQ MS1;
-    for (i in seq_along(ms1_stas)) {
-      rng1 <- ms1_stas[[i]]
-      rng2 <- ms2_stas[[i]]:ms2_ends[[i]]
+      ###
+      # Up to this point, ms1_moverzs are list(NULL) at ms_level == 1L;
+      # Not to trace all MS1 features by only the monoisotopic 
+      #  that have been assigned to MS2 scans.
+      ###
       
-      # isolation windows can have overlaps -> 
-      #   the same precursor at multiple windows -> duplicated MS1 entries
-      xs <- .Internal(unlist(ms1_moverzs[rng2], recursive = FALSE, use.names = FALSE))
-      ys <- .Internal(unlist(ms1_ints[rng2], recursive = FALSE, use.names = FALSE))
-      zs <- .Internal(unlist(ms1_charges[rng2], recursive = FALSE, use.names = FALSE))
-      ms <- .Internal(unlist(ms1_masses[rng2], recursive = FALSE, use.names = FALSE))
-      
-      if (length(xs)) {
-        ord <- order(xs)
-        ms1_moverzs[[rng1]] <- xs[ord]
-        ms1_ints[[rng1]] <- ys[ord]
-        ms1_charges[[rng1]] <- zs[ord]
-        ms1_masses[[rng1]] <- ms[ord]
-        rm(list = "ord")
+      # Pools precursors at ms_level == 2 to the preceding ms_level == 1 for LFQ MS1;
+      for (i in seq_along(ms1_stas)) {
+        rng1 <- ms1_stas[[i]]
+        rng2 <- ms2_stas[[i]]:ms2_ends[[i]]
+        
+        # isolation windows can have overlaps -> 
+        #   the same precursor at multiple windows -> duplicated MS1 entries
+        xs <- .Internal(unlist(ms1_moverzs[rng2], recursive = FALSE, use.names = FALSE))
+        ys <- .Internal(unlist(ms1_ints[rng2], recursive = FALSE, use.names = FALSE))
+        zs <- .Internal(unlist(ms1_charges[rng2], recursive = FALSE, use.names = FALSE))
+        ms <- .Internal(unlist(ms1_masses[rng2], recursive = FALSE, use.names = FALSE))
+        
+        if (length(xs)) {
+          ord <- order(xs)
+          ms1_moverzs[[rng1]] <- xs[ord]
+          ms1_ints[[rng1]] <- ys[ord]
+          ms1_charges[[rng1]] <- zs[ord]
+          ms1_masses[[rng1]] <- ms[ord]
+          rm(list = "ord")
+        }
       }
+      rm(list = c("rng1", "rng2", "xs", "ys", "zs", "ms"))
     }
-    rm(list = c("rng1", "rng2", "xs", "ys", "zs", "ms"))
-  }
-  else {
-    ms1_masses <- mapply(function (x, y) (x - 1.00727647) * y, 
-                         ms1_moverzs, ms1_charges, 
-                         SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    else {
+      ms1_masses <- mapply(function (x, y) (x - 1.00727647) * y, 
+                           ms1_moverzs, ms1_charges, 
+                           SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    }
+    
+    # msx_moverzs at ms_level == 1L correspond to full-spectrum ms1_moverzs
+    # msx_charges at ms_level == 1L are list(NULL)
+    df <- tibble::tibble(
+      scan_title = scan_title,
+      raw_file = raw_file,
+      ms_level = ms_level, 
+      ms1_moverz = ms1_moverzs, 
+      ms1_mass = ms1_masses,
+      ms1_charge = ms1_charges, 
+      ms1_int = ms1_ints, 
+      # mzML: ret_times in minutes; MGF: ret_times in seconds
+      ret_time = ret_time, 
+      scan_num = scan_num, 
+      orig_scan = orig_scan,
+      msx_moverzs = msx_moverzs, 
+      msx_ints = msx_ints, 
+      msx_charges = msx_charges, 
+      msx_n = msx_ns, 
+      rptr_moverzs = rptr_moverzs, 
+      rptr_ints = rptr_ints)
+    
+  } else {
+    df <- qs::qread("~/df_deisoDDA.rds")
   }
   
-  # msx_moverzs at ms_level == 1L correspond to full-spectrum ms1_moverzs
-  # msx_charges at ms_level == 1L are list(NULL)
-  df <- tibble::tibble(
-    scan_title = scan_title,
-    raw_file = raw_file,
-    ms_level = ms_level, 
-    ms1_moverz = ms1_moverzs, 
-    ms1_mass = ms1_masses,
-    ms1_charge = ms1_charges, 
-    ms1_int = ms1_ints, 
-    # mzML: ret_times in minutes; MGF: ret_times in seconds
-    ret_time = ret_time, 
-    scan_num = scan_num, 
-    orig_scan = orig_scan,
-    msx_moverzs = msx_moverzs, 
-    msx_ints = msx_ints, 
-    msx_charges = msx_charges, 
-    msx_n = msx_ns, 
-    rptr_moverzs = rptr_moverzs, 
-    rptr_ints = rptr_ints)
 
   ## LFQ: replaces intensities with apex values
   if (use_lfq_intensity) {
@@ -1259,21 +1265,22 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       df1 <- dplyr::arrange(df1, ret_time)
       max_rt <- rts[len]
       
-      mid_len <- as.integer(len/2)
+      mid_len <- max(as.integer(len/2), 1L)
       mid_rt <- rts[mid_len]
       
-      grs <- which(rts > mid_rt + 120)
+      d <- 120
+      grs <- which(rts > mid_rt + d)
       upr <- if (length(grs)) grs[[1]] else len
-      upr - mid_len
+      rt_gap <- max(upr - mid_len, 1L)
     })
     
-    ans_prep <- prep_traceXY(
+    # orig_scan for troubleshooting
+    ans_prep <- pretraceXY(
       df[, c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", "ms_level", 
-             "msx_moverzs", "msx_ints", "msx_charges")], 
+             "msx_moverzs", "msx_ints", "msx_charges", "orig_scan")], 
       from = min_mass, step = step, 
       n_chunks = ceiling(sum(df$ms_level == 1L)/512L), # 1024L, more RAM, same speed 
-      # included n_dia_scans in parameters later...
-      gap = rt_gap, n_dia_scans = 4L)
+      gap = rt_gap, n_dia_scans = 4L) # included n_dia_scans in pars later...
     
     dfs <- ans_prep$dfs
     df1s <- ans_prep$df1s
@@ -1283,31 +1290,40 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     gc()
     
     cols <- c("ms_level", "ms1_moverz", "ms1_int")
+    lenv <- length(df1s)
+    gaps_bf <- c(0, gaps[1:(lenv-1L)])
+    gaps_af <- c(gaps[2:lenv], 0)
 
     if (TRUE) {
       cl <- parallel::makeCluster(getOption("cl.cores", 2L))
       out <- parallel::clusterMap(
         cl, htraceXY, 
-        lapply(df1s, `[[`, "msx_moverzs"), lapply(df1s, `[[`, "msx_ints"), 
-        lapply(dfs, `[`, cols), gaps, types, 
+        lapply(df1s, `[[`, "msx_moverzs"), 
+        lapply(df1s, `[[`, "msx_ints"), 
+        lapply(df1s, `[[`, "orig_scan"), 
+        lapply(dfs, `[`, cols), 
+        gaps_bf, 
+        gaps_af, 
+        types, 
         MoreArgs = list(
           n_dia_scans = 4L, from = min_mass, step = step
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
       parallel::stopCluster(cl)
     }
     else { # slow
-      valxs <- lapply(df1s, `[[`, "msx_moverzs")
-      valys <- lapply(df1s, `[[`, "msx_ints")
-      valdf <- lapply(dfs, `[`, cols)
-      out <- vector("list", lenvs <- length(df1s))
-      
-      for (i in seq_along(df1s)) {
+      vxs <- lapply(df1s, `[[`, "msx_moverzs")
+      vys <- lapply(df1s, `[[`, "msx_ints")
+      vdf <- lapply(dfs, `[`, cols)
+      vss <- lapply(df1s, `[[`, "orig_scan") # for troubling shooting
+      out <- vector("list", lenv)
+
+      for (i in 1:lenv) {
         out[[i]] <- htraceXY(
-          xs = valxs[[i]], ys = valys[[i]], df = valdf[[i]], gap = gaps[[i]], 
+          xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], df = vdf[[i]], 
+          gap_bf <- gaps_bf[[i]], gap_af = gaps_af[[i]], 
           type = types[[i]], n_dia_scans = 4L, from = min_mass, step = step)
       }
-      
-      rm(list = c("valxs", "valys", "valdf"))
+      rm(list = c("vxs", "vys", "vdf", "gaps", "types", "lenv"))
     }
 
     out <- dplyr::bind_rows(out)

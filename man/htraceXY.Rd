@@ -7,8 +7,10 @@
 htraceXY(
   xs,
   ys,
+  ss,
   df,
-  gap = 128L,
+  gap_bf = 128L,
+  gap_af,
   type = c("first", "middle", "last"),
   n_dia_scans = 4L,
   from = 200L,
@@ -20,9 +22,13 @@ htraceXY(
 
 \item{ys}{Vectors of MS1 intensities.}
 
+\item{ss}{Vectors of MS1 scan numbers.}
+
 \item{df}{A data frame of both MS1 and MS2 staggering the range of \code{xs}.}
 
-\item{gap}{A gap size.}
+\item{gap_bf}{A preceding gap size.}
+
+\item{gap_af}{A following gap size.}
 
 \item{type}{The type of data subtype.}
 

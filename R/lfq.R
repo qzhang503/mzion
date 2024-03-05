@@ -14,40 +14,66 @@ subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
   len <- length(xs)
   yout <- xout <- vector("list", len)
   
-  # ms1s <- unlist(ms1s, recursive = FALSE, use.names = FALSE)
-  # ms1s <- index_mz(ms1s, from, step)
-  # ms1s <- sort(unique(ms1s))
-
   # for each xi, keeps entries found in ms1s.
-  for (i in 1:len) {
-    xi <- xs[[i]]
-    li <- length(xi)
+  if (gap >= len) {
+    ms1s <- unlist(ms1s, recursive = FALSE, use.names = FALSE)
+    ms1s <- index_mz(ms1s, from, step)
+    ms1s <- sort(unique(ms1s))
     
-    if (!li)
-      next
-    
-    sta <- max(1, i - gap)
-    end <- min(i + gap, len)
-    ms1s_sub <- unlist(ms1s[sta:end], recursive = FALSE, use.names = FALSE)
-    ms1s_sub <- index_mz(ms1s_sub, from, step)
-    ms1s_sub <- sort(unique(ms1s_sub))
-    
-    ix <- as.integer(ceiling(log(xi/from)/log(1+step)))
-    ps0 <- fastmatch::fmatch(ix, ms1s_sub)
-    ps1 <- fastmatch::fmatch(ix + 1L, ms1s_sub)
-    ps2 <- fastmatch::fmatch(ix - 1L, ms1s_sub)
-    i0 <- .Internal(which(!is.na(ps0)))
-    i1 <- .Internal(which(!is.na(ps1)))
-    i2 <- .Internal(which(!is.na(ps2)))
-    
-    i1 <- i1[!i1 %fin% i0]
-    i2 <- i2[!(i2 %fin% i0 | i2 %fin% i1)]
-    i012 <- c(i0, i1, i2)
-    i012 <- sort(i012)
-    xout[[i]] <- xi[i012]
-    yout[[i]] <- ys[[i]][i012]
+    for (i in 1:len) {
+      xi <- xs[[i]]
+      li <- length(xi)
+      
+      if (!li)
+        next
+      
+      ix <- as.integer(ceiling(log(xi/from)/log(1+step)))
+      ps0 <- fastmatch::fmatch(ix, ms1s)
+      ps1 <- fastmatch::fmatch(ix + 1L, ms1s)
+      ps2 <- fastmatch::fmatch(ix - 1L, ms1s)
+      i0 <- .Internal(which(!is.na(ps0)))
+      i1 <- .Internal(which(!is.na(ps1)))
+      i2 <- .Internal(which(!is.na(ps2)))
+      
+      i1 <- i1[!i1 %fin% i0]
+      i2 <- i2[!(i2 %fin% i0 | i2 %fin% i1)]
+      i012 <- c(i0, i1, i2)
+      i012 <- sort(i012)
+      xout[[i]] <- xi[i012]
+      yout[[i]] <- ys[[i]][i012]
+    }
   }
-  
+  else {
+    for (i in 1:len) {
+      xi <- xs[[i]]
+      li <- length(xi)
+      
+      if (!li)
+        next
+      
+      sta <- max(1, i - gap)
+      end <- min(i + gap, len)
+      ms1s_sub <- unlist(ms1s[sta:end], recursive = FALSE, use.names = FALSE)
+      ms1s_sub <- index_mz(ms1s_sub, from, step)
+      ms1s_sub <- sort(unique(ms1s_sub))
+      
+      ix <- as.integer(ceiling(log(xi/from)/log(1+step)))
+      ps0 <- fastmatch::fmatch(ix, ms1s_sub)
+      ps1 <- fastmatch::fmatch(ix + 1L, ms1s_sub)
+      ps2 <- fastmatch::fmatch(ix - 1L, ms1s_sub)
+      i0 <- .Internal(which(!is.na(ps0)))
+      i1 <- .Internal(which(!is.na(ps1)))
+      i2 <- .Internal(which(!is.na(ps2)))
+      
+      i1 <- i1[!i1 %fin% i0]
+      i2 <- i2[!(i2 %fin% i0 | i2 %fin% i1)]
+      i012 <- c(i0, i1, i2)
+      i012 <- sort(i012) # logical(0) if all NA
+      xout[[i]] <- xi[i012]
+      yout[[i]] <- ys[[i]][i012]
+    }
+  }
+
   list(x = xout, y = yout)
 }
 
@@ -60,26 +86,27 @@ subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
 #' @param n_chunks The number of chunks.
 #' @param gap The size of gapped entries.
 #' @inheritParams matchMS
-prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, 
-                          gap = 128L, n_dia_scans = 4L)
+pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L, 
+                        n_dia_scans = 4L)
 {
+  # msx_moverzs at ms_level == 1L: full-spectrum ms1_moverzs
+  # msx_charges at ms_level == 1L are list(NULL)
+  
+  # orig_scan for toubleshooting
   cols1 <- c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", 
-             "msx_moverzs", "msx_ints", "msx_charges")
+             "msx_moverzs", "msx_ints", "msx_charges", "orig_scan")
   rows1 <- df[["ms_level"]] == 1L
   df1 <- df[rows1, cols1]
   len1 <- nrow(df1)
 
-  # msx_moverzs at ms_level == 1L correspond to full-spectrum ms1_moverzs
-  # msx_charges at ms_level == 1L are list(NULL)
-
-  ## Remove non-essential MS2 xyz values
-  ans_bins <- subMSfull(
-    xs = df1$msx_moverzs, ys = df1$msx_ints, ms1s = df1$ms1_moverz, from = from, 
-    step = step, gap = gap)
+  # Remove non-essential MS1 xy values
+  ans <- subMSfull(
+    xs = df1$msx_moverzs, ys = df1$msx_ints, ms1s = df1$ms1_moverz, 
+    from = from, step = step, gap = gap)
   
-  df1$msx_moverzs <- ans_bins$x # moverzs are sorted
-  df1$msx_ints <- ans_bins$y
-  rm(list = "ans_bins")
+  df1$msx_moverzs <- ans$x # moverzs are sorted
+  df1$msx_ints <- ans$y
+  rm(list = "ans")
   gc()
   
   # at least two chunks
@@ -90,7 +117,7 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
   end1s <- cumsum(lapply(df1s, nrow))
   sta1s <- c(1L, end1s[1:(n_chunks-1L)] + 1L)
   
-  ## Adds 2-min gaps before and after
+  # Adds 2-min gaps before and after
   gaps <- lapply(df1s, function (x) ceiling(min(gap, nrow(x)/2L)))
   df1s_bf <- df1s_af <- vector("list", n_chunks)
   
@@ -100,8 +127,13 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
   for (i in 1:(n_chunks - 1L)) {
     df1s_af[[i]] <- tail(df1s[[i]], gaps[[i]])
   }
-  for (i in 1:n_chunks) {
-    df1s[[i]] <- dplyr::bind_rows(df1s_bf[[i]], df1s[[i]], df1s_af[[i]])
+  
+  df1s[[1]] <- dplyr::bind_rows(df1s[[1]], df1s_bf[[2]])
+  df1s[[n_chunks]] <- dplyr::bind_rows(df1s_af[[n_chunks-1]], df1s[[n_chunks]])
+  
+  if (n_chunks > 2L) {
+    for (i in 2:(n_chunks-1L))
+      df1s[[i]] <- dplyr::bind_rows(df1s_af[[i-1]], df1s[[i]], df1s_bf[[i+1]])
   }
   rm(list = c("df1s_bf", "df1s_af", "df1"))
   
@@ -111,31 +143,23 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
     types <- c("first", "last")
   }
   
-  ##  Splits df
-  pos_levs <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)
-  ms1_stas <- pos_levs$ms1_stas # ms1_stas: row indexes in `df`
-
-  # removing the trailing index
-  if (FALSE) {
-    if ((n1 <- length(ms1_stas)) > len1) {
-      ms1_stas <- ms1_stas[-n1]
-    }
-    rm(list = "pos_levs", "n1")
-  }
-
+  ##  Splits df with bracketing entries
+  # values: row indexes in df, length == nrow(df1) at pad_nas = TRUE
+  ms1_stas <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)$ms1_stas
+  
   cols <- c("ms_level", "ms1_moverz", "ms1_int")
   ms1_stax <- dfs <- vector("list", n_chunks)
   
   for (i in 1:n_chunks) {
-    stai <- sta1s[[i]][[1]]
-    ms1_stax[[i]] <- ms1_stas[stai]
+    stai <- sta1s[[i]] # stai-th MS1 scan
+    ms1_stax[[i]] <- ms1_stas[stai] # the corresponding row index in df
   }
 
   for (i in 1:(n_chunks - 1L)) {
-    rowx <- ms1_stax[[i]][[1]]:(ms1_stax[[i+1]][[1]] - 1L) # ms2_endx may be NA
+    rowx <- ms1_stax[[i]]:(ms1_stax[[i+1]] - 1L) # ms2_endx may be NA
     dfs[[i]] <- df[rowx, cols] # both df1 and df2 data
   }
-  dfs[[n_chunks]] <- df[ms1_stax[[n_chunks]][[1]]:nrow(df), cols]
+  dfs[[n_chunks]] <- df[ms1_stax[[n_chunks]]:nrow(df), cols]
 
   list(dfs = dfs, df1s = df1s, gaps = gaps, types = types)
 }
@@ -145,16 +169,19 @@ prep_traceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L,
 #' 
 #' @param xs Vectors of MS1 moverzs.
 #' @param ys Vectors of MS1 intensities.
+#' @param ss Vectors of MS1 scan numbers.
 #' @param df A data frame of both MS1 and MS2 staggering the range of \code{xs}.
-#' @param gap A gap size.
+#' @param gap_bf A preceding gap size.
+#' @param gap_af A following gap size.
 #' @param type The type of data subtype.
 #' @param from The starting point for mass binning.
 #' @param step The step size for mass binning.
 #' @inheritParams matchMS
-htraceXY <- function (xs, ys, df, gap = 128L, type = c("first", "middle", "last"), 
+htraceXY <- function (xs, ys, ss, df, gap_bf = 128L, gap_af, 
+                      type = c("first", "middle", "last"), 
                       n_dia_scans = 4L, from = 200L, step = 1E5)
 {
-  mat <- traceXY(xs = xs, ys = ys, n_dia_scans = n_dia_scans, from = from, 
+  mat <- traceXY(xs = xs, ys = ys, ss = ss, n_dia_scans = n_dia_scans, from = from, 
                  step = step, reord = FALSE, cleanup = FALSE, # otherwise rows drop
                  replace_ms1_by_apex = TRUE)
   matx <- mat[["x"]]
@@ -164,19 +191,19 @@ htraceXY <- function (xs, ys, df, gap = 128L, type = c("first", "middle", "last"
   
   if (type == "first") {
     stai <- 1L
-    endi <- nrow(matx) - gap
+    endi <- nrow(matx) - gap_af
     matx <- matx[stai:endi, ]
     maty <- maty[stai:endi, ]
   }
   else if (type == "last") {
-    stai <- gap + 1L
+    stai <- gap_bf + 1L
     endi <- nrow(matx)
     matx <- matx[stai:endi, ]
     maty <- maty[stai:endi, ]
   }
   else {
-    stai <- gap + 1L
-    endi <- nrow(matx) - gap
+    stai <- gap_bf + 1L
+    endi <- nrow(matx) - gap_af
     matx <- matx[stai:endi, ]
     maty <- maty[stai:endi, ]
   }
@@ -187,19 +214,20 @@ htraceXY <- function (xs, ys, df, gap = 128L, type = c("first", "middle", "last"
 
 #' Helper of MS1 tracing.
 #'
-#' @param xs moverzs.
-#' @param ys intensities.
+#' @param xs Vectors of MS1 moverzs.
+#' @param ys Vectors of MS1 intensities.
+#' @param ss Vectors of MS1 scan numbers.
 #' @param step Step size.
 #' @param from The starting point for mass binning.
 #' @param step A step size for mass binning.
 #' @param reord Logical; re-order data or not.
-#' @param cleanup Logical; cleans up xs, ys and zs or not. Set the value to
+#' @param cleanup Logical; to clean up xs, ys and zs or not. Set the value to
 #'   FALSE to maintain one-to-one correspondence between input (data frame) and
 #'   the outputs. This will help, e.g., keep track of scan numbers in the input.
 #' @param replace_ms1_by_apex Logical; if TRUE, fill all entries within a gate
 #'   by its apex values.
 #' @inheritParams matchMS
-traceXY <- function (xs, ys, n_dia_scans = 4L, from = 115L, step = 1E-5, 
+traceXY <- function (xs, ys, ss, n_dia_scans = 4L, from = 115L, step = 1E-5, 
                      reord = TRUE, cleanup = FALSE, replace_ms1_by_apex = FALSE)
 {
   lens <- lengths(xs)
@@ -245,6 +273,8 @@ traceXY <- function (xs, ys, n_dia_scans = 4L, from = 115L, step = 1E-5,
   
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
+      # removes peaks at intensity < 2% of base peak
+
       gates <- find_lc_gates(ansy[, i], n_dia_scans = n_dia_scans)
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans

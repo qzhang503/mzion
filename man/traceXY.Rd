@@ -7,6 +7,7 @@
 traceXY(
   xs,
   ys,
+  ss,
   n_dia_scans = 4L,
   from = 115L,
   step = 1e-05,
@@ -16,9 +17,11 @@ traceXY(
 )
 }
 \arguments{
-\item{xs}{moverzs.}
+\item{xs}{Vectors of MS1 moverzs.}
 
-\item{ys}{intensities.}
+\item{ys}{Vectors of MS1 intensities.}
+
+\item{ss}{Vectors of MS1 scan numbers.}
 
 \item{n_dia_scans}{Allowance in the number of adjacent MS scans for
 constructing a peak profile and thus for determining the apex scan number
@@ -30,7 +33,7 @@ of an moverz value along LC.}
 
 \item{reord}{Logical; re-order data or not.}
 
-\item{cleanup}{Logical; cleans up xs, ys and zs or not. Set the value to
+\item{cleanup}{Logical; to clean up xs, ys and zs or not. Set the value to
 FALSE to maintain one-to-one correspondence between input (data frame) and
 the outputs. This will help, e.g., keep track of scan numbers in the input.}
 
