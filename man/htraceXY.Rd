@@ -9,9 +9,8 @@ htraceXY(
   ys,
   ss,
   df,
-  gap_bf = 128L,
-  gap_af,
-  type = c("first", "middle", "last"),
+  gap_bf = 256L,
+  gap_af = 256L,
   n_dia_scans = 4L,
   from = 200L,
   step = 1e+05
@@ -29,8 +28,6 @@ htraceXY(
 \item{gap_bf}{A preceding gap size.}
 
 \item{gap_af}{A following gap size.}
-
-\item{type}{The type of data subtype.}
 
 \item{n_dia_scans}{Allowance in the number of adjacent MS scans for
 constructing a peak profile and thus for determining the apex scan number

@@ -1144,7 +1144,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       ms1_charges <- ans$ms1_charges
       ms1_ints <- ans$ms1_ints
       # for LFQ MS1
-      # compiles ms1_ends later: multiple MS1s followed by multiple MS2s... 
+      # may compiles ms1_ends later: multiple MS1s followed by multiple MS2s... 
       ms1_stas <- ans$ms1_stas
       ms2_stas <- ans$ms2_stas
       ms2_ends <- ans$ms2_ends
@@ -1246,7 +1246,6 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       msx_n = msx_ns, 
       rptr_moverzs = rptr_moverzs, 
       rptr_ints = rptr_ints)
-    
   } else {
     df <- qs::qread("~/df_deisoDDA.rds")
   }
@@ -1255,7 +1254,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
   ## LFQ: replaces intensities with apex values
   if (use_lfq_intensity) {
     # df[["orig_ms1_ints"]] <- df[["ms1_int"]]
-    step = ppm_ms1 * 1e-6
+    step <- ppm_ms1 * 1e-6
     
     # estimated number of MS1 scans at a 2-min range of retention times
     rt_gap <- local({
@@ -1274,7 +1273,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       rt_gap <- max(upr - mid_len, 1L)
     })
     
-    # orig_scan for troubleshooting
+    # `orig_scan` for troubleshooting
     ans_prep <- pretraceXY(
       df[, c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", "ms_level", 
              "msx_moverzs", "msx_ints", "msx_charges", "orig_scan")], 
@@ -1285,14 +1284,13 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     dfs <- ans_prep$dfs
     df1s <- ans_prep$df1s
     gaps <- ans_prep$gaps
-    types <- ans_prep$types
     rm(list = c("ans_prep", "rt_gap"))
     gc()
     
     cols <- c("ms_level", "ms1_moverz", "ms1_int")
     lenv <- length(df1s)
-    gaps_bf <- c(0, gaps[1:(lenv-1L)])
-    gaps_af <- c(gaps[2:lenv], 0)
+    gaps_bf <- c(0L, gaps[1:(lenv-1L)])
+    gaps_af <- c(gaps[2:lenv], 0L)
 
     if (TRUE) {
       cl <- parallel::makeCluster(getOption("cl.cores", 2L))
@@ -1304,7 +1302,6 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         lapply(dfs, `[`, cols), 
         gaps_bf, 
         gaps_af, 
-        types, 
         MoreArgs = list(
           n_dia_scans = 4L, from = min_mass, step = step
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
@@ -1321,9 +1318,9 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         out[[i]] <- htraceXY(
           xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], df = vdf[[i]], 
           gap_bf <- gaps_bf[[i]], gap_af = gaps_af[[i]], 
-          type = types[[i]], n_dia_scans = 4L, from = min_mass, step = step)
+          n_dia_scans = 4L, from = min_mass, step = step)
       }
-      rm(list = c("vxs", "vys", "vdf", "gaps", "types", "lenv"))
+      rm(list = c("vxs", "vys", "vdf", "gaps", "lenv"))
     }
 
     out <- dplyr::bind_rows(out)

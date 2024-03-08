@@ -92,19 +92,19 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L,
   # msx_moverzs at ms_level == 1L: full-spectrum ms1_moverzs
   # msx_charges at ms_level == 1L are list(NULL)
   
-  # orig_scan for toubleshooting
+  # orig_scan for troubleshooting
   cols1 <- c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", 
              "msx_moverzs", "msx_ints", "msx_charges", "orig_scan")
   rows1 <- df[["ms_level"]] == 1L
   df1 <- df[rows1, cols1]
   len1 <- nrow(df1)
 
-  # Remove non-essential MS1 xy values
+  # Remove non-essential MS1 x and y values
   ans <- subMSfull(
     xs = df1$msx_moverzs, ys = df1$msx_ints, ms1s = df1$ms1_moverz, 
     from = from, step = step, gap = gap)
-  
-  df1$msx_moverzs <- ans$x # moverzs are sorted
+  # moverzs in ans$x are sorted
+  df1$msx_moverzs <- ans$x
   df1$msx_ints <- ans$y
   rm(list = "ans")
   gc()
@@ -137,16 +137,9 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L,
   }
   rm(list = c("df1s_bf", "df1s_af", "df1"))
   
-  if (n_chunks > 2L) {
-    types <- c("first", rep("middle", n_chunks - 2L), "last")
-  } else {
-    types <- c("first", "last")
-  }
-  
   ##  Splits df with bracketing entries
   # values: row indexes in df, length == nrow(df1) at pad_nas = TRUE
   ms1_stas <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)$ms1_stas
-  
   cols <- c("ms_level", "ms1_moverz", "ms1_int")
   ms1_stax <- dfs <- vector("list", n_chunks)
   
@@ -156,12 +149,12 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L,
   }
 
   for (i in 1:(n_chunks - 1L)) {
-    rowx <- ms1_stax[[i]]:(ms1_stax[[i+1]] - 1L) # ms2_endx may be NA
+    rowx <- ms1_stax[[i]]:(ms1_stax[[i+1]] - 1L) # ms2_endx can be NA
     dfs[[i]] <- df[rowx, cols] # both df1 and df2 data
   }
   dfs[[n_chunks]] <- df[ms1_stax[[n_chunks]]:nrow(df), cols]
 
-  list(dfs = dfs, df1s = df1s, gaps = gaps, types = types)
+  list(dfs = dfs, df1s = df1s, gaps = gaps)
 }
 
 
@@ -173,49 +166,71 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L,
 #' @param df A data frame of both MS1 and MS2 staggering the range of \code{xs}.
 #' @param gap_bf A preceding gap size.
 #' @param gap_af A following gap size.
-#' @param type The type of data subtype.
 #' @param from The starting point for mass binning.
 #' @param step The step size for mass binning.
 #' @inheritParams matchMS
-htraceXY <- function (xs, ys, ss, df, gap_bf = 128L, gap_af, 
-                      type = c("first", "middle", "last"), 
+htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L, 
                       n_dia_scans = 4L, from = 200L, step = 1E5)
 {
-  mat <- traceXY(xs = xs, ys = ys, ss = ss, n_dia_scans = n_dia_scans, from = from, 
-                 step = step, reord = FALSE, cleanup = FALSE, # otherwise rows drop
-                 replace_ms1_by_apex = TRUE)
+  mat <- traceXY(
+    xs = xs, ys = ys, ss = ss, n_dia_scans = n_dia_scans, from = from, 
+    step = step, reord = FALSE, cleanup = FALSE, # otherwise rows drop
+    replace_ms1_by_apex = TRUE)
+  
   matx <- mat[["x"]]
   maty <- mat[["y"]]
+  
+  ## to update retention times...
+  apes <- mat[["p"]]
+  rngs <- mat[["range"]]
+  
+  scans <- vector("list", nc <- ncol(matx))
+  for (i in seq_along(scans)) {
+    scans[[i]] <- ss[apes[[i]]]
+  }
+  ## 
+  
   rm(list = "mat")
   gc()
   
-  if (type == "first") {
-    stai <- 1L
-    endi <- nrow(matx) - gap_af
-    matx <- matx[stai:endi, ]
-    maty <- maty[stai:endi, ]
+  if (gap_bf) {
+    if (gap_af) { # middle
+      sta <- gap_bf + 1L
+      end <- nrow(matx) - gap_af
+    }
+    else { # last
+      sta <- gap_bf + 1L
+      end <- nrow(matx)
+    }
   }
-  else if (type == "last") {
-    stai <- gap_bf + 1L
-    endi <- nrow(matx)
-    matx <- matx[stai:endi, ]
-    maty <- maty[stai:endi, ]
-  }
-  else {
-    stai <- gap_bf + 1L
-    endi <- nrow(matx) - gap_af
-    matx <- matx[stai:endi, ]
-    maty <- maty[stai:endi, ]
+  else { # first
+    sta <- 1L
+    end <- nrow(matx) - gap_af
   }
   
-  updateMS1Int(df = df, matx = matx, maty = maty, from = from, step = step)
+  if (FALSE) {
+    matx <- matx[sta:end, ]
+    maty <- maty[sta:end, ]
+    ss <- ss[sta:end]
+  }
+  
+  if (FALSE) {
+    # look current
+    df <- updateMS1Int(df = df, matx = matx[sta:end, ], maty = maty[sta:end, ], 
+                       from = from, step = step)
+  }
+  else {
+    # look before and look ahead
+    df <- updateMS1Int2(df = df, matx = matx, maty = maty, row_sta = sta, row_end = end, 
+                        from = from, step = step)
+  }
 }
 
 
 #' Helper of MS1 tracing.
 #'
-#' @param xs Vectors of MS1 moverzs.
-#' @param ys Vectors of MS1 intensities.
+#' @param xs Vectors of full-spectrum MS1 moverzs.
+#' @param ys Vectors of full-spectrum MS1 intensities.
 #' @param ss Vectors of MS1 scan numbers.
 #' @param step Step size.
 #' @param from The starting point for mass binning.
@@ -251,8 +266,10 @@ traceXY <- function (xs, ys, ss, n_dia_scans = 4L, from = 115L, step = 1E-5,
   # xs can be numeric(0)?
   # cleanup = FALSE; otherwise rows drop
   # often coll == cleanup
-  ans <- collapse_mms1ints(xs = xs, ys = ys, lwr = from, step = step, 
-                           reord = FALSE, coll = FALSE, cleanup = FALSE)
+  ans <- collapse_mms1ints(
+    xs = xs, ys = ys, lwr = from, step = step, reord = FALSE, coll = FALSE, 
+    cleanup = FALSE)
+  
   ansx <- ans[["x"]]
   ansy <- ans[["y"]]
   rm(list = c("ans"))
@@ -273,13 +290,22 @@ traceXY <- function (xs, ys, ss, n_dia_scans = 4L, from = 115L, step = 1E-5,
   
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
-      # removes peaks at intensity < 2% of base peak
+      ### removes peaks at intensity < 2% of base peak
+      # i = 1000
+      yi <- ansy[, i]
+      oks <- !is.na(yi)
+      yoks <- yi[oks]
+      yoks[yoks < max(yoks) * .02] <- NA_real_
+      yi[oks] <- yoks
+      gates <- find_lc_gates(yi, n_dia_scans = n_dia_scans)
+      # ansy[, i] <- yi
+      ###
 
-      gates <- find_lc_gates(ansy[, i], n_dia_scans = n_dia_scans)
+      # gates <- find_lc_gates(ansy[, i], n_dia_scans = n_dia_scans)
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans
       ranges[[i]] <- rngs <- gates[["ranges"]]
-      
+
       for (j in seq_along(rows)) {
         rgj <- rngs[[j]]
         rwj <- rows[[j]]
@@ -331,16 +357,16 @@ updateMS1Int <- function (df, matx, maty, from = 200L, step = 1E-5)
     if (is.na(ms2sta))
       next
     
+    ms2end <- ms2_ends[[i]]
+    df2 <- df[ms2sta:ms2end, ]
+    
     xs <- matx[i, ]
     ys <- maty[i, ]
     oks <- .Internal(which(!is.na(xs)))
     xs <- xs[oks]
     ys <- ys[oks]
     ixs <- as.integer(ceiling(log(xs/from)/log(1+step)))
-    
-    ms2end <- ms2_ends[[i]]
-    df2 <- df[ms2sta:ms2end, ]
-    
+
     for (j in 1:nrow(df2)) {
       xsj <- df2[["ms1_moverz"]][[j]]
       ixsj <- as.integer(ceiling(log(xsj/from)/log(1+step)))
@@ -364,6 +390,112 @@ updateMS1Int <- function (df, matx, maty, from = 200L, step = 1E-5)
       }
       else {
         df2[["ms1_int"]][[j]] <- ys[ps0]
+      }
+    }
+    
+    df[["ms1_int"]][ms2sta:ms2end] <- df2[["ms1_int"]]
+  }
+  
+  df
+}
+
+
+#' Updates MS1 intensity with apex values.
+#' 
+#' Including forward and backward looking. 
+#' 
+#' @param df A data frame.
+#' @param matx The matrix of moverzs Y: by masses; X: by LC scans.
+#' @param maty The matrix of intensities. Y: by masses; X: by LC scans.
+#' @param row_sta The starting row of \code{matx}.
+#' @param row_end The ending row of \code{matx}.
+#' @param from The starting point for mass binning.
+#' @param step A step size for mass binning.
+updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, from = 200L, 
+                           step = 1E-5)
+  
+{
+  nrow <- nrow(matx)
+  
+  pos_levs <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)
+  ms1_stas <- pos_levs$ms1_stas
+  ms2_stas <- pos_levs$ms2_stas
+  ms2_ends <- pos_levs$ms2_ends
+  rm(list = "pos_levs")
+  gap <- row_sta - 1L 
+  gap2 <- 6L
+  g2 <- gap2 + 1L
+
+  for (i in seq_along(ms2_stas)) {
+    ms2sta <- ms2_stas[[i]]
+    if (is.na(ms2sta)) next
+    ms2end <- ms2_ends[[i]]
+    df2 <- df[ms2sta:ms2end, ]
+    
+    rowi <- row_sta + i - 1L
+    maxrow <- min(rowi + gap2, nrow)
+    # minrow <- max(1L, rowi - gap)
+    r2 <- rowi - gap
+    
+    if (rowi > gap) { # more preceding MS1 scans than `gap`
+      if (rowi < maxrow) {
+        # center -> short-range -> long-range
+        if (rowi > g2) {
+          rows <- c(rowi:(rowi - gap2), (rowi + 1L):maxrow, (rowi - g2):r2)
+        } else {
+          rows <- c(rowi:r2, (rowi + 1L):maxrow)
+        }
+      } else {
+        rows <- r2:maxrow
+      }
+    } else {
+      rows <- 1:maxrow
+    }
+    
+    # remove all-NA columns within the `rows`?
+    xs <- matx[rows, ]
+    ys <- maty[rows, ]
+    oks <- .Internal(which(!is.na(xs)))
+    xs <- xs[oks]
+    ys <- ys[oks]
+    
+    oks2 <- !duplicated(xs)
+    xs <- xs[oks2] # can have similar moverzs
+    ys <- ys[oks2]
+    ixs <- as.integer(ceiling(log(xs/from)/log(1+step))) # can have duplicates
+    
+    for (j in 1:nrow(df2)) {
+      xsj <- df2[["ms1_moverz"]][[j]]
+      
+      if (!length(xsj))
+        next
+      
+      ixsj <- as.integer(ceiling(log(xsj/from)/log(1+step)))
+      ps0 <- fastmatch::fmatch(ixsj, ixs) # return the first match if multiples
+      
+      if (any(nas0 <- is.na(ps0))) {
+        ps1 <- fastmatch::fmatch(ixsj + 1L, ixs)
+        ps2 <- fastmatch::fmatch(ixsj - 1L, ixs)
+        
+        # replacing values can be smaller due to fuzzy precursors...
+        if (length(i0 <- which(!nas0))) {
+          # df2[["ms1_int"]][[j]][i0] <- ys[ps0[!is.na(ps0)]]
+          df2[["ms1_int"]][[j]][i0] <- pmax(df2[["ms1_int"]][[j]][i0], ys[ps0[!is.na(ps0)]])
+        }
+        
+        if (length(i1 <- which(!is.na(ps1)))) {
+          # df2[["ms1_int"]][[j]][i1] <- ys[ps1[!is.na(ps1)]]
+          df2[["ms1_int"]][[j]][i1] <- pmax(df2[["ms1_int"]][[j]][i1], ys[ps1[!is.na(ps1)]])
+        }
+        
+        if (length(i2 <- which(!is.na(ps2)))) {
+          # df2[["ms1_int"]][[j]][i2] <- ys[ps2[!is.na(ps2)]]
+          df2[["ms1_int"]][[j]][i2] <- pmax(df2[["ms1_int"]][[j]][i2], ys[ps2[!is.na(ps2)]])
+        }
+      }
+      else {
+        # df2[["ms1_int"]][[j]] <- ys[ps0]
+        df2[["ms1_int"]][[j]] <- pmax(df2[["ms1_int"]][[j]], ys[ps0])
       }
     }
     

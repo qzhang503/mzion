@@ -17,9 +17,9 @@ traceXY(
 )
 }
 \arguments{
-\item{xs}{Vectors of MS1 moverzs.}
+\item{xs}{Vectors of full-spectrum MS1 moverzs.}
 
-\item{ys}{Vectors of MS1 intensities.}
+\item{ys}{Vectors of full-spectrum MS1 intensities.}
 
 \item{ss}{Vectors of MS1 scan numbers.}
 
