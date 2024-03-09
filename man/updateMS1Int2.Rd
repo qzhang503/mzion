@@ -4,7 +4,16 @@
 \alias{updateMS1Int2}
 \title{Updates MS1 intensity with apex values.}
 \usage{
-updateMS1Int2(df, matx, maty, row_sta, row_end, from = 200L, step = 1e-05)
+updateMS1Int2(
+  df,
+  matx,
+  maty,
+  row_sta,
+  row_end,
+  scan_apexs,
+  from = 200L,
+  step = 1e-05
+)
 }
 \arguments{
 \item{df}{A data frame.}
@@ -16,6 +25,9 @@ updateMS1Int2(df, matx, maty, row_sta, row_end, from = 200L, step = 1e-05)
 \item{row_sta}{The starting row of \code{matx}.}
 
 \item{row_end}{The ending row of \code{matx}.}
+
+\item{scan_apexs}{The vectors of apex scan number. Each vector corresponds to
+a mass in \code{matx}.}
 
 \item{from}{The starting point for mass binning.}
 

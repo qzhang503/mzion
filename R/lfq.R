@@ -180,16 +180,16 @@ htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L,
   matx <- mat[["x"]]
   maty <- mat[["y"]]
   
-  ## to update retention times...
+  ## apes, rngs and scans: each vector corresponds to a mass
+  # orig_scan of apexs; not ordered by orig_scan, one-hit-wonders goes first
   apes <- mat[["p"]]
   rngs <- mat[["range"]]
   
-  scans <- vector("list", nc <- ncol(matx))
-  for (i in seq_along(scans)) {
-    scans[[i]] <- ss[apes[[i]]]
+  scan_apexs <- vector("list", nc <- ncol(matx))
+  for (i in seq_along(scan_apexs)) {
+    scan_apexs[[i]] <- as.integer(ss[apes[[i]]])
   }
-  ## 
-  
+
   rm(list = "mat")
   gc()
   
@@ -212,17 +212,15 @@ htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L,
     matx <- matx[sta:end, ]
     maty <- maty[sta:end, ]
     ss <- ss[sta:end]
-  }
-  
-  if (FALSE) {
     # look current
-    df <- updateMS1Int(df = df, matx = matx[sta:end, ], maty = maty[sta:end, ], 
-                       from = from, step = step)
+    df <- updateMS1Int(df = df, matx = matx, maty = maty, from = from, 
+                       step = step)
   }
   else {
     # look before and look ahead
-    df <- updateMS1Int2(df = df, matx = matx, maty = maty, row_sta = sta, row_end = end, 
-                        from = from, step = step)
+    df <- updateMS1Int2(
+      df = df, matx = matx, maty = maty, row_sta = sta, row_end = end, 
+      scan_apexs = scan_apexs, from = from, step = step)
   }
 }
 
@@ -268,7 +266,7 @@ traceXY <- function (xs, ys, ss, n_dia_scans = 4L, from = 115L, step = 1E-5,
   # often coll == cleanup
   ans <- collapse_mms1ints(
     xs = xs, ys = ys, lwr = from, step = step, reord = FALSE, coll = FALSE, 
-    cleanup = FALSE)
+    cleanup = FALSE, add_colnames = TRUE)
   
   ansx <- ans[["x"]]
   ansy <- ans[["y"]]
@@ -286,22 +284,24 @@ traceXY <- function (xs, ys, ss, n_dia_scans = 4L, from = 115L, step = 1E-5,
   }
   
   xmat <- ymat <- matrix(rep_len(NA_real_, nc * nr), ncol = nc)
+  colnames(xmat) <- colnames(ymat) <- colnames(ansx)
+  rownames(xmat) <- rownames(ymat) <- ss
   ranges <- apexes <- ns <- vector("list", nc)
   
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
-      ### removes peaks at intensity < 2% of base peak
-      # i = 1000
+      # removes peaks at intensity < 2% of base peak
       yi <- ansy[, i]
       oks <- !is.na(yi)
       yoks <- yi[oks]
       yoks[yoks < max(yoks) * .02] <- NA_real_
       yi[oks] <- yoks
       gates <- find_lc_gates(yi, n_dia_scans = n_dia_scans)
+      
       # ansy[, i] <- yi
-      ###
-
       # gates <- find_lc_gates(ansy[, i], n_dia_scans = n_dia_scans)
+      
+      # one-hit-wonders go first, not ordered scans
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans
       ranges[[i]] <- rngs <- gates[["ranges"]]
@@ -401,104 +401,89 @@ updateMS1Int <- function (df, matx, maty, from = 200L, step = 1E-5)
 
 
 #' Updates MS1 intensity with apex values.
-#' 
-#' Including forward and backward looking. 
-#' 
+#'
+#' Including forward and backward looking.
+#'
 #' @param df A data frame.
 #' @param matx The matrix of moverzs Y: by masses; X: by LC scans.
 #' @param maty The matrix of intensities. Y: by masses; X: by LC scans.
 #' @param row_sta The starting row of \code{matx}.
 #' @param row_end The ending row of \code{matx}.
+#' @param scan_apexs The vectors of apex scan number. Each vector corresponds to
+#'   a mass in \code{matx}.
 #' @param from The starting point for mass binning.
 #' @param step A step size for mass binning.
-updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, from = 200L, 
-                           step = 1E-5)
+#' @importFrom fastmatch %fin%
+updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, 
+                           from = 200L, step = 1E-5)
   
 {
   nrow <- nrow(matx)
+  unv <- as.integer(colnames(matx))
+  ss <- as.integer(rownames(matx))
   
   pos_levs <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)
   ms1_stas <- pos_levs$ms1_stas
   ms2_stas <- pos_levs$ms2_stas
   ms2_ends <- pos_levs$ms2_ends
   rm(list = "pos_levs")
-  gap <- row_sta - 1L 
-  gap2 <- 6L
-  g2 <- gap2 + 1L
+  gap <- row_sta - 1L
+  gap2 <- 12L
 
-  for (i in seq_along(ms2_stas)) {
+  for (i in seq_along(ms2_stas)) { # the same as by ms1_stas
+    # i = 527 - gap; which(rownames(matx) == 13588)
+    # i = 100;
     ms2sta <- ms2_stas[[i]]
     if (is.na(ms2sta)) next
     ms2end <- ms2_ends[[i]]
     df2 <- df[ms2sta:ms2end, ]
     
-    rowi <- row_sta + i - 1L
-    maxrow <- min(rowi + gap2, nrow)
-    # minrow <- max(1L, rowi - gap)
-    r2 <- rowi - gap
-    
-    if (rowi > gap) { # more preceding MS1 scans than `gap`
-      if (rowi < maxrow) {
-        # center -> short-range -> long-range
-        if (rowi > g2) {
-          rows <- c(rowi:(rowi - gap2), (rowi + 1L):maxrow, (rowi - g2):r2)
-        } else {
-          rows <- c(rowi:r2, (rowi + 1L):maxrow)
-        }
-      } else {
-        rows <- r2:maxrow
-      }
-    } else {
-      rows <- 1:maxrow
-    }
-    
-    # remove all-NA columns within the `rows`?
-    xs <- matx[rows, ]
-    ys <- maty[rows, ]
-    oks <- .Internal(which(!is.na(xs)))
-    xs <- xs[oks]
-    ys <- ys[oks]
-    
-    oks2 <- !duplicated(xs)
-    xs <- xs[oks2] # can have similar moverzs
-    ys <- ys[oks2]
-    ixs <- as.integer(ceiling(log(xs/from)/log(1+step))) # can have duplicates
-    
+    rowi <- gap + i # row index in matx
+    rows <- max(1L, rowi - gap):min(rowi + gap2, nrow)
+    scan <- ss[[rowi]] # scan number of rowi; 13588
+
     for (j in 1:nrow(df2)) {
-      xsj <- df2[["ms1_moverz"]][[j]]
+      # j = 8
+      x2s <- df2[["ms1_moverz"]][[j]]
+      nx <- length(x2s)
+      if (!nx) next
+      ix2s <- as.integer(ceiling(log(x2s/from)/log(1+step)))
+      ks <- lapply(ix2s, function (x) which(abs(x - unv) <= 1L))
       
-      if (!length(xsj))
-        next
-      
-      ixsj <- as.integer(ceiling(log(xsj/from)/log(1+step)))
-      ps0 <- fastmatch::fmatch(ixsj, ixs) # return the first match if multiples
-      
-      if (any(nas0 <- is.na(ps0))) {
-        ps1 <- fastmatch::fmatch(ixsj + 1L, ixs)
-        ps2 <- fastmatch::fmatch(ixsj - 1L, ixs)
+      for (m in 1:nx) {
+        k <- ks[[m]] # the k-th column
         
-        # replacing values can be smaller due to fuzzy precursors...
-        if (length(i0 <- which(!nas0))) {
-          # df2[["ms1_int"]][[j]][i0] <- ys[ps0[!is.na(ps0)]]
-          df2[["ms1_int"]][[j]][i0] <- pmax(df2[["ms1_int"]][[j]][i0], ys[ps0[!is.na(ps0)]])
+        if (!length(k)) {
+          next
         }
         
-        if (length(i1 <- which(!is.na(ps1)))) {
-          # df2[["ms1_int"]][[j]][i1] <- ys[ps1[!is.na(ps1)]]
-          df2[["ms1_int"]][[j]][i1] <- pmax(df2[["ms1_int"]][[j]][i1], ys[ps1[!is.na(ps1)]])
-        }
+        k <- k[[1]] # can have multiple matches
         
-        if (length(i2 <- which(!is.na(ps2)))) {
-          # df2[["ms1_int"]][[j]][i2] <- ys[ps2[!is.na(ps2)]]
-          df2[["ms1_int"]][[j]][i2] <- pmax(df2[["ms1_int"]][[j]][i2], ys[ps2[!is.na(ps2)]])
+        # ix <- unv[[k]]; # a <- maty[, which(colnames(matx) == unv[[k]])]; a <- maty[, 3218:3219]
+        apexs <- scan_apexs[[k]] # apex scan numbers; note: scan_apexs not ordered
+        d1 <- abs(apexs - scan)
+        p1 <- which.min(d1)
+        ap1 <- apexs[[p1]] # the nearest apex scan; 13525
+        y1 <- maty[which(ss == ap1), k]
+        
+        # check neighbors
+        if (length(apexs) > 1L) {
+          ps <- which_topx2(-d1, 2L)
+          p2 <- ps[ps != p1]
+          ap2 <- apexs[[p2]] # the second nearest apex scan; 13686
+          y2 <- maty[which(ss == ap2), k]
+          
+          # later check peak spacing and peak width (for small satellite peaks)
+          if ((y1 < y2) && (abs(ap2 - ap1) <= 200L)) {
+            y1 <- y2
+          }
         }
-      }
-      else {
-        # df2[["ms1_int"]][[j]] <- ys[ps0]
-        df2[["ms1_int"]][[j]] <- pmax(df2[["ms1_int"]][[j]], ys[ps0])
+
+        df2[["ms1_int"]][[j]][m] <- max(df2[["ms1_int"]][[j]][m], y1)
+        # df2[["ms1_int"]][[j]][m] <- y1
       }
     }
-    
+
     df[["ms1_int"]][ms2sta:ms2end] <- df2[["ms1_int"]]
   }
   

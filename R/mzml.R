@@ -1267,7 +1267,8 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       mid_len <- max(as.integer(len/2), 1L)
       mid_rt <- rts[mid_len]
       
-      d <- 120
+      # d <- 120
+      d <- 180
       grs <- which(rts > mid_rt + d)
       upr <- if (length(grs)) grs[[1]] else len
       rt_gap <- max(upr - mid_len, 1L)
@@ -3142,6 +3143,8 @@ fill_lc_gaps <- function (ys, n_dia_scans = 4L)
 #' @param coll Logical; to further collapse results or not.
 #' @param cleanup Logical; to perform data row clean-ups or not. Rows may drop
 #'   at \code{cleanup = TRUE}.
+#' @param add_colnames Logical; if TRUE, add the indexes of mass bins to the
+#'   column names of \code{matx}.
 #' @importFrom fastmatch %fin%
 #' @examples
 #' # Twos adjacent bins of xs: 392.1796, 392.1845
@@ -3163,7 +3166,8 @@ fill_lc_gaps <- function (ys, n_dia_scans = 4L)
 #' ys[[7]] <- 15706.2627; ys[[8]] <- 19803.5879; ys[[10]] <- 31178.9648
 #' # collapse_mms1ints(xs, ys, lwr = 951.089731)
 collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5, 
-                               reord = FALSE, coll = TRUE, cleanup = TRUE)
+                               reord = FALSE, coll = TRUE, cleanup = TRUE, 
+                               add_colnames = FALSE)
 {
   ### 
   # the utility is often called heavily;
@@ -3245,6 +3249,10 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   ymat <- mapcoll_xyz(vals = ys, ups = ups, lenx = lenx, lenu = lenu, 
                       direct_out = TRUE)
   # rm(list = c("ys", "ups"))
+  
+  if (add_colnames) {
+    colnames(xmat) <- colnames(ymat) <- unv
+  }
 
   ## collapses adjacent entries
   ps <- find_gates(unv)

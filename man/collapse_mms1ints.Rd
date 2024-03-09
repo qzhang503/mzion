@@ -11,7 +11,8 @@ collapse_mms1ints(
   step = 1e-05,
   reord = FALSE,
   coll = TRUE,
-  cleanup = TRUE
+  cleanup = TRUE,
+  add_colnames = FALSE
 )
 }
 \arguments{
@@ -29,6 +30,9 @@ collapse_mms1ints(
 
 \item{cleanup}{Logical; to perform data row clean-ups or not. Rows may drop
 at \code{cleanup = TRUE}.}
+
+\item{add_colnames}{Logical; if TRUE, add the indexes of mass bins to the
+column names of \code{matx}.}
 }
 \description{
 Allow adjacent values in unv and later collapse adjacent columns/values.
