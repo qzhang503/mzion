@@ -94,6 +94,7 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
     mgfs <- split(mgfs, ms1_bins)
   }
   else {
+    # temporarily drop apex_scan_num...
     mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, quant = quant, 
                           min_mass = min_mass, ppm_ms1_bin = ppm_ms1_bin)
     mgfs <- mgfs[names(mgfs) != "-Inf"] # unknown precursors
@@ -206,7 +207,7 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
 make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L, 
                            ppm_ms1_bin = 10L)
 {
-  mgfs$ms_level <- mgfs$demux <- NULL
+  mgfs$apex_scan_num <- mgfs$ms_level <- mgfs$demux <- NULL
   
   col_nms  <- names(mgfs)
   cols2a <- c("ms2_moverzs", "ms2_ints", "ms2_charges")

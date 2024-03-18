@@ -7,13 +7,14 @@
 subMSfull(xs, ys, ms1s, from = 200L, step = 1e-05, gap = 256L)
 }
 \arguments{
-\item{xs}{Vectors of full-spectrum moverz values.}
+\item{xs}{Vectors of full-spectrum m/z values.}
 
 \item{ys}{Vectors of full-spectrum intensity values.}
 
-\item{ms1s}{Vectors of MS2-specific MS1 moverz values.}
+\item{ms1s}{Vectors of MS2-specific MS1 m/z values (corresponding to
+\code{ms_level == 2L}).}
 
-\item{from}{The starting movzerz for calculating bin indexes.}
+\item{from}{The starting m/z value for calculating bin indexes.}
 
 \item{step}{The size of bins.}
 

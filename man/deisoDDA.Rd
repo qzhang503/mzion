@@ -12,6 +12,7 @@ deisoDDA(
   maxn_mdda_precurs = 5L,
   topn_ms2ions = 150L,
   n_mdda_flanks = 6L,
+  n_dia_scans = 4L,
   min_mass = 200L,
   max_mass = 4500L,
   min_ms2mass = 115L,
@@ -59,6 +60,10 @@ searches.}
 
 \item{n_mdda_flanks}{The number of preceding and following MS1 scans for
 consideration when averaging isotope envelops of precursors.}
+
+\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
+constructing a peak profile and thus for determining the apex scan number
+of an moverz value along LC.}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
 interrogation. The default is an arbitrarily low value (the primary guard

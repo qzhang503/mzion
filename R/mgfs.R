@@ -270,9 +270,13 @@ readMGF <- function (filepath = NULL, filelist = NULL, out_path = NULL,
   nfields_pepmass <- pat_mgf$nfields_pepmass
   raw_file <- pat_mgf$raw_file
   
-  if (type_mgf == "default_pasef")
-    mprepBrukerMGF(filepath)
+  len <- length(filelist)
   
+  if (type_mgf == "default_pasef") {
+    mprepBrukerMGF(filepath, len)
+  }
+
+
   local({
     if (type_mgf == "msconv_thermo") {
       data_format <- "Thermo-RAW"
@@ -299,10 +303,16 @@ readMGF <- function (filepath = NULL, filelist = NULL, out_path = NULL,
   # separate parallel process: 
   # (1) one large MGF file and parallel chunks
   # (2) parallel five MGF files and parallel chunks in each
-  n_cores <- min(len <- length(filelist), detect_cores(32L))
-
-  if (n_cores == 1L)
-    raw_files <- readlineMGFs(1, filelist, filepath, raw_file)
+  
+  n_cores <- min(len, detect_cores(32L))
+  
+  if (n_cores == 1L) {
+    raw_files <- vector("list", len)
+    
+    for (i in 1:len) {
+      raw_files[[i]] <- readlineMGFs(i, filelist[[i]], filepath, raw_file)
+    }
+  }
   else {
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     raw_files <- parallel::clusterMap(cl, readlineMGFs, 
@@ -312,11 +322,11 @@ readMGF <- function (filepath = NULL, filelist = NULL, out_path = NULL,
                                       SIMPLIFY = FALSE, USE.NAMES = FALSE)
     parallel::stopCluster(cl)
   }
-
+  
   ## Reads from chunks
   warning("An mzML or MGF with multiple RAWs not supported since v1.3.4. ", 
           "Each peaklist file need contain exactly one RAW file.")
-  
+
   out <- vector("list", len)
   
   for (i in seq_along(filelist)) {
@@ -1166,7 +1176,7 @@ sub_mgftopn <- function (ms2_moverzs = NULL, ms2_ints = NULL, ms2_charges = NULL
     }
     else {
       rows <- lapply(ms2_ints[is_long], which_topx2, topn_ms2ions)
-      
+
       ms2_ints[is_long] <- mapply(function (x, y) x[y], 
                                   ms2_ints[is_long], rows, 
                                   SIMPLIFY = FALSE, USE.NAMES = FALSE)
@@ -1467,7 +1477,7 @@ find_mgf_type <- function (file)
     
     sep_ms2s <- "\t"
     nfields_ms2s <- 3L
-    sep_pepmass <- "\t"
+    sep_pepmass <- " "
     nfields_pepmass <- 2L
     raw_file <- "."
   }

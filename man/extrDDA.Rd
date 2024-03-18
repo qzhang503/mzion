@@ -32,7 +32,8 @@ extrDDA(
   idx_scan_lwr_1 = 8L,
   idx_scan_upr_1 = 9L,
   idx_scan_lwr_2 = 8L,
-  idx_scan_upr_2 = 9L
+  idx_scan_upr_2 = 9L,
+  is_regular = TRUE
 )
 }
 \arguments{
@@ -91,6 +92,8 @@ extrDDA(
 \item{idx_scan_lwr_2}{Index of lowest MS2 mass.}
 
 \item{idx_scan_upr_2}{Index of highest MS2 mass.}
+
+\item{is_regular}{Logical; TRUE at Thermo's and FALSE at timsTOF's .d.}
 }
 \description{
 Proc mzML data for mDDA workflows.

@@ -4,17 +4,10 @@
 \alias{pretraceXY}
 \title{Splits \code{df} for parallel tracing.}
 \usage{
-pretraceXY(
-  df,
-  from = 200L,
-  step = 1e-05,
-  n_chunks = 4L,
-  gap = 256L,
-  n_dia_scans = 4L
-)
+pretraceXY(df, from = 200L, step = 1e-05, n_chunks = 4L, gap = 256L)
 }
 \arguments{
-\item{df}{A data frame of both MS1 and MS2.}
+\item{df}{A data frame of staggering MS1 and MS2 entries.}
 
 \item{from}{The starting point for mass binning.}
 
@@ -22,11 +15,7 @@ pretraceXY(
 
 \item{n_chunks}{The number of chunks.}
 
-\item{gap}{The size of gapped entries.}
-
-\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
-constructing a peak profile and thus for determining the apex scan number
-of an moverz value along LC.}
+\item{gap}{A gap size for forward and backward looking of precursors.}
 }
 \description{
 Splits \code{df} for parallel tracing.

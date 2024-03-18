@@ -84,7 +84,14 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
     peakfiles <- "01CPTAC3_Benchmarking_W_BI_20170508_BL_f02.raw.rds"
     iso_width <- 0.699999988
     
-    # peakfiles <- qs::qread("~/peakfiles_bi_g1.rds")
+    is_dia <- FALSE
+    peakfiles <- "CPTAC_CCRCC_W_JHU_20190112_LUMOS_C3N-01261_T.raw.rds"
+    iso_width <- 34
+    
+    peakfiles <- qs::qread("~/peakfiles_bi_g1.rds")
+    # peakfiles <- qs::qread(file.path(temp_dir, "peaklists.rds"))
+    is_dia <- FALSE
+    iso_width <- 0.699999988
   }
 
   lenf <- length(peakfiles)
@@ -254,6 +261,7 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
           maxn_mdda_precurs = maxn_mdda_precurs, 
           topn_ms2ions = topn_ms2ions, 
           n_mdda_flanks = n_mdda_flanks, 
+          n_dia_scans = n_dia_scans, 
           min_mass = min_mass, max_mass = max_mass, 
           min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
           min_ms1_charge = min_ms1_charge, max_ms1_charge = max_ms1_charge, 
@@ -286,6 +294,7 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
           maxn_mdda_precurs = maxn_mdda_precurs, 
           topn_ms2ions = topn_ms2ions, 
           n_mdda_flanks = n_mdda_flanks, 
+          n_dia_scans = n_dia_scans, 
           min_mass = min_mass, max_mass = max_mass, 
           min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
           min_ms1_charge = min_ms1_charge, max_ms1_charge = max_ms1_charge, 
@@ -372,31 +381,56 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
   idx_sw <- which(xml2::xml_name(mzC) == "softwareList")
   softwares <- mzC[[idx_sw]]
   softwaresC <- xml2::xml_children(softwares)
-  idx_pwiz <- which(unlist(lapply(softwaresC, xml2::xml_attr, "id")) == "pwiz")
+  
+  ###
+  software_ids <- unlist(lapply(softwaresC, xml2::xml_attr, "id"))
+  idx_pwiz <- which(software_ids == "pwiz")
+  
+  if (length(idx_pwiz)) {
+    is_regular <- TRUE
+  } else {
+    is_regular <- FALSE
+    
+    idx_pwiz <- which(software_ids == "pwiz_Reader_Bruker") # 3L
+    
+    if (!length(idx_pwiz)) {
+      idx_pwiz <- 3L
+    }
+  }
+  
   pwiz <- softwaresC[[idx_pwiz]]
   pwiz_ver <- xml2::xml_attr(pwiz, "version")
   pwiz_ver <- strsplit(pwiz_ver, ".", fixed = TRUE)[[1]]
   
-  if ((len_pwiz <- length(pwiz_ver)) >= 2L)
+  if ((len_pwiz <- length(pwiz_ver)) >= 2L) {
     pwiz_ver_major <- as.numeric(paste0(pwiz_ver[[1]], ".", pwiz_ver[[2]]))
-  else if (len_pwiz == 1L)
+  } else if (len_pwiz == 1L) {
     pwiz_ver_major <- as.numeric(pwiz_ver)
-  else {
+  } else {
     warning("Unknown MSConvert version.")
     pwiz_ver_major <- 3.0
   }
   
-  if (pwiz_ver_major < 3)
+  if (pwiz_ver_major < 3) {
     stop("Use MSConvert version >= 3.0.")
-  
+  }
+
   raw_file <- local({
     idx_file <- which(xml2::xml_name(mzC) == "fileDescription")
     file_des <- mzC[[idx_file]]
     idx_srcl <- which(xml2::xml_name(xml2::xml_children(file_des)) == "sourceFileList")
     info_raw <- xml2::xml_children(file_des)[[idx_srcl]]
     idx_srcf <- which(xml2::xml_name(xml2::xml_children(info_raw)) == "sourceFile")
-    info_fi  <- xml2::xml_children(info_raw)[[idx_srcf]]
-    raw_file <- xml2::xml_attr(info_fi, "name")
+    
+    if (length(idx_srcf) == 1L) {
+      info_fi  <- xml2::xml_children(info_raw)[[idx_srcf]]
+      raw_file <- xml2::xml_attr(info_fi, "name")
+    } else { # timsTOF
+      idx_srcf <- idx_srcf[[1]]
+      info_fi  <- xml2::xml_children(info_raw)[[idx_srcf]]
+      raw_file <- xml2::xml_attr(info_fi, "id")
+      raw_file <- gsub("(^.*\\.d)_.*\\.tdf$", "\\1", raw_file)
+    }
   })
   
   idx_run <- which(xml2::xml_name(mzC) == "run")
@@ -456,8 +490,17 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
   id_nms <- lapply(ids, `[[`, 1)
   idx_demux <- which(id_nms == "demux")
   is_demux <- if (length(idx_demux)) TRUE else FALSE
-  idx_sc <- which(id_nms == "scan")
-  if (!length(idx_osc <- which(id_nms == "originalScan"))) idx_osc <- idx_sc
+  
+  if (is_regular) {
+    idx_sc <- which(id_nms == "scan")
+    if (!length(idx_osc <- which(id_nms == "originalScan"))) idx_osc <- idx_sc
+    idx_sc_start <- idx_sc_end <- idx_osc
+  } else {
+    idx_sc_start <- which(id_nms == "scanStart") # 3
+    idx_sc_end <- which(id_nms == "scanEnd") # 4
+    idx_osc <- idx_sc <- idx_sc_start
+    # c(idx_sc_start, idx_sc_end) # length(2)
+  }
   
   xc <- xml2::xml_children(x)
   xcp_attrs <- xml2::xml_attrs(xc[which(xml2::xml_name(xc) == "cvParam")])
@@ -473,48 +516,70 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
   allowance <- min(100L, len)
   count <- 0L
   
-  if (!len)
+  if (!len) {
     stop("No spectrum data found.")
-  
+  }
+
   for (i in rng) {
+    # i=46
+    # i = 6000
     x <- spec[[i]]
     xc <- xml2::xml_children(x)
     
     if (xml2::xml_attr(xc[[idx_mslev]], "value") == "2") {
-      idx_scan_lwr_2 <- grep("lowest observed m/z", xc)
-      if (!length(idx_scan_lwr_2)) {
-        warning("Fields of `lowest observed m/z` not found.")
-        idx_scan_lwr_2 <- 8L
+      if (is_regular) {
+        idx_scan_lwr_2 <- grep("lowest observed m/z", xc)
+        if (!length(idx_scan_lwr_2)) {
+          warning("Fields of `lowest observed m/z` not found.")
+          idx_scan_lwr_2 <- 8L
+        }
+      } else {
+        idx_scan_lwr_2 <- grep("ion mobility lower limit", xc)
+        if (!length(idx_scan_lwr_2)) {
+          warning("Fields of `ion mobility lower limit` not found.")
+          idx_scan_lwr_2 <- 8L
+        }
       }
       
-      idx_scan_upr_2 <- grep("highest observed m/z", xc)
-      if (!length(idx_scan_upr_2)) {
-        warning("Fields of `highest observed m/z` not found.")
-        idx_scan_upr_2 <- 9L
+      if (is_regular) {
+        idx_scan_upr_2 <- grep("highest observed m/z", xc)
+        if (!length(idx_scan_upr_2)) {
+          warning("Fields of `highest observed m/z` not found.")
+          idx_scan_upr_2 <- 9L
+        }
+      } else {
+        idx_scan_upr_2 <- grep("ion mobility upper limit", xc)
+        if (!length(idx_scan_upr_2)) {
+          warning("Fields of `ion mobility upper limit` not found.")
+          idx_scan_upr_2 <- 9L
+        }
       }
       
       idx_precursor_2 <- grep("precursorList", xc)
       if (!length(idx_precursor_2)) {
         warning("Fields of `precursorList` not found.")
-        idx_precursor_2 <- 12L
+        idx_precursor_2 <- if (is_regular) 12L else 11L
       }
       
       idx_scanList_2 <- grep("scanList", xc)
       if (!length(idx_scanList_2)) {
         warning("Fields of `scanList` not found.")
-        idx_scanList_2 <- 11L
+        idx_scanList_2 <- if (is_regular) 11L else 10L
       }
       
       idx_bin_2 <- grep("binaryDataArrayList", xc)
       if (!length(idx_bin_2)) {
         warning("Fields of `binaryDataArrayList` not found.")
-        idx_bin_2 <- 13L
+        idx_bin_2 <- if (is_regular) 13L else 12L
       }
       
       scanList <- xml2::xml_children(xc[[idx_scanList_2]])
       
+      # !!! a range if timsTOF
       idx_rt_2 <- which(xml2::xml_name(scanList) == "scan")
-      if (!length(idx_rt_2)) {
+      if (length(idx_rt_2)) {
+        idx_rt_2 <- idx_rt_2[[1]]
+      } else {
         warning("Fields of `scan` not found.")
         idx_rt_2 <- 2L
       }
@@ -528,19 +593,31 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
         idx_scan_start_2 <- 1L
       }
       
-      idx_ms2_reso <- which(scanList_ret_attrs == "mass resolving power")
-      if (length(idx_ms2_reso)) {
-        ms2_reso <- scanList_ret[[idx_ms2_reso]]
-        ms2_reso <- as.integer(xml2::xml_attr(ms2_reso, "value"))
+      if (is_regular) {
+        idx_ms2_reso <- which(scanList_ret_attrs == "mass resolving power")
+        if (length(idx_ms2_reso)) {
+          ms2_reso <- scanList_ret[[idx_ms2_reso]]
+          ms2_reso <- as.integer(xml2::xml_attr(ms2_reso, "value"))
+        } else {
+          warning("Fields of `mass resolving power` not found.")
+          ms2_reso <- 120000L
+        }
       } else {
-        warning("Fields of `mass resolving power` not found.")
-        ms2_reso <- 120000L
+        idx_ms2_reso <- which(scanList_ret_attrs == "inverse reduced ion mobility")
+        if (length(idx_ms2_reso)) {
+          ms2_reso <- scanList_ret[[idx_ms2_reso]]
+          ms2_reso <- as.integer(xml2::xml_attr(ms2_reso, "value"))
+        } else {
+          warning("Fields of `inverse reduced ion mobility` not found.")
+          ms2_reso <- 1L
+        }
       }
-      
+
       # entire MS2 is empty
-      if (length(xc) < idx_precursor_2)
+      if (length(xc) < idx_precursor_2) {
         next
-      
+      }
+        
       precursorList <- xml2::xml_children(xc[[idx_precursor_2]])
       precursor <- precursorList[[1]] # assume one precursor
       precursorc <- xml2::xml_children(precursor)
@@ -594,7 +671,8 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
         idx_moverz <- 1L
       }
       
-      idx_ms1int <- which(selion_nms == "peak intensity") # DIA: zero intensity
+      # not with timsTOF?
+      idx_ms1int <- which(selion_nms == "peak intensity") # DIA: zero intensity; timsTOF: length(0)
       if (!length(idx_ms1int)) {
         if (count <= allowance) {
           count <- count + 1L
@@ -609,6 +687,9 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
       idx_charge <- which(selion_nms == "charge state") # DIA: no "charge state"
       is_dia <- if (length(idx_charge)) FALSE else TRUE
       
+      # timsTOF
+      if (is_dia && !is_regular) is_dia <- FALSE
+      
       rm(list = c("scanList", "scanList_ret", "scanList_ret_attrs", 
                   "precursorList", "precursor", "precursorc", 
                   "selectedIon", "selectedIonc", "selion_nms"))
@@ -622,31 +703,46 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
     xc <- xml2::xml_children(x)
     
     if (as.integer(xml2::xml_attr(xc[[idx_mslev]], "value")) == 1) {
-      idx_scan_lwr_1 <- grep("lowest observed m/z", xc)
-      if (!length(idx_scan_lwr_1)) {
-        warning("Fields of `lowest observed m/z` not found.")
-        idx_scan_lwr_1 <- 8L
+      if (is_regular) {
+        idx_scan_lwr_1 <- grep("lowest observed m/z", xc) # "ion mobility lower limit"
+        if (!length(idx_scan_lwr_1)) {
+          warning("Fields of `lowest observed m/z` not found.")
+          idx_scan_lwr_1 <- 8L
+        }
+        
+        idx_scan_upr_1 <- grep("highest observed m/z", xc) # "ion mobility upper limit"
+        if (!length(idx_scan_upr_1)) {
+          warning("Fields of `highest observed m/z` not found.")
+          idx_scan_upr_1 <- 9L
+        }
+      } else {
+        idx_scan_lwr_1 <- grep("ion mobility lower limit", xc) # "ion mobility lower limit"
+        if (!length(idx_scan_lwr_1)) {
+          warning("Fields of `ion mobility lower limit` not found.")
+          idx_scan_lwr_1 <- 8L
+        }
+        
+        idx_scan_upr_1 <- grep("ion mobility upper limit", xc) # "ion mobility upper limit"
+        if (!length(idx_scan_upr_1)) {
+          warning("Fields of `ion mobility upper limit` not found.")
+          idx_scan_upr_1 <- 9L
+        }
       }
-      
-      idx_scan_upr_1 <- grep("highest observed m/z", xc)
-      if (!length(idx_scan_upr_1)) {
-        warning("Fields of `highest observed m/z` not found.")
-        idx_scan_upr_1 <- 9L
-      }
-      
+
       idx_scanList_1 <- grep("scanList", xc)
       if (!length(idx_scanList_1)) {
         warning("Fields of `scanList` not found.")
-        idx_scanList_1 <- 11L
+        idx_scanList_1 <- if (is_regular) 11L else 10L
       }
       
       idx_bin_1 <- grep("binaryDataArrayList", xc)
       if (!length(idx_bin_1)) {
         warning("Fields of `binaryDataArrayList` not found.")
-        idx_bin_1 <- 12L
+        idx_bin_1 <- if (is_regular) 12L else 11L
       }
       
       local({
+        # [[1]] name="m/z array"; [[2]] name="intensity array"; [[3]] name="mean inverse reduced ion mobility array"
         binData <- xml2::xml_children(xc[[idx_bin_1]])[[1]]
         binDataC <- xml2::xml_children(binData)
         binDataC <- binDataC[which(xml2::xml_name(binDataC) == "cvParam")]
@@ -662,13 +758,12 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
       })
       
       scanList <- xml2::xml_children(xc[[idx_scanList_1]])
-      
       idx_rt_1 <- which(xml2::xml_name(scanList) == "scan")
       if (!length(idx_rt_1)) {
         warning("Fields of `scan` not found.")
         idx_rt_1 <- 2L
       }
-      
+
       scanList_ret <- xml2::xml_children(scanList[[idx_rt_1]])
       
       scan_ret_attrs <- xml2::xml_attr(scanList_ret, "name")
@@ -680,6 +775,8 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
         warning("Fields of `scan start time` not found.")
         idx_scan_start_1 <- 1L
       }
+      
+      # idx_scan_start_im <- which(scan_ret_attrs == "inverse reduced ion mobility")
       
       rm(list = c("scanList", "scanList_ret", "scan_ret_attrs"))
       break
@@ -727,7 +824,8 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
       idx_rt_1 = idx_rt_1, idx_scan_start_1 = idx_scan_start_1, 
       idx_bin_1 = idx_bin_1, 
       idx_scan_lwr_1 = idx_scan_lwr_1, idx_scan_upr_1 = idx_scan_upr_1, 
-      idx_scan_lwr_2 = idx_scan_lwr_2, idx_scan_upr_2 = idx_scan_upr_2)
+      idx_scan_lwr_2 = idx_scan_lwr_2, idx_scan_upr_2 = idx_scan_upr_2, 
+      is_regular = is_regular)
   }
   
   attr(filename, "is_dia") <- is_dia
@@ -767,6 +865,7 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
 #' @param idx_scan_start_1 Index of MS1 scan starts.
 #' @param idx_bin_1 Index of MS1 binary data.
 #' @param raw_file The RAW file name of an mzML.
+#' @param is_regular Logical; TRUE at Thermo's and FALSE at timsTOF's .d.
 extrDDA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL, 
                      idx_sc = 3L, idx_osc = 3L, idx_mslev = 2L, 
                      idx_title = 10L, idx_scanList_2 = 11L, idx_rt_2 = 2L, 
@@ -777,7 +876,7 @@ extrDDA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL,
                      idx_scanList_1 = 11L, idx_rt_1 = 2L, 
                      idx_scan_start_1 = 1L, idx_bin_1 = 12L, 
                      idx_scan_lwr_1 = 8L, idx_scan_upr_1 = 9L, 
-                     idx_scan_lwr_2 = 8L, idx_scan_upr_2 = 9L)
+                     idx_scan_lwr_2 = 8L, idx_scan_upr_2 = 9L, is_regular = TRUE)
 {
   len <- length(spec)
   
@@ -791,6 +890,10 @@ extrDDA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL,
     msx_moverzs <- msx_ints <- msx_charges <- vector("list", len)
   ms_levs <- msx_ns <- integer(len)
   
+  if (!is_regular) {
+    msx_mobils <- vector("list", len)
+  }
+
   for (i in 1:len) {
     x <- spec[[i]]
     ids <- .Internal(strsplit(xml2::xml_attr(x, "id"), " ", fixed = TRUE, 
@@ -842,13 +945,22 @@ extrDDA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL,
     
     # full MS1 or MS2 spectrum
     msData <- xml2::xml_contents(binData)
+    len_ms <- length(msData)
     
-    if (length(msData) == 2L) {
+    if (len_ms == 2L) {
       r1 <- .Call(base64enc:::B64_decode, xml2::xml_text(msData[[1]]))
       r2 <- .Call(base64enc:::B64_decode, xml2::xml_text(msData[[2]]))
       msx_ns[[i]] <- msx_n <- as.integer(length(r1)/8L)
       msx_moverzs[[i]] <- readBin(r1, "double", n = msx_n, size = 8L)
       msx_ints[[i]] <- readBin(r2, "double", n = msx_n, size = 8L)
+    } else if (len_ms == 3L) { # timsTOF
+      r1 <- .Call(base64enc:::B64_decode, xml2::xml_text(msData[[1]]))
+      r2 <- .Call(base64enc:::B64_decode, xml2::xml_text(msData[[2]]))
+      r3 <- .Call(base64enc:::B64_decode, xml2::xml_text(msData[[3]]))
+      msx_ns[[i]] <- msx_n <- as.integer(length(r1)/8L)
+      msx_moverzs[[i]] <- readBin(r1, "double", n = msx_n, size = 8L)
+      msx_ints[[i]] <- readBin(r2, "double", n = msx_n, size = 8L)
+      msx_mobils[[i]] <- readBin(r3, "double", n = msx_n, size = 8L)
     }
   }
   
@@ -886,7 +998,7 @@ extrDDA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL,
 hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL, 
                        ppm_ms1 = 10L, ppm_ms2 = 10L, 
                        maxn_mdda_precurs = 5L, 
-                       topn_ms2ions = 150L, n_mdda_flanks = 6L, 
+                       topn_ms2ions = 150L, n_mdda_flanks = 6L, n_dia_scans = 4L, 
                        min_mass = 200L, max_mass = 4500L,
                        min_ms2mass = 115L, max_ms2mass = 4500L, 
                        min_ms1_charge = 2L, max_ms1_charge = 4L, 
@@ -909,6 +1021,7 @@ hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL,
     maxn_mdda_precurs = maxn_mdda_precurs, 
     topn_ms2ions = topn_ms2ions, 
     n_mdda_flanks = n_mdda_flanks, 
+    n_dia_scans = n_dia_scans, 
     min_mass = min_mass, 
     max_mass = max_mass, 
     min_ms2mass = min_ms2mass, 
@@ -966,7 +1079,7 @@ hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL,
 deisoDDA <- function (filename = NULL, temp_dir = NULL, 
                       ppm_ms1 = 10L, ppm_ms2 = 10L, 
                       maxn_mdda_precurs = 5L, topn_ms2ions = 150L, 
-                      n_mdda_flanks = 6L, 
+                      n_mdda_flanks = 6L, n_dia_scans = 4L, 
                       min_mass = 200L, max_mass = 4500L,
                       min_ms2mass = 115L, max_ms2mass = 4500L, 
                       min_ms1_charge = 2L, max_ms1_charge = 4L, 
@@ -1193,7 +1306,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       
       ###
       # Up to this point, ms1_moverzs are list(NULL) at ms_level == 1L;
-      # Not to trace all MS1 features by only the monoisotopic 
+      # Not to trace all MS1 features but only the monoisotopic 
       #  that have been assigned to MS2 scans.
       ###
       
@@ -1252,7 +1365,8 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
   
 
   ## LFQ: replaces intensities with apex values
-  if (use_lfq_intensity) {
+  # No MS1 info at maxn_mdda_precurs == 0L
+  if (use_lfq_intensity && maxn_mdda_precurs) {
     # df[["orig_ms1_ints"]] <- df[["ms1_int"]]
     step <- ppm_ms1 * 1e-6
     
@@ -1267,20 +1381,19 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       mid_len <- max(as.integer(len/2), 1L)
       mid_rt <- rts[mid_len]
       
-      # d <- 120
       d <- 180
       grs <- which(rts > mid_rt + d)
       upr <- if (length(grs)) grs[[1]] else len
       rt_gap <- max(upr - mid_len, 1L)
     })
     
-    # `orig_scan` for troubleshooting
     ans_prep <- pretraceXY(
       df[, c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", "ms_level", 
              "msx_moverzs", "msx_ints", "msx_charges", "orig_scan")], 
       from = min_mass, step = step, 
-      n_chunks = ceiling(sum(df$ms_level == 1L)/512L), # 1024L, more RAM, same speed 
-      gap = rt_gap, n_dia_scans = 4L) # included n_dia_scans in pars later...
+      # 1024L: more RAM, same speed 
+      n_chunks = ceiling(sum(df$ms_level == 1L)/512L), 
+      gap = rt_gap)
     
     dfs <- ans_prep$dfs
     df1s <- ans_prep$df1s
@@ -1304,11 +1417,11 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         gaps_bf, 
         gaps_af, 
         MoreArgs = list(
-          n_dia_scans = 4L, from = min_mass, step = step
+          n_mdda_flanks = n_mdda_flanks, from = min_mass, step = step
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
       parallel::stopCluster(cl)
     }
-    else { # slow
+    else {
       vxs <- lapply(df1s, `[[`, "msx_moverzs")
       vys <- lapply(df1s, `[[`, "msx_ints")
       vdf <- lapply(dfs, `[`, cols)
@@ -1319,13 +1432,40 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         out[[i]] <- htraceXY(
           xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], df = vdf[[i]], 
           gap_bf <- gaps_bf[[i]], gap_af = gaps_af[[i]], 
-          n_dia_scans = 4L, from = min_mass, step = step)
+          # may be > n_mdda_flanks
+          n_mdda_flanks = n_mdda_flanks, from = min_mass, step = step)
+        
+        if (FALSE) {
+          if (all(lengths(vxs[[i]]) == 0L)) {
+            li <- length(vxs[[i]]) - gaps_bf[[i]] - gaps_af[[i]] + 1L
+            null <- rep_len(list(NULL), li)
+            
+            out[[i]] <- tibble::tibble(
+              ms_level = vdf[[i]]$ms_level, 
+              ms1_moverz = null, 
+              ms1_int = null, 
+              apex_scan_num = null)
+          } else {
+            out[[i]] <- htraceXY(
+              xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], df = vdf[[i]], 
+              gap_bf <- gaps_bf[[i]], gap_af = gaps_af[[i]], 
+              # may be > n_mdda_flanks
+              n_mdda_flanks = n_mdda_flanks, from = min_mass, step = step)
+          }
+        }
+        
       }
       rm(list = c("vxs", "vys", "vdf", "gaps", "lenv"))
     }
 
     out <- dplyr::bind_rows(out)
-    df[, cols] <- out
+    df[, cols] <- out[, cols]
+    ###
+    df$apex_scan_num <- out$apex_scan_num
+    empties <- lengths(df$apex_scan_num) == 0L
+    df$apex_scan_num[empties] <- df$orig_scan[empties]
+    df <- reloc_col_after(df, "apex_scan_num", "orig_scan")
+    ###
     rm(list = "out")
     
     ## Obtains ms1_int from the corresponding full MS1 (msx_ints)
@@ -1334,8 +1474,12 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     
     # later use apex values to update retention times...
   }
+  else {
+    df$apex_scan_num <- df$orig_scan
+  }
 
   ## cleans up
+  df <- reloc_col_after(df, "apex_scan_num", "orig_scan")
   rows <- df$ms_level == 1L
   df <- df[!rows, ]
   bads <- unlist(lapply(df$ms1_moverz, is.null))
@@ -3208,16 +3352,17 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   
   if (reord) {
     lens <- lengths(xs)
-    ords <- lapply(xs, order)
     
     for (i in seq_along(xs)) {
+      xi <- xs[[i]]
+      
       if (lens[[i]]) {
-        ordi <- ords[[i]]
-        xs[[i]] <- xs[[i]][ordi]
-        ys[[i]] <- ys[[i]][ordi]
+        ord <- order(xi)
+        xs[[i]] <- xi[ord]
+        ys[[i]] <- ys[[i]][ord]
       }
     }
-    # rm(list = "ords", "ordi")
+    # rm(list = c("xi", "ord", "lens"))
   }
 
   ixs <- lapply(xs, index_mz, lwr, step)
@@ -3239,7 +3384,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   unv <- sort(unique(unv))
   lenu <- length(unv)
   lenx <- length(xs)
-  ups <- lapply(ixs, function (x) unv %in% x)
+  ups <- lapply(ixs, function (x) unv %fin% x)
   
   # note one-to-one correspondence between ixs and xs
   xmat <- mapcoll_xyz(vals = xs, ups = ups, lenx = lenx, lenu = lenu, 
@@ -3250,9 +3395,8 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
                       direct_out = TRUE)
   # rm(list = c("ys", "ups"))
   
-  if (add_colnames) {
+  if (add_colnames)
     colnames(xmat) <- colnames(ymat) <- unv
-  }
 
   ## collapses adjacent entries
   ps <- find_gates(unv)
@@ -3266,7 +3410,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
       return(list(x = xmat, y = ymat))
   }
   
-  ps2 <- vector("integer", lenp) # columns to be removed
+  ps2 <- vector("integer", lenp) # matrix columns to be removed
 
   # collapses matrix columns with +/-1 in bin indexes
   for (i in 1:lenp) {
@@ -3286,7 +3430,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
     ymat[rows, c1] <- ymat[rows, c2]
   }
 
-  # note that at least one ps2 are not 0
+  # note `-ps2` ok in that at least one ps2 is not 0
   # identical(xmat[, -c(0, 2:3), drop = FALSE], xmat[, -c(2:3), drop = FALSE])
   # !identical(xmat[, 0, drop = FALSE], xmat)
   xmat <- xmat[, -ps2, drop = FALSE]

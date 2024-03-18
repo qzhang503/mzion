@@ -11,27 +11,27 @@ htraceXY(
   df,
   gap_bf = 256L,
   gap_af = 256L,
-  n_dia_scans = 4L,
+  n_mdda_flanks = 6L,
   from = 200L,
   step = 1e+05
 )
 }
 \arguments{
-\item{xs}{Vectors of MS1 moverzs.}
+\item{xs}{Vectors of full-spectrum MS1 m/z values.}
 
-\item{ys}{Vectors of MS1 intensities.}
+\item{ys}{Vectors of full-spectrum MS1 intensities.}
 
 \item{ss}{Vectors of MS1 scan numbers.}
 
-\item{df}{A data frame of both MS1 and MS2 staggering the range of \code{xs}.}
+\item{df}{A data frame of staggering MS1 and MS2 in the same range of
+\code{xs}.}
 
 \item{gap_bf}{A preceding gap size.}
 
 \item{gap_af}{A following gap size.}
 
-\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
-constructing a peak profile and thus for determining the apex scan number
-of an moverz value along LC.}
+\item{n_mdda_flanks}{The number of preceding and following MS1 scans for
+consideration when averaging isotope envelops of precursors.}
 
 \item{from}{The starting point for mass binning.}
 

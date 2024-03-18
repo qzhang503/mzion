@@ -8,7 +8,7 @@ traceXY(
   xs,
   ys,
   ss,
-  n_dia_scans = 4L,
+  n_mdda_flanks = 6L,
   from = 115L,
   step = 1e-05,
   reord = TRUE,
@@ -23,9 +23,8 @@ traceXY(
 
 \item{ss}{Vectors of MS1 scan numbers.}
 
-\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
-constructing a peak profile and thus for determining the apex scan number
-of an moverz value along LC.}
+\item{n_mdda_flanks}{The number of preceding and following MS1 scans for
+consideration when averaging isotope envelops of precursors.}
 
 \item{from}{The starting point for mass binning.}
 

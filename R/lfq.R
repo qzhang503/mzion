@@ -1,28 +1,30 @@
 #' Subsets full MS by the universe of monoisotopic moverzs.
-#' 
+#'
 #' Some non-monoisotopic moverzs can be removed.
-#' 
-#' @param xs Vectors of full-spectrum moverz values.
+#'
+#' @param xs Vectors of full-spectrum m/z values.
 #' @param ys Vectors of full-spectrum intensity values.
-#' @param ms1s Vectors of MS2-specific MS1 moverz values.
-#' @param from The starting movzerz for calculating bin indexes.
+#' @param ms1s Vectors of MS2-specific MS1 m/z values (corresponding to
+#'   \code{ms_level == 2L}).
+#' @param from The starting m/z value for calculating bin indexes.
 #' @param step The size of bins.
 #' @param gap The gap of MS1 scans.
 #' @importFrom fastmatch %fin%
 subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
 {
+  lens <- lengths(xs)
   len <- length(xs)
   yout <- xout <- vector("list", len)
-  
+
   # for each xi, keeps entries found in ms1s.
   if (gap >= len) {
-    ms1s <- unlist(ms1s, recursive = FALSE, use.names = FALSE)
+    ms1s <- .Internal(unlist(ms1s, recursive = FALSE, use.names = FALSE))
     ms1s <- index_mz(ms1s, from, step)
     ms1s <- sort(unique(ms1s))
-    
+
     for (i in 1:len) {
       xi <- xs[[i]]
-      li <- length(xi)
+      li <- lens[[i]]
       
       if (!li)
         next
@@ -46,14 +48,14 @@ subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
   else {
     for (i in 1:len) {
       xi <- xs[[i]]
-      li <- length(xi)
+      li <- lens[[i]]
       
       if (!li)
         next
       
       sta <- max(1, i - gap)
       end <- min(i + gap, len)
-      ms1s_sub <- unlist(ms1s[sta:end], recursive = FALSE, use.names = FALSE)
+      ms1s_sub <- .Internal(unlist(ms1s[sta:end], recursive = FALSE, use.names = FALSE))
       ms1s_sub <- index_mz(ms1s_sub, from, step)
       ms1s_sub <- sort(unique(ms1s_sub))
       
@@ -80,19 +82,16 @@ subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
 
 #' Splits \code{df} for parallel tracing.
 #' 
-#' @param df A data frame of both MS1 and MS2.
+#' @param df A data frame of staggering MS1 and MS2 entries.
 #' @param from The starting point for mass binning.
 #' @param step The step size for mass binning.
 #' @param n_chunks The number of chunks.
-#' @param gap The size of gapped entries.
-#' @inheritParams matchMS
-pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L, 
-                        n_dia_scans = 4L)
+#' @param gap A gap size for forward and backward looking of precursors.
+pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
 {
   # msx_moverzs at ms_level == 1L: full-spectrum ms1_moverzs
   # msx_charges at ms_level == 1L are list(NULL)
   
-  # orig_scan for troubleshooting
   cols1 <- c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", 
              "msx_moverzs", "msx_ints", "msx_charges", "orig_scan")
   rows1 <- df[["ms_level"]] == 1L
@@ -103,8 +102,8 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L,
   ans <- subMSfull(
     xs = df1$msx_moverzs, ys = df1$msx_ints, ms1s = df1$ms1_moverz, 
     from = from, step = step, gap = gap)
-  # moverzs in ans$x are sorted
-  df1$msx_moverzs <- ans$x
+  
+  df1$msx_moverzs <- ans$x # moverzs in ans$x are sorted
   df1$msx_ints <- ans$y
   rm(list = "ans")
   gc()
@@ -124,6 +123,7 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L,
   for (i in 2:n_chunks) {
     df1s_bf[[i]] <- head(df1s[[i]], gaps[[i]])
   }
+  
   for (i in 1:(n_chunks - 1L)) {
     df1s_af[[i]] <- tail(df1s[[i]], gaps[[i]])
   }
@@ -137,8 +137,8 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L,
   }
   rm(list = c("df1s_bf", "df1s_af", "df1"))
   
-  ##  Splits df with bracketing entries
-  # values: row indexes in df, length == nrow(df1) at pad_nas = TRUE
+  ##  Splits `df` with bracketing entries
+  # values: row indexes in `df`, length == nrow(df1) at pad_nas = TRUE
   ms1_stas <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)$ms1_stas
   cols <- c("ms_level", "ms1_moverz", "ms1_int")
   ms1_stax <- dfs <- vector("list", n_chunks)
@@ -152,6 +152,7 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L,
     rowx <- ms1_stax[[i]]:(ms1_stax[[i+1]] - 1L) # ms2_endx can be NA
     dfs[[i]] <- df[rowx, cols] # both df1 and df2 data
   }
+  
   dfs[[n_chunks]] <- df[ms1_stax[[n_chunks]]:nrow(df), cols]
 
   list(dfs = dfs, df1s = df1s, gaps = gaps)
@@ -159,35 +160,54 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L,
 
 
 #' Helper of \link{traceXY}.
-#' 
-#' @param xs Vectors of MS1 moverzs.
-#' @param ys Vectors of MS1 intensities.
+#'
+#' @param xs Vectors of full-spectrum MS1 m/z values.
+#' @param ys Vectors of full-spectrum MS1 intensities.
 #' @param ss Vectors of MS1 scan numbers.
-#' @param df A data frame of both MS1 and MS2 staggering the range of \code{xs}.
+#' @param df A data frame of staggering MS1 and MS2 in the same range of
+#'   \code{xs}.
 #' @param gap_bf A preceding gap size.
 #' @param gap_af A following gap size.
 #' @param from The starting point for mass binning.
 #' @param step The step size for mass binning.
 #' @inheritParams matchMS
 htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L, 
-                      n_dia_scans = 4L, from = 200L, step = 1E5)
+                      n_mdda_flanks = 6L, from = 200L, step = 1E5)
 {
+  if (all(lengths(xs) == 0L)) {
+    li <- length(xs) - gap_bf - gap_af + 1L
+    null <- rep_len(list(NULL), li)
+    
+    return(
+      tibble::tibble(
+        ms_level = df$ms_level, 
+        ms1_moverz = null, 
+        ms1_int = null, 
+        apex_scan_num = null)
+    )
+  }
+  
   mat <- traceXY(
-    xs = xs, ys = ys, ss = ss, n_dia_scans = n_dia_scans, from = from, 
+    xs = xs, ys = ys, ss = ss, n_mdda_flanks = n_mdda_flanks, from = from, 
     step = step, reord = FALSE, cleanup = FALSE, # otherwise rows drop
     replace_ms1_by_apex = TRUE)
   
   matx <- mat[["x"]]
   maty <- mat[["y"]]
+  nr <- nrow(matx)
+  nc <- ncol(matx)
   
-  ## apes, rngs and scans: each vector corresponds to a mass
-  # orig_scan of apexs; not ordered by orig_scan, one-hit-wonders goes first
+  ## apes, rngs and scans: each vector corresponds to a column of mass
+  #  apes not ordered by orig_scan, one-hit-wonders goes first
   apes <- mat[["p"]]
-  rngs <- mat[["range"]]
+  # rngs <- mat[["range"]]
   
-  scan_apexs <- vector("list", nc <- ncol(matx))
-  for (i in seq_along(scan_apexs)) {
-    scan_apexs[[i]] <- as.integer(ss[apes[[i]]])
+  # apes correspond to the row numbers of matx and ss to orig_scan
+  scan_apexs <- vector("list", nc)
+  
+  for (i in 1:nc) {
+    rows <- apes[[i]]
+    scan_apexs[[i]] <- as.integer(ss[rows])
   }
 
   rm(list = "mat")
@@ -196,16 +216,16 @@ htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L,
   if (gap_bf) {
     if (gap_af) { # middle
       sta <- gap_bf + 1L
-      end <- nrow(matx) - gap_af
+      end <- nr - gap_af
     }
     else { # last
       sta <- gap_bf + 1L
-      end <- nrow(matx)
+      end <- nr
     }
   }
   else { # first
     sta <- 1L
-    end <- nrow(matx) - gap_af
+    end <- nr - gap_af
   }
   
   if (FALSE) {
@@ -217,7 +237,7 @@ htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L,
                        step = step)
   }
   else {
-    # look before and look ahead
+    # look both before and after scans
     df <- updateMS1Int2(
       df = df, matx = matx, maty = maty, row_sta = sta, row_end = end, 
       scan_apexs = scan_apexs, from = from, step = step)
@@ -240,26 +260,30 @@ htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L,
 #' @param replace_ms1_by_apex Logical; if TRUE, fill all entries within a gate
 #'   by its apex values.
 #' @inheritParams matchMS
-traceXY <- function (xs, ys, ss, n_dia_scans = 4L, from = 115L, step = 1E-5, 
+traceXY <- function (xs, ys, ss, n_mdda_flanks = 6L, from = 115L, step = 1E-5, 
                      reord = TRUE, cleanup = FALSE, replace_ms1_by_apex = FALSE)
 {
   lens <- lengths(xs)
   
+  if (all(lens == 0L)) {
+    # return(list(x = NULL, y = NULL, n = NULL, p = NULL, range = NULL))
+  }
+
   if (reord) {
-    ords <- lapply(xs, order)
-    
     for (i in seq_along(xs)) {
+      xi <- xs[[i]]
+      
       if (lens[[i]]) {
-        ordi <- ords[[i]]
-        xs[[i]] <- xs[[i]][ordi]
-        ys[[i]] <- ys[[i]][ordi]
+        ord <- order(xi)
+        xs[[i]] <- xi[ord]
+        ys[[i]] <- ys[[i]][ord]
       }
     }
-    rm(list = "ords", "ordi")
+    rm(list = c("xi", "ord"))
   }
   
   ## collapses MS data by the indexes of mass bins; 
-  # matrix outputs; rows: scans; columns: masses at "x", intensities at "y" ...
+  # two matrix outputs; rows: scans; columns: masses or intensities
   
   # xs can be numeric(0)?
   # cleanup = FALSE; otherwise rows drop
@@ -292,15 +316,13 @@ traceXY <- function (xs, ys, ss, n_dia_scans = 4L, from = 115L, step = 1E-5,
     for (i in 1:nc) {
       # removes peaks at intensity < 2% of base peak
       yi <- ansy[, i]
-      oks <- !is.na(yi)
+      oks <- .Internal(which(!is.na(yi)))
       yoks <- yi[oks]
       yoks[yoks < max(yoks) * .02] <- NA_real_
       yi[oks] <- yoks
-      gates <- find_lc_gates(yi, n_dia_scans = n_dia_scans)
-      
+      gates <- find_lc_gates(yi, n_dia_scans = n_mdda_flanks)
       # ansy[, i] <- yi
-      # gates <- find_lc_gates(ansy[, i], n_dia_scans = n_dia_scans)
-      
+
       # one-hit-wonders go first, not ordered scans
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans
@@ -316,7 +338,7 @@ traceXY <- function (xs, ys, ss, n_dia_scans = 4L, from = 115L, step = 1E-5,
   }
   else {
     for (i in 1:nc) {
-      gates <- find_lc_gates(ansy[, i], n_dia_scans = n_dia_scans)
+      gates <- find_lc_gates(ansy[, i], n_dia_scans = n_mdda_flanks)
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans
       ranges[[i]] <- rngs <- gates[["ranges"]]
@@ -418,6 +440,9 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
                            from = 200L, step = 1E-5)
   
 {
+  # to update the apexs, vector since can be chimeric precursors
+  df$apex_scan_num <- vector("list", nrow(df))
+  
   nrow <- nrow(matx)
   unv <- as.integer(colnames(matx))
   ss <- as.integer(rownames(matx))
@@ -430,6 +455,11 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
   gap <- row_sta - 1L
   gap2 <- 12L
 
+  ###
+  # rowi: the current row index along matx
+  # scan: the current scan number (of rowi); 13588
+  ###
+  
   for (i in seq_along(ms2_stas)) { # the same as by ms1_stas
     # i = 527 - gap; which(rownames(matx) == 13588)
     # i = 100;
@@ -438,14 +468,14 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     ms2end <- ms2_ends[[i]]
     df2 <- df[ms2sta:ms2end, ]
     
-    rowi <- gap + i # row index in matx
-    rows <- max(1L, rowi - gap):min(rowi + gap2, nrow)
-    scan <- ss[[rowi]] # scan number of rowi; 13588
+    rowi <- gap + i
+    scan <- ss[[rowi]]
+    # rows <- max(1L, rowi - gap):min(rowi + gap2, nrow)
 
     for (j in 1:nrow(df2)) {
       # j = 8
-      x2s <- df2[["ms1_moverz"]][[j]]
-      nx <- length(x2s)
+      x2s <- df2[["ms1_moverz"]][[j]] # precursor masses associated with an MS2 scan
+      nx <- length(x2s) # nx > 1 with a chimeric spectrum
       if (!nx) next
       ix2s <- as.integer(ceiling(log(x2s/from)/log(1+step)))
       ks <- lapply(ix2s, function (x) which(abs(x - unv) <= 1L))
@@ -456,26 +486,33 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
         if (!length(k)) {
           next
         }
-        
-        k <- k[[1]] # can have multiple matches
+
+        k <- k[[1]] # can have two adjacent matches
         
         # ix <- unv[[k]]; # a <- maty[, which(colnames(matx) == unv[[k]])]; a <- maty[, 3218:3219]
-        apexs <- scan_apexs[[k]] # apex scan numbers; note: scan_apexs not ordered
-        d1 <- abs(apexs - scan)
-        p1 <- which.min(d1)
+        # apex scan numbers; note: scan_apexs not ordered: one-hit-wonders first
+        apexs <- scan_apexs[[k]] # all apexs (scan numbers) under the k-th mass column
+        ds <- abs(apexs - scan)
+        p1 <- .Internal(which.min(ds))
         ap1 <- apexs[[p1]] # the nearest apex scan; 13525
-        y1 <- maty[which(ss == ap1), k]
-        
-        # check neighbors
+        ok1 <- .Internal(which(ss == ap1))
+        y1 <- maty[ok1, k]
+
+        # checks neighbors
         if (length(apexs) > 1L) {
-          ps <- which_topx2(-d1, 2L)
+          ps <- which_topx2(-ds, 2L)
           p2 <- ps[ps != p1]
           ap2 <- apexs[[p2]] # the second nearest apex scan; 13686
-          y2 <- maty[which(ss == ap2), k]
-          
-          # later check peak spacing and peak width (for small satellite peaks)
-          if ((y1 < y2) && (abs(ap2 - ap1) <= 200L)) {
+          ok2 <- .Internal(which(ss == ap2))
+          y2 <- maty[ok2, k]
+
+          # later checks peak spacing and peak width (for small satellite peaks)
+          if ((y1 < y2) && (abs(ap2 - ap1) <= 200L)) { # 200L somewhat arbitrary
             y1 <- y2
+            df2$apex_scan_num[[j]][[m]] <- ap2 # ss[ok2]
+          }
+          else {
+            df2$apex_scan_num[[j]][[m]] <- ap1 # ss[ok1]
           }
         }
 
@@ -484,7 +521,9 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
       }
     }
 
-    df[["ms1_int"]][ms2sta:ms2end] <- df2[["ms1_int"]]
+    ms2rng <- ms2sta:ms2end
+    df[["apex_scan_num"]][ms2rng] <- df2[["apex_scan_num"]]
+    df[["ms1_int"]][ms2rng] <- df2[["ms1_int"]]
   }
   
   df

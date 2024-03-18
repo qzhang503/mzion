@@ -34,6 +34,9 @@ which_topx <- function(x, n = 50L, ...)
 #' 
 #' Handles ties.
 #' 
+#' @param replace_na Logical; currently always TRUE; replaces NA or not.
+#' @param vna The value of NA replacement.
+#' @param exclude_na Logical; removes NA or not.
 #' @inheritParams which_topx
 #' @return The indexes of the top-n entries.
 #' @examples 
@@ -62,6 +65,11 @@ which_topx <- function(x, n = 50L, ...)
 #' # OK
 #' ans <- mzion:::which_topx2(x, 8L, na.last = FALSE)
 #' 
+#' # results can contain NA
+#' x <- c(10, rep_len(NA_integer_, 3), 12, rep_len(NA_integer_, 3), 8, 10, 10)
+#' ans <- mzion:::which_topx2(x, n = 7L)
+#' x[ans]
+#' 
 #' # Bad
 #' ans <- mzion:::which_topx2(x, 9L, na.last = FALSE)
 #' # OK
@@ -70,7 +78,8 @@ which_topx <- function(x, n = 50L, ...)
 #' \donttest{
 #' mzion:::which_topx2(5000, NA_integer_)
 #' }
-which_topx2 <- function(x, n = 50L, ...) 
+which_topx2 <- function(x, n = 50L, replace_na = TRUE, vna = 0, 
+                        exclude_na = TRUE, ...) 
 {
   if (is.na(n)) 
     return(NULL)
@@ -78,14 +87,19 @@ which_topx2 <- function(x, n = 50L, ...)
   len <- length(x)
   p <- len - n
 
-  if (p  <= 0L)
-    return(seq_along(x))
+  if (p  <= 0L) {
+    if (exclude_na)
+      return(.Internal(which(!is.na(x))))
+    else
+      return(seq_along(x))
+  }
 
-  # not yet handle xp is NA
-  # or:  xp <- sort(x, partial = p, na.last = TRUE)[p]
-  xp <- sort(x, partial = p, ...)[p]
+  if (replace_na)
+    x[is.na(x)] <- vna
   
-  inds <- .Internal(which(x > xp))
+  # not yet work at replace_na = FALSE and x contains fewer non-NA than p
+  xp <- sort(x, partial = p, ...)[p]
+  inds <- .Internal(which(x > xp)) # NA drops by which()
 
   # in case of ties -> length(inds) < n
   # detrimental e.g. ms2_n = 500 and n = 100
@@ -93,16 +107,19 @@ which_topx2 <- function(x, n = 50L, ...)
   #
   # MGF `ms2_moverzs` is increasing
   # `inds2` goes first to ensure non-decreasing index for `ms2_moverzs`
-  
   d <- n - length(inds)
   
-  if (d) {
-    # must exist and length(ties) >= length(d)
-    ties <- .Internal(which(x == xp))
-    for (i in seq_len(d)) inds <- insVal(ties[i], inds)
+  if (!d)
+    return(inds)
+
+  # must exist and length(ties) >= length(d) at replace_na = TRUE
+  ties <- .Internal(which(x == xp))
+  # better check the length(ties) >= length(d)
+  for (i in seq_len(d)) {
+    inds <- insVal(ties[[i]], inds)
   }
   
-  invisible(inds)
+  inds
 }
 
 

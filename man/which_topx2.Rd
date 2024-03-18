@@ -4,12 +4,18 @@
 \alias{which_topx2}
 \title{Finds the indexes of top-n entries without re-ordering.}
 \usage{
-which_topx2(x, n = 50L, ...)
+which_topx2(x, n = 50L, replace_na = TRUE, vna = 0, exclude_na = TRUE, ...)
 }
 \arguments{
 \item{x}{A numeric vector.}
 
 \item{n}{The number of top entries to keep.}
+
+\item{replace_na}{Logical; currently always TRUE; replaces NA or not.}
+
+\item{vna}{The value of NA replacement.}
+
+\item{exclude_na}{Logical; removes NA or not.}
 
 \item{...}{Additional arguments for base function sort.}
 }
@@ -44,6 +50,11 @@ ans <- mzion:::which_topx2(x, 2L, na.last = FALSE)
 
 # OK
 ans <- mzion:::which_topx2(x, 8L, na.last = FALSE)
+
+# results can contain NA
+x <- c(10, rep_len(NA_integer_, 3), 12, rep_len(NA_integer_, 3), 8, 10, 10)
+ans <- mzion:::which_topx2(x, n = 7L)
+x[ans]
 
 # Bad
 ans <- mzion:::which_topx2(x, 9L, na.last = FALSE)
