@@ -88,8 +88,8 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
     peakfiles <- "CPTAC_CCRCC_W_JHU_20190112_LUMOS_C3N-01261_T.raw.rds"
     iso_width <- 34
     
-    peakfiles <- qs::qread("~/peakfiles_bi_g1.rds")
-    # peakfiles <- qs::qread(file.path(temp_dir, "peaklists.rds"))
+    # peakfiles <- qs::qread("~/peakfiles_bi_g1.rds")
+    peakfiles <- qs::qread(file.path(temp_dir, "peaklists.rds"))
     is_dia <- FALSE
     iso_width <- 0.699999988
   }
@@ -1397,7 +1397,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     
     dfs <- ans_prep$dfs
     df1s <- ans_prep$df1s
-    gaps <- ans_prep$gaps
+    gaps <- unlist(ans_prep$gaps, use.names = FALSE, recursive = FALSE)
     rm(list = c("ans_prep", "rt_gap"))
     gc()
     
@@ -1429,10 +1429,10 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       out <- vector("list", lenv)
 
       for (i in 1:lenv) {
+        # nrow(out[[i]]) == nrow(vdf[[i]])
         out[[i]] <- htraceXY(
           xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], df = vdf[[i]], 
           gap_bf <- gaps_bf[[i]], gap_af = gaps_af[[i]], 
-          # may be > n_mdda_flanks
           n_mdda_flanks = n_mdda_flanks, from = min_mass, step = step)
         
         if (FALSE) {

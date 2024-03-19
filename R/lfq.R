@@ -175,7 +175,8 @@ htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L,
                       n_mdda_flanks = 6L, from = 200L, step = 1E5)
 {
   if (all(lengths(xs) == 0L)) {
-    li <- length(xs) - gap_bf - gap_af + 1L
+    # length(xs) - gap_bf - gap_af - nrow(df) == 0L
+    li <- nrow(df)
     null <- rep_len(list(NULL), li)
     
     return(
