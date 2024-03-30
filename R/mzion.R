@@ -8,7 +8,4 @@
 #'   mapMS2ions, load_fasta2, parse_unimod, table_unimods, add_unimod, 
 #'   calc_monopeptide, calc_ms2ionseries)
 #'
-#' @docType package
-#' @name mzion
-NULL
-#> NULL
+'_PACKAGE'

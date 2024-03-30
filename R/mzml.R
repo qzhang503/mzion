@@ -68,6 +68,7 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
     peakfiles <- hloadMZML(filelist, mgf_path, temp_dir)
     is_dia <- attr(peakfiles[[1]], "is_dia", exact = TRUE)
     iso_width <- attr(peakfiles[[1]], "iso_width", exact = TRUE)
+    mzml_type <- attr(peakfiles[[1]], "mzml_type", exact = TRUE)
     peakfiles <- unlist(peakfiles)
     gc() # free up xml pointers
   }
@@ -387,17 +388,41 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
   idx_pwiz <- which(software_ids == "pwiz")
   
   if (length(idx_pwiz)) {
-    is_regular <- TRUE
+    is_pwiz <- TRUE
+    is_3d <- TRUE
   } else {
-    is_regular <- FALSE
-    
     idx_pwiz <- which(software_ids == "pwiz_Reader_Bruker") # 3L
     
-    if (!length(idx_pwiz)) {
-      idx_pwiz <- 3L
+    if (length(idx_pwiz)) {
+      is_pwiz <- TRUE
+      is_3d <- FALSE # 4-D ion mobility
+    } else {
+      if (length(idx_msf <- which(software_ids == "MSFragger"))) {
+        is_pwiz <- FALSE
+        is_3d <- TRUE
+        idx_pwiz <- idx_msf
+      } else {
+        is_pwiz <- TRUE
+        is_3d <- FALSE
+        idx_pwiz <- 3L
+      }
     }
   }
   
+  if (is_pwiz) {
+    if (is_3d) {
+      mzml_type <- "pwiz_3d"
+    } else {
+      stop("MSConvert timsTOF not yet supported.")
+    }
+  } else {
+    if (is_3d) {
+      mzml_type <- "msf_3d" # for timsTOF
+    } else {
+      stop("MSFragger mzML not yet supported.")
+    }
+  }
+
   pwiz <- softwaresC[[idx_pwiz]]
   pwiz_ver <- xml2::xml_attr(pwiz, "version")
   pwiz_ver <- strsplit(pwiz_ver, ".", fixed = TRUE)[[1]]
@@ -414,7 +439,7 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
   if (pwiz_ver_major < 3) {
     stop("Use MSConvert version >= 3.0.")
   }
-
+  
   raw_file <- local({
     idx_file <- which(xml2::xml_name(mzC) == "fileDescription")
     file_des <- mzC[[idx_file]]
@@ -481,6 +506,13 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
   #     - binaryDataArray # name="intensity array"
   #     - binaryDataArray # name="non-standard data array"
   
+  ###
+  if (mzml_type == "msf_3d") {
+    # find_mzml_indexes(spec)
+  }
+  ###
+  
+  
   ## the first scan
   x <- spec[[1]]
   ids <- .Internal(strsplit(xml2::xml_attr(x, "id"), " ", fixed = TRUE, 
@@ -491,7 +523,7 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
   idx_demux <- which(id_nms == "demux")
   is_demux <- if (length(idx_demux)) TRUE else FALSE
   
-  if (is_regular) {
+  if (is_3d) {
     idx_sc <- which(id_nms == "scan")
     if (!length(idx_osc <- which(id_nms == "originalScan"))) idx_osc <- idx_sc
     idx_sc_start <- idx_sc_end <- idx_osc
@@ -519,7 +551,7 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
   if (!len) {
     stop("No spectrum data found.")
   }
-
+  
   for (i in rng) {
     # i=46
     # i = 6000
@@ -527,7 +559,7 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
     xc <- xml2::xml_children(x)
     
     if (xml2::xml_attr(xc[[idx_mslev]], "value") == "2") {
-      if (is_regular) {
+      if (is_3d) {
         idx_scan_lwr_2 <- grep("lowest observed m/z", xc)
         if (!length(idx_scan_lwr_2)) {
           warning("Fields of `lowest observed m/z` not found.")
@@ -541,7 +573,7 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
         }
       }
       
-      if (is_regular) {
+      if (is_3d) {
         idx_scan_upr_2 <- grep("highest observed m/z", xc)
         if (!length(idx_scan_upr_2)) {
           warning("Fields of `highest observed m/z` not found.")
@@ -558,19 +590,19 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
       idx_precursor_2 <- grep("precursorList", xc)
       if (!length(idx_precursor_2)) {
         warning("Fields of `precursorList` not found.")
-        idx_precursor_2 <- if (is_regular) 12L else 11L
+        idx_precursor_2 <- if (is_3d) 12L else 11L
       }
       
       idx_scanList_2 <- grep("scanList", xc)
       if (!length(idx_scanList_2)) {
         warning("Fields of `scanList` not found.")
-        idx_scanList_2 <- if (is_regular) 11L else 10L
+        idx_scanList_2 <- if (is_3d) 11L else 10L
       }
       
       idx_bin_2 <- grep("binaryDataArrayList", xc)
       if (!length(idx_bin_2)) {
         warning("Fields of `binaryDataArrayList` not found.")
-        idx_bin_2 <- if (is_regular) 13L else 12L
+        idx_bin_2 <- if (is_3d) 13L else 12L
       }
       
       scanList <- xml2::xml_children(xc[[idx_scanList_2]])
@@ -593,31 +625,42 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
         idx_scan_start_2 <- 1L
       }
       
-      if (is_regular) {
-        idx_ms2_reso <- which(scanList_ret_attrs == "mass resolving power")
-        if (length(idx_ms2_reso)) {
-          ms2_reso <- scanList_ret[[idx_ms2_reso]]
-          ms2_reso <- as.integer(xml2::xml_attr(ms2_reso, "value"))
-        } else {
-          warning("Fields of `mass resolving power` not found.")
-          ms2_reso <- 120000L
+      if (is_3d) {
+        if (is_pwiz) {
+          idx_ms2_reso <- which(scanList_ret_attrs == "mass resolving power")
+          if (length(idx_ms2_reso)) {
+            ms2_reso <- scanList_ret[[idx_ms2_reso]]
+            ms2_reso <- as.integer(xml2::xml_attr(ms2_reso, "value"))
+          } else {
+            warning("Fields of `mass resolving power` not found.")
+            ms2_reso <- 120000L
+          }
+        } else { # MSFragger timsTOF
+          idx_ms2_reso <- which(scanList_ret_attrs == "inverse reduced ion mobility")
+          if (length(idx_ms2_reso)) {
+            ms2_reso <- scanList_ret[[idx_ms2_reso]]
+            ms2_reso <- as.numeric(xml2::xml_attr(ms2_reso, "value"))
+          } else {
+            warning("Fields of `inverse reduced ion mobility` not found.")
+            ms2_reso <- 1L
+          }
         }
       } else {
         idx_ms2_reso <- which(scanList_ret_attrs == "inverse reduced ion mobility")
         if (length(idx_ms2_reso)) {
           ms2_reso <- scanList_ret[[idx_ms2_reso]]
-          ms2_reso <- as.integer(xml2::xml_attr(ms2_reso, "value"))
+          ms2_reso <- as.numeric(xml2::xml_attr(ms2_reso, "value"))
         } else {
           warning("Fields of `inverse reduced ion mobility` not found.")
-          ms2_reso <- 1L
+          ms2_reso <- 1
         }
       }
-
+      
       # entire MS2 is empty
       if (length(xc) < idx_precursor_2) {
         next
       }
-        
+      
       precursorList <- xml2::xml_children(xc[[idx_precursor_2]])
       precursor <- precursorList[[1]] # assume one precursor
       precursorc <- xml2::xml_children(precursor)
@@ -688,7 +731,7 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
       is_dia <- if (length(idx_charge)) FALSE else TRUE
       
       # timsTOF
-      if (is_dia && !is_regular) is_dia <- FALSE
+      if (is_dia && !is_3d) is_dia <- FALSE
       
       rm(list = c("scanList", "scanList_ret", "scanList_ret_attrs", 
                   "precursorList", "precursor", "precursorc", 
@@ -703,7 +746,7 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
     xc <- xml2::xml_children(x)
     
     if (as.integer(xml2::xml_attr(xc[[idx_mslev]], "value")) == 1) {
-      if (is_regular) {
+      if (is_3d) {
         idx_scan_lwr_1 <- grep("lowest observed m/z", xc) # "ion mobility lower limit"
         if (!length(idx_scan_lwr_1)) {
           warning("Fields of `lowest observed m/z` not found.")
@@ -728,17 +771,17 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
           idx_scan_upr_1 <- 9L
         }
       }
-
+      
       idx_scanList_1 <- grep("scanList", xc)
       if (!length(idx_scanList_1)) {
         warning("Fields of `scanList` not found.")
-        idx_scanList_1 <- if (is_regular) 11L else 10L
+        idx_scanList_1 <- if (is_3d) 11L else 10L
       }
       
       idx_bin_1 <- grep("binaryDataArrayList", xc)
       if (!length(idx_bin_1)) {
         warning("Fields of `binaryDataArrayList` not found.")
-        idx_bin_1 <- if (is_regular) 12L else 11L
+        idx_bin_1 <- if (is_3d) 12L else 11L
       }
       
       local({
@@ -763,7 +806,7 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
         warning("Fields of `scan` not found.")
         idx_rt_1 <- 2L
       }
-
+      
       scanList_ret <- xml2::xml_children(scanList[[idx_rt_1]])
       
       scan_ret_attrs <- xml2::xml_attr(scanList_ret, "name")
@@ -824,12 +867,13 @@ loadMZML <- function (xml_file = NULL, temp_dir = NULL)
       idx_rt_1 = idx_rt_1, idx_scan_start_1 = idx_scan_start_1, 
       idx_bin_1 = idx_bin_1, 
       idx_scan_lwr_1 = idx_scan_lwr_1, idx_scan_upr_1 = idx_scan_upr_1, 
-      idx_scan_lwr_2 = idx_scan_lwr_2, idx_scan_upr_2 = idx_scan_upr_2, 
-      is_regular = is_regular)
+      idx_scan_lwr_2 = idx_scan_lwr_2, idx_scan_upr_2 = idx_scan_upr_2)
   }
   
   attr(filename, "is_dia") <- is_dia
   attr(filename, "iso_width") <- iso_width
+  attr(filename, "mzml_type") <- mzml_type
+
   invisible(filename)
 }
 
