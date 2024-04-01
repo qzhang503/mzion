@@ -21,13 +21,10 @@ Scan indexes of LC peaks.
 Finds the gates of retention times.
 }
 \examples{
-library(mzion)
-
-find_lc_gates(c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), 2)
-
-# find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50))
-# find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50))
+mzion:::find_lc_gates(c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), 2)
+mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50))
+mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50))
 
 # all discrete
-# find_lc_gates(c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50))
+mzion:::find_lc_gates(c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50))
 }

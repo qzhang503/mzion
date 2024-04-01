@@ -196,9 +196,9 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     # `mgf_quries.rds` kept (only affected by min_mass, max_mass and ppm_ms1)
     delete_files(
       out_path, 
-      ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", 
+      ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", "\\.(raw|RAW)$", 
                   "\\.xlsx$", "\\.xls$", "\\.csv$", "\\.txt$", "\\.pars$", 
-                  "^mgf$", "^mgfs$", "^mzML$", "^mzMLs$", 
+                  "^mgf$", "^mgfs$", "^mzML$", "^mzMLs$", "^raw$", 
                   "Calls", "^PSM$", "^Peptide$", "^Protein$", 
                   "fraction_scheme.rda", "label_scheme.rda", 
                   "label_scheme_full.rda"))

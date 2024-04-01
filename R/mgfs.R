@@ -104,8 +104,6 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
     return(type_acqu)
   }
   
-  message("Processing raw MGFs.")
-  
   ppm_ms1_bin <- calc_threeframe_ppm(ppm_ms1)
   ppm_ms2_bin <- calc_threeframe_ppm(ppm_ms2)
 
@@ -124,6 +122,14 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
   len_mgf  <- length(fi_mgf)
   len_mzml <- length(fi_mzml)
   len_raw <- length(fi_raw)
+  
+  data_type <- if (len_raw) {
+    "raw"
+  } else if (len_mzml) {
+    "mzml"
+  } else if (len_mgf) {
+    "mgf"
+  }
   
   if (len_mgf && len_mzml || len_mgf && len_raw || len_raw && len_mzml)
     stop("Peak lists need to be exactly in one of MGF, mzML or RAW.")
@@ -164,10 +170,11 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
       quant = quant, 
       digits = digits)
   }
-  else if (len_mzml) {
+  else if (len_mzml || len_raw) {
     type_acqu <- readmzML(
       filelist = filelist, 
       mgf_path = mgf_path, 
+      data_type = data_type, 
       topn_ms2ions = topn_ms2ions, 
       topn_dia_ms2ions = topn_dia_ms2ions, 
       maxn_dia_precurs = maxn_dia_precurs, 
@@ -206,39 +213,6 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
       quant = quant, 
       use_lfq_intensity = use_lfq_intensity, 
       digits = digits)
-  }
-  else if (len_raw) {
-    type_acqu <- readRAW(
-      filepath = mgf_path,
-      filelist = filelist, 
-      out_path = out_path, 
-      topn_ms2ions = topn_ms2ions,
-      min_mass = min_mass,
-      max_mass = max_mass, 
-      min_ms2mass = min_ms2mass,
-      max_ms2mass = max_ms2mass, 
-      min_ms1_charge = min_ms1_charge, 
-      max_ms1_charge = max_ms1_charge,
-      min_scan_num = min_scan_num, 
-      max_scan_num = max_scan_num, 
-      min_ret_time = min_ret_time, 
-      max_ret_time = max_ret_time, 
-      ppm_ms1 = ppm_ms1_bin, # change arg name from ppm_ms1 to ppm_ms1_bin
-      ppm_ms2 = ppm_ms2_bin, # change arg name from ppm_ms2 to ppm_ms2_bin
-      tmt_reporter_lower = tmt_reporter_lower, 
-      tmt_reporter_upper = tmt_reporter_upper, 
-      exclude_reporter_region = exclude_reporter_region, 
-      mgf_cutmzs = mgf_cutmzs, 
-      mgf_cutpercs = mgf_cutpercs, 
-      use_defpeaks = use_defpeaks, 
-      deisotope_ms2 = deisotope_ms2, 
-      max_ms2_charge = max_ms2_charge, 
-      maxn_dia_precurs = maxn_dia_precurs, 
-      maxn_mdda_precurs = maxn_mdda_precurs, 
-      n_mdda_flanks = n_mdda_flanks, 
-      ppm_ms1_deisotope = ppm_ms1_deisotope, 
-      ppm_ms2_deisotope = ppm_ms2_deisotope, 
-      quant = quant)
   }
   else {
     stop("No peak lists at an mzML, MGF or RAW format were found.")
@@ -283,6 +257,8 @@ readMGF <- function (filepath = NULL, filelist = NULL, out_path = NULL,
                      ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
                      quant = "none", digits = 4L) 
 {
+  message("Processing MGF lists.")
+  
   if (maxn_mdda_precurs >= 1L) {
     warning("No multi-precursor DDA with MGF. Use mzML to enable the feature.")
     maxn_mdda_precurs <- 0L

@@ -2,17 +2,15 @@
 % Please edit documentation in R/msfilereader.R
 \name{exeReadRAW}
 \alias{exeReadRAW}
-\title{Helper in the execution of CSharp-compiled ReadRAW.exe}
+\title{Helper in executing CSharp-compiled ReadRAW.exe}
 \usage{
-exeReadRAW(raw_file, mgf_path, type = "scans")
+exeReadRAW(raw_file, mgf_path)
 }
 \arguments{
 \item{raw_file}{A RAW file name.}
 
-\item{mgf_path}{A file path to peak lists or RAW MS data.}
-
-\item{type}{The type of MSFileReader request.}
+\item{mgf_path}{A file path RAW MS files.}
 }
 \description{
-Helper in the execution of CSharp-compiled ReadRAW.exe
+Requires mono for Linux or Mac OS.
 }

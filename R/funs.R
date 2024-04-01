@@ -7,10 +7,9 @@
 # [7] "sep_ms1rts"        "bin_ms1rts"        "gen_isoenvlope"   
 # 
 # $dispatch.R
-#  [1] "find_pos_site"       "contain_pos_site"    "contain_termpos_any" "subset_by_prps"      "subset_protntsite"  
-#  [6] "subset_protntany"    "subset_anyntsite"    "subset_anyntany"     "subset_anysite"      "subset_protctsite"  
-# [11] "subset_protctany"    "subset_anyctsite"    "subset_anyctany"     "find_nmodtree"       "find_cmodtree"      
-# [16] "subpeps_by_vmods"   
+#  [1] "find_pos_site"       "contain_pos_site"    "contain_termpos_any" "subset_by_prps"      "subset_protntsite"   "subset_protntany"   
+#  [7] "subset_anyntsite"    "subset_anyntany"     "subset_anysite"      "subset_protctsite"   "subset_protctany"    "subset_anyctsite"   
+# [13] "subset_anyctany"     "find_nmodtree"       "find_cmodtree"       "subpeps_by_vmods"   
 # 
 # $fastas.R
 # [1] "read_fasta"       "write_fasta"      "load_fasta"       "load_fasta2"      "find_acc_pattern" "find_acc_type"   
@@ -19,22 +18,21 @@
 # character(0)
 # 
 # $ion_ladder.R
-#  [1] "ms2ions_by_type" "byions"          "czions"          "axions"          "bions_base"      "yions_base"     
-#  [7] "cions_base"      "zions_base"      "c2ions"          "z2ions"          "aions_base"      "xions_base"     
-# [13] "a2ions"          "astarions"       "astar2ions"      "a0ions"          "a02ions"         "x2ions"         
+#  [1] "ms2ions_by_type" "byions"          "czions"          "axions"          "bions_base"      "yions_base"      "cions_base"     
+#  [8] "zions_base"      "c2ions"          "z2ions"          "aions_base"      "xions_base"      "a2ions"          "astarions"      
+# [15] "astar2ions"      "a0ions"          "a02ions"         "x2ions"         
 # 
 # $lfq.R
-# [1] "subMSfull"    "prep_traceXY" "htraceXY"     "traceXY"      "updateMS1Int" "traceMS1"     "getMS1Int"   
+# [1] "subMSfull"     "pretraceXY"    "htraceXY"      "traceXY"       "updateMS1Int"  "updateMS1Int2" "traceMS1"      "getMS1Int"    
 # 
 # $mapMS2ions.R
-#  [1] "mapMS2ions"         "plotMS2ions"        "match_mgf_path"     "match_raw_id"       "add_raw_ids"       
-#  [6] "find_secion_types"  "find_mgf_query"     "make_speclib"       "get_mzion_coltypes" "check_ggname"      
+#  [1] "mapMS2ions"         "plotMS2ions"        "match_mgf_path"     "match_raw_id"       "add_raw_ids"        "find_secion_types" 
+#  [7] "find_mgf_query"     "make_speclib"       "get_mzion_coltypes" "check_ggname"      
 # 
 # $mgfs.R
-#  [1] "load_mgfs"          "readMGF"            "post_readmgf"       "readlineMGFs"       "  f"               
-#  [6] "read_mgf_chunks"    "proc_mgf_chunks"    "proc_mgfs"          "reset_rettimes"     "sub_mgftopn"       
-# [11] "integerize_ms2ints" "extract_mgf_rptrs"  "index_mz"           "find_mgf_type"      "prepBrukerMGF"     
-# [16] "mprepBrukerMGF"    
+#  [1] "load_mgfs"          "readMGF"            "post_readmgf"       "readlineMGFs"       "  f"                "read_mgf_chunks"   
+#  [7] "proc_mgf_chunks"    "proc_mgfs"          "reset_rettimes"     "sub_mgftopn"        "integerize_ms2ints" "extract_mgf_rptrs" 
+# [13] "index_mz"           "find_mgf_type"      "prepBrukerMGF"      "mprepBrukerMGF"    
 # 
 # $ms1_precursors.R
 #  [1] "calc_pepmasses2"           "find_aa_masses"            "find_motif_pat"            "simple_prots_peps"        
@@ -62,10 +60,12 @@
 #  [1] "pair_mgftheos"  "hpair_mgths"    "make_dia_mgfs"  "hms2match"      "ms2match_all"   "mframes_adv"    "find_ms2_bypep"
 #  [8] "search_mgf"     "hms2match_one"  "ms2match_one"   "frames_adv"    
 # 
+# $msfilereader.R
+# [1] "readRAW"                   "proc_raws"                 "exeReadRAW"                "acceptMSFileReaderLicense"
+# 
 # $msmsmatches.R
-#  [1] "matchMS"            "try_psmC2Q"         "reproc_psmC"        "psmC2Q"             "post_psmC2Q"       
-#  [6] "check_tmt_pars"     "checkMGF"           "check_locmods"      "map_raw_n_scan"     "map_raw_n_scan_old"
-# [11] "check_fdr_group"    "check_notches"     
+#  [1] "matchMS"            "try_psmC2Q"         "reproc_psmC"        "psmC2Q"             "post_psmC2Q"        "check_tmt_pars"    
+#  [7] "checkMGF"           "check_locmods"      "map_raw_n_scan"     "map_raw_n_scan_old" "check_fdr_group"    "check_notches"     
 # 
 # $msmsmatches2.R
 # [1] "ms2match"              "reverse_peps_in_frame" "reverse_seqs"          "calib_mgf"             "calib_ms1"            
@@ -89,10 +89,10 @@
 # [1] "create_folds" "cv_svm"       "perco_svm"   
 # 
 # $quant2.R
-#  [1] "hcalc_tmtint"       "calc_tmtint"        "add_rptrs"          "find_int_cols"      "find_reporter_ints"
-#  [6] "find_reporters_ppm" "msub_protpep"       "sub_protpep"        "add_protacc2"       "add_protacc"       
-# [11] "hannot_decoys"      "groupProts"         "map_pepprot"        "collapse_sortpeps"  "pcollapse_sortpeps"
-# [16] "find_group_breaks"  "cut_proteinGroups"  "sparseD_fourquad"   "as_dist"            "greedysetcover3"   
+#  [1] "hcalc_tmtint"       "calc_tmtint"        "add_rptrs"          "find_int_cols"      "find_reporter_ints" "find_reporters_ppm"
+#  [7] "msub_protpep"       "sub_protpep"        "add_protacc2"       "add_protacc"        "hannot_decoys"      "groupProts"        
+# [13] "map_pepprot"        "collapse_sortpeps"  "pcollapse_sortpeps" "find_group_breaks"  "cut_proteinGroups"  "sparseD_fourquad"  
+# [19] "as_dist"            "greedysetcover3"   
 # 
 # $roadmaps.R
 # character(0)
@@ -111,8 +111,8 @@
 # [51] "na.interp"              "is.constant"            "tsoutliers"             "rm_dup13c"             
 # 
 # $silac.R
-# [1] "matchMS_silac_mix"   "matchMS_par_groups"  "add_fixedlab_masses" "matchMS_noenzyme"    "combine_ion_matches"
-# [6] "comine_PSMsubs"      "matchMS_ms1calib"   
+# [1] "matchMS_silac_mix"   "matchMS_par_groups"  "add_fixedlab_masses" "matchMS_noenzyme"    "combine_ion_matches" "comine_PSMsubs"     
+# [7] "matchMS_ms1calib"   
 # 
 # $unimods.R
 #  [1] "parse_unimod"             "find_unimod"              "hfind_unimod"             "table_unimods"           

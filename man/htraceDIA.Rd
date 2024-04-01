@@ -111,8 +111,6 @@ of TMT reporter ions is informed by \code{tmt_reporter_lower} and
 \code{tmt_reporter_upper}. The argument affects only TMT data.}
 
 \item{n_para}{The allowance of parallel processing.}
-
-\item{gap}{The size of gap.}
 }
 \description{
 Helper of tracing DIA.

@@ -24,7 +24,6 @@
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
-#' library(mzion)
 #' moverzs <- c(881 + 1:10*.1, 882.0674, 882.0981, 882.4034, 882.60, 882.7372)
 #' msxints <- c(1000 * 1:10, 1652869, 788368, 2043015, 2314111, 4314111)
 #' n_ms1s <- rep_len(1L, length(msxints))
@@ -52,11 +51,11 @@
 #' n_ms1s <- rep_len(1L, length(msxints))
 #'
 #' if (FALSE) {
-#'   out <- find_ms1stat(moverzs, msxints, n_ms1s, center = 909.788696,
+#'   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, center = 909.788696,
 #'                       exclude_reporter_region = FALSE,
 #'                       ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
 #'                       order_mz = TRUE, step = 5/1e6)
-#'   out <- find_ms1stat(moverzs, msxints, n_ms1s, # center = 909.788696,
+#'   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, # center = 909.788696,
 #'                       exclude_reporter_region = FALSE,
 #'                       ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
 #'                       order_mz = TRUE, step = 5/1e6)

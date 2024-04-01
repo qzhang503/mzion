@@ -15,11 +15,9 @@ find_ms2ends(vals, n_chunks = 3L)
 For chunk-splitting with each chuck ending at value 2.
 }
 \examples{
-library(mzion)
-
 vals1 <- c(rep(1, 2), rep(2, 5), 1, rep(2, 4), rep(1, 3), rep(2, 4), 1)
-grps1 <- find_ms2ends(vals1, 3)
+grps1 <- mzion:::find_ms2ends(vals1, 3)
 
 vals2 <- c(rep(1, 2), rep(2, 5), 1, rep(2, 4), rep(1, 3), rep(2, 4))
-grps2 <- find_ms2ends(vals2, 3)
+grps2 <- mzion:::find_ms2ends(vals2, 3)
 }

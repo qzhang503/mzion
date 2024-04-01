@@ -47,6 +47,16 @@ hdeisoDDA(
 
 \item{raw_id}{A raw file id.}
 
+\item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
+  supply the files.
+
+  The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
+  from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
+  Proteome Discoverer or (3) Bruker's DataAnalysis.
+
+  With MSConvert, the default \code{titleMaker} is required for correct
+  parsing (don't think it can be altered by users, but just in case).}
+
 \item{temp_dir}{A temp_dir to the filename.}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
@@ -124,6 +134,10 @@ precursor.}
 secondary precursor in parallel to a primary precursor in an isotopic
 envelop. The smaller the value, the more stringent it is in calling an
 adjacent peak being a mono-isotopic precursor}
+
+\item{mgf_cutmzs}{The cut points in peak lists.}
+
+\item{mgf_cutpercs}{The percentage of cuts.}
 
 \item{quant}{A character string; the quantitation method. The default is
 "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and

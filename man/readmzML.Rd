@@ -7,6 +7,7 @@
 readmzML(
   filelist = NULL,
   mgf_path = NULL,
+  data_type = "mzml",
   topn_ms2ions = 150L,
   topn_dia_ms2ions = 2400L,
   delayed_diams2_tracing = FALSE,
@@ -59,6 +60,8 @@ readmzML(
 
   With MSConvert, the default \code{titleMaker} is required for correct
   parsing (don't think it can be altered by users, but just in case).}
+
+\item{data_type}{A data type of either mzML or RAW.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

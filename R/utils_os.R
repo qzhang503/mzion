@@ -588,7 +588,8 @@ delete_files <- function (path, ignores = NULL, paths_excluded = NULL, ...)
   if (!is.null(ignores)) {
     dirs <- list.dirs(path, full.names = FALSE, recursive = recursive)
     dirs <- dirs[dirs != ""]
-    oks <- purrr::map_lgl(dirs, function (x) any(grepl(x, ignores)))
+    oks <- purrr::map_lgl(dirs, function (x) 
+      any(grepl(x, ignores, ignore.case = TRUE)))
     nms_oks <- list.files(path = file.path(path, dirs[oks]),recursive = TRUE, 
                           full.names = TRUE)
     nms <- nms[!nms %in% nms_oks]

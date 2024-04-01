@@ -543,6 +543,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
 #'   by its apex values.
 #' @param filename A peaklist filename.
 #' @param temp_dir A temp_dir to the filename.
+#' @param min_mass A minimum mass.
 traceMS1 <- function (df, min_mass = 200L, step = 8E-6, 
                       n_ms1peakpicking_flanks = 4L, replace_ms1_by_apex = TRUE, 
                       filename = NULL, temp_dir = NULL)

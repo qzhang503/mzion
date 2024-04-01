@@ -7,7 +7,7 @@
 acceptMSFileReaderLicense(sys_path)
 }
 \arguments{
-\item{sys_path}{The system path of mzion.}
+\item{sys_path}{The system path of Mzion.}
 }
 \description{
 License agreement.

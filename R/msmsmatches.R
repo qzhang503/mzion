@@ -2184,19 +2184,24 @@ checkMGF <- function (mgf_path = NULL, grp_args = NULL, error = c("stop", "warn"
   if (is.null(mgf_path)) 
     stop("`mgf_path` not found.")
   
-  fi_mgf <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mgf$")
-  fi_mzml <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mzML$")
+  fi_mgf <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mgf$", 
+                       ignore.case = TRUE)
+  fi_mzml <- list.files(path = file.path(mgf_path), pattern = "^.*\\.mzML$", 
+                        ignore.case = TRUE)
+  fi_raw <- list.files(path = file.path(mgf_path), pattern = "^.*\\.raw$", 
+                       ignore.case = TRUE)
   len_mgf <- length(fi_mgf)
   len_mzml <- length(fi_mzml)
+  len_raw <- length(fi_raw)
+
+  if (len_mgf && len_mzml || len_raw && len_mzml || len_mgf && len_raw)
+    stop("The type of peak lists need to be only one of RAW, MGF or mzML.")
   
-  if (len_mgf && len_mzml)
-    stop("Peak lists need to be in either MGF or mzML, but not both.")
-  
-  if (!(len_mgf || len_mzml)) {
+  if (!(len_mgf || len_mzml || len_raw)) {
     if (error == "warn")
-      warning("No `.mgf` files immediately under ", mgf_path)
+      warning("No peak-list files immediately under ", mgf_path)
     else
-      stop("No `.mgf` files immediately under ", mgf_path)
+      stop("No peak-list files immediately under ", mgf_path)
   }
   
   invisible(mgf_path)

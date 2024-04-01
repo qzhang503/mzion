@@ -17,6 +17,8 @@ traceMS1(
 \arguments{
 \item{df}{MS1 data.}
 
+\item{min_mass}{A minimum mass.}
+
 \item{step}{Step size.}
 
 \item{n_ms1peakpicking_flanks}{The number of flanking MS1 scans for precursor

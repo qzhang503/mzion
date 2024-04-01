@@ -1,8 +1,9 @@
 #' Helper in preparing mzML inputs.
 #' 
 #' @param filelist A list of mzML files.
+#' @param data_type A data type of either mzML or RAW.
 #' @inheritParams load_mgfs
-readmzML <- function (filelist = NULL, mgf_path = NULL, 
+readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml", 
                       topn_ms2ions = 150L, topn_dia_ms2ions = 2400L, 
                       delayed_diams2_tracing = FALSE, 
                       maxn_dia_precurs = 1000L, 
@@ -61,40 +62,43 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
   #   - find_ms1stat
   # 
 
-  
-  temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
+  if (data_type == "raw")
+    message("Processing RAW files")
+  else if (data_type == "mzml")
+    message("Processing mzML files.")
 
-  if (TRUE) {
+  temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
+  
+  if (data_type == "raw") {
+    peakfiles <- readRAW(mgf_path = mgf_path, filelist = filelist)
+  }
+  else if (data_type == "mzml") {
     peakfiles <- hloadMZML(filelist, mgf_path, temp_dir)
-    is_dia <- attr(peakfiles[[1]], "is_dia", exact = TRUE)
-    iso_width <- attr(peakfiles[[1]], "iso_width", exact = TRUE)
-    mzml_type <- attr(peakfiles[[1]], "mzml_type", exact = TRUE)
-    peakfiles <- unlist(peakfiles)
     gc() # free up xml pointers
   }
   else {
     is_dia <- TRUE
     peakfiles <- "23aug2017_hela_serum_timecourse_wide_1a.raw.rds"
-    iso_width <- 12.0054016
-    
+
     is_dia <- FALSE
     peakfiles <- "20230108_AST_Neo1_DDA_UHG_HeLa_200ng_2th2p5ms_Cycle_01_20230808143253.raw.rds"
-    iso_width <- 2.0
-    
+
     is_dia <- FALSE
     peakfiles <- "01CPTAC3_Benchmarking_W_BI_20170508_BL_f02.raw.rds"
-    iso_width <- 0.699999988
     
     is_dia <- FALSE
     peakfiles <- "CPTAC_CCRCC_W_JHU_20190112_LUMOS_C3N-01261_T.raw.rds"
-    iso_width <- 34
-    
+
     # peakfiles <- qs::qread("~/peakfiles_bi_g1.rds")
     peakfiles <- qs::qread(file.path(temp_dir, "peaklists.rds"))
     is_dia <- FALSE
-    iso_width <- 0.699999988
   }
-
+  
+  peakfile1 <- peakfiles[[1]]
+  is_dia <- attr(peakfile1, "is_dia", exact = TRUE)
+  mzml_type <- attr(peakfile1, "mzml_type", exact = TRUE)
+  peakfiles <- unlist(peakfiles)
+  
   lenf <- length(peakfiles)
   rams <- find_free_mem()/1024
   n_pcs <- detect_cores(64L) - 1L
@@ -334,11 +338,13 @@ readmzML <- function (filelist = NULL, mgf_path = NULL,
 #' @inheritParams matchMS
 hloadMZML <- function (filelist = NULL, mgf_path = NULL, temp_dir = NULL)
 {
-  # if (maxn_mdda_precurs > 1L && use_defpeaks) {
-  #   warning("Default peaks not used at maxn_mdda_precurs > 1;", 
-  #           "\nCoerce to use_defpeaks = FALSE.")
-  #   use_defpeaks <- FALSE
-  # }
+  if (FALSE) {
+    if (maxn_mdda_precurs > 1L && use_defpeaks) {
+      warning("Default peaks not used at maxn_mdda_precurs > 1;", 
+              "\nCoerce to use_defpeaks = FALSE.")
+      use_defpeaks <- FALSE
+    }
+  }
   
   len <- length(filelist)
   files <- file.path(mgf_path, filelist)
@@ -1038,7 +1044,10 @@ extrDDA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL,
 #' 
 #' @param raw_id A raw file id.
 #' @param n_para The allowance of parallel processing. 
+#' @param mgf_cutmzs The cut points in peak lists.
+#' @param mgf_cutpercs The percentage of cuts.
 #' @inheritParams deisoDDA
+#' @inheritParams matchMS
 hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL, 
                        ppm_ms1 = 10L, ppm_ms2 = 10L, 
                        maxn_mdda_precurs = 5L, 
@@ -1629,13 +1638,11 @@ getMSrowIndexes <- function (ms_level, pad_nas = FALSE)
 #' @param n_chunks The number of chunks.
 #' 
 #' @examples
-#' library(mzion)
-#' 
 #' vals1 <- c(rep(1, 2), rep(2, 5), 1, rep(2, 4), rep(1, 3), rep(2, 4), 1)
-#' grps1 <- find_ms2ends(vals1, 3)
+#' grps1 <- mzion:::find_ms2ends(vals1, 3)
 #' 
 #' vals2 <- c(rep(1, 2), rep(2, 5), 1, rep(2, 4), rep(1, 3), rep(2, 4))
-#' grps2 <- find_ms2ends(vals2, 3)
+#' grps2 <- mzion:::find_ms2ends(vals2, 3)
 find_ms2ends <- function (vals, n_chunks = 3L)
 {
   if (n_chunks <= 1L)
@@ -1652,6 +1659,9 @@ find_ms2ends <- function (vals, n_chunks = 3L)
 #' @param ms_level Vectors of MS levels
 #' @param iso_ctr A vector of isolation centers.
 #' @param iso_lwr A vecor of isolation lowers.
+#' @param ms1_moverzs MS1 moverz values.
+#' @param ms1_ints MS1 intensity values.
+#' @param ms1_charges MS1 charge states.
 #' @inheritParams find_mdda_mms1s
 #' @inheritParams matchMS
 getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL, 
@@ -2269,7 +2279,6 @@ subDIAMS1 <- function (df)
 #' @param filename A filename.
 #' @param raw_id A raw file id.
 #' @param temp_dir A temporary directory. 
-#' @param gap The size of gap.
 #' @param n_para The allowance of parallel processing.
 #' @inheritParams load_mgfs
 htraceDIA <- function (filename, raw_id, temp_dir, mgf_path, 
@@ -2611,7 +2620,6 @@ flattenMSxyz <- function (matx, maty, matz, join_ms = FALSE)
 #'   feature. One-hit wonders correspond to \code{ns == 1L}.
 #' @param ps The row positions (along LC scans) of features.
 #' @param gap The gap width for one-hit wonders.
-#' @param neigh_start The starting point of neighbors for the data spreading.
 #' @param join_ms Logical; if TRUE, combine adjacent entries.
 spreadMSohw <- function (matx, maty, matz, ns, ps, gap = 2L, join_ms = FALSE)
 {
@@ -3192,15 +3200,12 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
 #' @examples
-#' library(mzion)
-#'
-#' find_lc_gates(c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), 2)
-#'
-#' # find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50))
-#' # find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50))
+#' mzion:::find_lc_gates(c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), 2)
+#' mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50))
+#' mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50))
 #'
 #' # all discrete
-#' # find_lc_gates(c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50))
+#' mzion:::find_lc_gates(c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50))
 #' @return Scan indexes of LC peaks.
 find_lc_gates <- function (ys, n_dia_scans = 4L)
 {
@@ -3286,15 +3291,13 @@ find_lc_gates <- function (ys, n_dia_scans = 4L)
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
 #' @examples
-#' library(mzion)
-#' 
 #' ys <- c(10,0,0,0,11,0,15,0,0,12,0,10,0,0,10)
-#' fill_lc_gaps(ys, 3)
-#' fill_lc_gaps(ys, 2)
+#' mzion:::fill_lc_gaps(ys, 3)
+#' mzion:::fill_lc_gaps(ys, 2)
 #'
 #' ys <- c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10)
-#' fill_lc_gaps(ys, 3)
-#' fill_lc_gaps(ys, 2)
+#' mzion:::fill_lc_gaps(ys, 3)
+#' mzion:::fill_lc_gaps(ys, 2)
 fill_lc_gaps <- function (ys, n_dia_scans = 4L)
 {
   if (n_dia_scans <= 1L)
@@ -3341,18 +3344,18 @@ fill_lc_gaps <- function (ys, n_dia_scans = 4L)
 #'            392.2030,392.2887,392.6641,392.7812,393.0833,393.2975))
 #' ys <- list(c(12827.41,337002.19,617819.69,18045.10,205851.53,15194.98,11318.61,
 #'              12970.02,118604.48,75726.89,11676.51,23723.18,55749.93))
-#' # collapse_mms1ints(xs, ys, lwr = 389.6529)
+#' mzion:::collapse_mms1ints(xs, ys, lwr = 389.6529)
 #'
 #' xs <- list(c(400.6596,401.7076,402.1813,402.1944,402.1969,402.2094,402.5438,402.7112,403.1812,404.1777),
 #'            c(400.6599,401.7075,402.1954,402.1975,402.7112,403.1822,404.2777))
 #' ys <- list(c(24003.98,53431.96,110619.26,10988.55,12291.00,140045.06,67601.16,11413.04,21651.61,16686.06),
 #'            c(10000.1,40000.1,20000.1,50000.1,2500.2,5000.1,30000.1))
-#' # collapse_mms1ints(xs, ys, lwr = 400.1994)
+#' mzion:::collapse_mms1ints(xs, ys, lwr = 400.1994)
 #'
 #' xs <- ys <- vector("list", 13L)
 #' xs[[7]] <- 954.607849; xs[[8]] <- 954.630249; xs[[10]] <- 954.622925
 #' ys[[7]] <- 15706.2627; ys[[8]] <- 19803.5879; ys[[10]] <- 31178.9648
-#' # collapse_mms1ints(xs, ys, lwr = 951.089731)
+#' mzion:::collapse_mms1ints(xs, ys, lwr = 951.089731)
 collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5, 
                                reord = FALSE, coll = TRUE, cleanup = TRUE, 
                                add_colnames = FALSE)

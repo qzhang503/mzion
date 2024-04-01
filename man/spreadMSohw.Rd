@@ -21,8 +21,6 @@ feature. One-hit wonders correspond to \code{ns == 1L}.}
 \item{gap}{The gap width for one-hit wonders.}
 
 \item{join_ms}{Logical; if TRUE, combine adjacent entries.}
-
-\item{neigh_start}{The starting point of neighbors for the data spreading.}
 }
 \description{
 Spreads one-hit wonders to adjacent scans.

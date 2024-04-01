@@ -39,6 +39,12 @@ moverzs.}
 
 \item{iso_lwr}{A vecor of isolation lowers.}
 
+\item{ms1_moverzs}{MS1 moverz values.}
+
+\item{ms1_charges}{MS1 charge states.}
+
+\item{ms1_ints}{MS1 intensity values.}
+
 \item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
 multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
 equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
