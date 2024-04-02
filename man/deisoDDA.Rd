@@ -7,6 +7,7 @@
 deisoDDA(
   filename = NULL,
   temp_dir = NULL,
+  mzml_type = "raw",
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
   maxn_mdda_precurs = 5L,
@@ -42,6 +43,9 @@ deisoDDA(
 \item{filename}{A peaklist filename.}
 
 \item{temp_dir}{A temp_dir to the filename.}
+
+\item{mzml_type}{The type of peak lists. To trigger MS1 deisotoping at
+\code{mzml_type == "raw"} (MS1 X, y and Z are NA with Mzion).}
 
 \item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
 default is 20.}

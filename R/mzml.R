@@ -62,36 +62,25 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
   #   - find_ms1stat
   # 
 
-  if (data_type == "raw")
-    message("Processing RAW files")
-  else if (data_type == "mzml")
-    message("Processing mzML files.")
-
   temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
   
   if (data_type == "raw") {
+    message("Processing RAW files")
     peakfiles <- readRAW(mgf_path = mgf_path, filelist = filelist)
   }
   else if (data_type == "mzml") {
+    message("Processing mzML files.")
     peakfiles <- hloadMZML(filelist, mgf_path, temp_dir)
     gc() # free up xml pointers
   }
   else {
-    is_dia <- TRUE
-    peakfiles <- "23aug2017_hela_serum_timecourse_wide_1a.raw.rds"
-
-    is_dia <- FALSE
-    peakfiles <- "20230108_AST_Neo1_DDA_UHG_HeLa_200ng_2th2p5ms_Cycle_01_20230808143253.raw.rds"
-
     is_dia <- FALSE
     peakfiles <- "01CPTAC3_Benchmarking_W_BI_20170508_BL_f02.raw.rds"
+    mzml_type <- "pwiz_3d"
     
     is_dia <- FALSE
-    peakfiles <- "CPTAC_CCRCC_W_JHU_20190112_LUMOS_C3N-01261_T.raw.rds"
-
-    # peakfiles <- qs::qread("~/peakfiles_bi_g1.rds")
-    peakfiles <- qs::qread(file.path(temp_dir, "peaklists.rds"))
-    is_dia <- FALSE
+    peakfiles <- "01CPTAC3_Benchmarking_W_BI_20170508_BL_f02.raw.rds"
+    mzml_type <- "raw"
   }
   
   peakfile1 <- peakfiles[[1]]
@@ -262,6 +251,7 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
         MoreArgs = list(
           mgf_path = mgf_path, 
           temp_dir = temp_dir, 
+          mzml_type = mzml_type, 
           ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
           maxn_mdda_precurs = maxn_mdda_precurs, 
           topn_ms2ions = topn_ms2ions, 
@@ -295,6 +285,7 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
         MoreArgs = list(
           mgf_path = mgf_path, 
           temp_dir = temp_dir, 
+          mzml_type = mzml_type, 
           ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
           maxn_mdda_precurs = maxn_mdda_precurs, 
           topn_ms2ions = topn_ms2ions, 
@@ -1041,15 +1032,15 @@ extrDDA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL,
 
 
 #' Helper of \link{deisoDDA}.
-#' 
+#'
 #' @param raw_id A raw file id.
-#' @param n_para The allowance of parallel processing. 
+#' @param n_para The allowance of parallel processing.
 #' @param mgf_cutmzs The cut points in peak lists.
 #' @param mgf_cutpercs The percentage of cuts.
 #' @inheritParams deisoDDA
 #' @inheritParams matchMS
 hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL, 
-                       ppm_ms1 = 10L, ppm_ms2 = 10L, 
+                       mzml_type = "raw", ppm_ms1 = 10L, ppm_ms2 = 10L, 
                        maxn_mdda_precurs = 5L, 
                        topn_ms2ions = 150L, n_mdda_flanks = 6L, n_dia_scans = 4L, 
                        min_mass = 200L, max_mass = 4500L,
@@ -1069,6 +1060,7 @@ hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL,
   df <- deisoDDA(
     filename, 
     temp_dir = temp_dir, 
+    mzml_type = mzml_type, 
     ppm_ms1 = ppm_ms1, 
     ppm_ms2 = ppm_ms2, 
     maxn_mdda_precurs = maxn_mdda_precurs, 
@@ -1127,9 +1119,11 @@ hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL,
 #' 
 #' @param filename A peaklist filename.
 #' @param temp_dir A temp_dir to the filename.
+#' @param mzml_type The type of peak lists. To trigger MS1 deisotoping at
+#'   \code{mzml_type == "raw"} (MS1 X, y and Z are NA with Mzion).
 #' @param n_para The allowance of parallel processing. 
 #' @inheritParams matchMS
-deisoDDA <- function (filename = NULL, temp_dir = NULL, 
+deisoDDA <- function (filename = NULL, temp_dir = NULL, mzml_type = "raw", 
                       ppm_ms1 = 10L, ppm_ms2 = 10L, 
                       maxn_mdda_precurs = 5L, topn_ms2ions = 150L, 
                       n_mdda_flanks = 6L, n_dia_scans = 4L, 
@@ -1156,9 +1150,9 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     msx_moverzs <- ans$msx_moverzs
     msx_ints <- ans$msx_ints
     msx_ns <- ans$msx_ns
-    ms1_moverzs <- ans$ms1_moverzs # by MSConvert
-    ms1_ints <- ans$ms1_ints # by MSConvert
-    ms1_charges <- ans$ms1_charges # by MSConvert
+    ms1_moverzs <- ans$ms1_moverzs # by MSConvert; Mzion: NA
+    ms1_ints <- ans$ms1_ints # by MSConvert; Mzion: NA
+    ms1_charges <- ans$ms1_charges # by MSConvert; Mzion: NA
     scan_title <- ans$scan_title
     raw_file <- ans$raw_file # scalar
     ms_level <- ans$ms_level
@@ -1247,6 +1241,11 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
         msx_charges[oks] <- out[[3]]
         rm(list = c("out", "oks"))
       }
+    }
+    
+    # MS1 X, Y and Z are NA from Mzion::readRAW; need to trigger deisotoping
+    if (mzml_type == "raw" && maxn_mdda_precurs < 1L) {
+      maxn_mdda_precurs <- 1L
     }
     
     if (maxn_mdda_precurs) {

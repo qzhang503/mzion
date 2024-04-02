@@ -4,6 +4,9 @@
 #' @param filelist A list of RAW MS files.
 readRAW <- function (mgf_path = NULL, filelist = NULL) 
 {
+  sys_path <- system.file("extdata", package = "mzion")
+  acceptMSFileReaderLicense(sys_path)
+  
   temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
   
   local({
@@ -46,7 +49,8 @@ proc_raws <- function (raw_file, mgf_path, temp_dir)
   filepeak <- exeReadRAW(raw_file, mgf_path)
   pathfile <- file.path(mgf_path, filepeak)
   lines <- readLines(pathfile)
-  # lines <- stringi::stri_read_lines(pathfile) # memory allocation or access error
+  # DON'T; see the help document; memory allocation or access error
+  # lines <- stringi::stri_read_lines(pathfile)
 
   idx_scans <- .Internal(which(stringi::stri_cmp_eq(lines, "SCAN")))
   scan_nums <- lines[idx_scans + 1L]
@@ -75,16 +79,20 @@ proc_raws <- function (raw_file, mgf_path, temp_dir)
   iso_lwrs <- iso_ctrs - half_widths
   iso_uprs <- iso_ctrs + half_widths
   
+  len <- length(msx_moverzs)
+  na_ints <- rep_len(NA_integer_, len)
+  na_reals <- rep_len(NA_real_, len)
+  
   out <- list(
     msx_moverzs = msx_moverzs, 
     msx_ints = msx_ints, 
     msx_ns = msx_ns,
-    ms1_moverzs = NA_real_, 
-    ms1_charges = NA_integer_, 
-    ms1_ints = NA_real_, 
+    ms1_moverzs = na_reals, 
+    ms1_charges = na_ints, 
+    ms1_ints = na_reals, 
     
     scan_title = scan_titles,
-    raw_file = raw_file, # single entry
+    raw_file = raw_file, # scalar
     ms_level = ms_levels, 
     ret_time = ret_times, 
     scan_num = as.integer(scan_nums), 
@@ -115,7 +123,6 @@ proc_raws <- function (raw_file, mgf_path, temp_dir)
 exeReadRAW <- function(raw_file, mgf_path)
 {
   sys_path <- system.file("extdata", package = "mzion")
-  acceptMSFileReaderLicense(sys_path)
   exe <- file.path(sys_path, name_exe = "ReadRAW.exe")
   mono <- if (Sys.info()['sysname'] %in% c("Darwin", "Linux")) TRUE else FALSE
   
