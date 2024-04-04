@@ -85,7 +85,7 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
 hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules, 
                          by_modules = TRUE, mgf_path, quant = "none", 
                          min_mass = 200L, max_mass = 4500L, ppm_ms1_bin = 10L, 
-                         .path_bin, data_type = "mzML")
+                         .path_bin, data_type = "mzml")
 {
   if (abs(ms1_offset) > 1e-4) {
     mgfs <- if (ms1_offset > 0)
@@ -218,7 +218,7 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
 #'   argument is used to handle list(NULL) at an mzML format.
 #' @inheritParams pair_mgftheos
 make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L, 
-                           ppm_ms1_bin = 10L, data_type = "mzML")
+                           ppm_ms1_bin = 10L, data_type = "mzml")
 {
   mgfs$apex_scan_num <- mgfs$ms_level <- mgfs$demux <- NULL
   
@@ -264,7 +264,7 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
   # list columns
   datalist <- mgfs[, cols_list, drop = FALSE]
   
-  if (data_type == "mzML") {
+  if (tolower(data_type) == "mzml") {
     for (i in 1:ncol(datalist)) {
       di <- datalist[[i]]
       lens <- lengths(di)

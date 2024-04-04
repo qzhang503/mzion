@@ -10,7 +10,7 @@ make_dia_mgfs(
   quant = "none",
   min_mass = 200L,
   ppm_ms1_bin = 10L,
-  data_type = "mzML"
+  data_type = "mzml"
 )
 }
 \arguments{

@@ -16,7 +16,7 @@ hpair_mgths(
   max_mass = 4500L,
   ppm_ms1_bin = 10L,
   .path_bin,
-  data_type = "mzML"
+  data_type = "mzml"
 )
 }
 \arguments{
