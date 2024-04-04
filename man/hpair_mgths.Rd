@@ -15,7 +15,8 @@ hpair_mgths(
   min_mass = 200L,
   max_mass = 4500L,
   ppm_ms1_bin = 10L,
-  .path_bin
+  .path_bin,
+  data_type = "mzML"
 )
 }
 \arguments{
@@ -52,6 +53,9 @@ interrogation.}
 \item{ppm_ms1_bin}{The tolerance in precursor mass error after mass binning.}
 
 \item{.path_bin}{The path to binned theoretical masses}
+
+\item{data_type}{The type of peak lists in one of raw, mzML or mgf. The
+argument is used to handle list(NULL) at an mzML format.}
 }
 \description{
 Helper of \link{pair_mgftheos}.

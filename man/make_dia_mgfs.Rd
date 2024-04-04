@@ -9,7 +9,8 @@ make_dia_mgfs(
   mgf_path,
   quant = "none",
   min_mass = 200L,
-  ppm_ms1_bin = 10L
+  ppm_ms1_bin = 10L,
+  data_type = "mzML"
 )
 }
 \arguments{
@@ -31,6 +32,9 @@ interrogation. The default is an arbitrarily low value (the primary guard
 against low molecular-weight precursors is \code{min_len}).}
 
 \item{ppm_ms1_bin}{The tolerance in precursor mass error after mass binning.}
+
+\item{data_type}{The type of peak lists in one of raw, mzML or mgf. The
+argument is used to handle list(NULL) at an mzML format.}
 }
 \description{
 Replicates MS2 data by the multiplicity of precursor masses.

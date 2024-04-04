@@ -1327,20 +1327,31 @@ hadd_primatches <- function (out_path = NULL, is_notched = FALSE,
   
   tempdir <- file.path(out_path, "temp")
   files <- list.files(path = tempdir, pattern = "^prescores_\\d+.*\\.rds$")
-  n_cores <- min(detect_cores(48L)) - 1L
-
-  cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-  parallel::clusterExport(cl, list("add_primatches"), 
-                          envir = environment(mzion::matchMS))
-  parallel::clusterApplyLB(cl, files, 
-                           add_primatches, 
-                           tempdir = tempdir, 
-                           add_ms2theos = add_ms2theos, 
-                           add_ms2theos2 = add_ms2theos2, 
-                           add_ms2moverzs = add_ms2moverzs, 
-                           add_ms2ints = add_ms2ints)
-  parallel::stopCluster(cl)
+  n_cores <- min(detect_cores(48L) - 1L, len <- length(files))
   
+  if (n_cores <= 1L) {
+    for (i in 1:len) {
+      add_primatches(files[[i]], tempdir = tempdir, 
+                     add_ms2theos = add_ms2theos, 
+                     add_ms2theos2 = add_ms2theos2, 
+                     add_ms2moverzs = add_ms2moverzs, 
+                     add_ms2ints = add_ms2ints)
+    }
+  }
+  else {
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+    parallel::clusterExport(cl, list("add_primatches"), 
+                            envir = environment(mzion::matchMS))
+    parallel::clusterApplyLB(cl, files, 
+                             add_primatches, 
+                             tempdir = tempdir, 
+                             add_ms2theos = add_ms2theos, 
+                             add_ms2theos2 = add_ms2theos2, 
+                             add_ms2moverzs = add_ms2moverzs, 
+                             add_ms2ints = add_ms2ints)
+    parallel::stopCluster(cl)
+  }
+
   ms_files <- order_fracs(type = "ms2info", tempdir, by_modules)
   
   mapply(function (fis, idx) {
@@ -1396,10 +1407,10 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
                       
                       pep_ms2_deltas = NA_character_, 
                       pep_ms2_ideltas = NA_character_,
-                      pep_ms2_iexs <- NA_character_,
+                      pep_ms2_iexs = NA_character_,
                       pep_ms2_deltas2 = NA_character_, 
                       pep_ms2_ideltas2 = NA_character_, 
-                      pep_ms2_iexs2 <- NA_character_,
+                      pep_ms2_iexs2 = NA_character_,
                       
                       pep_ms2_deltas_mean = NA_real_, 
                       pep_ms2_deltas_sd = NA_real_, 
@@ -1409,72 +1420,134 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
   # unlist from list table
   pris <- lapply(df$pri_matches, `[[`, 1)
   secs <- lapply(df$sec_matches, `[[`, 1)
-
   len <- length(pris)
-  p1s. <- m2s <- m1s <- iys2 <- iys1 <- sd1s <- me1s <- 
-    e2s <- p2s <- d2s <- e1s <- p1s <- d1s <- 
-    vector("list", len)
+  
+  m2s <- m1s <- iys2 <- iys1 <- sd1s <- me1s <- vector("list", len)
 
-  for (i in 1:len) {
-    mt1 <- pris[[i]]
-    th1 <- mt1[["theo"]]
-    ex1 <- mt1[["expt"]]
-    iy1 <- mt1[["int"]]
-    mt2 <- secs[[i]]
-    th2 <- mt2[["theo"]]
-    ex2 <- mt2[["expt"]]
-    iy2 <- mt2[["int"]]
+  if (TRUE) {
+    th1s <- lapply(pris, `[[`, "theo")
+    ex1s <- lapply(pris, `[[`, "expt") # contains NA
+    iy1s <- lapply(pris, `[[`, "int") # contains NA
+    ps1s. <- ps1s <- lapply(pris, `[[`, "ith")
+    es1s <- lapply(pris, `[[`, "iex")
+    th2s <- lapply(secs, `[[`, "theo")
+    ex2s <- lapply(secs, `[[`, "expt") # contains NA
+    iy2s <- lapply(secs, `[[`, "int") # contains NA
+    ps2s <- lapply(secs, `[[`, "ith") # can be integer(0)
+    es2s <- lapply(secs, `[[`, "iex") # can be integer(0)
+    
+    ds1s <- mapply(function (x, y, p) round((x[p] - y[p]) * 1E3, digits = 2L), 
+                   ex1s, th1s, ps1s, USE.NAMES = FALSE)
+    ds2s <- mapply(function (x, y, p) round((x[p] - y[p]) * 1E3, digits = 2L), 
+                   ex2s, th2s, ps2s, USE.NAMES = FALSE)
+    me1s <- lapply(ds1s, function (x) round(mean(x), digits = 2L))
+    sd1s <- lapply(ds1s, function (x) round(stats::sd(x), digits = 2L))
 
-    ps1 <- mt1[["ith"]]
-    ps2 <- mt2[["ith"]]
-    es1 <- mt1[["iex"]]
-    es2 <- mt2[["iex"]]
-    
-    ds1 <- (ex1[ps1] - th1[ps1]) * 1E3
-    ds2 <- (ex2[ps2] - th2[ps2]) * 1E3
-    me1 <- mean(ds1)
-    sd1 <- stats::sd(ds1)
-    
-    # delayed rounding
-    ds1 <- round(ds1, digits = 2L)
-    ds2 <- round(ds2, digits = 2L)
-    me1 <- round(me1, digits = 2L)
-    sd1 <- round(sd1, digits = 2L)
-    
-    d1s[[i]] <- .Internal(paste0(list(ds1), collapse = ";", recycle0 = FALSE))
-    d2s[[i]] <- .Internal(paste0(list(ds2), collapse = ";", recycle0 = FALSE))
-    
-    p1s[[i]]  <- .Internal(paste0(list(ps1), collapse = ";", recycle0 = FALSE))
-    p2s[[i]]  <- .Internal(paste0(list(ps2), collapse = ";", recycle0 = FALSE))
-    e1s[[i]]  <- .Internal(paste0(list(es1), collapse = ";", recycle0 = FALSE))
-    e2s[[i]]  <- .Internal(paste0(list(es2), collapse = ";", recycle0 = FALSE))
-    iys1[[i]] <- .Internal(paste0(list(iy1[ps1]), collapse = ";", recycle0 = FALSE))
-    iys2[[i]] <- .Internal(paste0(list(iy2[ps2]), collapse = ";", recycle0 = FALSE))
+    iy1s <- mapply(function (x, y) stringi::stri_join(x[y], collapse = ";"), 
+                   iy1s, ps1s, USE.NAMES = FALSE)
+    ds1s <- stringi::stri_join_list(ds1s, sep = ';')
+    es1s <- stringi::stri_join_list(es1s, sep = ';')
+    # does this the latest
+    ps1s <- stringi::stri_join_list(ps1s, sep = ';')
 
-    me1s[[i]] <- me1
-    sd1s[[i]] <- sd1
+    rows <- lengths(ds2s) > 0L
+    ds2s[rows] <- stringi::stri_join_list(ds2s, sep = ';')
+
+    rows <- lengths(es2s) > 0L
+    es2s[rows] <- stringi::stri_join_list(es2s[rows], sep = ';')
+    es2s <- unname(es2s)
     
-    m1s[[i]]  <- mt1$m
-    m2s[[i]]  <- mt2$m
-    p1s.[[i]] <- ps1
+    iy2s <- mapply(function (x, y) stringi::stri_join(x[y], collapse = ";"), 
+                iy2s, ps2s, USE.NAMES = FALSE)
+    # does this the latest
+    rows <- lengths(ps2s) > 0L
+    ps2s[rows] <- stringi::stri_join_list(ps2s[rows], sep = ';')
+    ps2s <- unname(ps2s)
+    
+    m1s <- lapply(pris, `[[`, "m")
+    m2s <- lapply(secs, `[[`, "m")
+
+    df[["pep_ms2_deltas"]] <- ds1s
+    df[["pep_ms2_deltas2"]] <- ds2s
+    df[["pep_ms2_deltas_mean"]] <- me1s
+    df[["pep_ms2_deltas_sd"]] <- sd1s
+
+    df[["pep_ms2_ideltas"]] <- ps1s
+    df[["pep_ms2_ideltas2"]] <- ps2s
+    df[["pep_ms2_iexs"]] <- es1s
+    df[["pep_ms2_iexs2"]] <- es2s
+    df[["pep_n_matches"]] <- m1s
+    df[["pep_n_matches2"]] <- m2s
+    df[["pep_ms2_exptints"]] <- iys1
+    df[["pep_ms2_exptints2"]] <- iys2
+
+    df[["pep_ms2_ideltas."]] <- ps1s.
   }
-  
-  df[["pep_ms2_deltas"]] <- do.call(rbind, d1s)
-  df[["pep_ms2_deltas2"]] <- do.call(rbind, d2s)
-  df[["pep_ms2_deltas_mean"]] <- do.call(rbind, me1s)
-  df[["pep_ms2_deltas_sd"]] <- do.call(rbind, sd1s)
+  else {
+    p1s. <- e2s <- p2s <- d2s <- e1s <- p1s <- d1s <- vector("list", len)
 
-  df[["pep_ms2_ideltas"]] <- do.call(rbind, p1s)
-  df[["pep_ms2_ideltas2"]] <- do.call(rbind, p2s)
-  df[["pep_ms2_iexs"]] <- do.call(rbind, e1s)
-  df[["pep_ms2_iexs2"]] <- do.call(rbind, e2s)
-  df[["pep_n_matches"]] <- do.call(rbind, m1s)
-  df[["pep_n_matches2"]] <- do.call(rbind, m2s)
-  df[["pep_ms2_exptints"]] <- do.call(rbind, iys1)
-  df[["pep_ms2_exptints2"]] <- do.call(rbind, iys2)
-  
-  df[["pep_ms2_ideltas."]] <- p1s.
-  
+    for (i in 1:len) {
+      mt1 <- pris[[i]]
+      th1 <- mt1[["theo"]]
+      ex1 <- mt1[["expt"]]
+      iy1 <- mt1[["int"]]
+      mt2 <- secs[[i]]
+      th2 <- mt2[["theo"]]
+      ex2 <- mt2[["expt"]]
+      iy2 <- mt2[["int"]]
+      
+      ps1 <- mt1[["ith"]]
+      ps2 <- mt2[["ith"]]
+      es1 <- mt1[["iex"]]
+      es2 <- mt2[["iex"]]
+      
+      ds1 <- (ex1[ps1] - th1[ps1]) * 1E3
+      ds2 <- (ex2[ps2] - th2[ps2]) * 1E3
+      me1 <- mean(ds1)
+      sd1 <- stats::sd(ds1)
+      
+      # delayed rounding
+      ds1 <- round(ds1, digits = 2L)
+      ds2 <- round(ds2, digits = 2L)
+      me1 <- round(me1, digits = 2L)
+      sd1 <- round(sd1, digits = 2L)
+      
+      d1s[[i]] <- .Internal(paste0(list(ds1), collapse = ";", recycle0 = FALSE))
+      d2s[[i]] <- .Internal(paste0(list(ds2), collapse = ";", recycle0 = FALSE))
+      
+      p1s[[i]]  <- .Internal(paste0(list(ps1), collapse = ";", recycle0 = FALSE))
+      p2s[[i]]  <- .Internal(paste0(list(ps2), collapse = ";", recycle0 = FALSE))
+      e1s[[i]]  <- .Internal(paste0(list(es1), collapse = ";", recycle0 = FALSE))
+      e2s[[i]]  <- .Internal(paste0(list(es2), collapse = ";", recycle0 = FALSE))
+      iys1[[i]] <- .Internal(paste0(list(iy1[ps1]), collapse = ";", recycle0 = FALSE))
+      iys2[[i]] <- .Internal(paste0(list(iy2[ps2]), collapse = ";", recycle0 = FALSE))
+      
+      me1s[[i]] <- me1
+      sd1s[[i]] <- sd1
+      
+      m1s[[i]]  <- mt1$m
+      m2s[[i]]  <- mt2$m
+      p1s.[[i]] <- ps1
+    }
+    
+    df[["pep_ms2_deltas"]] <- do.call(rbind, d1s)
+    df[["pep_ms2_deltas2"]] <- do.call(rbind, d2s)
+    df[["pep_ms2_deltas_mean"]] <- do.call(rbind, me1s)
+    df[["pep_ms2_deltas_sd"]] <- do.call(rbind, sd1s)
+    
+    df[["pep_ms2_ideltas"]] <- do.call(rbind, p1s)
+    df[["pep_ms2_ideltas2"]] <- do.call(rbind, p2s)
+    df[["pep_ms2_iexs"]] <- do.call(rbind, e1s)
+    df[["pep_ms2_iexs2"]] <- do.call(rbind, e2s)
+    df[["pep_n_matches"]] <- do.call(rbind, m1s)
+    df[["pep_n_matches2"]] <- do.call(rbind, m2s)
+    df[["pep_ms2_exptints"]] <- do.call(rbind, iys1)
+    df[["pep_ms2_exptints2"]] <- do.call(rbind, iys2)
+    
+    # no string collapsion
+    df[["pep_ms2_ideltas."]] <- p1s.
+  }
+
   if (add_ms2theos) df$pep_ms2_theos <- collapse_vecs(lapply(pris, `[[`, "theo"))
   if (add_ms2theos2) df$pep_ms2_theos2 <- collapse_vecs(lapply(secs, `[[`, "theo"))
   if (add_ms2moverzs) df$pep_ms2_moverzs <- collapse_vecs(df$pep_ms2_moverzs)

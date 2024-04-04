@@ -52,11 +52,19 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
   mgfs <- dplyr::bind_rows(mgfs)
   notches <- seq_along(ms1_offsets)
   
+  # need additional handling of mzML with list(NULL) entries
+  # setting the default to "mzML" to reinforce list(NULL) handling
+  data_type <- if (file.exists(fi <- file.path(mgf_path, "data_type.rds")))
+    qs::qread(fi)
+  else
+    "mzML"
+
   mapply(hpair_mgths, ms1_offsets, notches, 
          MoreArgs = list(
            mgfs = mgfs, n_modules = n_modules, by_modules = by_modules, 
            mgf_path = mgf_path, quant = quant, min_mass = min_mass, 
-           max_mass = max_mass, ppm_ms1_bin = ppm_ms1_bin, .path_bin = .path_bin), 
+           max_mass = max_mass, ppm_ms1_bin = ppm_ms1_bin, 
+           .path_bin = .path_bin, data_type = data_type), 
          SIMPLIFY = FALSE, USE.NAMES = FALSE)
   
   qs::qsave(data.frame(ms1_offset = ms1_offsets, notch = notches), 
@@ -67,15 +75,17 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
 
 
 #' Helper of \link{pair_mgftheos}.
-#' 
+#'
 #' @param ms1_offset The ms1 offset.
 #' @param notch The index assigned to an ms1_offset.
 #' @param mgfs MGF data.
+#' @param data_type The type of peak lists in one of raw, mzML or mgf. The
+#'   argument is used to handle list(NULL) at an mzML format.
 #' @inheritParams pair_mgftheos
 hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules, 
                          by_modules = TRUE, mgf_path, quant = "none", 
                          min_mass = 200L, max_mass = 4500L, ppm_ms1_bin = 10L, 
-                         .path_bin)
+                         .path_bin, data_type = "mzML")
 {
   if (abs(ms1_offset) > 1e-4) {
     mgfs <- if (ms1_offset > 0)
@@ -96,7 +106,8 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
   else {
     # temporarily drop apex_scan_num...
     mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, quant = quant, 
-                          min_mass = min_mass, ppm_ms1_bin = ppm_ms1_bin)
+                          min_mass = min_mass, ppm_ms1_bin = ppm_ms1_bin, 
+                          data_type = data_type)
     mgfs <- mgfs[names(mgfs) != "-Inf"] # unknown precursors
   }
 
@@ -203,9 +214,11 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules,
 #' Replicates MS2 data by the multiplicity of precursor masses.
 #' 
 #' @param mgfs MGF data.
+#' @param data_type The type of peak lists in one of raw, mzML or mgf. The
+#'   argument is used to handle list(NULL) at an mzML format.
 #' @inheritParams pair_mgftheos
 make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L, 
-                           ppm_ms1_bin = 10L)
+                           ppm_ms1_bin = 10L, data_type = "mzML")
 {
   mgfs$apex_scan_num <- mgfs$ms_level <- mgfs$demux <- NULL
   
@@ -250,6 +263,28 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
 
   # list columns
   datalist <- mgfs[, cols_list, drop = FALSE]
+  
+  if (data_type == "mzML") {
+    for (i in 1:ncol(datalist)) {
+      di <- datalist[[i]]
+      lens <- lengths(di)
+      bads <- .Internal(which(lens == 0L))
+      
+      if (length(bads)) {
+        na_type <- switch(
+          typeof(di[[1]]), 
+          double = NA_real_, 
+          integer = NA_integer_,
+          NA_real_)
+        
+        di[bads] <- list(na_type)
+        datalist[[i]] <- di
+      }
+    }
+    
+    rm(list = c("di", "lens", "bads"))
+  }
+
   datalist <- lapply(datalist, unlist, use.names = FALSE, recursive = FALSE)
   datalist <- dplyr::bind_cols(datalist)
   

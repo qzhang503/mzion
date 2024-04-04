@@ -62,6 +62,9 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
   #   - find_ms1stat
   # 
 
+  # mzML may contains NULL entries and need additional handling
+  qs::qsave(data_type, file.path(mgf_path, "data_type.rds"), preset = "fast")
+  
   temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
   
   if (data_type == "raw") {
