@@ -4,14 +4,12 @@
 \alias{order_fracs3}
 \title{Order fractions}
 \usage{
-order_fracs3(type = "list_table", tempdir, by_modules = TRUE)
+order_fracs3(type = "list_table", tempdir)
 }
 \arguments{
 \item{type}{The type of files.}
 
 \item{tempdir}{A temporary directory containing the files.}
-
-\item{by_modules}{Logical; if TRUE, performs searches by modules.}
 }
 \description{
 Three layers: module_notch_frac

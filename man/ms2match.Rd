@@ -24,7 +24,6 @@ ms2match(
   min_ms2mass = 115L,
   quant = "none",
   ppm_reporters = 10L,
-  by_modules = TRUE,
   reframe_mgfs = FALSE,
   ms1_offsets = 0,
   ms1_neulosses = NULL,
@@ -133,11 +132,6 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
 ions. The default is 10.}
-
-\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
-individual modules of combinatorial fixed and variable modifications. If
-FALSE, search all modules together. The later would probably need more than
-32G RAM if the number of modules is over 96.}
 
 \item{reframe_mgfs}{Logical; if TRUE, recalculates the frame indexes of MGFs.}
 

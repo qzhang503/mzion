@@ -26,7 +26,6 @@ hms2match(
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
   min_ms2mass = 115L,
-  by_modules = FALSE,
   df0 = NULL
 )
 }
@@ -125,11 +124,6 @@ default is 20.}
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
-
-\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
-individual modules of combinatorial fixed and variable modifications. If
-FALSE, search all modules together. The later would probably need more than
-32G RAM if the number of modules is over 96.}
 
 \item{df0}{An output template with zero rows}
 }

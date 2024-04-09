@@ -8,8 +8,8 @@ hpair_mgths(
   ms1_offset = 0,
   notch = NULL,
   mgfs,
+  mgf_files,
   n_modules,
-  by_modules = TRUE,
   mgf_path,
   quant = "none",
   min_mass = 200L,
@@ -26,11 +26,9 @@ hpair_mgths(
 
 \item{mgfs}{MGF data.}
 
-\item{n_modules}{The number of modules (\code{length(aa_masses_all)}) or one}
+\item{mgf_files}{The names of peak list files.}
 
-\item{by_modules}{Logical; if TRUE, results are saved with one mgf to one
-theo module. At FALSE, results are saved with one mgf paired to all theo
-modules}
+\item{n_modules}{The number of modules (\code{length(aa_masses_all)}) or one}
 
 \item{mgf_path}{The path to MGF files}
 

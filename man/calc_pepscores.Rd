@@ -37,7 +37,6 @@ calc_pepscores(
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
   add_ms2ints = FALSE,
-  by_modules = TRUE,
   digits = 4L
 )
 }
@@ -190,11 +189,6 @@ sets of combinatorial variable modifications. The default is 512.}
 
 \item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
 intensity values (\code{pep_ms2_ints}).}
-
-\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
-individual modules of combinatorial fixed and variable modifications. If
-FALSE, search all modules together. The later would probably need more than
-32G RAM if the number of modules is over 96.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

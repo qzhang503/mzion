@@ -137,7 +137,7 @@ default is 20.}
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
 
-\item{df0}{An output template.}
+\item{df0}{An output template with zero rows}
 }
 \description{
 For a single module

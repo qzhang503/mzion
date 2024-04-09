@@ -14,8 +14,7 @@ search_mgf(
   minn_ms2 = 6L,
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
-  min_ms2mass = 115L,
-  by_modules = FALSE
+  min_ms2mass = 115L
 )
 }
 \arguments{
@@ -32,8 +31,7 @@ preceding \code{-1}, the current and the following \code{+1} frames.}
 \item{theomasses_ms2}{Numeric vector; the theoretical MS2 m/z's at the
 preceding \code{-1}, the current and the following \code{+1} frames.}
 
-\item{pep_mod_groups}{The index(es) of peptide modification groups; single
-value at \code{by_modules = TRUE}.}
+\item{pep_mod_groups}{The index(es) of peptide modification groups.}
 
 \item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
 for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
@@ -47,11 +45,6 @@ default is 20.}
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
-
-\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
-individual modules of combinatorial fixed and variable modifications. If
-FALSE, search all modules together. The later would probably need more than
-32G RAM if the number of modules is over 96.}
 }
 \description{
 Matches an MGF query

@@ -9,7 +9,6 @@ pair_mgftheos(
   n_modules,
   ms1_offsets = 0,
   quant = "none",
-  by_modules = TRUE,
   min_mass = 200L,
   max_mass = 4500L,
   ppm_ms1_bin = 10L,
@@ -34,10 +33,6 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 15N)}. It is also possible that an experimenter may construct a
 \code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
 \code{quant = tmt18} is suitable.}
-
-\item{by_modules}{Logical; if TRUE, results are saved with one mgf to one
-theo module. At FALSE, results are saved with one mgf paired to all theo
-modules}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
 interrogation. The default is an arbitrarily low value (the primary guard

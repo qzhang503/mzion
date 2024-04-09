@@ -113,7 +113,6 @@ matchMS(
   svm_def_cost = 1,
   svm_iters = 10L,
   make_speclib = FALSE,
-  by_modules = TRUE,
   digits = 4L,
   ...
 )
@@ -638,11 +637,6 @@ validation.}
 
 \item{make_speclib}{Makes spectrum library from the search results of
 \code{psmQ.txt}.}
-
-\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
-individual modules of combinatorial fixed and variable modifications. If
-FALSE, search all modules together. The later would probably need more than
-32G RAM if the number of modules is over 96.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

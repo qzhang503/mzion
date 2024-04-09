@@ -26,15 +26,13 @@ calcpepsc(
   add_ms2ints = FALSE,
   quant = "none",
   ppm_reporters = 10,
-  by_modules = TRUE,
   digits = 4L
 )
 }
 \arguments{
 \item{file}{A file name of \code{ion_matches_}}
 
-\item{im_path}{A temporary file path to \code{ion_matches_}; \code{sc_temp}
-at \code{by_modules = TRUE} or \code{temp} at \code{by_modules = FALSE}}
+\item{im_path}{A temporary file path to \code{ion_matches_}}
 
 \item{pep_fmod_all}{Attributes of \code{pep_fmod} from \code{aa_masses_all}}
 
@@ -110,11 +108,6 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
 ions. The default is 10.}
-
-\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
-individual modules of combinatorial fixed and variable modifications. If
-FALSE, search all modules together. The later would probably need more than
-32G RAM if the number of modules is over 96.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

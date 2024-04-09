@@ -10,8 +10,7 @@ hadd_primatches(
   add_ms2theos = FALSE,
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
-  add_ms2ints = FALSE,
-  by_modules = TRUE
+  add_ms2ints = FALSE
 )
 }
 \arguments{
@@ -40,11 +39,6 @@ hadd_primatches(
 
 \item{add_ms2ints}{Logical; if TRUE, adds the sequence of experimental MS2
 intensity values (\code{pep_ms2_ints}).}
-
-\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
-individual modules of combinatorial fixed and variable modifications. If
-FALSE, search all modules together. The later would probably need more than
-32G RAM if the number of modules is over 96.}
 }
 \description{
 Helper of \link{add_primatches}

@@ -25,7 +25,6 @@ calib_mgf(
   min_ms2mass = 115L,
   quant = "none",
   ppm_reporters = 10L,
-  by_modules = TRUE,
   fasta = NULL,
   acc_type = NULL,
   acc_pattern = NULL,
@@ -127,11 +126,6 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 
 \item{ppm_reporters}{A positive integer; the mass tolerance of MS2 reporter
 ions. The default is 10.}
-
-\item{by_modules}{Not used. Logical. At the TRUE default, searches MS data by
-individual modules of combinatorial fixed and variable modifications. If
-FALSE, search all modules together. The later would probably need more than
-32G RAM if the number of modules is over 96.}
 
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with
 prepended directory path. The experimenter needs to supply the files.}
