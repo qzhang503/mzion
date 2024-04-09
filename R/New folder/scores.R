@@ -1384,14 +1384,14 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
   es2s <- lapply(secs, `[[`, "iex") # can be integer(0)
   
   ds1s <- mapply(function (x, y, p) round((x[p] - y[p]) * 1E3, digits = 2L), 
-                 ex1s, th1s, ps1s, USE.NAMES = FALSE)
+                 ex1s, th1s, ps1s, USE.NAMES = FALSE, SIMPLIFY = FALSE)
   ds2s <- mapply(function (x, y, p) round((x[p] - y[p]) * 1E3, digits = 2L), 
-                 ex2s, th2s, ps2s, USE.NAMES = FALSE)
+                 ex2s, th2s, ps2s, USE.NAMES = FALSE, SIMPLIFY = FALSE)
   me1s <- lapply(ds1s, function (x) round(mean(x), digits = 2L))
   sd1s <- lapply(ds1s, function (x) round(stats::sd(x), digits = 2L))
   
   iy1s <- mapply(function (x, y) stringi::stri_join(x[y], collapse = ";"), 
-                 iy1s, ps1s, USE.NAMES = FALSE)
+                 iy1s, ps1s, USE.NAMES = FALSE, SIMPLIFY = FALSE)
   ds1s <- stringi::stri_join_list(ds1s, sep = ';')
   es1s <- stringi::stri_join_list(es1s, sep = ';')
   # does the collapsion at the least

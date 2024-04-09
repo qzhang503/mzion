@@ -6,16 +6,22 @@
 #'   the original MGFs).
 #' @param .path_bin The path to binned theoretical masses
 #' @param ppm_ms1_bin The tolerance in precursor mass error after mass binning.
+#' @param by_modules Logical; if TRUE, results are saved with one mgf to one
+#'   theo module. At FALSE, results are saved with one mgf paired to all theo
+#'   modules
 #' @inheritParams ms2match
 #' @inheritParams matchMS
 pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none", 
-                           min_mass = 200L, max_mass = 4500L, 
+                           by_modules = TRUE, min_mass = 200L, max_mass = 4500L, 
                            ppm_ms1_bin = 10L, .path_bin, reframe_mgfs = FALSE, 
                            first_search = FALSE)
 {
   message("Pairing experimental and theoretical data.")
   
-  tempfiles <- list.files(mgf_path, pattern = "^expt|^theo", full.names = TRUE)
+  tempfiles <- if (by_modules)
+    list.files(mgf_path, pattern = "^expt|^theo", full.names = TRUE)
+  else
+    list.files(mgf_path, pattern = "^mgftheo_",  full.names = TRUE)
   
   if (length(tempfiles))
     unlink(tempfiles)
@@ -51,11 +57,11 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
   data_type <- if (file.exists(fi <- file.path(mgf_path, "data_type.rds")))
     qs::qread(fi)
   else
-    "mzml"
+    "mzML"
 
   mapply(hpair_mgths, ms1_offsets, notches, 
          MoreArgs = list(
-           mgfs = mgfs, mgf_files = mgf_files, n_modules = n_modules, 
+           mgfs = mgfs, n_modules = n_modules, by_modules = by_modules, 
            mgf_path = mgf_path, quant = quant, min_mass = min_mass, 
            max_mass = max_mass, ppm_ms1_bin = ppm_ms1_bin, 
            .path_bin = .path_bin, data_type = data_type), 
@@ -73,14 +79,13 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
 #' @param ms1_offset The ms1 offset.
 #' @param notch The index assigned to an ms1_offset.
 #' @param mgfs MGF data.
-#' @param mgf_files The names of peak list files.
 #' @param data_type The type of peak lists in one of raw, mzML or mgf. The
 #'   argument is used to handle list(NULL) at an mzML format.
 #' @inheritParams pair_mgftheos
-hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, mgf_files, 
-                         n_modules, mgf_path, quant = "none", 
+hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, n_modules, 
+                         by_modules = TRUE, mgf_path, quant = "none", 
                          min_mass = 200L, max_mass = 4500L, ppm_ms1_bin = 10L, 
-                         .path_bin, data_type = "mzml")
+                         .path_bin, data_type = "mzML")
 {
   if (abs(ms1_offset) > 1e-4) {
     mgfs <- if (ms1_offset > 0)
@@ -109,7 +114,7 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, mgf_files,
   # to chunks: each chunk has multiple frames: each frame multiple precursors
   ranges <- seq_along(mgfs)
   
-  n_chunks <- if (n_modules == 1L)
+  n_chunks <- if (n_modules == 1L || by_modules)
     min(detect_cores(96L)^2, 1024L)
   else if (n_modules >= 96L)
     min(length(ranges), length(mgf_files) * n_modules * 2L)
@@ -179,14 +184,23 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, mgf_files,
   anstheo <- lapply(anstheo, function (x) x[ord])
   
   # (5) outputs (in chunks)
-  qs::qsave(mgfs, 
-            file.path(mgf_path, paste0("expt_", 0, "_", notch, ".rds")), 
-            preset = "fast")
-  
-  for (i in seq_len(n_modules))
-    qs::qsave(anstheo[[i]], 
-              file.path(mgf_path, paste0("theo_", i, "_", notch, ".rds")), 
+  if (by_modules) {
+    qs::qsave(mgfs, 
+              file.path(mgf_path, paste0("expt_", 0, "_", notch, ".rds")), 
               preset = "fast")
+    
+    for (i in seq_len(n_modules))
+      qs::qsave(anstheo[[i]], 
+                file.path(mgf_path, paste0("theo_", i, "_", notch, ".rds")), 
+                preset = "fast")
+  }
+  else {
+    for (i in seq_along(mgfs))
+      qs::qsave(list(mgf_frames = mgfs[[i]], 
+                     theopeps = lapply(anstheo, `[[`, i)), 
+                file.path(mgf_path, paste0("mgftheo_", i, ".rds")), 
+                preset = "fast")
+  }
 
   # next version: note that mgfs are the same for different modules
   # also save by fractions -> avoid sendData in parallel by read from disk
@@ -204,7 +218,7 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, mgf_files,
 #'   argument is used to handle list(NULL) at an mzML format.
 #' @inheritParams pair_mgftheos
 make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L, 
-                           ppm_ms1_bin = 10L, data_type = "mzml")
+                           ppm_ms1_bin = 10L, data_type = "mzML")
 {
   mgfs$apex_scan_num <- mgfs$ms_level <- mgfs$demux <- NULL
   
@@ -250,7 +264,7 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
   # list columns
   datalist <- mgfs[, cols_list, drop = FALSE]
   
-  if (tolower(data_type) == "mzml") {
+  if (data_type == "mzML") {
     for (i in 1:ncol(datalist)) {
       di <- datalist[[i]]
       lens <- lengths(di)
@@ -326,13 +340,13 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
                        maxn_vnl_per_seq = 3L, 
                        maxn_vmods_sitescombi_per_pep = 64L, 
                        minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                       min_ms2mass = 115L, df0 = NULL)
+                       min_ms2mass = 115L, by_modules = FALSE, df0 = NULL)
 {
-  pth <- "theo"
-  pex <- "expt"
-  theos <- order_fracs(type = pth, tempdir = mgf_path)
-  expts <- order_fracs(type = pex, tempdir = mgf_path)
-  
+  pth <- if (by_modules) "theo" else "mgftheo"
+  pex <- if (by_modules) "expt" else "mgftheo"
+  theos <- order_fracs(type = pth, tempdir = mgf_path, by_modules = by_modules)
+  expts <- order_fracs(type = pex, tempdir = mgf_path, by_modules = by_modules)
+
   message("\n===  MS2 ion searches started at ", Sys.time(), ". ===\n")
   
   n_cores <- detect_cores(96L) - 1L
@@ -342,7 +356,7 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
                           envir = environment(fastmatch::fmatch))
   parallel::clusterExport(
     cl,
-    c("gen_ms2ions_base", 
+    c("ms2match_all", "gen_ms2ions_base", 
       "gen_ms2ions_a0_vnl0_fnl1", "gen_ms2ions_a1_vnl0_fnl1", 
       "gen_ms2ions_a1_vnl0_fnl0", "gen_ms2ions_a1_vnl1_fnl0", 
       "calc_rev_ms2", "match_mvmods", "expand_grid_rows", "expand_gr", 
@@ -354,21 +368,47 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
       "find_ms2_bypep", "post_frame_adv"), 
     envir = environment(mzion::matchMS))
   
-  parallel::clusterExport(cl, c("frames_adv"), envir = environment(mzion::matchMS))
-  for (i in seq_along(aa_masses_all)) {
-    hms2match_one(
-      pep_mod_group = i, 
-      nms_theo = theos[[i]], 
-      nms_expt = expts[[1]], 
-      aa_masses = aa_masses_all[[i]], 
-      FUN = funs_ms2[[i]],  
-      ms1vmods = ms1vmods_all[[i]], 
-      ms2vmods = ms2vmods_all[[i]], 
-      ms1_neulosses = ms1_neulosses, 
-      maxn_neulosses_fnl = maxn_neulosses_fnl, 
-      maxn_neulosses_vnl = maxn_neulosses_vnl, 
-      deisotope_ms2 = deisotope_ms2, 
-      cl = cl, 
+  if (by_modules) {
+    parallel::clusterExport(cl, c("frames_adv"), envir = environment(mzion::matchMS))
+
+    for (i in seq_along(aa_masses_all)) {
+      hms2match_one(
+        pep_mod_group = i, 
+        nms_theo = theos[[i]], 
+        nms_expt = expts[[1]], 
+        aa_masses = aa_masses_all[[i]], 
+        FUN = funs_ms2[[i]],  
+        ms1vmods = ms1vmods_all[[i]], 
+        ms2vmods = ms2vmods_all[[i]], 
+        ms1_neulosses = ms1_neulosses, 
+        maxn_neulosses_fnl = maxn_neulosses_fnl, 
+        maxn_neulosses_vnl = maxn_neulosses_vnl, 
+        deisotope_ms2 = deisotope_ms2, 
+        cl = cl, 
+        mod_indexes = mod_indexes, 
+        mgf_path = mgf_path, 
+        out_path = out_path, 
+        type_ms2ions = type_ms2ions, 
+        maxn_vmods_per_pep = maxn_vmods_per_pep, 
+        maxn_sites_per_vmod = maxn_sites_per_vmod, 
+        maxn_fnl_per_seq = maxn_fnl_per_seq, 
+        maxn_vnl_per_seq = maxn_vnl_per_seq, 
+        maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+        minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
+        min_ms2mass = min_ms2mass, 
+        df0 = df0)
+    }
+  }
+  else {
+    message("Check search progress at: ", logs)
+    parallel::clusterExport(cl, c("mframes_adv"), envir = environment(mzion::matchMS))
+    
+    df <- parallel::clusterApplyLB(
+      cl, mgths, ms2match_all, 
+      aa_masses_all = aa_masses_all, 
+      funs_ms2 = funs_ms2, 
+      ms1vmods_all = ms1vmods_all, 
+      ms2vmods_all = ms2vmods_all, 
       mod_indexes = mod_indexes, 
       mgf_path = mgf_path, 
       out_path = out_path, 
@@ -377,16 +417,486 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
       maxn_sites_per_vmod = maxn_sites_per_vmod, 
       maxn_fnl_per_seq = maxn_fnl_per_seq, 
       maxn_vnl_per_seq = maxn_vnl_per_seq, 
-      maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
-      minn_ms2 = minn_ms2, ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
+      maxn_vmods_sitescombi_per_pep = 
+        maxn_vmods_sitescombi_per_pep, 
+      minn_ms2 = minn_ms2, 
+      ppm_ms1 = ppm_ms1, 
+      ppm_ms2 = ppm_ms2, 
       min_ms2mass = min_ms2mass, 
       df0 = df0)
   }
+  
   parallel::stopCluster(cl)
   
   message("\n===  MS2 ion searches completed at ", Sys.time(), ". ===\n")
   
   invisible(df)
+}
+
+
+#' Matches experimentals and theoreticals
+#' 
+#' One MGF chunk and all modules
+#' 
+#' @param mgth Experimental MGFs and paired theoreticals (from all modules)
+#' @param df0 An output template
+#' @inheritParams hms2match
+ms2match_all <- function (mgth, aa_masses_all, funs_ms2, ms1vmods_all, 
+                          ms2vmods_all, mod_indexes, mgf_path, out_path, 
+                          type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
+                          maxn_sites_per_vmod = 3L, maxn_fnl_per_seq = 3L, 
+                          maxn_vnl_per_seq = 3L, 
+                          maxn_vmods_sitescombi_per_pep = 64L, 
+                          minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
+                          min_ms2mass = 115L, 
+                          df0 = NULL)
+{
+  msg <- paste0("Matching expt-theo pair: ", mgth)
+  write(msg, stdout())
+  
+  out_name   <- gsub("^mgftheo", "ion_matches", mgth)
+  mgftheo    <- qs::qread(file.path(mgf_path, mgth))
+  mgf_frames <- mgftheo[["mgf_frames"]]
+  theopeps   <- mgftheo[["theopeps"]]
+  rm("mgftheo")
+  
+  if (!length(mgf_frames)) {
+    qs::qsave(df0, file.path(out_path, "temp", out_name))
+    return(NULL)
+  }
+  
+  df <- mframes_adv(
+    mgf_frames = mgf_frames, 
+    theopeps = theopeps, 
+    aa_masses_all = aa_masses_all, 
+    funs_ms2 = funs_ms2, 
+    ms1vmods_all = ms1vmods_all, 
+    ms2vmods_all = ms2vmods_all, 
+    mod_indexes = mod_indexes, 
+    type_ms2ions = type_ms2ions, 
+    maxn_vmods_per_pep = maxn_vmods_per_pep, 
+    maxn_sites_per_vmod = maxn_sites_per_vmod, 
+    maxn_fnl_per_seq = maxn_fnl_per_seq, 
+    maxn_vnl_per_seq = maxn_vnl_per_seq, 
+    maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep, 
+    minn_ms2 = minn_ms2, 
+    ppm_ms1 = ppm_ms1, 
+    ppm_ms2 = ppm_ms2, 
+    min_ms2mass = min_ms2mass)
+
+  if (!dir.exists(tempdir <- file.path(out_path, "temp")))
+    create_dir(tempdir)
+
+  if (is.null(df)) {
+    qs::qsave(df, file.path(tempdir, out_name), preset = "fast")
+    return(NULL)
+  }
+  
+  df <- dplyr::rename(df, 
+                      pep_ret_range = ret_time, 
+                      pep_scan_title = scan_title,
+                      pep_exp_mz = ms1_moverz, 
+                      pep_n_ms2 = ms2_n, 
+                      pep_exp_mr = ms1_mass, 
+                      pep_tot_int = ms1_int, 
+                      pep_scan_num = scan_num, 
+                      pep_exp_z = ms1_charge, 
+                      pep_ms2_moverzs = ms2_moverzs, 
+                      pep_ms2_ints = ms2_ints, 
+                      pep_frame = frame)
+  df[["pep_scan_num"]] <- as.character(df[["pep_scan_num"]])
+  df <- reloc_col_after(df, "raw_file", "pep_scan_num")
+  qs::qsave(df, file.path(tempdir, out_name), preset = "fast")
+  
+  message("Completed: ", mgth)
+  
+  invisible(df)
+}
+
+
+#' Frame advancing
+#' 
+#' For all modules of fixed and variable modifications
+#' 
+#' @param mgf_frames A group of mgf frames (from chunk splitting). A
+#'   \code{mgf_frames[[i]]} contains one to multiple MGFs whose MS1 masses are
+#'   in the same interval. The \code{mgf_frames} are ordered by increasing
+#'   values in \code{frame} for progressive searches.
+#' @param theopeps Binned theoretical peptides corresponding to an i-th
+#'   \code{aa_masses}.
+#' @param minn_ms2 Integer; the minimum number of MS2 ions for consideration as
+#'   a hit.
+#' @param ppm_ms1 The mass tolerance of MS1 species.
+#' @param ppm_ms2 The mass tolerance of MS2 species.
+#' @inheritParams matchMS
+#' @inheritParams ms2match
+#' @inheritParams hms2match
+#' @return Matches to each MGF as a list elements. The length of the output is
+#'   equal to the number of MGFs in the given frame.
+mframes_adv <- function (mgf_frames = NULL, theopeps = NULL, 
+                         aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all, 
+                         mod_indexes = NULL, 
+                         type_ms2ions = "by", maxn_vmods_per_pep = 5L, 
+                         maxn_sites_per_vmod = 3L, maxn_fnl_per_seq = 3L, 
+                         maxn_vnl_per_seq = 3L, 
+                         maxn_vmods_sitescombi_per_pep = 64L, 
+                         minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
+                         min_ms2mass = 115L) 
+{
+  lenm <- length(mgf_frames)
+  frames <- as.integer(names(mgf_frames))
+  
+  if (!lenm)
+    return(NULL)
+  
+  FUNs <- lapply(funs_ms2, as.symbol)
+  lenf <- length(funs_ms2)
+  out  <- vector("list", lenm) 
+  list_null <- list(NULL)
+  
+  ntmod_all    <- lapply(aa_masses_all, attr, "ntmod", exact = TRUE)
+  ctmod_all    <- lapply(aa_masses_all, attr, "ctmod", exact = TRUE)
+  ntmass_all   <- lapply(aa_masses_all, find_nterm_mass)
+  ctmass_all   <- lapply(aa_masses_all, find_cterm_mass)
+  fmods_nl_all <- lapply(aa_masses_all, attr, "fmods_nl", exact = TRUE)
+  vmods_nl_all <- lapply(aa_masses_all, attr, "vmods_nl", exact = TRUE)
+  amods_all    <- lapply(aa_masses_all, attr, "amods", exact = TRUE)
+  
+  fmods_nl_all <- lapply(fmods_nl_all, function (x) if (length(x)) x else NULL)
+  vmods_nl_all <- lapply(vmods_nl_all, function (x) if (length(x)) x else NULL)
+  amods_all    <- lapply(amods_all,    function (x) if (length(x)) x else NULL)
+  ms1vmods_all <- lapply(ms1vmods_all, function (x) if (length(x)) x else NULL)
+  ms2vmods_all <- lapply(ms2vmods_all, function (x) if (length(x)) x else NULL)
+
+  ## --- initiation ---
+  mgfs_cr <- mgf_frames[[1]]
+  frame   <- frames[1]
+  
+  thaf_ms2s <- thcr_ms2s <- thbf_ms2s <- 
+    thaf_peps <- thcr_peps <- thbf_peps <- 
+    thaf_masses <- thcr_masses <- thbf_masses <- 
+    thaf <- thcr <- thbf <- vector("list", lenf)
+  
+  bfi <- 1L
+  cri <- bfi + 1L
+  
+  for (j in 1:lenf) {
+    thbf_ms1s_j <- theopeps[[j]][[bfi]]
+    
+    if (is.null(thbf_ms1s_j))
+      thbf_ms2s[j] <- thbf_masses[j] <- thbf_peps[j] <- thbf[j] <- list_null
+    else {
+      thbf[[j]] <- thbf_ms1s_j
+      thbf_peps_j <- thbf_peps[[j]] <- thbf_ms1s_j[["pep_seq"]]
+      thbf_masses[[j]] <- thbf_ms1s_j[["mass"]]
+      
+      thbf_ms2s[[j]] <- mapply(
+        FUNs[[j]], 
+        aa_seq = thbf_peps_j, 
+        ms1_mass = thbf_masses[[j]], 
+        MoreArgs = list(
+          aa_masses = aa_masses_all[[j]], 
+          ms1vmods = ms1vmods_all[[j]], 
+          ms2vmods = ms2vmods_all[[j]], 
+          ntmod = ntmod_all[[j]], 
+          ctmod = ctmod_all[[j]], 
+          ntmass = ntmass_all[[j]], 
+          ctmass = ctmass_all[[j]], 
+          amods = amods_all[[j]], 
+          vmods_nl = vmods_nl_all[[j]], 
+          fmods_nl = fmods_nl_all[[j]], 
+          mod_indexes = mod_indexes, 
+          type_ms2ions = type_ms2ions, 
+          maxn_vmods_per_pep = maxn_vmods_per_pep, 
+          maxn_sites_per_vmod = maxn_sites_per_vmod, 
+          maxn_fnl_per_seq = maxn_fnl_per_seq, 
+          maxn_vnl_per_seq = maxn_vnl_per_seq, 
+          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
+        ), 
+        SIMPLIFY = FALSE,
+        USE.NAMES = FALSE
+      )
+      # temporarily share peptide names between targets and decoys; 
+      # later is.na(pep_ivmod) -> decoys -> add "-" to prot_acc -> reverse sequence
+      names(thbf_ms2s[[j]]) <- thbf_peps_j
+    }
+    
+    thcr_ms1s_j <- theopeps[[j]][[cri]]
+    
+    if (is.null(thcr_ms1s_j))
+      thcr_ms2s[j] <- thcr_masses[j] <- thcr_peps[j] <- thcr[j] <- list_null
+    else {
+      thcr[[j]] <- thcr_ms1s_j
+      thcr_peps_j <- thcr_peps[[j]] <- thcr_ms1s_j[["pep_seq"]]
+      thcr_masses[[j]] <- thcr_ms1s_j[["mass"]]
+      
+      thcr_ms2s[[j]] <- mapply(
+        FUNs[[j]], 
+        aa_seq = thcr_peps_j, 
+        ms1_mass = thcr_masses[[j]], 
+        MoreArgs = list(
+          aa_masses = aa_masses_all[[j]], 
+          ms1vmods = ms1vmods_all[[j]], 
+          ms2vmods = ms2vmods_all[[j]], 
+          ntmod = ntmod_all[[j]], 
+          ctmod = ctmod_all[[j]], 
+          ntmass = ntmass_all[[j]], 
+          ctmass = ctmass_all[[j]], 
+          amods = amods_all[[j]], 
+          vmods_nl = vmods_nl_all[[j]], 
+          fmods_nl = fmods_nl_all[[j]], 
+          mod_indexes = mod_indexes, 
+          type_ms2ions = type_ms2ions, 
+          maxn_vmods_per_pep = maxn_vmods_per_pep, 
+          maxn_sites_per_vmod = maxn_sites_per_vmod, 
+          maxn_fnl_per_seq = maxn_fnl_per_seq, 
+          maxn_vnl_per_seq = maxn_vnl_per_seq, 
+          maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
+        ), 
+        SIMPLIFY = FALSE,
+        USE.NAMES = FALSE
+      )
+      names(thcr_ms2s[[j]]) <- thcr_peps_j
+    }
+  }
+  
+  ## --- iteration ---
+  for (i in seq_len(lenm)) {
+    ms1_exptmasses  <- mgfs_cr[["ms1_mass"]]
+    ms2_exptmoverzs <- mgfs_cr[["ms2_moverzs"]]
+    
+    afi <- cri + 1L
+    
+    for (j in 1:lenf) {
+      thaf_ms1s_j <- theopeps[[j]][[afi]]
+      
+      if (is.null(thaf_ms1s_j))
+        thaf_ms2s[j] <- thaf_masses[j] <- thaf_peps[j] <- thaf[j] <- list_null
+      else {
+        thaf[[j]] <- thaf_ms1s_j
+        thaf_peps_j <- thaf_peps[[j]] <- thaf_ms1s_j[["pep_seq"]]
+        thaf_masses[[j]] <- thaf_ms1s_j[["mass"]]
+        
+        thaf_ms2s[[j]] <- mapply(
+          FUNs[[j]], 
+          aa_seq = thaf_peps_j, 
+          ms1_mass = thaf_masses[[j]], 
+          MoreArgs = list(
+            aa_masses = aa_masses_all[[j]], 
+            ms1vmods = ms1vmods_all[[j]], 
+            ms2vmods = ms2vmods_all[[j]], 
+            ntmod = ntmod_all[[j]], 
+            ctmod = ctmod_all[[j]], 
+            ntmass = ntmass_all[[j]], 
+            ctmass = ctmass_all[[j]], 
+            amods = amods_all[[j]], 
+            vmods_nl = vmods_nl_all[[j]], 
+            fmods_nl = fmods_nl_all[[j]], 
+            mod_indexes = mod_indexes, 
+            type_ms2ions = type_ms2ions, 
+            maxn_vmods_per_pep = maxn_vmods_per_pep, 
+            maxn_sites_per_vmod = maxn_sites_per_vmod, 
+            maxn_fnl_per_seq = maxn_fnl_per_seq, 
+            maxn_vnl_per_seq = maxn_vnl_per_seq, 
+            maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
+          ), 
+          SIMPLIFY = FALSE,
+          USE.NAMES = FALSE
+        )
+        names(thaf_ms2s[[j]]) <- thaf_peps_j
+      }
+    }
+    
+    thbca_masses <- mapply(`c`, thbf_masses, thcr_masses, thaf_masses)
+    thbca_ms2s   <- mapply(`c`, thbf_ms2s, thcr_ms2s, thaf_ms2s)
+    lens_bca <- .Internal(unlist(lapply(thbca_masses, length), 
+                                 recursive = FALSE, use.names = FALSE))
+    mod_grps <- rep.int(1:lenf, times = lens_bca)
+    
+    # each `out` for the results of multiple mgfs in one frame
+    out[[i]] <- mapply(
+      search_mgf, 
+      expt_mass_ms1 = ms1_exptmasses, 
+      expt_moverz_ms2 = ms2_exptmoverzs, 
+      MoreArgs = list(
+        theomasses_ms1 = flatten_list(thbca_masses), 
+        theomasses_ms2 = flatten_list(thbca_ms2s), 
+        pep_mod_groups = mod_grps, 
+        minn_ms2 = minn_ms2, 
+        ppm_ms1 = ppm_ms1, 
+        ppm_ms2 = ppm_ms2, 
+        min_ms2mass = min_ms2mass, 
+        by_modules = FALSE
+      ), 
+      SIMPLIFY = FALSE,
+      USE.NAMES = FALSE
+    )
+    
+    # out[[i]]
+    #   MGF_1
+    #     theo: "ADCLVPSEIRKLK" (grp_1)
+    #     theo: "ASRDLLKEFPQPK" (grp_1)
+    #     ...
+    #     theo: "TYLNLMGKSKK"   (grp_10)
+    #     ...
+    #   MGF_2
+    #     theo: 
+    
+    if (i == lenm) 
+      break
+    
+    # advance to the next frame
+    mgfs_cr <- mgf_frames[[i+1]]
+    new_frame <- frames[i+1L]
+    
+    if (isTRUE(new_frame == (frame + 1L))) {
+      cri <- cri + 1L
+      
+      thbf <- thcr
+      thbf_masses <- thcr_masses
+      thbf_peps <- thcr_peps
+      thbf_ms2s <- thcr_ms2s
+      
+      thcr <- thaf
+      thcr_masses <- thaf_masses
+      thcr_peps <- thaf_peps
+      thcr_ms2s <- thaf_ms2s
+    } 
+    else if (isTRUE(new_frame == (frame + 2L))) {
+      cri <- cri + 2L
+      
+      thbf <- thaf
+      thbf_masses <- thaf_masses
+      thbf_peps <- thaf_peps
+      thbf_ms2s <- thaf_ms2s
+      
+      for (j in 1:lenf) {
+        thcr_ms1s_j <- theopeps[[j]][[cri]]
+        
+        if (is.null(thcr_ms1s_j))
+          thcr_ms2s[j] <- thcr_masses[j] <- thcr_peps[j] <- thcr[j] <- list_null
+        else {
+          thcr[[j]] <- thcr_ms1s_j
+          thcr_peps_j <- thcr_peps[[j]] <- thcr_ms1s_j[["pep_seq"]]
+          thcr_masses[[j]] <- thcr_ms1s_j[["mass"]]
+          
+          thcr_ms2s[[j]] <- mapply(
+            FUNs[[j]], 
+            aa_seq = thcr_peps_j, 
+            ms1_mass = thcr_masses[[j]], 
+            MoreArgs = list(
+              aa_masses = aa_masses_all[[j]], 
+              ms1vmods = ms1vmods_all[[j]], 
+              ms2vmods = ms2vmods_all[[j]], 
+              ntmod = ntmod_all[[j]], 
+              ctmod = ctmod_all[[j]], 
+              ntmass = ntmass_all[[j]], 
+              ctmass = ctmass_all[[j]], 
+              amods = amods_all[[j]], 
+              vmods_nl = vmods_nl_all[[j]], 
+              fmods_nl = fmods_nl_all[[j]], 
+              mod_indexes = mod_indexes, 
+              type_ms2ions = type_ms2ions, 
+              maxn_vmods_per_pep = maxn_vmods_per_pep, 
+              maxn_sites_per_vmod = maxn_sites_per_vmod, 
+              maxn_fnl_per_seq = maxn_fnl_per_seq, 
+              maxn_vnl_per_seq = maxn_vnl_per_seq, 
+              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
+            ), 
+            SIMPLIFY = FALSE,
+            USE.NAMES = FALSE
+          )
+          names(thcr_ms2s[[j]]) <- thcr_peps_j
+        }
+      }
+    } 
+    else {
+      cri <- cri + 3L
+      bfi <- cri - 1L
+      
+      for (j in 1:lenf) {
+        thbf_ms1s_j <- theopeps[[j]][[bfi]]
+        
+        if (is.null(thbf_ms1s_j))
+          thbf_ms2s[j] <- thbf_masses[j] <- thbf_peps[j] <- thbf[j] <- list_null
+        else {
+          thbf[[j]] <- thbf_ms1s_j
+          thbf_peps_j <- thbf_peps[[j]] <- thbf_ms1s_j[["pep_seq"]]
+          thbf_masses[[j]] <- thbf_ms1s_j[["mass"]]
+          
+          thbf_ms2s[[j]] <- mapply(
+            FUNs[[j]], 
+            aa_seq = thbf_peps_j, 
+            ms1_mass = thbf_masses[[j]], 
+            MoreArgs = list(
+              aa_masses = aa_masses_all[[j]], 
+              ms1vmods = ms1vmods_all[[j]], 
+              ms2vmods = ms2vmods_all[[j]], 
+              ntmod = ntmod_all[[j]], 
+              ctmod = ctmod_all[[j]], 
+              ntmass = ntmass_all[[j]], 
+              ctmass = ctmass_all[[j]], 
+              amods = amods_all[[j]], 
+              vmods_nl = vmods_nl_all[[j]], 
+              fmods_nl = fmods_nl_all[[j]], 
+              mod_indexes = mod_indexes, 
+              type_ms2ions = type_ms2ions, 
+              maxn_vmods_per_pep = maxn_vmods_per_pep, 
+              maxn_sites_per_vmod = maxn_sites_per_vmod, 
+              maxn_fnl_per_seq = maxn_fnl_per_seq, 
+              maxn_vnl_per_seq = maxn_vnl_per_seq, 
+              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
+            ), 
+            SIMPLIFY = FALSE,
+            USE.NAMES = FALSE
+          )
+          names(thbf_ms2s[[j]]) <- thbf_peps_j
+        }
+        
+        thcr_ms1s_j <- theopeps[[j]][[cri]]
+        
+        if (is.null(thcr_ms1s_j))
+          thcr_ms2s[j] <- thcr_masses[j] <- thcr_peps[j] <- thcr[j] <- list_null
+        else {
+          thcr[[j]] <- thcr_ms1s_j
+          thcr_peps_j <- thcr_peps[[j]] <- thcr_ms1s_j[["pep_seq"]]
+          thcr_masses[[j]] <- thcr_ms1s_j[["mass"]]
+          
+          thcr_ms2s[[j]] <- mapply(
+            FUNs[[j]], 
+            aa_seq = thcr_peps_j, 
+            ms1_mass = thcr_masses[[j]], 
+            MoreArgs = list(
+              aa_masses = aa_masses_all[[j]], 
+              ms1vmods = ms1vmods_all[[j]], 
+              ms2vmods = ms2vmods_all[[j]], 
+              ntmod = ntmod_all[[j]], 
+              ctmod = ctmod_all[[j]], 
+              ntmass = ntmass_all[[j]], 
+              ctmass = ctmass_all[[j]], 
+              amods = amods_all[[j]], 
+              vmods_nl = vmods_nl_all[[j]], 
+              fmods_nl = fmods_nl_all[[j]], 
+              mod_indexes = mod_indexes, 
+              type_ms2ions = type_ms2ions, 
+              maxn_vmods_per_pep = maxn_vmods_per_pep, 
+              maxn_sites_per_vmod = maxn_sites_per_vmod, 
+              maxn_fnl_per_seq = maxn_fnl_per_seq, 
+              maxn_vnl_per_seq = maxn_vnl_per_seq, 
+              maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep
+            ), 
+            SIMPLIFY = FALSE,
+            USE.NAMES = FALSE
+          )
+          names(thcr_ms2s[[j]]) <- thcr_peps_j
+        }
+      }
+    }
+    
+    frame <- new_frame
+  }
+  
+  out <- post_frame_adv(out, mgf_frames)
 }
 
 
@@ -748,7 +1258,8 @@ find_ms2_bypep <- function (theos = NULL, expts = NULL, ex = NULL, d = NULL,
 #'   preceding \code{-1}, the current and the following \code{+1} frames.
 #' @param theomasses_ms2 Numeric vector; the theoretical MS2 m/z's at the
 #'   preceding \code{-1}, the current and the following \code{+1} frames.
-#' @param pep_mod_groups The index(es) of peptide modification groups.
+#' @param pep_mod_groups The index(es) of peptide modification groups; single
+#'   value at \code{by_modules = TRUE}.
 #' @inheritParams matchMS
 #' @inheritParams load_mgfs
 #' @inheritParams pair_mgftheos
@@ -782,7 +1293,7 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
                         exptcharges_ms2 = NULL, theomasses_ms1 = NULL, 
                         theomasses_ms2 = NULL, pep_mod_groups = NULL, 
                         minn_ms2 = 6L, ppm_ms1 = 10L, ppm_ms2 = 10L, 
-                        min_ms2mass = 115L)
+                        min_ms2mass = 115L, by_modules = FALSE)
 {
   # don't flip the order of cdn1 & cdn2: FALSE & NA -> FALSE; TRUE & NA <- NA
   if (!is.null(exptcharges_ms2))
@@ -822,6 +1333,9 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
   oks2 <- lengths(ans, use.names = FALSE) > 0L
   ans <- ans[oks2]
   theomasses_ms1 <- theomasses_ms1[oks2]
+  
+  if (!by_modules)
+    pep_mod_groups <- pep_mod_groups[oks2]
 
   mapply(
     function (x, y, g) {
@@ -895,10 +1409,7 @@ search_mgf <- function (expt_mass_ms1 = NULL, expt_moverz_ms2 = NULL,
 #'   an i-t \code{aa_masses}.
 #' @param cl The value of clusters for parallel processes.
 #' @param df0 An output template.
-#' @param mod_indexes Integer; the indexes of fixed and/or variable
-#'   modifications
-#' @param df0 An output template with zero rows
-#' @inheritParams matchMS
+#' @inheritParams hms2match
 hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN, 
                            ms1vmods, ms2vmods, cl, ms1_neulosses = NULL, 
                            maxn_neulosses_fnl = 1L, maxn_neulosses_vnl = 1L, 
@@ -1020,6 +1531,7 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
     return(NULL)
   }
   
+  # fields not yet available with `ms2match_all`
   df[["pep_fmod"]] <- nm_fmods
   df[["pep_vmod"]] <- nm_vmods
   df[["pep_mod_group"]] <- pep_mod_group
@@ -1057,10 +1569,8 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
 #' @param ms2vmods All possible labels of MS2 variable modifications with
 #'   an i-t \code{aa_masses}
 #' @param cl The value of clusters for parallel processes
-#' @param mod_indexes Integer; the indexes of fixed and/or variable
-#'   modifications
-#' @param df0 An output template with zero rows
-#' @inheritParams matchMS
+#' @param df0 An output template
+#' @inheritParams hms2match
 ms2match_one <- function (nms_theo, nms_expt, pep_mod_group, aa_masses, FUN, 
                           ms1vmods, ms2vmods, cl, 
                           mod_indexes, mgf_path, out_path, type_ms2ions = "by", 
@@ -1306,7 +1816,9 @@ frames_adv <- function (mgf_frames = NULL, theopeps = NULL,
         minn_ms2 = minn_ms2, 
         ppm_ms1 = ppm_ms1, 
         ppm_ms2 = ppm_ms2, 
-        min_ms2mass = min_ms2mass), 
+        min_ms2mass = min_ms2mass, 
+        by_modules = TRUE
+      ), 
       SIMPLIFY = FALSE,
       USE.NAMES = FALSE
     )

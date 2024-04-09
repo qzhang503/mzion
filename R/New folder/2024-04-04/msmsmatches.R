@@ -457,6 +457,10 @@
 #'   developer.
 #' @param make_speclib Makes spectrum library from the search results of
 #'   \code{psmQ.txt}.
+#' @param by_modules Not used. Logical. At the TRUE default, searches MS data by
+#'   individual modules of combinatorial fixed and variable modifications. If
+#'   FALSE, search all modules together. The later would probably need more than
+#'   32G RAM if the number of modules is over 96.
 #' @param digits A non-negative integer; the number of decimal places to be
 #'   used. The default is 4.
 #' @param ... Not currently used.
@@ -797,6 +801,8 @@ matchMS <- function (out_path = "~/mzion/outs",
                      svm_iters  = 10L, 
                      
                      make_speclib = FALSE, 
+                     
+                     by_modules = TRUE, 
                      digits = 4L, ...) 
 {
   options(digits = 9L)
@@ -1413,7 +1419,7 @@ matchMS <- function (out_path = "~/mzion/outs",
               ppm_ms2 = ppm_ms2, min_mass = min_mass, max_mass = max_mass, 
               min_ms2mass = min_ms2mass, quant = quant, 
               ppm_reporters = ppm_reporters, 
-              fasta = fasta, acc_type = acc_type, 
+              by_modules = by_modules, fasta = fasta, acc_type = acc_type, 
               acc_pattern = acc_pattern, topn_ms2ions = topn_ms2ions, 
               fixedmods = fixedmods, varmods = NULL, # the first search
               enzyme = enzyme, maxn_fasta_seqs = maxn_fasta_seqs, 
@@ -1445,6 +1451,7 @@ matchMS <- function (out_path = "~/mzion/outs",
              min_ms2mass = min_ms2mass,
              quant = quant,
              ppm_reporters = ppm_reporters,
+             by_modules = by_modules, 
              ms1_offsets = ms1_offsets, 
              ms1_neulosses = ms1_neulosses, 
              maxn_neulosses_fnl = maxn_neulosses_fnl, 
@@ -1522,6 +1529,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                    add_ms2theos2 = add_ms2theos2, 
                    add_ms2moverzs = add_ms2moverzs, 
                    add_ms2ints = add_ms2ints,
+                   by_modules = by_modules, 
                    digits = digits)
   }
   
@@ -1534,7 +1542,8 @@ matchMS <- function (out_path = "~/mzion/outs",
                     add_ms2theos = add_ms2theos, 
                     add_ms2theos2 = add_ms2theos2, 
                     add_ms2moverzs = add_ms2moverzs, 
-                    add_ms2ints = add_ms2ints)
+                    add_ms2ints = add_ms2ints, 
+                    by_modules = by_modules)
 
   ## Peptide FDR 
   if (is.null(bypass_pepfdr <- dots$bypass_pepfdr)) 

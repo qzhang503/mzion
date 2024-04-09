@@ -25,7 +25,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                       minn_ms2 = 6L, ppm_ms1 = 20L, ppm_ms2 = 20L, 
                       min_mass = 200L, max_mass = 4500L, min_ms2mass = 115L, 
                       quant = "none", ppm_reporters = 10L, 
-                      reframe_mgfs = FALSE, ms1_offsets = 0, 
+                      by_modules = TRUE, reframe_mgfs = FALSE, ms1_offsets = 0, 
                       ms1_neulosses = NULL, maxn_neulosses_fnl = 1L, 
                       maxn_neulosses_vnl = 1L, deisotope_ms2 = TRUE, 
 
@@ -54,7 +54,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   # (OK as `argument` not for users)
   # min_mass and max_mass only for calib_ms1mass, not to be changed by users
   # args_except <- c("ms1_offsets")
-  args_except <- NULL
+  args_except <- c("by_modules")
   fml_incl    <- fml_nms[!fml_nms %in% args_except]
   cache_pars  <- find_callarg_vals(time = NULL, 
                                    path = file.path(out_path, "Calls"), 
@@ -126,7 +126,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   pair_mgftheos(mgf_path = mgf_path, n_modules = length(aa_masses_all), 
                 ms1_offsets = comb_ms1_offsets(ms1_offsets = ms1_offsets, 
                                                ms1_neulosses = ms1_neulosses), 
-                quant = quant, min_mass = min_mass, max_mass = max_mass, 
+                quant = quant, by_modules = by_modules, 
+                min_mass = min_mass, max_mass = max_mass, 
                 ppm_ms1_bin = ppm_ms1_bin, .path_bin = .path_bin, 
                 reframe_mgfs = reframe_mgfs, first_search = first_search)
 
@@ -194,6 +195,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
     ppm_ms1 = ppm_ms1_bin, 
     ppm_ms2 = ppm_ms2_bin, 
     min_ms2mass = min_ms2mass, 
+    by_modules = by_modules, 
     df0 = df0)
 
   qs::qsave(aa_masses_all, faa)
@@ -267,7 +269,7 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                        ppm_ms2 = 20L, min_mass = 200L, 
                        max_mass = 4500L, min_ms2mass = 115L, quant = "none", 
                        ppm_reporters = 10L, 
-                       fasta = NULL, acc_type = NULL, 
+                       by_modules = TRUE, fasta = NULL, acc_type = NULL, 
                        acc_pattern = NULL, topn_ms2ions = 150L, 
                        fixedmods = NULL, varmods = NULL, enzyme = "trypsin_p", 
                        maxn_fasta_seqs = 200000L, maxn_vmods_setscombi = 512L,
@@ -304,7 +306,7 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   
   ## the first search
   tempdir <- file.path(out_path, "temp")
-  pat_th <- "^(theo|expt)_\\d+.*\\.rds$"
+  pat_th <- if (by_modules) "^(theo|expt)_\\d+.*\\.rds$" else "^mgftheo_\\d+.*\\.rds$"
   pat_im <- "^ion_matches_\\d+.*\\.rds$"
   fs_th <- list.files(mgf_path, pattern = pat_th, full.names = TRUE)
   fs_im <- list.files(tempdir,  pattern = pat_im, full.names = TRUE)
@@ -352,6 +354,7 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
            quant = "none",
            ppm_reporters = ppm_reporters,
            reframe_mgfs = reframe_mgfs, 
+           by_modules = by_modules, 
            fasta = fasta,
            acc_type = acc_type,
            acc_pattern = acc_pattern,
@@ -399,6 +402,7 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                  add_ms2theos2 = FALSE, 
                  add_ms2moverzs = FALSE, 
                  add_ms2ints = FALSE,
+                 by_modules = by_modules, 
                  digits = 4L)
   
   file.rename(fi_aa2, fi_aa)
