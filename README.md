@@ -1,7 +1,7 @@
 Mzion
 ================
 true
-2023-11-15
+2024-04-12
 
 - [Installation](#installation)
 - [Peaklist formats](#peaklist-formats)
@@ -30,9 +30,9 @@ devtools::install_github("qzhang503/mzionShiny")
 ## Peaklist formats
 
 - Thermo’s MS
-  - [x] `MSConvert mgf`
+  - [x] `RAW (default)`
 
-  - [x] `MSConvert mzML`
+  - [x] `MSConvert mzML (critical fixes only)`
 
     \[+\] Binary encode 64-bit
 
@@ -47,6 +47,8 @@ devtools::install_github("qzhang503/mzionShiny")
     1)  peakPicking: vendor msLevel = 1-
 
     2)  (optional) zeroSamples: removeExtra 1-
+
+  - [x] `MSConvert mgf (softly depreciated)`
 - Bruker’s MS
   - [x] `DataAnalysis mgf`
 
@@ -98,7 +100,7 @@ matchMS(
   locmods   = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
   max_miss  = 4, 
   quant     = "tmt10", 
-  fdr_type  = "psm",
+  fdr_type  = "protein",
 )
 
 ## See also ?matchMS for SILAC, acetylome workflows etc.

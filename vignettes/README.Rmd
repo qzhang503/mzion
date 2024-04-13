@@ -59,9 +59,9 @@ devtools::install_github("qzhang503/mzionShiny")
 ## Peaklist formats
 
 -   Thermo's MS
-    -   [x] `RAW`
+    -   [x] `RAW (default)`
 
-    -   [x] `MSConvert mzML`
+    -   [x] `MSConvert mzML (critical fixes only)`
 
         [+] Binary encode 64-bit
 
@@ -77,7 +77,7 @@ devtools::install_github("qzhang503/mzionShiny")
 
         (2) (optional) zeroSamples: removeExtra 1-
 
-    -   [x] `MSConvert mgf`
+    -   [x] `MSConvert mgf (softly depreciated)`
 -   Bruker's MS
     -   [x] `DataAnalysis mgf`
 
@@ -129,7 +129,7 @@ matchMS(
   locmods   = c("Phospho (S)", "Phospho (T)", "Phospho (Y)"), 
   max_miss  = 4, 
   quant     = "tmt10", 
-  fdr_type  = "psm",
+  fdr_type  = "protein",
 )
 
 ## See also ?matchMS for SILAC, acetylome workflows etc.

@@ -82,28 +82,35 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, mgf_files,
                          min_mass = 200L, max_mass = 4500L, ppm_ms1_bin = 10L, 
                          .path_bin, data_type = "mzml")
 {
+  is_listmasses <- class(mgfs[["ms1_mass"]]) == "list"
+  
   if (abs(ms1_offset) > 1e-4) {
     mgfs <- if (ms1_offset > 0)
       mgfs[with(mgfs, ms1_mass <= max_mass - ms1_offset), ]
     else
       mgfs[with(mgfs, ms1_mass >= min_mass - ms1_offset), ]
-
-    mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - ms1_offset
+    
+    if (is_listmasses) {
+      mgfs[["ms1_mass"]] <- lapply(mgfs[["ms1_mass"]], `-`, ms1_offset)
+    }
+    else {
+      mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - ms1_offset
+    }
   }
   
   mgfs[["pep_ms1_offset"]] <- ms1_offset
   
-  if (is.atomic(mgfs[1, "ms1_charge", drop = TRUE])) {
-    ms1_bins <- ceiling(log(mgfs[["ms1_mass"]]/min_mass)/log(1+ppm_ms1_bin/1e6))
-    ms1_bins <- as.integer(ms1_bins)
-    mgfs <- split(mgfs, ms1_bins)
-  }
-  else {
+  if (is_listmasses) {
     # temporarily drop apex_scan_num...
     mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, quant = quant, 
                           min_mass = min_mass, ppm_ms1_bin = ppm_ms1_bin, 
                           data_type = data_type)
     mgfs <- mgfs[names(mgfs) != "-Inf"] # unknown precursors
+  }
+  else {
+    ms1_bins <- ceiling(log(mgfs[["ms1_mass"]]/min_mass)/log(1+ppm_ms1_bin/1e6))
+    ms1_bins <- as.integer(ms1_bins)
+    mgfs <- split(mgfs, ms1_bins)
   }
 
   # to chunks: each chunk has multiple frames: each frame multiple precursors
