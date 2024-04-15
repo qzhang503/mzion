@@ -85,16 +85,84 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, mgf_files,
   is_listmasses <- class(mgfs[["ms1_mass"]]) == "list"
   
   if (abs(ms1_offset) > 1e-4) {
-    mgfs <- if (ms1_offset > 0)
-      mgfs[with(mgfs, ms1_mass <= max_mass - ms1_offset), ]
-    else
-      mgfs[with(mgfs, ms1_mass >= min_mass - ms1_offset), ]
-    
     if (is_listmasses) {
+      ms1_moverzs <- mgfs$ms1_moverz # can be length(0)
+      ms1_ints <- mgfs$ms1_int
+      ms1_charges <- mgfs$ms1_charge
+      ms1_masses <- mgfs$ms1_mass
+      apex_scan_nums <- mgfs$apex_scan_num
+      
+      # may apply the the mass cut-offs later
+      if (ms1_offset > 0) {
+        # adj_minmass <- min_mass + ms1_offset
+        adj_maxmass <- max_mass - ms1_offset
+        
+        for (i in 1:nrow(mgfs)) {
+          mi <- ms1_masses[[i]]
+          oki <- .Internal(which(mi <= adj_maxmass)) #  & mi >= adj_minmass
+          
+          if (length(oki)) {
+            ms1_moverzs[[i]] <- ms1_moverzs[[i]][oki]
+            ms1_ints[[i]] <- ms1_ints[[i]][oki]
+            ms1_charges[[i]] <- ms1_charges[[i]][oki]
+            ms1_masses[[i]] <- ms1_masses[[i]][oki]
+            apex_scan_nums[[i]] <- apex_scan_nums[[i]][oki]
+          }
+        }
+      }
+      else {
+        adj_minmass <- min_mass - ms1_offset
+        # adj_maxmass <- max_mass + ms1_offset
+        
+        for (i in 1:nrow(mgfs)) {
+          mi <- ms1_masses[[i]]
+          oki <- .Internal(which(mi >= adj_minmass)) #  & mi <= adj_maxmass
+          
+          if (length(oki)) {
+            ms1_moverzs[[i]] <- ms1_moverzs[[i]][oki]
+            ms1_ints[[i]] <- ms1_ints[[i]][oki]
+            ms1_charges[[i]] <- ms1_charges[[i]][oki]
+            ms1_masses[[i]] <- ms1_masses[[i]][oki]
+            apex_scan_nums[[i]] <- apex_scan_nums[[i]][oki]
+          }
+        }
+      }
+      
+      mgfs$ms1_moverz <- ms1_moverzs
+      mgfs$ms1_int <- ms1_ints
+      mgfs$ms1_charge <- ms1_charges
+      mgfs$ms1_mass <- ms1_masses
+      mgfs$apex_scan_num <- apex_scan_nums
+
+      # adjust ms1_mass
       mgfs[["ms1_mass"]] <- lapply(mgfs[["ms1_mass"]], `-`, ms1_offset)
+      
+      # if not to adjust ms1_moverzs -> larger mass_delta but ok
+      mgfs[["ms1_moverz"]] <- mapply(
+        function (m, z) m/z + 1.00727647, 
+        mgfs[["ms1_mass"]], mgfs[["ms1_charge"]], 
+        SIMPLIFY = FALSE, USE.NAMES = FALSE
+      )
+
+      # may have no masses within the range?
+      mgfs <- mgfs[lengths(mgfs$ms1_mass) > 0L, ]
     }
     else {
+      if (ms1_offset > 0) {
+        mgfs <- mgfs[with(mgfs, ms1_mass <= max_mass - ms1_offset), ]
+      }
+      else {
+        mgfs <- mgfs[with(mgfs, ms1_mass >= min_mass - ms1_offset), ]
+      }
+
       mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - ms1_offset
+      
+      # if not to adjust ms1_moverzs -> larger mass_delta but ok
+      mgfs[["ms1_moverz"]] <- mapply(
+        function (m, z) m/z + 1.00727647, 
+        mgfs[["ms1_mass"]], mgfs[["ms1_charge"]], 
+        SIMPLIFY = FALSE, USE.NAMES = FALSE
+      )
     }
   }
   
