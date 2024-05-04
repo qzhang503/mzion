@@ -4,7 +4,7 @@
 \alias{find_ms1_offsets}
 \title{Finds off-sets in precursor masses.}
 \usage{
-find_ms1_offsets(n_13c = 0L, ms1_notches = 0)
+find_ms1_offsets(n_13c = 0L, ms1_notches = 0, tol = 1e-04)
 }
 \arguments{
 \item{n_13c}{Number(s) of 13C off-sets in precursor masses, for example, over
@@ -13,6 +13,8 @@ the range of \code{-1:2}. The default is 0.}
 \item{ms1_notches}{A numeric vector; notches (off-sets) in precursor masses,
 e.g., \code{c(-97.976896)} to account fo the loss of a phosphoric acid in
 precursor masses.}
+
+\item{tol}{Mass error tolerance.}
 }
 \value{
 A vector of mass off-sets.

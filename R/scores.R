@@ -1645,7 +1645,7 @@ find_pepscore_co2 <- function (td, target_fdr = 0.01)
 #' @param fct_score A factor to convert p-values to scores.
 #' @inheritParams matchMS
 probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01, 
-                             min_pepscores_co = 0, fct_score = 5, out_path) 
+                             min_pepscores_co = 30, fct_score = 5, out_path) 
 {
   td <- dplyr::filter(td, pep_len == len)
   td <- sub_td_byfdrtype(td = td, fdr_type = fdr_type, fct_score = fct_score)
@@ -2060,7 +2060,7 @@ keep_pepfdr_best <- function (td, cols = c("pep_scan_num", "raw_file"))
 #' }
 calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein", 
                          min_len = 7L, max_len = 40L, is_notched = FALSE, 
-                         max_pepscores_co = 70, min_pepscores_co = 0, 
+                         max_pepscores_co = 70, min_pepscores_co = 30, 
                          enzyme = "trypsin_p", fdr_group = "base", 
                          nes_fdr_group = "base", fct_score = 5, out_path)
 {
@@ -3099,8 +3099,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
       
       us <- data.table::rbindlist(us)
       
-      x0 <- quick_leftjoin(x0, us[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
-                           by = "uniq_id2")
+      x0 <- dplyr::left_join(x0, us[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
+                             by = "uniq_id2")
       
       rm(list = c("probs", "deltas", "us"))
     }
@@ -3127,8 +3127,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   # 4.4 adds back z0
   # ok to replace dplyr::left_join here:
   #   the same number of rows between the new and the old z0
-  z0 <- quick_leftjoin(z0, x0[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
-                       by = "uniq_id2")
+  z0 <- dplyr::left_join(z0, x0[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
+                         by = "uniq_id2")
   x0 <- data.table::rbindlist(list(x0, z0), use.names = FALSE)
   rm(list = "z0")
   
@@ -3250,7 +3250,7 @@ find_bestnotch <- function (x)
   g[["pep_ms1_offset"]] <- g[["query_id"]] <- NULL
   
   x[, uid := paste(query_id, pep_ms1_offset, sep = ".")]
-  x <- quick_leftjoin(x, g, by = "uid")
+  x <- dplyr::left_join(x, g, by = "uid")
   x <- x[x$keep, ]
   
   x[["keep"]] <- x[["pep_rank0"]] <- x[["uid"]] <- x[["query_id"]] <- NULL

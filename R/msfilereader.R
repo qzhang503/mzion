@@ -6,21 +6,25 @@ readRAW <- function (mgf_path = NULL, filelist = NULL)
 {
   sys_path <- system.file("extdata", package = "mzion")
   acceptMSFileReaderLicense(sys_path)
-  
   temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
+
+  qs::qsave(list(data_format = "Thermo-RAW", mgf_format = "Mzion"), 
+            file.path(mgf_path, "info_format.rds"), preset = "fast")
   
-  local({
-    fn_suffix <- tolower(gsub("^.*\\.([^.]*)$", "\\1", filelist[[1]]))
-    
-    if (fn_suffix == "raw") {
-      data_format <- "Thermo-RAW"
-      mgf_format <- "Mzion"
-    }
-    
-    qs::qsave(list(data_format = data_format, mgf_format = mgf_format), 
-              file.path(mgf_path, "info_format.rds"), preset = "fast")
-  })
-  
+  if (FALSE) {
+    local({
+      fn_suffix <- tolower(gsub("^.*\\.([^.]*)$", "\\1", filelist[[1]]))
+      
+      if (fn_suffix == "raw") {
+        data_format <- "Thermo-RAW"
+        mgf_format <- "Mzion"
+      }
+      
+      qs::qsave(list(data_format = data_format, mgf_format = mgf_format), 
+                file.path(mgf_path, "info_format.rds"), preset = "fast")
+    })
+  }
+
   len <- length(filelist)
   n_cores <- min(len, detect_cores(32L))
   
@@ -63,16 +67,16 @@ proc_raws <- function (raw_file, mgf_path, temp_dir)
   msx_moverzs <- mapply(
     function (s, n) 
       as.numeric(
-        stringi::stri_split_fixed(s, pattern = ",", n = n, simplify = TRUE)), 
+        stringi::stri_split_fixed(s, pattern = " ", n = n, simplify = TRUE)), 
     lines[idx_scans + 13L], msx_ns, 
-    SIMPLIFY = TRUE, USE.NAMES = FALSE)
+    SIMPLIFY = FALSE, USE.NAMES = FALSE) # SIMPLIFY = TRUE
   
   msx_ints <- mapply(
     function (s, n) 
       as.numeric(
-        stringi::stri_split_fixed(s, pattern = ",", n = n, simplify = TRUE)), 
+        stringi::stri_split_fixed(s, pattern = " ", n = n, simplify = TRUE)), 
     lines[idx_scans + 15L], msx_ns, 
-    SIMPLIFY = TRUE, USE.NAMES = FALSE)
+    SIMPLIFY = FALSE, USE.NAMES = FALSE) # SIMPLIFY = TRUE
   
   scan_titles <- lines[idx_scans + 17L]
   half_widths <- iso_widths / 2

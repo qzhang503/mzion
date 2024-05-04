@@ -9,8 +9,12 @@ make_dia_mgfs(
   mgf_path,
   quant = "none",
   min_mass = 200L,
+  max_mass = 4500L,
   ppm_ms1_bin = 10L,
-  data_type = "mzml"
+  data_type = "mzml",
+  ms1_offset = 0L,
+  n_13c = 0L,
+  mass_13c = 1.00727647
 )
 }
 \arguments{
@@ -31,10 +35,18 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 interrogation. The default is an arbitrarily low value (the primary guard
 against low molecular-weight precursors is \code{min_len}).}
 
+\item{max_mass}{A positive integer; the maximum precursor mass for
+interrogation.}
+
 \item{ppm_ms1_bin}{The tolerance in precursor mass error after mass binning.}
 
 \item{data_type}{The type of peak lists in one of raw, mzML or mgf. The
 argument is used to handle list(NULL) at an mzML format.}
+
+\item{n_13c}{Number(s) of 13C off-sets in precursor masses, for example, over
+the range of \code{-1:2}. The default is 0.}
+
+\item{is_ms1notched}{Logical; is there an off-set (notch) in MS1 mass.}
 }
 \description{
 Replicates MS2 data by the multiplicity of precursor masses.

@@ -668,10 +668,14 @@ post_calib <- function (mgfs, min_mass, max_mass, mgf_path, filename)
 
 #' Finds off-sets in precursor masses.
 #'
+#' @param tol Mass error tolerance.
 #' @inheritParams matchMS
 #' @return A vector of mass off-sets.
-find_ms1_offsets <- function (n_13c = 0L, ms1_notches = 0) 
+find_ms1_offsets <- function (n_13c = 0L, ms1_notches = 0, tol = 1e-4) 
 {
+  n_13c <- n_13c[n_13c != 0]
+  ms1_notches <- ms1_notches[ms1_notches != 0]
+  
   if (dups <- anyDuplicated(n_13c)) {
     warning("At least one duplicated value in `n_13c`: ", n_13c[dups])
     n_13c <- unique(n_13c)
@@ -682,10 +686,21 @@ find_ms1_offsets <- function (n_13c = 0L, ms1_notches = 0)
             ms1_notches[dups])
     ms1_notches <- unique(ms1_notches)
   }
+  
+  offsets_13c <- n_13c * 1.00335483
+  
+  if (length(ms1_notches)) {
+    ms1_notches <- ms1_notches[abs(ms1_notches) >= tol]
+    
+    if (length(offsets_13c) && length(ms1_notches)) {
+      ms1_notches <- ms1_notches[abs(ms1_notches - offsets_13c) >= tol]
+    }
+  }
+  
+  ms1_offsets <- c(0, offsets_13c, ms1_notches)
+  attr(ms1_offsets, "n_13c") <- c(0L, n_13c, rep_len(0L, length(ms1_notches)))
 
-  offsets_13c <- if (length(n_13c)) n_13c * 1.00335483 else NULL
-  ms1_offsets <- unique(c(0, offsets_13c, ms1_notches))
-  ms1_offsets <- round(ms1_offsets, digits = 4L)
+  ms1_offsets
 }
 
 

@@ -71,6 +71,11 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
     message("Processing RAW files")
     peakfiles <- readRAW(mgf_path = mgf_path, filelist = filelist)
   }
+  else if (data_type == "pasef") {
+    message("Processing PASEF files")
+    peakfiles <- readPASEF(mgf_path = mgf_path, filelist = filelist, 
+                           topn_ms2ions = topn_ms2ions)
+  }
   else if (data_type == "mzml") {
     message("Processing mzML files.")
     peakfiles <- hloadMZML(filelist, mgf_path, temp_dir)

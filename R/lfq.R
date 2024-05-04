@@ -527,6 +527,9 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     df[["ms1_int"]][ms2rng] <- df2[["ms1_int"]]
   }
   
+  rows <- lengths(df$apex_scan_num) > 0L
+  df$apex_scan_num[rows] <- 
+    lapply(df$apex_scan_num[rows], unlist, recursive = FALSE, use.names = FALSE)
   df
 }
 

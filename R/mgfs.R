@@ -107,6 +107,19 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
   ppm_ms1_bin <- calc_threeframe_ppm(ppm_ms1)
   ppm_ms2_bin <- calc_threeframe_ppm(ppm_ms2)
 
+  fi_raw   <- list.files(path = mgf_path, pattern = "^.*\\.(raw|RAW)$")
+  fi_pasef <- list.files(path = mgf_path, pattern = "^.*\\.d$")
+  fi_mzml  <- list.files(path = mgf_path, pattern = "^.*\\.(mzML|mzml)$")
+  fi_mgf   <- list.files(path = mgf_path, pattern = "^.*\\.(mgf|MGF)$")
+  
+  len_raw   <- length(fi_raw)
+  len_pasef <- length(fi_pasef)
+  len_mzml  <- length(fi_mzml)
+  len_mgf   <- length(fi_mgf)
+  
+  paths_excluded <- NULL
+  paths_excluded <- if (len_pasef) c(paths_excluded, fi_pasef)
+  
   delete_files(
     out_path, 
     ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", "\\.(raw|RAW)$", 
@@ -114,27 +127,29 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
                 "^mgf$", "^mgfs$", "^mzML$", "^mzMLs$", "^raw$", 
                 "Calls", "^PSM$", "^Peptide$", "^Protein$", 
                 "fraction_scheme.rda", "label_scheme.rda", 
-                "label_scheme_full.rda"))
+                "label_scheme_full.rda"), 
+    paths_excluded = paths_excluded, )
 
-  fi_mgf   <- list.files(path = mgf_path, pattern = "^.*\\.(mgf|MGF)$")
-  fi_mzml  <- list.files(path = mgf_path, pattern = "^.*\\.(mzML|mzml)$")
-  fi_raw   <- list.files(path = mgf_path, pattern = "^.*\\.(raw|RAW)$")
-  len_mgf  <- length(fi_mgf)
-  len_mzml <- length(fi_mzml)
-  len_raw <- length(fi_raw)
-  
-  data_type <- if (len_raw) {
-    "raw"
+  # len_mgf at the least; e.g. there may be mgf files under pasef dirs
+  if (len_raw) {
+    data_type <- "raw"
+    filelist <- fi_raw
+  } else if (len_pasef) {
+    data_type <- "pasef"
+    filelist <- fi_pasef
   } else if (len_mzml) {
-    "mzml"
+    data_type <- "mzml"
+    filelist <- fi_mzml
   } else if (len_mgf) {
-    "mgf"
-  }
+    data_type <- "mgf"
+    filelist <- fi_mgf
+  } 
+  
+  if (len_raw && len_pasef)
+    stop("Peak lists need to be either RAW or .d, but not both.")
   
   if (len_mgf && len_mzml || len_mgf && len_raw || len_raw && len_mzml)
     stop("Peak lists need to be exactly in one of MGF, mzML or RAW.")
-  
-  filelist <- if (len_mgf) fi_mgf else if (len_mzml) fi_mzml else fi_raw
 
   if (len_mgf) {
     type_acqu <- readMGF(
@@ -170,7 +185,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
       quant = quant, 
       digits = digits)
   }
-  else if (len_mzml || len_raw) {
+  else if (len_mzml || len_raw || len_pasef) {
     type_acqu <- readmzML(
       filelist = filelist, 
       mgf_path = mgf_path, 

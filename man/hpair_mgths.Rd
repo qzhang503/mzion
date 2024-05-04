@@ -6,6 +6,7 @@
 \usage{
 hpair_mgths(
   ms1_offset = 0,
+  n_13c = 0L,
   notch = NULL,
   mgfs,
   mgf_files,

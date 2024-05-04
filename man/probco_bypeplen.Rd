@@ -9,7 +9,7 @@ probco_bypeplen(
   td,
   fdr_type = "protein",
   target_fdr = 0.01,
-  min_pepscores_co = 0,
+  min_pepscores_co = 30,
   fct_score = 5,
   out_path
 )

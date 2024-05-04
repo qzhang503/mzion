@@ -45,6 +45,8 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
   
   mgfs <- dplyr::bind_rows(mgfs)
   notches <- seq_along(ms1_offsets)
+  # for cut-offs in the lower bound of ms1_mass
+  n_13c  <- attr(ms1_offsets, "n_13c", exact = TRUE)
   
   # need additional handling of mzML with list(NULL) entries
   # setting the default to "mzML" to reinforce list(NULL) handling
@@ -53,7 +55,7 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
   else
     "mzml"
 
-  mapply(hpair_mgths, ms1_offsets, notches, 
+  mapply(hpair_mgths, ms1_offsets, n_13c, notches, 
          MoreArgs = list(
            mgfs = mgfs, mgf_files = mgf_files, n_modules = n_modules, 
            mgf_path = mgf_path, quant = quant, min_mass = min_mass, 
@@ -77,109 +79,16 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
 #' @param data_type The type of peak lists in one of raw, mzML or mgf. The
 #'   argument is used to handle list(NULL) at an mzML format.
 #' @inheritParams pair_mgftheos
-hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, mgf_files, 
-                         n_modules, mgf_path, quant = "none", 
+hpair_mgths <- function (ms1_offset = 0, n_13c = 0L, notch = NULL, 
+                         mgfs, mgf_files, n_modules, mgf_path, quant = "none", 
                          min_mass = 200L, max_mass = 4500L, ppm_ms1_bin = 10L, 
                          .path_bin, data_type = "mzml")
 {
-  is_listmasses <- class(mgfs[["ms1_mass"]]) == "list"
-  
-  if (abs(ms1_offset) > 1e-4) {
-    if (is_listmasses) {
-      ms1_moverzs <- mgfs$ms1_moverz # can be length(0)
-      ms1_ints <- mgfs$ms1_int
-      ms1_charges <- mgfs$ms1_charge
-      ms1_masses <- mgfs$ms1_mass
-      apex_scan_nums <- mgfs$apex_scan_num
-      
-      # may apply the the mass cut-offs later
-      if (ms1_offset > 0) {
-        # adj_minmass <- min_mass + ms1_offset
-        adj_maxmass <- max_mass - ms1_offset
-        
-        for (i in 1:nrow(mgfs)) {
-          mi <- ms1_masses[[i]]
-          oki <- .Internal(which(mi <= adj_maxmass)) #  & mi >= adj_minmass
-          
-          if (length(oki)) {
-            ms1_moverzs[[i]] <- ms1_moverzs[[i]][oki]
-            ms1_ints[[i]] <- ms1_ints[[i]][oki]
-            ms1_charges[[i]] <- ms1_charges[[i]][oki]
-            ms1_masses[[i]] <- ms1_masses[[i]][oki]
-            apex_scan_nums[[i]] <- apex_scan_nums[[i]][oki]
-          }
-        }
-      }
-      else {
-        adj_minmass <- min_mass - ms1_offset
-        # adj_maxmass <- max_mass + ms1_offset
-        
-        for (i in 1:nrow(mgfs)) {
-          mi <- ms1_masses[[i]]
-          oki <- .Internal(which(mi >= adj_minmass)) #  & mi <= adj_maxmass
-          
-          if (length(oki)) {
-            ms1_moverzs[[i]] <- ms1_moverzs[[i]][oki]
-            ms1_ints[[i]] <- ms1_ints[[i]][oki]
-            ms1_charges[[i]] <- ms1_charges[[i]][oki]
-            ms1_masses[[i]] <- ms1_masses[[i]][oki]
-            apex_scan_nums[[i]] <- apex_scan_nums[[i]][oki]
-          }
-        }
-      }
-      
-      mgfs$ms1_moverz <- ms1_moverzs
-      mgfs$ms1_int <- ms1_ints
-      mgfs$ms1_charge <- ms1_charges
-      mgfs$ms1_mass <- ms1_masses
-      mgfs$apex_scan_num <- apex_scan_nums
-
-      # adjust ms1_mass
-      mgfs[["ms1_mass"]] <- lapply(mgfs[["ms1_mass"]], `-`, ms1_offset)
-      
-      # if not to adjust ms1_moverzs -> larger mass_delta but ok
-      mgfs[["ms1_moverz"]] <- mapply(
-        function (m, z) m/z + 1.00727647, 
-        mgfs[["ms1_mass"]], mgfs[["ms1_charge"]], 
-        SIMPLIFY = FALSE, USE.NAMES = FALSE
-      )
-
-      # may have no masses within the range?
-      mgfs <- mgfs[lengths(mgfs$ms1_mass) > 0L, ]
-    }
-    else {
-      if (ms1_offset > 0) {
-        mgfs <- mgfs[with(mgfs, ms1_mass <= max_mass - ms1_offset), ]
-      }
-      else {
-        mgfs <- mgfs[with(mgfs, ms1_mass >= min_mass - ms1_offset), ]
-      }
-
-      mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - ms1_offset
-      
-      # if not to adjust ms1_moverzs -> larger mass_delta but ok
-      mgfs[["ms1_moverz"]] <- mapply(
-        function (m, z) m/z + 1.00727647, 
-        mgfs[["ms1_mass"]], mgfs[["ms1_charge"]], 
-        SIMPLIFY = FALSE, USE.NAMES = FALSE
-      )
-    }
-  }
-  
-  mgfs[["pep_ms1_offset"]] <- ms1_offset
-  
-  if (is_listmasses) {
-    # temporarily drop apex_scan_num...
-    mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, quant = quant, 
-                          min_mass = min_mass, ppm_ms1_bin = ppm_ms1_bin, 
-                          data_type = data_type)
-    mgfs <- mgfs[names(mgfs) != "-Inf"] # unknown precursors
-  }
-  else {
-    ms1_bins <- ceiling(log(mgfs[["ms1_mass"]]/min_mass)/log(1+ppm_ms1_bin/1e6))
-    ms1_bins <- as.integer(ms1_bins)
-    mgfs <- split(mgfs, ms1_bins)
-  }
+  # temporarily drop apex_scan_num...
+  mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, quant = quant, 
+                        min_mass = min_mass, max_mass = max_mass, 
+                        ppm_ms1_bin = ppm_ms1_bin, data_type = data_type, 
+                        ms1_offset = ms1_offset, n_13c = n_13c)
 
   # to chunks: each chunk has multiple frames: each frame multiple precursors
   ranges <- seq_along(mgfs)
@@ -277,12 +186,27 @@ hpair_mgths <- function (ms1_offset = 0, notch = NULL, mgfs, mgf_files,
 #' @param mgfs MGF data.
 #' @param data_type The type of peak lists in one of raw, mzML or mgf. The
 #'   argument is used to handle list(NULL) at an mzML format.
+#' @param is_ms1notched Logical; is there an off-set (notch) in MS1 mass.
 #' @inheritParams pair_mgftheos
+#' @inheritParams matchMS
 make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L, 
-                           ppm_ms1_bin = 10L, data_type = "mzml")
+                           max_mass = 4500L, ppm_ms1_bin = 10L, 
+                           data_type = "mzml", ms1_offset = 0L, n_13c = 0L, 
+                           mass_13c = 1.00727647)
 {
   mgfs$apex_scan_num <- mgfs$ms_level <- mgfs$demux <- NULL
-  
+
+  is_listmasses <- class(mgfs[["ms1_mass"]]) == "list"
+  is_ms1notched <- abs(ms1_offset) >= 1e-4
+
+  if (!is_listmasses) {
+    return(
+      clean_flat_mgfs(mgfs, min_mass = min_mass, max_mass = max_mass, 
+                      ppm_ms1_bin = ppm_ms1_bin, 
+                      ms1_offset = ms1_offset, is_ms1notched = is_ms1notched, 
+                      n_13c = n_13c))
+  }
+
   col_nms  <- names(mgfs)
   cols2a <- c("ms2_moverzs", "ms2_ints", "ms2_charges")
   cols2b <- c("rptr_moverzs", "rptr_ints")
@@ -362,17 +286,53 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
   
   data_ms2 <- data_ms2[seqs, ]
   mgfs <- dplyr::bind_cols(datalist, dataflat, data_ms2)
+  
+  # post flattening
+  clean_flat_mgfs(mgfs, min_mass = min_mass, max_mass = max_mass, 
+                  ppm_ms1_bin = ppm_ms1_bin, 
+                  ms1_offset = ms1_offset, is_ms1notched = is_ms1notched, 
+                  n_13c = n_13c)
+}
 
-  ord <- order(mgfs$ms1_mass)
-  mgfs <- mgfs[ord, ]
+
+#' Cleans up peak lists.
+#'
+#' @param mgfs Peak lists with \emph{flat} precursor masses.
+#' @param ppm_ms1_bin The tolerance in precursor mass error after mass binning.
+#' @param is_ms1notched Logical; is there an off-set (notch) in MS1 mass.
+#' @param mass_co_13c The mass cut-off per number of 13C for considering 13C
+#'   off-sets.
+#' @param proton The mass of proton.
+#' @inheritParams matchMS
+clean_flat_mgfs <- function (mgfs, min_mass = 200L, max_mass = 4500L, 
+                             ppm_ms1_bin = 10L, ms1_offset = 0L, 
+                             is_ms1notched = FALSE, n_13c = 0L, 
+                             mass_co_13c = 1500, proton = 1.00727647)
+{
+  if (class(mgfs[["ms1_mass"]]) == "list")
+    stop("Developer: ms1_masses are not in a flat format.")
+
+  if (is_ms1notched) {
+    if (n_13c) {
+      mgfs <- mgfs[with(mgfs, ms1_mass >= n_13c * mass_co_13c), ]
+    }
+
+    mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - ms1_offset
+    mgfs[["ms1_moverz"]] <- mgfs[["ms1_mass"]]/mgfs[["ms1_charge"]] + proton
+    mgfs <- mgfs[with(mgfs, ms1_mass >= min_mass, ms1_mass <= max_mass), ]
+  }
+  
+  mgfs <- mgfs[order(mgfs$ms1_mass), ]
+  mgfs[["pep_ms1_offset"]] <- ms1_offset
   ms1_bins <- ceiling(log(mgfs$ms1_mass/min_mass)/log(1+ppm_ms1_bin/1e6))
   ms1_bins <- as.integer(ms1_bins)
-  
+
   # ms1_bins can be -Inf or NA since
   # (1) ms1_moverz can be NA because not yet determined by the current algorithm
   # (2) ms1_mass can also be NA due to ms1_charge being NA
   # (3) ms1_charge can be zero since undetermined
   mgfs <- split(mgfs, ms1_bins)
+  mgfs <- mgfs[names(mgfs) != "-Inf"] # unknown precursors
 }
 
 

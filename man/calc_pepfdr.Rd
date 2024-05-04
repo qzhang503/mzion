@@ -11,7 +11,7 @@ calc_pepfdr(
   max_len = 40L,
   is_notched = FALSE,
   max_pepscores_co = 70,
-  min_pepscores_co = 0,
+  min_pepscores_co = 30,
   enzyme = "trypsin_p",
   fdr_group = "base",
   nes_fdr_group = "base",

@@ -1,17 +1,17 @@
 Mzion
 ================
 true
-2024-04-12
+2024-04-25
 
 - [Installation](#installation)
 - [Peaklist formats](#peaklist-formats)
-- [Database searches (via an app)](#database-searches-via-an-app)
-- [Database searches (via R scripts)](#database-searches-via-r-scripts)
+- [Database searches via a ShinyApp](#database-searches-via-a-shinyapp)
 - [Help documents](#help-documents)
-- [Specifications of fixed and variable
-  modifications](#specifications-of-fixed-and-variable-modifications)
 - [Data QC and mining](#data-qc-and-mining)
-- [Other utilities](#other-utilities)
+- [Database searches via R scripts](#database-searches-via-r-scripts)
+  - [Specifications of fixed and variable
+    modifications](#specifications-of-fixed-and-variable-modifications)
+  - [Other utilities](#other-utilities)
 - [Cite Mzion](#cite-mzion)
 
 ## Installation
@@ -23,7 +23,7 @@ if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
 devtools::install_github("qzhang503/mzion")
 
-# or install both Mzion and its Shiny App:
+# or install both Mzion and its ShinyApp:
 devtools::install_github("qzhang503/mzionShiny")
 ```
 
@@ -52,14 +52,21 @@ devtools::install_github("qzhang503/mzionShiny")
 - Bruker’s MS
   - [x] `DataAnalysis mgf`
 
-## Database searches (via an app)
+## Database searches via a ShinyApp
 
 ``` r
-library(mzionShiny)
-run_app()
+mzionShiny::run_app()
 ```
 
-## Database searches (via R scripts)
+## Help documents
+
+Enter `?mzion::matchMS` from an RStudio section.
+
+## Data QC and mining
+
+- [proteoQ](https://github.com/qzhang503/proteoQ/)
+
+## Database searches via R scripts
 
 ``` r
 ## Global, TMT-10plex
@@ -106,11 +113,7 @@ matchMS(
 ## See also ?matchMS for SILAC, acetylome workflows etc.
 ```
 
-## Help documents
-
-Enter `?mzion::matchMS` from an RStudio section.
-
-## Specifications of fixed and variable modifications
+### Specifications of fixed and variable modifications
 
 The Unimod definition of positions and sites were adopted by Mzion for
 specifying fixed and variable modifications. The value of a position is
@@ -129,11 +132,7 @@ circumstances that both position and site are needed for specifying a
 modification, for instance, `Gln->pyro-Glu (N-term = Q)`. More examples
 are available in the help document of Mzion utility of `parse_unimod`.
 
-## Data QC and mining
-
-- [proteoQ](https://github.com/qzhang503/proteoQ/)
-
-## Other utilities
+### Other utilities
 
 - `mapMS2ions`: visualizes MS2 spectrum matches
 - `table_unimods` summarizes Unimod entries

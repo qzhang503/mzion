@@ -385,7 +385,6 @@ quick_rightjoin <- function (x, y, by = NULL)
 #' @examples
 #' \donttest{
 #' library(mzion)
-#' library(dplyr)
 #'
 #' df1 <- data.frame(A = c("a", "b", "c"), B = c(1, 1, 1))
 #' df2 <- data.frame(A = c("a", "c", "d"), C = c(2, 2, "3"))
