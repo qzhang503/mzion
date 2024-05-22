@@ -78,7 +78,7 @@ devtools::install_github("qzhang503/mzionShiny")
         (2) (optional) zeroSamples: removeExtra 1-
 
     -   [x] `MSConvert mgf (softly depreciated)`
--   Bruker's MS
+-   Bruker's PASEF-MS
     -   [x] `DataAnalysis mgf`
 
 ## Database searches via a ShinyApp
@@ -95,7 +95,7 @@ Enter `?mzion::matchMS` from an RStudio console.
 
 -   [proteoQ](https://github.com/qzhang503/proteoQ/)
 
-## Database searches via R scripts
+## Optional database searches via R scripts
 
 ``` r
 ## Global, TMT-10plex

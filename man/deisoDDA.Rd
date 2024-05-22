@@ -36,6 +36,7 @@ deisoDDA(
   tmt_reporter_upper = 135.2,
   exclude_reporter_region = FALSE,
   use_defpeaks = FALSE,
+  is_pasef = FALSE,
   n_para = 1L
 )
 }
@@ -150,6 +151,8 @@ of TMT reporter ions is informed by \code{tmt_reporter_lower} and
 \item{use_defpeaks}{Depreciated. Logical; if TRUE, uses MS1 m-over-z's,
 intensities and charge states pre-calculated by other peak-picking
 algorithms.}
+
+\item{is_pasef}{Logical; is TIMS TOF data or not.}
 
 \item{n_para}{The allowance of parallel processing.}
 }

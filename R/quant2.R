@@ -434,6 +434,8 @@ add_protacc <- function (df = NULL, out_path = NULL, .path_cache = NULL,
   prps <- qs::qread(file.path(.path_ms1masses, .time_stamp, "simple_prot_pep.rds"))
   prps <- msub_protpep(prps, unique(df[["pep_seq"]]))
   
+  message("Completed protein accessions at: ", Sys.time())
+  
   df <- hannot_decoys(df, prps)
 }
 
@@ -564,7 +566,7 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
 
   ## (1) builds protein ~ peptide map
   Mats <- map_pepprot(df, out_path = out_path, fct = fct)
-  message("Completed protein-peptide maps.")
+  message("Completed protein-peptide maps at: ", Sys.time())
   
   Mat_upr_left <- Mats$upr_left
   Mat_lwr_left <- Mats$lwr_left
@@ -636,7 +638,7 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
                             prot_hit_num = seq_along(prots_upr_right), 
                             prot_family_member = 1L)
   }
-  message("Completed protein grouping.")
+  message("Completed protein grouping at: ", Sys.time())
 
   ## (3) finds essential protein entries
   ess_prots <- local({
@@ -666,7 +668,7 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
 
     unique(sets$prot_acc)
   })
-  message("Established essential proteins.")
+  message("Established essential proteins at: ", Sys.time())
 
   ## Parses literal or razor uniqueness of peptides
   # sets aside df0

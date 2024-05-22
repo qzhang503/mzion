@@ -17,7 +17,6 @@
 #' @param n_fwd Forward looking up to \code{n_fwd} mass entries. The default is
 #'   20 for MS1 and 10 for MS2.
 #' @param step Step size for mass binning.
-#' @param order_mz Logical; if TRUE, orders peaks from low to high m-over-z's.
 #' @param backward_mass_co A mass cut-off to initiate backward looking of an
 #'   isotope envelop.
 #' @param fct_iso2 The multiplication factor for the second isotopic peak.
@@ -31,7 +30,7 @@
 #' if (FALSE) {
 #'   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, ppm = 5L, ms_lev = 1L,
 #'                               maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
-#'                               offset_lwr = 8L, order_mz = TRUE)
+#'                               offset_lwr = 8L)
 #' }
 #'
 #' moverzs <- c(907.968018,908.136475,908.872711,909.073690,909.121,
@@ -54,11 +53,11 @@
 #'   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, center = 909.788696,
 #'                       exclude_reporter_region = FALSE,
 #'                       ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
-#'                       order_mz = TRUE, step = 5/1e6)
+#'                       step = 5/1e6)
 #'   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, # center = 909.788696,
 #'                       exclude_reporter_region = FALSE,
 #'                       ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
-#'                       order_mz = TRUE, step = 5/1e6)
+#'                       step = 5/1e6)
 #' }
 #' }
 find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0, 
@@ -66,7 +65,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
                           tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                           is_dda = TRUE, ppm = 8L, ms_lev = 1L, maxn_feats = 300L, 
                           max_charge = 4L, n_fwd = 20L, offset_upr = 30L, 
-                          offset_lwr = 30L, order_mz = TRUE, step = ppm/1e6, 
+                          offset_lwr = 30L, step = ppm/1e6, 
                           backward_mass_co = 800/ms_lev, grad_isotope = 1.6, 
                           fct_iso2 = 3.0, use_defpeaks = FALSE)
 {
@@ -314,12 +313,12 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     intensities <- c(rptr_ints, intensities)
   }
   
-  if (order_mz) {
-    ord <- order(masses)
-    masses <- masses[ord]
-    charges <- charges[ord]
-    intensities <- intensities[ord]
-  }
+  # Deisotoping from high-to-low intensities
+  # For MS2, the sequences need to be from low-to-high m-over-z values
+  ord <- order(masses)
+  masses <- masses[ord]
+  charges <- charges[ord]
+  intensities <- intensities[ord]
   
   out <- list(masses = masses, charges = charges, intensities = intensities)
 }

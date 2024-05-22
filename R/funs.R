@@ -7,9 +7,10 @@
 # [7] "sep_ms1rts"        "bin_ms1rts"        "gen_isoenvlope"   
 # 
 # $dispatch.R
-#  [1] "find_pos_site"       "contain_pos_site"    "contain_termpos_any" "subset_by_prps"      "subset_protntsite"   "subset_protntany"   
-#  [7] "subset_anyntsite"    "subset_anyntany"     "subset_anysite"      "subset_protctsite"   "subset_protctany"    "subset_anyctsite"   
-# [13] "subset_anyctany"     "find_nmodtree"       "find_cmodtree"       "subpeps_by_vmods"   
+#  [1] "find_pos_site"       "contain_pos_site"    "contain_termpos_any" "subset_by_prps"      "subset_protntsite"  
+#  [6] "subset_protntany"    "subset_anyntsite"    "subset_anyntany"     "subset_anysite"      "subset_protctsite"  
+# [11] "subset_protctany"    "subset_anyctsite"    "subset_anyctany"     "find_nmodtree"       "find_cmodtree"      
+# [16] "subpeps_by_vmods"   
 # 
 # $fastas.R
 # [1] "read_fasta"       "write_fasta"      "load_fasta"       "load_fasta2"      "find_acc_pattern" "find_acc_type"   
@@ -57,8 +58,8 @@
 # [9] "calc_ms2ions_a1_vnl1_fnl0"
 # 
 # $ms2frames.R
-#  [1] "pair_mgftheos"  "hpair_mgths"    "make_dia_mgfs"  "hms2match"      "ms2match_all"   "mframes_adv"    "find_ms2_bypep"
-#  [8] "search_mgf"     "hms2match_one"  "ms2match_one"   "frames_adv"    
+#  [1] "pair_mgftheos"   "hpair_mgths"     "make_dia_mgfs"   "clean_flat_mgfs" "hms2match"       "find_ms2_bypep"  "search_mgf"     
+#  [8] "hms2match_one"   "ms2match_one"    "frames_adv"     
 # 
 # $msfilereader.R
 # [1] "readRAW"                   "proc_raws"                 "exeReadRAW"                "acceptMSFileReaderLicense"
@@ -76,14 +77,19 @@
 # 
 # $mzml.R
 #  [1] "readmzML"          "hloadMZML"         "loadMZML"          "extrDDA"           "hdeisoDDA"         "deisoDDA"         
-#  [7] "getMSrowIndexes"   "find_ms2ends"      "getMS1xyz"         "getMS2xyz"         "extrDIA"           "hdeisoDIA"        
-# [13] "deisoDIA"          "hsubDIAMS1"        "subDIAMS1"         "htraceDIA"         "traceDIA"          "flattenMSxyz"     
-# [19] "spreadMSohw"       "spreadMS_v1"       "comb_mstraces"     "find_gates"        "find_gate_edges"   "traceLCMS"        
-# [25] "collapse_xyz"      "mapcoll_xyz"       "find_lc_gates"     "fill_lc_gaps"      "collapse_mms1ints" "calc_ms1xys"      
-# [31] "find_mdda_mms1s"   "find_ms1byms2"    
+#  [7] "predeisoDDA"       "deisoDDAMS2"       "getMSrowIndexes"   "find_ms2ends"      "getMS1xyz"         "getMS2xyz"        
+# [13] "extrDIA"           "hdeisoDIA"         "deisoDIA"          "hsubDIAMS1"        "subDIAMS1"         "htraceDIA"        
+# [19] "traceDIA"          "flattenMSxyz"      "spreadMSohw"       "spreadMS_v1"       "comb_mstraces"     "find_gates"       
+# [25] "find_gate_edges"   "traceLCMS"         "collapse_xyz"      "mapcoll_xyz"       "find_lc_gates"     "fill_lc_gaps"     
+# [31] "collapse_mms1ints" "calc_ms1xys"       "find_mdda_mms1s"   "find_ms1byms2"    
 # 
 # $mztab.R
 # [1] "make_mztab"
+# 
+# $pasefreader.R
+#  [1] "readPASEF"              "proc_pasefs"            "add_pasef_precursors"   "sep_pasef_ms2info"      "hextract_pasef"        
+#  [6] "group_pasef_precursors" "add_pasef_ms2iso_v0"    "add_pasef_ms2iso"       "extract_pasef_frame"    "collapse_pasef_xys"    
+# [11] "exeReadPASEF"           "acceptBrukerLicense"   
 # 
 # $percolator.R
 # [1] "create_folds" "cv_svm"       "perco_svm"   
@@ -111,8 +117,8 @@
 # [51] "na.interp"              "is.constant"            "tsoutliers"             "rm_dup13c"             
 # 
 # $silac.R
-# [1] "matchMS_silac_mix"   "matchMS_par_groups"  "add_fixedlab_masses" "matchMS_noenzyme"    "combine_ion_matches" "comine_PSMsubs"     
-# [7] "matchMS_ms1calib"   
+# [1] "matchMS_silac_mix"   "matchMS_par_groups"  "add_fixedlab_masses" "matchMS_noenzyme"    "combine_ion_matches"
+# [6] "comine_PSMsubs"      "matchMS_ms1calib"   
 # 
 # $unimods.R
 #  [1] "parse_unimod"             "find_unimod"              "hfind_unimod"             "table_unimods"           
@@ -124,13 +130,13 @@
 # $utils_engine.R
 #  [1] "which_topx"            "which_topx2"           "get_topn_vals"         "insVal"                "topx"                 
 #  [6] "find_ppm_error"        "find_mass_error_range" "`%+%`"                 "`%+%`"                 "post_frame_adv"       
-# [11] "subset_theoframes"     "subset_neuloss_peps"   "find_nterm_mass"       "find_cterm_mass"       "quick_rightjoin"      
-# [16] "quick_leftjoin"        "detect_cores"          "find_free_mem"         "find_mod_indexes"      "is_equal_sets"        
-# [21] "expand_grid_rows"      "expand_grid"           "expand_gr"             "expand_grid_rows0"     "count_elements"       
-# [26] "vec_to_list"           "split_matrix"          "split_vec"             "fold_vec"              "fold_vec2"            
-# [31] "sep_vec"               "rep_vec"               "accumulate_char"       "combi_mat"             "make_zero_df"         
-# [36] "calc_threeframe_ppm"   "get_ms1charges"        "finds_uniq_vec"        "my_dataframe"          "flatten_list"         
-# [41] "calc_rev_ms2"          "bind_dfs"              "find_min_ncores"      
+# [11] "subset_theoframes"     "subset_neuloss_peps"   "find_nterm_mass"       "find_cterm_mass"       "quick_join"           
+# [16] "detect_cores"          "find_free_mem"         "find_mod_indexes"      "is_equal_sets"         "expand_grid_rows"     
+# [21] "expand_grid"           "expand_gr"             "expand_grid_rows0"     "count_elements"        "vec_to_list"          
+# [26] "split_matrix"          "split_vec"             "fold_vec"              "fold_vec2"             "sep_vec"              
+# [31] "rep_vec"               "accumulate_char"       "combi_mat"             "make_zero_df"          "calc_threeframe_ppm"  
+# [36] "get_ms1charges"        "finds_uniq_vec"        "my_dataframe"          "flatten_list"          "calc_rev_ms2"         
+# [41] "bind_dfs"              "find_min_ncores"      
 # 
 # $utils_os.R
 #  [1] "`names_pos<-`"          "ins_cols_after"         "add_cols_at"            "replace_cols_at"        "reloc_col_after"       

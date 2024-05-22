@@ -4,7 +4,7 @@
 \alias{exeReadPASEF}
 \title{Helper in executing Cpp-compiled timsdataSampleCpp.exe}
 \usage{
-exeReadPASEF(raw_file, mgf_path, topn_ms2ions = 150L)
+exeReadPASEF(raw_file, mgf_path)
 }
 \arguments{
 \item{raw_file}{A RAW file name.}

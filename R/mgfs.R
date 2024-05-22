@@ -8,6 +8,8 @@
 #' @param mgf_cutmzs Cut points of MS1 m-over-z values in peak picking.
 #' @param mgf_cutpercs The counts of MS2 features in each region of
 #'   \code{mgf_cutmzs}.
+#' @param bypass_rawexe Logical; to bypass \link{exeReadPASEF} processing of
+#'   RAW .d files or not.
 #' @inheritParams matchMS
 load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L, 
                        maxn_dia_precurs = 1000L, # max MS1 deisotoping features
@@ -29,7 +31,8 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
                        max_ms2_charge = 3L, use_defpeaks = FALSE, 
                        maxn_mdda_precurs = 1L, n_mdda_flanks = 6L, 
                        ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
-                       quant = "none", use_lfq_intensity = TRUE, digits = 4L) 
+                       quant = "none", use_lfq_intensity = TRUE, 
+                       bypass_rawexe = FALSE, digits = 4L) 
 {
   old_opts <- options()
   options(warn = 1L)
@@ -48,7 +51,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
   fun <- fun[length(fun)] # may be called as mzion:::load_mgfs
   fun_env <- environment()
   
-  args_except <- c("out_path", "use_lfq_intensity")
+  args_except <- c("out_path", "use_lfq_intensity", "bypass_rawexe")
   args <- names(formals(fun))
   args_must <- args[!args %in% args_except]
   
@@ -126,6 +129,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
                 "\\.xlsx$", "\\.xls$", "\\.csv$", "\\.txt$", "\\.pars$", 
                 "^mgf$", "^mgfs$", "^mzML$", "^mzMLs$", "^raw$", 
                 "Calls", "^PSM$", "^Peptide$", "^Protein$", 
+                "data_type.rds", "info_format.rds", 
                 "fraction_scheme.rda", "label_scheme.rda", 
                 "label_scheme_full.rda"), 
     paths_excluded = paths_excluded, )
@@ -227,6 +231,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
       ppm_ms2_deisotope = ppm_ms2_deisotope, 
       quant = quant, 
       use_lfq_intensity = use_lfq_intensity, 
+      bypass_rawexe = bypass_rawexe,
       digits = digits)
   }
   else {
@@ -1018,7 +1023,7 @@ proc_mgfs <- function (lines, topn_ms2ions = 150L,
                      ppm = ppm_ms2_deisotope, 
                      ms_lev = 2L, maxn_feats = topn_ms2ions, 
                      max_charge = max_ms2_charge, n_fwd = 10L, 
-                     offset_upr = 30L, offset_lwr = 30L, order_mz = FALSE
+                     offset_upr = 30L, offset_lwr = 30L
                    ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
     ms2_moverzs <- lapply(mics, `[[`, "masses")
     ms2_ints <- lapply(mics, `[[`, "intensities")

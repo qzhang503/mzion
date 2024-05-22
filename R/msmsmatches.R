@@ -1013,7 +1013,7 @@ matchMS <- function (out_path = "~/mzion/outs",
             topn_mods_per_seq >= 1L, topn_seqs_per_query >= 1L, 
             tmt_reporter_lower < tmt_reporter_upper, max_ms2_charge >= 1L, 
             maxn_dia_precurs >= 1L, topn_dia_ms2ions >= 1L, n_dia_ms2bins >= 0L, 
-            maxn_mdda_precurs >= 0L, n_mdda_flanks >= 1L, 
+            maxn_mdda_precurs >= 0L, n_mdda_flanks >= 0L, 
             ppm_ms1_deisotope >= 1L, ppm_ms2_deisotope >= 1L)
   
   if (n_dia_scans < 2L)
@@ -1329,6 +1329,9 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (is.null(bypass_mgf <- dots$bypass_mgf)) 
     bypass_mgf <- FALSE
 
+  if (is.null(bypass_rawexe <- dots$bypass_rawexe)) 
+    bypass_rawexe <- FALSE
+  
   if ((!bypass_mgf) || (!file.exists(file_type_acqu))) {
     type_acqu <- load_mgfs(
       out_path = out_path, 
@@ -1370,6 +1373,7 @@ matchMS <- function (out_path = "~/mzion/outs",
       ppm_ms2_deisotope = ppm_ms2_deisotope, 
       quant = quant, 
       use_lfq_intensity = use_lfq_intensity, 
+      bypass_rawexe = bypass_rawexe,
       digits = digits)
   }
   else {
@@ -2029,6 +2033,7 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
   }
 
   #  No pepQ.txt and prnQ.txt; use proteoQ for data mining
+  message("Completed protein-peptide associations at: ", Sys.time())
 
   invisible(df)
 }
@@ -2264,6 +2269,9 @@ map_raw_n_scan <- function (df, mgf_path)
   
   if (file.exists(file_raw)) {
     raws <- qs::qread(file_raw)
+    # some raw files may have no search results
+    raws <- raws[!is.na(names(raws))]
+    
     pos <- match(as.character(df$raw_file), as.character(raws))
     df$raw_file <- names(raws)[pos]
   }
@@ -2272,26 +2280,30 @@ map_raw_n_scan <- function (df, mgf_path)
   }
   
   files_scan <- list.files(mgf_path, pattern = "^scan_map_.*\\.rds$")
-
+  # corresponds to raw files without search results
+  files_scan <- files_scan[files_scan != "scan_map_.rds"]
+  
   if (!(len_sc <- length(files_scan))) {
     stop("No `scan_map` files found.")
   }
-    
   
-  if (len_sc != length(raws))
-    stop("The number of `scan_map` files is different to the number of RAWs.")
+  if (len_sc != length(raws)) {
+    stop("The number of `scan_map` files is different to the number of RAWs.",
+         "\nCheck for the possibility of MS data contain no search results ", 
+         "and remove the files.")
+  }
   
   dfs <- split(df, df$raw_file)
   raws_in_df <- names(dfs)
   ids <- match(raws_in_df, gsub("^scan_map_(.*)\\.rds$", "\\1", files_scan))
-
+  
   if (any(bads <- is.na(ids))) {
     stop("Files do not have matched `scan_map`", 
          paste(raws_in_df[bads], collapse = ", "))
   }
-
+  
   files_scan <- files_scan[ids]
-
+  
   for (i in ids) {
     scans <- qs::qread(file.path(mgf_path, files_scan[[i]]))
     pos <- match(dfs[[i]]$pep_scan_title, as.character(scans))
@@ -2299,7 +2311,7 @@ map_raw_n_scan <- function (df, mgf_path)
   }
   
   df <- dplyr::bind_rows(dfs)
-
+  
   invisible(df)
 }
 

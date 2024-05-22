@@ -1084,7 +1084,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
       if ("pep_mod_group" %in% names(dfm) && "pep_mod_group" %in% names(prs))
         prs[["pep_mod_group"]] <- NULL
       
-      dfm <- quick_rightjoin(dfm, prs, "uniq_id")
+      dfm <- quick_join(dfm, prs, "uniq_id", type = "right")
       rm(list = c("prs"))
     }
   }
@@ -1123,7 +1123,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
   if ("pep_mod_group" %in% names(df) && "pep_mod_group" %in% names(probs))
     probs[["pep_mod_group"]] <- NULL
   
-  df <- quick_rightjoin(df, probs, "uniq_id")
+  df <- quick_join(df, probs, "uniq_id", type = "right")
   rm(list = c("probs"))
 
   if (lenm)
@@ -2103,6 +2103,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
                      fct_score = fct_score, 
                      out_path = out_path)
   prob_cos <- unlist(prob_cos)
+  prob_cos[prob_cos <= 10^-20] <- 10^-20
   
   if (length(prob_cos) == 1L && !is.na(prob_cos))
     return(data.frame(pep_len = all_lens, pep_prob_co = prob_cos))
@@ -2223,6 +2224,8 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
     # with `find_optlens`, some length in newy may not be in prob_cos
     prob_cos[!is.na(names(prob_cos))]
   })
+  
+  message("Completed peptide FDR at: ", Sys.time())
   
   prob_cos <- fill_probco_nas(prob_nas, prob_no_uses, prob_cos, target_fdr) %T>% 
     qs::qsave(file.path(out_path, "temp", "pep_probco.rds"), preset = "fast")
@@ -3099,8 +3102,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
       
       us <- data.table::rbindlist(us)
       
-      x0 <- dplyr::left_join(x0, us[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
-                             by = "uniq_id2")
+      x0 <- quick_join(x0, us[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
+                       by = "uniq_id2")
       
       rm(list = c("probs", "deltas", "us"))
     }
@@ -3127,8 +3130,8 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   # 4.4 adds back z0
   # ok to replace dplyr::left_join here:
   #   the same number of rows between the new and the old z0
-  z0 <- dplyr::left_join(z0, x0[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
-                         by = "uniq_id2")
+  z0 <- quick_join(z0, x0[, c("uniq_id2", "pep_locprob", "pep_locdiff")], 
+                   by = "uniq_id2")
   x0 <- data.table::rbindlist(list(x0, z0), use.names = FALSE)
   rm(list = "z0")
   
@@ -3184,6 +3187,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x0[["pep_ivmod2"]] <- NULL
   qs::qsave(x0, file.path(out_path, "temp", "peploc.rds"), preset = "fast")
   
+  message("Completed peptide localization scores at: ", Sys.time())
   invisible(x0)
 }
 
@@ -3250,7 +3254,7 @@ find_bestnotch <- function (x)
   g[["pep_ms1_offset"]] <- g[["query_id"]] <- NULL
   
   x[, uid := paste(query_id, pep_ms1_offset, sep = ".")]
-  x <- dplyr::left_join(x, g, by = "uid")
+  x <- quick_join(x, g, by = "uid")
   x <- x[x$keep, ]
   
   x[["keep"]] <- x[["pep_rank0"]] <- x[["uid"]] <- x[["query_id"]] <- NULL

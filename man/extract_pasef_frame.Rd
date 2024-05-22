@@ -2,13 +2,19 @@
 % Please edit documentation in R/pasefreader.R
 \name{extract_pasef_frame}
 \alias{extract_pasef_frame}
-\title{Extracts data from a PASEF frame.}
+\title{Extracts MS1 data from a PASEF frame.}
 \usage{
-extract_pasef_frame(data)
+extract_pasef_frame(data, ms_lev = 1L, ymin = 10, ymax = 1e+06)
 }
 \arguments{
-\item{data}{A PASEF frame (with multiple scans).}
+\item{data}{A PASEF frame (with multiple slices).}
+
+\item{ms_lev}{The level of MS data.}
+
+\item{ymin}{The cut-off of intensity.}
+
+\item{ymax}{The maximum intensity.}
 }
 \description{
-Extracts data from a PASEF frame.
+Extracts MS1 data from a PASEF frame.
 }

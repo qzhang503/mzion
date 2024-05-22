@@ -1,14 +1,15 @@
 Mzion
 ================
 true
-2024-04-25
+2024-05-22
 
 - [Installation](#installation)
 - [Peaklist formats](#peaklist-formats)
 - [Database searches via a ShinyApp](#database-searches-via-a-shinyapp)
 - [Help documents](#help-documents)
 - [Data QC and mining](#data-qc-and-mining)
-- [Database searches via R scripts](#database-searches-via-r-scripts)
+- [Optional database searches via R
+  scripts](#optional-database-searches-via-r-scripts)
   - [Specifications of fixed and variable
     modifications](#specifications-of-fixed-and-variable-modifications)
   - [Other utilities](#other-utilities)
@@ -49,7 +50,7 @@ devtools::install_github("qzhang503/mzionShiny")
     2)  (optional) zeroSamples: removeExtra 1-
 
   - [x] `MSConvert mgf (softly depreciated)`
-- Bruker’s MS
+- Bruker’s PASEF-MS
   - [x] `DataAnalysis mgf`
 
 ## Database searches via a ShinyApp
@@ -60,13 +61,13 @@ mzionShiny::run_app()
 
 ## Help documents
 
-Enter `?mzion::matchMS` from an RStudio section.
+Enter `?mzion::matchMS` from an RStudio console.
 
 ## Data QC and mining
 
 - [proteoQ](https://github.com/qzhang503/proteoQ/)
 
-## Database searches via R scripts
+## Optional database searches via R scripts
 
 ``` r
 ## Global, TMT-10plex

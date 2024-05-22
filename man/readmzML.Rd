@@ -45,6 +45,7 @@ readmzML(
   ppm_ms2_deisotope = 8L,
   quant = "none",
   use_lfq_intensity = TRUE,
+  bypass_rawexe = FALSE,
   digits = 4L
 )
 }
@@ -191,6 +192,9 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 \item{use_lfq_intensity}{Logical; if TRUE, replace spectrum-centric precursor
 intensities with peptide-centric intensities in DDA-MS. Require mzML data
 format. The feature enables LFQ and can also be applied to TMT experiments.}
+
+\item{bypass_rawexe}{Logical; to bypass \link{exeReadPASEF} processing of
+RAW .d files or not.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}

@@ -4,17 +4,24 @@
 \alias{proc_pasefs}
 \title{Helper in processing MGF entries in chunks.}
 \usage{
-proc_pasefs(raw_file, mgf_path, temp_dir, topn_ms2ions = 150L)
+proc_pasefs(raw_file, mgf_path, temp_dir, n_para = 1L)
 }
 \arguments{
 \item{raw_file}{The file name of RAW MS data.}
 
-\item{mgf_path}{The file path of MGF files.}
+\item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
+  supply the files.
+
+  The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
+  from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
+  Proteome Discoverer or (3) Bruker's DataAnalysis.
+
+  With MSConvert, the default \code{titleMaker} is required for correct
+  parsing (don't think it can be altered by users, but just in case).}
 
 \item{temp_dir}{A file path for temporary files.}
 
-\item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
-searches.}
+\item{n_para}{The number of maximum allowed parallel processes.}
 }
 \description{
 Helper in processing MGF entries in chunks.

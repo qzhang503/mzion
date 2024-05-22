@@ -4,7 +4,12 @@
 \alias{readPASEF}
 \title{Reads Bruker's PASEF files.}
 \usage{
-readPASEF(mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L)
+readPASEF(
+  mgf_path = NULL,
+  filelist = NULL,
+  topn_ms2ions = 150L,
+  bypass_rawexe = FALSE
+)
 }
 \arguments{
 \item{mgf_path}{A file path RAW MS files.}
@@ -13,6 +18,9 @@ readPASEF(mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L)
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}
+
+\item{bypass_rawexe}{Logical; to bypass \link{exeReadPASEF} processing of
+RAW .d files or not.}
 }
 \description{
 Reads Bruker's PASEF files.

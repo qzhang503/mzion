@@ -20,7 +20,6 @@ find_ms1stat(
   n_fwd = 20L,
   offset_upr = 30L,
   offset_lwr = 30L,
-  order_mz = TRUE,
   step = ppm/1e+06,
   backward_mass_co = 800/ms_lev,
   grad_isotope = 1.6,
@@ -68,8 +67,6 @@ The default is \eqn{135.2}.}
 
 \item{offset_lwr}{A cardinal number of lower mass off-sets.}
 
-\item{order_mz}{Logical; if TRUE, orders peaks from low to high m-over-z's.}
-
 \item{step}{Step size for mass binning.}
 
 \item{backward_mass_co}{A mass cut-off to initiate backward looking of an
@@ -98,7 +95,7 @@ n_ms1s <- rep_len(1L, length(msxints))
 if (FALSE) {
   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, ppm = 5L, ms_lev = 1L,
                               maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
-                              offset_lwr = 8L, order_mz = TRUE)
+                              offset_lwr = 8L)
 }
 
 moverzs <- c(907.968018,908.136475,908.872711,909.073690,909.121,
@@ -121,11 +118,11 @@ if (FALSE) {
   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, center = 909.788696,
                       exclude_reporter_region = FALSE,
                       ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
-                      order_mz = TRUE, step = 5/1e6)
+                      step = 5/1e6)
   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, # center = 909.788696,
                       exclude_reporter_region = FALSE,
                       ppm = 5L, ms_lev = 1L, maxn_feats = 1L, max_charge = 4L,
-                      order_mz = TRUE, step = 5/1e6)
+                      step = 5/1e6)
 }
 }
 }

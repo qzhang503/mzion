@@ -261,9 +261,9 @@ chunksplit <- function (data, n_chunks = 5L, type = c("list", "row"), ...)
   else if (type == "row") 
     len <- nrow(data)
   else 
-    stop("Unknown type.", call. = TRUE)
+    stop("Unknown type.")
   
-  if (len == 0L) 
+  if (!len) 
     return(data)
   
   labs <- levels(cut(1:len, n_chunks))
@@ -295,9 +295,9 @@ chunksplitLB <- function (data, n_chunks = 5L, nx = 100L, type = "list")
   else if (type == "row") 
     len <- nrow(data)
   else 
-    stop("Unknown type.", call. = TRUE)
+    stop("Unknown type.")
   
-  if (len == 0L) 
+  if (!len) 
     return(data)
   
   # The finer groups by 'nx'

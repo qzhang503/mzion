@@ -330,8 +330,6 @@
 # subset_neuloss_peps
 # find_nterm_mass
 # find_cterm_mass
-# quick_rightjoin
-# quick_leftjoin
 # detect_cores
 # find_free_mem
 # find_mod_indexes
