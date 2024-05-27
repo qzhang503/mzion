@@ -4,7 +4,7 @@
 \alias{proc_pasefs}
 \title{Helper in processing MGF entries in chunks.}
 \usage{
-proc_pasefs(raw_file, mgf_path, temp_dir, n_para = 1L)
+proc_pasefs(raw_file, mgf_path, temp_dir, n_para = 1L, debug = FALSE)
 }
 \arguments{
 \item{raw_file}{The file name of RAW MS data.}
@@ -22,6 +22,8 @@ proc_pasefs(raw_file, mgf_path, temp_dir, n_para = 1L)
 \item{temp_dir}{A file path for temporary files.}
 
 \item{n_para}{The number of maximum allowed parallel processes.}
+
+\item{debug}{Debugging mode or not.}
 }
 \description{
 Helper in processing MGF entries in chunks.

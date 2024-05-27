@@ -38,6 +38,7 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L,
     }
   }
 
+  # can be increased if change the MS1 intensity cut-off in exeReadPASEF to 100
   n_cores2 <- min(len, detect_cores(2L), ram_units)
   n_cores2 <- find_min_ncores(len, n_cores2)
   n_para <- max(floor(ram_units/n_cores2), 1L)
@@ -66,15 +67,13 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L,
 #' @param raw_file The file name of RAW MS data.
 #' @param temp_dir A file path for temporary files.
 #' @param n_para The number of maximum allowed parallel processes.
+#' @param debug Debugging mode or not.
 #' @inheritParams matchMS
-proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L) 
+proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L, 
+                         debug = FALSE) 
 {
   options(digits = 9, warn = 1)
   
-  ### 
-  # Need to convert MS1 profiles to centroids ...
-  ###
-
   # MS1 and MS2 spectra
   lines <- readr::read_lines(file.path(mgf_path, raw_file, "spectra.txt"), 
                              skip = 3L, num_threads = n_para)
@@ -85,12 +84,25 @@ proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L)
   # Information of MS2 isolation windows
   iso_info <- local({
     parents <- readr::read_tsv(file.path(mgf_path, raw_file, "precursors.txt"), 
-                               show_col_types = FALSE) |>
+                               col_types = cols(
+                                 Id = col_integer(), 
+                                 MonoisotpoicMz = col_number(),
+                                 Charge = col_integer(),
+                                 Intensity = col_integer(),
+                                 Parent = col_integer()
+                               ), show_col_types = FALSE) |>
       dplyr::rename(Precursor = Id)
     
     iso_info <- 
       readr::read_tsv(file.path(mgf_path, raw_file, "ms2precursors.txt"), 
-                      show_col_types = FALSE) |>
+                      col_types = cols(
+                        Frame = col_integer(), 
+                        ScanNumBegin = col_integer(),
+                        ScanNumEnd = col_integer(), 
+                        IsolationMz = col_number(), 
+                        IsolationWidth = col_number(),
+                        Precursor = col_integer()
+                      ), show_col_types = FALSE) |>
       dplyr::left_join(parents, by = "Precursor") |>
       dplyr::rename(MS2Frame = Frame, MS1Frame = Parent) |>
       reloc_col_after("MS1Frame", "MS2Frame") # |> 
@@ -121,8 +133,8 @@ proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L)
     }
     names(out) <- nms
 
-    # optional but better for code safety
-    if (FALSE) {
+    # good for code safety
+    if (debug) {
       if (!is.numeric(out$scan_num))
         stop("Anticipating numeric values for `scan_num`.")
 
@@ -244,10 +256,10 @@ sep_pasef_ms2info <- function (data, iso_info)
 #' @param keys The key names of output lists.
 hextract_pasef <- function (
     mdata, iso_info, 
-    keys = c("msx_moverzs", "msx_ints", "msx_ns", "ms1_moverzs", "ms1_charges", 
-             "ms1_ints", "scan_title", "ms_level", "ret_time", "scan_num", 
-             "orig_scan", 
-             "iso_ctr", "iso_lwr", "iso_upr", "mobility"))
+    keys = c("msx_moverzs", "msx_ints", "msx_ns", "ms1_fr", 
+             "ms1_moverzs", "ms1_ints", "ms1_charges", 
+             "scan_title", "ms_level", "ret_time", "scan_num", 
+             "orig_scan", "iso_ctr", "iso_lwr", "iso_upr", "mobility"))
 {
   lens <- lengths(mdata) # numbers of lines in each frame
   ms_levs <- mapply(function (x, n) x[n - 3], mdata, lens, 
@@ -256,21 +268,49 @@ hextract_pasef <- function (
   oks1 <- ms_levs == 1L
   oks2 <- .Internal(which(!oks1))
   
-  ## MS1
-  ans1 <- lapply(mdata[oks1],  extract_pasef_frame, ms_lev = 1L, ymin = 10) # 75
+  ## MS1 and MS2
+  out1 <- extract_pasef_ms1(mdata[oks1], keys)
+  out2 <- extract_pasef_ms2(mdata[oks2], lens[oks2], iso_info, keys)
+
+  ## put together
+  out1[["scan_num"]] <- as.numeric(out1[["scan_num"]])
+  out2[["scan_num"]] <- as.numeric(out2[["scan_num"]])
+  out <- mapply(`c`, out1, out2, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  names(out) <- names(out1)
+
+  ord <- order(out[["scan_num"]])
+  for (i in seq_along(out)) {
+    out[[i]] <- out[[i]][ord]
+  }
+
+  out
+}
+
+
+#' Extracts PASEF MS1 data.
+#'
+#' @param mdata A list of \emph{MS1} PASEF frames. Each list entry corresponding
+#'   to one MS1 frame.
+#' @param keys The key names of output lists.
+extract_pasef_ms1 <- function (mdata, keys)
+{
+  ans1 <- lapply(mdata,  extract_pasef_frame, ms_lev = 1L, ymin = 10)
   ans1 <- ans1[lengths(ans1) > 0L]
   
+  for (i in seq_along(ans1)) {
+    ai <- ans1[[i]]
+    tempdata1 <- collapse_rawtims_xys(ai$msx_moverzs, ai$msx_ints)
+    ans1[[i]]$msx_moverzs <- tempdata1[[1]]
+    ans1[[i]]$msx_ints <- tempdata1[[2]]
+  }
+
   nms1 <- names(ans1[[1]])
   out1 <- vector("list", length(nms1))
   for (i in seq_along(out1)) {
     out1[[i]] <- lapply(ans1, `[[`, i)
   }
   names(out1) <- nms1
-  rm(list = c("ans1", "nms1", "oks1"))
-  gc()
-  
-  out1[["msx_ns"]] <- 
-    unlist(out1[["msx_ns"]], recursive = FALSE, use.names = FALSE)
+
   out1[["scan_title"]] <- 
     unlist(out1[["scan_title"]], recursive = FALSE, use.names = FALSE)
   out1[["ms_level"]] <- 
@@ -282,10 +322,12 @@ hextract_pasef <- function (
   out1[["orig_scan"]] <- out1[["scan_num"]]
   out1[["mobility"]] <- 
     unlist(out1[["mobility"]], recursive = FALSE, use.names = FALSE)
+  out1[["msx_ns"]] <- lengths(out1[["msx_moverzs"]])
   
   len1 <- length(out1[["msx_ns"]])
   na_ints1 <- rep_len(NA_integer_, len1)
   na_reals1 <- rep_len(NA_real_, len1)
+  out1[["ms1_fr"]] <- na_ints1
   out1[["ms1_moverzs"]] <- na_reals1
   out1[["ms1_charges"]] <- na_ints1
   out1[["ms1_ints"]] <- na_ints1
@@ -294,15 +336,22 @@ hextract_pasef <- function (
   out1[["iso_upr"]] <- na_reals1
   
   if (length(keys) != length(out1)) {
-    stop("Developer: unequal numbers of columns for PASEF MS1 data.")
+    stop("Developer: unequal numbers of columns in PASEF MS1 data.")
   }
+  
   out1 <- out1[keys]
-  rm(list = c("len1", "na_ints1", "na_reals1"))
+}
 
-  ## MS2
-  ms2data <- mdata[oks2]
-  lens2 <- lens[oks2] # numbers of lines in each MS2 frame
 
+#' Extracts PASEF MS1 data.
+#'
+#' @param ms2data A list of \emph{MS2} PASEF frames. Each list entry
+#'   corresponding to one MS2 frame.
+#' @param lens2 The number of lines in each MS2 frame.
+#' @param iso_info The information of MS2 isolation windows etc.
+#' @param keys The key names of output lists.
+extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys)
+{
   # (1) pair MS2 data with `iso_info` by FRAME
   ms2frs <- mapply(function (x, n) x[n - 7L], ms2data, lens2, 
                    SIMPLIFY = TRUE, USE.NAMES = FALSE) |>
@@ -313,7 +362,7 @@ hextract_pasef <- function (
   if (!identical(as.integer(names(iso_info)), ms2frs)) {
     stop("Developer: mismatches in PASEF frame IDs.")
   }
-
+  
   if (length(ms2data) > length(iso_info)) {
     ok_frs <- ms2frs %in% names(iso_info)
     ms2data <- ms2data[ok_frs]
@@ -331,7 +380,7 @@ hextract_pasef <- function (
   precursors <- lapply(ans2, `[[`, "precursor") |>
     unlist(recursive = FALSE, use.names = FALSE)
   ans2 <- lapply(split(ans2, precursors), group_pasef_precursors)
-
+  
   nms2 <- names(ans2[[1]])
   out2 <- vector("list", length(nms2))
   
@@ -339,14 +388,15 @@ hextract_pasef <- function (
     out2[[i]] <- lapply(ans2, `[[`, i)
   }
   names(out2) <- nms2
-  rm(list = "ans2")
-  gc()
-  
-  # out2[["msx_ns"]] <- unlist(out2[["msx_ns"]], recursive = FALSE, use.names = FALSE)
+
   out2[["scan_title"]] <- 
     unlist(out2[["scan_title"]], recursive = FALSE, use.names = FALSE)
   out2[["ms_level"]] <- 
     unlist(out2[["ms_level"]], recursive = FALSE, use.names = FALSE)
+  out2[["msx_ns"]] <- 
+    unlist(out2[["msx_ns"]], recursive = FALSE, use.names = FALSE)
+  out2[["ms1_fr"]] <- 
+    unlist(out2[["ms1_fr"]], recursive = FALSE, use.names = FALSE)
   out2[["ret_time"]] <- 
     unlist(out2[["ret_time"]], recursive = FALSE, use.names = FALSE)
   out2[["scan_num"]] <- 
@@ -367,24 +417,87 @@ hextract_pasef <- function (
     unlist(out2[["ms1_charges"]], recursive = FALSE, use.names = FALSE)
   out2[["ms1_ints"]] <- 
     unlist(out2[["ms1_ints"]], recursive = FALSE, use.names = FALSE)
-
+  
   if (length(keys) != length(out2)) {
-    stop("Developer: unequal numbers of columns for PASEF MS1 data.")
+    stop("Developer: unequal numbers of columns in PASEF MS2 data.")
   }
+  
   out2 <- out2[keys]
+}
 
-  ## put together
-  out1[["scan_num"]] <- as.numeric(out1[["scan_num"]])
-  out2[["scan_num"]] <- as.numeric(out2[["scan_num"]])
-  out <- mapply(`c`, out1, out2, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  names(out) <- names(out1)
 
-  ord <- order(out[["scan_num"]])
-  for (i in seq_along(out)) {
-    out[[i]] <- out[[i]][ord]
+#' Collapses timsTOF X and Y values.
+#' 
+#' @param xs A vector of m-over-z values.
+#' @param ys A vector of intensity values.
+#' @param maxn_peaks The maximum number of peaks for consideration.
+#' @param yco The noise levels of intensity values.
+#' @param miny The minimum value of intensity for consideration as a peak.
+#' @param tol The tolerance for masses binning.
+collapse_rawtims_xys <- function (xs, ys, maxn_peaks = 1000L, yco = 20L, 
+                                  miny = 30L, tol = 2e-5)
+{
+  oks <- .Internal(which(ys > yco))
+  xs <- xs[oks]
+  ys <- ys[oks] - yco
+  
+  nx <- length(xs)
+  maxn_peaks <- min(nx, maxn_peaks)
+  peaks <- rep_len(NA_real_, maxn_peaks)
+  intens <- rep_len(NA_integer_, maxn_peaks)
+  
+  p <- 1L
+  while(p <= maxn_peaks) {
+    imax <- .Internal(which.max(ys))
+    ymax <- ys[imax]
+    
+    if (ymax < miny) {
+      break
+    }
+    
+    if (imax > 1L && imax < nx) {
+      is_peak <- ys[imax - 1L] < ymax && ys[imax + 1L] < ymax
+    }
+    else {
+      is_peak <- FALSE
+    }
+    
+    if (!is_peak) {
+      ys[imax] <- 0L
+      p <- p + 1L
+      next
+    }
+    
+    xmax <- xs[imax]
+    upr <- min(nx, imax + 5L)
+    gap <- min(diff(xs[imax:upr]))
+    
+    # next gather the peaks within +/- 20ppm & >= 3% or 5% of base peak
+    xwin <- xmax * tol
+    nbin <- as.integer(xwin / gap)
+    
+    rng <- max(1L, imax - nbin):min(nx, imax + nbin)
+    
+    peaks[p] <- xmax
+    intens[p] <- sum(ys[rng])
+    ys[rng] <- 0
+    
+    # also look into extended window of +/- 20 ppm based on intens[p]
+    # if <= 3% -> 0
+
+    # xmax - xwin
+    # xmax + xwin
+    
+    p <- p + 1L
   }
-
-  out
+  
+  # intensity only approximately decreasing because of sum(ys[rng])
+  oks2 <- .Internal(which(!is.na(peaks)))
+  peaks <- peaks[oks2]
+  intens <- intens[oks2]
+  
+  ord <- order(peaks)
+  out <- list(xs = peaks[ord], ys = intens[ord])
 }
 
 
@@ -398,10 +511,9 @@ group_pasef_precursors <- function (dat, lwr = 115L, step = 1e-5)
   oks <- .Internal(which(lapply(dat, `[[`, "msx_ns") > 0L))
   len <- length(oks)
   
-  if (!len) {
+  if (!len)
     return(NULL)
-  }
-  
+
   dat <- dat[oks]
   
   xys <- collapse_mms1ints(lapply(dat, `[[`, "msx_moverzs"), 
@@ -435,7 +547,9 @@ group_pasef_precursors <- function (dat, lwr = 115L, step = 1e-5)
   # uses the fist one for staggering with MS1 scan numbers
   scan_num <- dat_1[["scan_num"]]
   scan_title <- dat_1[["scan_title"]]
-  scan_title <- paste0(scan_title, "; scans: ", scan_num_all, 
+  ms1_fr <- ms1_frs[[1]]
+  scan_title <- paste0(scan_title, "; MS1: ", ms1_fr, 
+                       "; scans: ", scan_num_all, 
                        "[", rng_slice, "]", "; Cmpd: ", dat_1[["precursor"]])
   ms_level <- dat_1[["ms_level"]]
   iso_ctr <- dat_1[["iso_ctr"]]
@@ -448,6 +562,7 @@ group_pasef_precursors <- function (dat, lwr = 115L, step = 1e-5)
     msx_ns = msx_ns,
     scan_title = scan_title,
     ms_level = dat_1[["ms_level"]], 
+    ms1_fr = ms1_fr,
     ret_time = ret_time,
     scan_num = scan_num,
     orig_scan = scan_num_all, 
@@ -511,7 +626,7 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
   #   stop("Not expecting `msx_ns == 0`.")
   # }
   
-  oks <- .Internal(which(msx_ns >= min_ms2n)) # 25L
+  oks <- .Internal(which(msx_ns >= min_ms2n))
   len <- length(oks)
   
   if (!len) {
@@ -530,7 +645,7 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
   msx_ints <- msx_ints[oks]
   slices <- slices[oks]
   mobs <- mobs[oks]
-  
+
   ## outputs
   out <- vector("list", len)
   rngs <- mapply(function (x, y) paste0(x, "-", y), 
@@ -578,7 +693,7 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
 #' @param ms_lev The level of MS data.
 #' @param ymin The cut-off of intensity.
 #' @param ymax The maximum intensity.
-extract_pasef_frame <- function (data, ms_lev = 1L, ymin = 10, ymax = 1E6)
+extract_pasef_frame <- function (data, ms_lev = 1L, ymin = 10, ymax = 1E7)
 {
   len <- length(data) # the number of lines
   
@@ -613,7 +728,7 @@ extract_pasef_frame <- function (data, ms_lev = 1L, ymin = 10, ymax = 1E6)
   # clean up by Y values
   for (i in seq_along(xs)) {
     ysi <- ys[[i]]
-    oki <- ysi >= ymin & ysi <= ymax
+    oki <- ysi >= ymin # & ysi <= ymax
     ys[[i]] <- ysi[oki] # works at rhs numeric(0)
     xs[[i]] <- xs[[i]][oki]
   }
@@ -639,19 +754,16 @@ extract_pasef_frame <- function (data, ms_lev = 1L, ymin = 10, ymax = 1E6)
                 # vectors below
                 msx_moverzs = xs, 
                 msx_ints = ys, 
-                # msx_ns = not yet for MS2
                 mobility = mobils,
                 slices = slices))
   }
   
   # collapses MS1 slices
-  # need to use find_gates... 
   xys <- collapse_pasef_xys(xs, ys)
   xs <- xys$x
   ys <- xys$y
 
-  list(msx_ns = length(xs),
-       scan_title = title,
+  list(scan_title = title,
        ms_level = ms_lev,
        ret_time = ret_time,
        scan_num = scan_num,

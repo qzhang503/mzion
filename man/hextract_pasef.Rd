@@ -7,9 +7,9 @@
 hextract_pasef(
   mdata,
   iso_info,
-  keys = c("msx_moverzs", "msx_ints", "msx_ns", "ms1_moverzs", "ms1_charges", "ms1_ints",
-    "scan_title", "ms_level", "ret_time", "scan_num", "orig_scan", "iso_ctr", "iso_lwr",
-    "iso_upr", "mobility")
+  keys = c("msx_moverzs", "msx_ints", "msx_ns", "ms1_fr", "ms1_moverzs", "ms1_ints",
+    "ms1_charges", "scan_title", "ms_level", "ret_time", "scan_num", "orig_scan",
+    "iso_ctr", "iso_lwr", "iso_upr", "mobility")
 )
 }
 \arguments{

@@ -154,7 +154,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       peaks[[p]] <- mass
       intens[[p]] <- mint
       len_ms <- len_ms - 1L
-      moverzs <- moverzs[-imax]
+      moverzs <- moverzs[-imax] # slow, try msxints[imax] <- 0
       msxints <- msxints[-imax]
       ims <- ims[-imax]
       p <- p + 1L
@@ -283,7 +283,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     }
     
     len_ms <- len_ms - lenh
-    moverzs <- moverzs[-hits]
+    moverzs <- moverzs[-hits] # slow; try msxints[hits] <- 0
     msxints <- msxints[-hits]
     ims <- ims[-hits]
     p <- p + 1L

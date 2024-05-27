@@ -22,6 +22,10 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
   
   mgf_files <- list.files(mgf_path, pattern = "^mgf_queries_.*\\.rds$", 
                           full.names = TRUE)
+  
+  if (!length(mgf_files))
+    stop("No `mgf_queries_[...]` files found under ", mgf_path)
+  
   mgfs <- lapply(mgf_files, qs::qread)
   
   # data thinning for MGF calibrations

@@ -110,9 +110,7 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
   n_para <- max(min(n_pcs, r_cores), 1L)
   
   if (is_pasef <- isTRUE(data_format == "Bruker-RAW")) {
-    n_cores <- 1L # temporary for debugging; 2L
     n_para <- max(floor(rams/20), 1L)
-    
     n_para <- n_para * 2L # temporary for debugging; 16L
   }
   
@@ -1085,11 +1083,6 @@ hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL,
                        exclude_reporter_region = FALSE, use_defpeaks = FALSE, 
                        is_pasef = FALSE, n_para = 1L)
 {
-  # temporarily
-  if (is_pasef) {
-    maxn_mdda_precurs <- 0L
-  }
-  
   df <- deisoDDA(
     filename, 
     temp_dir = temp_dir, 
@@ -1222,8 +1215,10 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     step <- ppm_ms1 * 1e-6
     
     # estimated number of MS1 scans at a 2-min range of retention times
+    rows1 <- which(df$ms_level == 1L)
+    
     rt_gap <- local({
-      df1 <- df[with(df, ms_level == 1), ]
+      df1 <- df[rows1, ]
       len <- nrow(df1)
       rts <- df1$ret_time
       df1 <- dplyr::arrange(df1, ret_time)
@@ -1237,6 +1232,10 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
       upr <- if (length(grs)) grs[[1]] else len
       rt_gap <- max(upr - mid_len, 1L)
     })
+    
+    # MS2 scans before the first MS1 (more likely with timsTOF)
+    dfx <- if ((row1 <- rows1[[1]]) > 1L) df[1:(row1 - 1L), ] else NULL
+    rm(list = c("rows1", "row1"))
     
     ans_prep <- pretraceXY(
       df[, c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", "ms_level", 
@@ -1259,6 +1258,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     
     if (is_pasef) {
       n_cores <- 1L
+      # maxn_mdda_precurs <- 1L
       # n_para <- max(rams/20, 1L)
     }
 
@@ -1315,7 +1315,16 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     }
 
     out <- dplyr::bind_rows(out)
+    
+    if (!is.null(dfx)) {
+      out <- dplyr::bind_rows(dfx[, cols], out)
+    }
+    
+    if (nrow(df) != nrow(out)) {
+      stop("Developer: checks for row drops.")
+    }
     df[, cols] <- out[, cols]
+    
     ###
     df$apex_scan_num <- out$apex_scan_num
     empties <- lengths(df$apex_scan_num) == 0L
@@ -1357,6 +1366,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     df <- df[!bads, ]
     
     oks <- lapply(df$ms1_mass, function (x) .Internal(which(x >= min_mass & x <= max_mass)))
+    # oks <- lapply(df$ms1_mass, function (x) .Internal(which(x >= 230 & x <= max_mass)))
 
     df$ms1_mass <- mapply(function (x, y) x[y], df$ms1_mass, oks, 
                           SIMPLIFY = FALSE, USE.NAMES = FALSE)
@@ -1370,7 +1380,7 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     df <- df[lengths(df$ms1_mass) > 0L, ]
   }
   else {
-    # debugging
+    # debugging; expecting vectors of ms1_charge etc. but getting lists.
     if (is_pasef) {
       qs::qsave(df, file.path("~", paste0(filename, "_.rds")), preset = "fast")
     }
@@ -1417,6 +1427,7 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
   msx_moverzs <- ans$msx_moverzs
   msx_ints <- ans$msx_ints
   msx_ns <- ans$msx_ns
+  ms1_fr <- ans$ms1_fr
   ms1_moverzs <- ans$ms1_moverzs # by MSConvert; Mzion: NA
   ms1_ints <- ans$ms1_ints # by MSConvert; Mzion: NA
   ms1_charges <- ans$ms1_charges # by MSConvert; Mzion: NA
@@ -1429,32 +1440,32 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
   iso_ctr <- ans$iso_ctr
   iso_lwr <- ans$iso_lwr
   iso_upr <- ans$iso_upr
+  # mobility <- ans$mobility # NULL for Thermo's data
   rm(list = "ans")
   
-  if (is_pasef && maxn_mdda_precurs) {
-    # len <- length(ms1_ints)
-    # ms1_moverzs <- ms1_ints <- rep_len(NA_real_, len)
-    # ms1_charges <- rep_len(NA_integer_, len)
+  # removals of short MS1 and MS2 entries
+  # quite a few MS1 entries were removed...
+  # some MS2 scans may lose their MS1 counter parts?
+  if (FALSE) {
+    oks <- lengths(msx_moverzs) >= 25L
+    msx_moverzs <- msx_moverzs[oks]
+    msx_ints <- msx_ints[oks]
+    msx_ns <- msx_ns[oks]
+    ms1_fr <- ms1_fr[oks]
+    ms1_moverzs <- ms1_moverzs[oks]
+    ms1_ints <- ms1_ints[oks]
+    ms1_charges <- ms1_charges[oks]
+    scan_title <- scan_title[oks]
+    # raw_file <- raw_file # scalar
+    ms_level <- ms_level[oks]
+    ret_time <- ret_time[oks]
+    scan_num <- scan_num[oks]
+    orig_scan <- orig_scan[oks]
+    iso_ctr <- iso_ctr[oks]
+    iso_lwr <- iso_lwr[oks]
+    iso_upr <- iso_upr[oks]
+    rm(list = c("oks"))
   }
-
-  # removals of short MS1 and MS2 entries 
-  oks <- lengths(msx_moverzs) >= 25L
-  msx_moverzs <- msx_moverzs[oks]
-  msx_ints <- msx_ints[oks]
-  msx_ns <- msx_ns[oks]
-  ms1_moverzs <- ms1_moverzs[oks]
-  ms1_ints <- ms1_ints[oks]
-  ms1_charges <- ms1_charges[oks]
-  scan_title <- scan_title[oks]
-  # raw_file <- raw_file # scalar
-  ms_level <- ms_level[oks]
-  ret_time <- ret_time[oks]
-  scan_num <- scan_num[oks]
-  orig_scan <- orig_scan[oks]
-  iso_ctr <- iso_ctr[oks]
-  iso_lwr <- iso_lwr[oks]
-  iso_upr <- iso_upr[oks]
-  rm(list = c("oks"))
   
   # after the removals of the shorts (otherwise -> mismatched reporter signals)
   restmt <- extract_mgf_rptrs(
@@ -1472,7 +1483,7 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
   rm(list = "restmt")
   
   msx_charges <- vector("list", length(msx_moverzs))
-
+  
   ##
   # try to subset early by min_ and max_ masses...
   # even at unknown z, not very likely to have z >= 2 at small m/z...
@@ -1495,18 +1506,13 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
     msx_ints[oks2] <- ans2[["msx_ints"]]
     msx_charges[oks2] <- ans2[["msx_charges"]]
     rm(list = c("ans2", "oks2"))
-
+    
     message("Completed MS2 deisotoping.")
   }
   
   # MS1 X, Y and Z are NA from Mzion::readRAW; need to trigger deisotoping
   if (mzml_type == "raw" && maxn_mdda_precurs < 1L) {
     maxn_mdda_precurs <- 1L
-  }
-  
-  # temporary
-  if (is_pasef) {
-    maxn_mdda_precurs <- 0L
   }
   
   if (maxn_mdda_precurs) {
@@ -1550,13 +1556,14 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
       ms2_ends <- ms2_ends
       rm(list = c("ans", "grps", "cl", "ord"))
       gc()
-
+      
       if (debug) {
         qs::qsave(list(
           ms1_moverzs = ms1_moverzs, 
           ms1_masses = ms1_masses, 
-          ms1_charges = ms1_charges, 
           ms1_ints = ms1_ints,
+          ms1_charges = ms1_charges, 
+          
           ms1_stas = ms1_stas,
           ms2_stas = ms2_stas,
           ms2_ends = ms2_ends), 
@@ -1565,6 +1572,19 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
       }
       
       message("Completed MS1 deisotoping at: ", Sys.time())
+    }
+    
+    if (is_pasef) {
+      ans <- pasefMS1xyz(
+        msx_moverzs = msx_moverzs, msx_ints = msx_ints, ms1_fr = ms1_fr, 
+        ms_level = ms_level, orig_scan = orig_scan, 
+        iso_ctr = iso_ctr, iso_lwr = iso_lwr, 
+        ms1_moverzs = ms1_moverzs, ms1_charges = ms1_charges, ms1_ints = ms1_ints, 
+        maxn_mdda_precurs = maxn_mdda_precurs, n_mdda_flanks = n_mdda_flanks, 
+        topn_ms2ions = topn_ms2ions, 
+        max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
+        grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+        use_defpeaks = use_defpeaks)
     }
     else {
       ans <- getMS1xyz(
@@ -1579,25 +1599,34 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
         max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
         grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
         use_defpeaks = use_defpeaks)
-      
-      message("Completed MS1 deisotoping at: ", Sys.time())
-      
-      # list(NULL) at ms_level == 1L
-      if (length(ans$ms1_moverzs) != length(ms1_moverzs)) {
-        stop("Developer: check for entries dropping.")
-      }
-      
-      ms1_moverzs <- ans$ms1_moverzs
-      ms1_masses <- ans$ms1_masses
-      ms1_charges <- ans$ms1_charges
-      ms1_ints <- ans$ms1_ints
-      # for LFQ MS1
-      # may compiles ms1_ends later: multiple MS1s followed by multiple MS2s... 
+    }
+    
+    # list(NULL) at ms_level == 1L
+    if (length(ans$ms1_moverzs) != length(ms1_moverzs)) {
+      stop("Developer: check for entries dropping.")
+    }
+    
+    ms1_moverzs <- ans$ms1_moverzs
+    ms1_masses <- ans$ms1_masses
+    ms1_ints <- ans$ms1_ints
+    ms1_charges <- ans$ms1_charges
+    # for LFQ MS1
+    # may compiles ms1_ends later: multiple MS1s followed by multiple MS2s... 
+    
+    if (is_pasef) {
+      pos_levs <- getMSrowIndexes(ms_level)
+      ms1_stas <- pos_levs$ms1_stas
+      ms2_stas <- pos_levs$ms2_stas
+      ms2_ends <- pos_levs$ms2_ends
+      rm(list = "pos_levs")
+    }
+    else {
       ms1_stas <- ans$ms1_stas
       ms2_stas <- ans$ms2_stas
       ms2_ends <- ans$ms2_ends
-      rm(list = "ans")
     }
+    rm(list = "ans")
+    message("Completed MS1 deisotoping at: ", Sys.time())
     
     # look up ms2 for undetermined precursor charge states
     if (deisotope_ms2) {
@@ -1615,13 +1644,17 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
                        charges = msx_charges[rows], center = iso_ctr[rows], 
                        iso_lwr = iso_lwr[rows], iso_upr = iso_upr[rows], 
                        SIMPLIFY = FALSE, USE.NAMES = FALSE)
-        # may check for equal lengths before and after...
+        
+        if (length(ans2) != length(rows)) {
+          stop("Develeoper: checks for row drops.")
+        }
+
         ans2 <- dplyr::bind_rows(ans2)
         ans2$ms1_moverzs <- as.list(ans2$ms1_moverzs)
         ans2$ms1_masses <- as.list(ans2$ms1_masses)
-        ans2$ms1_charges <- as.list(ans2$ms1_charges)
         ans2$ms1_ints <- as.list(ans2$ms1_ints)
-        
+        ans2$ms1_charges <- as.list(ans2$ms1_charges)
+
         # outputs contain NA and revert them back to list(NULL)
         nas <- which(is.na(ans2$ms1_moverzs))
         
@@ -1636,8 +1669,8 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
         
         ms1_moverzs[rows] <- ans2$ms1_moverzs
         ms1_masses[rows] <- ans2$ms1_masses
-        ms1_charges[rows] <- ans2$ms1_charges
         ms1_ints[rows] <- ans2$ms1_ints
+        ms1_charges[rows] <- ans2$ms1_charges
         rm(list = c("ans2", "nas"))
       }
       
@@ -1655,7 +1688,7 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
     if (debug) {
       stopifnot(identical(ms1_stas, sort(ms1_stas)))
     }
-
+    
     for (i in seq_along(ms1_stas)) {
       rng1 <- ms1_stas[[i]]
       rng2 <- ms2_stas[[i]]:ms2_ends[[i]]
@@ -1679,7 +1712,7 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
         ys <- ys[oks]
         zs <- zs[oks]
         ms <- ms[oks]
-
+        
         ms1_moverzs[[rng1]] <- xs
         ms1_ints[[rng1]] <- ys
         ms1_charges[[rng1]] <- zs
@@ -1700,8 +1733,8 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
     ms_level = ms_level, 
     ms1_moverz = ms1_moverzs, 
     ms1_mass = ms1_masses,
-    ms1_charge = ms1_charges, 
     ms1_int = ms1_ints, 
+    ms1_charge = ms1_charges, 
     # mzML: ret_times in minutes; MGF: ret_times in seconds
     ret_time = ret_time, 
     scan_num = scan_num, 
@@ -1804,6 +1837,124 @@ deisoDDAMS2 <- function (msx_moverzx, msx_intx, topn_ms2ions = 150L,
   }
   
   out
+}
+
+
+#' Deisotoping DDA-MS1.
+#' 
+#' @param msx_moverz Full-spectrum MS1 or MS2 m-over-z values.
+#' @param msx_int Full-spectrum MS1 or MS2 intensities.
+#' @param ms1_fr MS1 frame numbers.
+#' @param ms_level Vectors of MS levels.
+#' @param orig_scan Original scan numbers.
+#' @param iso_ctr A vector of isolation centers.
+#' @param iso_lwr A vecor of isolation lowers.
+#' @param ms1_moverzs MS1 moverz values.
+#' @param ms1_ints MS1 intensity values.
+#' @param ms1_charges MS1 charge states.
+#' @inheritParams matchMS
+pasefMS1xyz <- function (msx_moverzs, msx_ints, ms1_fr, ms_level, orig_scan, 
+                         iso_ctr, iso_lwr, 
+                         ms1_moverzs = NULL, ms1_charges = NULL, ms1_ints = NULL, 
+                         maxn_mdda_precurs = 1L, n_mdda_flanks = 6L, 
+                         topn_ms2ions = 150L, 
+                         max_ms1_charge = 4L, ppm_ms1_deisotope = 8L, 
+                         grad_isotope = 1.6, fct_iso2 = 3.0, 
+                         use_defpeaks = FALSE)
+{
+  if (!use_defpeaks) {
+    if (TRUE) { # debug
+      ms1_moverzs_0 <- ms1_moverzs
+      ms1_ints_0 <- ms1_ints
+      ms1_charges_0 <- ms1_charges
+    }
+
+    ms1_moverzs <- ms1_ints <- ms1_charges <- vector("list", length(msx_moverzs))
+  }
+  
+  # separate into MS1 and MS2 data
+  # some msx_ns are really large???
+  oks1 <- ms_level == 1L
+  oks2 <- .Internal(which(!oks1))
+  oks1 <- .Internal(which(oks1))
+  
+  xs1 <- msx_moverzs[oks1]
+  ys1 <- msx_ints[oks1]
+  scans1 <- orig_scan[oks1]
+  len1 <- length(ys1)
+  
+  frs  <- ms1_fr[oks2]
+  ctrs <- iso_ctr[oks2]
+  lwrs <- iso_lwr[oks2]
+  
+  ctrs <- split(ctrs, frs)
+  lwrs <- split(lwrs, frs)
+  rngs <- split(oks2, frs)
+  frs <- split(frs, frs)
+  
+  idxes <- match(as.integer(names(frs)), as.integer(scans1))
+  
+  # i <- which(names(frs) == "9920")
+  for (i in seq_along(idxes)) {
+    # can it be all NA since some MS1 scan were removed?
+    if (is.na(row <- idxes[[i]]))
+      next
+    
+    rng1 <- max(1L, row - n_mdda_flanks):min(len1, row + n_mdda_flanks)
+    ctri <- ctrs[[i]]
+    lwri <- lwrs[[i]]
+    rng2 <- rngs[[i]]
+    
+    ans <- find_mdda_mms1s(
+      msx_moverzs = xs1[rng1], 
+      msx_ints = ys1[rng1], 
+      iso_ctr = ctri, iso_lwr = lwri, 
+      ppm = ppm_ms1_deisotope, maxn_precurs = maxn_mdda_precurs, 
+      max_ms1_charge = max_ms1_charge, n_fwd = 20L, 
+      grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+      use_defpeaks = use_defpeaks)
+    
+    # Precursor x, y and z values for each MS2
+    xs <- ans[["x"]]
+    ys <- ans[["y"]]
+    zs <- ans[["z"]]
+    
+    if (length(xs) != length(rng2)) { stop("Check for entries drop.") }
+    
+    # try to replace empty ones with Bruker's default
+    # if (maxn_mdda_precurs > 0L)  as.list(ms1_moverzs_0) ...
+    
+    # empties <- lengths(xs) == 0L
+    # xs[empties] <- NA_real_
+    # ys[empties] <- NA_integer_
+    # zs[empties] <- NA_integer_
+    
+    # updates corresponding MS1 x, y and z for each MS2
+    if (FALSE) {
+      df <- tibble::tibble(x = xs, y = ys, z = zs, ctr = ctri, lwr = lwri, rng = rng2)
+    }
+    
+    if (TRUE) {
+      oks <- .Internal(which(lengths(xs) > 0L))
+      ms1_moverzs[rng2][oks] <- xs[oks]
+      ms1_ints[rng2][oks] <- ys[oks]
+      ms1_charges[rng2][oks] <- zs[oks]
+    }
+    else {
+      ms1_moverzs[rng2] <- xs
+      ms1_ints[rng2] <- ys
+      ms1_charges[rng2] <- zs
+    }
+  }
+  
+  ms1_masses <- mapply(function (x, y) (x - 1.00727647) * y, 
+                       ms1_moverzs, ms1_charges, 
+                       SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
+  list(ms1_moverzs = ms1_moverzs, ms1_masses = ms1_masses, 
+       ms1_ints = ms1_ints, ms1_charges = ms1_charges, 
+       ms1_moverzs_0 = ms1_moverzs_0, ms1_ints_0 = ms1_ints_0, 
+       ms1_charges_0 = ms1_charges_0)
 }
 
 
@@ -1936,6 +2087,9 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL,
     ys <- ans[["y"]]
     zs <- ans[["z"]]
     
+    # added on 2024-05-24
+    if (length(xs) != length(rng2)) { stop("Check for entries drop.") }
+    
     # updates corresponding MS1 x, y and z for each MS2
     oks <- .Internal(which(lengths(xs) > 0L))
     ms1_moverzs[rng2][oks] <- xs[oks]
@@ -1949,15 +2103,15 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL,
                        SIMPLIFY = FALSE, USE.NAMES = FALSE)
   
   list(ms1_moverzs = ms1_moverzs, ms1_masses = ms1_masses, 
-       ms1_charges = ms1_charges, ms1_ints = ms1_ints, 
+       ms1_ints = ms1_ints, ms1_charges = ms1_charges, 
        ms1_stas = ms1_stas, ms2_stas = ms2_stas, ms2_ends = ms2_ends)
 }
 
 
 #' Deisotoping DDA-MS2.
 #' 
-#' @param msx_moverzs MS2 moverzs.
-#' @param msx_ints MS2 intensities.
+#' @param msx_moverzs Lists of MS2 moverzs.
+#' @param msx_ints Lists of MS2 intensities.
 #' @inheritParams matchMS
 getMS2xyz <- function (msx_moverzs = NULL, msx_ints = NULL, 
                        topn_ms2ions = 150L, quant = "none", 
@@ -1968,10 +2122,13 @@ getMS2xyz <- function (msx_moverzs = NULL, msx_ints = NULL,
 {
   len <- length(msx_moverzs)
   
-  if (len <= 25) {
-    return(list(msx_moverzs = NA_real_, 
-                msx_ints = NA_real_, 
-                msx_charges = NA_integer_))
+  # ???
+  if (FALSE) {
+    if (len <= 25) {
+      return(list(msx_moverzs = NA_real_, 
+                  msx_ints = NA_real_, 
+                  msx_charges = NA_integer_))
+    }
   }
 
   msx_charges <- vector("list", len)
@@ -3791,6 +3948,7 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
     if (is.null(ansx))
       next
     
+    # MS1 data within the isolation window for an MS2
     ansx2[[i]] <- ansx
     ansy2[[i]] <- ansy
     ansn2[[i]] <- ansn
@@ -3807,7 +3965,7 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
       exclude_reporter_region = FALSE, 
       ppm = ppm, ms_lev = 1L, maxn_feats = maxn_precurs, 
       max_charge = max_ms1_charge, n_fwd = n_fwd, offset_upr = 30L, 
-      offset_lwr = 30L, # order_mz = FALSE, 
+      offset_lwr = 30L, 
       grad_isotope = grad_isotope, 
       fct_iso2 = fct_iso2, use_defpeaks = use_defpeaks
     ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
@@ -3819,11 +3977,17 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
   for (i in seq_len(len2)) {
     mic <- mics[[i]]
     masses <- mic[["masses"]]
+    
+    # added with PASEF
+    if (is.null(masses)) {
+      next
+    }
+
     intensities <- mic[["intensities"]]
     charges <- mic[["charges"]]
     
     m <- iso_ctr[[i]]
-    w <- iso_lwr[[i]]
+    w <- m - iso_lwr[[i]] + .5
     oks <- masses > m - w & masses < m + w
     oks <- .Internal(which(oks))
     
@@ -3831,6 +3995,7 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
     if (!length(oks))
       oks <- seq_along(masses)
     
+    # length(xs) drops by 1 if is.null(masses)
     xs[[i]] <- masses[oks]
     ys[[i]] <- intensities[oks]
     zs[[i]] <- charges[oks]
@@ -3858,7 +4023,7 @@ find_ms1byms2 <- function (moverzs = NULL, msxints = NULL, charges = NULL,
   if (!(len_ms <- length(moverzs)))
     return(na_out)
   
-  oks <- (moverzs >= center - iso_lwr) & (moverzs <= center + iso_upr)
+  oks <- (moverzs >= iso_lwr) & (moverzs <= iso_upr)
   oks <- .Internal(which(oks))
   moverzs <- moverzs[oks]
   

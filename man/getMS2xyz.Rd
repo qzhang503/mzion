@@ -19,9 +19,9 @@ getMS2xyz(
 )
 }
 \arguments{
-\item{msx_moverzs}{MS2 moverzs.}
+\item{msx_moverzs}{Lists of MS2 moverzs.}
 
-\item{msx_ints}{MS2 intensities.}
+\item{msx_ints}{Lists of MS2 intensities.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

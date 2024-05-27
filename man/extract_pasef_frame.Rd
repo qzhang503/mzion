@@ -4,7 +4,7 @@
 \alias{extract_pasef_frame}
 \title{Extracts MS1 data from a PASEF frame.}
 \usage{
-extract_pasef_frame(data, ms_lev = 1L, ymin = 10, ymax = 1e+06)
+extract_pasef_frame(data, ms_lev = 1L, ymin = 10, ymax = 1e+07)
 }
 \arguments{
 \item{data}{A PASEF frame (with multiple slices).}
