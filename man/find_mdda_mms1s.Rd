@@ -17,6 +17,7 @@ find_mdda_mms1s(
   fct_iso2 = 3,
   use_defpeaks = FALSE,
   width = 2.01,
+  margin = 0.5,
   step = ppm/1e+06
 )
 }
@@ -52,6 +53,8 @@ adjacent peak being a mono-isotopic precursor}
 
 \item{width}{The width of an MS1 window. A wide window is used for containing
 isotope envelops.}
+
+\item{margin}{The margin of an m-over-z extended to an isolation window.}
 
 \item{step}{A step size.}
 }

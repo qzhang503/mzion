@@ -1,7 +1,7 @@
 Package: mzion
 Type: Package
 Title: Proteomics Database Searches of Mass-spectrometrirc Data.
-Version: 1.4.0.1
+Version: 1.4.0.2
 Authors@R: 
     person(given = "Qiang",
            family = "Zhang",
@@ -10,7 +10,7 @@ Authors@R:
            comment = c(ORCID = "0000-0001-7046-4378"))
 Maintainer: The package maintainer <qzhang503@gmail.com>
 Description: A Proteomics Database Search Engine for Mass-spectrometrirc Data.
-Depends: R (>= 4.1)
+Depends: R (>= 4.3)
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

@@ -11,6 +11,7 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L,
   sys_path <- system.file("extdata", package = "mzion")
   acceptBrukerLicense(sys_path)
   temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
+  logs <- file.path(temp_dir, "log.txt")
   
   qs::qsave(list(data_format = "Bruker-RAW", mgf_format = "Mzion"), 
             file.path(mgf_path, "info_format.rds"), preset = "fast")
@@ -32,7 +33,7 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L,
       lapply(filelist, exeReadPASEF, mgf_path)
     }
     else {
-      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+      cl <- parallel::makeCluster(getOption("cl.cores", n_cores), outfile = logs)
       parallel::clusterApply(cl, filelist, exeReadPASEF, mgf_path)
       parallel::stopCluster(cl)
     }
@@ -52,7 +53,7 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L,
                         temp_dir = temp_dir, n_para = n_para)
   }
   else {
-    cl <- parallel::makeCluster(getOption("cl.cores", n_cores2))
+    cl <- parallel::makeCluster(getOption("cl.cores", n_cores2), outfile = logs)
     filenames <- parallel::clusterApply(cl, filelist, proc_pasefs, 
       mgf_path = mgf_path, temp_dir = temp_dir, n_para = n_para)
     parallel::stopCluster(cl)
@@ -73,6 +74,7 @@ proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L,
                          debug = FALSE) 
 {
   options(digits = 9, warn = 1)
+  logs <- file.path(temp_dir, "log.txt")
   
   # MS1 and MS2 spectra
   lines <- readr::read_lines(file.path(mgf_path, raw_file, "spectra.txt"), 
@@ -93,27 +95,25 @@ proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L,
                                ), show_col_types = FALSE) |>
       dplyr::rename(Precursor = Id)
     
-    iso_info <- 
-      readr::read_tsv(file.path(mgf_path, raw_file, "ms2precursors.txt"), 
-                      col_types = cols(
-                        Frame = col_integer(), 
-                        ScanNumBegin = col_integer(),
-                        ScanNumEnd = col_integer(), 
-                        IsolationMz = col_number(), 
-                        IsolationWidth = col_number(),
-                        Precursor = col_integer()
-                      ), show_col_types = FALSE) |>
+    readr::read_tsv(file.path(mgf_path, raw_file, "ms2precursors.txt"), 
+                    col_types = cols(
+                      Frame = col_integer(), 
+                      ScanNumBegin = col_integer(),
+                      ScanNumEnd = col_integer(), 
+                      IsolationMz = col_number(), 
+                      IsolationWidth = col_number(),
+                      Precursor = col_integer()
+                    ), show_col_types = FALSE) |>
       dplyr::left_join(parents, by = "Precursor") |>
       dplyr::rename(MS2Frame = Frame, MS1Frame = Parent) |>
-      reloc_col_after("MS1Frame", "MS2Frame") # |> 
-      # add_pasef_precursors()
+      reloc_col_after("MS1Frame", "MS2Frame") # |> add_pasef_precursors()
   })
 
   if (n_para <= 1L) {
     out <- hextract_pasef(lines, iso_info)
   }
   else {
-    cl <- parallel::makeCluster(getOption("cl.cores", n_para))
+    cl <- parallel::makeCluster(getOption("cl.cores", n_para), outfile = logs)
     lines <- chunksplit(lines, n_para)
     iso_info <- lapply(lines, sep_pasef_ms2info, iso_info)
 
@@ -123,7 +123,7 @@ proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L,
       iso_info, 
       SIMPLIFY = FALSE, USE.NAMES = FALSE)
     parallel::stopCluster(cl)
-    
+
     nms <- names(ans[[1]])
     n_col <- length(ans[[1]])
     out <- vector("list", n_col)
@@ -154,6 +154,7 @@ proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L,
   out$raw_file <- raw_file # scalar
   out_name <- paste0(raw_file, ".rds")
   qs::qsave(out, file.path(temp_dir, out_name), preset = "fast")
+  message("Completed PASEF processing: ", out_name)
 
   attr(out_name, "is_dia") <- FALSE
   attr(out_name, "mzml_type") <- "raw" # a token for Mzion de-isotoping
@@ -294,15 +295,17 @@ hextract_pasef <- function (
 #' @param keys The key names of output lists.
 extract_pasef_ms1 <- function (mdata, keys)
 {
-  ans1 <- lapply(mdata,  extract_pasef_frame, ms_lev = 1L, ymin = 10)
+  # 10 -> 20 -> 50
+  ans1 <- lapply(mdata,  extract_pasef_frame, ms_lev = 1L, ymin = 50) # 100 too much
   ans1 <- ans1[lengths(ans1) > 0L]
-  
+
   for (i in seq_along(ans1)) {
     ai <- ans1[[i]]
-    tempdata1 <- collapse_rawtims_xys(ai$msx_moverzs, ai$msx_ints)
-    ans1[[i]]$msx_moverzs <- tempdata1[[1]]
-    ans1[[i]]$msx_ints <- tempdata1[[2]]
+    tempdata1 <- centroid_pasefms(ai$msx_moverzs, ai$msx_ints)
+    ans1[[i]]$msx_moverzs <- tempdata1[["x"]]
+    ans1[[i]]$msx_ints <- tempdata1[["y"]]
   }
+  rm(list = c("ai", "tempdata1"))
 
   nms1 <- names(ans1[[1]])
   out1 <- vector("list", length(nms1))
@@ -338,6 +341,8 @@ extract_pasef_ms1 <- function (mdata, keys)
   if (length(keys) != length(out1)) {
     stop("Developer: unequal numbers of columns in PASEF MS1 data.")
   }
+  
+  message("Completed PASEF MS1 extraction.")
   
   out1 <- out1[keys]
 }
@@ -422,20 +427,202 @@ extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys)
     stop("Developer: unequal numbers of columns in PASEF MS2 data.")
   }
   
+  message("Completed PASEF MS2 extraction.")
+  
   out2 <- out2[keys]
+}
+
+
+#' Sum PASEF MS1 peak area
+#' 
+#' @param xs A vector of ascending m-over-z values.
+#' @param ys A vector of intensity values.
+#' @param reso The resolution of a peak.
+#' @param maxn The maximum number of peaks.
+#' @param ymin The minimum Y values for considering in peak centroiding.
+#' @param tol The tolerance of Y for defining a peak profile.
+#' @importFrom fastmatch %fin%
+#' @examples
+#' # example code
+#' mzion:::centroid_pasefms(c(500), c(10))
+#' mzion:::centroid_pasefms(c(500, 500.01), c(1, 10))
+#' mzion:::centroid_pasefms(c(500, 500.01, 500.2), c(1, 10, 20))
+#' mzion:::centroid_pasefms(c(500, 500.01, 500.2), c(10, 5, 2))
+#' 
+#' # ignore the trailing half peak
+#' mzion:::centroid_pasefms(500 + .01 * 0:3, c(1, 10, 2, 5))
+#' 
+#' mzion:::centroid_pasefms(500 + .01 * 0:4, c(1, 10, 2, 5, 3))
+#' 
+#' # trailing max at the last position
+#' mzion:::centroid_pasefms(c(231.0019,371.1024,519.1426,542.3826,599.9552), c(12,33,23,22,41))
+#' 
+#' mzion:::centroid_pasefms(c(231.0019,371.1024,519.1426,542.3826,599.9552), c(12,15,23,30,41))
+centroid_pasefms <- function (xs, ys, reso = 60000, maxn = 2000L, ymin = 100L, 
+                              tol = .10)
+{
+  len <- length(ys)
+  
+  if (!len) {
+    return(NULL)
+  }
+
+  if (len == 1L) {
+    return(list(x = xs, y = ys))
+  }
+
+  # rising edge
+  ds1 <- diff(ys) > 0
+  
+  # only two peaks
+  if (length(ds1) == 1L) {
+    return(list(x = if (ds1) xs[[2]] else xs[[1]], y = sum(ys)))
+  }
+
+  # all falling
+  if (!any(ds1)) {
+    return(list(x = xs[[1]], y = sum(ys)))
+  }
+
+  # falling edge
+  ps <- .Internal(which(diff(ds1) == -1L)) + 1L
+  ps <- ps[ys[ps] >= ymin] # optional
+  ns <- length(ps)
+  
+  # no falling
+  if (!ns) {
+    return(list(x = xs[[len]], y = sum(ys)))
+  }
+
+  if (ns == 1L) {
+    return(list(x = xs[[ps]], y = ys[[ps - 1L]] + ys[[ps]] + ys[[ps + 1L]]))
+  }
+  
+  ns <- min(ns, maxn)
+  xvals <- vector("numeric", ns)
+  yvals <- vector("integer", ns)
+  ord <- order(ys[ps], decreasing = TRUE)
+
+  ct <- 0L
+  for (i in 1:ns) {
+    if (ct == maxn)
+      break
+    
+    oi <- ord[[i]]
+    p <- ps[oi]
+    
+    if (is.na(p))
+      next
+    
+    x <- xs[[p]]
+    w <- x / reso * 1.5
+    idxes <- .Internal(which(xs >= x - w & xs <= x + w))
+    ysubs <- ys[idxes]
+    imax <- .Internal(which(idxes == p)) # relative to ysubs
+    
+    yvals[[i]] <- sum_pasef_ms1(ysubs, imax)
+    xvals[[i]] <- xs[[p]]
+    
+    # ps[ps %fin% idxes] <- NA_integer_ # slower?
+    rng  <- max(1L, oi - 5L):min(len, oi + 5L)
+    nbrs <- .Internal(which(ps[rng] %in% idxes))
+    ps[rng[nbrs]] <- NA_integer_
+
+    ct <- ct + 1L
+  }
+  
+  oks <- yvals > 0L
+  xvals <- xvals[oks]
+  yvals <- yvals[oks]
+  
+  if (length(yvals)) {
+    ord <- order(xvals)
+    xvals <- xvals[ord]
+    yvals <- yvals[ord]
+  }
+  
+  list (x = xvals, y = yvals)
+}
+
+
+#' Sum peak area
+#' 
+#' @param ys A sub vector of intensity values around a peak.
+#' @param imax The index of the peak position in \code{ys}.
+sum_pasef_ms1 <- function (ys, imax)
+{
+  len <- length(ys)
+
+  if (len == 1L) {
+    return(ys)
+  }
+  
+  if (len == 2L) {
+    return(sum(ys))
+  }
+  
+  yval <- ys[[imax]]
+
+  if (imax < len) {
+    pr1 <- imax + 1L
+    yr1 <- ys[pr1]
+    yval <- yval + yr1
+    
+    if (pr1 < len) {
+      for (j in (pr1 + 1L):len) {
+        yr2 <- ys[[j]]
+        
+        if (yr1 / yr2 >= .667) { # || yr2 <= 100
+          yval <- yval + yr2
+          yr1 <- yr2
+        }
+        else {
+          d <- yr1 * .667
+          yval <- yval + d
+          yr1 <- yr2 - d
+        }
+      }
+    }
+  }
+
+  if (imax > 1L) {
+    pl1 <- imax - 1L
+    yl1 <- ys[[pl1]]
+    yval <- yval + yl1
+    
+    if (pl1 > 1L) {
+      for (j in (pl1 - 1L):1) {
+        yl2 <- ys[[j]]
+        
+        if (yl1 / yl2 >= .667) { # || yl2 <= 100
+          yval <- yval + yl2
+          yl1 <- yl2
+        }
+        else {
+          d <- yl1 * .667
+          yval <- yval + d
+          yl1 <- yl2 - d
+        }
+      }
+    }
+  }
+
+  as.integer(yval)
 }
 
 
 #' Collapses timsTOF X and Y values.
 #' 
+#' Not used.
+#' 
 #' @param xs A vector of m-over-z values.
 #' @param ys A vector of intensity values.
 #' @param maxn_peaks The maximum number of peaks for consideration.
 #' @param yco The noise levels of intensity values.
-#' @param miny The minimum value of intensity for consideration as a peak.
+#' @param ymin The minimum value of intensity for consideration as a peak.
 #' @param tol The tolerance for masses binning.
 collapse_rawtims_xys <- function (xs, ys, maxn_peaks = 1000L, yco = 20L, 
-                                  miny = 30L, tol = 2e-5)
+                                  ymin = 30L, tol = 2e-5)
 {
   oks <- .Internal(which(ys > yco))
   xs <- xs[oks]
@@ -451,15 +638,15 @@ collapse_rawtims_xys <- function (xs, ys, maxn_peaks = 1000L, yco = 20L,
     imax <- .Internal(which.max(ys))
     ymax <- ys[imax]
     
-    if (ymax < miny) {
+    if (ymax < ymin) {
       break
     }
     
-    if (imax > 1L && imax < nx) {
-      is_peak <- ys[imax - 1L] < ymax && ys[imax + 1L] < ymax
+    is_peak <- if (imax > 1L && imax < nx) {
+      ys[imax - 1L] < ymax && ys[imax + 1L] < ymax
     }
     else {
-      is_peak <- FALSE
+      FALSE
     }
     
     if (!is_peak) {
@@ -698,10 +885,10 @@ extract_pasef_frame <- function (data, ms_lev = 1L, ymin = 10, ymax = 1E7)
   len <- length(data) # the number of lines
   
   # fields common within a frame
-  title <- data[len - 1]
-  # ms_lev <- as.integer(data[len - 3])
-  ret_time <- as.numeric(data[len - 5])
-  scan_num <- as.numeric(data[len - 7])
+  title <- data[len - 1L]
+  # ms_lev <- as.integer(data[len - 3L])
+  ret_time <- as.numeric(data[len - 5L])
+  scan_num <- as.numeric(data[len - 7L])
   
   # fields specific to each slice in a frame
   idx_slices <- .Internal(which(stringi::stri_cmp_eq(data, "SLICE"))) + 1L
@@ -844,7 +1031,9 @@ exeReadPASEF <- function(raw_file, mgf_path)
     stop("Fail to process ", raw_file, ".")
   }
   
+  message("Complete ReadRAW: ", raw_file)
   unlink(c(stdout, stderr))
+  
   list(spectra, precursors)
 }
 

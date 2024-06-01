@@ -123,10 +123,12 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
   lenp <- min(len_ms, maxn_feats)
   peaks_fuz <- intens_fuz <- peaks <- intens <- rep_len(NA_real_, lenp)
   css_fuz <- css <- rep.int(NA_integer_, lenp)
-  p_fuz <- p <- 1L
+  p_no_zero <- p_fuz <- p <- 1L
   ymean_fuz <- ymono_fuz <- mass_fuz <- NA_real_
 
-  while(len_ms & p <= maxn_feats) {
+  # Little gain with the addition guard of p_no_zero; 
+  # At MS1 ch == 0 without p_no_zero, ch-0 can be picked up by chimeric searches
+  while((len_ms > 0L) && (p_no_zero <= maxn_feats)) {
     if (len_ms == 1L) {
       intens[[p]] <- msxints
       peaks[[p]] <- moverzs
@@ -150,6 +152,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       lenm = len_ms, max_charge = max_charge, n_fwd = n_fwd, 
       ms_lev = ms_lev, is_dda = is_dda, ppm = ppm)
 
+    # Many MS2 features with NA ch! (or zero?)
     if (ch == 0L) {
       peaks[[p]] <- mass
       intens[[p]] <- mint
@@ -158,9 +161,14 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       msxints <- msxints[-imax]
       ims <- ims[-imax]
       p <- p + 1L
+      
+      if (ms_lev == 2L)
+        p_no_zero <- p_no_zero + 1L
+      
       next
     }
     
+    p_no_zero <- p_no_zero + 1L
     gap <- 1.003355/ch
     err <- ppm/1e6
     sta1 <- min(len_ms, imax + 1L)
@@ -290,13 +298,18 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
   }
   
   # outputs
-  if (ms_lev == 1L)
+  if (ms_lev == 1L) {
+    # about the same btw `>` and `>=`
     oks1 <- css > 1L & !is.na(css)
-  else if (ms_lev == 2L)
+    # oks1 <- css >= 1L & !is.na(css)
+  }
+  else if (ms_lev == 2L) {
     oks1 <- !is.na(peaks)
-  else
+  }
+  else {
     stop("Unhandled MS level = ", ms_lev)
-  
+  }
+
   masses <- peaks[oks1]
   charges <- css[oks1]
   intensities <- intens[oks1]

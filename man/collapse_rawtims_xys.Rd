@@ -9,7 +9,7 @@ collapse_rawtims_xys(
   ys,
   maxn_peaks = 1000L,
   yco = 20L,
-  miny = 30L,
+  ymin = 30L,
   tol = 2e-05
 )
 }
@@ -22,10 +22,10 @@ collapse_rawtims_xys(
 
 \item{yco}{The noise levels of intensity values.}
 
-\item{miny}{The minimum value of intensity for consideration as a peak.}
+\item{ymin}{The minimum value of intensity for consideration as a peak.}
 
 \item{tol}{The tolerance for masses binning.}
 }
 \description{
-Collapses timsTOF X and Y values.
+Not used.
 }

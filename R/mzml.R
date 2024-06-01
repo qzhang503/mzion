@@ -3905,6 +3905,7 @@ calc_ms1xys <- function (matx, maty)
 #' @param width The width of an MS1 window. A wide window is used for containing
 #'   isotope envelops.
 #' @param n_fwd Forward looking up to \code{n_fwd} mass entries.
+#' @param margin The margin of an m-over-z extended to an isolation window.
 #' @param use_defpeaks Use default peak info or not.
 #' @inheritParams matchMS
 #' @return A list. x: monoisotopic moverzs (weighted mean statistics); y:
@@ -3913,7 +3914,8 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
                              iso_ctr = NULL, iso_lwr = NULL, 
                              ppm = 10L, maxn_precurs = 5L, max_ms1_charge = 4L, 
                              n_fwd = 20L, grad_isotope = 1.6, fct_iso2 = 3.0, 
-                             use_defpeaks = FALSE, width = 2.01, step = ppm/1e6)
+                             use_defpeaks = FALSE, width = 2.01, margin = .5, 
+                             step = ppm/1e6)
 {
   # for all (6+1+6) MS1 frames subset by one MS2 iso-window
   ansx1 <- ansy1 <- vector("list", len1 <- length(msx_moverzs))
@@ -3987,7 +3989,7 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
     charges <- mic[["charges"]]
     
     m <- iso_ctr[[i]]
-    w <- m - iso_lwr[[i]] + .5
+    w <- m - iso_lwr[[i]] + margin
     oks <- masses > m - w & masses < m + w
     oks <- .Internal(which(oks))
     
