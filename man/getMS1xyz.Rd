@@ -24,14 +24,15 @@ getMS1xyz(
   ppm_ms1_deisotope = 8L,
   grad_isotope = 1.6,
   fct_iso2 = 3,
-  use_defpeaks = FALSE
+  use_defpeaks = FALSE,
+  min_mass = 200L
 )
 }
 \arguments{
 \item{msx_moverzs}{Vectors of bracketing (e.g. +/-6 scans) full-spectrum
-moverzs.}
+MS1 m-over-z values.}
 
-\item{msx_ints}{Vectors of bracketing full-spectrum intensities.}
+\item{msx_ints}{Vectors of bracketing full-spectrum MS1 intensity values.}
 
 \item{ms_level}{Vectors of MS levels}
 
@@ -92,7 +93,12 @@ envelop. The smaller the value, the more stringent it is in calling an
 adjacent peak being a mono-isotopic precursor}
 
 \item{use_defpeaks}{Use default peak info or not.}
+
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is an arbitrarily low value (the primary guard
+against low molecular-weight precursors is \code{min_len}).}
 }
 \description{
-Deisotoping DDA-MS1.
+Inputs are full-spectrum X and Y values. MS levels are differentiated by
+\code{ms_level}.
 }

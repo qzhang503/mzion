@@ -2,7 +2,7 @@
 % Please edit documentation in R/mzml.R
 \name{getMS2xyz}
 \alias{getMS2xyz}
-\title{Deisotoping DDA-MS2.}
+\title{De-isotoping DDA-MS2.}
 \usage{
 getMS2xyz(
   msx_moverzs = NULL,
@@ -62,5 +62,5 @@ envelop. The smaller the value, the more stringent it is in calling an
 adjacent peak being a mono-isotopic precursor}
 }
 \description{
-Deisotoping DDA-MS2.
+De-isotoping DDA-MS2.
 }

@@ -71,7 +71,7 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L,
 #' @param debug Debugging mode or not.
 #' @inheritParams matchMS
 proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L, 
-                         debug = FALSE) 
+                         debug = FALSE)
 {
   options(digits = 9, warn = 1)
   logs <- file.path(temp_dir, "log.txt")
@@ -255,12 +255,14 @@ sep_pasef_ms2info <- function (data, iso_info)
 #'   frame.
 #' @param iso_info The information of MS2 isolation windows etc.
 #' @param keys The key names of output lists.
+#' @param step A step size for mass binning.
 hextract_pasef <- function (
     mdata, iso_info, 
     keys = c("msx_moverzs", "msx_ints", "msx_ns", "ms1_fr", 
              "ms1_moverzs", "ms1_ints", "ms1_charges", 
              "scan_title", "ms_level", "ret_time", "scan_num", 
-             "orig_scan", "iso_ctr", "iso_lwr", "iso_upr", "mobility"))
+             "orig_scan", "iso_ctr", "iso_lwr", "iso_upr", "mobility"), 
+    step = 1.6e-5)
 {
   lens <- lengths(mdata) # numbers of lines in each frame
   ms_levs <- mapply(function (x, n) x[n - 3], mdata, lens, 
@@ -270,8 +272,9 @@ hextract_pasef <- function (
   oks2 <- .Internal(which(!oks1))
   
   ## MS1 and MS2
-  out1 <- extract_pasef_ms1(mdata[oks1], keys)
-  out2 <- extract_pasef_ms2(mdata[oks2], lens[oks2], iso_info, keys)
+  out2 <- extract_pasef_ms2(ms2data = mdata[oks2], lens2 = lens[oks2], 
+                            iso_info = iso_info, keys = keys, step = step)
+  out1 <- extract_pasef_ms1(mdata = mdata[oks1], keys = keys)
 
   ## put together
   out1[["scan_num"]] <- as.numeric(out1[["scan_num"]])
@@ -295,8 +298,8 @@ hextract_pasef <- function (
 #' @param keys The key names of output lists.
 extract_pasef_ms1 <- function (mdata, keys)
 {
-  # 10 -> 20 -> 50
-  ans1 <- lapply(mdata,  extract_pasef_frame, ms_lev = 1L, ymin = 50) # 100 too much
+  # 10 -> 20 -> 50; 100 too much
+  ans1 <- lapply(mdata,  extract_pasef_frame, ms_lev = 1L, ymin = 50)
   ans1 <- ans1[lengths(ans1) > 0L]
 
   for (i in seq_along(ans1)) {
@@ -355,7 +358,8 @@ extract_pasef_ms1 <- function (mdata, keys)
 #' @param lens2 The number of lines in each MS2 frame.
 #' @param iso_info The information of MS2 isolation windows etc.
 #' @param keys The key names of output lists.
-extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys)
+#' @param step A step size for mass binning.
+extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys, step = 1.6e-5)
 {
   # (1) pair MS2 data with `iso_info` by FRAME
   ms2frs <- mapply(function (x, n) x[n - 7L], ms2data, lens2, 
@@ -375,16 +379,29 @@ extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys)
     rm(list = "ok_frs")
   }
   
-  # each entry corresponds to one frame
+  # each entry corresponds to one frame (multiple slices in each frame)
+  if (FALSE) {
+    rng <- 1149:1158
+    ans2 <- mapply(add_pasef_ms2iso, ms2data[rng], iso_info[rng])
+    ans2 <- unlist(ans2, recursive = FALSE, use.names = FALSE)
+    precursors <- lapply(ans2, `[[`, "precursor") |>
+      unlist(recursive = FALSE, use.names = FALSE)
+
+    ax2 <- split(ans2, precursors)
+    z2 <- ax2[[which(names(ax2) == 44080)]]
+    group_ms2pasef_by_precursors(z2)
+  }
+  
   ans2 <- mapply(add_pasef_ms2iso, ms2data, iso_info)
   ans2 <- ans2[lengths(ans2) > 0L]
   # flattens the slices in each frame
-  ans2 <- unlist(ans2, recursive = FALSE, use.names = FALSE) 
+  ans2 <- unlist(ans2, recursive = FALSE, use.names = FALSE)
   
-  ## (2) group by precursors
+  ## (2) group MS2 slices by precursors
   precursors <- lapply(ans2, `[[`, "precursor") |>
     unlist(recursive = FALSE, use.names = FALSE)
-  ans2 <- lapply(split(ans2, precursors), group_pasef_precursors)
+  ans2 <- lapply(split(ans2, precursors), group_ms2pasef_by_precursors, 
+                 step = step)
   
   nms2 <- names(ans2[[1]])
   out2 <- vector("list", length(nms2))
@@ -693,7 +710,7 @@ collapse_rawtims_xys <- function (xs, ys, maxn_peaks = 1000L, yco = 20L,
 #' @param dat MS2 data under the same precursor ID.
 #' @param lwr A lower bound as the starting point in mass binning.
 #' @param step A step size for mass binning.
-group_pasef_precursors <- function (dat, lwr = 115L, step = 1e-5)
+group_ms2pasef_by_precursors <- function (dat, lwr = 115L, step = 1.6e-5)
 {
   oks <- .Internal(which(lapply(dat, `[[`, "msx_ns") > 0L))
   len <- length(oks)
@@ -703,10 +720,15 @@ group_pasef_precursors <- function (dat, lwr = 115L, step = 1e-5)
 
   dat <- dat[oks]
   
-  xys <- collapse_mms1ints(lapply(dat, `[[`, "msx_moverzs"), 
-                           lapply(dat, `[[`, "msx_ints"), 
-                           lwr = lwr, step = step, reord = FALSE, 
-                           coll = TRUE, cleanup = FALSE, add_colnames = FALSE)
+  xys <- collapse_mms1ints(
+    lapply(dat, `[[`, "msx_moverzs"), lapply(dat, `[[`, "msx_ints"), 
+    lwr = lwr, step = step, reord = FALSE, cleanup = FALSE, 
+    sum_y = TRUE, add_colnames = FALSE)
+  ###
+  xmat <- xys[["x"]]
+  ymat <- xys[["y"]]
+  xys <- calc_ms1xys(xmat, ymat)
+  ###
   msx_moverzs <- xys$x
   msx_ints <- xys$y
   # ns <- xys$n
@@ -874,7 +896,7 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
 }
 
 
-#' Extracts MS1 data from a PASEF frame.
+#' Extracts MS1 or MS2 data from a PASEF frame.
 #' 
 #' @param data A PASEF frame (with multiple slices).
 #' @param ms_lev The level of MS data.
@@ -962,10 +984,10 @@ extract_pasef_frame <- function (data, ms_lev = 1L, ymin = 10, ymax = 1E7)
 }
 
 
-#' Collapse PASEF X and Y values
+#' Collapse PASEF X and Y values within an MS1 or MS2 frame.
 #' 
-#' @param xs Lists of m-over-z vectors.
-#' @param ys Lists of intensity vectors.
+#' @param xs Slices of m-over-z values.
+#' @param ys Slices of intensity values.
 collapse_pasef_xys <- function (xs, ys)
 {
   if (!length(xs))

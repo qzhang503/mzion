@@ -2,7 +2,7 @@
 % Please edit documentation in R/lfq.R
 \name{subMSfull}
 \alias{subMSfull}
-\title{Subsets full MS by the universe of monoisotopic moverzs.}
+\title{Subsets full MS1 by the universe of monoisotopic moverzs.}
 \usage{
 subMSfull(xs, ys, ms1s, from = 200L, step = 1e-05, gap = 256L)
 }

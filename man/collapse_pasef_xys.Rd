@@ -2,15 +2,15 @@
 % Please edit documentation in R/pasefreader.R
 \name{collapse_pasef_xys}
 \alias{collapse_pasef_xys}
-\title{Collapse PASEF X and Y values}
+\title{Collapse PASEF X and Y values within an MS1 or MS2 frame.}
 \usage{
 collapse_pasef_xys(xs, ys)
 }
 \arguments{
-\item{xs}{Lists of m-over-z vectors.}
+\item{xs}{Slices of m-over-z values.}
 
-\item{ys}{Lists of intensity vectors.}
+\item{ys}{Slices of intensity values.}
 }
 \description{
-Collapse PASEF X and Y values
+Collapse PASEF X and Y values within an MS1 or MS2 frame.
 }

@@ -1,4 +1,4 @@
-#' Subsets full MS by the universe of monoisotopic moverzs.
+#' Subsets full MS1 by the universe of monoisotopic moverzs.
 #'
 #' Some non-monoisotopic moverzs can be removed.
 #'
@@ -25,10 +25,7 @@ subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
     for (i in 1:len) {
       xi <- xs[[i]]
       li <- lens[[i]]
-      
-      if (!li)
-        next
-      
+      if (!li) next
       ix <- as.integer(ceiling(log(xi/from)/log(1+step)))
       ps0 <- fastmatch::fmatch(ix, ms1s)
       ps1 <- fastmatch::fmatch(ix + 1L, ms1s)
@@ -49,10 +46,7 @@ subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
     for (i in 1:len) {
       xi <- xs[[i]]
       li <- lens[[i]]
-      
-      if (!li)
-        next
-      
+      if (!li) next
       sta <- max(1, i - gap)
       end <- min(i + gap, len)
       ms1s_sub <- .Internal(unlist(ms1s[sta:end], recursive = FALSE, use.names = FALSE))
@@ -94,8 +88,7 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
   
   cols1 <- c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", 
              "msx_moverzs", "msx_ints", "msx_charges", "orig_scan")
-  rows1 <- df[["ms_level"]] == 1L
-  df1 <- df[rows1, cols1]
+  df1  <- df[with(df, ms_level == 1L), cols1]
   len1 <- nrow(df1)
 
   # Remove non-essential MS1 x and y values
@@ -152,7 +145,6 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
     rowx <- ms1_stax[[i]]:(ms1_stax[[i+1]] - 1L) # ms2_endx can be NA
     dfs[[i]] <- df[rowx, cols] # both df1 and df2 data
   }
-  
   dfs[[n_chunks]] <- df[ms1_stax[[n_chunks]]:nrow(df), cols]
 
   list(dfs = dfs, df1s = df1s, gaps = gaps)
@@ -290,19 +282,16 @@ traceXY <- function (xs, ys, ss, n_mdda_flanks = 6L, from = 115L, step = 1E-5,
   # cleanup = FALSE; otherwise rows drop
   # often coll == cleanup
   ans <- collapse_mms1ints(
-    xs = xs, ys = ys, lwr = from, step = step, reord = FALSE, coll = FALSE, 
-    cleanup = FALSE, add_colnames = TRUE)
-  
+    xs = xs, ys = ys, lwr = from, step = step, reord = FALSE, cleanup = FALSE, 
+    add_colnames = TRUE)
   ansx <- ans[["x"]]
   ansy <- ans[["y"]]
-  rm(list = c("ans"))
-  gc()
-  
+
   ## traces MS data matrices across LC scans; rows: scans; columns: masses
   nrc <- dim(ansy)
   nr <- nrc[[1]]
   nc <- nrc[[2]]
-  rm(list = "nrc")
+  rm(list = c("ans", "nrc"))
   
   if (nr != length(xs)) {
     stop("Developer: rows drop during MS1 tracing.")
@@ -315,16 +304,16 @@ traceXY <- function (xs, ys, ss, n_mdda_flanks = 6L, from = 115L, step = 1E-5,
   
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
-      # removes peaks at intensity < 2% of base peak
+      # removes peaks at intensity < 1% of base peak
       yi <- ansy[, i]
       oks <- .Internal(which(!is.na(yi)))
       yoks <- yi[oks]
-      yoks[yoks < max(yoks) * .02] <- NA_real_
+      yoks[yoks < max(yoks) * .01] <- NA_real_
       yi[oks] <- yoks
       gates <- find_lc_gates(yi, n_dia_scans = n_mdda_flanks)
       # ansy[, i] <- yi
 
-      # one-hit-wonders go first, not ordered scans
+      # one-hit-wonders go first in the `gates` outputs, not ordered by scans
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans
       ranges[[i]] <- rngs <- gates[["ranges"]]

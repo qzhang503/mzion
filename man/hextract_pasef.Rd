@@ -9,7 +9,8 @@ hextract_pasef(
   iso_info,
   keys = c("msx_moverzs", "msx_ints", "msx_ns", "ms1_fr", "ms1_moverzs", "ms1_ints",
     "ms1_charges", "scan_title", "ms_level", "ret_time", "scan_num", "orig_scan",
-    "iso_ctr", "iso_lwr", "iso_upr", "mobility")
+    "iso_ctr", "iso_lwr", "iso_upr", "mobility"),
+  step = 1.6e-05
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ frame.}
 \item{iso_info}{The information of MS2 isolation windows etc.}
 
 \item{keys}{The key names of output lists.}
+
+\item{step}{A step size for mass binning.}
 }
 \description{
 (1) Pairs MS2 data and iso_info by frame IDs; (2) Collapses data by Precursor

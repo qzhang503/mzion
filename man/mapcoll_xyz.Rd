@@ -22,9 +22,10 @@ mapcoll_xyz(
 \item{ups}{Positions of \code{vals} in universe. Should be the same for among
 moverzs, intensities and charge states.}
 
-\item{lenx}{The length of \code{vals}.}
+\item{lenx}{The length of \code{vals} (number of rows in a matrix).}
 
-\item{lenu}{The number of entries in the universe.}
+\item{lenu}{The number of entries in the universe (number of columns in a
+matrix).}
 
 \item{temp_dir}{A temporary directory.}
 

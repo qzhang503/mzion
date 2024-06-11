@@ -162,9 +162,10 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       ims <- ims[-imax]
       p <- p + 1L
       
-      if (ms_lev == 2L)
+      if (ms_lev == 2L) {
         p_no_zero <- p_no_zero + 1L
-      
+      }
+
       next
     }
     
@@ -177,7 +178,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     
     # additional guard for downstream MS1 peak tracing: 
     #  use ymean (the mean of monoisotopics) 
-    #  so it won't overwhelem the real apex value when tracing peaks along LC
+    #  so it won't overwhelm the real apex value when tracing peaks along LC
     ymean <- ymono/n_ms1
 
     # find monoisotopic m/z
@@ -299,9 +300,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
   
   # outputs
   if (ms_lev == 1L) {
-    # about the same btw `>` and `>=`
-    oks1 <- css > 1L & !is.na(css)
-    # oks1 <- css >= 1L & !is.na(css)
+    oks1 <- css >= 1L & !is.na(css)
   }
   else if (ms_lev == 2L) {
     oks1 <- !is.na(peaks)

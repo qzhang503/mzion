@@ -2,7 +2,7 @@
 % Please edit documentation in R/pasefreader.R
 \name{extract_pasef_frame}
 \alias{extract_pasef_frame}
-\title{Extracts MS1 data from a PASEF frame.}
+\title{Extracts MS1 or MS2 data from a PASEF frame.}
 \usage{
 extract_pasef_frame(data, ms_lev = 1L, ymin = 10, ymax = 1e+07)
 }
@@ -16,5 +16,5 @@ extract_pasef_frame(data, ms_lev = 1L, ymin = 10, ymax = 1e+07)
 \item{ymax}{The maximum intensity.}
 }
 \description{
-Extracts MS1 data from a PASEF frame.
+Extracts MS1 or MS2 data from a PASEF frame.
 }

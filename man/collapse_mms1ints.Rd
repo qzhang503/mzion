@@ -10,8 +10,8 @@ collapse_mms1ints(
   lwr = 115L,
   step = 1e-05,
   reord = FALSE,
-  coll = TRUE,
-  cleanup = TRUE,
+  cleanup = FALSE,
+  sum_y = FALSE,
   add_colnames = FALSE
 )
 }
@@ -26,10 +26,11 @@ collapse_mms1ints(
 
 \item{reord}{Logical; re-order data or not.}
 
-\item{coll}{Logical; to further collapse results or not.}
-
 \item{cleanup}{Logical; to perform data row clean-ups or not. Rows may drop
 at \code{cleanup = TRUE}.}
+
+\item{sum_y}{Logical; to sum Y values or not. Mostly FALSE for Thermo's and
+TRUE for collapsing Bruker's MS2 slices.}
 
 \item{add_colnames}{Logical; if TRUE, add the indexes of mass bins to the
 column names of \code{matx}.}

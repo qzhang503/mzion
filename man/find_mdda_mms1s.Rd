@@ -18,14 +18,15 @@ find_mdda_mms1s(
   use_defpeaks = FALSE,
   width = 2.01,
   margin = 0.5,
+  min_mass = 200L,
   step = ppm/1e+06
 )
 }
 \arguments{
 \item{msx_moverzs}{Vectors of bracketing (e.g. +/-6 scans) full-spectrum
-moverzs.}
+MS1 m-over-z values.}
 
-\item{msx_ints}{Vectors of bracketing full-spectrum intensities.}
+\item{msx_ints}{Vectors of bracketing full-spectrum MS1 intensity values.}
 
 \item{iso_ctr}{Vectors of isolation centers (e.g. top-12 scans) for MS2.}
 
@@ -55,6 +56,10 @@ adjacent peak being a mono-isotopic precursor}
 isotope envelops.}
 
 \item{margin}{The margin of an m-over-z extended to an isolation window.}
+
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is an arbitrarily low value (the primary guard
+against low molecular-weight precursors is \code{min_len}).}
 
 \item{step}{A step size.}
 }
