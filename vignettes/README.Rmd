@@ -79,6 +79,7 @@ devtools::install_github("qzhang503/mzionShiny")
 
     -   [x] `MSConvert mgf (softly depreciated)`
 -   Bruker's PASEF-MS
+    -   [x] `.d`
     -   [x] `DataAnalysis mgf`
 
 ## Database searches via a ShinyApp

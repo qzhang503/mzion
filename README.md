@@ -1,7 +1,7 @@
 Mzion
 ================
 true
-2024-05-22
+2024-06-11
 
 - [Installation](#installation)
 - [Peaklist formats](#peaklist-formats)
@@ -51,6 +51,7 @@ devtools::install_github("qzhang503/mzionShiny")
 
   - [x] `MSConvert mgf (softly depreciated)`
 - Bruker’s PASEF-MS
+  - [x] `.d`
   - [x] `DataAnalysis mgf`
 
 ## Database searches via a ShinyApp

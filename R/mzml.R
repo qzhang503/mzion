@@ -112,6 +112,9 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
   if (is_pasef <- isTRUE(data_format == "Bruker-RAW")) {
     n_para <- max(floor(rams/20), 1L)
     n_para <- n_para * 2L # temporary for debugging; 16L
+    
+    n_mdda_flanks <- 1L
+    warning("Force `n_mdda_flanks` to one for PASEF.")
   }
   
   if (isTRUE(is_dia)) {
@@ -1240,8 +1243,9 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
     gaps_bf <- c(0L, gaps[1:(lenv-1L)])
     gaps_af <- c(gaps[2:lenv], 0L)
     
+    
     if (is_pasef) {
-      n_cores <- 1L
+      # n_cores <- 1L
       # maxn_mdda_precurs <- 1L
       # n_para <- max(rams/20, 1L)
     }
@@ -1548,6 +1552,7 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
                         tmt_reporter_upper = tmt_reporter_upper, 
                         exclude_reporter_region = exclude_reporter_region, 
                         n_para = n_para)
+    
     msx_moverzs[oks2] <- ans2[["msx_moverzs"]]
     msx_ints[oks2] <- ans2[["msx_ints"]]
     msx_charges[oks2] <- ans2[["msx_charges"]]
@@ -1565,7 +1570,6 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
     message("Deisotoping MS1.")
     
     # !!! Not yet validated
-    # is_pasef && n_para > 1L
     if (FALSE) { # slower but keep the codes for group split examples
       n_cores <- min(n_para, 16L)
       n_chunks <- n_cores^2
@@ -4003,16 +4007,27 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
     intensities <- mic[["intensities"]]
     charges <- mic[["charges"]]
     
-    # 3. subset by isolation window
+    # 3. subset by isolation window (may be no need to do so)
     # ( `width = 2.01` contains isotope envelope and now need subsetting)
-    w <- m2 - iso_lwr[[i]] + margin
-    oks <- masses > m2 - w & masses < m2 + w
-    oks <- .Internal(which(oks))
-    if (!length(oks)) oks <- seq_along(masses) # accepts all
-    # length(xs) drops by 1 if is.null(masses)
-    xs[[i]] <- masses[oks]
-    ys[[i]] <- intensities[oks]
-    zs[[i]] <- charges[oks]
+    
+    if (FALSE) {
+      w <- m2 - iso_lwr[[i]] + margin
+      oks <- masses > m2 - w & masses < m2 + w
+      oks <- .Internal(which(oks))
+      if (!length(oks)) oks <- seq_along(masses) # accepts all
+      # length(xs) drops by 1 if is.null(masses)
+      xs[[i]] <- masses[oks]
+      ys[[i]] <- intensities[oks]
+      zs[[i]] <- charges[oks]
+    }
+    else {
+      xs[[i]] <- masses
+      ys[[i]] <- intensities
+      zs[[i]] <- charges
+    }
+    
+    
+    
   }
 
   list(x = xs, y = ys, z = zs)

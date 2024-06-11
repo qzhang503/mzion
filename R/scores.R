@@ -614,16 +614,15 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 150L, type_ms2ions = "by",
     n_rows <- nrow(df)
     
     if (!n_rows) {
-      null_out <- data.frame(
+      null_out <- tibble::tibble(
         pep_seq = as.character(), 
         theo_ms1 = as.numeric(),
         pep_ivmod = as.character(), 
         pep_mod_group = as.integer(),
         pep_prob = as.numeric(), 
-        pri_matches = list(), 
-        sec_matches = list() , 
-        uniq_id = as.character()# , 
-        # pep_scan_num = as.integer()
+        pri_matches = list(), # will drop if data.frame
+        sec_matches = list(), 
+        uniq_id = as.character()
       )
       
       return(null_out)
@@ -1056,7 +1055,13 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
     dfs <- split(df, df$gid)
     rows <- lapply(dfs, function (x) nrow(x) == 1L)
     rows <- unlist(rows, recursive = FALSE, use.names = FALSE)
-    df <- dplyr::bind_rows(dfs[rows])
+    
+    if (any(rows)) {
+      df <- dplyr::bind_rows(dfs[rows])
+    }
+    else {
+      df <- df[0, ]
+    }
     df$gid <- NULL
     dfm <- dfs[!rows]
     rm(list = c("dfs", "rows"))

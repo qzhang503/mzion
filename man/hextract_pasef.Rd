@@ -15,7 +15,7 @@ hextract_pasef(
 }
 \arguments{
 \item{mdata}{A list of PASEF frames. Each list entry corresponding to one
-frame.}
+frame (over the ion-mobility dimension).}
 
 \item{iso_info}{The information of MS2 isolation windows etc.}
 
