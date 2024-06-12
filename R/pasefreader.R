@@ -24,8 +24,7 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L,
     n_cores <- 1L
   }
   else {
-    n_cores <- min(len, detect_cores(16L), ram_units, 8L)
-    n_cores <- find_min_ncores(len, n_cores)
+    n_cores <- find_min_ncores(len, min(len, detect_cores(16L), ram_units, 8L))
   }
   
   if (!bypass_rawexe) {
@@ -65,6 +64,8 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L,
 
 #' Helper in processing MGF entries in chunks.
 #'
+#' By each .tdf file.
+#' 
 #' @param raw_file The file name of RAW MS data.
 #' @param temp_dir A file path for temporary files.
 #' @param n_para The number of maximum allowed parallel processes.
@@ -150,7 +151,6 @@ proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L,
   }
 
   out$scan_num <- seq_along(out$scan_num)
-  
   out$raw_file <- raw_file # scalar
   out_name <- paste0(raw_file, ".rds")
   qs::qsave(out, file.path(temp_dir, out_name), preset = "fast")
@@ -165,7 +165,7 @@ proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L,
 
 #' Adds PASEF precursor IDs to \code{iso_info}
 #'
-#' Not used.
+#' Not used; only for cross-validation with the Bruker's grouping.
 #'
 #' @param iso_info A data frame contains MS2 isolation information.
 #' @param keys The column keys in \code{iso_info} for combinations of unique
@@ -241,7 +241,7 @@ sep_pasef_ms2info <- function (data, iso_info)
   sta <- as.integer(d_1[match("FRAME", d_1) + 1L])
   end <- as.integer(d_n[match("FRAME", d_n) + 1L])
   
-  # MS2Frame > MS1Frame
+  # values: MS2Frame > MS1Frame
   iso_info[with(iso_info, MS2Frame >= sta & MS2Frame <= end), ]
 }
 
@@ -765,11 +765,8 @@ group_ms2pasef_by_precursors <- function (dat, lwr = 115L, step = 1.6e-5)
     lapply(dat, `[[`, "msx_moverzs"), lapply(dat, `[[`, "msx_ints"), 
     lwr = lwr, step = step, reord = FALSE, cleanup = FALSE, 
     sum_y = TRUE, add_colnames = FALSE)
-  ###
-  xmat <- xys[["x"]]
-  ymat <- xys[["y"]]
-  xys <- calc_ms1xys(xmat, ymat)
-  ###
+  xys <- calc_ms1xys(xys[["x"]], xys[["y"]])
+
   msx_moverzs <- xys$x
   msx_ints <- xys$y
   # ns <- xys$n
@@ -919,7 +916,7 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
   ret_times <- rep_len(ans$ret_time, len)
 
   scan_nums <- 
-    paste0(ans$scan_num, ".", pad_zeros(1:len, nchar(as.character(len))))
+    paste0(ans$scan_num, ".", pad_zeroes(1:len, nchar(as.character(len))))
   half_widths <- iso_widths / 2
   iso_lwrs <- iso_ctrs - half_widths
   iso_uprs <- iso_ctrs + half_widths
@@ -954,7 +951,7 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
 #' 
 #' @param vec A numeric vector.
 #' @param npl The number of places for padding.
-pad_zeros <- function (vec, npl = 2)
+pad_zeroes <- function (vec, npl = 2)
 {
   zeros <- lapply(npl - nchar(vec), function (d) 
     .Internal(paste0(list(rep_len("0", d)), collapse = "", recycle0 = FALSE)))

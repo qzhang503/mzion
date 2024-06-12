@@ -16,5 +16,5 @@ add_pasef_precursors(
 identifiers.}
 }
 \description{
-Not used.
+Not used; only for cross-validation with the Bruker's grouping.
 }

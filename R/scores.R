@@ -698,9 +698,10 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
   fs_im  <- find_targets(out_path, pattern = "^ion_matches_")$files
   n_im <- length(fs_im)
 
-  if (!n_im) 
-    stop("Results of ion matches not found with pattern.")
-  
+  if (!n_im) {
+    stop("Results of ion matches not found with pattern `ion_matches_[...]`.")
+  }
+
   if (n_im != length(aa_masses_all)) {
     stop("Unequal number of modules between ion matches and amino-acid lookups.", 
          "\nDelete `ion_meatches_` under `temp` and restart.")
@@ -1004,10 +1005,8 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
   write(msg, stdout())
 
   cols_a  <- c("pep_scan_num", "raw_file")
-  cols_b  <- c("pep_ms2_moverzs", "pep_ms2_ints", # "ms2_charges", 
-               "pri_matches", "sec_matches")
+  cols_b  <- c("pep_ms2_moverzs", "pep_ms2_ints", "pri_matches", "sec_matches")
   cols_lt <- c(cols_a, cols_b)
-  
   cols_sc <- c("pep_seq", "pep_n_ms2", "pep_scan_title", "pep_exp_mz", 
                "pep_exp_mr", "pep_tot_int", "pep_exp_z", "pep_ret_range", 
                "pep_scan_num", "raw_file", "pep_mod_group", "pep_ms1_offset", 
@@ -1021,11 +1020,10 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
                "pep_ms2_deltas2", "pep_ms2_ideltas2", "pep_ms2_iexs2", 
                "pep_ms2_deltas_mean", "pep_ms2_deltas_sd", "pep_ms2_ideltas.")
 
-  df <- qs::qread(file.path(im_path, file))
-  n_rows <- nrow(df)
+  df  <- qs::qread(file.path(im_path, file))
   idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
   
-  if (!n_rows) {
+  if (!(n_rows <- nrow(df))) {
     idx <- gsub("_\\d+", "", idx) # idx = "1_1"
     
     dfa <- data.frame(matrix(ncol = length(cols_lt), nrow = 0L))

@@ -26,5 +26,5 @@ proc_pasefs(raw_file, mgf_path, temp_dir, n_para = 1L, debug = FALSE)
 \item{debug}{Debugging mode or not.}
 }
 \description{
-Helper in processing MGF entries in chunks.
+By each .tdf file.
 }
