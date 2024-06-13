@@ -201,6 +201,7 @@ add_pasef_precursors <- function (
           subids <- match(x$uid, names(split(x$uid, x$uid)))
           
           # add padding '0' to '1' -> '01'; and 10 remains the same
+          # better with seq_len(len) / 10^nchar(as.character(len))
           if (!all(ten_less <- subids < 10)) {
             subids[ten_less] <- paste0("0", subids[ten_less])
           }
@@ -277,9 +278,6 @@ hextract_pasef <- function (
   out1 <- extract_pasef_ms1(mdata = mdata[oks1], keys = keys)
   
   ## put together
-  out1[["scan_num"]] <- as.numeric(out1[["scan_num"]])
-  out2[["scan_num"]] <- as.numeric(out2[["scan_num"]])
-  
   if (FALSE) {
     df2 <- tibble::tibble(
       msx_moverzs = out2$msx_moverzs, 
@@ -382,13 +380,15 @@ extract_pasef_ms1 <- function (mdata, keys)
   out1[["iso_lwr"]] <- na_reals1
   out1[["iso_upr"]] <- na_reals1
   
+  out1[["scan_num"]] <- as.numeric(out1[["scan_num"]])
+  
   if (length(keys) != length(out1)) {
-    stop("Developer: unequal numbers of columns in PASEF MS1 data.")
+    stop("Developer: unequal numbers of columns in PASEF-MS1 data.")
   }
   
   message("Completed PASEF MS1 extraction.")
   
-  out1 <- out1[keys]
+  out1[keys]
 }
 
 
@@ -481,10 +481,12 @@ extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys, step = 1.6e-5)
   out2[["ms1_ints"]] <- 
     unlist(out2[["ms1_ints"]], recursive = FALSE, use.names = FALSE)
   
+  # out2[["scan_num"]] <- as.numeric(out2[["scan_num"]])
+  
   if (length(keys) != length(out2)) {
     stop("Developer: unequal numbers of columns in PASEF MS2 data.")
   }
-  
+
   message("Completed PASEF MS2 extraction.")
   
   out2 <- out2[keys]
@@ -914,9 +916,7 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
   scan_titles <- rep_len(ans$scan_title, len)
   ms_levels <- rep_len(ans$ms_level, len)
   ret_times <- rep_len(ans$ret_time, len)
-
-  scan_nums <- 
-    paste0(ans$scan_num, ".", pad_zeroes(1:len, nchar(as.character(len))))
+  scan_nums <- ans$scan_num + seq_len(len) / 10^nchar(as.character(len))
   half_widths <- iso_widths / 2
   iso_lwrs <- iso_ctrs - half_widths
   iso_uprs <- iso_ctrs + half_widths
@@ -944,18 +944,6 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
   }
   
   out  
-}
-
-
-#' Adds padding zero.
-#' 
-#' @param vec A numeric vector.
-#' @param npl The number of places for padding.
-pad_zeroes <- function (vec, npl = 2)
-{
-  zeros <- lapply(npl - nchar(vec), function (d) 
-    .Internal(paste0(list(rep_len("0", d)), collapse = "", recycle0 = FALSE)))
-  paste0(zeros, vec)
 }
 
 

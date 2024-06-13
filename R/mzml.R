@@ -63,6 +63,8 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
   #   - find_ms1stat
   # 
 
+  options(warn = 1L)
+  
   # mzML may contains NULL entries and need additional handling
   qs::qsave(data_type, file.path(mgf_path, "data_type.rds"), preset = "fast")
   temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
@@ -70,12 +72,14 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
   if (data_type == "raw") {
     message("Processing RAW files.")
     peakfiles <- readRAW(mgf_path = mgf_path, filelist = filelist)
+    gc()
   }
   else if (data_type == "pasef") {
     message("Processing RAW PASEF files.")
     peakfiles <- readPASEF(mgf_path = mgf_path, filelist = filelist, 
                            topn_ms2ions = topn_ms2ions, 
                            bypass_rawexe = bypass_rawexe)
+    gc()
   }
   else if (data_type == "mzml") {
     message("Processing mzML files.")
@@ -113,9 +117,19 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
     n_para <- max(floor(rams/20), 1L)
     n_para <- n_para * 2L # temporary for debugging; 16L
     
-    if (n_mdda_flanks > 0L) {
-      n_mdda_flanks <- 0L
-      warning("Force `n_mdda_flanks` to zero for PASEF.")
+    if (n_mdda_flanks > 1L) {
+      warning("Suggest a maximum value of `n_mdda_flanks = 1`.")
+    }
+    
+    if (maxn_mdda_precurs < 3L) {
+      warning("Suggest a minimum value of `maxn_mdda_precurs = 3`.")
+    }
+    
+    if (ppm_ms1_deisotope < 20L) {
+      warning("Deisotoping toerance increased: `ppm_ms1_deisotope = 20`, ", 
+              "ppm_ms2_deisotope = 20")
+      ppm_ms1_deisotope <- 20L
+      ppm_ms2_deisotope <- 20L
     }
   }
   
@@ -1513,6 +1527,42 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
   # mobility <- ans$mobility # NULL for Thermo's data
   rm(list = "ans")
   
+  if (FALSE) {
+    df <- tibble::tibble(
+      msx_moverzs = msx_moverzs, 
+      msx_ints = msx_ints, 
+      msx_ns = msx_ns, 
+      ms1_fr = ms1_fr, 
+      ms1_moverzs = ms1_moverzs, 
+      ms1_ints = ms1_ints, 
+      ms1_charges = ms1_charges, 
+      scan_title = scan_title, 
+      ms_level = ms_level, 
+      ret_time = ret_time, 
+      scan_num = scan_num, 
+      orig_scan = orig_scan, 
+      iso_ctr = iso_ctr, 
+      iso_lwr = iso_lwr, 
+      iso_upr = iso_upr, 
+      # mobility = mobility
+    )
+    
+    # grep("^9920", df$orig_scan) # 45919:45991
+    # which(df$ms1_fr == 9920) # 45934:45991
+    # a gap between 45920:45933
+    dfx <- df[45919:45991, ]
+    # zx <- dfx[29, ]
+    zx <- dfx[40, ]
+    
+    dfx1 <- data.frame(x = dfx$msx_moverzs[[1]], y = dfx$msx_ints[[1]]) |>
+      dplyr::filter(x >= 483.5, x <= 485.5)
+
+    ggplot2::ggplot() + 
+      ggplot2::geom_segment(dfx1, 
+                            mapping = aes(x = x, y = y, xend = x, yend = 0), 
+                            color = "gray", linewidth = .1)
+  }
+
   len0 <- length(msx_moverzs)
   msx_charges <- vector("list", len0)
   
@@ -1805,19 +1855,18 @@ deisoDDAMS2 <- function (msx_moverzx, msx_intx, topn_ms2ions = 150L,
     #             "oks2", "msx_moverzx", "msx_intx"))
   }
   else {
-    out <- mapply(getMS2xyz, msx_moverzx, msx_intx, 
-                  MoreArgs = list(
-                    topn_ms2ions = topn_ms2ions, 
-                    max_ms2_charge = max_ms2_charge, 
-                    ppm_ms2_deisotope = ppm_ms2_deisotope, 
-                    grad_isotope = grad_isotope, 
-                    fct_iso2 = fct_iso2, 
-                    quant = quant, 
-                    tmt_reporter_lower = tmt_reporter_lower, 
-                    tmt_reporter_upper = tmt_reporter_upper, 
-                    exclude_reporter_region = exclude_reporter_region
-                  ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    
+    out <- getMS2xyz(
+      msx_moverzx, msx_intx, 
+      topn_ms2ions = topn_ms2ions, 
+      max_ms2_charge = max_ms2_charge, 
+      ppm_ms2_deisotope = ppm_ms2_deisotope, 
+      grad_isotope = grad_isotope, 
+      fct_iso2 = fct_iso2, 
+      quant = quant, 
+      tmt_reporter_lower = tmt_reporter_lower, 
+      tmt_reporter_upper = tmt_reporter_upper, 
+      exclude_reporter_region = exclude_reporter_region)
+
     if (length(out[[1]]) != lenx) {
       stop("Developer: check for entries dropping.")
     }
@@ -2095,8 +2144,8 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL,
 
 #' De-isotoping DDA-MS2.
 #' 
-#' @param msx_moverzs Lists of MS2 moverzs.
-#' @param msx_ints Lists of MS2 intensities.
+#' @param msx_moverzs Lists of MS2-X values.
+#' @param msx_ints Lists of MS2-Y values.
 #' @inheritParams matchMS
 getMS2xyz <- function (msx_moverzs = NULL, msx_ints = NULL, 
                        topn_ms2ions = 150L, quant = "none", 
@@ -3982,11 +4031,16 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
     # 3. subset by isolation window (may be no need to do so)
     # ( `width = 2.01` contains isotope envelope and now need subsetting)
     
+    # e.g. mono-isotopic peak may be outside the isolation window
     if (FALSE) {
       w <- m2 - iso_lwr[[i]] + margin
       oks <- masses > m2 - w & masses < m2 + w
       oks <- .Internal(which(oks))
-      if (!length(oks)) oks <- seq_along(masses) # accepts all
+      
+      # accepts all; may consider the infimum to the iso_lwr
+      if (!length(oks))
+        oks <- seq_along(masses)
+      
       # length(xs) drops by 1 if is.null(masses)
       xs[[i]] <- masses[oks]
       ys[[i]] <- intensities[oks]
@@ -3997,9 +4051,6 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
       ys[[i]] <- intensities
       zs[[i]] <- charges
     }
-    
-    
-    
   }
 
   list(x = xs, y = ys, z = zs)

@@ -248,6 +248,39 @@
         <umod:element symbol="O" number="4"/>
       </umod:delta>
     </umod:mod>
+    <umod:mod title="TMT10plex+Digly" full_name="Additive TMT10plex and ubiquination" username_of_poster="unimod" group_of_poster="user" date_time_posted="2024-06-13 12:16:20.10786" date_time_modified="2024-06-13 12:16:20.109147" approved="0" record_id="32">
+      <umod:specificity hidden="0" site="K" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="343.205861" avge_mass="343.36605" composition="H(26) C(12) 13C(4) N(3) 15N O(4)">
+        <umod:element symbol="H" number="26"/>
+        <umod:element symbol="C" number="12"/>
+        <umod:element symbol="13C" number="4"/>
+        <umod:element symbol="N" number="3"/>
+        <umod:element symbol="15N" number="1"/>
+        <umod:element symbol="O" number="4"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="TMT16plex+Digly" full_name="Additive TMT16plex and ubiquination" username_of_poster="unimod" group_of_poster="user" date_time_posted="2024-06-13 12:26:41.857313" date_time_modified="2024-06-13 12:26:41.85746" approved="0" record_id="33">
+      <umod:specificity hidden="0" site="K" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="418.250075" avge_mass="418.41531" composition="H(31) C(12) 13C(7) N(3) 15N(2) O(5)">
+        <umod:element symbol="H" number="31"/>
+        <umod:element symbol="C" number="12"/>
+        <umod:element symbol="13C" number="7"/>
+        <umod:element symbol="N" number="3"/>
+        <umod:element symbol="15N" number="2"/>
+        <umod:element symbol="O" number="5"/>
+      </umod:delta>
+    </umod:mod>
+    <umod:mod title="TMT18plex+Digly" full_name="Additive TMT18plex and ubiquination" username_of_poster="unimod" group_of_poster="user" date_time_posted="2024-06-13 12:32:46.414131" date_time_modified="2024-06-13 12:32:46.414294" approved="0" record_id="34">
+      <umod:specificity hidden="0" site="K" position="Anywhere" classification="other" spec_group="1"/>
+      <umod:delta mono_mass="418.256395" avge_mass="418.41455" composition="H(31) C(11) 13C(8) N(4) 15N(1) O(5)">
+        <umod:element symbol="H" number="31"/>
+        <umod:element symbol="C" number="11"/>
+        <umod:element symbol="13C" number="8"/>
+        <umod:element symbol="N" number="4"/>
+        <umod:element symbol="15N" number="1"/>
+        <umod:element symbol="O" number="5"/>
+      </umod:delta>
+    </umod:mod>
     <umod:mod title="TMTpro+Digly" full_name="Additive TMTpro and ubiquination" username_of_poster="unimod" group_of_poster="user" date_time_posted="2022-10-11 12:08:11" date_time_modified="2022-10-11 12:08:11" approved="0" record_id="30">
       <umod:specificity hidden="0" site="K" position="Anywhere" classification="other" spec_group="1"/>
       <umod:delta mono_mass="418.250075" avge_mass="418.41531" composition="H(31) C(12) 13C(7) N(3) 15N(2) O(5)">
