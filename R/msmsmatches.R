@@ -299,6 +299,8 @@
 #' @param ppm_ms1calib A positive integer; the mass tolerance of MS1 species for
 #'   precursor mass calibration. The argument has no effect at
 #'   \code{calib_ms1mass = FALSE}.
+#' @param ppm_ms2calib A positive integer; the mass tolerance of MS2 species in
+#'   calibration searches.
 #' @param quant A character string; the quantitation method. The default is
 #'   "none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
 #'   tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
@@ -781,6 +783,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      min_ret_time = 0, max_ret_time = Inf, 
                      calib_ms1mass = FALSE, 
                      ppm_ms1calib = 20L,
+                     ppm_ms2calib = 20L,
 
                      add_ms2theos = FALSE, add_ms2theos2 = FALSE, 
                      add_ms2moverzs = FALSE, add_ms2ints = FALSE,
@@ -1413,8 +1416,9 @@ matchMS <- function (out_path = "~/mzion/outs",
               maxn_vmods_sitescombi_per_pep = maxn_vmods_sitescombi_per_pep,
               minn_ms2 = minn_ms2, 
               ppm_ms1 = ppm_ms1calib, 
+              ppm_ms2 = ppm_ms2calib, 
               reframe_mgfs = reframe_mgfs, 
-              ppm_ms2 = ppm_ms2, min_mass = min_mass, max_mass = max_mass, 
+              min_mass = min_mass, max_mass = max_mass, 
               min_ms2mass = min_ms2mass, quant = quant, 
               ppm_reporters = ppm_reporters, 
               fasta = fasta, acc_type = acc_type, 

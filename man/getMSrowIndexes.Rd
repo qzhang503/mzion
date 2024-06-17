@@ -9,7 +9,9 @@ getMSrowIndexes(ms_level, pad_nas = FALSE)
 \arguments{
 \item{ms_level}{A vector of MS levels.}
 
-\item{pad_nas}{Logical; if TRUE, adds padding values to keep the same length.}
+\item{pad_nas}{Logical; if TRUE, pad NA values for \code{ms1_stas} without
+following \code{ms2_stas} and \code{ms2_ends}. Otherwise, the
+\code{ms1_stas} will drop.}
 }
 \description{
 Obtains the indexes of MS1 and MS2 starts and ends.

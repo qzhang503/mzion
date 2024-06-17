@@ -2,7 +2,7 @@
 % Please edit documentation in R/msmsmatches2.R
 \name{calib_mgf}
 \alias{calib_mgf}
-\title{MGF precursor mass calibration.}
+\title{MGF precursor mass calibrations}
 \usage{
 calib_mgf(
   mgf_path,
@@ -36,7 +36,8 @@ calib_mgf(
   maxn_vmods_setscombi = 512L,
   min_len = 7L,
   max_len = 40L,
-  max_miss = 2L
+  max_miss = 2L,
+  prob_co = 1e-10
 )
 }
 \arguments{
@@ -50,7 +51,7 @@ calib_mgf(
   With MSConvert, the default \code{titleMaker} is required for correct
   parsing (don't think it can be altered by users, but just in case).}
 
-\item{aa_masses_all}{List(1); The first list of all amino-acid look-ups.}
+\item{aa_masses_all}{List(1); the first list of all amino-acid look-ups.}
 
 \item{out_path}{A file path of outputs.}
 
@@ -175,6 +176,9 @@ for considerations. Longer peptides will be excluded. The default is 40.}
 
 \item{max_miss}{A non-negative integer; the maximum number of mis-cleavages
 per peptide sequence for considerations. The default is 2.}
+
+\item{prob_co}{The probability cut-off in retaining high-quality PSMs for
+mass calibrations.}
 }
 \description{
 \code{ppm_ms1} only for the calculation of frame indexes of precursors.

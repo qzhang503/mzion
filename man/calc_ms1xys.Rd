@@ -2,19 +2,19 @@
 % Please edit documentation in R/mzml.R
 \name{calc_ms1xys}
 \alias{calc_ms1xys}
-\title{Makes MS1 matrices of moverzs and intensities}
+\title{Collapse MS1 matrices of X and Y}
 \usage{
 calc_ms1xys(matx, maty)
 }
 \arguments{
-\item{matx}{A matrix of moverzs onto the data universe.}
+\item{matx}{A matrix of m-over-z values.}
 
-\item{maty}{Vectors of intensities onto the data universe.}
+\item{maty}{A matrix of intensity values.}
 }
 \value{
-A list of x: the weighted means of moverzs; y: the means of
+A list of x: the weighted means of m-over-z values; y: the sum of
   intensities; n: the numbers of observations.
 }
 \description{
-Makes MS1 matrices of moverzs and intensities
+Collapse MS1 matrices of X and Y
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/msmsmatches2.R
 \name{ms2match}
 \alias{ms2match}
-\title{Matches theoretical peptides (parallel by mgf chunks).}
+\title{Matches between experimental peaklists and theoretical sequences}
 \usage{
 ms2match(
   mgf_path,
@@ -214,6 +214,6 @@ or not.}
 \item{.savecall}{Logical; if TRUE, saves the current call.}
 }
 \description{
-All files under `out_path` are removed if incur \code{calc_pepmasses} in the
-upstream.
+All files under \code{out_path} are removed if incurring
+\code{calc_pepmasses} in the upstream.
 }

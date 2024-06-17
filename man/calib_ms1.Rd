@@ -16,9 +16,9 @@ calib_ms1(
 )
 }
 \arguments{
-\item{filename}{An MGF file name}
+\item{filename}{A peaklist file name.}
 
-\item{df}{A data frame of \code{ion_matches_1.rds}}
+\item{df}{A data frame of \code{ion_matches_1.rds}.}
 
 \item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
   supply the files.
@@ -42,7 +42,7 @@ against low molecular-weight precursors is \code{min_len}).}
 \item{max_mass}{A positive integer; the maximum precursor mass for
 interrogation.}
 
-\item{range}{The range of spine knots}
+\item{range}{The range of spine knots.}
 }
 \description{
 Calibrates precursor masses (by individual RAW_Files)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/mzml.R
 \name{collapse_xyz}
 \alias{collapse_xyz}
-\title{Collapse MS data.}
+\title{Gather MS data}
 \usage{
 collapse_xyz(
   xs = NULL,
@@ -18,8 +18,8 @@ collapse_xyz(
 )
 }
 \arguments{
-\item{xs}{Vectors of moverzs at a given isolation center (\code{icenter}).
-Each entry corresponds to a full vector of MS1 or MS2.}
+\item{xs}{Vectors of m-over-z values within a given isolation center
+(\code{icenter}). Each entry corresponds to a full vector of MS1 or MS2.}
 
 \item{ys}{Vectors of intensities.}
 

@@ -41,7 +41,9 @@ hdeisoDDA(
   exclude_reporter_region = FALSE,
   use_defpeaks = FALSE,
   is_pasef = FALSE,
-  n_para = 1L
+  n_para = 1L,
+  y_perc = 0.01,
+  yco = 100
 )
 }
 \arguments{
@@ -175,6 +177,8 @@ algorithms.}
 \item{is_pasef}{Logical; is TIMS TOF data or not.}
 
 \item{n_para}{The allowance of parallel processing.}
+
+\item{y_perc}{The cut-off in intensity values in relative to the base peak.}
 }
 \description{
 Helper of \link{deisoDDA}.

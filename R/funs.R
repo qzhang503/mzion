@@ -24,8 +24,7 @@
 # [15] "astar2ions"      "a0ions"          "a02ions"         "x2ions"         
 # 
 # $lfq.R
-# [1] "subMSfull"     "pretraceXY"    "htraceXY"      "traceXY"       "updateMS1Int"  "updateMS1Int2" "traceMS1"     
-# [8] "getMS1Int"    
+# [1] "subMSfull"     "pretraceXY"    "htraceXY"      "traceXY"       "updateMS1Int"  "updateMS1Int2" "traceMS1"      "getMS1Int"    
 # 
 # $mapMS2ions.R
 #  [1] "mapMS2ions"         "plotMS2ions"        "match_mgf_path"     "match_raw_id"       "add_raw_ids"        "find_secion_types" 
@@ -59,8 +58,8 @@
 # [9] "calc_ms2ions_a1_vnl1_fnl0"
 # 
 # $ms2frames.R
-#  [1] "pair_mgftheos"   "hpair_mgths"     "make_dia_mgfs"   "clean_flat_mgfs" "hms2match"       "find_ms2_bypep"  "search_mgf"     
-#  [8] "hms2match_one"   "ms2match_one"    "frames_adv"     
+#  [1] "pair_mgftheos"   "thin_mgf"        "hpair_mgths"     "make_dia_mgfs"   "clean_flat_mgfs" "hms2match"       "find_ms2_bypep" 
+#  [8] "search_mgf"      "hms2match_one"   "ms2match_one"    "frames_adv"     
 # 
 # $msfilereader.R
 # [1] "readRAW"                   "proc_raws"                 "exeReadRAW"                "acceptMSFileReaderLicense"
@@ -70,8 +69,8 @@
 #  [7] "checkMGF"           "check_locmods"      "map_raw_n_scan"     "map_raw_n_scan_old" "check_fdr_group"    "check_notches"     
 # 
 # $msmsmatches2.R
-# [1] "ms2match"              "reverse_peps_in_frame" "reverse_seqs"          "calib_mgf"             "calib_ms1"            
-# [6] "cv_ms1err"             "post_calib"            "find_ms1_offsets"      "comb_ms1_offsets"     
+#  [1] "ms2match"              "reverse_peps_in_frame" "reverse_seqs"          "calib_mgf"             "calib_ms1"            
+#  [6] "substract_ms1mass"     "cv_ms1err"             "post_calib"            "find_ms1_offsets"      "comb_ms1_offsets"     
 # 
 # $mzion.R
 # character(0)

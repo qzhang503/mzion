@@ -17,6 +17,11 @@ pretraceXY(df, from = 200L, step = 1e-05, n_chunks = 4L, gap = 256L)
 
 \item{gap}{A gap size for forward and backward looking of precursors.}
 }
+\value{
+dfs[[i]]:a chunk of MS1 and MS2 data (no bracketing scans); 
+df1s[[i]]: the reference MS1 data with leading and trailing scans; 
+gaps[[i]]: the number of bracketing MS1 and MS2 scans between chunks.
+}
 \description{
 Splits \code{df} for parallel tracing.
 }

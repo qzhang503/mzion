@@ -99,6 +99,7 @@ matchMS(
   max_ret_time = Inf,
   calib_ms1mass = FALSE,
   ppm_ms1calib = 20L,
+  ppm_ms2calib = 20L,
   add_ms2theos = FALSE,
   add_ms2theos2 = FALSE,
   add_ms2moverzs = FALSE,
@@ -592,6 +593,9 @@ data in the last 800s of LC retention time will be excluded.}
 \item{ppm_ms1calib}{A positive integer; the mass tolerance of MS1 species for
 precursor mass calibration. The argument has no effect at
 \code{calib_ms1mass = FALSE}.}
+
+\item{ppm_ms2calib}{A positive integer; the mass tolerance of MS2 species in
+calibration searches.}
 
 \item{add_ms2theos}{Logical. If true, adds the sequence of primary
   theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a

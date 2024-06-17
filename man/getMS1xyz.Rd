@@ -29,18 +29,19 @@ getMS1xyz(
 )
 }
 \arguments{
-\item{msx_moverzs}{Vectors of bracketing (e.g. +/-6 scans) full-spectrum
-MS1 m-over-z values.}
+\item{msx_moverzs}{Vectors of bracketing (e.g. +/-6 scans) full-spectrum MS1
+m-over-z values. Each \code{msx_moverzs} needs to be in an ascending order.}
 
-\item{msx_ints}{Vectors of bracketing full-spectrum MS1 intensity values.}
+\item{msx_ints}{Vectors of bracketing full-spectrum MS1 intensity values
+corresponding to \code{msx_moverzs}.}
 
 \item{ms_level}{Vectors of MS levels}
 
 \item{iso_ctr}{A vector of isolation centers.}
 
-\item{iso_lwr}{A vecor of isolation lowers.}
+\item{iso_lwr}{A vector of isolation lowers.}
 
-\item{ms1_moverzs}{MS1 moverz values.}
+\item{ms1_moverzs}{MS1 m-over-z values.}
 
 \item{ms1_charges}{MS1 charge states.}
 

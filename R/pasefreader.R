@@ -133,22 +133,22 @@ proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L,
                          use.names = FALSE)
     }
     names(out) <- nms
-
-    # good for code safety
-    if (debug) {
-      if (!is.numeric(out$scan_num))
-        stop("Anticipating numeric values for `scan_num`.")
-
-      ord <- order(out$scan_num)
-      
-      if (!identical(out$scan_num, out$scan_num[ord]))
-        stop("Anticipating ascending `scan_num`.")
-      
-      # for (i in seq_along(out)) {
-      #  out[[i]] <- out[[i]][ord]
-      # }
-    }
   }
+  
+  # good for code safety
+  if (debug) {
+    if (!is.numeric(out$scan_num))
+      stop("Anticipating numeric values for `scan_num`.")
+    
+    ord <- order(out$scan_num)
+    
+    if (!identical(out$scan_num, out$scan_num[ord]))
+      stop("Anticipating ascending `scan_num`.")
+  }
+
+  ###
+  ##  may trigger data filtraiton by `scan_num` here...
+  ###
 
   out$scan_num <- seq_along(out$scan_num)
   out$raw_file <- raw_file # scalar

@@ -2,17 +2,17 @@
 % Please edit documentation in R/lfq.R
 \name{subMSfull}
 \alias{subMSfull}
-\title{Subsets full MS1 by the universe of monoisotopic moverzs.}
+\title{Subsets full MS1 by the universe of monoisotopic MS1 moverzs.}
 \usage{
 subMSfull(xs, ys, ms1s, from = 200L, step = 1e-05, gap = 256L)
 }
 \arguments{
-\item{xs}{Vectors of full-spectrum m/z values.}
+\item{xs}{Vectors of MS1-X values.}
 
-\item{ys}{Vectors of full-spectrum intensity values.}
+\item{ys}{Vectors of MS1-Y values.}
 
-\item{ms1s}{Vectors of MS2-specific MS1 m/z values (corresponding to
-\code{ms_level == 2L}).}
+\item{ms1s}{Vectors of MS1 m/z values that are linked to the mono-isotopic
+DDA-MS2 space.}
 
 \item{from}{The starting m/z value for calculating bin indexes.}
 
@@ -21,5 +21,5 @@ subMSfull(xs, ys, ms1s, from = 200L, step = 1e-05, gap = 256L)
 \item{gap}{The gap of MS1 scans.}
 }
 \description{
-Some non-monoisotopic moverzs can be removed.
+Non-monoisotopic (13C_n) MS1-X are also removed.
 }

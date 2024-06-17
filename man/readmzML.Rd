@@ -2,7 +2,7 @@
 % Please edit documentation in R/mzml.R
 \name{readmzML}
 \alias{readmzML}
-\title{Helper in preparing mzML inputs.}
+\title{Helper in preparing peaklists}
 \usage{
 readmzML(
   filelist = NULL,
@@ -50,7 +50,7 @@ readmzML(
 )
 }
 \arguments{
-\item{filelist}{A list of mzML files.}
+\item{filelist}{A list of peaklist files.}
 
 \item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
   supply the files.
@@ -62,7 +62,7 @@ readmzML(
   With MSConvert, the default \code{titleMaker} is required for correct
   parsing (don't think it can be altered by users, but just in case).}
 
-\item{data_type}{A data type of either mzML or RAW.}
+\item{data_type}{A data type of either RAW or mzML.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}
@@ -200,5 +200,5 @@ RAW .d files or not.}
 used. The default is 4.}
 }
 \description{
-Helper in preparing mzML inputs.
+Helper in preparing peaklists
 }

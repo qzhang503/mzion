@@ -30,27 +30,14 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
   
   # data thinning for MGF calibrations
   if (first_search) {
-    mgfs <- lapply(mgfs, function (x) {
-      if ((fct <- ceiling(nrow(x)/50000L)) == 1L)
-        return(x)
-      
-      min_mgfmass <- min(x$ms1_mass, na.rm = TRUE)
-      max_mgfmass <- max(x$ms1_mass, na.rm = TRUE)
-      oks_min <- with(x, ms1_mass <= min_mgfmass + 10L)
-      oks_max <- with(x, ms1_mass >= max_mgfmass - 10L)
-      
-      mgfa <- x[oks_max, ]
-      mgfb <- x[oks_min, ]
-      mgfc <- x[!(oks_max | oks_min), ]
-      rows <- (1:nrow(mgfc)) %% fct == 1L
-      dplyr::bind_rows(mgfa, mgfc[rows, ], mgfb)
-    })
+    mgfs <- lapply(mgfs, thin_mgf)
   }
   
   mgfs <- dplyr::bind_rows(mgfs)
   notches <- seq_along(ms1_offsets)
   # for cut-offs in the lower bound of ms1_mass
   n_13c  <- attr(ms1_offsets, "n_13c", exact = TRUE)
+  if (is.null(n_13c)) n_13c <- 0L
   
   # need additional handling of mzML with list(NULL) entries
   # setting the default to "mzML" to reinforce list(NULL) handling
@@ -71,6 +58,69 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
             file.path(mgf_path, "notches.rds"))
 
   invisible(NULL)
+}
+
+
+#' Peaklist data thinning.
+#'
+#' @param df A data frame containing peaklists.
+#' @param use_first_mass Logical; if TRUE, uses the first masses in chimeric
+#'   spectra.
+thin_mgf <- function (df, use_first_mass = FALSE)
+{
+  nr <- nrow(df)
+  if (!nr) return(df)
+  fct <- ceiling(nr / 50000L)
+  if (fct == 1L) return(df)
+  
+  masses0 <- df$ms1_mass
+  
+  if (class(masses0) == "list") {
+    if (use_first_mass) {
+      masses <- lapply(masses0, `[[`, 1)
+      masses <- unlist(masses, recursive = FALSE, use.names = FALSE)
+      df$ms1_mass <- masses
+      
+      df$ms1_moverz <- lapply(df$ms1_moverz, `[[`, 1) |>
+        unlist(recursive = FALSE, use.names = FALSE)
+      df$ms1_int <- lapply(df$ms1_int, `[[`, 1) |>
+        unlist(recursive = FALSE, use.names = FALSE)
+      df$ms1_charge <- lapply(df$ms1_charge, `[[`, 1) |>
+        unlist(recursive = FALSE, use.names = FALSE)
+      
+      masses0 <- df$ms1_mass
+      min_mgfmass <- min(masses0, na.rm = TRUE) + 10
+      max_mgfmass <- max(masses0, na.rm = TRUE) - 10
+      oks_min <- df$ms1_mass <= min_mgfmass
+      oks_max <- df$ms1_mass >= max_mgfmass
+    }
+    else {
+      masses <- unlist(masses0, recursive = FALSE, use.names = FALSE)
+      min_mgfmass <- min(masses, na.rm = TRUE) + 10
+      max_mgfmass <- max(masses, na.rm = TRUE) - 10
+      
+      oks_max <- oks_min <- vector("logical", nr)
+      
+      for (i in 1:nr) {
+        mi <- masses0[[i]]
+        oks_min[[i]] <- any(mi <= min_mgfmass)
+        oks_max[[i]] <- any(mi >= max_mgfmass)
+      }
+    }
+  }
+  else {
+    min_mgfmass <- min(masses0, na.rm = TRUE) + 10
+    max_mgfmass <- max(masses0, na.rm = TRUE) - 10
+    oks_min <- df$ms1_mass <= min_mgfmass
+    oks_max <- df$ms1_mass >= max_mgfmass
+  }
+  
+  mgfa <- df[oks_max, ]
+  mgfb <- df[oks_min, ]
+  mgfc <- df[!(oks_max | oks_min), ]
+  rows <- (1:nrow(mgfc)) %% fct == 1L
+  
+  out  <- dplyr::bind_rows(mgfa, mgfc[rows, ], mgfb)
 }
 
 

@@ -13,7 +13,9 @@ htraceXY(
   gap_af = 256L,
   n_mdda_flanks = 6L,
   from = 200L,
-  step = 1e+05
+  step = 1e+05,
+  y_perc = 0.01,
+  yco = 500
 )
 }
 \arguments{
@@ -23,8 +25,7 @@ htraceXY(
 
 \item{ss}{Vectors of MS1 scan numbers.}
 
-\item{df}{A data frame of staggering MS1 and MS2 in the same range of
-\code{xs}.}
+\item{df}{A data frame of MS1 and MS2 corresponding to \code{xs}.}
 
 \item{gap_bf}{A preceding gap size.}
 
@@ -36,6 +37,10 @@ consideration when averaging isotope envelops of precursors.}
 \item{from}{The starting point for mass binning.}
 
 \item{step}{The step size for mass binning.}
+
+\item{y_perc}{The cut-off in intensity values in relative to the base peak.}
+
+\item{yco}{The cut-off in y values.}
 }
 \description{
 Helper of \link{traceXY}.

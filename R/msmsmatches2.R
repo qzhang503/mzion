@@ -1,7 +1,7 @@
-#' Matches theoretical peptides (parallel by mgf chunks).
+#' Matches between experimental peaklists and theoretical sequences
 #'
-#' All files under `out_path` are removed if incur \code{calc_pepmasses} in the
-#' upstream.
+#' All files under \code{out_path} are removed if incurring
+#' \code{calc_pepmasses} in the upstream.
 #'
 #' @param aa_masses_all A list of amino acid lookups for all the combination of
 #'   fixed and variable modifications.
@@ -94,6 +94,12 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   }
   
   rm(list = c("args_except", "cache_pars", "call_pars"))
+  
+  # ^info_format.rds$
+  # ^data_type.rds$
+  # ^raw_indexes.rds$
+  # ^type_acqu.rds$
+  # ^notches.rds$
   
   delete_files(
     out_path, 
@@ -202,7 +208,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
 }
 
 
-#' Helper of \link{reverse_seqs}.
+#' Helper of \link{reverse_seqs}
 #' 
 #' Reverses \code{pep_seq} in a frame.
 #' 
@@ -227,7 +233,7 @@ reverse_peps_in_frame <- function (pep_frame)
 }
 
 
-#' Reverses peptide sequences.
+#' Reverses peptide sequences
 #' 
 #' @param seqs Lists of peptide sequences.
 #' @examples 
@@ -248,13 +254,15 @@ reverse_seqs <- function (seqs)
 }
 
 
-#' MGF precursor mass calibration.
+#' MGF precursor mass calibrations
 #'
 #' \code{ppm_ms1} only for the calculation of frame indexes of precursors.
 #'
-#' @param aa_masses_all List(1); The first list of all amino-acid look-ups.
+#' @param aa_masses_all List(1); the first list of all amino-acid look-ups.
 #' @param mod_indexes Integer; the indexes of fixed and/or variable
 #'   modifications.
+#' @param prob_co The probability cut-off in retaining high-quality PSMs for
+#'   mass calibrations.
 #' @param .path_bin The file path to binned precursor masses.
 #' @param reframe_mgfs Logical; if TRUE, recalculates the frame indexes of MGFs
 #' @inheritParams matchMS
@@ -271,7 +279,8 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                        acc_pattern = NULL, topn_ms2ions = 150L, 
                        fixedmods = NULL, varmods = NULL, enzyme = "trypsin_p", 
                        maxn_fasta_seqs = 200000L, maxn_vmods_setscombi = 512L,
-                       min_len = 7L, max_len = 40L, max_miss = 2L)
+                       min_len = 7L, max_len = 40L, max_miss = 2L, 
+                       prob_co = 1E-10)
 {
   on.exit(
     if (exists(".savecall", envir = fun_env)) {
@@ -349,7 +358,7 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
            min_mass = min_mass, 
            max_mass = max_mass, 
            min_ms2mass = min_ms2mass,
-           quant = "none",
+           quant = quant,
            ppm_reporters = ppm_reporters,
            reframe_mgfs = reframe_mgfs, 
            fasta = fasta,
@@ -414,7 +423,7 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
     stop("No `ion_matches` files found for calibrations.")
   
   df <- qs::qread(fi_ion)
-  df <- df[with(df, pep_prob <= .01), ]
+  df <- df[with(df, pep_prob <= prob_co), ]
   
   if (!"raw_file" %in% names(df))
     stop("Column not found in search results: `raw_file`")
@@ -468,9 +477,9 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
 
 #' Calibrates precursor masses (by individual RAW_Files)
 #' 
-#' @param filename An MGF file name
-#' @param df A data frame of \code{ion_matches_1.rds}
-#' @param range The range of spine knots
+#' @param filename A peaklist file name.
+#' @param df A data frame of \code{ion_matches_1.rds}.
+#' @param range The range of spine knots.
 #' @inheritParams calib_mgf
 calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL, 
                        ppm_ms1 = 20L, min_mass = 200L, max_mass = 4500L, 
@@ -478,6 +487,7 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
 {
   n_row <- nrow(df)
   mgfs  <- qs::qread(file.path(mgf_path, filename))
+  islist <- class(mgfs[["ms1_mass"]]) == "list"
   
   # subsets by minn_ms2 and ms1_int
   if (FALSE) {
@@ -497,19 +507,22 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
   mdiff <- median(diff_ms1, na.rm = TRUE)/1E6
 
   if (n_row <= 100L || mdiff <= 1e-6) {
-    mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - mdiff
-    post_calib(mgfs, min_mass, max_mass, mgf_path, filename)
+    mgfs[["ms1_mass"]] <- substract_ms1mass(mgfs[["ms1_mass"]], mdiff, islist)
+    post_calib(mgfs, min_mass, max_mass, mgf_path, filename, islist = islist)
     .savecall <- TRUE
     return(NULL)
   }
   else {
     cvs <- lapply(range, cv_ms1err, k = 10, df = df) 
     cvs <- unlist(cvs, recursive = FALSE, use.names = FALSE)
-    # stopifnot(length(cvs) == length(range))
     
+    if (length(cvs) != length(range)) {
+      stop("Developer: check for entry dropping in mass calibration.")
+    }
+
     if (all(is.na(cvs))) {
-      mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - mdiff
-      post_calib(mgfs, min_mass, max_mass, mgf_path, filename)
+      mgfs[["ms1_mass"]] <- substract_ms1mass(mgfs[["ms1_mass"]], mdiff, islist)
+      post_calib(mgfs, min_mass, max_mass, mgf_path, filename, islist = islist)
       .savecall <- TRUE
       return(NULL)
     }
@@ -527,8 +540,8 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
 
   if (all(is.na(fit_ns))) {
     if (all(is.na(fit_bs))) {
-      mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - mdiff
-      post_calib(mgfs, min_mass, max_mass, mgf_path, filename)
+      mgfs[["ms1_mass"]] <- substract_ms1mass(mgfs[["ms1_mass"]], mdiff, islist)
+      post_calib(mgfs, min_mass, max_mass, mgf_path, filename, islist = islist)
       .savecall <- TRUE
       return(NULL)
     }
@@ -543,8 +556,8 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
   
   if (bad_ns) {
     if (bad_bs) {
-      mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] - mdiff
-      post_calib(mgfs, min_mass, max_mass, mgf_path, filename)
+      mgfs[["ms1_mass"]] <- substract_ms1mass(mgfs[["ms1_mass"]], mdiff, islist)
+      post_calib(mgfs, min_mass, max_mass, mgf_path, filename, islist = islist)
       .savecall <- TRUE
       return(NULL)
     }
@@ -575,11 +588,19 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
   }
 
   ms1err <- predict.lm(fit, newdata = data.frame(ret_time = rt[oks])) / 1E6
-  mgfs[["ms1_mass"]][oks] <- mgfs[["ms1_mass"]][oks] * (1 - ms1err)
-
-  uls <- rt[!oks]
-  mgfs[["ms1_mass"]][uls] <- mgfs[["ms1_mass"]][uls] - mdiff
   
+  if (islist) {
+    mgfs[["ms1_mass"]][oks] <- 
+      mapply(function (x, y) x * (1 - y), mgfs[["ms1_mass"]][oks], ms1err)
+    uls <- rt[!oks]
+    mgfs[["ms1_mass"]][uls] <- lapply(mgfs[["ms1_mass"]][uls], `-`, mdiff)
+  }
+  else {
+    mgfs[["ms1_mass"]][oks] <- mgfs[["ms1_mass"]][oks] * (1 - ms1err)
+    uls <- rt[!oks]
+    mgfs[["ms1_mass"]][uls] <- mgfs[["ms1_mass"]][uls] - mdiff
+  }
+
   # beyond the boundary of RT
   if (FALSE) {
     rts_ok <- rt[oks]
@@ -595,18 +616,28 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
   ## update MGF
   # charges <- get_ms1charges(mgfs[["ms1_charge"]])
   # mgfs[["ms1_moverz"]] <- (mgfs[["ms1_mass"]] + 1.00727647 * charges)/charges
-  post_calib(mgfs, min_mass, max_mass, mgf_path, filename)
+  post_calib(mgfs, min_mass, max_mass, mgf_path, filename, islist = islist)
   .savecall <- TRUE
 
   invisible(NULL)
 }
 
 
-#' Cross-validation of mass error at a given number of knots
+#' Subtract ms1_mass values in mass calibrations
+#' 
+#' @param vals MS1 mass values.
+#' @param islist Logical; is the vals in list for scalar.
+substract_ms1mass <- function (vals, mdiff, islist = FALSE)
+{
+  if (islist) lapply(vals, `-`, mdiff) else vals - mdiff
+}
+
+
+#' Cross-validation of mass errors at a given number of knots
 #' 
 #' @param df A data frame of search results.
 #' @param m The number of knots for fitting.
-#' @param k The fold of cross-valications
+#' @param k The fold of cross-validations.
 cv_ms1err <- function(m = 3L, k = 5L, df)
 {
   if (!is.data.frame(df))
@@ -651,22 +682,30 @@ cv_ms1err <- function(m = 3L, k = 5L, df)
 }
 
 
-#' Post MS1 calibrations.
+#' Post MS1 calibrations
 #' 
 #' @param mgfs MGF data.
-#' @param filename An MGF file name
+#' @param filename An MGF file name.
+#' @param islist Logical; are the ms1_mass values in list format or not.
 #' @inheritParams matchMS
-post_calib <- function (mgfs, min_mass, max_mass, mgf_path, filename)
+post_calib <- function (mgfs, min_mass, max_mass, mgf_path, filename, 
+                        islist = FALSE)
 {
-  mgfs <- mgfs |>
-    dplyr::arrange(ms1_mass) |> 
-    dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass)
-  
+  if (islist) {
+    mgfs$ms1_mass <- 
+      lapply(mgfs$ms1_mass, function (x) x[x >= min_mass & x <= max_mass])
+  }
+  else {
+    mgfs <- mgfs |>
+      dplyr::arrange(ms1_mass) |> 
+      dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass)
+  }
+
   qs::qsave(mgfs, file.path(mgf_path, filename), preset = "fast")
 }
 
 
-#' Finds off-sets in precursor masses.
+#' Finds off-sets in precursor masses
 #'
 #' @param tol Mass error tolerance.
 #' @inheritParams matchMS
@@ -704,7 +743,7 @@ find_ms1_offsets <- function (n_13c = 0L, ms1_notches = 0, tol = 1e-4)
 }
 
 
-#' Combines off-sets in precursor masses (notches and neutral losses).
+#' Combines off-sets in precursor masses (notches and neutral losses)
 #'
 #' The return contains no information of Unimod titles and positions since it is
 #' only used for pairing with experimental MGF data.

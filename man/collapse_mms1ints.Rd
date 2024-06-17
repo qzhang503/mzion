@@ -2,7 +2,7 @@
 % Please edit documentation in R/mzml.R
 \name{collapse_mms1ints}
 \alias{collapse_mms1ints}
-\title{Collapse MS1 intensities.}
+\title{Make MS1 X and Y matrices across adjacent scans}
 \usage{
 collapse_mms1ints(
   xs = NULL,
@@ -16,9 +16,9 @@ collapse_mms1ints(
 )
 }
 \arguments{
-\item{xs}{Vectors of SORTED m-over-z values.}
+\item{xs}{Vectors of m-over-z values in an ASCENDING order.}
 
-\item{ys}{Vectors of intensity values corresponding to xs.}
+\item{ys}{Vectors of intensity values corresponding to \code{xs}.}
 
 \item{lwr}{The lower mass limit.}
 
@@ -29,14 +29,15 @@ collapse_mms1ints(
 \item{cleanup}{Logical; to perform data row clean-ups or not. Rows may drop
 at \code{cleanup = TRUE}.}
 
-\item{sum_y}{Logical; to sum Y values or not. Mostly FALSE for Thermo's and
-TRUE for collapsing Bruker's MS2 slices.}
+\item{sum_y}{Logical; to sum Y values or not. Either TRUE or FALSE for
+Thermo's and TRUE for collapsing PASEF MS2 slices.}
 
 \item{add_colnames}{Logical; if TRUE, add the indexes of mass bins to the
 column names of \code{matx}.}
 }
 \description{
-Allow adjacent values in unv and later collapse adjacent columns/values.
+Allow adjacent values in \code{unv} and later collapse adjacent
+columns/values.
 }
 \examples{
 # Twos adjacent bins of xs: 392.1796, 392.1845

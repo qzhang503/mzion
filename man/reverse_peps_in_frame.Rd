@@ -2,7 +2,7 @@
 % Please edit documentation in R/msmsmatches2.R
 \name{reverse_peps_in_frame}
 \alias{reverse_peps_in_frame}
-\title{Helper of \link{reverse_seqs}.}
+\title{Helper of \link{reverse_seqs}}
 \usage{
 reverse_peps_in_frame(pep_frame)
 }

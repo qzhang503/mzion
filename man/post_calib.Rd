@@ -2,9 +2,9 @@
 % Please edit documentation in R/msmsmatches2.R
 \name{post_calib}
 \alias{post_calib}
-\title{Post MS1 calibrations.}
+\title{Post MS1 calibrations}
 \usage{
-post_calib(mgfs, min_mass, max_mass, mgf_path, filename)
+post_calib(mgfs, min_mass, max_mass, mgf_path, filename, islist = FALSE)
 }
 \arguments{
 \item{mgfs}{MGF data.}
@@ -26,8 +26,10 @@ interrogation.}
   With MSConvert, the default \code{titleMaker} is required for correct
   parsing (don't think it can be altered by users, but just in case).}
 
-\item{filename}{An MGF file name}
+\item{filename}{An MGF file name.}
+
+\item{islist}{Logical; are the ms1_mass values in list format or not.}
 }
 \description{
-Post MS1 calibrations.
+Post MS1 calibrations
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/mzml.R
 \name{find_mdda_mms1s}
 \alias{find_mdda_mms1s}
-\title{Finds mDDA precursors.}
+\title{Finds mDDA precursors}
 \usage{
 find_mdda_mms1s(
   msx_moverzs = NULL,
@@ -23,14 +23,15 @@ find_mdda_mms1s(
 )
 }
 \arguments{
-\item{msx_moverzs}{Vectors of bracketing (e.g. +/-6 scans) full-spectrum
-MS1 m-over-z values.}
+\item{msx_moverzs}{Vectors of bracketing (e.g. +/-6 scans) full-spectrum MS1
+m-over-z values. Each \code{msx_moverzs} needs to be in an ascending order.}
 
-\item{msx_ints}{Vectors of bracketing full-spectrum MS1 intensity values.}
+\item{msx_ints}{Vectors of bracketing full-spectrum MS1 intensity values
+corresponding to \code{msx_moverzs}.}
 
-\item{iso_ctr}{Vectors of isolation centers (e.g. top-12 scans) for MS2.}
+\item{iso_ctr}{Vectors of isolation centers (e.g. top-12 scans) of MS2.}
 
-\item{iso_lwr}{Vectors of isolation lowers for MS2.}
+\item{iso_lwr}{Vectors of isolation lowers of MS2.}
 
 \item{ppm}{Mass error tolerance.}
 

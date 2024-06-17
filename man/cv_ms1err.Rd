@@ -2,17 +2,17 @@
 % Please edit documentation in R/msmsmatches2.R
 \name{cv_ms1err}
 \alias{cv_ms1err}
-\title{Cross-validation of mass error at a given number of knots}
+\title{Cross-validation of mass errors at a given number of knots}
 \usage{
 cv_ms1err(m = 3L, k = 5L, df)
 }
 \arguments{
 \item{m}{The number of knots for fitting.}
 
-\item{k}{The fold of cross-valications}
+\item{k}{The fold of cross-validations.}
 
 \item{df}{A data frame of search results.}
 }
 \description{
-Cross-validation of mass error at a given number of knots
+Cross-validation of mass errors at a given number of knots
 }

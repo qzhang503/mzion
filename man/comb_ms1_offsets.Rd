@@ -2,7 +2,7 @@
 % Please edit documentation in R/msmsmatches2.R
 \name{comb_ms1_offsets}
 \alias{comb_ms1_offsets}
-\title{Combines off-sets in precursor masses (notches and neutral losses).}
+\title{Combines off-sets in precursor masses (notches and neutral losses)}
 \usage{
 comb_ms1_offsets(ms1_offsets = 0, ms1_neulosses = NULL)
 }

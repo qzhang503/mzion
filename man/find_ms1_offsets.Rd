@@ -2,7 +2,7 @@
 % Please edit documentation in R/msmsmatches2.R
 \name{find_ms1_offsets}
 \alias{find_ms1_offsets}
-\title{Finds off-sets in precursor masses.}
+\title{Finds off-sets in precursor masses}
 \usage{
 find_ms1_offsets(n_13c = 0L, ms1_notches = 0, tol = 1e-04)
 }
@@ -20,5 +20,5 @@ precursor masses.}
 A vector of mass off-sets.
 }
 \description{
-Finds off-sets in precursor masses.
+Finds off-sets in precursor masses
 }

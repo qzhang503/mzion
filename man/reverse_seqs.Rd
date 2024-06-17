@@ -2,7 +2,7 @@
 % Please edit documentation in R/msmsmatches2.R
 \name{reverse_seqs}
 \alias{reverse_seqs}
-\title{Reverses peptide sequences.}
+\title{Reverses peptide sequences}
 \usage{
 reverse_seqs(seqs)
 }
@@ -10,7 +10,7 @@ reverse_seqs(seqs)
 \item{seqs}{Lists of peptide sequences.}
 }
 \description{
-Reverses peptide sequences.
+Reverses peptide sequences
 }
 \examples{
 \donttest{

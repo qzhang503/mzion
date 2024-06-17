@@ -13,7 +13,9 @@ traceXY(
   step = 1e-05,
   reord = TRUE,
   cleanup = FALSE,
-  replace_ms1_by_apex = FALSE
+  replace_ms1_by_apex = FALSE,
+  y_perc = 0.01,
+  yco = 100
 )
 }
 \arguments{
@@ -38,6 +40,12 @@ the outputs. This will help, e.g., keep track of scan numbers in the input.}
 
 \item{replace_ms1_by_apex}{Logical; if TRUE, fill all entries within a gate
 by its apex values.}
+
+\item{y_perc}{The cut-off in intensity values in relative to the base peak.}
+
+\item{yco}{The cut-off in y values. An arbitrary small number. The MS1 peaks
+with high-resolution Thermo's instruments are not a continuum and the
+maximum number of MS1 peaks seem \eqn{\le 1500}.}
 }
 \description{
 Helper of MS1 tracing.
