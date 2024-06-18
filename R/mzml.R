@@ -1536,8 +1536,17 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
   iso_lwr <- ans$iso_lwr
   iso_upr <- ans$iso_upr
   # mobility <- ans$mobility # NULL for Thermo's data
-  rm(list = "ans")
+  # rm(list = "ans")
   
+  local({
+    lens <- unique(lengths(ans[names(ans) != "raw_file"]))
+    
+    if (length(lens) > 1L) {
+      stop("Developer: check for uneven lengths in parsing RAW-MS data:", 
+           paste(lens, collapse = ", "))
+    }
+  })
+
   ##
   # May confirm that each vector of msx_moverzs are in ascending order
   ##

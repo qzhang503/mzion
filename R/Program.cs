@@ -31,14 +31,12 @@ namespace MYSPACE
 
     public static class IRawDataPlusExtension
     {
-        public static void WriteSpectrum(this IRawDataPlus rawFile, string filename, List<int> L)
+        public static void WriteSpectrum(this IRawDataPlus rawFile, string outname, List<int> L)
         {
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(filename))
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(outname))
             {
-                int IndexMonoMZ = 8, IndexIsoWidth = 12;
                 double isoMass = 0.0, isoWidth = 0.0;
                 string msOrder = "0";
-                bool isCentroidMS2 = true;
 
                 file.WriteLine("RAW\n{0}\n", Path.GetFileName(rawFile.FileName));
 
@@ -50,7 +48,6 @@ namespace MYSPACE
                     file.WriteLine("SCAN\n{0}", scanNumber);
                     file.WriteLine("TIME\n{0}", Math.Round(Convert.ToDouble(scanStatistics.StartTime), 6));
 
-                    // MS order
                     msOrder = scanEvent.MSOrder.ToString().ToLower();
 
                     if (msOrder == "ms2")
@@ -68,12 +65,14 @@ namespace MYSPACE
 
                     file.WriteLine("MSORDER\n{0}", msOrder);
 
-                    // Centroid MS2
-                    isCentroidMS2 = scanStatistics.IsCentroidScan && msOrder == "2";
-
-                    if (isCentroidMS2)
+                    if (msOrder == "1")
                     {
-                        var reaction0 = scanEvent.GetReaction(0); // only available with centroid scans
+                        isoMass = 0;
+                        isoWidth = 0;
+                    }
+                    else
+                    {
+                        var reaction0 = scanEvent.GetReaction(0); // not for PROFILE MS1
                         isoMass = Math.Round(Convert.ToDouble(reaction0.PrecursorMass), 4);
                         isoWidth = Math.Round(Convert.ToDouble(reaction0.IsolationWidth), 4);
                     }
@@ -83,10 +82,6 @@ namespace MYSPACE
 
                     if (NcentroidPeaks > 0)
                     {
-                        var scanTrailer = rawFile.GetTrailerExtraInformation(scanNumber);
-                        IndexMonoMZ = scanTrailer.Labels.NthIndexOf("Monoisotopic M/Z:", 1);
-                        IndexIsoWidth = scanTrailer.Labels.NthIndexOf("MS2 Isolation Width:", 1);
-
                         double[] masses = new double[NcentroidPeaks];
                         double[] intensities = new double[NcentroidPeaks];
 
@@ -96,37 +91,11 @@ namespace MYSPACE
                             intensities[i] = Math.Round(Convert.ToDouble(centroidStream.Intensities[i]), 1);
                         }
 
-                        if (isCentroidMS2)
-                        {
-                            file.WriteLine("ISOMASS\n{0}", isoMass);
-                            file.WriteLine("ISOWIDTH\n{0}", isoWidth);
-                        }
-                        else
-                        {
-                            if (IndexMonoMZ >= 0)
-                            {
-                                file.WriteLine("ISOMASS\n{0}", scanTrailer.Values[IndexMonoMZ]); // "-1.00" for DIA
-                            }
-                            else
-                            {
-                                file.WriteLine("ISOMASS\n0");
-                            }
-
-                            if (IndexIsoWidth >= 0)
-                            {
-                                file.WriteLine("ISOWIDTH\n{0}", scanTrailer.Values[IndexIsoWidth]); // "-1.00" for DIA
-                            }
-                            else
-                            {
-                                file.WriteLine("ISOWIDTH\n0");
-                            }
-                        }
-                        
+                        file.WriteLine("ISOMASS\n{0}", isoMass);
+                        file.WriteLine("ISOWIDTH\n{0}", isoWidth);
                         file.WriteLine("NPEAKS\n{0}", NcentroidPeaks);
-                        file.WriteLine("X\n{0}", string.Join(",", masses));
-                        file.WriteLine("Y\n{0}", string.Join(",", intensities));
-                        // file.WriteLine("LOWMASS\n{0}", masses[0]);
-                        // file.WriteLine("HIGHMASS\n{0}", masses[masses.Length - 1]);
+                        file.WriteLine("X\n{0}", string.Join(" ", masses));
+                        file.WriteLine("Y\n{0}", string.Join(" ", intensities));
                         file.WriteLine("TITLE\nFile: {0}; scans: {1}\n", rawFile.FileName, scanNumber);
                     }
                     else
@@ -136,8 +105,6 @@ namespace MYSPACE
                         file.WriteLine("NPEAKS\n0");
                         file.WriteLine("X\n0");
                         file.WriteLine("Y\n0");
-                        // file.WriteLine("LOWMASS\n0");
-                        // file.WriteLine("HIGHMASS\n0");
                         file.WriteLine("TITLE\nFile: {0}; scans: {1}\n", rawFile.FileName, scanNumber);
                     }
 
@@ -159,14 +126,26 @@ namespace MyApp
     {
         private static void Main(string[] args)
         {
+            /*
+             #if DEBUG
+                        args = new[] { "mypath/filename.raw",
+                        "~/AppData/Local/Temp/foo/foo.peaks"
+                        };
+            #endif 
+            */
 
-            string filename = string.Empty;
-
-            filename = args[0];
+            string filename = args[0];
+            string outname  = args[1];
 
             if (string.IsNullOrEmpty(filename))
             {
                 Console.WriteLine("No RAW file specified!");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(outname))
+            {
+                Console.WriteLine("No output file specified!");
                 return;
             }
 
@@ -198,7 +177,7 @@ namespace MyApp
 
                 if (scans.Count > 0)
                 {
-                    rawFile.WriteSpectrum(args[1], scans);
+                    rawFile.WriteSpectrum(outname, scans);
                 }
 
                 return;
