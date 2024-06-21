@@ -13,7 +13,7 @@ calc_ms1xys(matx, maty)
 }
 \value{
 A list of x: the weighted means of m-over-z values; y: the sum of
-  intensities; n: the numbers of observations.
+  intensities over flanking MS1s; n: the numbers of observed precursors.
 }
 \description{
 Collapse MS1 matrices of X and Y

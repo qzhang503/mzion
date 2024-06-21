@@ -10,6 +10,7 @@ getMS1xyz(
   ms_level = NULL,
   iso_ctr = NULL,
   iso_lwr = NULL,
+  iso_upr = NULL,
   ms1_moverzs = NULL,
   ms1_charges = NULL,
   ms1_ints = NULL,
@@ -39,7 +40,11 @@ corresponding to \code{msx_moverzs}.}
 
 \item{iso_ctr}{A vector of isolation centers.}
 
-\item{iso_lwr}{A vector of isolation lowers.}
+\item{iso_lwr}{A vector of isolation uppers.}
+
+\item{iso_upr}{Vectors of isolation uppers of MS2. Both \code{iso_lwr} and
+\code{iso_upr} are used, in case of asymmetrical isolation to
+\code{iso_ctr}.}
 
 \item{ms1_moverzs}{MS1 m-over-z values.}
 

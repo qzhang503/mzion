@@ -24,7 +24,8 @@ find_ms1stat(
   backward_mass_co = 800/ms_lev,
   grad_isotope = 1.6,
   fct_iso2 = 3,
-  use_defpeaks = FALSE
+  use_defpeaks = FALSE,
+  is_pasef = FALSE
 )
 }
 \arguments{
@@ -82,6 +83,8 @@ precursor.}
 \item{use_defpeaks}{Depreciated. Logical; if TRUE, uses MS1 m-over-z's,
 intensities and charge states pre-calculated by other peak-picking
 algorithms.}
+
+\item{is_pasef}{Logical; is TIMS TOF data or not.}
 }
 \description{
 De-isotopes precursor masses.

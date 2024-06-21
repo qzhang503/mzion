@@ -10,8 +10,9 @@ pasefMS1xyz(
   ms1_fr,
   ms_level,
   orig_scan,
-  iso_ctr,
-  iso_lwr,
+  iso_ctr = NULL,
+  iso_lwr = NULL,
+  iso_upr = NULL,
   ms1_moverzs = NULL,
   ms1_charges = NULL,
   ms1_ints = NULL,
@@ -35,7 +36,9 @@ pasefMS1xyz(
 
 \item{iso_ctr}{A vector of isolation centers.}
 
-\item{iso_lwr}{A vecor of isolation lowers.}
+\item{iso_lwr}{A vector of isolation lowers.}
+
+\item{iso_upr}{A vector of isolation uppers.}
 
 \item{ms1_moverzs}{MS1 moverz values.}
 

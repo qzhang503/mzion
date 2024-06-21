@@ -327,10 +327,11 @@ extract_pasef_ms1 <- function (mdata, keys)
     # qs::qsave(ans1, "~/ans1_extract_pasef_ms1.rds", preset = "fast")
     ans1 <- qs::qread("~/ans1_extract_pasef_ms1.rds")
     scans <- sapply(ans1, `[[`, "scan_num")
-    i <- which(scans == 9920)
+    # i <- which(scans == 9920)
+    i <- which(scans == 9915) # i <- 114
     ai <- ans1[[i]]
     df <- data.frame(x = ai$msx_moverzs, y = ai$msx_ints)
-    dfx <- df |> dplyr::filter(x >= 460, x <= 463)
+    dfx <- df |> dplyr::filter(x >= 926, x <= 928)
     ggplot2::ggplot() + 
       ggplot2::geom_segment(dfx, mapping = aes(x = x, y = y, xend = x, yend = 0), 
                             color = "gray", linewidth = .1)
@@ -917,10 +918,18 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
   ms_levels <- rep_len(ans$ms_level, len)
   ret_times <- rep_len(ans$ret_time, len)
   scan_nums <- ans$scan_num + seq_len(len) / 10^nchar(as.character(len))
+  
+  ## MonoisotpoicMz is almost always -.8 and -0.1 lower than IsolationMz?
+  ## IsolationWidth is 2 at ~ IsolationMz < 720 and 3 at IsolationMz > 800.
+  ## The wide IsolationWidth may be intended to include lower m/z values in 
+  #   deisotoping, but Mzion has its own extension (+/-2 around IsolationMz).
+
+  # iso_lwrs <- iso_ctrs - iso_widths
+  # iso_uprs <- iso_ctrs
   half_widths <- iso_widths / 2
   iso_lwrs <- iso_ctrs - half_widths
   iso_uprs <- iso_ctrs + half_widths
-  
+
   for (i in 1:len) {
     out[[i]] <- list(
       msx_moverzs = msx_moverzs[[i]], 

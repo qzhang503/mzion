@@ -9,6 +9,7 @@ find_mdda_mms1s(
   msx_ints = NULL,
   iso_ctr = NULL,
   iso_lwr = NULL,
+  iso_upr = NULL,
   ppm = 10L,
   maxn_precurs = 5L,
   max_ms1_charge = 4L,
@@ -16,10 +17,11 @@ find_mdda_mms1s(
   grad_isotope = 1.6,
   fct_iso2 = 3,
   use_defpeaks = FALSE,
-  width = 2.01,
+  width = 1.25,
   margin = 0.5,
   min_mass = 200L,
-  step = ppm/1e+06
+  step = ppm/1e+06,
+  is_pasef = FALSE
 )
 }
 \arguments{
@@ -32,6 +34,10 @@ corresponding to \code{msx_moverzs}.}
 \item{iso_ctr}{Vectors of isolation centers (e.g. top-12 scans) of MS2.}
 
 \item{iso_lwr}{Vectors of isolation lowers of MS2.}
+
+\item{iso_upr}{Vectors of isolation uppers of MS2. Both \code{iso_lwr} and
+\code{iso_upr} are used, in case of asymmetrical isolation to
+\code{iso_ctr}.}
 
 \item{ppm}{Mass error tolerance.}
 
@@ -53,16 +59,19 @@ adjacent peak being a mono-isotopic precursor}
 
 \item{use_defpeaks}{Use default peak info or not.}
 
-\item{width}{The width of an MS1 window. A wide window is used for containing
-isotope envelops.}
+\item{width}{The width of an MS1 window. An extended window is used to
+contain isotope envelops.}
 
-\item{margin}{The margin of an m-over-z extended to an isolation window.}
+\item{margin}{The margin of an m-over-z extended to an isolation window (to
+account for the imperfection of the voltage gates of isolation).}
 
 \item{min_mass}{A positive integer; the minimum precursor mass for
 interrogation. The default is an arbitrarily low value (the primary guard
 against low molecular-weight precursors is \code{min_len}).}
 
 \item{step}{A step size.}
+
+\item{is_pasef}{Logical; is TIMS TOF data or not.}
 }
 \value{
 A list. x: monoisotopic moverzs (weighted mean statistics); y:

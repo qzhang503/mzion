@@ -20,6 +20,7 @@
 #' @param backward_mass_co A mass cut-off to initiate backward looking of an
 #'   isotope envelop.
 #' @param fct_iso2 The multiplication factor for the second isotopic peak.
+#' @param is_pasef Logical; is TIMS TOF data or not.
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
@@ -67,7 +68,8 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
                           max_charge = 4L, n_fwd = 20L, offset_upr = 30L, 
                           offset_lwr = 30L, step = ppm/1e6, 
                           backward_mass_co = 800/ms_lev, grad_isotope = 1.6, 
-                          fct_iso2 = 3.0, use_defpeaks = FALSE)
+                          fct_iso2 = 3.0, use_defpeaks = FALSE, 
+                          is_pasef = FALSE)
 {
   ###
   # if to apply intensity cut-offs, should note the difference intensity 
@@ -277,6 +279,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       lenh <- length(hits)
     }
     
+    ## test more on ymono vs ymean...
     # intens[[p]] <- ymono
     intens[[p]] <- ymean
     peaks[[p]] <- mass
@@ -325,13 +328,26 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     intensities <- c(rptr_ints, intensities)
   }
   
-  # Deisotoping from high-to-low intensities
+  # De-isotoping from high-to-low intensities
   # For MS2, the sequences need to be from low-to-high m-over-z values
-  ord <- order(masses)
-  masses <- masses[ord]
-  charges <- charges[ord]
-  intensities <- intensities[ord]
+  len_out <- length(masses)
   
+  # MS2 need to be ordered from low to high m/z values
+  if (len_out > 1L) {
+    if (ms_lev == 1L) {
+      ord <- order(intensities, decreasing = TRUE)
+      masses <- masses[ord]
+      charges <- charges[ord]
+      intensities <- intensities[ord]
+    }
+    else {
+      ord <- order(masses)
+      masses <- masses[ord]
+      charges <- charges[ord]
+      intensities <- intensities[ord]
+    }
+  }
+
   out <- list(masses = masses, charges = charges, intensities = intensities)
 }
 
