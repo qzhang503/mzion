@@ -14,10 +14,12 @@ find_mdda_mms1s(
   maxn_precurs = 5L,
   max_ms1_charge = 4L,
   n_fwd = 20L,
+  n_bwd = 20L,
   grad_isotope = 1.6,
   fct_iso2 = 3,
   use_defpeaks = FALSE,
-  width = 1.25,
+  width_left = 2.01,
+  width_right = 1.25,
   margin = 0.5,
   min_mass = 200L,
   step = ppm/1e+06,
@@ -47,6 +49,8 @@ corresponding to \code{msx_moverzs}.}
 
 \item{n_fwd}{Forward looking up to \code{n_fwd} mass entries.}
 
+\item{n_bwd}{Backward looking up to \code{n_bwd} mass entries.}
+
 \item{grad_isotope}{Positive numeric; the gradient threshold between two
 adjacent peaks in an isotopic envelop. The smaller the value, the more
 stringent it is in calling an adjacent peak being a mono-isotopic
@@ -59,8 +63,11 @@ adjacent peak being a mono-isotopic precursor}
 
 \item{use_defpeaks}{Use default peak info or not.}
 
-\item{width}{The width of an MS1 window. An extended window is used to
-contain isotope envelops.}
+\item{width_left}{The left-width of an extended MS1 isolation window to
+contain a full isotope envelops.}
+
+\item{width_right}{The right-width of an extended MS1 isolation window to
+contain a full isotope envelops.}
 
 \item{margin}{The margin of an m-over-z extended to an isolation window (to
 account for the imperfection of the voltage gates of isolation).}

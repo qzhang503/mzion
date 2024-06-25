@@ -5,11 +5,15 @@
 \title{Deisotopes DDA-MS2}
 \usage{
 deisoDDAMS2(
-  msx_moverzx,
-  msx_intx,
+  ms2_moverzs,
+  ms2_ints,
   topn_ms2ions = 150L,
   ppm_ms2_deisotope = 8L,
   max_ms2_charge = 3L,
+  n_fwd = 10L,
+  n_bwd = 10L,
+  offset_upr = 30L,
+  offset_lwr = 30L,
   grad_isotope = 1.6,
   fct_iso2 = 3,
   quant = "none",
@@ -20,9 +24,9 @@ deisoDDAMS2(
 )
 }
 \arguments{
-\item{msx_moverzx}{Full-spectrum MS1 or MS2 m-over-z values.}
+\item{ms2_moverzs}{MS2 m-over-z values.}
 
-\item{msx_intx}{Full-spectrum MS1 or MS2 intensities.}
+\item{ms2_ints}{MS2 intensities.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}
@@ -31,6 +35,15 @@ searches.}
 
 \item{max_ms2_charge}{Maximum charge states for consideration with MS2
 deisotoping.}
+
+\item{n_fwd}{Forward looking up to \code{n_fwd} mass entries. The default is
+20 for MS1 and 10 for MS2.}
+
+\item{n_bwd}{Backward looking up to \code{n_bwd} mass entries.}
+
+\item{offset_upr}{A cardinal number of upper mass off-sets.}
+
+\item{offset_lwr}{A cardinal number of lower mass off-sets.}
 
 \item{grad_isotope}{Positive numeric; the gradient threshold between two
 adjacent peaks in an isotopic envelop. The smaller the value, the more

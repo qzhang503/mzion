@@ -4,7 +4,7 @@
 \alias{post_calib}
 \title{Post MS1 calibrations}
 \usage{
-post_calib(mgfs, min_mass, max_mass, mgf_path, filename, islist = FALSE)
+post_calib(mgfs, min_mass, max_mass, mgf_path, filename, is_listmass = FALSE)
 }
 \arguments{
 \item{mgfs}{MGF data.}
@@ -28,7 +28,7 @@ interrogation.}
 
 \item{filename}{An MGF file name.}
 
-\item{islist}{Logical; are the ms1_mass values in list format or not.}
+\item{is_listmass}{Logical; are the ms1_mass values in list format or not.}
 }
 \description{
 Post MS1 calibrations

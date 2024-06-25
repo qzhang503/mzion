@@ -704,7 +704,7 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
 
   if (n_im != length(aa_masses_all)) {
     stop("Unequal number of modules between ion matches and amino-acid lookups.", 
-         "\nDelete `ion_meatches_` under `temp` and restart.")
+         "\nDelete `ion_matches_` under `temp` and restart.")
   }
 
   args_except <- c("fdr_type", "maxn_mdda_precurs", "n_ms2_bg")

@@ -11,20 +11,20 @@ find_charge_state(
   moverzs,
   msxints,
   n_ms1s,
-  lenm,
   max_charge = 4L,
   n_fwd = 20L,
+  n_bwd = 20L,
   ms_lev = 1L,
   is_dda = TRUE,
-  ppm = 8
+  tol = 8e-06
 )
 }
 \arguments{
-\item{mass}{The current mass.}
+\item{mass}{The mass of a peak for questing its charge state.}
 
-\item{imax}{The index of the most intense peak.}
+\item{imax}{The index of the peak, which is often the most intense.}
 
-\item{mint}{The maximum intensity (corresponding to the peak at \code{imax}).}
+\item{mint}{Not yet used. The intensity of the peak at \code{imax}.}
 
 \item{moverzs}{MS1 or MS2 Mass-to-charge ratios. The inputs are typically at
 weighted-mean statistics.}
@@ -35,18 +35,18 @@ statistics.}
 \item{n_ms1s}{The underlying counts that have contributed to \code{moverzs}
 and \code{maxints}.}
 
-\item{lenm}{The length of \code{moverzs}.}
-
 \item{max_charge}{The maximum charge state.}
 
 \item{n_fwd}{Forward looking up to \code{n_fwd} mass entries. The default is
 20 for MS1 and 10 for MS2.}
 
+\item{n_bwd}{Backward looking up to \code{n_bwd} mass entries.}
+
 \item{ms_lev}{MS level.}
 
 \item{is_dda}{Logical; is DDA or not.}
 
-\item{ppm}{Allowance in mass error when deisotoping.}
+\item{tol}{The tolerance in mass errors.}
 }
 \description{
 Finds charge state.

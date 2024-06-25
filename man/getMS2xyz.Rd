@@ -9,6 +9,10 @@ getMS2xyz(
   msx_ints = NULL,
   topn_ms2ions = 150L,
   quant = "none",
+  n_fwd = 10L,
+  n_bwd = 10L,
+  offset_upr = 30L,
+  offset_lwr = 30L,
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
   exclude_reporter_region = FALSE,
@@ -34,6 +38,15 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 15N)}. It is also possible that an experimenter may construct a
 \code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
 \code{quant = tmt18} is suitable.}
+
+\item{n_fwd}{Forward looking up to \code{n_fwd} mass entries. The default is
+20 for MS1 and 10 for MS2.}
+
+\item{n_bwd}{Backward looking up to \code{n_bwd} mass entries.}
+
+\item{offset_upr}{A cardinal number of upper mass off-sets.}
+
+\item{offset_lwr}{A cardinal number of lower mass off-sets.}
 
 \item{tmt_reporter_lower}{The lower bound of the region of TMT reporter ions.
 The default is \eqn{126.1}.}

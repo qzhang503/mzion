@@ -12,7 +12,8 @@ calib_ms1(
   ppm_ms1 = 20L,
   min_mass = 200L,
   max_mass = 4500L,
-  range = 3:6
+  range = 3:6,
+  is_tmt = FALSE
 )
 }
 \arguments{
@@ -43,6 +44,8 @@ against low molecular-weight precursors is \code{min_len}).}
 interrogation.}
 
 \item{range}{The range of spine knots.}
+
+\item{is_tmt}{is a TMT experiment or not.}
 }
 \description{
 Calibrates precursor masses (by individual RAW_Files)

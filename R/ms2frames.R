@@ -30,7 +30,18 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
   
   # data thinning for MGF calibrations
   if (first_search) {
-    mgfs <- lapply(mgfs, thin_mgf)
+    n_mgfs <- length(mgfs)
+    
+    fold <- if (n_mgfs <= 2L)
+      1L
+    else if (n_mgfs <= 5L)
+      2L
+    else if (n_mgfs <= 25L)
+      ceiling(n_mgfs / 5L)
+    else 
+      min(n_mgfs, 10L)
+    
+    mgfs <- lapply(mgfs, thin_mgf, fold = fold)
   }
   
   mgfs <- dplyr::bind_rows(mgfs)
@@ -61,17 +72,17 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
 }
 
 
-#' Peaklist data thinning.
+#' Peaklist data thinning
 #'
 #' @param df A data frame containing peaklists.
+#' @param fold The number of folds in data thinning.
 #' @param use_first_mass Logical; if TRUE, uses the first masses in chimeric
 #'   spectra.
-thin_mgf <- function (df, use_first_mass = FALSE)
+thin_mgf <- function (df, fold = 1L, use_first_mass = FALSE)
 {
   nr <- nrow(df)
   if (!nr) return(df)
-  fct <- ceiling(nr / 50000L)
-  if (fct == 1L) return(df)
+  if (fold == 1L) return(df)
   
   masses0 <- df$ms1_mass
   
@@ -118,7 +129,7 @@ thin_mgf <- function (df, use_first_mass = FALSE)
   mgfa <- df[oks_max, ]
   mgfb <- df[oks_min, ]
   mgfc <- df[!(oks_max | oks_min), ]
-  rows <- (1:nrow(mgfc)) %% fct == 1L
+  rows <- (1:nrow(mgfc)) %% fold == 1L
   
   out  <- dplyr::bind_rows(mgfa, mgfc[rows, ], mgfb)
 }

@@ -117,40 +117,27 @@ proc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L,
     cl <- parallel::makeCluster(getOption("cl.cores", n_para), outfile = logs)
     lines <- chunksplit(lines, n_para)
     iso_info <- lapply(lines, sep_pasef_ms2info, iso_info)
-
-    ans <- parallel::clusterMap(
+    
+    out <- parallel::clusterMap(
       cl, hextract_pasef, 
       lines, 
       iso_info, 
       SIMPLIFY = FALSE, USE.NAMES = FALSE)
     parallel::stopCluster(cl)
-
-    nms <- names(ans[[1]])
-    n_col <- length(ans[[1]])
-    out <- vector("list", n_col)
-    for (i in seq_len(n_col)) {
-      out[[i]] <- unlist(lapply(ans, `[[`, i), recursive = FALSE, 
-                         use.names = FALSE)
-    }
-    names(out) <- nms
+    
+    out <- dplyr::bind_rows(out)
   }
   
-  # good for code safety
-  if (debug) {
-    if (!is.numeric(out$scan_num))
-      stop("Anticipating numeric values for `scan_num`.")
-    
-    ord <- order(out$scan_num)
-    
-    if (!identical(out$scan_num, out$scan_num[ord]))
-      stop("Anticipating ascending `scan_num`.")
-  }
-
   ###
-  ##  may trigger data filtraiton by `scan_num` here...
+  ##  may trigger data filtration by `scan_num` here...
   ###
 
   out$scan_num <- seq_along(out$scan_num)
+  lens <- lengths(out$msx_moverzs)
+  oks <- out[["ms_level"]] == 1L | (lens >= 25L & lens <= 2000L)
+  out <- out[oks, ]
+  
+  out <- as.list(out)
   out$raw_file <- raw_file # scalar
   out_name <- paste0(raw_file, ".rds")
   qs::qsave(out, file.path(temp_dir, out_name), preset = "fast")
@@ -273,42 +260,51 @@ hextract_pasef <- function (
   oks2 <- .Internal(which(!oks1))
   
   ## MS1 and MS2
+  out1 <- extract_pasef_ms1(mdata = mdata[oks1], keys = keys)
+  out1$ms1_fr <- out1$orig_scan
   out2 <- extract_pasef_ms2(ms2data = mdata[oks2], lens2 = lens[oks2], 
                             iso_info = iso_info, keys = keys, step = step)
-  out1 <- extract_pasef_ms1(mdata = mdata[oks1], keys = keys)
-  
+  # out2 <- qs::qread("~/out2_hextract_pasef.rds")
+  # out1 <- qs::qread("~/out1_hextract_pasef.rds")
+
   ## put together
-  if (FALSE) {
-    df2 <- tibble::tibble(
-      msx_moverzs = out2$msx_moverzs, 
-      msx_ints = out2$msx_ints, 
-      msx_ns = out2$msx_ns, 
-      ms1_fr = out2$ms1_fr, 
-      ms1_moverzs = out2$ms1_moverzs, 
-      ms1_ints = out2$ms1_ints, 
-      ms1_charges = out2$ms1_charges, 
-      scan_title = out2$scan_title, 
-      ms_level = out2$ms_level, 
-      ret_time = out2$ret_time, 
-      scan_num = out2$scan_num, 
-      orig_scan = out2$orig_scan, 
-      iso_ctr = out2$iso_ctr, 
-      iso_lwr = out2$iso_lwr, 
-      iso_upr = out2$iso_upr, 
-      mobility = out2$mobility, )
-    df2x <- df2 |> dplyr::filter(ms1_fr == 9920)
-    z2 <- df2x[39, ]
+  if (length(out1) == length(out2)) {
+    out <- mapply(`c`, out1, out2, SIMPLIFY = FALSE, USE.NAMES = TRUE)
+  }
+  else {
+    stop("Developer: uneven number of columns between MS1 and MS2 data.")
+  }
+
+  # names(out) <- names(out1)
+  # ord <- order(out[["scan_num"]])
+  # for (i in seq_along(out)) {
+  #   out[[i]] <- out[[i]][ord]
+  # }
+
+  df <- tibble::tibble(
+    msx_moverzs = out$msx_moverzs, 
+    msx_ints = out$msx_ints, 
+    msx_ns = out$msx_ns, 
+    ms1_fr = out$ms1_fr, 
+    ms1_moverzs = out$ms1_moverzs, 
+    ms1_ints = out$ms1_ints, 
+    ms1_charges = out$ms1_charges, 
+    scan_title = out$scan_title, 
+    ms_level = out$ms_level, 
+    ret_time = out$ret_time, 
+    scan_num = out$scan_num, 
+    orig_scan = out$orig_scan, 
+    iso_ctr = out$iso_ctr, 
+    iso_lwr = out$iso_lwr, 
+    iso_upr = out$iso_upr, 
+    mobility = out$mobility, )
+  df <- df[with(df, order(ms1_fr, scan_num)), ]
+  
+  if (ncol(df) != length(out)) {
+    stop("Developer: checks for column drops.")
   }
   
-  out <- mapply(`c`, out1, out2, SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  names(out) <- names(out1)
-
-  ord <- order(out[["scan_num"]])
-  for (i in seq_along(out)) {
-    out[[i]] <- out[[i]][ord]
-  }
-
-  out
+  df
 }
 
 
@@ -926,9 +922,19 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
 
   # iso_lwrs <- iso_ctrs - iso_widths
   # iso_uprs <- iso_ctrs
-  half_widths <- iso_widths / 2
-  iso_lwrs <- iso_ctrs - half_widths
-  iso_uprs <- iso_ctrs + half_widths
+  
+  # half_widths <- iso_widths / 2
+  # iso_lwrs <- iso_ctrs - half_widths
+  # iso_uprs <- iso_ctrs + half_widths
+  
+  if (FALSE) {
+    tempd <- iso_info[with(iso_info, MonoisotpoicMz > 0), ]
+    med <- median(tempd$MonoisotpoicMz - tempd$IsolationMz, na.rm = TRUE)
+  }
+  
+  iso_uprs <- iso_ctrs
+  iso_lwrs <- iso_uprs - iso_widths/2 # iso_widths 2:3, arbitrarily use half
+  iso_ctrs <- (iso_uprs + iso_lwrs) / 2
 
   for (i in 1:len) {
     out[[i]] <- list(

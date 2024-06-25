@@ -2,16 +2,18 @@
 % Please edit documentation in R/ms2frames.R
 \name{thin_mgf}
 \alias{thin_mgf}
-\title{Peaklist data thinning.}
+\title{Peaklist data thinning}
 \usage{
-thin_mgf(df, use_first_mass = FALSE)
+thin_mgf(df, fold = 1L, use_first_mass = FALSE)
 }
 \arguments{
 \item{df}{A data frame containing peaklists.}
+
+\item{fold}{The number of folds in data thinning.}
 
 \item{use_first_mass}{Logical; if TRUE, uses the first masses in chimeric
 spectra.}
 }
 \description{
-Peaklist data thinning.
+Peaklist data thinning
 }

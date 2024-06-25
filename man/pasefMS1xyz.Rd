@@ -2,7 +2,7 @@
 % Please edit documentation in R/mzml.R
 \name{pasefMS1xyz}
 \alias{pasefMS1xyz}
-\title{Deisotoping DDA-MS1.}
+\title{De-isotoping DDA-MS1}
 \usage{
 pasefMS1xyz(
   msx_moverzs,
@@ -86,5 +86,5 @@ algorithms.}
 \item{msx_int}{Full-spectrum MS1 or MS2 intensities.}
 }
 \description{
-Deisotoping DDA-MS1.
+De-isotoping DDA-MS1
 }

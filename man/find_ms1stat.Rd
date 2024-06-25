@@ -18,6 +18,7 @@ find_ms1stat(
   maxn_feats = 300L,
   max_charge = 4L,
   n_fwd = 20L,
+  n_bwd = 20L,
   offset_upr = 30L,
   offset_lwr = 30L,
   step = ppm/1e+06,
@@ -63,6 +64,8 @@ The default is \eqn{135.2}.}
 
 \item{n_fwd}{Forward looking up to \code{n_fwd} mass entries. The default is
 20 for MS1 and 10 for MS2.}
+
+\item{n_bwd}{Backward looking up to \code{n_bwd} mass entries.}
 
 \item{offset_upr}{A cardinal number of upper mass off-sets.}
 

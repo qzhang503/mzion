@@ -4,12 +4,14 @@
 \alias{substract_ms1mass}
 \title{Subtract ms1_mass values in mass calibrations}
 \usage{
-substract_ms1mass(vals, mdiff, islist = FALSE)
+substract_ms1mass(vals, mdiff, is_listmass = FALSE)
 }
 \arguments{
 \item{vals}{MS1 mass values.}
 
-\item{islist}{Logical; is the vals in list for scalar.}
+\item{mdiff}{A relative error of mass, e.g., 2E-5.}
+
+\item{is_listmass}{Logical; is the vals in list for scalar.}
 }
 \description{
 Subtract ms1_mass values in mass calibrations

@@ -1022,7 +1022,7 @@ proc_mgfs <- function (lines, topn_ms2ions = 150L,
                      tmt_reporter_upper = tmt_reporter_upper, 
                      ppm = ppm_ms2_deisotope, 
                      ms_lev = 2L, maxn_feats = topn_ms2ions, 
-                     max_charge = max_ms2_charge, n_fwd = 10L, 
+                     max_charge = max_ms2_charge, n_fwd = 10L, n_bwd = 10L, 
                      offset_upr = 30L, offset_lwr = 30L
                    ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
     ms2_moverzs <- lapply(mics, `[[`, "masses")

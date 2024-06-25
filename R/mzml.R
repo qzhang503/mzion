@@ -94,8 +94,8 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
     peakfiles <- unlist(peakfiles)
   }
   else {
-    peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.d\\.rds$")
-    # peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.raw\\.rds$")
+    # peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.d\\.rds$")
+    peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.raw\\.rds$")
     is_dia <- FALSE
     mzml_type <- "raw"
   }
@@ -1192,43 +1192,47 @@ deisoDDA <- function (filename = NULL, temp_dir = NULL,
   # msx_: full spectra of ms1 and ms2, differentiated by ms_lev
   ###
   
-  df <- predeisoDDA(
-    filename, 
-    temp_dir = temp_dir, 
-    mzml_type = mzml_type, 
-    ppm_ms1 = ppm_ms1, 
-    ppm_ms2 = ppm_ms2, 
-    maxn_mdda_precurs = maxn_mdda_precurs, 
-    topn_ms2ions = topn_ms2ions, 
-    n_mdda_flanks = n_mdda_flanks, 
-    n_dia_scans = n_dia_scans, 
-    min_mass = min_mass, 
-    max_mass = max_mass, 
-    min_ms2mass = min_ms2mass, 
-    max_ms2mass = max_ms2mass, 
-    min_ms1_charge = min_ms1_charge, 
-    max_ms1_charge = max_ms1_charge, 
-    min_ret_time = min_ret_time, 
-    max_ret_time = max_ret_time, 
-    min_scan_num = min_scan_num, 
-    max_scan_num = max_scan_num, 
-    deisotope_ms2 = deisotope_ms2, 
-    max_ms2_charge = max_ms2_charge, 
-    ppm_ms1_deisotope = ppm_ms1_deisotope, 
-    ppm_ms2_deisotope = ppm_ms2_deisotope, 
-    grad_isotope = grad_isotope, 
-    fct_iso2 = fct_iso2, 
-    quant = quant, 
-    use_lfq_intensity = use_lfq_intensity, 
-    tmt_reporter_lower = tmt_reporter_lower, 
-    tmt_reporter_upper = tmt_reporter_upper, 
-    exclude_reporter_region = exclude_reporter_region, 
-    use_defpeaks = use_defpeaks, 
-    is_pasef = is_pasef, 
-    n_para = n_para)
-  # df <- qs::qread(file.path("~", paste0("df_", filename, ".rds")))
+  if (TRUE) {
+    df <- predeisoDDA(
+      filename, 
+      temp_dir = temp_dir, 
+      mzml_type = mzml_type, 
+      ppm_ms1 = ppm_ms1, 
+      ppm_ms2 = ppm_ms2, 
+      maxn_mdda_precurs = maxn_mdda_precurs, 
+      topn_ms2ions = topn_ms2ions, 
+      n_mdda_flanks = n_mdda_flanks, 
+      n_dia_scans = n_dia_scans, 
+      min_mass = min_mass, 
+      max_mass = max_mass, 
+      min_ms2mass = min_ms2mass, 
+      max_ms2mass = max_ms2mass, 
+      min_ms1_charge = min_ms1_charge, 
+      max_ms1_charge = max_ms1_charge, 
+      min_ret_time = min_ret_time, 
+      max_ret_time = max_ret_time, 
+      min_scan_num = min_scan_num, 
+      max_scan_num = max_scan_num, 
+      deisotope_ms2 = deisotope_ms2, 
+      max_ms2_charge = max_ms2_charge, 
+      ppm_ms1_deisotope = ppm_ms1_deisotope, 
+      ppm_ms2_deisotope = ppm_ms2_deisotope, 
+      grad_isotope = grad_isotope, 
+      fct_iso2 = fct_iso2, 
+      quant = quant, 
+      use_lfq_intensity = use_lfq_intensity, 
+      tmt_reporter_lower = tmt_reporter_lower, 
+      tmt_reporter_upper = tmt_reporter_upper, 
+      exclude_reporter_region = exclude_reporter_region, 
+      use_defpeaks = use_defpeaks, 
+      is_pasef = is_pasef, 
+      n_para = n_para)
+  }
+  else {
+    df <- qs::qread(file.path("~", paste0("df_", filename, ".rds")))
+  }
   # qs::qsave(df, file.path("~", paste0("df_", filename, ".rds")), preset = "fast")
-  
+
   ## LFQ: replaces intensities with apex values
   # No MS1 info at maxn_mdda_precurs == 0L
   if (use_lfq_intensity && maxn_mdda_precurs) {
@@ -1439,8 +1443,12 @@ get_ms1xs_space <- function (df)
     ys <- .Internal(unlist(ms1_ints[rng2], recursive = FALSE, use.names = FALSE))
     zs <- .Internal(unlist(ms1_charges[rng2], recursive = FALSE, use.names = FALSE))
     ms <- .Internal(unlist(ms1_masses[rng2], recursive = FALSE, use.names = FALSE))
+    nx <- length(xs)
     
-    if (length(xs) > 1L) {
+    if (!nx)
+      next
+    
+    if (nx > 1L) {
       ord <- order(xs)
       xs <- xs[ord]
       ys <- ys[ord]
@@ -1510,7 +1518,11 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
                          exclude_reporter_region = FALSE, use_defpeaks = FALSE, 
                          is_pasef = FALSE, n_para = 1L, debug = FALSE)
 {
-  # reads parsed peak lists
+  ## reads parsed peak lists
+  # ms1_moverzs, ms1_ints and ms1_charges: NA vectors
+  # raw_file: scalar
+  # mobility <- ans$mobility # NULL for Thermo's data
+  
   ans <- qs::qread(file.path(temp_dir, filename))
   msx_moverzs <- ans$msx_moverzs
   msx_ints <- ans$msx_ints
@@ -1522,24 +1534,14 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
   scan_title <- ans$scan_title
   raw_file <- ans$raw_file # scalar
   ms_level <- ans$ms_level
-  ret_time <- ans$ret_time 
+  ret_time <- ans$ret_time
   scan_num <- ans$scan_num
   orig_scan <- ans$orig_scan
   iso_ctr <- ans$iso_ctr
   iso_lwr <- ans$iso_lwr
   iso_upr <- ans$iso_upr
   # mobility <- ans$mobility # NULL for Thermo's data
-  # rm(list = "ans")
   
-  local({
-    lens <- unique(lengths(ans[names(ans) != "raw_file"]))
-    
-    if (length(lens) > 1L) {
-      stop("Developer: check for uneven lengths in parsing RAW-MS data:", 
-           paste(lens, collapse = ", "))
-    }
-  })
-
   ##
   # May confirm that each vector of msx_moverzs are in ascending order
   ##
@@ -1562,16 +1564,17 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
       iso_lwr = iso_lwr, 
       iso_upr = iso_upr, 
       # mobility = mobility
-    )
+    ) |>
+      dplyr::mutate(d = ms1_moverzs - iso_ctr)
     
-    # why all ds <= 0, -1.02970 : 0?
-    ds <- df$ms1_moverzs - df$iso_ctr
-    ds <- ds[abs(ds) <= 5]
+    df2 <- df |>
+      dplyr::filter(!is.na(ms1_moverzs), ms1_moverzs > 0)
     
-    # grep("^9920", df$orig_scan) # 45919:45991
-    # which(df$ms1_fr == 9920) # 45934:45991
-    # a gap between 45920:45933
-    dfx <- df[45919:45991, ]
+    hist(df2$d)
+
+    # grep("^9915", df$orig_scan) # 40964
+    # which(df$ms1_fr == 9915) # 40964:41009
+    dfx <- df[40964:41009, ]
     zx <- dfx[40, ]
     
     dfx1 <- data.frame(x = dfx$msx_moverzs[[1]], y = dfx$msx_ints[[1]]) |>
@@ -1609,7 +1612,6 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
   
   if (deisotope_ms2) {
     message("Deisotoping MS2.")
-    
     oks2 <- ms_level == 2L
     ans2 <- deisoDDAMS2(msx_moverzs[oks2], msx_ints[oks2], 
                         topn_ms2ions = topn_ms2ions, 
@@ -1619,7 +1621,8 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
                         quant = quant, tmt_reporter_lower = tmt_reporter_lower, 
                         tmt_reporter_upper = tmt_reporter_upper, 
                         exclude_reporter_region = exclude_reporter_region, 
-                        n_para = n_para)
+                        n_fwd = 10L, n_bwd = 10L, offset_upr = 30L, 
+                        offset_lwr = 30L, n_para = n_para)
     msx_moverzs[oks2] <- ans2[["msx_moverzs"]]
     msx_ints[oks2] <- ans2[["msx_ints"]]
     msx_charges[oks2] <- ans2[["msx_charges"]]
@@ -1832,29 +1835,35 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
 
 #' Deisotopes DDA-MS2
 #' 
-#' @param msx_moverzx Full-spectrum MS1 or MS2 m-over-z values.
-#' @param msx_intx Full-spectrum MS1 or MS2 intensities.
+#' @param ms2_moverzs MS2 m-over-z values.
+#' @param ms2_ints MS2 intensities.
+#' @param n_fwd Forward looking up to \code{n_fwd} mass entries. The default is
+#'   20 for MS1 and 10 for MS2.
+#' @param n_bwd Backward looking up to \code{n_bwd} mass entries.
+#' @param offset_upr A cardinal number of upper mass off-sets.
+#' @param offset_lwr A cardinal number of lower mass off-sets.
 #' @inheritParams deisoDDA
-deisoDDAMS2 <- function (msx_moverzx, msx_intx, topn_ms2ions = 150L, 
+deisoDDAMS2 <- function (ms2_moverzs, ms2_ints, topn_ms2ions = 150L, 
                          ppm_ms2_deisotope = 8L, max_ms2_charge = 3L, 
-                         grad_isotope = 1.6, fct_iso2 = 3.0, quant = "none", 
+                         n_fwd = 10L, n_bwd = 10L, offset_upr = 30L, 
+                         offset_lwr = 30L, grad_isotope = 1.6, fct_iso2 = 3.0, 
+                         quant = "none", 
                          tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                          exclude_reporter_region = FALSE, n_para = 1L)
   
 {
   # for ensure the same number of entries before and after the process
-  lenx <- length(msx_moverzx)
+  lenx <- length(ms2_moverzs)
   
   if (n_para > 1L) {
     n_cores <- n_para
     n_chunks <- n_cores * 4L
-    
-    grps <- sep_vec(msx_moverzx, n_chunks)
+    grps <- sep_vec(ms2_moverzs, n_chunks)
     
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
     out <- parallel::clusterMap(
       cl, getMS2xyz, 
-      split(msx_moverzx, grps), split(msx_intx, grps), 
+      split(ms2_moverzs, grps), split(ms2_ints, grps), 
       MoreArgs = list(
         topn_ms2ions = topn_ms2ions, 
         max_ms2_charge = max_ms2_charge, 
@@ -1862,9 +1871,13 @@ deisoDDAMS2 <- function (msx_moverzx, msx_intx, topn_ms2ions = 150L,
         grad_isotope = grad_isotope, 
         fct_iso2 = fct_iso2, 
         quant = quant, 
+        n_fwd = n_fwd, 
+        n_bwd = n_bwd, 
+        offset_upr = offset_upr, 
+        offset_lwr = offset_lwr, 
         tmt_reporter_lower = tmt_reporter_lower, 
         tmt_reporter_upper = tmt_reporter_upper, 
-        exclude_reporter_region = exclude_reporter_region 
+        exclude_reporter_region = exclude_reporter_region
       ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
     parallel::stopCluster(cl)
     
@@ -1883,26 +1896,30 @@ deisoDDAMS2 <- function (msx_moverzx, msx_intx, topn_ms2ions = 150L,
       msx_moverzs = outx,
       msx_ints = outy,
       msx_charges = outz)
-
+    
     # msx_moverzs[rows2] <- outx
     # msx_ints[rows2] <- outy
     # msx_charges[rows2] <- outz
     # rm(list = c("out", "outx", "outy", "outz", "n_chunks", "cl", "grps", 
-    #             "oks2", "msx_moverzx", "msx_intx"))
+    #             "oks2", "ms2_moverzs", "ms2_ints"))
   }
   else {
     out <- getMS2xyz(
-      msx_moverzx, msx_intx, 
+      ms2_moverzs, ms2_ints, 
       topn_ms2ions = topn_ms2ions, 
       max_ms2_charge = max_ms2_charge, 
       ppm_ms2_deisotope = ppm_ms2_deisotope, 
       grad_isotope = grad_isotope, 
       fct_iso2 = fct_iso2, 
       quant = quant, 
+      n_fwd = n_fwd, 
+      n_bwd = n_bwd, 
+      offset_upr = offset_upr, 
+      offset_lwr = offset_lwr, 
       tmt_reporter_lower = tmt_reporter_lower, 
       tmt_reporter_upper = tmt_reporter_upper, 
       exclude_reporter_region = exclude_reporter_region)
-
+    
     if (length(out[[1]]) != lenx) {
       stop("Developer: check for entries dropping.")
     }
@@ -1921,7 +1938,7 @@ deisoDDAMS2 <- function (msx_moverzx, msx_intx, topn_ms2ions = 150L,
 }
 
 
-#' Deisotoping DDA-MS1.
+#' De-isotoping DDA-MS1
 #' 
 #' @param msx_moverz Full-spectrum MS1 or MS2 m-over-z values.
 #' @param msx_int Full-spectrum MS1 or MS2 intensities.
@@ -1964,7 +1981,8 @@ pasefMS1xyz <- function (msx_moverzs, msx_ints, ms1_fr, ms_level, orig_scan,
   
   xs1 <- msx_moverzs[oks1]
   ys1 <- msx_ints[oks1]
-  scans1 <- orig_scan[oks1]
+  # scans1 <- orig_scan[oks1]
+  scans1 <- as.integer(ms1_fr[oks1])
   len1 <- length(ys1)
   
   if (debug) {
@@ -2006,7 +2024,7 @@ pasefMS1xyz <- function (msx_moverzs, msx_ints, ms1_fr, ms_level, orig_scan,
       msx_ints = ys1[rng1], 
       iso_ctr = ctri, iso_lwr = lwri, iso_upr = upri, 
       ppm = ppm_ms1_deisotope, maxn_precurs = maxn_mdda_precurs, 
-      max_ms1_charge = max_ms1_charge, n_fwd = 20L, 
+      max_ms1_charge = max_ms1_charge, n_fwd = 20L, n_bwd = 20L, 
       grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
       use_defpeaks = use_defpeaks, min_mass = min_mass, margin = 0, 
       is_pasef = TRUE)
@@ -2183,7 +2201,7 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
       msx_ints = msx_ints[rng1], 
       iso_ctr = iso_ctr[rng2], iso_lwr = iso_lwr[rng2], iso_upr = iso_upr[rng2],
       ppm = ppm_ms1_deisotope, maxn_precurs = maxn_mdda_precurs, 
-      max_ms1_charge = max_ms1_charge, n_fwd = 20L, 
+      max_ms1_charge = max_ms1_charge, n_fwd = 20L, n_bwd = 20L, 
       grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
       use_defpeaks = use_defpeaks, min_mass = min_mass)
     
@@ -2214,9 +2232,7 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
   }
 
   out <- list(ms1_moverzs = ms1_moverzs, ms1_masses = ms1_masses, 
-              ms1_ints = ms1_ints, ms1_charges = ms1_charges # , 
-              # ms1_stas = ms1_stas, ms2_stas = ms2_stas, ms2_ends = ms2_ends
-              )
+              ms1_ints = ms1_ints, ms1_charges = ms1_charges)
 }
 
 
@@ -2224,9 +2240,16 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
 #' 
 #' @param msx_moverzs Lists of MS2-X values.
 #' @param msx_ints Lists of MS2-Y values.
+#' @param n_fwd Forward looking up to \code{n_fwd} mass entries. The default is
+#'   20 for MS1 and 10 for MS2.
+#' @param n_bwd Backward looking up to \code{n_bwd} mass entries.
+#' @param offset_upr A cardinal number of upper mass off-sets.
+#' @param offset_lwr A cardinal number of lower mass off-sets.
 #' @inheritParams matchMS
 getMS2xyz <- function (msx_moverzs = NULL, msx_ints = NULL, 
                        topn_ms2ions = 150L, quant = "none", 
+                       n_fwd = 10L, n_bwd = 10L, 
+                       offset_upr = 30L, offset_lwr = 30L, 
                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                        exclude_reporter_region = FALSE, 
                        max_ms2_charge = 3L, ppm_ms2_deisotope = 10L, 
@@ -2251,8 +2274,9 @@ getMS2xyz <- function (msx_moverzs = NULL, msx_ints = NULL,
       maxn_feats = topn_ms2ions, 
       max_charge = max_ms2_charge,
       # smaller values for DDA-MS2
-      n_fwd = 10L, offset_upr = 30L, offset_lwr = 30L, 
-      grad_isotope = grad_isotope, fct_iso2 = fct_iso2)
+      n_fwd = n_fwd, n_bwd = n_bwd, offset_upr = offset_upr, 
+      offset_lwr = offset_lwr, grad_isotope = grad_isotope, 
+      fct_iso2 = fct_iso2)
     
     msx_moverzs[[i]] <- mic[["masses"]]
     msx_ints[[i]] <- mic[["intensities"]]
@@ -2558,7 +2582,7 @@ deisoDIA <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
         tmt_reporter_upper = tmt_reporter_upper, 
         is_dda = FALSE, ppm = ppm_ms2_deisotope, 
         ms_lev = 2L, maxn_feats = topn_dia_ms2ions, 
-        max_charge = max_ms2_charge, n_fwd = 10L, 
+        max_charge = max_ms2_charge, n_fwd = 10L, n_bwd = 10L, 
         offset_upr = 30L, offset_lwr = 30L, 
         grad_isotope = grad_isotope, fct_iso2 = fct_iso2)
       
@@ -2587,7 +2611,7 @@ deisoDIA <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
         # by the width of MS1: 395 - 1005???
         maxn_feats = maxn_dia_precurs, 
         max_charge = max_ms1_charge, 
-        n_fwd = 20L, offset_upr = 30L, offset_lwr = 30L, 
+        n_fwd = 20L, n_bwd = 20L, offset_upr = 30L, offset_lwr = 30L, 
         grad_isotope = grad_isotope, 
         fct_iso2 = fct_iso2)
       
@@ -4013,9 +4037,12 @@ calc_ms1xys <- function (matx, maty)
 #' @param step A step size.
 #' @param maxn_precurs Maximum number of precursors for consideration.
 #' @param max_ms1_charge Maximum charge state of precursors for consideration.
-#' @param width The width of an MS1 window. An extended window is used to
-#'   contain isotope envelops.
+#' @param width_left The left-width of an extended MS1 isolation window to
+#'   contain a full isotope envelops.
+#' @param width_right The right-width of an extended MS1 isolation window to
+#'   contain a full isotope envelops.
 #' @param n_fwd Forward looking up to \code{n_fwd} mass entries.
+#' @param n_bwd Backward looking up to \code{n_bwd} mass entries.
 #' @param margin The margin of an m-over-z extended to an isolation window (to
 #'   account for the imperfection of the voltage gates of isolation).
 #' @param use_defpeaks Use default peak info or not.
@@ -4026,8 +4053,9 @@ calc_ms1xys <- function (matx, maty)
 find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL, 
                              iso_ctr = NULL, iso_lwr = NULL, iso_upr = NULL, 
                              ppm = 10L, maxn_precurs = 5L, max_ms1_charge = 4L, 
-                             n_fwd = 20L, grad_isotope = 1.6, fct_iso2 = 3.0, 
-                             use_defpeaks = FALSE, width = 1.25, # was 2.01, 1.52, 
+                             n_fwd = 20L, n_bwd = 20L, grad_isotope = 1.6, 
+                             fct_iso2 = 3.0, use_defpeaks = FALSE, 
+                             width_left = 2.01, width_right = 1.25, 
                              margin = .5, 
                              min_mass = 200L, step = ppm/1e6, is_pasef = FALSE)
 {
@@ -4038,13 +4066,13 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
   if (!(len2 <- length(iso_ctr))) {
     return(NULL)
   }
-
+  
   # ansx1 etc.: (6+1+6) MS1 frames subset by one MS2 isolation window
   # ansx2 etc.: collapsed MS1 within an isolation window for each MS2
   # ymats: matrices of MS1 intensity. Columns: masses; rows: MS1 frames
   # ymat0: delayed MS1 intensities for each MS1 frame; 
   #   the information is only available after the determination of mono m/z
-
+  
   ansx1 <- ansy1 <- vector("list", len1)
   xs <- ys <- zs <- vector("list", len2)
   # ymats <- vector("list", len2)
@@ -4054,10 +4082,12 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
   ## by MS2 entries
   for (i in 1:len2) {
     m2  <- iso_ctr[[i]]
-    # width <- if (m2 < 725) 2.01 else 3.01
-    lwr <- iso_lwr[[i]] - width
-    upr <- iso_upr[[i]] + width
-
+    # width_left <- if (m2 < 725) 2.01 else 3.01
+    lwi <- iso_lwr[[i]]
+    upi <- iso_upr[[i]]
+    lwr <- lwi - width_left
+    upr <- upi + width_right
+    
     # 1. gather e.g. +/-6 MS1s
     for (j in 1:len1) {
       x1s <- msx_moverzs[[j]]
@@ -4066,25 +4096,30 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
       ansx1[[j]] <- x1s[oks]
       ansy1[[j]] <- y1s[oks]
     }
+    # rm(list = c("x1s", "y1s", "oks"))
     
     # 2. generate flanking matrices of MS1 X and Y
     # xs must be in an ascending order
     # rows: by flanking MS1 scans; columns: by moverzs bin indexes
     xys <- collapse_mms1ints(
       xs = ansx1, ys = ansy1, lwr = min_mass, step = step, reord = FALSE, 
-      cleanup = FALSE, add_colnames = FALSE) # was add_colnames = TRUE
+      cleanup = FALSE, add_colnames = FALSE)
     
     # 3. collapse MS1s for de-isotoping
     ans <- calc_ms1xys(xys[["x"]], xys[["y"]])
-    if (is.null(ans[["x"]])) next
+    ax  <- ans[["x"]]
+    if (is.null(ax)) next
+    ay <- ans[["y"]]
+    an <- ans[["n"]]
     
     # 4. de-isotoping
     mic <- find_ms1stat(
-      moverzs = ans[["x"]], msxints = ans[["y"]], n_ms1s = ans[["n"]], 
+      moverzs = ax, msxints = ay, n_ms1s = an, 
       center = m2, exclude_reporter_region = FALSE, ppm = ppm, ms_lev = 1L, 
-      maxn_feats = maxn_precurs, max_charge = max_ms1_charge, n_fwd = n_fwd, 
-      offset_upr = 30L, offset_lwr = 30L, grad_isotope = grad_isotope, 
-      fct_iso2 = fct_iso2, use_defpeaks = use_defpeaks, is_pasef = is_pasef)
+      maxn_feats = maxn_precurs, max_charge = max_ms1_charge, 
+      n_fwd = n_fwd, n_bwd = n_bwd, offset_upr = 30L, offset_lwr = 30L, 
+      grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+      use_defpeaks = use_defpeaks, is_pasef = is_pasef)
     
     masses <- mic[["masses"]]
     if (!length(masses)) next
@@ -4093,10 +4128,14 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
 
     # 5. subset by isolation window
     if (TRUE) {
-      # DON'T subset by the lower bound: mono-isotopic peaks are left-biased
-      oks <- masses <= iso_upr[[i]] + margin 
+      # mono-isotopic peaks are left-biased
+      # masses left to the iso-window may still be offseted from the mono-isotopic 
+      oks <- masses <= upi + margin 
       oks <- .Internal(which(oks))
       len <- length(oks)
+
+      # may removes masses[[i]] left to the iso_lwr[[i]] that has little 
+      # evidence within the isolation window
       
       # length(xs) drops by 1 if is.null(masses)
       if (len && len < length(masses)) {
@@ -4117,8 +4156,53 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
       ys[[i]] <- intensities
       zs[[i]] <- charges
     }
+    
+    # PASEF reorder: 
+    # xs: first within the isoWindow: from high to low intensity
+    #  then outsie the isoWindow from high to low intensity
+    if (is_pasef) {
+      oksa <- masses >= lwi & masses <= upi
+      oksb <- .Internal(which(!oksa))
+      oksa <- .Internal(which(oksa))
+      
+      if (lena <- length(oksa)) {
+        xsa <- masses[oksa]
+        ysa <- intensities[oksa]
+        zsa <- charges[oksa]
+        
+        if (lena > 1L) {
+          orda <- order(ysa, decreasing = TRUE)
+          xsa <- xsa[orda]
+          ysa <- ysa[orda]
+          zsa <- zsa[orda]
+        }
+      }
+      else {
+        xsa <- ysa <- zsa <- NULL
+      }
+      
+      if (lenb <- length(oksb)) {
+        xsb <- masses[oksb]
+        ysb <- intensities[oksb]
+        zsb <- charges[oksb]
+        
+        if (lenb > 1L) {
+          ordb <- order(ysb, decreasing = TRUE)
+          xsb <- xsb[ordb]
+          ysb <- ysb[ordb]
+          zsb <- zsb[ordb]
+        }
+      }
+      else {
+        xsb <- ysb <- zsb <- NULL
+      }
+      
+      xs[[i]] <- c(xsa, xsb)
+      ys[[i]] <- c(ysa, ysb)
+      zs[[i]] <- c(zsa, zsb)
+    }
   }
-
+  
   list(x = xs, y = ys, z = zs)
 }
 
