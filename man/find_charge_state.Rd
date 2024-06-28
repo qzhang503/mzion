@@ -12,7 +12,7 @@ find_charge_state(
   msxints,
   n_ms1s,
   max_charge = 4L,
-  n_fwd = 20L,
+  n_fwd = 15L,
   n_bwd = 20L,
   ms_lev = 1L,
   is_dda = TRUE,
@@ -37,10 +37,11 @@ and \code{maxints}.}
 
 \item{max_charge}{The maximum charge state.}
 
-\item{n_fwd}{Forward looking up to \code{n_fwd} mass entries. The default is
-20 for MS1 and 10 for MS2.}
+\item{n_fwd}{Forward looking up to \code{n_fwd} mass entries when determining
+the charge state.}
 
-\item{n_bwd}{Backward looking up to \code{n_bwd} mass entries.}
+\item{n_bwd}{Backward looking up to \code{n_bwd} mass entries when
+determining the charge state.}
 
 \item{ms_lev}{MS level.}
 

@@ -62,14 +62,17 @@ The default is \eqn{135.2}.}
 
 \item{max_charge}{The maximum charge state.}
 
-\item{n_fwd}{Forward looking up to \code{n_fwd} mass entries. The default is
-20 for MS1 and 10 for MS2.}
+\item{n_fwd}{Forward looking up to \code{n_fwd} mass entries when determining
+the charge state.}
 
-\item{n_bwd}{Backward looking up to \code{n_bwd} mass entries.}
+\item{n_bwd}{Backward looking up to \code{n_bwd} mass entries when
+determining the charge state.}
 
-\item{offset_upr}{A cardinal number of upper mass off-sets.}
+\item{offset_upr}{A cardinal number of upper mass off-sets in relative to a
+mass center when finding mono-isotopic species.}
 
-\item{offset_lwr}{A cardinal number of lower mass off-sets.}
+\item{offset_lwr}{A cardinal number of lower mass off-sets in relative to a
+mass center when finding mono-isotopic species.}
 
 \item{step}{Step size for mass binning.}
 
@@ -99,9 +102,9 @@ msxints <- c(1000 * 1:10, 1652869, 788368, 2043015, 2314111, 4314111)
 n_ms1s <- rep_len(1L, length(msxints))
 
 if (FALSE) {
-  out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, ppm = 5L, ms_lev = 1L,
-                              maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
-                              offset_lwr = 8L)
+  out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, ppm = 5L,
+                              ms_lev = 1L, maxn_feats = 5L, max_charge = 4L,
+                              offset_upr = 8L, offset_lwr = 8L)
 }
 
 moverzs <- c(907.968018,908.136475,908.872711,909.073690,909.121,

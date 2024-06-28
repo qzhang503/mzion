@@ -49,7 +49,9 @@ subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
       if (!li) next
       sta <- max(1, i - gap)
       end <- min(i + gap, len)
-      ms1s_sub <- .Internal(unlist(ms1s[sta:end], recursive = FALSE, use.names = FALSE))
+      # the possible universe of mono-isotopic MS1 m/z values over a range
+      ms1s_sub <- .Internal(unlist(ms1s[sta:end], recursive = FALSE, 
+                                   use.names = FALSE))
       ms1s_sub <- index_mz(ms1s_sub, from, step)
       ms1s_sub <- sort(unique(ms1s_sub))
       
@@ -89,11 +91,12 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
   # msx_moverzs at ms_level == 1L: full-spectrum MS1
   # msx_charges at ms_level == 1L are list(NULL)
   cols1 <- c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", 
-             "msx_moverzs", "msx_ints", "msx_charges", "orig_scan")
+             "msx_moverzs", "msx_ints", "msx_charges", 
+             "orig_scan", "ret_time")
   df1  <- df[with(df, ms_level == 1L), cols1]
   len1 <- nrow(df1)
 
-  # Remove non-essential MS1 x and y values
+  # Remove non-essential (e.g., non mono-isotopic) MS1 x and y values
   ans <- subMSfull(
     xs = df1$msx_moverzs, ys = df1$msx_ints, ms1s = df1$ms1_moverz, 
     from = from, step = step, gap = gap)
@@ -101,12 +104,12 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
   df1$msx_moverzs <- ans$x
   df1$msx_ints <- ans$y
   rm(list = "ans")
-  gc()
-  
+
   # at least two chunks
   if (n_chunks <= 1L)
     n_chunks <- 2L
   
+  df1$ms1_mass <- df1$ms1_moverz <- df1$ms1_int <- df1$ms1_charge <- NULL
   df1s  <- chunksplit(df1, n_chunks, type = "row")
   end1s <- cumsum(lapply(df1s, nrow))
   sta1s <- c(1L, end1s[1:(n_chunks - 1L)] + 1L)
@@ -162,6 +165,7 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
 #' @param xs Vectors of full-spectrum MS1 m/z values.
 #' @param ys Vectors of full-spectrum MS1 intensities.
 #' @param ss Vectors of MS1 scan numbers.
+#' @param ts Vectors of MS1 retention times (for calculating area-under-a-peak).
 #' @param df A data frame of MS1 and MS2 corresponding to \code{xs}.
 #' @param gap_bf A preceding gap size.
 #' @param gap_af A following gap size.
@@ -170,7 +174,7 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
 #' @param yco The cut-off in y values.
 #' @param y_perc The cut-off in intensity values in relative to the base peak.
 #' @inheritParams matchMS
-htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L, 
+htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L, 
                       n_mdda_flanks = 6L, from = 200L, step = 1E5, 
                       y_perc = .01, yco = 500)
 {
@@ -189,8 +193,8 @@ htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L,
   }
   
   mat <- traceXY(
-    xs = xs, ys = ys, ss = ss, n_mdda_flanks = n_mdda_flanks, from = from, 
-    step = step, reord = FALSE, cleanup = FALSE, # otherwise rows drop
+    xs = xs, ys = ys, ss = ss, ts = ts, n_mdda_flanks = n_mdda_flanks, 
+    from = from, step = step, reord = FALSE, cleanup = FALSE, # otherwise rows drop
     replace_ms1_by_apex = TRUE, y_perc = y_perc, yco = yco)
   
   ## apes, rngs and scans: each vector corresponds to a column of mass
@@ -207,6 +211,7 @@ htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L,
     scan_apexs[[i]] <- as.integer(ss[apes[[i]]])
   }
 
+  # i = 5053; scan_apexs[[i]]
   if (gap_bf) {
     if (gap_af) { # middle
       sta <- gap_bf + 1L
@@ -230,20 +235,20 @@ htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L,
     df <- updateMS1Int(df = df, matx = matx, maty = maty, from = from, 
                        step = step)
   }
-  else {
-    # look both before and after scans
-    df <- updateMS1Int2(
-      df = df, matx = matx, maty = maty, row_sta = sta, row_end = end, 
-      scan_apexs = scan_apexs, from = from, step = step)
-  }
+  
+  # look both before and after scans
+  df <- updateMS1Int2(
+    df = df, matx = matx, maty = maty, row_sta = sta, row_end = end, 
+    scan_apexs = scan_apexs, from = from, step = step)
 }
 
 
 #' Helper of MS1 tracing.
 #'
-#' @param xs Vectors of full-spectrum MS1 moverzs.
-#' @param ys Vectors of full-spectrum MS1 intensities.
+#' @param xs Lists of full-spectrum MS1 moverzs vectors.
+#' @param ys Lists of full-spectrum MS1 intensities vectors.
 #' @param ss Vectors of MS1 scan numbers.
+#' @param ts Vectors of MS1 retention times (for calculating area-under-a-peak).
 #' @param step Step size.
 #' @param from The starting point for mass binning.
 #' @param step A step size for mass binning.
@@ -258,7 +263,7 @@ htraceXY <- function (xs, ys, ss, df, gap_bf = 256L, gap_af = 256L,
 #'   maximum number of MS1 peaks seem \eqn{\le 1500}.
 #' @param y_perc The cut-off in intensity values in relative to the base peak.
 #' @inheritParams matchMS
-traceXY <- function (xs, ys, ss, n_mdda_flanks = 6L, from = 115L, step = 1E-5, 
+traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 115L, step = 1E-5, 
                      reord = TRUE, cleanup = FALSE, replace_ms1_by_apex = FALSE,
                      y_perc = .01, yco = 100)
 {
@@ -313,7 +318,7 @@ traceXY <- function (xs, ys, ss, n_mdda_flanks = 6L, from = 115L, step = 1E-5,
       # may be unnecessary, e.g., Thermo's MS1 peak distributions are discrete
       yoks[yoks < yco] <- NA_real_
       yi[oks] <- yoks
-      gates <- find_lc_gates(yi, n_dia_scans = n_mdda_flanks)
+      gates <- find_lc_gates(ys = yi, ts = ts, n_dia_scans = n_mdda_flanks)
 
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans
@@ -331,7 +336,7 @@ traceXY <- function (xs, ys, ss, n_mdda_flanks = 6L, from = 115L, step = 1E-5,
   }
   else {
     for (i in 1:nc) {
-      gates <- find_lc_gates(ansy[, i], n_dia_scans = n_mdda_flanks)
+      gates <- find_lc_gates(ys = ansy[, i], ts = ts, n_dia_scans = n_mdda_flanks)
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans
       ranges[[i]] <- rngs <- gates[["ranges"]]
@@ -450,18 +455,16 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
   ###
   
   for (i in seq_along(ms2_stas)) { # the same as by ms1_stas
-    # i = 527 - gap; which(rownames(matx) == 13588)
-    # i = 100;
+    # which(rownames(matx) == 31509)
     ms2sta <- ms2_stas[[i]]
     if (is.na(ms2sta)) next
     ms2end <- ms2_ends[[i]]
     df2 <- df[ms2sta:ms2end, ]
     
-    rowi <- gap + i
-    scan <- ss[[rowi]]
+    rowi <- gap + i # row number in matx, maty
+    scan <- ss[[rowi]] # the scan number at the current row
 
     for (j in 1:nrow(df2)) {
-      # j = 8
       x2s <- df2[["ms1_moverz"]][[j]] # MS1 masses associated with an MS2 scan
       nx <- length(x2s) # nx > 1 with a chimeric spectrum
       if (!nx) next
@@ -503,8 +506,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
           }
         }
 
-        df2[["ms1_int"]][[j]][m] <- max(df2[["ms1_int"]][[j]][m], y1)
-        # df2[["ms1_int"]][[j]][m] <- y1
+        df2[["ms1_int"]][[j]][m] <- y1
       }
     }
 

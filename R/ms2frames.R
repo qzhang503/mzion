@@ -149,12 +149,11 @@ hpair_mgths <- function (ms1_offset = 0, n_13c = 0L, notch = NULL,
                          min_mass = 200L, max_mass = 4500L, ppm_ms1_bin = 10L, 
                          .path_bin, data_type = "mzml")
 {
-  # temporarily drop apex_scan_num...
   mgfs <- make_dia_mgfs(mgfs = mgfs, mgf_path = mgf_path, quant = quant, 
                         min_mass = min_mass, max_mass = max_mass, 
                         ppm_ms1_bin = ppm_ms1_bin, data_type = data_type, 
                         ms1_offset = ms1_offset, n_13c = n_13c)
-
+  
   # to chunks: each chunk has multiple frames: each frame multiple precursors
   ranges <- seq_along(mgfs)
   
@@ -259,7 +258,7 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
                            data_type = "mzml", ms1_offset = 0L, n_13c = 0L, 
                            mass_13c = 1.00727647)
 {
-  mgfs$apex_scan_num <- mgfs$ms_level <- mgfs$demux <- NULL
+  mgfs$ms_level <- mgfs$demux <- NULL
 
   is_listmasses <- class(mgfs[["ms1_mass"]]) == "list"
   is_ms1notched <- abs(ms1_offset) >= 1e-4
@@ -352,6 +351,12 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
   data_ms2 <- data_ms2[seqs, ]
   mgfs <- dplyr::bind_cols(datalist, dataflat, data_ms2)
   
+  # set aside...
+  cols_scan <- c("raw_file", "scan_num", "orig_scan", "apex_scan_num")
+  qs::qsave(mgfs[, cols_scan], 
+            file.path(mgf_path, "apex_scan_nums.rds"), preset = "fast")
+  mgfs <- mgfs[, !names(mgfs) %in% c("orig_scan", "apex_scan_num")]
+
   # post flattening
   clean_flat_mgfs(mgfs, min_mass = min_mass, max_mass = max_mass, 
                   ppm_ms1_bin = ppm_ms1_bin, 

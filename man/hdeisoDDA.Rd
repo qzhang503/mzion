@@ -179,6 +179,8 @@ algorithms.}
 \item{n_para}{The allowance of parallel processing.}
 
 \item{y_perc}{The cut-off in intensity values in relative to the base peak.}
+
+\item{yco}{The absolute cut-off in intensity values.}
 }
 \description{
 Helper of \link{deisoDDA}.

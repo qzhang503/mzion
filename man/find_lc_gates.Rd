@@ -4,11 +4,13 @@
 \alias{find_lc_gates}
 \title{Finds the gates of retention times.}
 \usage{
-find_lc_gates(ys, n_dia_scans = 4L, by_area = TRUE)
+find_lc_gates(ys = NULL, ts = NULL, n_dia_scans = 4L, by_area = TRUE)
 }
 \arguments{
 \item{ys}{A vector of intensity value for the same (approximate) mass along
 LC.}
+
+\item{ts}{The retention times corrresponding to \code{ys}.}
 
 \item{n_dia_scans}{The number of adjacent MS scans for constructing a peak
 profile and thus for determining the apex scan number of an moverz value

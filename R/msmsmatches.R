@@ -1672,12 +1672,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   ## Clean-ups
   # (raw_file etc. already mapped if `from_group_search`)
   if (!isTRUE(from_group_search <- dots$from_group_search)) {
-    if (file.exists(file.path(mgf_path, "scan_indexes.rds"))) {
-      df <- map_raw_n_scan_old(df, mgf_path) # backward-compatible
-    }
-    else {
-      df <- map_raw_n_scan(df, mgf_path)
-    }
+    df <- map_raw_n_scan(df, mgf_path)
   }
 
   df <- dplyr::mutate(df, pep_expect = 
@@ -2267,27 +2262,46 @@ check_locmods <- function (locmods, fixedmods, varmods, ms1_neulosses = NULL)
 #' 
 #' @param df A data frame.
 #' @inheritParams matchMS
+#' @importFrom fastmatch %fin% fmatch
 map_raw_n_scan <- function (df, mgf_path) 
 {
+  # (1) add back orig_scan and apex_scan_num
+  file_apex <- file.path(mgf_path, "apex_scan_nums.rds")
+  
+  if (file.exists(file_apex)) {
+    apex <- qs::qread(file_apex)
+    apex$uid <- paste0(apex$raw_file, ".", apex$scan_num)
+    df$uid <- paste0(df$raw_file, ".", df$pep_scan_num)
+    oks <- fastmatch::fmatch(df$uid, apex$uid)
+    apex <- apex[, c("orig_scan", "apex_scan_num")]
+    df <- dplyr::bind_cols(df, apex[oks, ])
+    df$uid <- NULL
+    
+    df <- df |>
+      reloc_col_after("orig_scan", "pep_scan_num") |>
+      reloc_col_after("apex_scan_num", "orig_scan") |>
+      dplyr::rename(pep_orig_scan = orig_scan, pep_apex_scan = apex_scan_num)
+
+    rm(list = c("oks", "apex"))
+  }
+
+  # (2) add back raw file names
   file_raw <- file.path(mgf_path, "raw_indexes.rds")
   
-  if (file.exists(file_raw)) {
-    raws <- qs::qread(file_raw)
-    # some raw files may have no search results
-    raws <- raws[!is.na(names(raws))]
-    
-    pos <- match(as.character(df$raw_file), as.character(raws))
-    df$raw_file <- names(raws)[pos]
-  }
-  else {
+  if (!file.exists(file_raw)) {
     stop("File not found: ", file_raw)
   }
   
-  files_scan <- list.files(mgf_path, pattern = "^scan_map_.*\\.rds$")
-  # corresponds to raw files without search results
-  files_scan <- files_scan[files_scan != "scan_map_.rds"]
+  raws <- qs::qread(file_raw)
+  raws <- raws[!is.na(names(raws))] # some raw files may have no search results
+  pos <- fastmatch::fmatch(as.character(df$raw_file), as.character(raws))
+  df$raw_file <- names(raws)[pos]
   
-  if (!(len_sc <- length(files_scan))) {
+  # (3) add back scan titles
+  files_title <- list.files(mgf_path, pattern = "^scan_map_.*\\.rds$")
+  files_title <- files_title[files_title != "scan_map_.rds"] # raw files without search results
+  
+  if (!(len_sc <- length(files_title))) {
     stop("No `scan_map` files found.")
   }
   
@@ -2299,58 +2313,60 @@ map_raw_n_scan <- function (df, mgf_path)
   
   dfs <- split(df, df$raw_file)
   raws_in_df <- names(dfs)
-  ids <- match(raws_in_df, gsub("^scan_map_(.*)\\.rds$", "\\1", files_scan))
+  ids <- match(raws_in_df, gsub("^scan_map_(.*)\\.rds$", "\\1", files_title))
   
   if (any(bads <- is.na(ids))) {
     stop("Files do not have matched `scan_map`", 
          paste(raws_in_df[bads], collapse = ", "))
   }
   
-  files_scan <- files_scan[ids]
+  files_title <- files_title[ids]
   
   for (i in ids) {
-    scans <- qs::qread(file.path(mgf_path, files_scan[[i]]))
+    scans <- qs::qread(file.path(mgf_path, files_title[[i]]))
     pos <- match(dfs[[i]]$pep_scan_title, as.character(scans))
     dfs[[i]]$pep_scan_title <- names(scans)[pos]
   }
   
-  df <- dplyr::bind_rows(dfs)
+  # (4) add apex_ret_time
+  files_ms1s <- list.files(mgf_path, pattern = "^ms1_.*\\.rds$")
+  files_ms1s <- files_ms1s[files_ms1s != "ms1_.rds"]
+  len_ms1s <- length(files_ms1s)
   
-  invisible(df)
-}
-
-
-#' Maps raw_file and scan_title from indexes to real values.
-#' 
-#' For backward compatibility.
-#' 
-#' @param df A data frame.
-#' @inheritParams matchMS
-map_raw_n_scan_old <- function (df, mgf_path) 
-{
-  file_raw <- file.path(mgf_path, "raw_indexes.rds")
-  file_scan <- file.path(mgf_path, "scan_indexes.rds")
-  
-  if (file.exists(file_raw)) {
-    raws <- qs::qread(file_raw)
-    raws2 <- names(raws)
-    names(raws2) <- raws
-    df$raw_file <- unname(raws2[df$raw_file])
+  if (len_ms1s && len_ms1s == length(raws)) {
+    ids <- match(raws_in_df, gsub("^ms1_(.*)\\.rds$", "\\1", files_ms1s))
+    
+    if (any(bads <- is.na(ids))) {
+      stop("Files do not have matched `ms1_`", 
+           paste(raws_in_df[bads], collapse = ", "))
+    }
+    
+    files_ms1s <- files_ms1s[ids]
+    
+    for (i in ids) {
+      ms1s <- qs::qread(file.path(mgf_path, files_ms1s[[i]]))
+      dfi <- dfs[[i]]
+      pos <- match(dfi$pep_apex_scan, ms1s$scan_num) # based on MS1 scan_nums
+      dfi$pep_apex_ret <- ms1s$ret_time[pos]
+      
+      # no matches if pep_apex_scan were "borrowed" from MS2 scans
+      if (any(nas <- is.na(pos))) {
+        dfx <- dfi[nas, ]
+        dfx$pep_apex_ret <- dfx$pep_ret_range
+        dfi[nas, ] <- dfx
+      }
+      
+      dfs[[i]] <- dfi
+    }
+    
+    df <- dplyr::bind_rows(dfs) |>
+      reloc_col_after("pep_apex_ret", "pep_ret_range")
+    df$pep_apex_ret <- round(df$pep_apex_ret, digits = 1L)
   }
   else {
-    stop("File not found: ", file_raw)
+    df <- dplyr::bind_rows(dfs) # for backward compatibility of reprocessing
   }
-  
-  if (file.exists(file_scan)) {
-    scans <- qs::qread(file_scan)
-    scans2 <- names(scans)
-    names(scans2) <- scans
-    df$pep_scan_title <- unname(scans2[df$pep_scan_title])
-  }
-  else {
-    stop("File not found: ", file_scan)
-  }
-  
+
   invisible(df)
 }
 

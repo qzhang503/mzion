@@ -24,7 +24,8 @@ pasefMS1xyz(
   min_mass = 115L,
   grad_isotope = 1.6,
   fct_iso2 = 3,
-  use_defpeaks = FALSE
+  use_defpeaks = FALSE,
+  filename = NULL
 )
 }
 \arguments{
@@ -80,6 +81,8 @@ adjacent peak being a mono-isotopic precursor}
 \item{use_defpeaks}{Depreciated. Logical; if TRUE, uses MS1 m-over-z's,
 intensities and charge states pre-calculated by other peak-picking
 algorithms.}
+
+\item{filename}{A filename for logging.}
 
 \item{msx_moverz}{Full-spectrum MS1 or MS2 m-over-z values.}
 

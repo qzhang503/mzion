@@ -6,6 +6,7 @@
 \usage{
 deisoDDA(
   filename = NULL,
+  mgf_path = NULL,
   temp_dir = NULL,
   mzml_type = "raw",
   ppm_ms1 = 10L,
@@ -44,6 +45,16 @@ deisoDDA(
 }
 \arguments{
 \item{filename}{A peaklist filename.}
+
+\item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
+  supply the files.
+
+  The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
+  from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
+  Proteome Discoverer or (3) Bruker's DataAnalysis.
+
+  With MSConvert, the default \code{titleMaker} is required for correct
+  parsing (don't think it can be altered by users, but just in case).}
 
 \item{temp_dir}{A temp_dir to the filename.}
 
@@ -159,6 +170,8 @@ algorithms.}
 \item{n_para}{The allowance of parallel processing.}
 
 \item{y_perc}{The cut-off in intensity values in relative to the base peak.}
+
+\item{yco}{The absolute cut-off in intensity values.}
 }
 \description{
 Deisotopes DDA.

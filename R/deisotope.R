@@ -9,14 +9,17 @@
 #' @param center The mass center of an isolation window (only for MS1).
 #' @param is_dda Logical; is DDA or not.
 #' @param ppm Allowance in mass error when deisotoping.
-#' @param offset_upr A cardinal number of upper mass off-sets.
-#' @param offset_lwr A cardinal number of lower mass off-sets.
+#' @param offset_upr A cardinal number of upper mass off-sets in relative to a
+#'   mass center when finding mono-isotopic species.
+#' @param offset_lwr A cardinal number of lower mass off-sets in relative to a
+#'   mass center when finding mono-isotopic species.
 #' @param ms_lev MS level.
 #' @param maxn_feats The maximum number of MS features.
 #' @param max_charge The maximum charge state.
-#' @param n_fwd Forward looking up to \code{n_fwd} mass entries. The default is
-#'   20 for MS1 and 10 for MS2.
-#' @param n_bwd Backward looking up to \code{n_bwd} mass entries.
+#' @param n_fwd Forward looking up to \code{n_fwd} mass entries when determining
+#'   the charge state.
+#' @param n_bwd Backward looking up to \code{n_bwd} mass entries when
+#'   determining the charge state.
 #' @param step Step size for mass binning.
 #' @param backward_mass_co A mass cut-off to initiate backward looking of an
 #'   isotope envelop.
@@ -30,9 +33,9 @@
 #' n_ms1s <- rep_len(1L, length(msxints))
 #'
 #' if (FALSE) {
-#'   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, ppm = 5L, ms_lev = 1L,
-#'                               maxn_feats = 5L, max_charge = 4L, offset_upr = 8L,
-#'                               offset_lwr = 8L)
+#'   out <- mzion:::find_ms1stat(moverzs, msxints, n_ms1s, ppm = 5L,
+#'                               ms_lev = 1L, maxn_feats = 5L, max_charge = 4L,
+#'                               offset_upr = 8L, offset_lwr = 8L)
 #' }
 #'
 #' moverzs <- c(907.968018,908.136475,908.872711,909.073690,909.121,
@@ -104,10 +107,11 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     }
     
     ok_rptrs <- moverzs > tmt_reporter_lower & moverzs < tmt_reporter_upper
+    no_rptrs <- .Internal(which(!ok_rptrs))
+    ok_rptrs <- .Internal(which(ok_rptrs))
+    
     rptr_moverzs <- moverzs[ok_rptrs]
     rptr_ints <- msxints[ok_rptrs]
-    
-    no_rptrs <- !ok_rptrs
     moverzs <- moverzs[no_rptrs]
     msxints <- msxints[no_rptrs]
     
@@ -122,7 +126,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
   from <- moverzs[[1]] - .001
   ims  <- index_mz(moverzs, from, step)
   
-  tol <- ppm / 1E6 # the same as the default `step`; may be remove arg `ppm`
+  tol <- ppm / 1E6 # the same as the default `step`; may remove arg `ppm`
   lenp <- min(len_ms, maxn_feats)
   peaks_fuz <- peaks <- intens_fuz <- intens <- rep_len(NA_real_, lenp)
   css_fuz <- css <- rep.int(NA_integer_, lenp)
@@ -141,7 +145,8 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     
     if (center > 0 && p == 1L && ms_lev == 1L) {
       imax <- .Internal(which.min(abs(moverzs - center)))
-    } else {
+    }
+    else {
       imax <- .Internal(which.max(msxints))
     }
     
@@ -149,10 +154,10 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     mint <- msxints[imax]
     n_ms1 <- n_ms1s[imax]
     
-    ## find charge state
+    ## find Z values
     ch <- find_charge_state(
       mass = mass, imax = imax, mint = mint, 
-      moverzs = moverzs, msxints = msxints, n_ms1s = n_ms1s, # lenm = len_ms, 
+      moverzs = moverzs, msxints = msxints, n_ms1s = n_ms1s,
       max_charge = max_charge, n_fwd = n_fwd, n_bwd = n_bwd, 
       ms_lev = ms_lev, is_dda = is_dda, tol = tol)
     
@@ -201,7 +206,8 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
           yhi <- msxints[[hi]]
           ri  <- mint/yhi
           
-          if (ri <= grad_isotope) { # the preceding intensity pass the 1st threshold
+          # the preceding intensity pass the 1st threshold
+          if (ri <= grad_isotope) {
             mass  <- moverzs[[hi]]
             n_ms1 <- n_ms1s[hi]
             ymono <- yhi
@@ -240,6 +246,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
           
           if (ri <= gi) { # the preceding intensity pass the 1st threshold
             ymono <- yhi
+            ymean <- ymono/n_ms1 # added on 2024-06-26
           }
           else {
             if (ri <= fct_iso2 * gi) { # the preceding pass the 2st threshold
@@ -362,7 +369,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
 #' @param tol The tolerance in mass errors.
 #' @inheritParams find_ms1stat
 find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s, 
-                               max_charge = 4L, n_fwd = 20L, n_bwd = 20L, 
+                               max_charge = 4L, n_fwd = 15L, n_bwd = 20L, 
                                ms_lev = 1L, is_dda = TRUE, tol = 8E-6)
 {
   # find results for all ch -> uses the best...
@@ -371,7 +378,7 @@ find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s,
   
   # stopifnot(max_charge >= 2L, tol >= 1E-6, lenm)
   lenm <- length(moverzs)
-  gaps <- 1.003355 / 2:max_charge # m_13c <- 1.003355
+  gaps <- 1.003355 / 2:max_charge
   sta1 <- min(lenm, imax + 1L)
   sta2 <- max(1L, imax - n_bwd)
   end1 <- min(lenm, imax + n_fwd)

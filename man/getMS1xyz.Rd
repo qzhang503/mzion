@@ -26,7 +26,8 @@ getMS1xyz(
   grad_isotope = 1.6,
   fct_iso2 = 3,
   use_defpeaks = FALSE,
-  min_mass = 200L
+  min_mass = 200L,
+  filename = NULL
 )
 }
 \arguments{
@@ -103,6 +104,8 @@ adjacent peak being a mono-isotopic precursor}
 \item{min_mass}{A positive integer; the minimum precursor mass for
 interrogation. The default is an arbitrarily low value (the primary guard
 against low molecular-weight precursors is \code{min_len}).}
+
+\item{filename}{A file name (for troubleshooting).}
 }
 \description{
 Inputs are full-spectrum X and Y values. MS levels are differentiated by

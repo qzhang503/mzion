@@ -8,6 +8,7 @@ traceXY(
   xs,
   ys,
   ss,
+  ts,
   n_mdda_flanks = 6L,
   from = 115L,
   step = 1e-05,
@@ -19,11 +20,13 @@ traceXY(
 )
 }
 \arguments{
-\item{xs}{Vectors of full-spectrum MS1 moverzs.}
+\item{xs}{Lists of full-spectrum MS1 moverzs vectors.}
 
-\item{ys}{Vectors of full-spectrum MS1 intensities.}
+\item{ys}{Lists of full-spectrum MS1 intensities vectors.}
 
 \item{ss}{Vectors of MS1 scan numbers.}
+
+\item{ts}{Vectors of MS1 retention times (for calculating area-under-a-peak).}
 
 \item{n_mdda_flanks}{The number of preceding and following MS1 scans for
 consideration when averaging isotope envelops of precursors.}

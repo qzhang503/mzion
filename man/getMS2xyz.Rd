@@ -11,7 +11,7 @@ getMS2xyz(
   quant = "none",
   n_fwd = 10L,
   n_bwd = 10L,
-  offset_upr = 30L,
+  offset_upr = 20L,
   offset_lwr = 30L,
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,

@@ -13,8 +13,10 @@ find_mdda_mms1s(
   ppm = 10L,
   maxn_precurs = 5L,
   max_ms1_charge = 4L,
-  n_fwd = 20L,
+  n_fwd = 15L,
   n_bwd = 20L,
+  offset_upr = 20L,
+  offset_lwr = 30L,
   grad_isotope = 1.6,
   fct_iso2 = 3,
   use_defpeaks = FALSE,
@@ -47,9 +49,17 @@ corresponding to \code{msx_moverzs}.}
 
 \item{max_ms1_charge}{Maximum charge state of precursors for consideration.}
 
-\item{n_fwd}{Forward looking up to \code{n_fwd} mass entries.}
+\item{n_fwd}{Forward looking up to \code{n_fwd} mass entries when determining
+the charge state.}
 
-\item{n_bwd}{Backward looking up to \code{n_bwd} mass entries.}
+\item{n_bwd}{Backward looking up to \code{n_bwd} mass entries when
+determining the charge state.}
+
+\item{offset_upr}{A cardinal number of upper mass off-sets in relative to a
+mass center when finding mono-isotopic species.}
+
+\item{offset_lwr}{A cardinal number of lower mass off-sets in relative to a
+mass center when finding mono-isotopic species.}
 
 \item{grad_isotope}{Positive numeric; the gradient threshold between two
 adjacent peaks in an isotopic envelop. The smaller the value, the more

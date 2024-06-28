@@ -8,6 +8,7 @@ htraceXY(
   xs,
   ys,
   ss,
+  ts,
   df,
   gap_bf = 256L,
   gap_af = 256L,
@@ -24,6 +25,8 @@ htraceXY(
 \item{ys}{Vectors of full-spectrum MS1 intensities.}
 
 \item{ss}{Vectors of MS1 scan numbers.}
+
+\item{ts}{Vectors of MS1 retention times (for calculating area-under-a-peak).}
 
 \item{df}{A data frame of MS1 and MS2 corresponding to \code{xs}.}
 
