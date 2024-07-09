@@ -25,6 +25,7 @@ find_mdda_mms1s(
   margin = 0.5,
   min_mass = 200L,
   step = ppm/1e+06,
+  look_back = FALSE,
   is_pasef = FALSE
 )
 }
@@ -87,6 +88,8 @@ interrogation. The default is an arbitrarily low value (the primary guard
 against low molecular-weight precursors is \code{min_len}).}
 
 \item{step}{A step size.}
+
+\item{look_back}{Logical; look up the preceding MS bin or not.}
 
 \item{is_pasef}{Logical; is TIMS TOF data or not.}
 }

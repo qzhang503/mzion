@@ -43,10 +43,12 @@ interrogation.}
 \item{data_type}{The type of peak lists in one of raw, mzML or mgf. The
 argument is used to handle list(NULL) at an mzML format.}
 
+\item{ms1_offset}{An off-set in MS1 masses.}
+
 \item{n_13c}{Number(s) of 13C off-sets in precursor masses, for example, over
 the range of \code{-1:2}. The default is 0.}
 
-\item{is_ms1notched}{Logical; is there an off-set (notch) in MS1 mass.}
+\item{mass_13c}{The mass of 13C.}
 }
 \description{
 Replicates MS2 data by the multiplicity of precursor masses.

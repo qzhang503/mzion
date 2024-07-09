@@ -28,6 +28,8 @@ interrogation.}
 
 \item{ppm_ms1_bin}{The tolerance in precursor mass error after mass binning.}
 
+\item{ms1_offset}{A MS1 mass off-set.}
+
 \item{is_ms1notched}{Logical; is there an off-set (notch) in MS1 mass.}
 
 \item{n_13c}{Number(s) of 13C off-sets in precursor masses, for example, over

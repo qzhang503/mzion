@@ -763,7 +763,7 @@ group_ms2pasef_by_precursors <- function (dat, lwr = 115L, step = 1.6e-5)
   xys <- collapse_mms1ints(
     lapply(dat, `[[`, "msx_moverzs"), lapply(dat, `[[`, "msx_ints"), 
     lwr = lwr, step = step, reord = FALSE, cleanup = FALSE, 
-    sum_y = TRUE, add_colnames = FALSE)
+    sum_y = TRUE, add_colnames = FALSE, look_back = TRUE)
   xys <- calc_ms1xys(xys[["x"]], xys[["y"]])
 
   msx_moverzs <- xys$x

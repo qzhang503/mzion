@@ -7,13 +7,13 @@
 adj_masses1(mgfs, mdiff, is_listmass = TRUE, is_tmt = FALSE)
 }
 \arguments{
+\item{mgfs}{A table of peak lists.}
+
 \item{mdiff}{The mass difference (the median of differences).}
 
 \item{is_listmass}{Logical; are the X values in list for scalar.}
 
 \item{is_tmt}{Logical; is a TMT experiment or not.}
-
-\item{A}{table of peak lists.}
 }
 \description{
 Adjust X values

@@ -16,7 +16,8 @@ htraceXY(
   from = 200L,
   step = 1e+05,
   y_perc = 0.01,
-  yco = 500
+  yco = 500,
+  look_back = TRUE
 )
 }
 \arguments{
@@ -24,7 +25,7 @@ htraceXY(
 
 \item{ys}{Vectors of full-spectrum MS1 intensities.}
 
-\item{ss}{Vectors of MS1 scan numbers.}
+\item{ss}{Vectors of MS1 (original) scan numbers.}
 
 \item{ts}{Vectors of MS1 retention times (for calculating area-under-a-peak).}
 
@@ -44,6 +45,8 @@ consideration when averaging isotope envelops of precursors.}
 \item{y_perc}{The cut-off in intensity values in relative to the base peak.}
 
 \item{yco}{The cut-off in y values.}
+
+\item{look_back}{Logical; look up the preceding MS bin or not.}
 }
 \description{
 Helper of \link{traceXY}.

@@ -29,6 +29,10 @@ pasefMS1xyz(
 )
 }
 \arguments{
+\item{msx_moverzs}{Full-spectrum MS1 or MS2 m-over-z values.}
+
+\item{msx_ints}{Full-spectrum MS1 or MS2 intensities.}
+
 \item{ms1_fr}{MS1 frame numbers.}
 
 \item{ms_level}{Vectors of MS levels.}
@@ -83,10 +87,6 @@ intensities and charge states pre-calculated by other peak-picking
 algorithms.}
 
 \item{filename}{A filename for logging.}
-
-\item{msx_moverz}{Full-spectrum MS1 or MS2 m-over-z values.}
-
-\item{msx_int}{Full-spectrum MS1 or MS2 intensities.}
 }
 \description{
 De-isotoping DDA-MS1

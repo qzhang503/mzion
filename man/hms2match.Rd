@@ -2,7 +2,7 @@
 % Please edit documentation in R/ms2frames.R
 \name{hms2match}
 \alias{hms2match}
-\title{Help of \link{ms2match_all}}
+\title{Helper of \link{hms2match_one}}
 \usage{
 hms2match(
   aa_masses_all,

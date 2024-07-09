@@ -656,7 +656,7 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
 
 #' Adjust X values
 #' 
-#' @param A table of peak lists.
+#' @param mgfs A table of peak lists.
 #' @param mdiff The mass difference (the median of differences). 
 #' @param is_tmt Logical; is a TMT experiment or not.
 #' @param is_listmass Logical; are the X values in list for scalar.

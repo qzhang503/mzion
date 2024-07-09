@@ -137,7 +137,8 @@ thin_mgf <- function (df, fold = 1L, use_first_mass = FALSE)
 
 #' Helper of \link{pair_mgftheos}.
 #'
-#' @param ms1_offset The ms1 offset.
+#' @param ms1_offset The ms1 off-set.
+#' @param n_13c An off-set in the number of 13C.
 #' @param notch The index assigned to an ms1_offset.
 #' @param mgfs MGF data.
 #' @param mgf_files The names of peak list files.
@@ -250,7 +251,8 @@ hpair_mgths <- function (ms1_offset = 0, n_13c = 0L, notch = NULL,
 #' @param mgfs MGF data.
 #' @param data_type The type of peak lists in one of raw, mzML or mgf. The
 #'   argument is used to handle list(NULL) at an mzML format.
-#' @param is_ms1notched Logical; is there an off-set (notch) in MS1 mass.
+#' @param ms1_offset An off-set in MS1 masses.
+#' @param mass_13c The mass of 13C.
 #' @inheritParams pair_mgftheos
 #' @inheritParams matchMS
 make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L, 
@@ -369,6 +371,7 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
 #'
 #' @param mgfs Peak lists with \emph{flat} precursor masses.
 #' @param ppm_ms1_bin The tolerance in precursor mass error after mass binning.
+#' @param ms1_offset A MS1 mass off-set.
 #' @param is_ms1notched Logical; is there an off-set (notch) in MS1 mass.
 #' @param mass_co_13c The mass cut-off per number of 13C for considering 13C
 #'   off-sets.
@@ -406,7 +409,7 @@ clean_flat_mgfs <- function (mgfs, min_mass = 200L, max_mass = 4500L,
 }
 
 
-#' Help of \link{ms2match_all}
+#' Helper of \link{hms2match_one}
 #'
 #' By MGF chunks
 #'

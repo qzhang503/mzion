@@ -21,7 +21,9 @@ hpair_mgths(
 )
 }
 \arguments{
-\item{ms1_offset}{The ms1 offset.}
+\item{ms1_offset}{The ms1 off-set.}
+
+\item{n_13c}{An off-set in the number of 13C.}
 
 \item{notch}{The index assigned to an ms1_offset.}
 

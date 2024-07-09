@@ -4,7 +4,7 @@
 \alias{find_lc_gates}
 \title{Finds the gates of retention times.}
 \usage{
-find_lc_gates(ys = NULL, ts = NULL, n_dia_scans = 4L, by_area = TRUE)
+find_lc_gates(ys = NULL, ts = NULL, n_dia_scans = 4L)
 }
 \arguments{
 \item{ys}{A vector of intensity value for the same (approximate) mass along
@@ -15,8 +15,6 @@ LC.}
 \item{n_dia_scans}{The number of adjacent MS scans for constructing a peak
 profile and thus for determining the apex scan number of an moverz value
 along LC.}
-
-\item{by_area}{Logical; represent Y-values by peak areas or heights.}
 }
 \value{
 Scan indexes of LC peaks.
@@ -25,10 +23,10 @@ Scan indexes of LC peaks.
 Finds the gates of retention times.
 }
 \examples{
-mzion:::find_lc_gates(c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), 2)
-mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50))
-mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50))
+mzion:::find_lc_gates(c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), seq_len(15), 2)
+mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50), seq_len(18))
+mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50), seq_len(21))
 
 # all discrete
-mzion:::find_lc_gates(c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50))
+mzion:::find_lc_gates(c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50), seq_len(18))
 }

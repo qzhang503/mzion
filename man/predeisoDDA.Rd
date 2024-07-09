@@ -42,7 +42,122 @@ predeisoDDA(
 )
 }
 \arguments{
-\item{dedug}{Logical; debug mode or not.}
+\item{filename}{A peaklist filename.}
+
+\item{temp_dir}{A temp_dir to the filename.}
+
+\item{mzml_type}{The type of peak lists. To trigger MS1 deisotoping at
+\code{mzml_type == "raw"} (MS1 X, y and Z are NA with Mzion).}
+
+\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
+default is 20.}
+
+\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
+default is 20.}
+
+\item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
+multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is
+equivalent to DDA with precursor re-deisotoping. At \code{maxn_mdda_precurs
+= 0}, it is equivalent to DDA using the original monoisotopic masses and
+charge states provided by a peak-picking algorithm (e.g., MSConvert).}
+
+\item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
+searches.}
+
+\item{n_mdda_flanks}{The number of preceding and following MS1 scans for
+consideration when averaging isotope envelops of precursors.}
+
+\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
+constructing a peak profile and thus for determining the apex scan number
+of an moverz value along LC.}
+
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is an arbitrarily low value (the primary guard
+against low molecular-weight precursors is \code{min_len}).}
+
+\item{max_mass}{A positive integer; the maximum precursor mass for
+interrogation.}
+
+\item{min_ms2mass}{A positive integer; the minimum MS2 mass for
+interrogation. The default is 110.}
+
+\item{max_ms2mass}{A positive integer; the maximum MS2 mass for
+interrogation.}
+
+\item{min_ms1_charge}{A positive integer; the minimum MS1 charge state for
+considerations. The default is 2.}
+
+\item{max_ms1_charge}{A positive integer; the maximum MS1 charge state for
+considerations. The default is 6.}
+
+\item{min_ret_time}{A non-negative numeric; the minimum retention time in
+seconds for considerations. The default is 0.}
+
+\item{max_ret_time}{Numeric; the maximum retention time in seconds for
+considerations. The default is \code{Inf}. At a negative value, e.g. -800,
+data in the last 800s of LC retention time will be excluded.}
+
+\item{min_scan_num}{Depreciated. A positive integer; the minimum scan number
+for considerations. The default is 1. The setting only applies to MGFs with
+numeric scan numbers. For example, it has no effects on Bruker's timsTOF
+data.}
+
+\item{max_scan_num}{Depreciated. A positive integer; the maximum scan number
+for considerations. The default is the maximum machine integer. The setting
+only applies to MGFs with numeric scan numbers.}
+
+\item{deisotope_ms2}{Logical; if TRUE, de-isotope MS2 features.}
+
+\item{max_ms2_charge}{Maximum charge states for consideration with MS2
+deisotoping.}
+
+\item{ppm_ms1_deisotope}{Mass error tolerance in MS1 deisotoping.}
+
+\item{ppm_ms2_deisotope}{Mass error tolerance in MS2 deisotoping.}
+
+\item{grad_isotope}{Positive numeric; the gradient threshold between two
+adjacent peaks in an isotopic envelop. The smaller the value, the more
+stringent it is in calling an adjacent peak being a mono-isotopic
+precursor.}
+
+\item{fct_iso2}{A multiplication factor for the fuzzy discrimination of a
+secondary precursor in parallel to a primary precursor in an isotopic
+envelop. The smaller the value, the more stringent it is in calling an
+adjacent peak being a mono-isotopic precursor}
+
+\item{quant}{A character string; the quantitation method. The default is
+"none". Additional choices include \code{tmt6, tmt10, tmt11, tmt16 and
+tmt18}. For other multiplicities of \code{tmt}, use the compatible higher
+plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
+12-plexes being constructed from a 16-plex TMTpro \eqn{(7 * 13C + 2 *
+15N)}. It is also possible that an experimenter may construct a
+\code{tmt12} from a 18-plex TMTpro \eqn{(8 *13C + 1 * 15N)} where
+\code{quant = tmt18} is suitable.}
+
+\item{use_lfq_intensity}{Logical; if TRUE, replace spectrum-centric precursor
+intensities with peptide-centric intensities in DDA-MS. Require mzML data
+format. The feature enables LFQ and can also be applied to TMT experiments.}
+
+\item{tmt_reporter_lower}{The lower bound of the region of TMT reporter ions.
+The default is \eqn{126.1}.}
+
+\item{tmt_reporter_upper}{The upper bound of the region of TMT reporter ions.
+The default is \eqn{135.2}.}
+
+\item{exclude_reporter_region}{Logical; if TRUE, excludes MS2 ions in the
+region of TMT reporter ions. The default is FALSE. The corresponding range
+of TMT reporter ions is informed by \code{tmt_reporter_lower} and
+\code{tmt_reporter_upper}. The argument affects only TMT data.}
+
+\item{use_defpeaks}{Depreciated. Logical; if TRUE, uses MS1 m-over-z's,
+intensities and charge states pre-calculated by other peak-picking
+algorithms.}
+
+\item{is_pasef}{Logical; is TIMS TOF data or not.}
+
+\item{n_para}{The allowance of parallel processing.}
+
+\item{debug}{Logical; in a debug mode or not.}
 }
 \description{
 Helper of \link{deisoDDA}.

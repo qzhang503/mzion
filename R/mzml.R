@@ -1241,7 +1241,6 @@ deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL,
   # No MS1 info at maxn_mdda_precurs == 0L
   if (use_lfq_intensity && maxn_mdda_precurs) {
     df <- get_ms1xs_space(df)
-    
     step <- ppm_ms1 * 1e-6
     rows1 <- which(df$ms_level == 1L)
     rt_gap <- estimate_rtgap(df$ret_time[rows1])
@@ -1263,7 +1262,8 @@ deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL,
     gaps <- unlist(ans_prep$gaps, use.names = FALSE, recursive = FALSE)
     rm(list = c("ans_prep", "rt_gap"))
 
-    cols <- c("ms_level", "ms1_moverz", "ms1_int")
+    # cols <- c("ms_level", "ms1_moverz", "ms1_int")
+    cols <- c("ms_level", "ms1_moverz", "ms1_int", "orig_scan") # orig_scan for troubleshooting
     lenv <- length(df1s)
     gaps_bf <- c(0L, gaps[1:(lenv-1L)])
     gaps_af <- c(gaps[2:lenv], 0L)
@@ -1281,7 +1281,7 @@ deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL,
         gaps_af, 
         MoreArgs = list(
           n_mdda_flanks = n_mdda_flanks, from = min_mass, step = step, 
-          y_perc = y_perc, yco = yco
+          y_perc = y_perc, yco = yco, look_back = TRUE
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
       parallel::stopCluster(cl)
     }
@@ -1299,7 +1299,7 @@ deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL,
           xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], ts = vts[[i]], 
           df = vdf[[i]], gap_bf <- gaps_bf[[i]], gap_af = gaps_af[[i]], 
           n_mdda_flanks = n_mdda_flanks, from = min_mass, step = step, 
-          y_perc = y_perc, yco = yco)
+          y_perc = y_perc, yco = yco, look_back = TRUE)
         
         if (FALSE) {
           if (all(lengths(vxs[[i]]) == 0L)) {
@@ -1345,8 +1345,14 @@ deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL,
       rows2 <- df$ms_level != 1L
       df2 <- df[rows2, ]
       empties <- lengths(df2$apex_scan_num) == 0L
-      df2$apex_scan_num[empties] <- as.list(df2$scan_num[empties])
       
+      if (use_ms2scan_for_ms1apex <- TRUE) {
+        df2$apex_scan_num[empties] <- as.list(df2$scan_num[empties])
+      }
+      else {
+        df2$apex_scan_num[empties] <- as.list(NA_integer_)
+      }
+
       # chimeric MS1 entries
       lens2m <-lengths(df2$ms1_moverz)
       lens2a <- lengths(df2$apex_scan_num)
@@ -1362,12 +1368,14 @@ deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL,
       
       df[rows2, ] <- df2
       
-      df <- reloc_col_after(df, "apex_scan_num", "orig_scan")
+      df
     })
   }
   else {
     df$apex_scan_num <- df$orig_scan
   }
+  
+  df <- reloc_col_after(df, "apex_scan_num", "orig_scan")
 
   ## cleans up
   rows <- df$ms_level == 1L
@@ -1530,7 +1538,8 @@ estimate_rtgap <- function (rts, d = 180)
 
 #' Helper of \link{deisoDDA}.
 #' 
-#' @param dedug Logical; debug mode or not.
+#' @param debug Logical; in a debug mode or not.
+#' @inheritParams deisoDDA
 predeisoDDA <- function (filename = NULL, temp_dir = NULL, 
                          mzml_type = "raw", ppm_ms1 = 10L, ppm_ms2 = 10L, 
                          maxn_mdda_precurs = 5L, topn_ms2ions = 150L, 
@@ -1970,8 +1979,8 @@ deisoDDAMS2 <- function (ms2_moverzs, ms2_ints, topn_ms2ions = 150L,
 
 #' De-isotoping DDA-MS1
 #' 
-#' @param msx_moverz Full-spectrum MS1 or MS2 m-over-z values.
-#' @param msx_int Full-spectrum MS1 or MS2 intensities.
+#' @param msx_moverzs Full-spectrum MS1 or MS2 m-over-z values.
+#' @param msx_ints Full-spectrum MS1 or MS2 intensities.
 #' @param ms1_fr MS1 frame numbers.
 #' @param ms_level Vectors of MS levels.
 #' @param orig_scan Original scan numbers.
@@ -3740,16 +3749,15 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #' @param n_dia_scans The number of adjacent MS scans for constructing a peak
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
-#' @param by_area Logical; represent Y-values by peak areas or heights.
 #' @examples
-#' mzion:::find_lc_gates(c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), 2)
-#' mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50))
-#' mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50))
+#' mzion:::find_lc_gates(c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), seq_len(15), 2)
+#' mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50), seq_len(18))
+#' mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50), seq_len(21))
 #'
 #' # all discrete
-#' mzion:::find_lc_gates(c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50))
+#' mzion:::find_lc_gates(c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50), seq_len(18))
 #' @return Scan indexes of LC peaks.
-find_lc_gates <- function (ys = NULL, ts = NULL, n_dia_scans = 4L, by_area = TRUE)
+find_lc_gates <- function (ys = NULL, ts = NULL, n_dia_scans = 4L)
 {
   # if (n_dia_scans <= 0L) return(.Internal(which(ys > 0))) # should not occur
   ys <- fill_lc_gaps(ys, n_dia_scans)
@@ -3789,9 +3797,11 @@ find_lc_gates <- function (ys = NULL, ts = NULL, n_dia_scans = 4L, by_area = TRU
     xi <- xs[pi]
     yi <- ysub[pi]
     ti <- tsub[pi]
-    mi <- which.max(yi)
+    
+    yts <- calcAUC(yi, ti)
+    yps[[i]] <- yts[[1]]
+    mi <- yts[[2]]
     xps[[i]] <- xi[[1]] + mi - 1L
-    yps[[i]] <- if (by_area) calc_auc(yi, ti) else yi[[mi]]
   }
   
   if (FALSE) {
@@ -3832,17 +3842,26 @@ find_lc_gates <- function (ys = NULL, ts = NULL, n_dia_scans = 4L, by_area = TRU
 
 #' Calculate area under a curve
 #' 
-#' @param ys Y values.
-#' @param ts Time values.
-#' @param interpol Not yet used. Logical; interpolation of small values or not. 
-#' @param yco Not yet used. The cut-off values in Y for interpolation.
-calc_auc <- function (ys, ts, interpol = FALSE, yco = 2)
+#' @param ys Y values around an LC peak. Should be no NA values in the sequence.
+#' @param ts Time values corresponding to \code{ys}.
+calcAUC <- function (ys, ts)
 {
-  oks <- ys > yco
-  ys <- ys[oks]
-  ts <- ts[oks]
+  # find the apex index
+  imax <- .Internal(which.max(ys))
+  len  <- length(ys)
+  csum <- cumsum(ys * c(diff(ts), .5))
+  tot  <- csum[[len]]
+  mval <- tot / 2
+  imed <- .Internal(which(csum >= mval))[[1]]
+  idx  <- if (abs(imax - imed) > 3) imed else imax
 
-  sum(ys * c(diff(ts), .5), na.rm = TRUE)
+  # calculate peak area (may or may not use `tot`)
+  oks <- .Internal(which(ys >= ys[[imax]] * .03))
+  ysub <- ys[oks]
+  tsub <- ts[oks]
+  area <- sum(ysub * c(diff(tsub), .5), na.rm = TRUE)
+  
+  list(area = area, idx = idx)
 }
 
 
@@ -3900,6 +3919,7 @@ fill_lc_gaps <- function (ys, n_dia_scans = 4L, rpl = 2.0)
 #'   Thermo's and TRUE for collapsing PASEF MS2 slices.
 #' @param add_colnames Logical; if TRUE, add the indexes of mass bins to the
 #'   column names of \code{matx}.
+#' @param look_back Logical; look up the preceding MS bin or not.
 #' @importFrom fastmatch %fin%
 #' @examples
 #' # Twos adjacent bins of xs: 392.1796, 392.1845
@@ -3921,8 +3941,8 @@ fill_lc_gaps <- function (ys, n_dia_scans = 4L, rpl = 2.0)
 #' ys[[7]] <- 15706.2627; ys[[8]] <- 19803.5879; ys[[10]] <- 31178.9648
 #' mzion:::collapse_mms1ints(xs, ys, lwr = 951.089731)
 collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5, 
-                               reord = FALSE, cleanup = FALSE, 
-                               sum_y = FALSE, add_colnames = FALSE)
+                               reord = FALSE, cleanup = FALSE, sum_y = FALSE, 
+                               add_colnames = FALSE, look_back = FALSE)
 {
   ### 
   # the utility is often called heavily;
@@ -4001,9 +4021,12 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
       x <- xs[[i]]
       y <- ys[[i]]
       oks <- .Internal(which(!duplicated(ix)))
-      ixs[[i]] <- ix[oks]
-      xs[[i]]  <- x[oks]
-      ys[[i]]  <- y[oks]
+      
+      if (length(oks)) {
+        ixs[[i]] <- ix[oks]
+        xs[[i]]  <- x[oks]
+        ys[[i]]  <- y[oks]
+      }
     }
   }
   # rm(list = c("x", "y", "ix", "oks"))
@@ -4026,6 +4049,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   }
 
   ## collapses adjacent entries
+  # which(unv == 137674) # 12191
   ps <- find_gates(unv)
   lenp <- length(ps)
   
@@ -4035,20 +4059,47 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   }
   
   ps2 <- vector("integer", lenp) # matrix columns to be removed
+  
+  # the first
+  i <- 1L
+  c12 <- ps[[i]]
+  c1  <- c12[[1]]
+  c2  <- c12[[2]]
+  
+  if (c2 > 0L) {
+    ps2[[i]] <- c2
+    
+    rows <- .Internal(which(!is.na(xmat[, c2])))
+    xmat[rows, c1] <- xmat[rows, c2]
+    ymat[rows, c1] <- rowSums(ymat[rows, c1:c2, drop = FALSE], na.rm = TRUE)
+  }
+  
+  if (lenp == 1L) {
+    return(list(x = xmat[, -ps2, drop = FALSE], y = ymat[, -ps2, drop = FALSE]))
+  }
 
   # collapses matrix columns with +/-1 in bin indexes
-  for (i in 1:lenp) {
+  for (i in 2:lenp) {
+    # i <- 6653
     c12 <- ps[[i]]
-    c2 <- c12[[2]]
+    c1  <- c12[[1]]
+    c2  <- c12[[2]]
+    cb  <- ps[[i-1]][[2]]
+
+    if (look_back && (cb + 1L == c1)) {
+      xc1   <- xmat[, c1]
+      rows1 <- .Internal(which(is.na(xc1)))
+      xmat[rows1, c1] <- xmat[rows1, cb]
+      ymat[rows1, c1] <- rowSums(ymat[rows1, cb:c1, drop = FALSE], na.rm = TRUE)
+    }
     
-    # with values in both columns, simply overwrite: 1 <- 2; 
-    # c2 can be 0
-    if (!c2)
+    # with values in both columns, simply overwrite: 1 <- 2; c2 can be 0
+    if (c2 == 0L) {
       next
-    
+    }
+
     # with values in both columns, X: 1 <- 2; Y: 1 + 2
     ps2[[i]] <- c2
-    c1 <- c12[1]
     rows <- .Internal(which(!is.na(xmat[, c2])))
     xmat[rows, c1] <- xmat[rows, c2]
     ymat[rows, c1] <- rowSums(ymat[rows, c1:c2, drop = FALSE], na.rm = TRUE)
@@ -4059,7 +4110,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   # !identical(xmat[, 0, drop = FALSE], xmat)
   xmat <- xmat[, -ps2, drop = FALSE]
   ymat <- ymat[, -ps2, drop = FALSE]
-  
+
   list(x = xmat, y = ymat)
 }
 
@@ -4105,6 +4156,7 @@ calc_ms1xys <- function (matx, maty)
 #' @param margin The margin of an m-over-z extended to an isolation window (to
 #'   account for the imperfection of the voltage gates of isolation).
 #' @param use_defpeaks Use default peak info or not.
+#' @param look_back Logical; look up the preceding MS bin or not.
 #' @param is_pasef Logical; is TIMS TOF data or not.
 #' @inheritParams matchMS
 #' @inheritParams find_ms1stat
@@ -4117,7 +4169,8 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
                              offset_lwr = 30L, grad_isotope = 1.6, 
                              fct_iso2 = 3.0, use_defpeaks = FALSE, 
                              width_left = 2.01, width_right = 1.25, margin = .5, 
-                             min_mass = 200L, step = ppm/1e6, is_pasef = FALSE)
+                             min_mass = 200L, step = ppm/1e6, 
+                             look_back = FALSE, is_pasef = FALSE)
 {
   if (!(len1 <- length(msx_moverzs))) {
     return(NULL)
@@ -4161,7 +4214,7 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
     # rows: by flanking MS1 scans; columns: by moverzs bin indexes
     xys <- collapse_mms1ints(
       xs = ansx1, ys = ansy1, lwr = min_mass, step = step, reord = FALSE, 
-      cleanup = FALSE, add_colnames = FALSE)
+      cleanup = FALSE, add_colnames = FALSE, look_back = FALSE)
     
     # 3. collapse MS1s for de-isotoping
     ans <- calc_ms1xys(xys[["x"]], xys[["y"]])

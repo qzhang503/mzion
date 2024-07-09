@@ -12,7 +12,8 @@ collapse_mms1ints(
   reord = FALSE,
   cleanup = FALSE,
   sum_y = FALSE,
-  add_colnames = FALSE
+  add_colnames = FALSE,
+  look_back = FALSE
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ Thermo's and TRUE for collapsing PASEF MS2 slices.}
 
 \item{add_colnames}{Logical; if TRUE, add the indexes of mass bins to the
 column names of \code{matx}.}
+
+\item{look_back}{Logical; look up the preceding MS bin or not.}
 }
 \description{
 Allow adjacent values in \code{unv} and later collapse adjacent
