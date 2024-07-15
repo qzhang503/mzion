@@ -235,15 +235,6 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
     end <- nr - gap_af
   }
   
-  if (FALSE) {
-    matx <- matx[sta:end, ]
-    maty <- maty[sta:end, ]
-    ss <- ss[sta:end]
-    # look current
-    df <- updateMS1Int(df = df, matx = matx, maty = maty, from = from, 
-                       step = step)
-  }
-  
   # look both before and after scans
   df <- updateMS1Int2(
     df = df, matx = matx, maty = maty, row_sta = sta, row_end = end, 
@@ -311,16 +302,9 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 115L,
   rm(list = c("ans"))
   
   if (FALSE) {
-    rng <- 775:877
-    i <- which(colnames(ansx) == index_mz(792.3802, from, step)) # 6921
-    ss[rng]
-    
-    rng <- 201:350
-    i <- which(colnames(ansx) == index_mz(792.3802, from, step)) # 6215
-    ss[rng]
-    
-    rng <- 398:505
-    i <- which(colnames(ansx) == index_mz(935.0734, from, step)) # 10287
+    rng <- 466:615
+    i <- which(colnames(ansx) == index_mz(483.7299, from, step) +  1) # 3663
+    i <- which(colnames(ansx) == index_mz(483.7299, from, step) - 1) # 3662
     ss[rng]
     
     plot(ansx[rng, i])
@@ -379,73 +363,6 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 115L,
 
 #' Updates MS1 intensity with apex values.
 #'
-#' @param df A data frame.
-#' @param matx The matrix of moverzs Y: by masses; X: by LC scans.
-#' @param maty The matrix of intensities. Y: by masses; X: by LC scans.
-#' @param from The starting point for mass binning.
-#' @param step A step size for mass binning.
-updateMS1Int <- function (df, matx, maty, from = 200L, step = 1E-5)
-                          
-{
-  nrow <- nrow(matx)
-  
-  pos_levs <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)
-  ms1_stas <- pos_levs$ms1_stas
-  ms2_stas <- pos_levs$ms2_stas
-  ms2_ends <- pos_levs$ms2_ends
-  rm(list = "pos_levs")
-  
-  for (i in seq_along(ms2_stas)) {
-    ms2sta <- ms2_stas[[i]]
-    
-    if (is.na(ms2sta))
-      next
-    
-    ms2end <- ms2_ends[[i]]
-    df2 <- df[ms2sta:ms2end, ]
-    
-    xs <- matx[i, ]
-    ys <- maty[i, ]
-    oks <- .Internal(which(!is.na(xs)))
-    xs <- xs[oks]
-    ys <- ys[oks]
-    ixs <- as.integer(ceiling(log(xs/from)/log(1+step)))
-
-    for (j in 1:nrow(df2)) {
-      xsj <- df2[["ms1_moverz"]][[j]]
-      ixsj <- as.integer(ceiling(log(xsj/from)/log(1+step)))
-      ps0 <- match(ixsj, ixs)
-      
-      if (any(nas0 <- is.na(ps0))) {
-        ps1 <- match(ixsj + 1L, ixs)
-        ps2 <- match(ixsj - 1L, ixs)
-        
-        if (length(i0 <- which(!nas0))) {
-          df2[["ms1_int"]][[j]][i0] <- ys[ps0[!is.na(ps0)]]
-        }
-        
-        if (length(i1 <- which(!is.na(ps1)))) {
-          df2[["ms1_int"]][[j]][i1] <- ys[ps1[!is.na(ps1)]]
-        }
-        
-        if (length(i2 <- which(!is.na(ps2)))) {
-          df2[["ms1_int"]][[j]][i2] <- ys[ps2[!is.na(ps2)]]
-        }
-      }
-      else {
-        df2[["ms1_int"]][[j]] <- ys[ps0]
-      }
-    }
-    
-    df[["ms1_int"]][ms2sta:ms2end] <- df2[["ms1_int"]]
-  }
-  
-  df
-}
-
-
-#' Updates MS1 intensity with apex values.
-#'
 #' Including forward and backward looking.
 #'
 #' @param df A data frame.
@@ -485,13 +402,15 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, rngs,
   ###
   
   for (i in seq_along(ms2_stas)) { # the same as by ms1_stas
-    # i = 485; which(rownames(matx) == 114404) # 826
-    # i = 51; which(ms1_stas == 456), df[456, ]$orig_scan; 
-    # which(rownames(matx) == 114404) # 276
+    if (FALSE) {
+      df$orig_scan[ms1_stas] # look for orig_scan around 18950 ->
+      i = 232
+      ms2sta <- ms2_stas[[i]]
+      ms2end <- ms2_ends[[i]]
+      df2 <- df[ms2sta:ms2end, ]
+    }
     
-    # which(rownames(matx) == 94317) # 455
-    # i <- which(ms1_stas == max(which(df$orig_scan < 93948))) # orig_scan 93947
-    
+    # i = 232; which(rownames(matx) == 18949) # 482 - gap = 232
     ms2sta <- ms2_stas[[i]]
     if (is.na(ms2sta)) next
     ms2end <- ms2_ends[[i]]
@@ -516,31 +435,62 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, rngs,
           next
         }
 
+        # if (any(k %in% c(3662, 3664))) { print(k) }
+
         # two adjacent matches: unv[k] <-> ix2s[[m]] - 1 and ix2s[[m]] + 1
         if (length(k) > 1L) {
           # mk <- lapply(k, function (x) median(matx[, x], na.rm = TRUE))
           # mk <- .Internal(unlist(mk, use.names = FALSE, recursive = FALSE))
           # dx <- abs(x2s[[m]] - mk)
           
+          # the first column
           ka <- k[[1]]
           apexa <- scan_apexs[[ka]] # all apexs (scan numbers) under the k-th mass column
           dsa <- abs(apexa - scan)
-          p1a <- .Internal(which.min(dsa))
-          rnga <- rngs[[ka]][[p1a]]
-          ap1a <- apexa[[p1a]] # the nearest apex scan number; 13525
-          ok1a <- .Internal(which(ss == ap1a))
-          y1a <- maty[ok1a, ka]
+
+          p1a  <- .Internal(which.min(dsa))
+          pxa  <- max(1L, p1a - 3L):min(length(dsa), p1a + 3L)
           
+          # at least one (the most centered) peak is within 2500 scans
+          if (dsa[p1a] <= 2500) {
+            pxa <- pxa[dsa[pxa] <= 2500]
+          }
+
+          apa  <- apexa[pxa]
+          oksa <- .Internal(which(ss %in% apa))
+          ya   <- maty[oksa, ka]
+          topa <- .Internal(which.max(ya))
+          
+          p1a  <- pxa[topa]
+          y1a  <- ya[[topa]]
+          rnga <- rngs[[ka]][[p1a]]
+          ap1a <- apa[[topa]]
+          ok1a <- oksa[topa]
+          
+          # the 2nd column
           kb <- k[[2]]
           apexb <- scan_apexs[[kb]]
           dsb <- abs(apexb - scan)
-          p1b <- .Internal(which.min(dsb))
-          rngb <- rngs[[kb]][[p1b]]
-          ap1b <- apexb[[p1b]] # the nearest apex scan number; 13525
-          ok1b <- .Internal(which(ss == ap1b))
-          y1b <- maty[ok1b, kb]
           
-          # length(rnga) >=length(rngb)
+          p1b  <- .Internal(which.min(dsb))
+          pxb  <- max(1L, p1b - 3L):min(length(dsb), p1b + 3L)
+          
+          if (dsb[p1b] <= 2500) {
+            pxb <- pxb[dsb[pxb] <= 2500]
+          }
+          
+          apb  <- apexb[pxb]
+          oksb <- .Internal(which(ss %in% apb))
+          yb   <- maty[oksb, kb]
+          topb <- .Internal(which.max(yb))
+          
+          p1b  <- pxb[topb]
+          y1b  <- yb[[topb]]
+          rngb <- rngs[[kb]][[p1b]]
+          ap1b <- apb[[topb]]
+          ok1b <- oksb[topb]
+          
+          # the best of the two
           if (y1a > y1b) {
             k <- ka
             apexs <- apexa
@@ -563,37 +513,65 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, rngs,
         else {
           apexs <- scan_apexs[[k]] # all apexs (scan numbers) under the k-th mass column
           ds <- abs(apexs - scan)
-          p1 <- .Internal(which.min(ds))
-          ap1 <- apexs[[p1]] # the nearest apex scan number; 13525
-          ok1 <- .Internal(which(ss == ap1))
-          y1 <- maty[ok1, k]
+
+          if (FALSE) {
+            p1 <- .Internal(which.min(ds))
+            ap1 <- apexs[[p1]] # the nearest apex scan number; 13525
+            ok1 <- .Internal(which(ss == ap1))
+            y1 <- maty[ok1, k]
+          }
+          
+          p1  <- .Internal(which.min(ds))
+          px  <- max(1L, p1 - 3L):min(length(ds), p1 + 3L)
+          
+          if (ds[p1] <= 2500) {
+            px <- px[ds[px] <= 2500]
+          }
+          
+          ap  <- apexs[px]
+          oks <- .Internal(which(ss %in% ap))
+          y   <- maty[oks, k]
+          top <- .Internal(which.max(y))
+          
+          p1  <- px[top]
+          y1  <- y[[top]]
+          rng <- rngs[[k]][[p1]]
+          ap1 <- ap[[top]]
+          ok1 <- oks[top]
         }
+        
+        df2$apex_scan_num[[j]][[m]] <- ap1
+        df2[["ms1_int"]][[j]][m] <- y1
         
         # k <- k[[1]] # can have two adjacent matches: ix2s - 1 and ix2s + 1
         # ix <- unv[[k]]; # a <- maty[, which(colnames(matx) == unv[[k]])]; a <- maty[, 3218:3219]
-
-        # checks neighbors
-        if (length(apexs) > 1L) {
-          ps <- which_topx2(-ds, 2L)
-          p2 <- ps[ps != p1]
-          ap2 <- apexs[[p2]] # the second nearest apex scan; 13686
-          ok2 <- .Internal(which(ss == ap2))
-          y2 <- maty[ok2, k]
-
-          # later checks peak spacing and peak width (for small satellite peaks)
-          if ((y1 < y2) && (abs(ap2 - ap1) <= 200L)) { # 200L somewhat arbitrary
-            df2$apex_scan_num[[j]][[m]] <- ap2 # ss[ok2]
-            df2[["ms1_int"]][[j]][m] <- y2
+        
+        if (FALSE) {
+          # checks neighbors
+          if (length(apexs) > 1L) {
+            ps <- which_topx2(-ds, 2L)
+            p2 <- ps[ps != p1]
+            ap2 <- apexs[[p2]] # the second nearest apex scan; 13686
+            ok2 <- .Internal(which(ss == ap2))
+            y2 <- maty[ok2, k]
+            
+            # later checks peak spacing and peak width (for small satellite peaks)
+            if ((y1 < y2) && (abs(ap2 - ap1) <= 200L)) { # 200L somewhat arbitrary
+              df2$apex_scan_num[[j]][[m]] <- ap2 # ss[ok2]
+              df2[["ms1_int"]][[j]][m] <- y2
+            }
+            else {
+              df2$apex_scan_num[[j]][[m]] <- ap1 # ss[ok1]
+              df2[["ms1_int"]][[j]][m] <- y1
+            }
           }
           else {
             df2$apex_scan_num[[j]][[m]] <- ap1 # ss[ok1]
             df2[["ms1_int"]][[j]][m] <- y1
           }
         }
-        else {
-          df2$apex_scan_num[[j]][[m]] <- ap1 # ss[ok1]
-          df2[["ms1_int"]][[j]][m] <- y1
-        }
+
+        
       }
     }
 

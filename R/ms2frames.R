@@ -315,6 +315,23 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
   # list columns
   datalist <- mgfs[, cols_list, drop = FALSE]
   
+  # additional checks that should not occur
+  xs <- datalist$ms1_moverz
+  ps <- datalist$apex_scan_num
+  lenx <- lengths(xs)
+  lenp <- lengths(ps)
+  rows <- which(lenp != lenx)
+  
+  if (length(rows)) {
+    warning("Developer: check for unevenness among columns.")
+
+    datalist$apex_scan_num[rows] <- 
+      mapply(function (p, n) rep_len(p, n), 
+             lapply(ps[rows], `[[`, 1L), lenx[rows], 
+             SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  }
+  rm(list = c("xs", "ps", "lenx", "lenp", "rows"))
+  
   if (tolower(data_type) == "mzml") {
     for (i in 1:ncol(datalist)) {
       di <- datalist[[i]]

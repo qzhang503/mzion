@@ -1663,6 +1663,11 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
       error = function(e) NA
     )
     
+    # an empirical score cut-off for longer sequences
+    if (len >= 35L) {
+      best_co <- max(best_co, 35.0, na.rm = TRUE)
+    }
+
     prob_co <- 10^(-best_co/fct_score)
     names(prob_co) <- count
     
@@ -1780,16 +1785,10 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
           })
         )
       }
-
-      rm(list = c("newx", "newy", "score_co", "score_co2"))
     } 
     else {
       best_co <- score_co
     }
-    
-    rm(list = c("df", "fit"))
-    
-    prob_co <- 10^(-best_co/fct_score)
   }
   else {
     best_co <- tryCatch(
@@ -1799,9 +1798,13 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
     if (is.na(best_co)) {
       best_co <- Inf
     }
-
-    prob_co <- 10^(-best_co/fct_score)
   }
+  
+  if (len >= 35L) {
+    best_co <- max(best_co, 35.0, na.rm = TRUE)
+  }
+  
+  prob_co <- 10^(-best_co/fct_score)
   
   names(prob_co) <- count
 
