@@ -1297,7 +1297,7 @@ deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL,
         # nrow(out[[i]]) == nrow(vdf[[i]])
         out[[i]] <- htraceXY(
           xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], ts = vts[[i]], 
-          df = vdf[[i]], gap_bf <- gaps_bf[[i]], gap_af = gaps_af[[i]], 
+          df = vdf[[i]], gap_bf = gaps_bf[[i]], gap_af = gaps_af[[i]], 
           n_mdda_flanks = n_mdda_flanks, from = min_mass, step = step, 
           y_perc = y_perc, yco = yco, look_back = TRUE)
         
@@ -3530,7 +3530,8 @@ traceLCMS <- function (xs, ys, zs, n_dia_scans = 4L, from = 115L, step = 8E-6,
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
       # temporary ts = NULL
-      gates <- find_lc_gates(ansy[, i], ts = NULL, n_dia_scans = n_dia_scans)
+      gates <- find_lc_gates(xs = NULL, ys = ansy[, i], ts = NULL, 
+                             n_dia_scans = n_dia_scans)
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans
       ranges[[i]] <- rngs <- gates[["ranges"]]
@@ -3547,7 +3548,8 @@ traceLCMS <- function (xs, ys, zs, n_dia_scans = 4L, from = 115L, step = 8E-6,
   else {
     for (i in 1:nc) {
       # temporary ts = NULL
-      gates <- find_lc_gates(ansy[, i], ts = NULL, n_dia_scans = n_dia_scans)
+      gates <- find_lc_gates(xs = NULL, ys = ansy[, i], ts = NULL, 
+                             n_dia_scans = n_dia_scans)
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans
       ranges[[i]] <- rngs <- gates[["ranges"]]
@@ -3743,6 +3745,8 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 
 #' Finds the gates of retention times.
 #'
+#' @param xs A vector of m-over-z value for the same (approximate) mass along
+#'   LC.
 #' @param ys A vector of intensity value for the same (approximate) mass along
 #'   LC.
 #' @param ts The retention times corrresponding to \code{ys}.
@@ -3750,83 +3754,90 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
 #' @examples
-#' mzion:::find_lc_gates(c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), seq_len(15), 2)
-#' mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50), seq_len(18))
-#' mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50), seq_len(21))
+#' mzion:::find_lc_gates(xs = rep_len(100, 15), ys = c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), ts = seq_len(15), n_dia_scans = 2)
+#' mzion:::find_lc_gates(xs = rep_len(100, 18), ys = c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50), ts = seq_len(18))
+#' mzion:::find_lc_gates(xs = rep_len(100, 21), ys = c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50), ts = seq_len(21))
 #'
 #' # all discrete
-#' mzion:::find_lc_gates(c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50), seq_len(18))
+#' mzion:::find_lc_gates(xs = rep_len(100, 18), ys = c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50), ts = seq_len(18))
+#' 
+#' # two passes
+#' ys <- c(rep_len(0, 10), rep_len(100, 50), rep_len(0, 10), rep_len(100, 50), rep_len(3, 5), rep_len(50, 80), rep_len(0, 10))
+#' xs <- rep(5, length(ys))
+#' ts <- seq_along(ys)
+#' mzion:::find_lc_gates(xs, ys, ts)
 #' @return Scan indexes of LC peaks.
-find_lc_gates <- function (ys = NULL, ts = NULL, n_dia_scans = 4L)
+find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L)
 {
   # if (n_dia_scans <= 0L) return(.Internal(which(ys > 0))) # should not occur
-  ys <- fill_lc_gaps(ys, n_dia_scans)
-  xs <- .Internal(which(ys > 0))
-  nx <- length(xs)
-  ysub  <- ys[xs]
-  tsub <- ts[xs]
+  ys   <- fill_lc_gaps(ys = ys, n_dia_scans = n_dia_scans, y_rpl = 2.0)
+  ioks <- .Internal(which(ys > 0))
+  nx   <- length(ioks)
+  i1hs <- ioks # for one-hit-wonders
   
   # a case of one one-hit wonder across LC
   if (nx == 1L) {
-    return(list(apex = xs, yints = ysub, ns = 1L, ranges = xs))
+    return(list(apex = ioks, yints = ys[ioks], ns = 1L, ranges = ioks, 
+                xstas = ioks))
   }
-
+  
+  edges <- find_gate_edges(ioks)
+  
   # all discrete one-hit wonders
-  if (is.null(edges <- find_gate_edges(xs))) {
-    return(list(apex = xs, yints = ysub, ns = rep_len(1L, nx), ranges = xs))
+  if (is.null(edges)) {
+    return(list(apex = ioks, yints = ys[ioks], ns = rep_len(1L, nx), 
+                ranges = ioks, xstas = ioks))
   }
-
+  
   ups <- edges[["ups"]]
   dns <- edges[["dns"]]
-  xus <- xs[ups]
-  xds <- xs[dns]
   nps <- length(ups)
-  widths <- xds - xus + 1L
-
-  ps <- ranges <- vector("list", nps)
-  for (i in seq_len(nps)) {
-    ps[[i]] <- ri <- ups[[i]]:dns[[i]]
-    ranges[[i]] <- xs[ri]
-  }
   
-  xs1 <- xs[-.Internal(unlist(ps, recursive = FALSE, use.names = TRUE))]
-  yps <- xps <- rep_len(NA_integer_, nps)
+  stas <- ends <- vector("list", nps)
   
   for (i in seq_len(nps)) {
-    pi <- ps[[i]]
-    xi <- xs[pi]
-    yi <- ysub[pi]
-    ti <- tsub[pi]
+    upi  <- ups[[i]]
+    dni  <- dns[[i]]
+    psi  <- upi:dni # indexes in relative to ioks
+    ri   <- ioks[psi] # indexes in relative to ys
+    i1hs <- i1hs[!i1hs %in% ri]
     
-    yts <- calcAUC(yi, ti)
-    yps[[i]] <- yts[[1]]
-    mi <- yts[[2]]
-    xps[[i]] <- xi[[1]] + mi - 1L
-  }
-  
-  if (FALSE) {
-    if (nps > 1L) {
-      for (i in 2:nps) {
-        ix <- i - 1
-        
-        if ((xus[[i]] - xds[[ix]]) <= n_dia_scans) {
-          if (yps[[i]] >= yps[[ix]])
-            xus[[ix]] <- NA_integer_
-          else
-            xus[[i]] <- NA_integer_
-        }
-      }
+    if (length(ri) > 90L) {
+      ans <- find_lc_gates2(ys[ri], sta = ioks[[upi]], n_dia_scans = n_dia_scans, 
+                            y_rpl = 2.0)
+      stas[[i]] <- ans$stas
+      ends[[i]] <- ans$ends
     }
-    
-    oks <- !is.na(xus)
-    xps <- xps[oks]
+    else {
+      stas[[i]] <- ioks[[upi]] # the starting index of gate-i in relative to ys
+      ends[[i]] <- ioks[[dni]]
+    }
   }
   
-  # outputs
-  apexs <- c(xs1, xps)
-  yout <- c(ys[xs1], yps)
-  ns <- c(rep_len(1L, length(xs1)), widths)
-  rout <- c(xs1, ranges)
+  stas <- unlist(stas, recursive = FALSE, use.names = FALSE)
+  ends <- unlist(ends, recursive = FALSE, use.names = FALSE)
+  nps2 <- length(stas)
+  
+  ranges <- vector("list", nps2)
+  yints <- xapex <- xstas <- rep_len(NA_integer_, nps2)
+  
+  for (i in seq_along(stas)) {
+    ranges[[i]] <- ixi <- stas[[i]]:ends[[i]]
+    ix1 <- ixi[[1]]
+    yts <- calcAUC(ys[ixi], ts[ixi])
+    mi  <- yts[["idx"]]
+    
+    yints[[i]] <- yts[["area"]]
+    xapex[[i]] <- ix1 + mi - 1L
+    xstas[[i]] <- ix1
+  }
+  
+  ## outputs
+  widths <- lengths(ranges)
+  apexs <- c(i1hs, xapex)
+  yout <- c(ys[i1hs], yints)
+  ns <- c(rep_len(1L, length(i1hs)), widths)
+  rout <- c(i1hs, ranges)
   
   if (length(apexs) > 1L) {
     ord <- order(apexs)
@@ -3835,8 +3846,60 @@ find_lc_gates <- function (ys = NULL, ts = NULL, n_dia_scans = 4L)
     ns <- ns[ord]
     rout <- rout[ord]
   }
+  
+  list(apex = apexs, yints = yout, ns = ns, ranges = rout, xstas = xstas)
+}
 
-  list(apex = apexs, yints = yout, ns = ns, ranges = rout)
+
+#' Find peak edges by intensity threshold relative to the base peak
+#'
+#' @param ys A vector of intensity values.
+#' @param sta The starting point (off-set) of the current ys (ys[ri]) in the
+#'   whole ys.
+#' @param n_dia_scans The number of adjacent MS scans for constructing a peak
+#'   profile and thus for determining the apex scan number of an moverz value
+#'   along LC.
+#' @param y_rpl A replacement value of intensities.
+find_lc_gates2 <- function (ys, sta, n_dia_scans = 6L, y_rpl = 2.0)
+{
+  ys[ys <= max(ys, na.rm = TRUE) * .02] <- NA_real_
+  ys <- fill_lc_gaps(ys, n_dia_scans = n_dia_scans, y_rpl = 2.0)
+  
+  ioks  <- .Internal(which(ys > 0))
+  edges <- find_gate_edges(ioks)
+  ups <- edges[["ups"]] # in relative to ys
+  dns <- edges[["dns"]]
+  
+  # sta <- ioks[[upi]] # the starting index of gate-i in relative to ys
+  # stas[[i]] <- sta + ioks[ups] - 1L # in relative to ys
+  # ends[[i]] <- sta + ioks[dns] - 1L
+  
+  list(stas = sta + ioks[ups] - 1L, ends = sta + ioks[dns] - 1L)
+}
+
+
+#' Find peak edges by intensity threshold relative to the base peak
+#' 
+#' Not yet used.
+#' 
+#' @param ys A vector of intensity values.
+#' @param ps A vector of Y positions.
+#' @param range A vector Y ranges.
+#' @param n_dia_scans The number of adjacent MS scans for constructing a peak
+#'   profile and thus for determining the apex scan number of an moverz value
+#'   along LC.
+#' @param y_rpl A replacement value of intensities.
+find_lc_edges_bp <- function (ys, ps, range, n_dia_scans = 6, y_rpl = 2.0)
+{
+  ymax <- max(ys, na.rm = TRUE)
+  offp <- ps[[1]] - 1L
+  offr <- range[[1]] - 1L
+  
+  ys[ys <= ymax * .03] <- NA_real_
+  ys <- fill_lc_gaps(ys = ys, n_dia_scans = n_dia_scans, y_rpl = y_rpl)
+  ioks <- .Internal(which(ys > 0))
+  
+  edges <- find_gate_edges(ioks)
 }
 
 
@@ -3871,7 +3934,7 @@ calcAUC <- function (ys, ts)
 #' @param n_dia_scans The number of adjacent MS scans for constructing a peak
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
-#' @param rpl A replacement value to fill the gaps of \code{ys}.
+#' @param y_rpl A replacement value to fill the gaps of \code{ys}.
 #' @examples
 #' ys <- c(10,0,0,0,11,0,15,0,0,12,0,10,0,0,10)
 #' mzion:::fill_lc_gaps(ys, 3)
@@ -3880,7 +3943,7 @@ calcAUC <- function (ys, ts)
 #' ys <- c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10)
 #' mzion:::fill_lc_gaps(ys, 3)
 #' mzion:::fill_lc_gaps(ys, 2)
-fill_lc_gaps <- function (ys, n_dia_scans = 4L, rpl = 2.0)
+fill_lc_gaps <- function (ys, n_dia_scans = 4L, y_rpl = 2.0)
 {
   if (n_dia_scans <= 1L)
     return(ys)
@@ -3896,7 +3959,7 @@ fill_lc_gaps <- function (ys, n_dia_scans = 4L, rpl = 2.0)
   for (i in seq_along(ps)) {
     p <- ps[[i]]
     rng <- (xs[[p]] + 1L):(xs[[p + 1L]] - 1L)
-    ys[rng] <- rpl
+    ys[rng] <- y_rpl
   }
   
   ys
@@ -4068,7 +4131,6 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   
   if (c2 > 0L) {
     ps2[[i]] <- c2
-    
     rows <- .Internal(which(!is.na(xmat[, c2])))
     xmat[rows, c1] <- xmat[rows, c2]
     ymat[rows, c1] <- rowSums(ymat[rows, c1:c2, drop = FALSE], na.rm = TRUE)

@@ -14,7 +14,7 @@ htraceXY(
   gap_af = 256L,
   n_mdda_flanks = 6L,
   from = 200L,
-  step = 1e+05,
+  step = 7e+06,
   y_perc = 0.01,
   yco = 500,
   look_back = TRUE

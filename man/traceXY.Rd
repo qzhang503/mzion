@@ -10,7 +10,7 @@ traceXY(
   ss,
   ts,
   n_mdda_flanks = 6L,
-  from = 115L,
+  from = 200L,
   step = 8e-06,
   reord = TRUE,
   cleanup = FALSE,

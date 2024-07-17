@@ -4,7 +4,7 @@
 \alias{fill_lc_gaps}
 \title{Fills LC gaps.}
 \usage{
-fill_lc_gaps(ys, n_dia_scans = 4L, rpl = 2)
+fill_lc_gaps(ys, n_dia_scans = 4L, y_rpl = 2)
 }
 \arguments{
 \item{ys}{A vector of intensity values.}
@@ -13,7 +13,7 @@ fill_lc_gaps(ys, n_dia_scans = 4L, rpl = 2)
 profile and thus for determining the apex scan number of an moverz value
 along LC.}
 
-\item{rpl}{A replacement value to fill the gaps of \code{ys}.}
+\item{y_rpl}{A replacement value to fill the gaps of \code{ys}.}
 }
 \description{
 Fills LC gaps.

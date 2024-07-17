@@ -4,9 +4,12 @@
 \alias{find_lc_gates}
 \title{Finds the gates of retention times.}
 \usage{
-find_lc_gates(ys = NULL, ts = NULL, n_dia_scans = 4L)
+find_lc_gates(xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L)
 }
 \arguments{
+\item{xs}{A vector of m-over-z value for the same (approximate) mass along
+LC.}
+
 \item{ys}{A vector of intensity value for the same (approximate) mass along
 LC.}
 
@@ -23,10 +26,16 @@ Scan indexes of LC peaks.
 Finds the gates of retention times.
 }
 \examples{
-mzion:::find_lc_gates(c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), seq_len(15), 2)
-mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50), seq_len(18))
-mzion:::find_lc_gates(c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50), seq_len(21))
+mzion:::find_lc_gates(xs = rep_len(100, 15), ys = c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), ts = seq_len(15), n_dia_scans = 2)
+mzion:::find_lc_gates(xs = rep_len(100, 18), ys = c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50), ts = seq_len(18))
+mzion:::find_lc_gates(xs = rep_len(100, 21), ys = c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50), ts = seq_len(21))
 
 # all discrete
-mzion:::find_lc_gates(c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50), seq_len(18))
+mzion:::find_lc_gates(xs = rep_len(100, 18), ys = c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50), ts = seq_len(18))
+
+# two passes
+ys <- c(rep_len(0, 10), rep_len(100, 50), rep_len(0, 10), rep_len(100, 50), rep_len(3, 5), rep_len(50, 80), rep_len(0, 10))
+xs <- rep(5, length(ys))
+ts <- seq_along(ys)
+mzion:::find_lc_gates(xs, ys, ts)
 }
