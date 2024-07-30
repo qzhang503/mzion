@@ -3,9 +3,9 @@
 #' @param filelist A list of peaklist files.
 #' @param data_type A data type of either RAW or mzML.
 #' @inheritParams load_mgfs
-readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml", 
-                      topn_ms2ions = 150L, topn_dia_ms2ions = 2400L, 
-                      delayed_diams2_tracing = FALSE, 
+readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL, 
+                      data_type = "mzml", topn_ms2ions = 150L, 
+                      topn_dia_ms2ions = 2400L, delayed_diams2_tracing = FALSE, 
                       maxn_dia_precurs = 1000L, 
                       n_dia_ms2bins = 1L, n_dia_scans = 4L, 
                       min_mass = 200L, max_mass = 4500L, 
@@ -281,6 +281,7 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
         hdeisoDDA, 
         peakfiles, seq_along(peakfiles), 
         MoreArgs = list(
+          out_path = out_path, 
           mgf_path = mgf_path, 
           temp_dir = temp_dir, 
           mzml_type = mzml_type, 
@@ -324,6 +325,7 @@ readmzML <- function (filelist = NULL, mgf_path = NULL, data_type = "mzml",
         cl, hdeisoDDA, 
         peakfiles, seq_along(peakfiles), 
         MoreArgs = list(
+          out_path = out_path, 
           mgf_path = mgf_path, 
           temp_dir = temp_dir, 
           mzml_type = mzml_type, 
@@ -1083,7 +1085,8 @@ extrDDA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL,
 #' @param mgf_cutpercs The percentage of cuts.
 #' @inheritParams deisoDDA
 #' @inheritParams matchMS
-hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL, 
+hdeisoDDA <- function (filename, raw_id = 1L, 
+                       out_path = NULL, mgf_path = NULL, temp_dir = NULL, 
                        mzml_type = "raw", ppm_ms1 = 10L, ppm_ms2 = 10L, 
                        maxn_mdda_precurs = 5L, 
                        topn_ms2ions = 150L, n_mdda_flanks = 6L, n_dia_scans = 4L, 
@@ -1103,6 +1106,7 @@ hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL,
 {
   df <- deisoDDA(
     filename, 
+    out_path = out_path, 
     mgf_path = mgf_path, 
     temp_dir = temp_dir, 
     mzml_type = mzml_type, 
@@ -1174,7 +1178,8 @@ hdeisoDDA <- function (filename, raw_id = 1L, mgf_path = NULL, temp_dir = NULL,
 #' @param y_perc The cut-off in intensity values in relative to the base peak.
 #' @param yco The absolute cut-off in intensity values.
 #' @inheritParams matchMS
-deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL, 
+deisoDDA <- function (filename = NULL, 
+                      out_path = NULL, mgf_path = NULL, temp_dir = NULL, 
                       mzml_type = "raw", ppm_ms1 = 10L, ppm_ms2 = 10L, 
                       maxn_mdda_precurs = 5L, topn_ms2ions = 150L, 
                       n_mdda_flanks = 6L, n_dia_scans = 4L, 
@@ -1231,7 +1236,8 @@ deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL,
       is_pasef = is_pasef, 
       n_para = n_para)
     
-    qs::qsave(df, file.path(temp_dir, paste0("predeisoDDA_", filename)), preset = "fast")
+    qs::qsave(df, file.path(temp_dir, paste0("predeisoDDA_", filename)), 
+              preset = "fast")
   }
   else {
     df <- qs::qread(file.path(temp_dir, paste0("predeisoDDA_", filename)))
@@ -1240,7 +1246,23 @@ deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL,
   ## LFQ: replaces intensities with apex values
   # No MS1 info at maxn_mdda_precurs == 0L
   if (use_lfq_intensity && maxn_mdda_precurs) {
+    # for MBR in proteoQ
+    path_ms1 <- create_dir(file.path(out_path, "ms1data"))
+    
+    qs::qsave(df[with(df, ms_level == 1L), 
+                 c("ret_time", "scan_num", "orig_scan", "msx_moverzs", "msx_ints")], 
+              file.path(path_ms1, paste0("ms1full_", filename)), preset = "fast")
+
     df <- get_ms1xs_space(df)
+    
+    if (FALSE) {
+      qs::qsave(df[with(df, ms_level == 1L), 
+                   c("ret_time", "scan_num", "orig_scan", "ms1_moverz", "ms1_int", 
+                     "ms1_charge")], 
+                file.path(path_ms1, paste0("ms1subspace_", filename)), 
+                preset = "fast")
+    }
+
     step <- ppm_ms1 * 1e-6
     rows1 <- which(df$ms_level == 1L)
     rt_gap <- estimate_rtgap(df$ret_time[rows1])
@@ -1256,18 +1278,21 @@ deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL,
       # 1024L: more RAM, same speed
       n_chunks = ceiling(sum(df$ms_level == 1L) / 512L), 
       gap = rt_gap)
-    
     dfs <- ans_prep$dfs
     df1s <- ans_prep$df1s
     gaps <- unlist(ans_prep$gaps, use.names = FALSE, recursive = FALSE)
+    lenv <- length(df1s)
+    gaps_bf <- ans_prep$gaps_bf <- c(0L, gaps[1:(lenv - 1L)])
+    gaps_af <- ans_prep$gaps_af <- c(gaps[2:lenv], 0L)
+    
+    if (FALSE) {
+      qs::qsave(ans_prep, file.path(path_ms1, paste0("msxspace_", filename)), 
+                preset = "fast")
+    }
     rm(list = c("ans_prep", "rt_gap"))
 
-    # cols <- c("ms_level", "ms1_moverz", "ms1_int")
     cols <- c("ms_level", "ms1_moverz", "ms1_int", "orig_scan") # orig_scan for troubleshooting
-    lenv <- length(df1s)
-    gaps_bf <- c(0L, gaps[1:(lenv-1L)])
-    gaps_af <- c(gaps[2:lenv], 0L)
-    
+
     if (TRUE) {
       cl <- parallel::makeCluster(getOption("cl.cores", 2L))
       out <- parallel::clusterMap(
@@ -1294,7 +1319,6 @@ deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL,
       out <- vector("list", lenv)
 
       for (i in 1:lenv) {
-        # nrow(out[[i]]) == nrow(vdf[[i]])
         out[[i]] <- htraceXY(
           xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], ts = vts[[i]], 
           df = vdf[[i]], gap_bf = gaps_bf[[i]], gap_af = gaps_af[[i]], 
@@ -1382,8 +1406,8 @@ deisoDDA <- function (filename = NULL, mgf_path = NULL, temp_dir = NULL,
   df1 <- df[rows, ]
   df1$ms_level <- df1$msx_charges <- df1$apex_scan_num <- 
     df1$rptr_moverzs <- df1$rptr_ints <- NULL
-  qs::qsave(df1, file.path(mgf_path, paste0("ms1_", filename)), 
-            preset = "fast")
+  # maybe useful later
+  qs::qsave(df1, file.path(mgf_path, paste0("ms1_", filename)), preset = "fast")
   rm(list = "df1")
 
   df <- df[!rows, ]

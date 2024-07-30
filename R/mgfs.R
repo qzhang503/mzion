@@ -128,7 +128,8 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
     ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", "\\.(raw|RAW)$", 
                 "\\.xlsx$", "\\.xls$", "\\.csv$", "\\.txt$", "\\.pars$", 
                 "^mgf$", "^mgfs$", "^mzML$", "^mzMLs$", "^raw$", 
-                "Calls", "^PSM$", "^Peptide$", "^Protein$", 
+                # "ms1full_.*\\.rds", # no ^ since with prepending path
+                "^ms1data$", "Calls", "^PSM$", "^Peptide$", "^Protein$", 
                 "data_type.rds", "info_format.rds", 
                 "fraction_scheme.rda", "label_scheme.rda", 
                 "label_scheme_full.rda"), 
@@ -192,6 +193,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
   else if (len_mzml || len_raw || len_pasef) {
     type_acqu <- readmzML(
       filelist = filelist, 
+      out_path = out_path, 
       mgf_path = mgf_path, 
       data_type = data_type, 
       topn_ms2ions = topn_ms2ions, 

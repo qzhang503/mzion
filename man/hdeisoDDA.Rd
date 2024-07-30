@@ -7,6 +7,7 @@
 hdeisoDDA(
   filename,
   raw_id = 1L,
+  out_path = NULL,
   mgf_path = NULL,
   temp_dir = NULL,
   mzml_type = "raw",
@@ -50,6 +51,8 @@ hdeisoDDA(
 \item{filename}{A peaklist filename.}
 
 \item{raw_id}{A raw file id.}
+
+\item{out_path}{A file path of outputs.}
 
 \item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
   supply the files.

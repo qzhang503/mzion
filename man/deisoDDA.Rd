@@ -6,6 +6,7 @@
 \usage{
 deisoDDA(
   filename = NULL,
+  out_path = NULL,
   mgf_path = NULL,
   temp_dir = NULL,
   mzml_type = "raw",
@@ -45,6 +46,8 @@ deisoDDA(
 }
 \arguments{
 \item{filename}{A peaklist filename.}
+
+\item{out_path}{A file path of outputs.}
 
 \item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
   supply the files.

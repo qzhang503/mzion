@@ -6,6 +6,7 @@
 \usage{
 readmzML(
   filelist = NULL,
+  out_path = NULL,
   mgf_path = NULL,
   data_type = "mzml",
   topn_ms2ions = 150L,
@@ -51,6 +52,8 @@ readmzML(
 }
 \arguments{
 \item{filelist}{A list of peaklist files.}
+
+\item{out_path}{A file path of outputs.}
 
 \item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
   supply the files.

@@ -106,7 +106,8 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
     ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", "\\.(raw|RAW)$", 
                 "\\.xlsx$", "\\.xls$", "\\.csv$", "\\.txt$", "\\.pars$", 
                 "^mgf$", "^mgfs$", "^mzML$", "^mzMLs$", "^raw$", 
-                "Calls", "^PSM$", "^Peptide$", "^Protein$", 
+                # "ms1full_.*\\.rds", # no ^ since with prepending path
+                "^ms1data$", "Calls", "^PSM$", "^Peptide$", "^Protein$", 
                 "fraction_scheme.rda", "label_scheme.rda", 
                 "label_scheme_full.rda"), 
     paths_excluded = mgf_path)

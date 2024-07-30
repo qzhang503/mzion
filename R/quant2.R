@@ -614,6 +614,8 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
   # each row in cbind(Mat_lwr_left, Mat_lwr_right) has only one "1"
   #   -> Mat_lwr_left does not affect logical distance of 0/1
   
+  # need to handle ncol(Mat_upr_left) == 0?
+  
   if (nrow(Mat_upr_left)) {
     prot_grps <- local({
       grps_1 <- cut_proteinGroups(Mat_upr_left, out_path)

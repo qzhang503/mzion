@@ -111,6 +111,8 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
   
   df1$ms1_mass <- df1$ms1_moverz <- df1$ms1_int <- df1$ms1_charge <- NULL
   df1s  <- chunksplit(df1, n_chunks, type = "row")
+  min_rts <- unlist(lapply(df1s, function (x) x$ret_time[[1]]))
+  max_rts <- unlist(lapply(df1s, function (x) x$ret_time[[nrow(x)]]))
   end1s <- cumsum(lapply(df1s, nrow))
   sta1s <- c(1L, end1s[1:(n_chunks - 1L)] + 1L)
   
@@ -158,7 +160,7 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
   # dfs[[i]]:  a chunk MS1 and MS2 data (no bracketing scans)
   # df1s[[i]]: the reference MS1 data + leading and trailing MS1 scans; 
   # gaps[[i]]: the number of bracketing MS1 and MS2 scans
-  list(dfs = dfs, df1s = df1s, gaps = gaps)
+  list(dfs = dfs, df1s = df1s, gaps = gaps, min_rts = min_rts, max_rts = max_rts)
 }
 
 
