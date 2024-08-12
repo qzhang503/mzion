@@ -115,8 +115,6 @@ list_leftmatch <- function (a, b)
 #' @param df Two lists of \code{theo} and matched \code{expt} m-over-z.
 #' @param nms The names (character strings indicating the names and position of
 #'   variable modifications).
-#' @param burn_ins The range of burn-ins where inputs will be excluded from
-#'   probablity assessments.
 #' @inheritParams calc_probi
 #' @import dplyr
 #' @importFrom purrr map
@@ -194,7 +192,7 @@ list_leftmatch <- function (a, b)
 #'                30824,12961,26805,31218,36352,49433,40495,31233,40643,18265,
 #'                12316,25125,202241,90877,20903,40353,15008,31908,22554,13634)
 #' 
-#' mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 404)
+#' mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 10000)
 #' 
 #' ## 
 #' pep <- "LFEEDEREK"
@@ -253,11 +251,17 @@ list_leftmatch <- function (a, b)
 #' }
 calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges, 
                                 max_len = 40L, N = 20000L, type_ms2ions = "by", 
-                                topn_ms2ions = 150L, ppm_ms2 = 20L, 
-                                soft_secions = FALSE, burn_ins = 1:2, 
+                                topn_ms2ions = 150L, ppm_ms2 = 20L, minn_ms2 = 6L, 
+                                soft_secions = FALSE, 
                                 min_ms2mass = 115L, d2 = 1E-5, 
                                 tally_ms2ints = TRUE, digits = 4L) 
 {
+  # to introduce spec_multiplicity_factor for weighted counted of noises in intensity tally...
+  # or does a chimeric search -> exclude "all" matched features from scoring?
+  # penalize "noise" for high-complexity spectra (short gradient; no fractionation)
+  # weighted by mass error; or three-pass search, 0-6, 6-10, 10-20 ppm.
+
+  
   df_theo <- df[["theo"]]
   m <- length(df_theo)
 
@@ -335,17 +339,17 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
   y[["theo"]][iex] <- df_theo[ith]
   y[["idx"]][iex] <- ith
   
-  # if (tally_ms2ints) {
   ## 3. join `int2` to `y`
-  y_idx  <- y[["idx"]]
-  ok_iex <- .Internal(which(!is.na(y_idx)))
-  y_ith  <- y_idx[ok_iex]
-  y[["int2"]][ok_iex] <- int2[y_ith]
-  
-  ## 4. collapses `int2` to `int`
-  y[["int"]] <- y[["int"]] %+% y[["int2"]]
-  y[["idx"]] <- y[["int2"]] <- NULL
-  # }
+  if (tally_ms2ints) {
+    y_idx  <- y[["idx"]]
+    ok_iex <- .Internal(which(!is.na(y_idx)))
+    y_ith  <- y_idx[ok_iex]
+    y[["int2"]][ok_iex] <- int2[y_ith]
+    
+    ## 4. collapses `int2` to `int`
+    y[["int"]] <- y[["int"]] %+% y[["int2"]]
+    y[["idx"]] <- y[["int2"]] <- NULL
+  }
 
   if (soft_secions) {
     ok_int2 <- .Internal(which(int2 > 0L & is.na(df[["int"]])))
@@ -390,19 +394,38 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
 
   ## 8. Probability
   # excludes unstable burn-in scores
-  # burn_ins is different to min_n_ms2
-  #   min_n_ms2 - guard against low-quality specta with low number of matches
+  # burn_ins is different to minn_ms2
+  #   minn_ms2 - guard against low-quality spectra with low number of matches
   #   burn_ins  - guard against unstable scores
-  x_ <- x[-burn_ins]
-  k_ <- k[-burn_ins]
   
-  if (length(x_)) {
-    N_ <- floor(N*m/max_len/2L + topn_ms2ions)
+  nx <- length(x)
+  n_burns <- max(minn_ms2 - 1L, floor(nx * .66))
+  burn_ins <- 1:n_burns # was 2 before
+  
+  x_  <- x[-burn_ins]
+  k_  <- k[-burn_ins]
+  nx_ <- length(x_)
+  
+  if (nx_) {
+    N_  <- floor(N * m / max_len / 2L + topn_ms2ions)
     prs <- stats::dhyper(x = x_, m = m, n = N_, k = k_)
     pr  <- min(prs, na.rm = TRUE)
+    
+    # or use the second min, or third min
+    # second_min <- -sort(-prs, partial = nx_ - 1)[nx_ - 1]
+    
+    if (FALSE) {
+      if (nx_ <= 3L) {
+        pr <- prs[nx_]
+      }
+      else {
+        pr  <- min(prs, na.rm = TRUE)
+      }
+    }
   }
-  else
+  else {
     pr <- .5
+  }
 
   ## outputs
   list(pep_ivmod = nms, 
@@ -424,7 +447,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
 calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, # expt_charges, 
                               max_len = 40L, N = 20000L, 
                               type_ms2ions = "by", topn_ms2ions = 150L, 
-                              ppm_ms2 = 20L, soft_secions = FALSE, 
+                              ppm_ms2 = 20L, minn_ms2 = 6L, soft_secions = FALSE, 
                               min_ms2mass = 115L, d2 = 1E-5, 
                               tally_ms2ints = TRUE, 
                               digits = 4L) 
@@ -445,8 +468,8 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, # expt_charges,
                   type_ms2ions = type_ms2ions, 
                   topn_ms2ions = topn_ms2ions, 
                   ppm_ms2 = ppm_ms2, 
+                  minn_ms2 = minn_ms2, 
                   soft_secions = soft_secions, 
-                  burn_ins = c(1:2),
                   min_ms2mass = min_ms2mass, 
                   d2 = d2, 
                   tally_ms2ints = tally_ms2ints, 
@@ -490,7 +513,7 @@ calc_probi_bypep <- function (mts, nms, expt_moverzs, expt_ints, # expt_charges,
 calc_probi <- function (mts, expt_moverzs, expt_ints, # expt_charges, 
                         max_len = 40L, 
                         N = 20000L, type_ms2ions = "by", topn_ms2ions = 150L, 
-                        ppm_ms2 = 20L, soft_secions = FALSE, 
+                        ppm_ms2 = 20L, minn_ms2 = 6L, soft_secions = FALSE, 
                         min_ms2mass = 115L, d2 = 1E-5, 
                         tally_ms2ints = TRUE, digits = 4L) 
 {
@@ -507,6 +530,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints, # expt_charges,
       topn_ms2ions = topn_ms2ions, 
       soft_secions = soft_secions, 
       ppm_ms2 = ppm_ms2, 
+      minn_ms2 = minn_ms2, 
       min_ms2mass = min_ms2mass, 
       d2 = d2, 
       tally_ms2ints = tally_ms2ints, 
@@ -529,7 +553,7 @@ calc_probi <- function (mts, expt_moverzs, expt_ints, # expt_charges,
 #' @inheritParams calc_pepscores
 #' @import purrr
 scalc_pepprobs <- function (entry, topn_ms2ions = 150L, type_ms2ions = "by", 
-                            ppm_ms2 = 20L, soft_secions = FALSE, 
+                            ppm_ms2 = 20L, minn_ms2 = 6L, soft_secions = FALSE, 
                             max_len = 40L, n_ms2_bg = 20000L, min_ms2mass = 115L, 
                             d2 = 1E-5, tally_ms2ints = TRUE, digits = 4L) 
 {
@@ -579,7 +603,8 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 150L, type_ms2ions = "by",
                     N = n_ms2_bg, 
                     type_ms2ions = type_ms2ions, 
                     topn_ms2ions = topn_ms2ions, 
-                    ppm_ms2 = ppm_ms2, 
+                    ppm_ms2 = ppm_ms2,
+                    minn_ms2 = minn_ms2, 
                     soft_secions = soft_secions, 
                     min_ms2mass = min_ms2mass, 
                     d2 = d2, 
@@ -604,7 +629,7 @@ scalc_pepprobs <- function (entry, topn_ms2ions = 150L, type_ms2ions = "by",
 #' @inheritParams matchMS
 #' @inheritParams calc_pepscores
 calc_pepprobs_i <- function (df, topn_ms2ions = 150L, type_ms2ions = "by", 
-                             ppm_ms2 = 20L, soft_secions = FALSE, 
+                             ppm_ms2 = 20L, minn_ms2 = 6L, soft_secions = FALSE, 
                              max_len = 40L, n_ms2_bg = 20000L, 
                              out_path = "~/mzion/outs", min_ms2mass = 115L, 
                              tally_ms2ints = TRUE, 
@@ -635,6 +660,7 @@ calc_pepprobs_i <- function (df, topn_ms2ions = 150L, type_ms2ions = "by",
                topn_ms2ions = topn_ms2ions, 
                type_ms2ions = type_ms2ions, 
                ppm_ms2 = ppm_ms2, 
+               minn_ms2 = minn_ms2, 
                soft_secions = soft_secions, 
                max_len = max_len, 
                n_ms2_bg = n_ms2_bg, 
@@ -681,12 +707,15 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
       }
     }, add = TRUE)
 
-  if (file.exists(file_aa <- file.path(out_path, "aa_masses_all.rds")))
+  if (file.exists(file_aa <- file.path(out_path, "aa_masses_all.rds"))) {
     aa_masses_all <- qs::qread(file_aa)
-  else if (file.exists(file_aa <- file.path(.path_bin, "aa_masses_all.rds")))
+  }
+  else if (file.exists(file_aa <- file.path(.path_bin, "aa_masses_all.rds"))) {
     aa_masses_all <- qs::qread(file_aa)
-  else
+  }
+  else {
     stop("Amino-acid look-ups not found: ", file_aa)
+  }
 
   sc_path <- file.path(out_path, "temp")
   tempdir <- create_dir(file.path(out_path, "sc_temp"))
@@ -695,8 +724,8 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
   fun <- as.character(match.call()[[1]])
   fun_env <- environment()
   fml_nms <- names(formals(fun))
-  fs_im  <- find_targets(out_path, pattern = "^ion_matches_")$files
-  n_im <- length(fs_im)
+  fs_im   <- find_targets(out_path, pattern = "^ion_matches_")$files
+  n_im    <- length(fs_im)
 
   if (!n_im) {
     stop("Results of ion matches not found with pattern `ion_matches_[...]`.")
@@ -709,10 +738,12 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
 
   args_except <- c("fdr_type", "maxn_mdda_precurs", "n_ms2_bg")
 
-  fml_incl <- if (length(args_except))
+  fml_incl <- if (length(args_except)) {
     fml_nms[!fml_nms %in% args_except]
-  else
+  }
+  else {
     fml_nms
+  }
 
   message("[x] For reprocessing (with new score function) ", 
           "delete cached 'pepscores_[...]' and 'calc_pepscores.rda'.\n")
@@ -729,7 +760,7 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
     fs_sc <- list.files(sc_path, pattern = "^prescores_")
     n_sc  <- length(fs_sc)
     fi_sp <- file.path(sc_path, "total_splits.rds")
-    n_sp  <- if (file.exists(fi_sp)) qs::qread(fi_sp) else -1L
+    n_sp  <- if (file.exists(fi_sp)) { qs::qread(fi_sp) } else { -1L }
     
     if (n_sc == n_sp) {
       if (grepl("^tmt", quant)) {
@@ -798,6 +829,7 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
     topn_ms2ions = topn_ms2ions, 
     type_ms2ions = type_ms2ions, 
     ppm_ms2 = ppm_ms2, 
+    minn_ms2 = minn_ms2, 
     max_len = max_len, 
     n_ms2_bg = max(topn_ms2ions * 5L, n_ms2_bg), 
     soft_secions = soft_secions, 
@@ -925,8 +957,9 @@ combine_fracs <- function (files, tempdir, sc_path, is_notched = FALSE)
   df <- dplyr::bind_rows(df)
   
   # uniq_id does not contain information of pep_ms1_offset
-  if (is_notched)
+  if (is_notched) {
     df <- df[!duplicated.default(df[["uniq_id"]]), ]
+  }
 
   qs::qsave(df, file.path(sc_path, out_nm))
 }
@@ -994,7 +1027,7 @@ find_targets <- function (out_path, pattern = "^ion_matches_")
 calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all, 
                        maxn_mdda_precurs = 1L, max_len = 40L, n_ms2_bg = 20000L, 
                        topn_ms2ions = 150L, type_ms2ions = "by", 
-                       ppm_ms2 = 20L, soft_secions = FALSE, 
+                       ppm_ms2 = 20L, minn_ms2 = 6L, soft_secions = FALSE, 
                        out_path = NULL, min_ms2mass = 115L, d2 = 1E-5, 
                        tally_ms2ints = TRUE, add_ms2theos = FALSE, 
                        add_ms2theos2 = FALSE, add_ms2moverzs = FALSE, 
@@ -1070,6 +1103,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
                     topn_ms2ions = topn_ms2ions, 
                     type_ms2ions = type_ms2ions, 
                     ppm_ms2 = ppm_ms2,
+                    minn_ms2 = minn_ms2, 
                     soft_secions = soft_secions, 
                     max_len = max_len, 
                     n_ms2_bg = n_ms2_bg, 
@@ -1081,12 +1115,14 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
       prs <- dplyr::bind_rows(prs)
       dfm <- dplyr::bind_rows(dfm)
 
-      if ("matches" %in% names(dfm)) 
+      if ("matches" %in% names(dfm)) {
         dfm <- dfm[, -which(names(dfm) == "matches"), drop = FALSE]
-      
-      if ("pep_mod_group" %in% names(dfm) && "pep_mod_group" %in% names(prs))
+      }
+
+      if ("pep_mod_group" %in% names(dfm) && "pep_mod_group" %in% names(prs)) {
         prs[["pep_mod_group"]] <- NULL
-      
+      }
+
       dfm <- quick_join(dfm, prs, "uniq_id", type = "right")
       rm(list = c("prs"))
     }
@@ -1106,6 +1142,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
     topn_ms2ions = topn_ms2ions, 
     type_ms2ions = type_ms2ions, 
     ppm_ms2 = ppm_ms2,
+    minn_ms2 = minn_ms2, 
     soft_secions = soft_secions, 
     max_len = max_len, 
     n_ms2_bg = n_ms2_bg, 
@@ -1116,21 +1153,24 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
     digits = digits)
   
   ## Reassemble `df`
-  if ("matches" %in% names(df)) 
+  if ("matches" %in% names(df)) {
     df <- df[, -which(names(df) == "matches"), drop = FALSE]
-  
+  }
+
   df2 <- qs::qread(path_df2)
   df  <- dplyr::bind_cols(df, df2)
   rm(list = c("df2", "path_df2"))
 
-  if ("pep_mod_group" %in% names(df) && "pep_mod_group" %in% names(probs))
+  if ("pep_mod_group" %in% names(df) && "pep_mod_group" %in% names(probs)) {
     probs[["pep_mod_group"]] <- NULL
-  
+  }
+
   df <- quick_join(df, probs, "uniq_id", type = "right")
   rm(list = c("probs"))
 
-  if (lenm)
+  if (lenm) {
     df <- dplyr::bind_rows(df, dfm[, names(df)])
+  }
 
   df <- df[, -which(names(df) == "uniq_id"), drop = FALSE]
   rm(list = "dfm")
@@ -1175,9 +1215,10 @@ find_iexunv <- function (mi)
   mi <- mi[lengths(mi) > 0L]
   len <- length(mi)
   
-  if (!len)
+  if (!len) {
     return(NULL)
-  
+  }
+
   iexs <- vector("list", len)
   
   # go through all peptides under a match
@@ -1219,8 +1260,9 @@ addChim <- function (df)
     iex <- iexs[[i]]
     yi <- unv[!unv %in% iex]
     
-    if (!length(yi))
+    if (!length(yi)) {
       next
+    }
 
     # by peptides
     for (j in seq_along(mi)) {
@@ -1230,8 +1272,9 @@ addChim <- function (df)
       # by multiple vmods
       for (k in seq_along(p)) {
         # decoy
-        if (is.na(nms[[k]]))
+        if (is.na(nms[[k]])) {
           next
+        }
 
         p[[k]]$chim <- yi
       }
@@ -1311,9 +1354,10 @@ hadd_primatches <- function (out_path = NULL, is_notched = FALSE,
     df[["pep_isdecoy"]] <- ifelse(is.na(df[["pep_ivmod"]]), TRUE, FALSE)
     df <- dplyr::rename(df, pep_calc_mr = theo_ms1)
     
-    if (!all(cols_sc %in% names(df)))
+    if (!all(cols_sc %in% names(df))) {
       stop("Developer needs to update the columns of peptide scores.")
-    
+    }
+
     df <- df[, cols_sc, drop = FALSE]
     
     qs::qsave(df, file.path(out_path, "temp", paste0("pepscores_", idx, ".rds")), 
@@ -1343,8 +1387,13 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
 {
   df <- qs::qread(file.path(tempdir, file))
   
-  if (!add_ms2moverzs) df[["pep_ms2_moverzs"]] <- NA_character_
-  if (!add_ms2ints)    df[["pep_ms2_ints"]] <- NA_character_
+  if (!add_ms2moverzs) {
+    df[["pep_ms2_moverzs"]] <- NA_character_
+  }
+  
+  if (!add_ms2ints) {
+    df[["pep_ms2_ints"]] <- NA_character_
+  }
   
   df <- dplyr::mutate(df, 
                       pep_ms2_theos = NA_character_, 
@@ -1505,10 +1554,18 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
     df[["pep_ms2_ideltas."]] <- p1s.
   }
 
-  if (add_ms2theos) df$pep_ms2_theos <- collapse_vecs(lapply(pris, `[[`, "theo"))
-  if (add_ms2theos2) df$pep_ms2_theos2 <- collapse_vecs(lapply(secs, `[[`, "theo"))
-  if (add_ms2moverzs) df$pep_ms2_moverzs <- collapse_vecs(df$pep_ms2_moverzs)
-  if (add_ms2ints) df$pep_ms2_ints <- collapse_vecs(df$pep_ms2_ints)
+  if (add_ms2theos) {
+    df$pep_ms2_theos <- collapse_vecs(lapply(pris, `[[`, "theo"))
+  }
+  if (add_ms2theos2) {
+    df$pep_ms2_theos2 <- collapse_vecs(lapply(secs, `[[`, "theo"))
+  }
+  if (add_ms2moverzs) {
+    df$pep_ms2_moverzs <- collapse_vecs(df$pep_ms2_moverzs)
+  }
+  if (add_ms2ints) {
+    df$pep_ms2_ints <- collapse_vecs(df$pep_ms2_ints)
+  }
   
   qs::qsave(df, file.path(tempdir, gsub("^prescores", "ms2info", file)), 
             preset = "fast")
@@ -1570,9 +1627,10 @@ find_pepscore_co1 <- function (td, target_fdr = 0.01)
   nt <- nrow(target)
   nd <- nrow(decoy)
   
-  if (nd <= 5L) 
+  if (nd <= 5L) {
     return(NA_real_)
-  
+  }
+
   n <- nt + nd
   lambt <- nt / n
   lambd <- 1 - lambt
@@ -1581,16 +1639,18 @@ find_pepscore_co1 <- function (td, target_fdr = 0.01)
   sigmad <- sd(vecd, na.rm = TRUE)
   mud <- mean(vecd, na.rm = TRUE)
   
-  if (is.na(sigmad)) 
+  if (is.na(sigmad)) {
     return(NA_real_)
-  
+  }
+
   xs <- seq(mud + sigmad, mud + 3*sigmad, 0.014355293)
   
   for (i in seq_along(xs)) {
     y <- (1 - pnorm(xs[i], mud, sigmad)) * nd / n
     
-    if (y <= target_fdr) 
+    if (y <= target_fdr) {
       break
+    }
   }
   
   2^(xs[i])
@@ -1611,9 +1671,10 @@ find_pepscore_co2 <- function (td, target_fdr = 0.01)
   nt <- nrow(target)
   nd <- nrow(decoy)
   
-  if (nd <= 5L) 
+  if (nd <= 5L) {
     return(NA_real_)
-  
+  }
+
   n <- nt + nd
   lambt <- nt / n
   lambd <- 1 - lambt
@@ -1622,16 +1683,18 @@ find_pepscore_co2 <- function (td, target_fdr = 0.01)
   sigmad <- sd(vecd, na.rm = TRUE)
   mud <- mean(vecd, na.rm = TRUE)
   
-  if (is.na(sigmad)) 
+  if (is.na(sigmad)) {
     return(NA_real_)
-  
+  }
+
   xs <- seq( mud + 4*sigmad, mud + sigmad, -.1)
   
   for (i in seq_along(xs)) {
     y <- (1 - plnorm(xs[i], mud, sigmad, lower.tail = FALSE)) * nd / n
     
-    if (y >= target_fdr) 
+    if (y >= target_fdr) {
       break
+    }
   }
   
   xs[i]
@@ -1642,30 +1705,36 @@ find_pepscore_co2 <- function (td, target_fdr = 0.01)
 #'
 #' Calculates the probability cut-off for target-decoy pairs at a given peptide
 #' length.
-#' 
+#'
 #' @param td A target-decoy pair.
 #' @param len Numeric; the length of peptides.
+#' @param is_long_len; Logical; is a long peptide length or not.
 #' @param fct_score A factor to convert p-values to scores.
+#' @param sco_long_len Empirical score threshold at one-percent FDR for
+#'   sequences
+#'   \eqn{\ge 35} residues.
 #' @inheritParams matchMS
 probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01, 
-                             min_pepscores_co = 30, fct_score = 5, out_path) 
+                             min_pepscores_co = 30, fct_score = 5, 
+                             is_long_len = FALSE, sco_long_len = 30, out_path) 
 {
   td <- dplyr::filter(td, pep_len == len)
   td <- sub_td_byfdrtype(td = td, fdr_type = fdr_type, fct_score = fct_score)
   count <- nrow(td)
   
   if (count < (1 / target_fdr)) {
-    if (count <= 10L)
+    if (count <= 10L) {
       return(NA_real_)
-    
+    }
+
     best_co <- tryCatch(
       (find_pepscore_co1(td, target_fdr) + find_pepscore_co2(td, target_fdr))/2,
       error = function(e) NA
     )
     
     # an empirical score cut-off for longer sequences
-    if (len >= 35L) {
-      best_co <- max(best_co, 35.0, na.rm = TRUE)
+    if (is_long_len) {
+      best_co <- max(best_co, sco_long_len, na.rm = TRUE)
     }
 
     prob_co <- 10^(-best_co/fct_score)
@@ -1748,12 +1817,15 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
       max_x <- max(target_fdr, max(df$x, na.rm = TRUE))
       del_x <- max_x - min_x
       
-      step <- if (del_x > 10) 
+      step <- if (del_x > 10) {
         .25
-      else if (del_x > 1)
+      }
+      else if (del_x > 1) {
         .02
-      else
+      }
+      else {
         .01
+      }
 
       newx <- seq(min_x, max_x, by = step)
       newy <- predict(fit, data.frame(x = newx)) |> `names<-`(newx)
@@ -1800,15 +1872,14 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
     }
   }
   
-  if (len >= 35L) {
-    best_co <- max(best_co, 35.0, na.rm = TRUE)
+  if (is_long_len) {
+    best_co <- max(best_co, sco_long_len, na.rm = TRUE)
   }
   
   prob_co <- 10^(-best_co/fct_score)
-  
   names(prob_co) <- count
 
-  invisible(prob_co)
+  prob_co
 }
 
 
@@ -1849,21 +1920,29 @@ sub_td_byfdrtype <- function (td, fdr_type = "protein", fct_score = 5)
   # (already order by pep_prob?)
   # td1 <- td1[order(td1[["pep_prob"]]), ]
   nr1 <- nrow(td1)
-  if (is.null(nr1)) nr1 <- 0L
+  if (is.null(nr1)) {
+    nr1 <- 0L
+  }
   
   if (nr1) {
-    td1 <- if (nr1 > 200)
+    td1 <- if (nr1 > 200) {
       td1[-c(1:5), ]
-    else if (nr1 > 100L)
+    }
+    else if (nr1 > 100L) {
       td1[-c(1:5), ]
-    else if (nr1 > 50L)
+    }
+    else if (nr1 > 50L) {
       td1[-c(1:5), ]
-    else if (nr1 > 10L)
+    }
+    else if (nr1 > 10L) {
       td1[-c(1:5), ]
-    else if (nr1 > 1L)
+    }
+    else if (nr1 > 1L) {
       td1[-seq_len(max(as.integer(nr1 * .5) + 1L, 1L)), ]
-    else
+    }
+    else {
       td1
+    }
   }
 
   td  <- dplyr::bind_rows(td0, td1)
@@ -1887,10 +1966,12 @@ find_optlens <- function (all_lens, counts, min_count = 128L)
 {
   idxes <- which(counts >= min_count)
   
-  if (length(idxes)) 
+  if (length(idxes)) {
     return(all_lens[idxes])
-  else 
+  }
+  else {
     find_optlens(all_lens, counts, min_count/2L)
+  }
 }
 
 
@@ -1904,10 +1985,14 @@ find_probco_valley <- function (prob_cos, guess = 12L)
 {
   len <- length(prob_cos)
   
-  if (len == 1L) return(as.integer(names(prob_cos)[1]))
+  if (len == 1L) {
+    return(as.integer(names(prob_cos)[1]))
+  }
 
   min_len <- as.integer(names(prob_cos)[1])
-  if (min_len > guess) return(min_len)
+  if (min_len > guess) {
+    return(min_len)
+  }
   
   deltas <- prob_cos[2:len] - prob_cos[1:(len-1)]
   idxes <- which(deltas > 0) 
@@ -1915,11 +2000,15 @@ find_probco_valley <- function (prob_cos, guess = 12L)
   
   ups_left <- ups[ups <= guess & ups - guess >= -3L]
   lens_left <- length(ups_left)
-  if (lens_left) return(ups_left[lens_left])
+  if (lens_left) {
+    return(ups_left[lens_left])
+  }
   
   ups_right <- ups[ups > guess & ups - guess <= 3L]
   lens_right <- length(ups_right)
-  if (lens_right) return(ups_right[1])
+  if (lens_right) {
+    return(ups_right[1])
+  }
 
   invisible(guess)
 }
@@ -1938,70 +2027,89 @@ prep_pepfdr_td <- function (td = NULL, out_path, enzyme = "trypsin_p",
   files <- list.files(path = file.path(out_path, "temp"), 
                       pattern = "^pepscores_", full.names = TRUE)
   
-  if (!length(files)) 
+  if (!length(files)) {
     stop("Score results not found.")
-  
+  }
+
   if (is.null(td)) {
     td <- lapply(files, qs::qread)
     td <- td[lapply(td, nrow) > 0L] # otherwise, error with bind_rows
     td <- dplyr::bind_rows(td)
   }
   
-  if (is_notched && only_notch_zero)
+  if (is_notched && only_notch_zero) {
     td <- td[with(td, pep_ms1_offset == 0), ]
+  }
 
   cts   <- dplyr::count(dplyr::group_by(td, "pep_mod_group"), pep_mod_group)
   max_i <- cts$pep_mod_group[which.max(cts$n)[[1]]]
   top3s <- cts$pep_mod_group[which_topx2(cts$n, 3)[1:3]]
   top3s <- top3s[!is.na(top3s)]
 
-  if (is.null(enzyme))
+  if (is.null(enzyme)) {
     is_nes <- FALSE
+  }
   else {
     enzyme <- tolower(enzyme)
     is_nes <- isTRUE(enzyme == "noenzyme") || isTRUE(grepl("^semi", enzyme))
   }
   
   if (!is_nes)
-    if (!nes_fdr_group %in% c("all", "base")) 
+    if (!nes_fdr_group %in% c("all", "base")) {
       nes_fdr_group <- fdr_group
-  
+    }
+
   if (is_nes) {
-    td  <- if (nes_fdr_group == "all")
+    td  <- if (nes_fdr_group == "all") {
       td
-    else if (nes_fdr_group == "all_cterm_tryptic")
+    }
+    else if (nes_fdr_group == "all_cterm_tryptic") {
       td[grepl("[KR]$", td[["pep_seq"]]), ]
-    else if (nes_fdr_group == "all_cterm_nontryptic")
+    }
+    else if (nes_fdr_group == "all_cterm_nontryptic") {
       td[!grepl("[KR]$", td[["pep_seq"]]), ]
-    else if (nes_fdr_group == "base")
+    }
+    else if (nes_fdr_group == "base") {
       td[td[["pep_mod_group"]] == max_i, ]
-    else if (nes_fdr_group == "base_cterm_tryptic")
+    }
+    else if (nes_fdr_group == "base_cterm_tryptic") {
       td[td[["pep_mod_group"]] == max_i & grepl("[KR]$", td[["pep_seq"]]), ]
-    else if (nes_fdr_group == "base_cterm_nontryptic")
+    }
+    else if (nes_fdr_group == "base_cterm_nontryptic") {
       td[td[["pep_mod_group"]] == max_i & !grepl("[KR]$", td[["pep_seq"]]), ]
-    else if (nes_fdr_group == "top3")
+    }
+    else if (nes_fdr_group == "top3") {
       td[td[["pep_mod_group"]] %in% top3s, ]
-    else if (nes_fdr_group == "top3_cterm_tryptic")
+    }
+    else if (nes_fdr_group == "top3_cterm_tryptic") {
       td[td[["pep_mod_group"]] %in% top3s & grepl("[KR]$", td[["pep_seq"]]), ]
-    else if (nes_fdr_group == "top3_cterm_nontryptic")
+    }
+    else if (nes_fdr_group == "top3_cterm_nontryptic") {
       td[td[["pep_mod_group"]] %in% top3s & !grepl("[KR]$", td[["pep_seq"]]), ]
-    else
+    }
+    else {
       stop("Invalid argument for \"nes_fdr_group\".")
+    }
   }
   else {
-    td <- if (fdr_group == "all")
+    td <- if (fdr_group == "all") {
       td
-    else if (fdr_group == "base")
+    }
+    else if (fdr_group == "base") {
       td[td[["pep_mod_group"]] == max_i, ]
-    else if (fdr_group == "top3")
+    }
+    else if (fdr_group == "top3") {
       td[td[["pep_mod_group"]] %in% top3s, ]
-    else 
+    }
+    else {
       stop("Invalid argument for \"fdr_group\".")
+    }
   }
   
-  if (!nrow(td))
+  if (!nrow(td)) {
     stop("No entries at fdr_group = ", fdr_group, ".", 
          "May consider a different `fdr_group`.")
+  }
 
   td
 }
@@ -2030,11 +2138,13 @@ keep_pepfdr_best <- function (td, cols = c("pep_scan_num", "raw_file"))
   td[["FALSE"]] <- td[["FALSE"]][ok, ]
   
   #  keeps the best hit for each `scan_num`
-  td <- if (nrow(td[["FALSE"]]))
+  td <- if (nrow(td[["FALSE"]])) {
     dplyr::bind_rows(td[c("TRUE", "FALSE")])
-  else
+  }
+  else {
     td[["TRUE"]]
-  
+  }
+
   td <- dplyr::group_by_at(td, cols)
   td <- dplyr::arrange(td, pep_prob)
   td <- dplyr::filter(td, row_number() == 1L)
@@ -2080,10 +2190,11 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
                        only_notch_zero = TRUE)
   
   # back-compatibility to new column keys (e.g. scan_num -> pep_scan_num)
-  if (!"pep_scan_num" %in% names(td)) 
+  if (!"pep_scan_num" %in% names(td)) {
     stop("Seems like reprocessing of results from an earlier version.\n", 
          "  Please delete old \"temp\\pep_score[...].rds\".")
-  
+  }
+
   if (!sum(td[["pep_isdecoy"]])) {
     warning("No decoys found.")
     seqs <- min_len:max(td[["pep_len"]], na.rm = TRUE)
@@ -2101,20 +2212,42 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   
   # --- 
   all_lens <- sort(unique(td$pep_len))
-  prob_cos <- lapply(all_lens, probco_bypeplen, 
-                     td = td, 
-                     fdr_type = fdr_type, 
-                     target_fdr = target_fdr, 
-                     min_pepscores_co = min_pepscores_co, 
-                     fct_score = fct_score, 
-                     out_path = out_path)
-  prob_cos <- unlist(prob_cos)
+  prob_cos <- vector("list", length(all_lens))
+  
+  for (i in seq_along(all_lens)) {
+    leni <- all_lens[[i]]
+    is_long_len <- leni >= 35L
+    
+    if (is_long_len) {
+      probs_leading <- unlist(prob_cos[max((i-3), 1):max((i-1), 1)])
+      probs_leading <- probs_leading[!is.infinite(probs_leading)]
+      baseline_sco  <- median(-log10(probs_leading) * fct_score, na.rm = TRUE)
+    }
+    else {
+      baseline_sco <- 0
+    }
+
+    prob_cos[[i]] <- probco_bypeplen(
+      len = leni, 
+      td = td, 
+      fdr_type = fdr_type, 
+      target_fdr = target_fdr, 
+      min_pepscores_co = min_pepscores_co, 
+      fct_score = fct_score, 
+      is_long_len = is_long_len, 
+      sco_long_len = baseline_sco, 
+      out_path = out_path)
+  }
+  
+  prob_cos <- unlist(prob_cos, use.names = TRUE, recursive = FALSE)
   prob_cos[prob_cos <= 10^-20] <- 10^-20
   
-  if (length(prob_cos) == 1L && !is.na(prob_cos))
+  if (length(prob_cos) == 1L && !is.na(prob_cos)) {
     return(data.frame(pep_len = all_lens, pep_prob_co = prob_cos))
-  else if (length(prob_cos) == 1L && is.na(prob_cos))
+  }
+  else if (length(prob_cos) == 1L && is.na(prob_cos)) {
     return(data.frame(pep_len = all_lens, pep_prob_co = target_fdr))
+  }
   else if (all(is.na(prob_cos))) {
     seqs <- min_len:max(td$pep_len, na.rm = TRUE)
     prob_cos <- rep(target_fdr, length(seqs))
@@ -2173,9 +2306,10 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
     fits <- fits[oks]
     res <- res[oks]
     
-    if (!length(fits))
+    if (!length(fits)) {
       stop("Contact the developer.")
-    
+    }
+
     fit <- fits[[which.min(res)]]
   }
   
@@ -2189,14 +2323,18 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   
   names(newy) <- newx
 
-  max_pepscores_co <- if (length(idx <- which(names(prob_cos) == 8L)))
+  max_pepscores_co <- if (length(idx <- which(names(prob_cos) == 8L))) {
     max(-fct_score*log10(prob_cos[[idx]]), max_pepscores_co)
-  else if (length(idx <- which(names(prob_cos) == 9L)))
+  }
+  else if (length(idx <- which(names(prob_cos) == 9L))) {
     max(-fct_score*log10(prob_cos[[idx]]), max_pepscores_co)
-  else if (length(idx <- which(names(prob_cos) == 7L)))
+  }
+  else if (length(idx <- which(names(prob_cos) == 7L))) {
     max(-fct_score*log10(prob_cos[[idx]])/2, max_pepscores_co)
-  else
+  }
+  else {
     max_pepscores_co
+  }
 
   newy[newy < min_pepscores_co] <- min_pepscores_co
   newy[newy > max_pepscores_co] <- max_pepscores_co
@@ -2268,8 +2406,8 @@ find_fdr_fits <- function (knot, df)
                      error = function(e) NA)
   fit_bs <- tryCatch(stats::lm(y ~ splines::bs(x, knot), df), 
                      error = function(e) NA)
-  res_ns <- if (class(fit_ns) == "lm") sum(resid(fit_ns)^2) else Inf
-  res_bs <- if (class(fit_bs) == "lm") sum(resid(fit_bs)^2) else Inf
+  res_ns <- if (class(fit_ns) == "lm") { sum(resid(fit_ns)^2) } else { Inf }
+  res_bs <- if (class(fit_bs) == "lm") { sum(resid(fit_bs)^2) } else { Inf }
   
   if (res_ns <= res_bs) {
     fit <- fit_ns
@@ -2296,21 +2434,25 @@ fill_probs <- function (nas, prob_cos, target_fdr = .01)
 {
   len <- length(nas)
   
-  if (!len)
+  if (!len) {
     return(NULL)
-  
+  }
+
   peplen_prs <- as.integer(names(prob_cos))
   peplen_nas <- as.integer(names(nas))
   nas <- nas[!peplen_nas %in% peplen_prs]
   peplen_nas <- as.integer(names(nas))
 
-  co_nas <- if (all(peplen_nas > max(peplen_prs)))
+  co_nas <- if (all(peplen_nas > max(peplen_prs))) {
     prob_cos[length(prob_cos)]
-  else if (all(peplen_nas < min(peplen_prs)))
+  }
+  else if (all(peplen_nas < min(peplen_prs))) {
     prob_cos[1]
-  else
+  }
+  else {
     min(median(prob_cos), mean(prob_cos), target_fdr)
-  
+  }
+
   val <- unname(co_nas)
   vals <-rep(val, len)
   names(vals) <- peplen_nas
@@ -2331,19 +2473,22 @@ post_pepfdr <- function (prob_cos = NULL, n_13c = 0L, out_path = NULL,
   if (is.null(prob_cos)) {
     file_prob <- file.path(out_path, "temp", "pep_probco.rds")
     
-    if (file.exists(file_prob))
+    if (file.exists(file_prob)) {
       prob_cos <- qs::qread(file_prob)
-    else 
+    }
+    else {
       stop("File not found: ", file_prob)
+    }
   }
   
   # changed from 10: with modified "N" from 500 to 20000 in dhyper 
   ok_targets <- find_targets(out_path, "^pepscores_")
   files <- ok_targets$files
   
-  if (!length(files)) 
+  if (!length(files)) {
     stop("Results of peptide scores not found.")
-  
+  }
+
   # td <- lapply(files, function (x) qs::qread(file.path(out_path, "temp", x)))
   td <- lapply(files, function (x) {
     # without column "matches" -> `df` may have duplicated rows; 
@@ -2356,9 +2501,10 @@ post_pepfdr <- function (prob_cos = NULL, n_13c = 0L, out_path = NULL,
   
   names(td) <- ok_targets$idxes
 
-  if (!any(ok <- unlist(lapply(td, nrow) > 0L)))
+  if (!any(ok <- unlist(lapply(td, nrow) > 0L))) {
     stop("No PSM matches for scoring. Consider different search parameters.")
-  
+  }
+
   td <- td[ok]
   rm(list = c("ok_targets", "files", "ok"))
 
@@ -2484,8 +2630,9 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
 {
   options(digits = 9L)
   
-  if (td[["prot_n_pep"]][[1]] > max_protnpep_co)
+  if (td[["prot_n_pep"]][[1]] > max_protnpep_co) {
     return(0L)
+  }
 
   td <- td |> 
     dplyr::group_by(prot_acc, pep_seq) |> 
@@ -2494,18 +2641,20 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
     dplyr::ungroup()
 
   ## no decoys
-  if (sum(td$pep_isdecoy) == 0L) 
+  if (sum(td$pep_isdecoy) == 0L) {
     return(0L)
-  
+  }
+
   ## all decoys
   if (sum(!td$pep_isdecoy) == 0L) {
-    if (nrow(td) <= 5L) return(0L) else return(20L)
+    if (nrow(td) <= 5L) { return(0L) } else { return(20L) }
   }
 
   ## both targets and decoys
-  if (nrow(td) <= 20L) 
+  if (nrow(td) <= 20L) {
     return(1L)
-  
+  }
+
   # (NOT to use `local` for hard `return (0L)`)
   prot_scores <- td |> 
     dplyr::mutate(prot_es = pep_score - pep_score_co) |> 
@@ -2519,9 +2668,10 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
                         aggr_prot_es(max)(prot_scores, na.rm = TRUE))
 
   # no decoys
-  if (!any(grepl("^-", prot_scores$prot_acc))) 
+  if (!any(grepl("^-", prot_scores$prot_acc))) {
     return (0L)
-  
+  }
+
   # Multiple dipping of -NP_003310, -NP_597676 with the same set of 
   #  identifying pep_seqs and identical `prot_es`
   # 
@@ -2554,8 +2704,9 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
     dplyr::filter(row_number() > n_burnin)
 
   # no decoys
-  if (!any(grepl("^-", prot_scores$prot_acc))) 
+  if (!any(grepl("^-", prot_scores$prot_acc))) {
     return (0L)
+  }
 
   # both targets and decoys
   td <- td |> 
@@ -2646,8 +2797,9 @@ calc_protfdr_i <- function (td, target_fdr = .01, max_protnpep_co = 10L,
 #' @param out_path An output path.
 fit_protfdr <- function (vec, max_n_pep = 1000L, out_path) 
 {
-  if (length(vec) <= 10L) 
+  if (length(vec) <= 10L) {
     return(data.frame(prot_n_pep = as.numeric(names(vec)), prot_score_co = vec))
+  }
 
   rv <- rev(vec)
   df <- data.frame(x = as.numeric(names(rv)), y = rv)
@@ -2920,11 +3072,13 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   if (is.null(x)) {
     file <- file.path(out_path, "temp", "pepfdr.rds")
     
-    if (file.exists(file)) 
-      x <- qs::qread(file) 
-    else 
+    if (file.exists(file)) {
+      x <- qs::qread(file)
+    }
+    else {
       stop("File not found: ", file)
-    
+    }
+
     rm(list = "file")
   }
   
@@ -3059,11 +3213,13 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   
   # 4.2 probability and delta
   if (nrow(x0)) {
-    locmod_indexes <- if (length(locmods))
+    locmod_indexes <- if (length(locmods)) {
       unname(mod_indexes[names(mod_indexes) %in% locmods])
-    else 
+    }
+    else {
       NULL
-    
+    }
+
     if (length(locmod_indexes)) {
       message("\tCalculates peptide localization scores.")
       
@@ -3074,8 +3230,9 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
       
       if (FALSE) {
         deltas <- lapply(probs, function (x) {
-          if (all(is.na(x)))
+          if (all(is.na(x))) {
             NA_real_
+          }
           else {
             # may be more NA values, e.g. 3L, than 2L
             # topx <- x[which_topx2(x, 2L)]
@@ -3089,14 +3246,16 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
         x <- x[!is.na(x)]
         len <- length(x)
         
-        if (len == 1L)
+        if (len == 1L) {
           x
+        }
         else if (len > 1L) {
           topx <- x[which_topx2(x, 2L)]
           abs(topx[1] - topx[2])
         }
-        else 
+        else {
           NA_real_
+        }
       })
       
       us <- mapply(function (x, y, z) {
@@ -3287,9 +3446,10 @@ find_chunkbreaks <- function (vals, n_chunks)
   lenv <- length(vals)
   n_chunks <- min(length(unique(vals)), n_chunks)
   
-  if (n_chunks == 1L)
+  if (n_chunks == 1L) {
     return(rep_len(1L, lenv))
-  
+  }
+
   pos <- floor(lenv/n_chunks) * 1:n_chunks
   len <- length(pos)
   pos[len] <- lenv
@@ -3396,8 +3556,9 @@ findLocFracsDF <- function (df, locmod_indexes = NULL)
   # (2) single non-trivial entry and thus unambiguous
   lenp <- length(ps)
   
-  if (!lenp)
+  if (!lenp) {
     return(ans)
+  }
 
   if (lenp == 1L) {
     ans[oks] <- 1.00
@@ -3481,15 +3642,17 @@ concatFracs <- function (x, y, d = .001)
 {
   len <- length(x)
   
-  if (identical(x, y))
+  if (identical(x, y)) {
     return(rep(1/(len + 1L), (len + 1L)))
-  
+  }
+
   x <- x + d
   y <- y + d
   
-  if (len <= 1L)
+  if (len <= 1L) {
     return(c(x, y)/sum(x, y))
-  
+  }
+
   for (i in 2:len) {
     fct <- y[i-1]/x[i]
     x[i] <- x[i] * fct
@@ -3514,21 +3677,25 @@ na.interp <- function (x, lambda = NULL,
 {
   missng <- is.na(x)
   
-  if (sum(missng) == 0L) 
+  if (sum(missng) == 0L) {
     return(x)
+  }
 
   origx <- x
   rangex <- range(x, na.rm = TRUE)
   drangex <- rangex[2L] - rangex[1L]
   
-  if (is.null(tsp(x))) 
+  if (is.null(tsp(x))) {
     x <- ts(x)
+  }
 
   if (length(dim(x)) > 1) {
-    if (NCOL(x) == 1) 
+    if (NCOL(x) == 1) {
       x <- x[, 1]
-    else 
+    }
+    else {
       stop("The time series is not univariate.")
+    }
   }
   
   if (!is.null(lambda)) {
@@ -3542,13 +3709,16 @@ na.interp <- function (x, lambda = NULL,
   tt <- 1:n
   idx <- tt[!missng]
   
-  if (linear) 
+  if (linear) {
     x <- ts(approx(idx, x[idx], tt, rule = 2)$y)
+  }
   else {
-    if ("msts" %in% class(x)) 
+    if ("msts" %in% class(x)) {
       K <- pmin(trunc(attributes(x)$msts/2), 20L)
-    else 
+    }
+    else {
       K <- min(trunc(freq/2), 5)
+    }
 
     X <- cbind(fourier(x, K), 
                poly(tt, degree = pmin(pmax(trunc(n/10), 1), 6L)))
@@ -3561,22 +3731,26 @@ na.interp <- function (x, lambda = NULL,
     sa <- approx(idx, sa[idx], 1:n, rule = 2)$y
     seas <- seasonal(fit)
     
-    if (NCOL(seas) > 1) 
+    if (NCOL(seas) > 1) {
       seas <- rowSums(seas)
-    
+    }
+
     x[missng] <- sa[missng] + seas[missng]
   }
   
-  if (!is.null(lambda)) 
+  if (!is.null(lambda)) {
     x <- InvBoxCox(x, lambda = lambda)
-  
+  }
+
   tsp(x) <- tspx
   
   if (!linear & (max(x) > rangex[2L] + 0.5 * drangex | min(x) < 
-                 rangex[1L] - 0.5 * drangex)) 
+                 rangex[1L] - 0.5 * drangex)) {
     return(na.interp(origx, lambda = lambda, linear = TRUE))
-  else 
+  }
+  else {
     return(x)
+  }
 }
 
 
@@ -3609,29 +3783,36 @@ tsoutliers <- function (x, iterate = 2, lambda = NULL)
   missng <- is.na(x)
   nmiss <- sum(missng)
   
-  xx <- if (nmiss > 0L) 
+  xx <- if (nmiss > 0L) {
     na.interp(x, lambda = lambda)
-  else 
+  }
+  else {
     x
-  
-  if (is.constant(xx)) 
+  }
+
+  if (is.constant(xx)) {
     return(list(index = integer(0), replacements = numeric(0)))
-  
+  }
+
   tt <- 1:n
   mod <- supsmu(tt, xx)
   resid <- xx - mod$y
   
-  if (nmiss) resid[missng] <- NA
+  if (nmiss) {
+    resid[missng] <- NA
+  }
 
   resid.q <- quantile(resid, probs = c(0.25, 0.75), na.rm = TRUE)
   iqr <- diff(resid.q)
   limits <- resid.q + 3 * iqr * c(-1, 1)
   
-  outliers <- if ((limits[2] - limits[1]) > 1e-14) 
+  outliers <- if ((limits[2] - limits[1]) > 1e-14) {
     which((resid < limits[1]) | (resid > limits[2]))
-  else 
+  }
+  else {
     numeric(0)
-  
+  }
+
   x[outliers] <- NA
   x <- na.interp(x, lambda = lambda)
   
@@ -3642,10 +3823,12 @@ tsoutliers <- function (x, iterate = 2, lambda = NULL)
       outliers <- sort(unique(c(outliers, tmp$index)))
       x[outliers] <- NA
       
-      if (sum(!is.na(x)) == 1L) 
+      if (sum(!is.na(x)) == 1L) {
         x[is.na(x)] <- x[!is.na(x)]
-      else 
+      }
+      else {
         x <- na.interp(x, lambda = lambda)
+      }
     }
   }
   
@@ -3663,25 +3846,31 @@ tsoutliers <- function (x, iterate = 2, lambda = NULL)
 #' @inheritParams matchMS
 rm_dup13c <- function (df, n_13c = 0L)
 {
-  if (length(n_13c) == 1L && n_13c == 0L) 
+  if (length(n_13c) == 1L && n_13c == 0L) {
     return(df)
+  }
 
   esscols <- c("pep_ms1_offset", "pep_scan_num", "raw_file")
   cols <- names(df)
   
-  if (!all(esscols %in% cols))
+  if (!all(esscols %in% cols)) {
     return(df)
-  
-  key <- if ("pep_score" %in% cols)
+  }
+
+  key <- if ("pep_score" %in% cols) {
     1L
-  else if ("pep_prob" %in%  cols)
+  }
+  else if ("pep_prob" %in%  cols) {
     2L
-  else
+  }
+  else {
     0L
-  
-  if (!key)
+  }
+
+  if (!key) {
     return(df)
-  
+  }
+
   rows <- df$pep_ms1_offset == 0
   df0 <- df[rows, ]
   df1 <- df[!rows, ]

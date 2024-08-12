@@ -11,6 +11,7 @@ updateMS1Int2(
   row_sta,
   row_end,
   scan_apexs,
+  rt_apexs,
   rngs,
   from = 200L,
   step = 1e-05
@@ -29,6 +30,9 @@ updateMS1Int2(
 
 \item{scan_apexs}{The vectors of apex scan number. Each vector corresponds to
 a mass in \code{matx}.}
+
+\item{rt_apexs}{The vectors of apex retention time. Each vector corresponds
+to a mass in \code{matx}.}
 
 \item{rngs}{The ranges of row indexes for each column in \code{matx}. The
 \code{rngs[[i]]} corresponds to \code{matx[, i]}. The argument is currently

@@ -312,6 +312,8 @@
 #' @param use_lfq_intensity Logical; if TRUE, replace spectrum-centric precursor
 #'   intensities with peptide-centric intensities in DDA-MS. Require mzML data
 #'   format. The feature enables LFQ and can also be applied to TMT experiments.
+#' @param ppm_ms1trace A positive integer; the mass tolerance in tracing MS1
+#'   features.
 #' @param target_fdr A numeric; the targeted false-discovery rate (FDR) at the
 #'   levels of PSM, peptide or protein. The default is 0.01. See also argument
 #'   \code{fdr_type}.
@@ -747,6 +749,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      ppm_reporters = 10L,
                      quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
                      use_lfq_intensity = TRUE, 
+                     ppm_ms1trace = 6L, 
                      
                      target_fdr = 0.01,
                      fdr_type = c("protein", "peptide", "psm"),
@@ -1047,8 +1050,9 @@ matchMS <- function (out_path = "~/mzion/outs",
     stop("max_ret_time > min_ret_time is not TRUE at positive max_ret_time.")
   
   # named vectors
-  if (any(is.na(topn_ms2ion_cuts)))
+  if (any(is.na(topn_ms2ion_cuts))) {
     mgf_cutmzs <- mgf_cutpercs <- numeric()
+  }
   else {
     if (is.infinite(topn_ms2ions))
       stop("Choose a finite \"topn_ms2ions\" value to enable \"topn_ms2ion_cuts\".")
@@ -1085,8 +1089,9 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
 
   # enzyme
-  if ((!is.null(custom_enzyme)) && custom_enzyme == "")
+  if ((!is.null(custom_enzyme)) && custom_enzyme == "") {
     custom_enzyme <- NULL
+  }
 
   if (is.null(custom_enzyme)) {
     enzyme <- tolower(match.arg(enzyme))
@@ -1096,9 +1101,10 @@ matchMS <- function (out_path = "~/mzion/outs",
     enzyme <- NULL
   }
 
-  if ((!is.null(enzyme)) && (enzyme == "noenzyme"))
+  if ((!is.null(enzyme)) && (enzyme == "noenzyme")) {
     max_miss <- 0L
-  
+  }
+
   if ((!is.null(enzyme)) && (enzyme == "nodigest")) {
     max_miss <- 0L
     max_len <- max_integer
@@ -1116,9 +1122,10 @@ matchMS <- function (out_path = "~/mzion/outs",
   check_tmt_pars(fixedmods, varmods, quant)
   
   # MS1 off-sets
-  if (!all(ms1_neulosses %in% varmods))
+  if (!all(ms1_neulosses %in% varmods)) {
     stop("Not all `ms1_neulosses` found in `varmods`.")
-  
+  }
+
   check_notches(ms1_notches = ms1_notches, ms1_neulosses = ms1_neulosses)
   ms1_offsets <- find_ms1_offsets(n_13c = n_13c, ms1_notches = ms1_notches)
   is_notched  <- length(unique(c(ms1_offsets, ms1_neulosses))) > 1L
@@ -1126,11 +1133,13 @@ matchMS <- function (out_path = "~/mzion/outs",
   # system paths
   homedir <- find_dir("~")
   
-  if (is.null(.path_cache))
+  if (is.null(.path_cache)) {
     .path_cache <- "~/mzion/.MSearches/Cache/Calls/"
+  }
 
-  if (is.null(.path_fasta))
+  if (is.null(.path_fasta)) {
     .path_fasta <- file.path(gsub("(.*)\\.[^\\.]*$", "\\1", fasta[1]))
+  }
 
   .path_cache <- create_dir(.path_cache)
   .path_fasta <- create_dir(.path_fasta)
@@ -1147,38 +1156,43 @@ matchMS <- function (out_path = "~/mzion/outs",
   # grouped searches 
   # (this step before checking mgf_path)
   if (length(par_groups)) {
-    if ("out_path" %in% names(par_groups))
+    if ("out_path" %in% names(par_groups)) {
       stop("Do not include `out_path` in `par_groups`.\n", 
            "The same parent `out_path` is assumed.")
-    
-    if ("fasta" %in% names(par_groups))
+    }
+
+    if ("fasta" %in% names(par_groups)) {
       stop("Do not include `fasta` in `par_groups`.\n", 
            "The same set of `fasta` files is assumed.")
-    
+    }
+
     grp_args <- local({
       nms <- lapply(par_groups, names)
       all_nms <- sort(unique(unlist(nms, use.names = FALSE, recursive = FALSE)))
       nms_1 <- sort(nms[[1]])
       
-      if (!identical(nms_1, all_nms))
+      if (!identical(nms_1, all_nms)) {
         stop("Not all names are identical to those in the first group: ", 
              paste(nms_1, collapse = ", "))
-      
+      }
+
       fargs <- formalArgs(fun)
       bads <- nms_1[! nms_1 %in% fargs]
       
-      if (length(bads)) 
+      if (length(bads)) {
         stop("Arguments in `par_groups` not defined in `", fun, "`:\n  ", 
              paste(bads, collapse = ", "))
-      
+      }
+
       cargs <- names(this_call)
       cargs <- cargs[cargs != ""]
       dups <- nms_1[nms_1 %in% cargs]
       
-      if (length(dups))
+      if (length(dups)) {
         stop("Arguments in `par_groups` already in the call", ":\n  ", 
              paste(dups, collapse = ", "))
-      
+      }
+
       nms_1
     })
   }
@@ -1256,7 +1270,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   if (is.null(bypass_pepmasses <- dots$bypass_pepmasses)) 
     bypass_pepmasses <- FALSE
 
-  if (!bypass_pepmasses)
+  if (!bypass_pepmasses) {
     res <- calc_pepmasses2(
       aa_masses = aa_masses, 
       fasta = fasta,
@@ -1286,11 +1300,13 @@ matchMS <- function (out_path = "~/mzion/outs",
       .path_cache = .path_cache, 
       .path_fasta = .path_fasta, 
       .path_ms1masses = .path_ms1masses)
+  }
 
   ## Bin theoretical peptides
-  if (is.null(bypass_bin_ms1 <- dots$bypass_bin_ms1)) 
+  if (is.null(bypass_bin_ms1 <- dots$bypass_bin_ms1)) {
     bypass_bin_ms1 <- FALSE
-  
+  }
+
   reframe_mgfs <- calib_ms1mass && ppm_ms1calib != ppm_ms1
 
   if (!bypass_bin_ms1) {
@@ -1319,22 +1335,26 @@ matchMS <- function (out_path = "~/mzion/outs",
                     .path_ms1masses = .path_ms1masses, 
                     enzyme = enzyme, 
                     out_path = out_path)
-    else
+    else {
       .path_bin
+    }
 
-    if (exists("res"))
+    if (exists("res")) {
       rm(list = "res")
+    }
   }
 
   ## MGFs
   file_type_acqu <- file.path(mgf_path, "type_acqu.rds")
   
-  if (is.null(bypass_mgf <- dots$bypass_mgf)) 
+  if (is.null(bypass_mgf <- dots$bypass_mgf)) {
     bypass_mgf <- FALSE
+  }
 
-  if (is.null(bypass_rawexe <- dots$bypass_rawexe)) 
+  if (is.null(bypass_rawexe <- dots$bypass_rawexe)) {
     bypass_rawexe <- FALSE
-  
+  }
+
   if ((!bypass_mgf) || (!file.exists(file_type_acqu))) {
     type_acqu <- load_mgfs(
       out_path = out_path, 
@@ -1376,6 +1396,7 @@ matchMS <- function (out_path = "~/mzion/outs",
       ppm_ms2_deisotope = ppm_ms2_deisotope, 
       quant = quant, 
       use_lfq_intensity = use_lfq_intensity, 
+      ppm_ms1trace = ppm_ms1trace, 
       bypass_rawexe = bypass_rawexe,
       digits = digits)
   }
@@ -1384,8 +1405,9 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
 
   ## MSMS matches
-  if (is.null(bypass_ms2match <- dots$bypass_ms2match)) 
+  if (is.null(bypass_ms2match <- dots$bypass_ms2match)) {
     bypass_ms2match <- FALSE
+  }
 
   if (length(.time_stamp <- find_ms1_times(out_path)) == 1L) {
     path_time <- file.path(.path_ms1masses, .time_stamp)
@@ -1477,23 +1499,28 @@ matchMS <- function (out_path = "~/mzion/outs",
   ## Peptide scores
   fct_score <- 5
   
-  if (is.null(bypass_from_pepscores <- dots$bypass_from_pepscores)) 
+  if (is.null(bypass_from_pepscores <- dots$bypass_from_pepscores)) {
     bypass_from_pepscores <- FALSE
+  }
 
-  if (bypass_from_pepscores) 
+  if (bypass_from_pepscores) {
     return(NULL)
-  
-  if (is.null(bypass_pepscores <- dots$bypass_pepscores)) 
+  }
+
+  if (is.null(bypass_pepscores <- dots$bypass_pepscores)) {
     bypass_pepscores <- FALSE
-  
+  }
+
   maxn_mdda_precurs2 <- if (type_acqu == "dia") 500L else maxn_mdda_precurs
   
   if (!bypass_pepscores) {
-    if (is.null(tally_ms2ints <- dots$tally_ms2ints)) 
+    if (is.null(tally_ms2ints <- dots$tally_ms2ints)) {
       tally_ms2ints <- TRUE
-    
-    if (is.null(n_ms2_bg <- dots$n_ms2_bg))
+    }
+
+    if (is.null(n_ms2_bg <- dots$n_ms2_bg)) {
       n_ms2_bg <- max_len * 250L
+    }
 
     calc_pepscores(topn_ms2ions = topn_ms2ions,
                    type_ms2ions = type_ms2ions,
@@ -1533,21 +1560,24 @@ matchMS <- function (out_path = "~/mzion/outs",
                    digits = digits)
   }
   
-  if (is.null(bypass_primatches <- dots$bypass_primatches)) 
+  if (is.null(bypass_primatches <- dots$bypass_primatches)) {
     bypass_primatches <- FALSE
-  
-  if (!bypass_primatches)
+  }
+
+  if (!bypass_primatches) {
     hadd_primatches(out_path = out_path, 
                     is_notched = is_notched, 
                     add_ms2theos = add_ms2theos, 
                     add_ms2theos2 = add_ms2theos2, 
                     add_ms2moverzs = add_ms2moverzs, 
                     add_ms2ints = add_ms2ints)
+  }
 
   ## Peptide FDR 
-  if (is.null(bypass_pepfdr <- dots$bypass_pepfdr)) 
+  if (is.null(bypass_pepfdr <- dots$bypass_pepfdr)) {
     bypass_pepfdr <- FALSE
-  
+  }
+
   if (!bypass_pepfdr) {
     prob_cos <- calc_pepfdr(target_fdr = target_fdr, 
                             fdr_type = fdr_type, 
@@ -1568,7 +1598,8 @@ matchMS <- function (out_path = "~/mzion/outs",
     if (svm_reproc) {
       message("SVM reprocessing of peptide probabilities.")
       
-      prob_cos <- perco_svm(out_path = out_path, df = ans, prob_cos = prob_cos, 
+      prob_cos <- perco_svm(out_path = out_path, df = ans, n_13c = n_13c, 
+                            prob_cos = prob_cos, 
                             target_fdr = target_fdr, fdr_type = fdr_type, 
                             min_len = min_len, max_len = max_len, 
                             max_pepscores_co = max_pepscores_co, 
@@ -1589,9 +1620,10 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
 
   ## Peptide ranks and score deltas between `pep_ivmod`
-  if (is.null(bypass_peploc <- dots$bypass_peploc)) 
+  if (is.null(bypass_peploc <- dots$bypass_peploc)) {
     bypass_peploc <- FALSE
-  
+  }
+
   if (!bypass_peploc) {
     calc_peploc(out_path = out_path, 
                 mod_indexes = mod_indexes, 
@@ -1602,20 +1634,24 @@ matchMS <- function (out_path = "~/mzion/outs",
   }
 
   ## Protein accessions
-  if (is.null(bypass_from_protacc <- dots$bypass_from_protacc)) 
+  if (is.null(bypass_from_protacc <- dots$bypass_from_protacc)) {
     bypass_from_protacc <- FALSE
-  
-  if (bypass_from_protacc) 
+  }
+
+  if (bypass_from_protacc) {
     return(NULL)
-  
-  if (is.null(bypass_protacc <- dots$bypass_protacc)) 
+  }
+
+  if (is.null(bypass_protacc <- dots$bypass_protacc)) {
     bypass_protacc <- FALSE
-  
+  }
+
   temp_dir <- file.path(out_path, "temp")
   file_protacc <- file.path(temp_dir, "df_protacc.rds")
   
-  if (bypass_protacc && file.exists(file_protacc))
+  if (bypass_protacc && file.exists(file_protacc)) {
     df <- qs::qread(file_protacc)
+  }
   else {
     if (is.null(enzyme) || 
         (enzyme != "noenzyme" || isTRUE(dots[["direct_prot_acc"]]))) {
@@ -1645,9 +1681,10 @@ matchMS <- function (out_path = "~/mzion/outs",
   rm(list = "file_protacc")
   
   ## Protein FDR
-  if (is.null(bypass_protfdr <- dots$bypass_protfdr)) 
+  if (is.null(bypass_protfdr <- dots$bypass_protfdr)) {
     bypass_protfdr <- FALSE
-  
+  }
+
   file_protfdr <- file.path(temp_dir, "df_protfdr.rds")
   
   if (bypass_protfdr && file.exists(file_protfdr)) {
@@ -1711,9 +1748,10 @@ matchMS <- function (out_path = "~/mzion/outs",
   })
 
   ## psmC to psmQ
-  if (is.null(bypass_psmC2Q <- dots$bypass_psmC2Q)) 
+  if (is.null(bypass_psmC2Q <- dots$bypass_psmC2Q)) {
     bypass_psmC2Q <- FALSE
-  
+  }
+
   if (bypass_psmC2Q) {
     df <- readr::read_tsv(file.path(out_path, "psmQ.txt"), 
                           col_types = get_mzion_coltypes())

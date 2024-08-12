@@ -16,6 +16,7 @@ Not used in mzion.
 }
 \examples{
 \dontrun{
-fasta_db <- load_fasta("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
+fasta_db <- load_fasta(c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta", 
+                         "~/mzion/dbs/fasta/crap/crap.fasta"))
 }
 }

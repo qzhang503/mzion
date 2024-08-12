@@ -59,6 +59,7 @@ matchMS(
   ppm_reporters = 10L,
   quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
   use_lfq_intensity = TRUE,
+  ppm_ms1trace = 6L,
   target_fdr = 0.01,
   fdr_type = c("protein", "peptide", "psm"),
   fdr_group = c("base", "all", "top3"),
@@ -374,6 +375,9 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 \item{use_lfq_intensity}{Logical; if TRUE, replace spectrum-centric precursor
 intensities with peptide-centric intensities in DDA-MS. Require mzML data
 format. The feature enables LFQ and can also be applied to TMT experiments.}
+
+\item{ppm_ms1trace}{A positive integer; the mass tolerance in tracing MS1
+features.}
 
 \item{target_fdr}{A numeric; the targeted false-discovery rate (FDR) at the
 levels of PSM, peptide or protein. The default is 0.01. See also argument

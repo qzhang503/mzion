@@ -1,5 +1,7 @@
 # combine all .R files into one
-foo_combine_codes <- function (filepath = file.path("~/Github/mzion/R")) 
+# foo_combine_codes(file.path("~/Github/proteoQ/R"), "all_proteoQ.R")
+foo_combine_codes <- function (filepath = file.path("~/Github/mzion/R"), 
+                               out_name = "all_mzion.R") 
 {
   filepath <- mzion:::find_dir(filepath)
   filenames <- dir(filepath, pattern = ".R$")
@@ -8,7 +10,7 @@ foo_combine_codes <- function (filepath = file.path("~/Github/mzion/R"))
 
   ans <- lapply(file.path(filepath, filenames), readLines)
   ans <- purrr::reduce(ans, `c`, init = NULL)
-  writeLines(ans, file.path(filepath, "temp/all_mzion.R"))
+  writeLines(ans, file.path(filepath, "temp", out_name))
 }
 
 

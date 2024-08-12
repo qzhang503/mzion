@@ -27,7 +27,8 @@ getMS1xyz(
   fct_iso2 = 3,
   use_defpeaks = FALSE,
   min_mass = 200L,
-  filename = NULL
+  filename = NULL,
+  debug = FALSE
 )
 }
 \arguments{
@@ -106,6 +107,8 @@ interrogation. The default is an arbitrarily low value (the primary guard
 against low molecular-weight precursors is \code{min_len}).}
 
 \item{filename}{A file name (for troubleshooting).}
+
+\item{debug}{Logical; debug mode or not}
 }
 \description{
 Inputs are full-spectrum X and Y values. MS levels are differentiated by

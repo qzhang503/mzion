@@ -37,6 +37,7 @@ hdeisoDDA(
   mgf_cutpercs = numeric(),
   quant = "none",
   use_lfq_intensity = TRUE,
+  ppm_ms1trace = 6L,
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
   exclude_reporter_region = FALSE,
@@ -161,6 +162,9 @@ plexes. For example, apply \code{tmt16} for \code{tmt12} provided a set of
 \item{use_lfq_intensity}{Logical; if TRUE, replace spectrum-centric precursor
 intensities with peptide-centric intensities in DDA-MS. Require mzML data
 format. The feature enables LFQ and can also be applied to TMT experiments.}
+
+\item{ppm_ms1trace}{A positive integer; the mass tolerance in tracing MS1
+features.}
 
 \item{tmt_reporter_lower}{The lower bound of the region of TMT reporter ions.
 The default is \eqn{126.1}.}

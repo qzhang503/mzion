@@ -10,7 +10,7 @@ predeisoDDA(
   mzml_type = "raw",
   ppm_ms1 = 10L,
   ppm_ms2 = 10L,
-  maxn_mdda_precurs = 5L,
+  maxn_mdda_precurs = 3L,
   topn_ms2ions = 150L,
   n_mdda_flanks = 6L,
   n_dia_scans = 4L,

@@ -106,9 +106,10 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
   rm(list = "ans")
 
   # at least two chunks
-  if (n_chunks <= 1L)
+  if (n_chunks <= 1L) {
     n_chunks <- 2L
-  
+  }
+
   df1$ms1_mass <- df1$ms1_moverz <- df1$ms1_int <- df1$ms1_charge <- NULL
   df1s  <- chunksplit(df1, n_chunks, type = "row")
   min_rts <- unlist(lapply(df1s, function (x) x$ret_time[[1]]))
@@ -141,7 +142,6 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
   ##  Splits `df` with bracketing entries
   # values: row indexes in `df`, length == nrow(df1) at pad_nas = TRUE
   ms1_stas <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)$ms1_stas
-  # cols <- c("ms_level", "ms1_moverz", "ms1_int")
   cols <- c("ms_level", "ms1_moverz", "ms1_int", "orig_scan") # orig_scan for troubleshooting
   ms1_stax <- vector("integer", n_chunks)
   dfs <- vector("list", n_chunks)
@@ -180,7 +180,7 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
 #' @param look_back Logical; look up the preceding MS bin or not.
 #' @inheritParams matchMS
 htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L, 
-                      n_mdda_flanks = 6L, from = 200L, step = 7E6, 
+                      n_mdda_flanks = 6L, from = 200L, step = 6E6, 
                       y_perc = .01, yco = 500, look_back = TRUE)
 {
   if (all(lengths(xs) == 0L)) {
@@ -192,8 +192,7 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
         ms_level = df$ms_level, 
         ms1_moverz = null, 
         ms1_int = null, 
-        apex_scan_num = null)
-    )
+        apex_scan_num = null))
   }
   
   mat <- traceXY(
@@ -211,9 +210,11 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
   nc <- ncol(matx)
 
   # apes correspond to the row numbers of matx and ss to orig_scan
-  scan_apexs <- vector("list", nc)
+  rt_apexs <- scan_apexs <- vector("list", nc)
   for (i in 1:nc) {
-    scan_apexs[[i]] <- as.integer(ss[apes[[i]]])
+    ai <- apes[[i]]
+    scan_apexs[[i]] <- as.integer(ss[ai])
+    rt_apexs[[i]]   <- as.integer(ts[ai])
   }
 
   # i = 6921
@@ -241,7 +242,8 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
   # look both before and after scans
   df <- updateMS1Int2(
     df = df, matx = matx, maty = maty, row_sta = sta, row_end = end, 
-    scan_apexs = scan_apexs, rngs = rngs, from = from, step = step)
+    scan_apexs = scan_apexs, rt_apexs = rt_apexs, rngs = rngs, 
+    from = from, step = step)
 }
 
 
@@ -396,14 +398,16 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
 #' @param row_end The ending row of \code{matx}.
 #' @param scan_apexs The vectors of apex scan number. Each vector corresponds to
 #'   a mass in \code{matx}.
+#' @param rt_apexs The vectors of apex retention time. Each vector corresponds
+#'   to a mass in \code{matx}.
 #' @param rngs The ranges of row indexes for each column in \code{matx}. The
 #'   \code{rngs[[i]]} corresponds to \code{matx[, i]}. The argument is currently
 #'   used for debugging.
 #' @param from The starting point for mass binning.
 #' @param step A step size for mass binning.
 #' @importFrom fastmatch %fin%
-updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, rngs, 
-                           from = 200L, step = 1E-5)
+updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, 
+                           rt_apexs, rngs, from = 200L, step = 1E-5)
   
 {
   # to update the apexs, vector since can be chimeric precursors
@@ -428,7 +432,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, rngs,
   for (i in seq_along(ms2_stas)) { # the same as by ms1_stas
     if (FALSE) {
       df$orig_scan[ms1_stas] # look for orig_scan around 34009 ->
-      i = 482
+      i = 423
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       df2 <- df[ms2sta:ms2end, ]
@@ -444,7 +448,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, rngs,
     scan <- ss[[rowi]] # the MS1 scan number at the current row
     
     for (j in 1:nrow(df2)) {
-      # j <- 6
+      # j <- 2
       x1s <- df2[["ms1_moverz"]][[j]] # MS1 masses associated with an MS2 scan
       nx <- length(x1s) # nx > 1 with a chimeric spectrum
       if (!nx) next
@@ -461,16 +465,18 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, rngs,
         if (length(k) > 1L) {
           ka <- k[[1]]
           ans1 <- find_apex_scan(k = ka, xs_k = matx[, ka], ys_k = maty[, ka], 
-                                 apexs_k = scan_apexs[[ka]], xm = x1m, 
-                                 scan = scan, ss = ss, rngs = rngs, step = step)
+                                 apexs_k = scan_apexs[[ka]], 
+                                 rts_k = rt_apexs[[ka]], rngs_k = rngs[[ka]], 
+                                 xm = x1m, scan = scan, ss = ss, step = step)
                                  
           ap1a <- ans1$ap
           y1a  <- ans1$y
 
           kb <- k[[2]]
           ans2 <- find_apex_scan(k = kb, xs_k = matx[, kb], ys_k = maty[, kb], 
-                                 apexs_k = scan_apexs[[kb]], xm = x1m, 
-                                 scan = scan, ss = ss, rngs = rngs, step = step)
+                                 apexs_k = scan_apexs[[kb]], 
+                                 rts_k = rt_apexs[[kb]], rngs_k = rngs[[kb]], 
+                                 xm = x1m, scan = scan, ss = ss, step = step)
           ap1b <- ans2$ap
           y1b  <- ans2$y
 
@@ -487,8 +493,9 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, rngs,
         else {
           ka <- k[[1]]
           ans1 <- find_apex_scan(k = ka, xs_k = matx[, ka], ys_k = maty[, ka], 
-                                 apexs_k = scan_apexs[[ka]], xm = x1m, 
-                                 scan = scan, ss = ss, rngs = rngs, step = step)
+                                 apexs_k = scan_apexs[[ka]], 
+                                 rts_k = rt_apexs[[ka]], rngs_k = rngs[[ka]], 
+                                 xm = x1m, scan = scan, ss = ss, step = step)
           ap1 <- ans1$ap
           y1  <- ans1$y
         }
@@ -518,47 +525,106 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, rngs,
 #' @param ys_k The Y values under \code{maty[, k]}.
 #' @param apexs_k All apexes scan numbers (\code{scan_apexs[[k]]}) under column
 #'   k.
+#' @param rts_k All apexes retention times (\code{scan_apexs[[k]]}) under column
+#'   k.
+#' @param rngs_k All apexes scan ranges (\code{scan_apexs[[k]]}) under column k.
 #' @param xm The experimental X value for tracing.
 #' @param scan The scan number of an MS2 event corresponding to the \code{xm}.
 #' @param ss All of the scan numbers.
-#' @param rngs The scan ranges of apexes.
+#' @param rngs The scan ranges of apexes under column k.
 #' @param step A step size.
-find_apex_scan <- function (k, xs_k, ys_k, apexs_k, xm, scan, ss, rngs, 
-                            step = 1E-5)
+#' @importFrom fastmatch %fin%
+find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss, 
+                            step = 6E-6)
 {
   # (1) subset apexs by MS1 mass tolerance
   ok_xs <- .Internal(which(abs(xs_k - xm) / xm <= step))
   if (length(ok_xs)) {
-    ok_aps <- apexs_k %in% ss[ok_xs]
-    
+    ok_aps <- apexs_k %fin% ss[ok_xs]
     if (any(ok_aps)) {
       apexs_k <- apexs_k[ok_aps]
+      rts_k   <- rts_k[ok_aps]
+      rngs_k  <- rngs_k[ok_aps]
     }
-    # rngx <- rngs[[k]][ok_aps]
   }
-  
-  ds <- abs(apexs_k - scan)
-  p1  <- .Internal(which.min(ds))
-  px  <- max(1L, p1 - 3L):min(length(ds), p1 + 3L)
-  # at least one (the most centered) peak is within 2500 scans
-  if (ds[p1] <= 2500) {
-    px <- px[ds[px] <= 2500]
-  }
-  
-  aps <- apexs_k[px]
-  oks <- .Internal(which(ss %in% aps))
-  ys  <- ys_k[oks]
-  top <- .Internal(which.max(ys))
-  
-  p1  <- px[top]
-  y1  <- ys[[top]]
-  ap1 <- aps[[top]]
-  ok1 <- oks[top]
-  # rngx <- rngx[[p1]]
-  
-  list(ap = ap1, y = y1)
-}
+  # abs(xs_k[names(xs_k) %in% apexs_k] - xm) / xm
 
+  # (2) subset apexes by distances between apex_scan and the triggering MS2 scan
+  ds <- abs(apexs_k - scan)
+  p1 <- .Internal(which.min(ds))
+  d1 <- ds[[p1]]
+  px <- max(1L, p1 - 3L):min(length(ds), p1 + 3L)
+  ds <- ds[px]
+
+  # at least one (the most centered) peak is within 2500 scans
+  if (d1 <= 2500) {
+    oks_d <- ds <= 2500
+    px <- px[oks_d]
+    ds <- ds[oks_d]
+  }
+  
+  rtx <- rts_k[px]
+  rgx <- rngs_k[px]
+  aps <- apexs_k[px]
+  
+  # (3) remove one-hit-wonders and spikes
+  lens  <- lengths(rgx)
+  oks_l <- .Internal(which(lens > 5L))
+  if (length(oks_l)) {
+    rtx  <- rtx[oks_l]
+    rgx  <- rgx[oks_l]
+    aps  <- aps[oks_l]
+    # px   <- px[oks_l]
+    ds   <- ds[oks_l]
+    lens <- lens[oks_l]
+  }
+
+  ## outputs
+  oks <- .Internal(which(ss %fin% aps))
+  ys  <- ys_k[oks]
+
+  topa <- .Internal(which.min(ds))
+  ya   <- ys[[topa]]
+  apa  <- aps[[topa]]
+  da   <- ds[[topa]]
+  
+  topb <- .Internal(which.max(ys))
+  yb   <- ys[[topb]]
+  apb  <- aps[[topb]]
+  db   <- ds[[topb]]
+
+  if (topa == topb) {
+    return(list(ap = apa, y = ya))
+  }
+  
+  # compare peak widths and distances
+  lena <- lens[[topa]]
+  lenb <- lens[[topb]]
+  lenr <- lena / lenb
+  
+  if (lenr > .67 || lenr < 1.5) {
+    if (db > da + 200) {
+      return(list(ap = apa, y = ya))
+    }
+    else {
+      return(list(ap = apb, y = yb))
+    }
+  }
+  else {
+    return(list(ap = apb, y = yb))
+    
+    if (FALSE) {
+      if (lena > lenb) {
+        return(list(ap = apa, y = ya))
+      }
+      else {
+        return(list(ap = apb, y = yb))
+      }
+    }
+  }
+
+  list(ap = apb, y = yb)
+}
 
 
 #' Helper of MS1 tracing.
@@ -582,7 +648,8 @@ traceMS1 <- function (df, min_mass = 200L, step = 8E-6,
   rows <- which(lengths(df$ms1_moverz) == 0L)
   
   if (length(rows)) {
-    df$ms1_int[rows] <- df$ms1_mass[rows] <- df$ms1_moverz[rows] <- list(NA_real_)
+    df$ms1_int[rows] <- df$ms1_mass[rows] <- df$ms1_moverz[rows] <- 
+      list(NA_real_)
     df$ms1_charge[rows] <- list(NA_integer_)
   }
   
@@ -632,9 +699,10 @@ getMS1Int <- function (df1, from = 200L, step = 8E-6, set_missing_zero = FALSE)
     xs1 <- df1$ms1_moverz[[i]]
     len <- length(xs1)
     
-    if (!len)
+    if (!len) {
       next
-    
+    }
+
     ys <- df1$msx_ints[[i]]
     ixxs <- as.integer(ceiling(log(df1$msx_moverzs[[i]]/from)/log(1+step)))
     ixs1 <- as.integer(ceiling(log(xs1/from)/log(1+step)))

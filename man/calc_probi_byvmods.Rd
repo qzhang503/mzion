@@ -14,8 +14,8 @@ calc_probi_byvmods(
   type_ms2ions = "by",
   topn_ms2ions = 150L,
   ppm_ms2 = 20L,
+  minn_ms2 = 6L,
   soft_secions = FALSE,
-  burn_ins = 1:2,
   min_ms2mass = 115L,
   d2 = 1e-05,
   tally_ms2ints = TRUE,
@@ -48,14 +48,15 @@ searches.}
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
 
+\item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
+for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
+not part of the threshold.}
+
 \item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
 ions to primary ions even when the primaries are absent. The default is
 FALSE. For instance, the signal of \code{b5^*} will be ignored if its
 primary ion \code{b5} is not matched. The impacts of \code{soft_secions =
 TRUE} on search performance has not yet been assessed.}
-
-\item{burn_ins}{The range of burn-ins where inputs will be excluded from
-probablity assessments.}
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
@@ -171,7 +172,7 @@ expt_ints <- c(16921,29468,36904,28121,37829,23537,39307,36194,25192,33532,
                30824,12961,26805,31218,36352,49433,40495,31233,40643,18265,
                12316,25125,202241,90877,20903,40353,15008,31908,22554,13634)
 
-mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 404)
+mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 10000)
 
 ## 
 pep <- "LFEEDEREK"

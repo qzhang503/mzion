@@ -11,6 +11,8 @@ probco_bypeplen(
   target_fdr = 0.01,
   min_pepscores_co = 30,
   fct_score = 5,
+  is_long_len = FALSE,
+  sco_long_len = 30,
   out_path
 )
 }
@@ -35,7 +37,13 @@ identities.}
 
 \item{fct_score}{A factor to convert p-values to scores.}
 
+\item{sco_long_len}{Empirical score threshold at one-percent FDR for
+sequences
+\eqn{\ge 35} residues.}
+
 \item{out_path}{A file path of outputs.}
+
+\item{is_long_len;}{Logical; is a long peptide length or not.}
 }
 \description{
 Calculates the probability cut-off for target-decoy pairs at a given peptide

@@ -13,6 +13,7 @@ calc_probi(
   type_ms2ions = "by",
   topn_ms2ions = 150L,
   ppm_ms2 = 20L,
+  minn_ms2 = 6L,
   soft_secions = FALSE,
   min_ms2mass = 115L,
   d2 = 1e-05,
@@ -42,6 +43,10 @@ searches.}
 
 \item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
 default is 20.}
+
+\item{minn_ms2}{A positive integer; the minimum number of matched MS2 ions
+for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
+not part of the threshold.}
 
 \item{soft_secions}{Logical; if TRUE, collapses the intensities of secondary
 ions to primary ions even when the primaries are absent. The default is

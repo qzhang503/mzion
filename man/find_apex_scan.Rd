@@ -4,7 +4,18 @@
 \alias{find_apex_scan}
 \title{Find the apex under a mass column}
 \usage{
-find_apex_scan(k, xs_k, ys_k, apexs_k, xm, scan, ss, rngs, step = 1e-05)
+find_apex_scan(
+  k,
+  xs_k,
+  ys_k,
+  apexs_k,
+  rts_k,
+  rngs_k,
+  xm,
+  scan,
+  ss,
+  step = 6e-06
+)
 }
 \arguments{
 \item{k}{The k-th column in \code{matx} or \code{maty}.}
@@ -16,15 +27,20 @@ find_apex_scan(k, xs_k, ys_k, apexs_k, xm, scan, ss, rngs, step = 1e-05)
 \item{apexs_k}{All apexes scan numbers (\code{scan_apexs[[k]]}) under column
 k.}
 
+\item{rts_k}{All apexes retention times (\code{scan_apexs[[k]]}) under column
+k.}
+
+\item{rngs_k}{All apexes scan ranges (\code{scan_apexs[[k]]}) under column k.}
+
 \item{xm}{The experimental X value for tracing.}
 
 \item{scan}{The scan number of an MS2 event corresponding to the \code{xm}.}
 
 \item{ss}{All of the scan numbers.}
 
-\item{rngs}{The scan ranges of apexes.}
-
 \item{step}{A step size.}
+
+\item{rngs}{The scan ranges of apexes under column k.}
 }
 \description{
 Find the apex under a mass column

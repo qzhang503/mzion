@@ -301,7 +301,7 @@ plotMS2ions <- function (duos, out_path = "~", out_name = "bar.png",
       ggplot2::geom_segment(duo2, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                                 xend = ms2_moverz, yend = 0, 
                                                 color = type), 
-                            linewidthlinewidth = .5, show.legend = FALSE) + 
+                            linewidth = .5, show.legend = FALSE) + 
       ggplot2::geom_text(duo2, mapping = aes(x = ms2_moverz, y = ms2_int, 
                                              label = label, color = type),
                          size = 4, alpha = .5, hjust = 0, angle = 90, vjust = 0, 

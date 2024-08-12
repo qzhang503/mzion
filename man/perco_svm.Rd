@@ -8,6 +8,7 @@ perco_svm(
   prob_cos = NULL,
   out_path = NULL,
   df = NULL,
+  n_13c = 0,
   target_fdr = 0.01,
   fdr_type = "protein",
   min_len = 7L,
@@ -36,6 +37,9 @@ perco_svm(
 \item{out_path}{A file path of outputs.}
 
 \item{df}{A data frame of \code{psmC.txt}.}
+
+\item{n_13c}{Number(s) of 13C off-sets in precursor masses, for example, over
+the range of \code{-1:2}. The default is 0.}
 
 \item{target_fdr}{A numeric; the targeted false-discovery rate (FDR) at the
 levels of PSM, peptide or protein. The default is 0.01. See also argument

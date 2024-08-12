@@ -42,12 +42,14 @@ read_fasta <- function (file = NULL, acc_pattern = ">([^ ]+?) .*",
   lines   <- readLines(file)
   empties <- grep("^\\s*$", lines)
   
-  if (length(empties)) 
+  if (length(empties)) {
     lines <- lines[-empties]
+  }
 
   # removes comment lines
-  if (nchar(comment_char)) 
+  if (nchar(comment_char)) {
     lines <- lines[!grepl(paste0("^", comment_char), lines)]
+  }
 
   # begins and ends
   headers <- grep(">", lines)
@@ -102,17 +104,20 @@ write_fasta <- function (fasta_db, file)
 #'   supply the files.
 #' @examples
 #' \dontrun{
-#' fasta_db <- load_fasta("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta")
+#' fasta_db <- load_fasta(c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta", 
+#'                          "~/mzion/dbs/fasta/crap/crap.fasta"))
 #' }
 load_fasta <- function (fasta = NULL) 
 {
-  if (is.null(fasta)) 
+  if (is.null(fasta)) {
     stop("FASTA file(s) are required.")
-  
+  }
+
   oks <- file.exists(fasta)
 
-  if (!all(oks))
+  if (!all(oks)) {
     stop("Missing FASTA file(s): \n", paste(fasta[!oks], collapse = "\n"))
+  }
 
   ans <- lapply(fasta, function (x) read_fasta(x))
   ans <- flatten_list(ans)
@@ -171,13 +176,15 @@ load_fasta <- function (fasta = NULL)
 #' @export
 load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL) 
 {
-  if (is.null(fasta)) 
+  if (is.null(fasta)) {
     stop("FASTA file(s) are required.")
+  }
 
   oks <- file.exists(fasta)
   
   if (!all(oks)) {
-    warning("Removed missing FASTA file(s): \n", paste(fasta[!oks], collapse = "\n"))
+    warning("Removed missing FASTA file(s): \n", 
+            paste(fasta[!oks], collapse = "\n"))
     fasta <- fasta[oks]
     acc_type <- acc_type[oks]
   }
@@ -186,14 +193,17 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL)
   len_a <- length(acc_type)
   len_p <- length(acc_pattern)
   
-  if (!len_f)
+  if (!len_f) {
     stop("None of the supplied fasta files were found.")
+  }
 
-  if (len_f < len_a) 
+  if (len_f < len_a) {
     stop("More accession types than fasta files.")
+  }
 
-  if (len_f < len_p) 
+  if (len_f < len_p) {
     stop("More acc_pattern types than fasta files.")
+  }
 
   if (len_a && (len_a < len_f)) {
     warning("More fasta files than accession types; ",
@@ -224,9 +234,10 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL)
     acc_type <- unlist(acc_type, recursive = FALSE, use.names = FALSE)
   }
 
-  if (length(acc_pattern) != len_f)
+  if (length(acc_pattern) != len_f) {
     stop("Unequal length between `acc_pattern` and `fasta`.")
-  
+  }
+
   # Not to USE.NAMES; otherwise fasta names prefix to accession names
   # this is different to map2 where names are NULL for each fasta_db
   ans <- mapply(function (x, y) read_fasta(x, y), fasta, acc_pattern, 
