@@ -311,9 +311,9 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
   rm(list = c("ans"))
   
   if (FALSE) {
-    rng <- 150:450
-    i <- which(colnames(ansx) == index_mz(482.8994, from, step) +  1) # 3688
-    i <- which(colnames(ansx) == index_mz(482.8994, from, step) - 1) # 3687
+    rng <- 250:800
+    i <- which(colnames(ansx) == index_mz(595.3228, from, step) +  1) # 7938
+    i <- which(colnames(ansx) == index_mz(595.3228, from, step) - 1) # 7937
     ss[rng]
     
     plot(ansx[rng, i])
@@ -337,8 +337,8 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
   
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
-      # i <- which(colnames(ansx) == index_mz(482.8994, from, step) - 1) # 3687
-      xi <- ansx[, i] # newly added...
+      # i <- which(colnames(ansx) == index_mz(595.3250, from, step) + 1) # 7938
+      xi <- ansx[, i]
       yi <- ansy[, i]
       oks <- .Internal(which(!is.na(yi)))
       yoks <- yi[oks]
@@ -356,18 +356,13 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
       ranges[[i]] <- rngs <- gates[["ranges"]]
       yints <- gates[["yints"]]
       
-      if (FALSE) {
-        mx <- lapply(rngs, function (rng) median(xi[rng], na.rm = TRUE))
-        mx <- unlist(mx)
-        min(mx); max(mx)
-        (max(mx) - min(mx)) /min(mx)
-      }
-      
+      mx <- lapply(rngs, function (rng) mean(xi[rng], na.rm = TRUE))
+
       for (j in seq_along(rows)) {
-        rwj <- rows[[j]]
         rgj <- rngs[[j]]
-        xmat[rgj, i] <- ansx[rwj, i]
-        # ymat[rgj, i] <- ansy[rwj, i]
+        # rwj <- rows[[j]]
+        # xmat[rgj, i] <- ansx[rwj, i]
+        xmat[rgj, i] <- mx[[j]]
         ymat[rgj, i] <- yints[[j]]
       }
     }
@@ -432,7 +427,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
   for (i in seq_along(ms2_stas)) { # the same as by ms1_stas
     if (FALSE) {
       df$orig_scan[ms1_stas] # look for orig_scan around 34009 ->
-      i = 423
+      i = 220
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       df2 <- df[ms2sta:ms2end, ]
@@ -448,7 +443,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     scan <- ss[[rowi]] # the MS1 scan number at the current row
     
     for (j in 1:nrow(df2)) {
-      # j <- 2
+      # j <- 10
       x1s <- df2[["ms1_moverz"]][[j]] # MS1 masses associated with an MS2 scan
       nx <- length(x1s) # nx > 1 with a chimeric spectrum
       if (!nx) next
@@ -470,6 +465,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
                                  xm = x1m, scan = scan, ss = ss, step = step)
                                  
           ap1a <- ans1$ap
+          x1a  <- ans1$x
           y1a  <- ans1$y
 
           kb <- k[[2]]
@@ -478,16 +474,70 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
                                  rts_k = rt_apexs[[kb]], rngs_k = rngs[[kb]], 
                                  xm = x1m, scan = scan, ss = ss, step = step)
           ap1b <- ans2$ap
+          x1b  <- ans2$x
           y1b  <- ans2$y
-
-          # the same apex but different Y?
-          if (y1a > y1b) {
-            ap1 <- ap1a
-            y1  <- y1a
+          
+          # (1) by mass errors
+          erra <- abs(x1a - x1m) / x1m
+          errb <- abs(x1b - x1m) / x1m
+          
+          if (erra < errb) {
+            is_a <- TRUE
+            errx <- errb - erra
+            err0 <- erra
           }
           else {
-            ap1 <- ap1b
-            y1  <- y1b
+            is_a <- FALSE
+            errx <- erra - errb
+            err0 <- errb
+          }
+          
+          # (2) by scan number differences
+          if (FALSE) {
+            dsa <- abs(ap1a - scan)
+            dsb <- abs(ap1b - scan)
+            
+            if (dsa < dsb) {
+              ds1 <- dsb
+              ds0 <- dsa
+              is_da <- TRUE
+            }
+            else {
+              ds1 <- dsa
+              ds0 <- dsb
+              is_da <- FALSE
+            }
+          }
+
+          if (errx > 3e-6) { #  || (errx > 1.5e-6 && err0 <= 3e-6)
+            if (is_a) {
+              ap1 <- ap1a
+              y1  <- y1a
+            }
+            else {
+              ap1 <- ap1b
+              y1  <- y1b
+            }
+          }
+          else if (FALSE && ds0 * 10 <= ds1) { # 10x closer ds0 <= 100 && 
+            if (is_da) {
+              ap1 <- ap1a
+              y1  <- y1a
+            }
+            else {
+              ap1 <- ap1b
+              y1  <- y1b
+            }
+          }
+          else {
+            if (y1a > y1b) {
+              ap1 <- ap1a
+              y1  <- y1a
+            }
+            else {
+              ap1 <- ap1b
+              y1  <- y1b
+            }
           }
         }
         else {
@@ -540,8 +590,7 @@ find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss,
   # (1) subset apexs by MS1 mass tolerance
   ok_xs <- .Internal(which(abs(xs_k - xm) / xm <= step))
   if (length(ok_xs)) {
-    ok_aps <- apexs_k %fin% ss[ok_xs]
-    if (any(ok_aps)) {
+    if (any(ok_aps <- apexs_k %fin% ss[ok_xs])) {
       apexs_k <- apexs_k[ok_aps]
       rts_k   <- rts_k[ok_aps]
       rngs_k  <- rngs_k[ok_aps]
@@ -578,23 +627,26 @@ find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss,
     ds   <- ds[oks_l]
     lens <- lens[oks_l]
   }
-
+  
   ## outputs
   oks <- .Internal(which(ss %fin% aps))
+  xs <- xs_k[oks]
   ys  <- ys_k[oks]
 
   topa <- .Internal(which.min(ds))
   ya   <- ys[[topa]]
+  xa <- xs[[topa]]
   apa  <- aps[[topa]]
   da   <- ds[[topa]]
   
   topb <- .Internal(which.max(ys))
   yb   <- ys[[topb]]
+  xb <- xs[[topb]]
   apb  <- aps[[topb]]
   db   <- ds[[topb]]
 
   if (topa == topb) {
-    return(list(ap = apa, y = ya))
+    return(list(ap = apa, x = xa, y = ya))
   }
   
   # compare peak widths and distances
@@ -604,26 +656,26 @@ find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss,
   
   if (lenr > .67 || lenr < 1.5) {
     if (db > da + 200) {
-      return(list(ap = apa, y = ya))
+      return(list(ap = apa, x = xa, y = ya))
     }
     else {
-      return(list(ap = apb, y = yb))
+      return(list(ap = apb, x = xb, y = yb))
     }
   }
   else {
-    return(list(ap = apb, y = yb))
+    return(list(ap = apb, x = xb, y = yb))
     
     if (FALSE) {
       if (lena > lenb) {
-        return(list(ap = apa, y = ya))
+        return(list(ap = apa, x = xa, y = ya))
       }
       else {
-        return(list(ap = apb, y = yb))
+        return(list(ap = apb, x = xb, y = yb))
       }
     }
   }
 
-  list(ap = apb, y = yb)
+  list(ap = apb, x = xb, y = yb)
 }
 
 

@@ -4202,7 +4202,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
 
   # collapses matrix columns with +/-1 in bin indexes
   for (i in 2:lenp) {
-    # i <- 6653
+    # i <- 7747
     c12 <- ps[[i]]
     c1  <- c12[[1]]
     c2  <- c12[[2]]
