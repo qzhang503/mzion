@@ -14,7 +14,8 @@ updateMS1Int2(
   rt_apexs,
   rngs,
   from = 200L,
-  step = 1e-05
+  step = 5e-06,
+  min_y = 0
 )
 }
 \arguments{
@@ -41,6 +42,8 @@ used for debugging.}
 \item{from}{The starting point for mass binning.}
 
 \item{step}{A step size for mass binning.}
+
+\item{min_y}{The cut-off of intensity values.}
 }
 \description{
 Including forward and backward looking.

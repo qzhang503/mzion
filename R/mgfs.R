@@ -52,8 +52,16 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
   fun <- fun[length(fun)] # may be called as mzion:::load_mgfs
   fun_env <- environment()
   
-  args_except <- c("out_path", "use_lfq_intensity", "ppm_ms1trace", 
-                   "bypass_rawexe")
+  # temporary bypass `ppm_ms1trace` checking with TMT
+  if (isTRUE(grepl("^tmt.*\\d+", quant))) {
+    args_except <- c("out_path", "use_lfq_intensity", "ppm_ms1trace", 
+                     "bypass_rawexe")
+  }
+  else {
+    args_except <- c("out_path", "use_lfq_intensity", # "ppm_ms1trace", 
+                     "bypass_rawexe")
+  }
+
   args <- names(formals(fun))
   args_must <- args[!args %in% args_except]
   

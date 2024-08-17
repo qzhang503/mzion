@@ -46,7 +46,7 @@ readmzML(
   ppm_ms2_deisotope = 8L,
   quant = "none",
   use_lfq_intensity = TRUE,
-  ppm_ms1trace = 6L,
+  ppm_ms1trace = 5L,
   bypass_rawexe = FALSE,
   digits = 4L
 )

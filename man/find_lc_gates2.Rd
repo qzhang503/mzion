@@ -4,7 +4,7 @@
 \alias{find_lc_gates2}
 \title{Find peak edges by intensity threshold relative to the base peak}
 \usage{
-find_lc_gates2(ys, sta, n_dia_scans = 6L, y_rpl = 2)
+find_lc_gates2(ys, sta, n_dia_scans = 6L, y_rpl = 2, perc = 0.02)
 }
 \arguments{
 \item{ys}{A vector of intensity values.}
@@ -17,6 +17,8 @@ profile and thus for determining the apex scan number of an moverz value
 along LC.}
 
 \item{y_rpl}{A replacement value of intensities.}
+
+\item{The}{percentage to the base-peak intensity for cut-offs.}
 }
 \description{
 Find peak edges by intensity threshold relative to the base peak

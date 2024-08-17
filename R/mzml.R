@@ -24,7 +24,7 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
                       maxn_mdda_precurs = 1L, n_mdda_flanks = 6L, 
                       ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
                       quant = "none", 
-                      use_lfq_intensity = TRUE, ppm_ms1trace = 6L, 
+                      use_lfq_intensity = TRUE, ppm_ms1trace = 5L, 
                       bypass_rawexe = FALSE, digits = 4L)
 {
   # - hloadMZML (helper)
@@ -1201,7 +1201,7 @@ deisoDDA <- function (filename = NULL,
                       ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
                       grad_isotope = 1.6, fct_iso2 = 3.0, 
                       quant = "none", 
-                      use_lfq_intensity = TRUE, ppm_ms1trace = 6L, 
+                      use_lfq_intensity = TRUE, ppm_ms1trace = 5L, 
                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                       exclude_reporter_region = FALSE, use_defpeaks = FALSE, 
                       is_pasef = FALSE, n_para = 1L, y_perc = .01, yco = 100)
@@ -1273,7 +1273,6 @@ deisoDDA <- function (filename = NULL,
                 preset = "fast")
     }
 
-    # step <- ppm_ms1 * 1e-6
     step <- ppm_ms1trace * 1e-6
     rows1 <- which(df$ms_level == 1L)
     rt_gap <- estimate_rtgap(df$ret_time[rows1])
@@ -1303,6 +1302,7 @@ deisoDDA <- function (filename = NULL,
     rm(list = c("ans_prep", "rt_gap"))
 
     cols <- c("ms_level", "ms1_moverz", "ms1_int", "orig_scan") # orig_scan for troubleshooting
+    min_y <- if (is_pasef) 1000 else 2e6
 
     if (TRUE) {
       cl <- parallel::makeCluster(getOption("cl.cores", 2L))
@@ -1317,7 +1317,7 @@ deisoDDA <- function (filename = NULL,
         gaps_af, 
         MoreArgs = list(
           n_mdda_flanks = n_mdda_flanks, from = min_mass, step = step, 
-          y_perc = y_perc, yco = yco, look_back = TRUE
+          y_perc = y_perc, yco = yco, look_back = TRUE, min_y = min_y
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
       parallel::stopCluster(cl)
     }
@@ -1334,7 +1334,7 @@ deisoDDA <- function (filename = NULL,
           xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], ts = vts[[i]], 
           df = vdf[[i]], gap_bf = gaps_bf[[i]], gap_af = gaps_af[[i]], 
           n_mdda_flanks = n_mdda_flanks, from = min_mass, step = step, 
-          y_perc = y_perc, yco = yco, look_back = TRUE)
+          y_perc = y_perc, yco = yco, look_back = TRUE, min_y = min_y)
         
         if (FALSE) {
           if (all(lengths(vxs[[i]]) == 0L)) {
@@ -3809,6 +3809,7 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #' @param n_dia_scans The number of adjacent MS scans for constructing a peak
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
+#' @param y_rpl A replacement value of intensities.
 #' @examples
 #' mzion:::find_lc_gates(xs = rep_len(100, 15), ys = c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), ts = seq_len(15), n_dia_scans = 2)
 #' mzion:::find_lc_gates(xs = rep_len(100, 18), ys = c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50), ts = seq_len(18))
@@ -3823,10 +3824,11 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #' ts <- seq_along(ys)
 #' mzion:::find_lc_gates(xs, ys, ts)
 #' @return Scan indexes of LC peaks.
-find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L)
+find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L, 
+                           y_rpl = 2.0)
 {
   # if (n_dia_scans <= 0L) return(.Internal(which(ys > 0))) # should not occur
-  ys   <- fill_lc_gaps(ys = ys, n_dia_scans = n_dia_scans, y_rpl = 2.0)
+  ys   <- fill_lc_gaps(ys = ys, n_dia_scans = n_dia_scans, y_rpl = y_rpl)
   ioks <- .Internal(which(ys > 0))
   nx   <- length(ioks)
   i1hs <- ioks # for one-hit-wonders
@@ -3852,21 +3854,70 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L)
   stas <- ends <- vector("list", nps)
   
   for (i in seq_len(nps)) {
-    upi  <- ups[[i]]
-    dni  <- dns[[i]]
-    psi  <- upi:dni # indexes in relative to ioks
-    ri   <- ioks[psi] # indexes in relative to ys
+    # upi  <- ups[[i]]
+    # dni  <- dns[[i]]
+    # psi  <- upi:dni # indexes in relative to ioks
+    # ri   <- ioks[psi] # indexes in relative to ys
+    # stopifnot(ioks[[upi]] == ri[[1]])
+    ri   <- ioks[ups[[i]]:dns[[i]]] # indexes in relative to ys
     i1hs <- i1hs[!i1hs %in% ri]
+    lenr <- length(ri)
     
-    if (length(ri) > 90L) {
-      ans <- find_lc_gates2(ys[ri], sta = ioks[[upi]], n_dia_scans = n_dia_scans, 
-                            y_rpl = 2.0)
-      stas[[i]] <- ans$stas
-      ends[[i]] <- ans$ends
+    if (lenr <= 90L) {
+      stas[[i]] <- ri[[1]] # the starting index of gate-i in relative to ys
+      ends[[i]] <- ri[lenr] # ioks[[dni]]
     }
     else {
-      stas[[i]] <- ioks[[upi]] # the starting index of gate-i in relative to ys
-      ends[[i]] <- ioks[[dni]]
+      if (FALSE) {
+        ans_low <- find_lc_gates2(
+          ys = ys[ri], sta = ri[[1]], n_dia_scans = n_dia_scans, y_rpl = y_rpl, 
+          perc = .02)
+        
+        stas[[i]] <- ans_low$stas
+        ends[[i]] <- ans_low$ends
+      }
+      
+      if (TRUE) {
+        yx <- ys[ri]
+        sx <- ri[[1]]
+        
+        ans <- find_lc_gates2(
+          ys = yx, sta = sx, n_dia_scans = n_dia_scans, y_rpl = y_rpl, 
+          perc = .25)
+        ans_stas <- ans$stas
+        ans_ends <- ans$ends
+        len_ans  <- length(ans_stas)
+        
+        if (!len_ans) {
+          ans <- find_lc_gates2(
+            ys = yx, sta = sx, n_dia_scans = n_dia_scans, y_rpl = y_rpl, 
+            perc = .02)
+          ans_stas <- ans$stas
+          ans_ends <- ans$ends
+          len_ans  <- length(ans_stas)
+        }
+        
+        if (len_ans <= 1) { # can be zero
+          stas[[i]] <- ri[[1]]
+          ends[[i]] <- ri[lenr]
+        }
+        else {
+          stax <- endx <- vector("integer", len_ans)
+          stax[[1]] <-  ri[[1]]
+          endx[[len_ans]] <- ri[lenr]
+          
+          for (j in 2:len_ans) {
+            hend <- ans_ends[[j - 1]]
+            hsta <- ans_stas[[j]]
+            pmid <- as.integer((hend + hsta) / 2L)
+            endx[[j-1]] <- max(pmid - 2L, hend)
+            stax[[j]]   <- min(pmid + 2L, hsta)
+          }
+          
+          stas[[i]] <- stax
+          ends[[i]] <- endx
+        }
+      }
     }
   }
   
@@ -3916,9 +3967,10 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L)
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
 #' @param y_rpl A replacement value of intensities.
-find_lc_gates2 <- function (ys, sta, n_dia_scans = 6L, y_rpl = 2.0)
+#' @param The percentage to the base-peak intensity for cut-offs.
+find_lc_gates2 <- function (ys, sta, n_dia_scans = 6L, y_rpl = 2.0, perc = .02)
 {
-  ys[ys <= max(ys, na.rm = TRUE) * .02] <- NA_real_
+  ys[ys <= max(ys, na.rm = TRUE) * perc] <- NA_real_
   ys <- fill_lc_gaps(ys, n_dia_scans = n_dia_scans, y_rpl = 2.0)
   
   ioks  <- .Internal(which(ys > 0))
@@ -4122,8 +4174,8 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   if (sum_y) {
     for (i in seq_along(xs)) {
       ix <- ixs[[i]]
-      x <- xs[[i]]
-      y <- ys[[i]]
+      x  <- xs[[i]]
+      y  <- ys[[i]]
       ps <- .Internal(which(duplicated(ix)))
       
       if (l <- length(ps)) {
@@ -4171,8 +4223,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
     colnames(xmat) <- colnames(ymat) <- unv
   }
 
-  ## collapses adjacent entries
-  # which(unv == 137674) # 12191
+  # collapses adjacent entries
   ps <- find_gates(unv)
   lenp <- length(ps)
   
@@ -4202,7 +4253,6 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
 
   # collapses matrix columns with +/-1 in bin indexes
   for (i in 2:lenp) {
-    # i <- 7747
     c12 <- ps[[i]]
     c1  <- c12[[1]]
     c2  <- c12[[2]]

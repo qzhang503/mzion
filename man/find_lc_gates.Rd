@@ -4,7 +4,7 @@
 \alias{find_lc_gates}
 \title{Finds the gates of retention times.}
 \usage{
-find_lc_gates(xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L)
+find_lc_gates(xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L, y_rpl = 2)
 }
 \arguments{
 \item{xs}{A vector of m-over-z value for the same (approximate) mass along
@@ -18,6 +18,8 @@ LC.}
 \item{n_dia_scans}{The number of adjacent MS scans for constructing a peak
 profile and thus for determining the apex scan number of an moverz value
 along LC.}
+
+\item{y_rpl}{A replacement value of intensities.}
 }
 \value{
 Scan indexes of LC peaks.

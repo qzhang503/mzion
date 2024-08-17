@@ -14,10 +14,11 @@ htraceXY(
   gap_af = 256L,
   n_mdda_flanks = 6L,
   from = 200L,
-  step = 6e+06,
+  step = 5e-06,
   y_perc = 0.01,
   yco = 500,
-  look_back = TRUE
+  look_back = TRUE,
+  min_y = 0
 )
 }
 \arguments{
@@ -47,6 +48,8 @@ consideration when averaging isotope envelops of precursors.}
 \item{yco}{The cut-off in y values.}
 
 \item{look_back}{Logical; look up the preceding MS bin or not.}
+
+\item{min_y}{The cut-off of intensity values.}
 }
 \description{
 Helper of \link{traceXY}.

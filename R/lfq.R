@@ -178,10 +178,11 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
 #' @param yco The cut-off in y values.
 #' @param y_perc The cut-off in intensity values in relative to the base peak.
 #' @param look_back Logical; look up the preceding MS bin or not.
+#' @param min_y The cut-off of intensity values.
 #' @inheritParams matchMS
 htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L, 
-                      n_mdda_flanks = 6L, from = 200L, step = 6E6, 
-                      y_perc = .01, yco = 500, look_back = TRUE)
+                      n_mdda_flanks = 6L, from = 200L, step = 5E-6, 
+                      y_perc = .01, yco = 500, look_back = TRUE, min_y = 0)
 {
   if (all(lengths(xs) == 0L)) {
     # length(xs) - gap_bf - gap_af - nrow(df) == 0L
@@ -243,7 +244,7 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
   df <- updateMS1Int2(
     df = df, matx = matx, maty = maty, row_sta = sta, row_end = end, 
     scan_apexs = scan_apexs, rt_apexs = rt_apexs, rngs = rngs, 
-    from = from, step = step)
+    from = from, step = step, min_y = min_y)
 }
 
 
@@ -270,7 +271,7 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
 #' @inheritParams matchMS
 traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L, 
                      step = 8E-6, reord = TRUE, cleanup = FALSE, 
-                     replace_ms1_by_apex = FALSE,y_perc = .01, yco = 100, 
+                     replace_ms1_by_apex = FALSE,y_perc = .01, yco = 500, 
                      look_back = TRUE)
 {
   lens <- lengths(xs)
@@ -312,8 +313,8 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
   
   if (FALSE) {
     rng <- 250:800
-    i <- which(colnames(ansx) == index_mz(595.3228, from, step) +  1) # 7938
-    i <- which(colnames(ansx) == index_mz(595.3228, from, step) - 1) # 7937
+    i <- which(colnames(ansx) == index_mz(500.908, from, step) +  1) # 2761
+    i <- which(colnames(ansx) == index_mz(500.908, from, step) - 1) # 2760
     ss[rng]
     
     plot(ansx[rng, i])
@@ -337,7 +338,8 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
   
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
-      # i <- which(colnames(ansx) == index_mz(595.3250, from, step) + 1) # 7938
+      # i <- which(colnames(ansx) == index_mz(677.3303, from, step) + 1) # 7938
+      # i <- 10083
       xi <- ansx[, i]
       yi <- ansy[, i]
       oks <- .Internal(which(!is.na(yi)))
@@ -349,8 +351,8 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
       # plot(xi[466:781])
       
       # ss[466:781]
-      gates <- find_lc_gates(xs = xi, ys = yi, ts = ts, n_dia_scans = n_mdda_flanks)
-      
+      gates <- 
+        find_lc_gates(xs = xi, ys = yi, ts = ts, n_dia_scans = n_mdda_flanks)
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans
       ranges[[i]] <- rngs <- gates[["ranges"]]
@@ -400,9 +402,10 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
 #'   used for debugging.
 #' @param from The starting point for mass binning.
 #' @param step A step size for mass binning.
+#' @param min_y The cut-off of intensity values.
 #' @importFrom fastmatch %fin%
 updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, 
-                           rt_apexs, rngs, from = 200L, step = 1E-5)
+                           rt_apexs, rngs, from = 200L, step = 5E-6, min_y = 0)
   
 {
   # to update the apexs, vector since can be chimeric precursors
@@ -427,7 +430,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
   for (i in seq_along(ms2_stas)) { # the same as by ms1_stas
     if (FALSE) {
       df$orig_scan[ms1_stas] # look for orig_scan around 34009 ->
-      i = 220
+      i <- 190
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       df2 <- df[ms2sta:ms2end, ]
@@ -443,7 +446,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     scan <- ss[[rowi]] # the MS1 scan number at the current row
     
     for (j in 1:nrow(df2)) {
-      # j <- 10
+      # j <- 7
       x1s <- df2[["ms1_moverz"]][[j]] # MS1 masses associated with an MS2 scan
       nx <- length(x1s) # nx > 1 with a chimeric spectrum
       if (!nx) next
@@ -462,24 +465,32 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
           ans1 <- find_apex_scan(k = ka, xs_k = matx[, ka], ys_k = maty[, ka], 
                                  apexs_k = scan_apexs[[ka]], 
                                  rts_k = rt_apexs[[ka]], rngs_k = rngs[[ka]], 
-                                 xm = x1m, scan = scan, ss = ss, step = step)
-                                 
+                                 xm = x1m, scan = scan, ss = ss, step = step, 
+                                 min_y = min_y)
           ap1a <- ans1$ap
           x1a  <- ans1$x
           y1a  <- ans1$y
+          fra  <- ans1$from
+          toa  <- ans1$to
 
           kb <- k[[2]]
           ans2 <- find_apex_scan(k = kb, xs_k = matx[, kb], ys_k = maty[, kb], 
                                  apexs_k = scan_apexs[[kb]], 
                                  rts_k = rt_apexs[[kb]], rngs_k = rngs[[kb]], 
-                                 xm = x1m, scan = scan, ss = ss, step = step)
+                                 xm = x1m, scan = scan, ss = ss, step = step, 
+                                 min_y = min_y)
           ap1b <- ans2$ap
           x1b  <- ans2$x
           y1b  <- ans2$y
+          frb <- ans2$from
+          tob <- ans2$to
           
           # (1) by mass errors
-          erra <- abs(x1a - x1m) / x1m
-          errb <- abs(x1b - x1m) / x1m
+          erra <- x1a / x1m - 1
+          errb <- x1b / x1m - 1
+          # big_err <- if (abs(erra - errb) > 3e-6) TRUE else FALSE
+          erra <- abs(erra)
+          errb <- abs(errb)
           
           if (erra < errb) {
             is_a <- TRUE
@@ -492,7 +503,27 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
             err0 <- errb
           }
           
-          # (2) by scan number differences
+          # (2) by inclusiveness
+          # can also often be discriminated by Y but not always as
+          #  a large Y may be due to a irregular fat peak
+          
+          # `a` is mostly a subset of `b`
+          if (fra + 2L >= frb && toa <= tob + 2L) {
+            b_incl_a <- TRUE
+          }
+          else {
+            b_incl_a <- FALSE
+          }
+          
+          # `b` is mostly a subset of `a`
+          if (frb + 2L >= fra && tob <= toa + 2L) {
+            a_incl_b <- TRUE
+          }
+          else {
+            a_incl_b <- FALSE
+          }
+
+          # (2.x) by scan number differences
           if (FALSE) {
             dsa <- abs(ap1a - scan)
             dsb <- abs(ap1b - scan)
@@ -509,7 +540,12 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
             }
           }
 
-          if (errx > 3e-6) { #  || (errx > 1.5e-6 && err0 <= 3e-6)
+          # (3) if `scan` is within any of the two peak ranges
+          #     a scan cannot be both `oka` and `okb`
+          # oka <- scan > fra + 1L && scan < toa - 1L
+          # okb <- scan > frb + 1L && scan < tob - 1L
+          
+          if (errx > 3e-6) {
             if (is_a) {
               ap1 <- ap1a
               y1  <- y1a
@@ -518,6 +554,14 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
               ap1 <- ap1b
               y1  <- y1b
             }
+          }
+          else if (a_incl_b) {
+            ap1 <- ap1a
+            y1  <- y1a
+          }
+          else if (b_incl_a) {
+            ap1 <- ap1b
+            y1  <- y1b
           }
           else if (FALSE && ds0 * 10 <= ds1) { # 10x closer ds0 <= 100 && 
             if (is_da) {
@@ -545,7 +589,8 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
           ans1 <- find_apex_scan(k = ka, xs_k = matx[, ka], ys_k = maty[, ka], 
                                  apexs_k = scan_apexs[[ka]], 
                                  rts_k = rt_apexs[[ka]], rngs_k = rngs[[ka]], 
-                                 xm = x1m, scan = scan, ss = ss, step = step)
+                                 xm = x1m, scan = scan, ss = ss, step = step, 
+                                 min_y = min_y)
           ap1 <- ans1$ap
           y1  <- ans1$y
         }
@@ -583,23 +628,47 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
 #' @param ss All of the scan numbers.
 #' @param rngs The scan ranges of apexes under column k.
 #' @param step A step size.
+#' @param min_y The cut-off of intensity values.
 #' @importFrom fastmatch %fin%
 find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss, 
-                            step = 6E-6)
+                            step = 6E-6, min_y = 0)
 {
   # (1) subset apexs by MS1 mass tolerance
-  ok_xs <- .Internal(which(abs(xs_k - xm) / xm <= step))
-  if (length(ok_xs)) {
-    if (any(ok_aps <- apexs_k %fin% ss[ok_xs])) {
-      apexs_k <- apexs_k[ok_aps]
-      rts_k   <- rts_k[ok_aps]
-      rngs_k  <- rngs_k[ok_aps]
-    }
-  }
-  # abs(xs_k[names(xs_k) %in% apexs_k] - xm) / xm
+  ok_xs  <- .Internal(which(abs(xs_k - xm) / xm <= step))
+  ok_aps <- .Internal(which(apexs_k %fin% ss[ok_xs]))
 
-  # (2) subset apexes by distances between apex_scan and the triggering MS2 scan
-  ds <- abs(apexs_k - scan)
+  if (length(ok_aps)) { # && length(ok_xs)
+    aps <- apexs_k[ok_aps]
+    rtx <- rts_k[ok_aps]
+    rgx <- rngs_k[ok_aps]
+  }
+  else {
+    aps <- apexs_k
+    rtx <- rts_k
+    rgx <- rngs_k
+  }
+  # abs(xs_k[names(xs_k) %in% aps] - xm) / xm
+  
+  # (2) remove one-hit-wonders and spikes
+  lens <- lengths(rgx)
+  oks1 <- .Internal(which(lens > 10L))
+  oks2 <- .Internal(which(lens > 5L))
+  
+  if (length(oks1)) {
+    rtx  <- rtx[oks1]
+    rgx  <- rgx[oks1]
+    aps  <- aps[oks1]
+    lens <- lens[oks1]
+  }
+  else if (length(oks2)) {
+    rtx  <- rtx[oks2]
+    rgx  <- rgx[oks2]
+    aps  <- aps[oks2]
+    lens <- lens[oks2]
+  }
+  
+  # (3) subset apexes by distances between apex_scan and the triggering MS2 scan
+  ds <- abs(aps - scan)
   p1 <- .Internal(which.min(ds))
   d1 <- ds[[p1]]
   px <- max(1L, p1 - 3L):min(length(ds), p1 + 3L)
@@ -612,70 +681,77 @@ find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss,
     ds <- ds[oks_d]
   }
   
-  rtx <- rts_k[px]
-  rgx <- rngs_k[px]
-  aps <- apexs_k[px]
+  aps  <- aps[px]
+  rtx  <- rtx[px]
+  rgx  <- rgx[px]
+  lens <- lens[px]
+
+  # by intensity cut-off
+  oks <- .Internal(which(ss %fin% aps))
+  xs  <- xs_k[oks]
+  ys  <- ys_k[oks]
   
-  # (3) remove one-hit-wonders and spikes
-  lens  <- lengths(rgx)
-  oks_l <- .Internal(which(lens > 5L))
-  if (length(oks_l)) {
-    rtx  <- rtx[oks_l]
-    rgx  <- rgx[oks_l]
-    aps  <- aps[oks_l]
-    # px   <- px[oks_l]
-    ds   <- ds[oks_l]
-    lens <- lens[oks_l]
+  ok_ys  <- .Internal(which(ys >= min_y))
+  len_ys <- length(ok_ys)
+  
+  if (len_ys && len_ys < length(ys)) {
+    xs <- xs[ok_ys]
+    ys <- ys[ok_ys]
+    aps  <- aps[ok_ys]
+    ds   <- ds[ok_ys]
+    rgx  <- rgx[ok_ys]
+    lens <- lens[ok_ys]
   }
   
-  ## outputs
-  oks <- .Internal(which(ss %fin% aps))
-  xs <- xs_k[oks]
-  ys  <- ys_k[oks]
+  if (len_ys == 1) {
+    ssx <- ss[rgx[[1]]]
+    return(list(x = xs[[1]], y = ys[[1]], ap = aps[[1]], from = ssx[[1]], to = ssx[[lens]]))
+  }
 
+  # the closest may be a spike... 
+  # look for more "regular" peak nearby...
+  
+  # ord <- .Internal(radixsort(na.last = TRUE, decreasing = FALSE, FALSE, TRUE, ds))
+  # topa <- ds[[ord[[1]]]]
   topa <- .Internal(which.min(ds))
   ya   <- ys[[topa]]
-  xa <- xs[[topa]]
+  xa   <- xs[[topa]]
   apa  <- aps[[topa]]
   da   <- ds[[topa]]
-  
+  rga  <- rgx[[topa]]
+  ssa  <- ss[rga]
+  lena <- lens[[topa]]
+  # oka  <- apa %in% ssa # must be
+
   topb <- .Internal(which.max(ys))
   yb   <- ys[[topb]]
-  xb <- xs[[topb]]
+  xb   <- xs[[topb]]
   apb  <- aps[[topb]]
   db   <- ds[[topb]]
+  rgb  <- rgx[[topb]]
+  ssb  <- ss[rgb]
+  lenb <- lens[[topb]]
+  # okb  <- apb %in% ssb # must be
 
   if (topa == topb) {
-    return(list(ap = apa, x = xa, y = ya))
+    return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]]))
   }
   
   # compare peak widths and distances
-  lena <- lens[[topa]]
-  lenb <- lens[[topb]]
   lenr <- lena / lenb
   
   if (lenr > .67 || lenr < 1.5) {
     if (db > da + 200) {
-      return(list(ap = apa, x = xa, y = ya))
+      return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]]))
     }
     else {
-      return(list(ap = apb, x = xb, y = yb))
+      return(list(x = xb, y = yb, ap = apb, from = ssb[[1]], to = ssb[[lenb]]))
     }
   }
   else {
-    return(list(ap = apb, x = xb, y = yb))
-    
-    if (FALSE) {
-      if (lena > lenb) {
-        return(list(ap = apa, x = xa, y = ya))
-      }
-      else {
-        return(list(ap = apb, x = xb, y = yb))
-      }
-    }
+    # use the fatter peak (assume the leaner one is a spike)
+    return(list(x = xb, y = yb, ap = apb, from = ssb[[1]], to = ssb[[lenb]]))
   }
-
-  list(ap = apb, x = xb, y = yb)
 }
 
 

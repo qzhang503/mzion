@@ -14,7 +14,8 @@ find_apex_scan(
   xm,
   scan,
   ss,
-  step = 6e-06
+  step = 6e-06,
+  min_y = 0
 )
 }
 \arguments{
@@ -39,6 +40,8 @@ k.}
 \item{ss}{All of the scan numbers.}
 
 \item{step}{A step size.}
+
+\item{min_y}{The cut-off of intensity values.}
 
 \item{rngs}{The scan ranges of apexes under column k.}
 }

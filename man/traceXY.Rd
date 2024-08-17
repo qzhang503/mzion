@@ -16,7 +16,7 @@ traceXY(
   cleanup = FALSE,
   replace_ms1_by_apex = FALSE,
   y_perc = 0.01,
-  yco = 100,
+  yco = 500,
   look_back = TRUE
 )
 }
