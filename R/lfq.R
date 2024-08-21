@@ -181,7 +181,7 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
 #' @param min_y The cut-off of intensity values.
 #' @inheritParams matchMS
 htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L, 
-                      n_mdda_flanks = 6L, from = 200L, step = 5E-6, 
+                      n_dia_scans = 4L, from = 200L, step = 5E-6, 
                       y_perc = .01, yco = 500, look_back = TRUE, min_y = 0)
 {
   if (all(lengths(xs) == 0L)) {
@@ -197,7 +197,7 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
   }
   
   mat <- traceXY(
-    xs = xs, ys = ys, ss = ss, ts = ts, n_mdda_flanks = n_mdda_flanks, 
+    xs = xs, ys = ys, ss = ss, ts = ts, n_dia_scans = n_dia_scans, 
     from = from, step = step, reord = FALSE, cleanup = FALSE, # otherwise rows drop
     replace_ms1_by_apex = TRUE, y_perc = y_perc, yco = yco, 
     look_back = look_back)
@@ -269,7 +269,7 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
 #' @param y_perc The cut-off in intensity values in relative to the base peak.
 #' @param look_back Logical; look up the preceding MS bin or not.
 #' @inheritParams matchMS
-traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L, 
+traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L, 
                      step = 8E-6, reord = TRUE, cleanup = FALSE, 
                      replace_ms1_by_apex = FALSE,y_perc = .01, yco = 500, 
                      look_back = TRUE)
@@ -307,18 +307,18 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
     add_colnames = TRUE, look_back = look_back)
   ansx <- ans[["x"]]
   ansy <- ans[["y"]]
+  unv  <- ans[["u"]]
+  # colnames(ansx) <- colnames(ansy) <- unv
   nr <- nrow(ansy)
   nc <- ncol(ansy)
   rm(list = c("ans"))
   
   if (FALSE) {
     rng <- 250:800
-    i <- which(colnames(ansx) == index_mz(500.908, from, step) +  1) # 2761
-    i <- which(colnames(ansx) == index_mz(500.908, from, step) - 1) # 2760
+    i <- which(unv == index_mz(596.9601, from, step)) # 2406
+    i <- which(unv == index_mz(596.9601, from, step) +  1) # 2407
+    # i <- which(unv == index_mz(596.9601, from, step) - 1) # 2760
     ss[rng]
-    
-    plot(ansx[rng, i])
-    plot(ansy[rng, i])
     
     plot(ansx[, i])
     plot(ansy[, i])
@@ -332,14 +332,14 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
   
   ## traces MS1 data matrices across LC scans; rows: scans; columns: masses
   xmat <- ymat <- matrix(rep_len(NA_real_, nc * nr), ncol = nc)
-  colnames(xmat) <- colnames(ymat) <- colnames(ansx) # bin indexes of masses
-  rownames(xmat) <- rownames(ymat) <- ss # scan numbers
+  # colnames(xmat) <- colnames(ymat) <- unv # bin indexes of masses
+  # rownames(xmat) <- rownames(ymat) <- ss # scan numbers
   ranges <- apexes <- ns <- vector("list", nc)
   
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
-      # i <- which(colnames(ansx) == index_mz(677.3303, from, step) + 1) # 7938
-      # i <- 10083
+      # i <- which(unv == index_mz(677.3303, from, step) + 1) # 7938
+      # i <- 2406
       xi <- ansx[, i]
       yi <- ansy[, i]
       oks <- .Internal(which(!is.na(yi)))
@@ -352,12 +352,13 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
       
       # ss[466:781]
       gates <- 
-        find_lc_gates(xs = xi, ys = yi, ts = ts, n_dia_scans = n_mdda_flanks)
+        find_lc_gates(xs = xi, ys = yi, ts = ts, n_dia_scans = n_dia_scans)
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans
       ranges[[i]] <- rngs <- gates[["ranges"]]
       yints <- gates[["yints"]]
       
+      # mx <- lapply(rngs, function (rng) median(xi[rng], na.rm = TRUE))
       mx <- lapply(rngs, function (rng) mean(xi[rng], na.rm = TRUE))
 
       for (j in seq_along(rows)) {
@@ -371,7 +372,7 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
   }
   else {
     for (i in 1:nc) {
-      gates <- find_lc_gates(ys = ansy[, i], ts = ts, n_dia_scans = n_mdda_flanks)
+      gates <- find_lc_gates(ys = ansy[, i], ts = ts, n_dia_scans = n_dia_scans)
       apexes[[i]] <- rows <- gates[["apex"]]
       ns[[i]] <- gates[["ns"]] # number of observing scans
       ranges[[i]] <- rngs <- gates[["ranges"]]
@@ -379,6 +380,9 @@ traceXY <- function (xs, ys, ss, ts, n_mdda_flanks = 6L, from = 200L,
       ymat[rows, i] <- ansy[rows, i]
     }
   }
+  
+  colnames(xmat) <- colnames(ymat) <- unv # bin indexes of masses
+  rownames(xmat) <- rownames(ymat) <- ss # scan numbers
   
   list(x = xmat, y = ymat, n = ns, p = apexes, range = ranges)
 }

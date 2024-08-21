@@ -1316,7 +1316,7 @@ deisoDDA <- function (filename = NULL,
         gaps_bf, 
         gaps_af, 
         MoreArgs = list(
-          n_mdda_flanks = n_mdda_flanks, from = min_mass, step = step, 
+          n_dia_scans = n_dia_scans, from = min_mass, step = step, 
           y_perc = y_perc, yco = yco, look_back = TRUE, min_y = min_y
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
       parallel::stopCluster(cl)
@@ -1333,7 +1333,7 @@ deisoDDA <- function (filename = NULL,
         out[[i]] <- htraceXY(
           xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], ts = vts[[i]], 
           df = vdf[[i]], gap_bf = gaps_bf[[i]], gap_af = gaps_af[[i]], 
-          n_mdda_flanks = n_mdda_flanks, from = min_mass, step = step, 
+          n_dia_scans = n_dia_scans, from = min_mass, step = step, 
           y_perc = y_perc, yco = yco, look_back = TRUE, min_y = min_y)
         
         if (FALSE) {
@@ -1351,7 +1351,7 @@ deisoDDA <- function (filename = NULL,
               xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], df = vdf[[i]], 
               gap_bf <- gaps_bf[[i]], gap_af = gaps_af[[i]], 
               # may be > n_mdda_flanks
-              n_mdda_flanks = n_mdda_flanks, from = min_mass, step = step, 
+              n_dia_scans = n_dia_scans, from = min_mass, step = step, 
               y_perc = y_perc, yco = yco)
           }
         }
@@ -3825,7 +3825,7 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #' mzion:::find_lc_gates(xs, ys, ts)
 #' @return Scan indexes of LC peaks.
 find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L, 
-                           y_rpl = 2.0)
+                           y_rpl = 2.0, step = 5e-6)
 {
   # if (n_dia_scans <= 0L) return(.Internal(which(ys > 0))) # should not occur
   ys   <- fill_lc_gaps(ys = ys, n_dia_scans = n_dia_scans, y_rpl = y_rpl)
@@ -3833,7 +3833,7 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L,
   nx   <- length(ioks)
   i1hs <- ioks # for one-hit-wonders
   
-  # a case of one one-hit wonder across LC
+  # one `one-hit wonder` across LC
   if (nx == 1L) {
     return(list(apex = ioks, yints = ys[ioks], ns = 1L, ranges = ioks, 
                 xstas = ioks))
@@ -3841,7 +3841,7 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L,
   
   edges <- find_gate_edges(ioks)
   
-  # all discrete one-hit wonders
+  # all discrete `one-hit wonders`
   if (is.null(edges)) {
     return(list(apex = ioks, yints = ys[ioks], ns = rep_len(1L, nx), 
                 ranges = ioks, xstas = ioks))
@@ -3854,79 +3854,65 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L,
   stas <- ends <- vector("list", nps)
   
   for (i in seq_len(nps)) {
-    # upi  <- ups[[i]]
-    # dni  <- dns[[i]]
-    # psi  <- upi:dni # indexes in relative to ioks
-    # ri   <- ioks[psi] # indexes in relative to ys
-    # stopifnot(ioks[[upi]] == ri[[1]])
     ri   <- ioks[ups[[i]]:dns[[i]]] # indexes in relative to ys
     i1hs <- i1hs[!i1hs %in% ri]
     lenr <- length(ri)
     
-    if (lenr <= 90L) {
+    if (lenr <= 60L) { # 90; 60; 45
       stas[[i]] <- ri[[1]] # the starting index of gate-i in relative to ys
       ends[[i]] <- ri[lenr] # ioks[[dni]]
     }
     else {
+      # same X but different Ys will be treated as one peak
       if (FALSE) {
-        ans_low <- find_lc_gates2(
-          ys = ys[ri], sta = ri[[1]], n_dia_scans = n_dia_scans, y_rpl = y_rpl, 
-          perc = .02)
-        
-        stas[[i]] <- ans_low$stas
-        ends[[i]] <- ans_low$ends
+        ans <- find_lc_xedges(xs = xs[ri], sta = ri[[1]], step = step)
+        stas[[i]] <- ans$stas
+        ends[[i]] <- ans$ends
       }
       
-      if (TRUE) {
-        yx <- ys[ri]
-        sx <- ri[[1]]
+      # c(.02, .1, .25, .5)
+      # c(.02, .1, .25, .4, .6, .8)
+      # c(.02, .1, .25, .4, .67)
+      ans <- lapply(c(.02, .1, .25, .4, .67), find_lc_gates2, 
+                    ys = ys[ri], sta = ri[[1]], n_dia_scans = n_dia_scans, 
+                    y_rpl = y_rpl)
+      ans_stas <- lapply(ans, `[[`, "stas")
+      n_stas   <- lengths(ans_stas)
+      n_max    <- .Internal(which.max(n_stas))
+      ans_stas <- ans_stas[[n_max]]
+      ans_ends <- ans[[n_max]][["ends"]]
+      n_stas   <- n_stas[[n_max]]
+      
+      if (n_stas <= 1) { # can be zero
+        stas[[i]] <- ri[[1]]
+        ends[[i]] <- ri[lenr]
+      }
+      else {
+        stax <- endx <- vector("list", n_stas)
+        stax[[1]] <-  ri[[1]]
+        endx[[n_stas]] <- ri[lenr]
         
-        ans <- find_lc_gates2(
-          ys = yx, sta = sx, n_dia_scans = n_dia_scans, y_rpl = y_rpl, 
-          perc = .25)
-        ans_stas <- ans$stas
-        ans_ends <- ans$ends
-        len_ans  <- length(ans_stas)
-        
-        if (!len_ans) {
-          ans <- find_lc_gates2(
-            ys = yx, sta = sx, n_dia_scans = n_dia_scans, y_rpl = y_rpl, 
-            perc = .02)
-          ans_stas <- ans$stas
-          ans_ends <- ans$ends
-          len_ans  <- length(ans_stas)
+        for (j in 2:n_stas) {
+          hend <- ans_ends[[j - 1]]
+          hsta <- ans_stas[[j]]
+          pmid <- as.integer((hend + hsta) / 2L)
+          endx[[j-1]] <- max(pmid - 2L, hend)
+          stax[[j]]   <- min(pmid + 2L, hsta)
         }
         
-        if (len_ans <= 1) { # can be zero
-          stas[[i]] <- ri[[1]]
-          ends[[i]] <- ri[lenr]
-        }
-        else {
-          stax <- endx <- vector("integer", len_ans)
-          stax[[1]] <-  ri[[1]]
-          endx[[len_ans]] <- ri[lenr]
-          
-          for (j in 2:len_ans) {
-            hend <- ans_ends[[j - 1]]
-            hsta <- ans_stas[[j]]
-            pmid <- as.integer((hend + hsta) / 2L)
-            endx[[j-1]] <- max(pmid - 2L, hend)
-            stax[[j]]   <- min(pmid + 2L, hsta)
-          }
-          
-          stas[[i]] <- stax
-          ends[[i]] <- endx
-        }
+        stas[[i]] <- stax
+        ends[[i]] <- endx
       }
     }
   }
   
+  # flattening
   stas <- unlist(stas, recursive = FALSE, use.names = FALSE)
   ends <- unlist(ends, recursive = FALSE, use.names = FALSE)
   nps2 <- length(stas)
   
-  ranges <- vector("list", nps2)
-  yints <- xapex <- xstas <- rep_len(NA_integer_, nps2)
+  yints  <- xapex <- xstas <- ranges <- vector("list", nps2)
+  # yints  <- xapex <- xstas <- rep_len(NA_integer_, nps2)
   
   for (i in seq_along(stas)) {
     ranges[[i]] <- ixi <- stas[[i]]:ends[[i]]
@@ -3940,18 +3926,23 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L,
   }
   
   ## outputs
+  yints <- .Internal(unlist(yints, use.names = FALSE, recursive = FALSE))
+  xapex <- .Internal(unlist(xapex, use.names = FALSE, recursive = FALSE))
+  xstas <- .Internal(unlist(xstas, use.names = FALSE, recursive = FALSE))
+  
   widths <- lengths(ranges)
-  apexs <- c(i1hs, xapex)
-  yout <- c(ys[i1hs], yints)
-  ns <- c(rep_len(1L, length(i1hs)), widths)
-  rout <- c(i1hs, ranges)
+  apexs  <- c(i1hs, xapex)
+  yout   <- c(ys[i1hs], yints)
+  ns     <- c(rep_len(1L, length(i1hs)), widths)
+  rout   <- c(i1hs, ranges)
   
   if (length(apexs) > 1L) {
-    ord <- order(apexs)
-    yout <- yout[ord]
+    ord <- .Internal(radixsort(na.last = TRUE, decreasing = FALSE, FALSE, 
+                               TRUE, apexs))
+    yout  <- yout[ord]
     apexs <- apexs[ord]
-    ns <- ns[ord]
-    rout <- rout[ord]
+    ns    <- ns[ord]
+    rout  <- rout[ord]
   }
   
   list(apex = apexs, yints = yout, ns = ns, ranges = rout, xstas = xstas)
@@ -3967,8 +3958,10 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L,
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
 #' @param y_rpl A replacement value of intensities.
-#' @param The percentage to the base-peak intensity for cut-offs.
-find_lc_gates2 <- function (ys, sta, n_dia_scans = 6L, y_rpl = 2.0, perc = .02)
+#' @param perc The percentage to the base-peak intensity for cut-offs.
+#' @param min_n The minimum number of \code{ys} to define an LC gate.
+find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 4L, y_rpl = 2.0, 
+                            min_n = 5L)
 {
   ys[ys <= max(ys, na.rm = TRUE) * perc] <- NA_real_
   ys <- fill_lc_gaps(ys, n_dia_scans = n_dia_scans, y_rpl = 2.0)
@@ -3978,13 +3971,19 @@ find_lc_gates2 <- function (ys, sta, n_dia_scans = 6L, y_rpl = 2.0, perc = .02)
   ups <- edges[["ups"]] # in relative to ys
   dns <- edges[["dns"]]
   
+  # discard narrow gates
+  if (length(ups)) {
+    oks <- dns - ups >= min_n
+    ups <- ups[oks]
+    dns <- dns[oks]
+  }
+
   # sta <- ioks[[upi]] # the starting index of gate-i in relative to ys
   # stas[[i]] <- sta + ioks[ups] - 1L # in relative to ys
   # ends[[i]] <- sta + ioks[dns] - 1L
   
   list(stas = sta + ioks[ups] - 1L, ends = sta + ioks[dns] - 1L)
 }
-
 
 #' Find peak edges by intensity threshold relative to the base peak
 #' 
@@ -4121,14 +4120,16 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   # the utility is often called heavily;
   # DO NOT gc() that will slow things down
   ### 
-
+  
   # mostely FALSE; otherwise cause drops in the number of data entries
   if (cleanup) {
+    null_out <- list(x = NULL, y = NULL, u = NULL)
+    
     # 1. all xs are NULL
     if (!any(oks <- lengths(xs) > 0L)) {
       return(null_out)
     }
-
+    
     oks <- .Internal(which(oks))
     xs <- xs[oks]
     ys <- ys[oks]
@@ -4146,7 +4147,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
     if (!any(oks <- lengths(xs) > 0L)) {
       return(null_out)
     }
-
+    
     oks <- .Internal(which(oks))
     xs <- xs[oks]
     ys <- ys[oks]
@@ -4159,13 +4160,14 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
       xi <- xs[[i]]
       
       if (lens[[i]] > 1L) {
-        ord <- order(xi)
+        ord <- .Internal(radixsort(na.last = TRUE, decreasing = FALSE, FALSE, 
+                                   TRUE, xi))
         xs[[i]] <- xi[ord]
         ys[[i]] <- ys[[i]][ord]
       }
     }
   }
-
+  
   ixs <- lapply(xs, index_mz, lwr, step)
   
   # 1. remove duplicated ixs and collapse the Y values under the same ixs
@@ -4218,72 +4220,94 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
                       direct_out = TRUE)
   ymat <- mapcoll_xyz(vals = ys, ups = ups, lenx = lenx, lenu = lenu, 
                       direct_out = TRUE)
-
-  if (add_colnames) {
-    colnames(xmat) <- colnames(ymat) <- unv
-  }
-
+  
   # collapses adjacent entries
   ps <- find_gates(unv)
   lenp <- length(ps)
   
   # all discrete values
   if (is.null(ps)) {
-    return(list(x = xmat, y = ymat))
+    return(list(x = xmat, y = ymat, u = unv))
   }
   
-  ps2 <- vector("integer", lenp) # matrix columns to be removed
+  # for matrix columns to be removed
+  ps1 <- vector("list", lenp)
   
-  # the first
-  i <- 1L
-  c12 <- ps[[i]]
-  c1  <- c12[[1]]
-  c2  <- c12[[2]]
-  
-  if (c2 > 0L) {
-    ps2[[i]] <- c2
-    rows <- .Internal(which(!is.na(xmat[, c2])))
-    xmat[rows, c1] <- xmat[rows, c2]
-    ymat[rows, c1] <- rowSums(ymat[rows, c1:c2, drop = FALSE], na.rm = TRUE)
-  }
-  
-  if (lenp == 1L) {
-    return(list(x = xmat[, -ps2, drop = FALSE], y = ymat[, -ps2, drop = FALSE]))
-  }
-
   # collapses matrix columns with +/-1 in bin indexes
-  for (i in 2:lenp) {
+  for (i in 1:lenp) {
     c12 <- ps[[i]]
     c1  <- c12[[1]]
     c2  <- c12[[2]]
-    cb  <- ps[[i-1]][[2]]
-
-    if (look_back && (cb + 1L == c1)) {
-      xc1   <- xmat[, c1]
-      rows1 <- .Internal(which(is.na(xc1)))
-      xmat[rows1, c1] <- xmat[rows1, cb]
-      ymat[rows1, c1] <- rowSums(ymat[rows1, cb:c1, drop = FALSE], na.rm = TRUE)
-    }
     
-    # with values in both columns, simply overwrite: 1 <- 2; c2 can be 0
+    # with values in both columns, X: 2 <- 1; Y: 1 + 2; c2 can be 0
     if (c2 == 0L) {
       next
     }
-
-    # with values in both columns, X: 1 <- 2; Y: 1 + 2
-    ps2[[i]] <- c2
-    rows <- .Internal(which(!is.na(xmat[, c2])))
-    xmat[rows, c1] <- xmat[rows, c2]
-    ymat[rows, c1] <- rowSums(ymat[rows, c1:c2, drop = FALSE], na.rm = TRUE)
+    
+    if (FALSE) {
+      xm1 <- xmat[, c1]
+      xm2 <- xmat[, c2]
+      rows1 <- is.na(xm1)
+      rows2 <- is.na(xm2)
+      rows  <- .Internal(which(!rows1 & rows2))
+      xmat[rows, c2] <- xm1[rows]
+      # Y values on both rows1 and rows2 will not be collapsed
+      ymat[rows, c2] <- rowSums(ymat[rows, c1:c2, drop = FALSE], na.rm = TRUE)
+      xmat[rows, c1] <- NA_real_ # to prevent value traversing in fwd and bwd looking
+      ymat[rows, c1] <- NA_real_
+    }
+    
+    rows <- .Internal(which(!is.na(xmat[, c1])))
+    xmat[rows, c2] <- xmat[rows, c1]
+    ymat[rows, c2] <- rowSums(ymat[rows, c1:c2, drop = FALSE], na.rm = TRUE)
+    # no need since columns traverse from left to right and c1 will be dropped
+    # xmat[rows, c1] <- NA_real_ # to prevent value traversing in fwd and bwd looking
+    # ymat[rows, c] <- NA_real_
+    
+    if (look_back && i < lenp) {
+      af <- ps[[i+1]][[1]]
+      
+      if ((af == c2 + 1L)) {
+        if (FALSE) { # disadvantageous on Y values
+          xc2   <- xmat[, c2]
+          xaf   <- xmat[, af]
+          rows1 <- is.na(xc2)
+          rows2 <- is.na(xaf)
+          rows  <- .Internal(which(rows1 & !rows2))
+          xmat[rows, c2] <- xaf[rows]
+          # Y values on both rows1 and rows2 will not be collapsed
+          ymat[rows, c2] <- rowSums(ymat[rows, c2:af, drop = FALSE], na.rm = TRUE)
+        }
+        
+        rows2 <- .Internal(which(is.na(xmat[, c2])))
+        xmat[rows2, c2] <- xmat[rows2, af]
+        ymat[rows2, c2] <- rowSums(ymat[rows2, c2:af, drop = FALSE], na.rm = TRUE)
+        # about ok to enable, but may be unnecessary
+        # xmat[rows2, af] <- NA_real_
+        # ymat[rows2, af] <- NA_real_
+      }
+    }
+    
+    ps1[[i]] <- c1
   }
-
-  # note `-ps2` ok in that at least one ps2 is not 0
+  
+  # note `-ps1` ok in that at least one ps1 is not 0
   # identical(xmat[, -c(0, 2:3), drop = FALSE], xmat[, -c(2:3), drop = FALSE])
   # !identical(xmat[, 0, drop = FALSE], xmat)
-  xmat <- xmat[, -ps2, drop = FALSE]
-  ymat <- ymat[, -ps2, drop = FALSE]
-
-  list(x = xmat, y = ymat)
+  
+  ps1  <- unlist(ps1, recursive = FALSE, use.names = FALSE)
+  xmat <- xmat[, -ps1, drop = FALSE]
+  ymat <- ymat[, -ps1, drop = FALSE]
+  unv  <- unv[-ps1]
+  
+  if (FALSE && look_back) {
+    oks  <- colSums(!is.na(xmat)) > 0L
+    xmat <- xmat[, oks]
+    ymat <- ymat[, oks]
+    unv  <- unv[oks]
+  }
+  
+  list(x = xmat, y = ymat, u = unv)
 }
 
 
