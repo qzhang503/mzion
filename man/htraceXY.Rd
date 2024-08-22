@@ -12,7 +12,7 @@ htraceXY(
   df,
   gap_bf = 256L,
   gap_af = 256L,
-  n_dia_scans = 4L,
+  n_mdda_flanks = 6L,
   from = 200L,
   step = 5e-06,
   y_perc = 0.01,
@@ -36,9 +36,8 @@ htraceXY(
 
 \item{gap_af}{A following gap size.}
 
-\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
-constructing a peak profile and thus for determining the apex scan number
-of an moverz value along LC.}
+\item{n_mdda_flanks}{The number of preceding and following MS1 scans for
+consideration when averaging isotope envelops of precursors.}
 
 \item{from}{The starting point for mass binning.}
 

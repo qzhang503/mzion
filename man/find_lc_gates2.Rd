@@ -4,11 +4,9 @@
 \alias{find_lc_gates2}
 \title{Find peak edges by intensity threshold relative to the base peak}
 \usage{
-find_lc_gates2(perc = 0.02, ys, sta, n_dia_scans = 4L, y_rpl = 2, min_n = 5L)
+find_lc_gates2(ys, sta, n_dia_scans = 6L, y_rpl = 2, perc = 0.02)
 }
 \arguments{
-\item{perc}{The percentage to the base-peak intensity for cut-offs.}
-
 \item{ys}{A vector of intensity values.}
 
 \item{sta}{The starting point (off-set) of the current ys (ys[ri]) in the
@@ -20,7 +18,7 @@ along LC.}
 
 \item{y_rpl}{A replacement value of intensities.}
 
-\item{min_n}{The minimum number of \code{ys} to define an LC gate.}
+\item{The}{percentage to the base-peak intensity for cut-offs.}
 }
 \description{
 Find peak edges by intensity threshold relative to the base peak

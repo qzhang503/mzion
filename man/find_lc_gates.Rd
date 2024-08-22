@@ -4,14 +4,7 @@
 \alias{find_lc_gates}
 \title{Finds the gates of retention times.}
 \usage{
-find_lc_gates(
-  xs = NULL,
-  ys = NULL,
-  ts = NULL,
-  n_dia_scans = 4L,
-  y_rpl = 2,
-  step = 5e-06
-)
+find_lc_gates(xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L, y_rpl = 2)
 }
 \arguments{
 \item{xs}{A vector of m-over-z value for the same (approximate) mass along
