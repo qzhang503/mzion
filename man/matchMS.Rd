@@ -87,7 +87,7 @@ matchMS(
   use_defpeaks = FALSE,
   maxn_dia_precurs = 1000L,
   n_dia_ms2bins = 1L,
-  n_dia_scans = 4L,
+  n_dia_scans = 6L,
   topn_dia_ms2ions = 2400L,
   delayed_diams2_tracing = FALSE,
   topn_ms2ions = 150L,

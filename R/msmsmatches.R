@@ -766,6 +766,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      combine_tier_three = FALSE,
                      max_n_prots = 60000L, 
                      use_ms1_cache = TRUE, 
+                     # .path_cache = "~/mzion/.MSearches (1.4.3)/Cache/Calls", 
                      .path_cache = "~/mzion/.MSearches (1.3.0.1)/Cache/Calls", 
                      .path_fasta = NULL,
 
@@ -776,7 +777,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      use_defpeaks = FALSE, 
                      
                      maxn_dia_precurs = 1000L, n_dia_ms2bins = 1L, 
-                     n_dia_scans = 4L, topn_dia_ms2ions = 2400L, 
+                     n_dia_scans = 6L, topn_dia_ms2ions = 2400L, 
                      delayed_diams2_tracing = FALSE, 
                      
                      topn_ms2ions = 150L,
@@ -1022,18 +1023,21 @@ matchMS <- function (out_path = "~/mzion/outs",
             maxn_mdda_precurs >= 0L, n_mdda_flanks >= 0L, 
             ppm_ms1_deisotope >= 1L, ppm_ms2_deisotope >= 1L)
   
-  if (n_dia_scans < 2L)
+  if (n_dia_scans < 2L) {
     stop("Choose a larger value of n_dia_scans for defining peak profiles.")
-  
-  if (n_dia_ms2bins > n_dia_scans)
+  }
+
+  if (n_dia_ms2bins > n_dia_scans) {
     stop("Choose a smaller value of n_dia_ms2bins than n_dia_scans.")
-  
+  }
+
   # (b) doubles
   target_fdr <- round(as.double(target_fdr), digits = 2L)
   
-  if (target_fdr > .25) 
+  if (target_fdr > .25) {
     stop("Choose a smaller `target_fdr`.")
-  
+  }
+
   min_ret_time <- round(min_ret_time, digits = 2L)
   max_ret_time <- round(max_ret_time, digits = 2L)
   max_pepscores_co <- round(max_pepscores_co, digits = 2L)

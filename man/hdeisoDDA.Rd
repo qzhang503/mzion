@@ -16,7 +16,7 @@ hdeisoDDA(
   maxn_mdda_precurs = 5L,
   topn_ms2ions = 150L,
   n_mdda_flanks = 6L,
-  n_dia_scans = 4L,
+  n_dia_scans = 6L,
   min_mass = 200L,
   max_mass = 4500L,
   min_ms2mass = 115L,

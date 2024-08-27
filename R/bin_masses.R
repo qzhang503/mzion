@@ -316,7 +316,7 @@ binTheoSeqs <- function (idxes = NULL, res = NULL, min_mass = 200L,
 find_ms1_cutpoints <- function (from = 200L, to = 4500L, ppm = 10L) 
 {
   d <- ppm/1e6
-  n <- ceiling(log(to/from)/log(1+d))
+  n <- index_mz(to, from, d)
 
   x <- vector("numeric", n)
   x[1] <- from

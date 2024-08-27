@@ -4,7 +4,7 @@
 \alias{find_lc_edges_bp}
 \title{Find peak edges by intensity threshold relative to the base peak}
 \usage{
-find_lc_edges_bp(ys, ps, range, n_dia_scans = 6, y_rpl = 2)
+find_lc_edges_bp(ys, ps, range, n_dia_scans = 6L, y_rpl = 2)
 }
 \arguments{
 \item{ys}{A vector of intensity values.}

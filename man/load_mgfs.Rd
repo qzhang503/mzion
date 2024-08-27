@@ -12,7 +12,7 @@ load_mgfs(
   topn_dia_ms2ions = 500L,
   delayed_diams2_tracing = FALSE,
   n_dia_ms2bins = 3L,
-  n_dia_scans = 4L,
+  n_dia_scans = 6L,
   min_mass = 200L,
   max_mass = 4500L,
   min_ms2mass = 115L,

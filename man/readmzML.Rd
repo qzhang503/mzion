@@ -14,7 +14,7 @@ readmzML(
   delayed_diams2_tracing = FALSE,
   maxn_dia_precurs = 1000L,
   n_dia_ms2bins = 1L,
-  n_dia_scans = 4L,
+  n_dia_scans = 6L,
   min_mass = 200L,
   max_mass = 4500L,
   min_ms2mass = 115L,

@@ -26,13 +26,14 @@ subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
       xi <- xs[[i]]
       li <- lens[[i]]
       if (!li) next
-      ix <- as.integer(ceiling(log(xi/from)/log(1+step)))
+      
+      ix  <- index_mz(xi, from, step)
       ps0 <- fastmatch::fmatch(ix, ms1s)
       ps1 <- fastmatch::fmatch(ix + 1L, ms1s)
       ps2 <- fastmatch::fmatch(ix - 1L, ms1s)
-      i0 <- .Internal(which(!is.na(ps0)))
-      i1 <- .Internal(which(!is.na(ps1)))
-      i2 <- .Internal(which(!is.na(ps2)))
+      i0  <- .Internal(which(!is.na(ps0)))
+      i1  <- .Internal(which(!is.na(ps1)))
+      i2  <- .Internal(which(!is.na(ps2)))
       
       i1 <- i1[!i1 %fin% i0]
       i2 <- i2[!(i2 %fin% i0 | i2 %fin% i1)]
@@ -55,13 +56,13 @@ subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
       ms1s_sub <- index_mz(ms1s_sub, from, step)
       ms1s_sub <- sort(unique(ms1s_sub))
       
-      ix <- as.integer(ceiling(log(xi/from)/log(1+step)))
+      ix  <- index_mz(xi, from, step)
       ps0 <- fastmatch::fmatch(ix, ms1s_sub)
       ps1 <- fastmatch::fmatch(ix + 1L, ms1s_sub)
       ps2 <- fastmatch::fmatch(ix - 1L, ms1s_sub)
-      i0 <- .Internal(which(!is.na(ps0)))
-      i1 <- .Internal(which(!is.na(ps1)))
-      i2 <- .Internal(which(!is.na(ps2)))
+      i0  <- .Internal(which(!is.na(ps0)))
+      i1  <- .Internal(which(!is.na(ps1)))
+      i2  <- .Internal(which(!is.na(ps2)))
       
       i1 <- i1[!i1 %fin% i0]
       i2 <- i2[!(i2 %fin% i0 | i2 %fin% i1)]
@@ -315,9 +316,9 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
   
   if (FALSE) {
     rng <- 250:800
-    i <- which(unv == index_mz(596.9601, from, step)) # 2406
-    i <- which(unv == index_mz(596.9601, from, step) +  1) # 2407
-    # i <- which(unv == index_mz(596.9601, from, step) - 1) # 2760
+    i <- which(unv == index_mz(921.4714, from, step)) # 13356
+    i <- which(unv == index_mz(921.4714, from, step) +  1) # 4072
+    # i <- which(unv == index_mz(921.4714, from, step) - 1) # 2760
     ss[rng]
     
     plot(ansx[, i])
@@ -338,8 +339,8 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
   
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
-      # i <- which(unv == index_mz(677.3303, from, step) + 1) # 7938
-      # i <- 2406
+      # i <- which(unv == index_mz(921.4714, from, step) + 1) # 7938
+      # i = 13356
       xi <- ansx[, i]
       yi <- ansy[, i]
       oks <- .Internal(which(!is.na(yi)))
@@ -350,7 +351,6 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
       # plot(yi[466:781])
       # plot(xi[466:781])
       
-      # ss[466:781]
       gates <- 
         find_lc_gates(xs = xi, ys = yi, ts = ts, n_dia_scans = n_dia_scans)
       apexes[[i]] <- rows <- gates[["apex"]]
@@ -433,14 +433,15 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
   
   for (i in seq_along(ms2_stas)) { # the same as by ms1_stas
     if (FALSE) {
-      df$orig_scan[ms1_stas] # look for orig_scan around 34009 ->
-      i <- 190
+      # look for penultimate scan number of psmQ.txt::pep_scan_num
+      df$orig_scan[ms1_stas]
+      i <- 298
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       df2 <- df[ms2sta:ms2end, ]
     }
     
-    # i = 232; which(rownames(matx) == 18949) - gap -> i
+    # i = 298; which(rownames(matx) == 18949) - gap -> i
     ms2sta <- ms2_stas[[i]]
     if (is.na(ms2sta)) next
     ms2end <- ms2_ends[[i]]
@@ -450,12 +451,13 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     scan <- ss[[rowi]] # the MS1 scan number at the current row
     
     for (j in 1:nrow(df2)) {
-      # j <- 7
+      # j <- 5
       x1s <- df2[["ms1_moverz"]][[j]] # MS1 masses associated with an MS2 scan
       nx <- length(x1s) # nx > 1 with a chimeric spectrum
       if (!nx) next
-      ix1s <- as.integer(ceiling(log(x1s/from)/log(1+step)))
-      ks <- lapply(ix1s, function (x) which(abs(x - unv) <= 1L))
+      
+      ix1s <- index_mz(x1s, from, step)
+      ks   <- lapply(ix1s, function (x) which(abs(x - unv) <= 1L))
       
       # go through chimeric precursors
       for (m in 1:nx) {
@@ -639,36 +641,46 @@ find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss,
 {
   # (1) subset apexs by MS1 mass tolerance
   ok_xs  <- .Internal(which(abs(xs_k - xm) / xm <= step))
-  ok_aps <- .Internal(which(apexs_k %fin% ss[ok_xs]))
-
-  if (length(ok_aps)) { # && length(ok_xs)
-    aps <- apexs_k[ok_aps]
-    rtx <- rts_k[ok_aps]
-    rgx <- rngs_k[ok_aps]
+  
+  if (length(ok_xs)) {
+    ok_aps <- .Internal(which(apexs_k %fin% ss[ok_xs]))
+    
+    if (length(ok_aps)) {
+      aps <- apexs_k[ok_aps]
+      rtx <- rts_k[ok_aps]
+      rgx <- rngs_k[ok_aps]
+    }
+    else {
+      aps <- apexs_k
+      rtx <- rts_k
+      rgx <- rngs_k
+    }
   }
   else {
     aps <- apexs_k
     rtx <- rts_k
     rgx <- rngs_k
   }
+
   # abs(xs_k[names(xs_k) %in% aps] - xm) / xm
   
   # (2) remove one-hit-wonders and spikes
   lens <- lengths(rgx)
-  oks1 <- .Internal(which(lens > 10L))
-  oks2 <- .Internal(which(lens > 5L))
+  # oks1 <- .Internal(which(lens > 20L))
+  oks2 <- .Internal(which(lens > 10L))
+  oks3 <- .Internal(which(lens > 5L))
   
-  if (length(oks1)) {
-    rtx  <- rtx[oks1]
-    rgx  <- rgx[oks1]
-    aps  <- aps[oks1]
-    lens <- lens[oks1]
-  }
-  else if (length(oks2)) {
+  if (length(oks2)) {
     rtx  <- rtx[oks2]
     rgx  <- rgx[oks2]
     aps  <- aps[oks2]
     lens <- lens[oks2]
+  }
+  else if (length(oks3)) {
+    rtx  <- rtx[oks3]
+    rgx  <- rgx[oks3]
+    aps  <- aps[oks3]
+    lens <- lens[oks3]
   }
   
   # (3) subset apexes by distances between apex_scan and the triggering MS2 scan
@@ -741,19 +753,22 @@ find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss,
     return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]]))
   }
   
-  # compare peak widths and distances
-  lenr <- lena / lenb
-  
-  if (lenr > .67 || lenr < 1.5) {
-    if (db > da + 200) {
+  # The trigger MS2 scan approximately within the scans of a MS1 peak profile
+  if (FALSE) {
+    if (scan >= ssa[[1]] - 3L && scan <= ssa[[lena]] + 3L) {
       return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]]))
     }
-    else {
+    
+    if (scan >= ssb[[1]] - 3L && scan <= ssb[[lenb]] + 3L) {
       return(list(x = xb, y = yb, ap = apb, from = ssb[[1]], to = ssb[[lenb]]))
     }
   }
+
+  # compare peak distances
+  if (db > da + 200) {
+    return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]]))
+  }
   else {
-    # use the fatter peak (assume the leaner one is a spike)
     return(list(x = xb, y = yb, ap = apb, from = ssb[[1]], to = ssb[[lenb]]))
   }
 }
@@ -835,11 +850,11 @@ getMS1Int <- function (df1, from = 200L, step = 8E-6, set_missing_zero = FALSE)
       next
     }
 
-    ys <- df1$msx_ints[[i]]
-    ixxs <- as.integer(ceiling(log(df1$msx_moverzs[[i]]/from)/log(1+step)))
-    ixs1 <- as.integer(ceiling(log(xs1/from)/log(1+step)))
-    ps0 <- match(ixs1, ixxs)
-    oks <- !is.na(ps0)
+    ys   <- df1$msx_ints[[i]]
+    ixxs <- index_mz(df1$msx_moverzs[[i]], from, step)
+    ixs1 <- index_mz(xs1, from, step)
+    ps0  <- match(ixs1, ixxs)
+    oks  <- !is.na(ps0)
     
     if (all(oks)) {
       df1[["ms1_int"]][[i]] <- ys[ps0]
@@ -847,9 +862,9 @@ getMS1Int <- function (df1, from = 200L, step = 8E-6, set_missing_zero = FALSE)
     else {
       ps1 <- match(ixs1 + 1L, ixxs)
       ps2 <- match(ixs1 - 1L, ixxs)
-      i1 <- .Internal(which(!is.na(ps1)))
-      i2 <- .Internal(which(!is.na(ps2)))
-      i0 <- .Internal(which(oks))
+      i1  <- .Internal(which(!is.na(ps1)))
+      i2  <- .Internal(which(!is.na(ps2)))
+      i0  <- .Internal(which(oks))
       
       if (length(i0)) {
         df1[["ms1_int"]][[i]][i0] <- ys[ps0[i0]]

@@ -8,9 +8,10 @@ find_lc_gates(
   xs = NULL,
   ys = NULL,
   ts = NULL,
-  n_dia_scans = 4L,
+  n_dia_scans = 6L,
   y_rpl = 2,
-  step = 5e-06
+  step = 5e-06,
+  max_perc = 0.05
 )
 }
 \arguments{
@@ -27,6 +28,8 @@ profile and thus for determining the apex scan number of an moverz value
 along LC.}
 
 \item{y_rpl}{A replacement value of intensities.}
+
+\item{max_perc}{The maximum percentage of baseline levels.}
 }
 \value{
 Scan indexes of LC peaks.

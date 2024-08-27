@@ -7,7 +7,7 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
                       data_type = "mzml", topn_ms2ions = 150L, 
                       topn_dia_ms2ions = 2400L, delayed_diams2_tracing = FALSE, 
                       maxn_dia_precurs = 1000L, 
-                      n_dia_ms2bins = 1L, n_dia_scans = 4L, 
+                      n_dia_ms2bins = 1L, n_dia_scans = 6L, 
                       min_mass = 200L, max_mass = 4500L, 
                       min_ms2mass = 115L, max_ms2mass = 4500L, 
                       min_ms1_charge = 2L, max_ms1_charge = 4L, 
@@ -1096,7 +1096,7 @@ hdeisoDDA <- function (filename, raw_id = 1L,
                        out_path = NULL, mgf_path = NULL, temp_dir = NULL, 
                        mzml_type = "raw", ppm_ms1 = 10L, ppm_ms2 = 10L, 
                        maxn_mdda_precurs = 5L, 
-                       topn_ms2ions = 150L, n_mdda_flanks = 6L, n_dia_scans = 4L, 
+                       topn_ms2ions = 150L, n_mdda_flanks = 6L, n_dia_scans = 6L, 
                        min_mass = 200L, max_mass = 4500L,
                        min_ms2mass = 115L, max_ms2mass = 4500L, 
                        min_ms1_charge = 2L, max_ms1_charge = 4L, 
@@ -1191,7 +1191,7 @@ deisoDDA <- function (filename = NULL,
                       out_path = NULL, mgf_path = NULL, temp_dir = NULL, 
                       mzml_type = "raw", ppm_ms1 = 10L, ppm_ms2 = 10L, 
                       maxn_mdda_precurs = 5L, topn_ms2ions = 150L, 
-                      n_mdda_flanks = 6L, n_dia_scans = 4L, 
+                      n_mdda_flanks = 6L, n_dia_scans = 6L, 
                       min_mass = 200L, max_mass = 4500L,
                       min_ms2mass = 115L, max_ms2mass = 4500L, 
                       min_ms1_charge = 2L, max_ms1_charge = 4L, 
@@ -1253,8 +1253,6 @@ deisoDDA <- function (filename = NULL,
     df <- qs::qread(file.path(temp_dir, paste0("predeisoDDA_", filename)))
   }
   
-  maxn_lc_gap <- 6L
-
   ## LFQ: replaces intensities with apex values
   # No MS1 info at maxn_mdda_precurs == 0L
   if (use_lfq_intensity && maxn_mdda_precurs) {
@@ -1318,7 +1316,7 @@ deisoDDA <- function (filename = NULL,
         gaps_bf, 
         gaps_af, 
         MoreArgs = list(
-          n_dia_scans = 6L, from = min_mass, step = step, 
+          n_dia_scans = n_dia_scans, from = min_mass, step = step, 
           y_perc = y_perc, yco = yco, look_back = TRUE, min_y = min_y
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
       parallel::stopCluster(cl)
@@ -1335,7 +1333,7 @@ deisoDDA <- function (filename = NULL,
         out[[i]] <- htraceXY(
           xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], ts = vts[[i]], 
           df = vdf[[i]], gap_bf = gaps_bf[[i]], gap_af = gaps_af[[i]], 
-          n_dia_scans = 6L, from = min_mass, step = step, 
+          n_dia_scans = n_dia_scans, from = min_mass, step = step, 
           y_perc = y_perc, yco = yco, look_back = TRUE, min_y = min_y)
         
         if (FALSE) {
@@ -1353,7 +1351,7 @@ deisoDDA <- function (filename = NULL,
               xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], df = vdf[[i]], 
               gap_bf <- gaps_bf[[i]], gap_af = gaps_af[[i]], 
               # may be > n_mdda_flanks
-              n_dia_scans = 6L, from = min_mass, step = step, 
+              n_dia_scans = n_dia_scans, from = min_mass, step = step, 
               y_perc = y_perc, yco = yco)
           }
         }
@@ -1584,7 +1582,7 @@ estimate_rtgap <- function (rts, d = 180)
 predeisoDDA <- function (filename = NULL, temp_dir = NULL, 
                          mzml_type = "raw", ppm_ms1 = 10L, ppm_ms2 = 10L, 
                          maxn_mdda_precurs = 3L, topn_ms2ions = 150L, 
-                         n_mdda_flanks = 6L, n_dia_scans = 4L, 
+                         n_mdda_flanks = 6L, n_dia_scans = 6L, 
                          min_mass = 200L, max_mass = 4500L,
                          min_ms2mass = 115L, max_ms2mass = 4500L, 
                          min_ms1_charge = 2L, max_ms1_charge = 4L, 
@@ -3812,6 +3810,7 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
 #' @param y_rpl A replacement value of intensities.
+#' @param max_perc The maximum percentage of baseline levels.
 #' @examples
 #' mzion:::find_lc_gates(xs = rep_len(100, 15), ys = c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), ts = seq_len(15), n_dia_scans = 2)
 #' mzion:::find_lc_gates(xs = rep_len(100, 18), ys = c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50), ts = seq_len(18))
@@ -3825,12 +3824,17 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #' xs <- rep(5, length(ys))
 #' ts <- seq_along(ys)
 #' mzion:::find_lc_gates(xs, ys, ts)
+#' @importFrom fastmatch %fin%
 #' @return Scan indexes of LC peaks.
-find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L, 
-                           y_rpl = 2.0, step = 5e-6)
+find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 6L, 
+                           y_rpl = 2.0, step = 5e-6, max_perc = .05)
 {
   # if (n_dia_scans <= 0L) return(.Internal(which(ys > 0))) # should not occur
-  ys   <- fill_lc_gaps(ys = ys, n_dia_scans = n_dia_scans, y_rpl = y_rpl)
+  ymax <- max(ys, na.rm = TRUE)
+  ymin <- find_baseline(ys, ymax)
+  ys[ys < ymin] <- NA_real_
+  ys <- fill_lc_gaps(ys = ys, n_dia_scans = n_dia_scans, y_rpl = y_rpl)
+
   ioks <- .Internal(which(ys > 0))
   nx   <- length(ioks)
   i1hs <- ioks # for one-hit-wonders
@@ -3856,13 +3860,14 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L,
   stas <- ends <- vector("list", nps)
   
   for (i in seq_len(nps)) {
+    # i = 6
     ri   <- ioks[ups[[i]]:dns[[i]]] # indexes in relative to ys
-    i1hs <- i1hs[!i1hs %in% ri]
+    i1hs <- i1hs[!i1hs %fin% ri]
     lenr <- length(ri)
     
-    if (lenr <= 60L) { # 90; 60; 45
+    if (lenr <= 60L) {
       stas[[i]] <- ri[[1]] # the starting index of gate-i in relative to ys
-      ends[[i]] <- ri[lenr] # ioks[[dni]]
+      ends[[i]] <- ri[lenr]
     }
     else {
       # same X but different Ys will be treated as one peak
@@ -3872,11 +3877,10 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L,
         ends[[i]] <- ans$ends
       }
       
-      # c(.02, .1, .25, .5)
-      # c(.02, .1, .25, .4, .6, .8)
-      # c(.02, .1, .25, .4, .67)
-      ans <- lapply(c(.02, .1, .25, .4, .67), find_lc_gates2, 
-                    ys = ys[ri], sta = ri[[1]], n_dia_scans = n_dia_scans, 
+      r_first <- ri[[1]]
+      perc <- min(ymin/ymax, max_perc)
+      ans <- lapply(c(perc, .06 * 1:10 + perc), find_lc_gates2, 
+                    ys = ys[ri], sta = r_first, n_dia_scans = n_dia_scans, 
                     y_rpl = y_rpl)
       ans_stas <- lapply(ans, `[[`, "stas")
       n_stas   <- lengths(ans_stas)
@@ -3886,7 +3890,7 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L,
       n_stas   <- n_stas[[n_max]]
       
       if (n_stas <= 1) { # can be zero
-        stas[[i]] <- ri[[1]]
+        stas[[i]] <- r_first
         ends[[i]] <- ri[lenr]
       }
       else {
@@ -3898,8 +3902,8 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L,
           hend <- ans_ends[[j - 1]]
           hsta <- ans_stas[[j]]
           pmid <- as.integer((hend + hsta) / 2L)
-          endx[[j-1]] <- max(pmid - 2L, hend)
-          stax[[j]]   <- min(pmid + 2L, hsta)
+          endx[[j-1]] <- max(pmid - 1L, hend)
+          stax[[j]]   <- min(pmid + 1L, hsta)
         }
         
         stas[[i]] <- stax
@@ -3914,41 +3918,67 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L,
   nps2 <- length(stas)
   
   yints  <- xapex <- xstas <- ranges <- vector("list", nps2)
-  # yints  <- xapex <- xstas <- rep_len(NA_integer_, nps2)
-  
+
   for (i in seq_along(stas)) {
-    ranges[[i]] <- ixi <- stas[[i]]:ends[[i]]
-    ix1 <- ixi[[1]]
+    si <- stas[[i]]
+    ranges[[i]] <- ixi <- si:ends[[i]]
     yts <- calcAUC(ys[ixi], ts[ixi])
     mi  <- yts[["idx"]]
     
     yints[[i]] <- yts[["area"]]
-    xapex[[i]] <- ix1 + mi - 1L
-    xstas[[i]] <- ix1
+    xapex[[i]] <- si + mi - 1L
+    xstas[[i]] <- si
   }
   
   ## outputs
-  yints <- .Internal(unlist(yints, use.names = FALSE, recursive = FALSE))
   xapex <- .Internal(unlist(xapex, use.names = FALSE, recursive = FALSE))
+  yints <- .Internal(unlist(yints, use.names = FALSE, recursive = FALSE))
   xstas <- .Internal(unlist(xstas, use.names = FALSE, recursive = FALSE))
   
-  widths <- lengths(ranges)
   apexs  <- c(i1hs, xapex)
   yout   <- c(ys[i1hs], yints)
-  ns     <- c(rep_len(1L, length(i1hs)), widths)
+  ns     <- c(rep_len(1L, length(i1hs)), lengths(ranges))
   rout   <- c(i1hs, ranges)
-  
+  xstas  <- c(i1hs, xstas)
+
   if (length(apexs) > 1L) {
     ord <- .Internal(radixsort(na.last = TRUE, decreasing = FALSE, FALSE, 
                                TRUE, apexs))
-    yout  <- yout[ord]
     apexs <- apexs[ord]
+    yout  <- yout[ord]
     ns    <- ns[ord]
     rout  <- rout[ord]
+    xstas <- xstas[ord]
   }
-  
+
   list(apex = apexs, yints = yout, ns = ns, ranges = rout, xstas = xstas)
 }
+
+
+#' Find the baseline values of Y
+#'
+#' @param vals A vector of Y values.
+#' @param vmax The maximum of vals.
+#' @param perc The percentage to the base-peak intensity for cut-offs.
+#' @param y_rpl A replacement value of intensities.
+#' @param max_perc The maximum percentage of baseline levels.
+find_baseline <- function (vals, vmax, perc = .02, max_perc = .05, y_rpl = 2.0)
+{
+  len <- length(vals)
+  vco <- vmax * perc
+
+  # exclude plateau and paddings
+  vs  <- vals[(!is.na(vals)) & vals <= vmax * .10 & vals > y_rpl]
+  
+  if (length(vs) < 5L) {
+    return(vco)
+  }
+  
+  # some vs remains part of peaks but `diff(vs)` are expected to be small 
+  base <- mean(abs(diff(vs))) * 3 + min(vs)
+  min(base, vmax * max_perc)
+}
+
 
 
 #' Find peak edges by intensity threshold relative to the base peak
@@ -3962,7 +3992,7 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 4L,
 #' @param y_rpl A replacement value of intensities.
 #' @param perc The percentage to the base-peak intensity for cut-offs.
 #' @param min_n The minimum number of \code{ys} to define an LC gate.
-find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 4L, y_rpl = 2.0, 
+find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0, 
                             min_n = 5L)
 {
   ys[ys <= max(ys, na.rm = TRUE) * perc] <- NA_real_
@@ -3998,7 +4028,7 @@ find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 4L, y_rpl = 2.0,
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
 #' @param y_rpl A replacement value of intensities.
-find_lc_edges_bp <- function (ys, ps, range, n_dia_scans = 6, y_rpl = 2.0)
+find_lc_edges_bp <- function (ys, ps, range, n_dia_scans = 6L, y_rpl = 2.0)
 {
   ymax <- max(ys, na.rm = TRUE)
   offp <- ps[[1]] - 1L
@@ -4052,7 +4082,7 @@ calcAUC <- function (ys, ts)
 #' ys <- c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10)
 #' mzion:::fill_lc_gaps(ys, 3)
 #' mzion:::fill_lc_gaps(ys, 2)
-fill_lc_gaps <- function (ys, n_dia_scans = 4L, y_rpl = 2.0)
+fill_lc_gaps <- function (ys, n_dia_scans = 6L, y_rpl = 2.0)
 {
   if (n_dia_scans <= 1L) {
     return(ys)
@@ -4123,7 +4153,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   # DO NOT gc() that will slow things down
   ### 
   
-  # mostely FALSE; otherwise cause drops in the number of data entries
+  # mostly FALSE; otherwise cause drops in the number of data entries
   if (cleanup) {
     null_out <- list(x = NULL, y = NULL, u = NULL)
     
@@ -4224,7 +4254,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
                       direct_out = TRUE)
   
   # collapses adjacent entries
-  ps <- find_gates(unv)
+  ps   <- find_gates(unv)
   lenp <- length(ps)
   
   # all discrete values
@@ -4232,7 +4262,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
     return(list(x = xmat, y = ymat, u = unv))
   }
   
-  # for matrix columns to be removed
+  # for recording matrix columns to be dropped
   ps1 <- vector("list", lenp)
   
   # collapses matrix columns with +/-1 in bin indexes

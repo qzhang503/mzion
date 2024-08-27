@@ -414,8 +414,7 @@ clean_flat_mgfs <- function (mgfs, min_mass = 200L, max_mass = 4500L,
   
   mgfs <- mgfs[order(mgfs$ms1_mass), ]
   mgfs[["pep_ms1_offset"]] <- ms1_offset
-  ms1_bins <- ceiling(log(mgfs$ms1_mass/min_mass)/log(1+ppm_ms1_bin/1e6))
-  ms1_bins <- as.integer(ms1_bins)
+  ms1_bins <- index_mz(mgfs$ms1_mass, min_mass, ppm_ms1_bin/1e6)
 
   # ms1_bins can be -Inf or NA since
   # (1) ms1_moverz can be NA because not yet determined by the current algorithm
@@ -560,7 +559,7 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
 #' min_ms2mass <- 115L
 #' 
 #' d <- ppm_ms2/1E6
-#' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+#' ex <- mzion:::index_mz(expts, min_ms2mass, d)
 #' 
 #' pep <- "PEPTIDE"
 #' nms <- unlist(stringr::str_split(pep, ""))
@@ -611,7 +610,7 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
 #' min_ms2mass <- 115L
 #' 
 #' d <- ppm_ms2/1E6
-#' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+#' ex <- mzion:::index_mz(expts, min_ms2mass, d)
 #' 
 #' x2 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 #' 
@@ -647,7 +646,7 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
 #' ppm_ms2 <- 13L
 #' min_ms2mass <- 115L
 #' d <- ppm_ms2/1E6
-#' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+#' ex <- mzion:::index_mz(expts, min_ms2mass, d)
 #' 
 #' x3 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 #' 
@@ -681,7 +680,7 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
 #' ppm_ms2 <- 13L
 #' min_ms2mass <- 115L
 #' d <- ppm_ms2/1E6
-#' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+#' ex <- mzion:::index_mz(expts, min_ms2mass, d)
 #' 
 #' x4 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 #' 
@@ -719,7 +718,7 @@ hms2match <- function (aa_masses_all, funs_ms2, ms1vmods_all, ms2vmods_all,
 #' ppm_ms2 <- 13L
 #' min_ms2mass <- 115L
 #' d <- ppm_ms2/1E6
-#' ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+#' ex <- mzion:::index_mz(expts, min_ms2mass, d)
 #' 
 #' x5 <- mzion:::find_ms2_bypep(theos, expts, ex, d, ppm_ms2)
 #' }

@@ -17,6 +17,10 @@ index_mz(x, from = 115L, d = 1e-05)
 Note that as.integer is needed. When an indexed x equals 0 but is double, it
 can cause %fin% to fail.
 }
+\details{
+Changed from \code{ceiling} to \code{floor} on 2024-08-22. Reason: bins
+collapse from left to right since v1.4.2.8.
+}
 \examples{
 xs <- ceiling(log(c(114.0916, 114.9999)/115)/log(1+8E-6))
 match(xs, xs); fastmatch::fmatch(xs, xs)

@@ -74,7 +74,7 @@ ppm_ms2 <- 25L
 min_ms2mass <- 115L
 
 d <- ppm_ms2/1E6
-ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+ex <- mzion:::index_mz(expts, min_ms2mass, d)
 
 pep <- "PEPTIDE"
 nms <- unlist(stringr::str_split(pep, ""))
@@ -125,7 +125,7 @@ ppm_ms2 <- 25L
 min_ms2mass <- 115L
 
 d <- ppm_ms2/1E6
-ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+ex <- mzion:::index_mz(expts, min_ms2mass, d)
 
 x2 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 
@@ -161,7 +161,7 @@ expts <- c(102.05550, 110.07173, 112.08743, 114.06662, 115.08708, 116.07106,
 ppm_ms2 <- 13L
 min_ms2mass <- 115L
 d <- ppm_ms2/1E6
-ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+ex <- mzion:::index_mz(expts, min_ms2mass, d)
 
 x3 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 
@@ -195,7 +195,7 @@ expts <- c(115.08701,116.07098,120.08125,126.12807,127.12508,127.13135,
 ppm_ms2 <- 13L
 min_ms2mass <- 115L
 d <- ppm_ms2/1E6
-ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+ex <- mzion:::index_mz(expts, min_ms2mass, d)
 
 x4 <- mzion:::find_ms2_bypep(theos, expts, ex, d)
 
@@ -233,7 +233,7 @@ expts <- c(126.12811,127.12556,127.13139,128.12862,128.13455,129.13194,
 ppm_ms2 <- 13L
 min_ms2mass <- 115L
 d <- ppm_ms2/1E6
-ex <- ceiling(log(expts/min_ms2mass)/log(1+d))
+ex <- mzion:::index_mz(expts, min_ms2mass, d)
 
 x5 <- mzion:::find_ms2_bypep(theos, expts, ex, d, ppm_ms2)
 }

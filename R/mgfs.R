@@ -15,7 +15,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
                        maxn_dia_precurs = 1000L, # max MS1 deisotoping features
                        topn_dia_ms2ions = 500L, # max MS2 deisotoping features
                        delayed_diams2_tracing = FALSE, 
-                       n_dia_ms2bins = 3L, n_dia_scans = 4L, 
+                       n_dia_ms2bins = 3L, n_dia_scans = 6L, 
                        min_mass = 200L, max_mass = 4500L, 
                        min_ms2mass = 115L, max_ms2mass = 4500L, 
                        min_ms1_charge = 2L, max_ms1_charge = 4L, 
@@ -55,11 +55,10 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
   # temporary bypass `ppm_ms1trace` checking with TMT
   if (isTRUE(grepl("^tmt.*\\d+", quant))) {
     args_except <- c("out_path", "use_lfq_intensity", "ppm_ms1trace", 
-                     "bypass_rawexe")
+                     "n_dia_scans", "bypass_rawexe")
   }
   else {
-    args_except <- c("out_path", "use_lfq_intensity", # "ppm_ms1trace", 
-                     "bypass_rawexe")
+    args_except <- c("out_path", "use_lfq_intensity", "bypass_rawexe")
   }
 
   args <- names(formals(fun))
@@ -1306,6 +1305,9 @@ extract_mgf_rptrs <- function (xvals, yvals, quant = "none",
 #' Note that as.integer is needed. When an indexed x equals 0 but is double, it
 #' can cause %fin% to fail.
 #'
+#' Changed from \code{ceiling} to \code{floor} on 2024-08-22. Reason: bins
+#' collapse from left to right since v1.4.2.8.
+#'
 #' @param from Numeric; the starting MS1 mass.
 #' @param x Numeric; MS2 mass.
 #' @param d Numeric; \eqn{ppm * 10E-6}.
@@ -1315,8 +1317,10 @@ extract_mgf_rptrs <- function (xvals, yvals, quant = "none",
 #' 
 #' ys <- as.integer(xs)
 #' match(ys, ys); fastmatch::fmatch(ys, ys)
-index_mz <- function (x, from = 115L, d = 1E-5) 
+index_mz <- function (x, from = 115L, d = 1E-5) {
   as.integer(ceiling(log(x/from)/log(1+d)))
+}
+  
 
 
 #' Finds the type of MGF.
