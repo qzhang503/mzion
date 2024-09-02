@@ -82,9 +82,10 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
   
   null_out <- list(masses = NULL, charges = NULL, intensities = NULL)
   
-  if (!(len_ms <- length(moverzs)))
+  if (!(len_ms <- length(moverzs))) {
     return(null_out)
-  
+  }
+
   excl_rptrs <- exclude_reporter_region && ms_lev != 1L
   
   if (excl_rptrs) {
@@ -118,8 +119,9 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     len_rptrs <- length(rptr_moverzs)
     len_ms <- len_ms - len_rptrs
     
-    if (!len_ms)
+    if (!len_ms) {
       return(null_out)
+    }
   }
   
   grad_isotope2 <- fct_iso2 * grad_isotope
@@ -128,8 +130,8 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
   
   tol <- ppm / 1E6 # the same as the default `step`; may remove arg `ppm`
   lenp <- min(len_ms, maxn_feats)
-  peaks_fuz <- peaks <- intens_fuz <- intens <- rep_len(NA_real_, lenp)
-  css_fuz <- css <- rep.int(NA_integer_, lenp)
+  peaks_fuz <- peaks <- intens_fuz <- intens <- rep_len(list(numeric(1)), lenp)
+  css_fuz <- css <- rep_len(list(integer(1)), lenp)
   p_no_zero <- p_fuz <- p <- 1L
   ymean_fuz <- ymono_fuz <- mass_fuz <- NA_real_
   
@@ -137,8 +139,8 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
   # At MS1 ch == 0 without p_no_zero, ch-0 can be picked up by chimeric searches
   while((len_ms > 0L) && (p_no_zero <= maxn_feats)) {
     if (len_ms == 1L) {
-      intens[[p]] <- msxints
-      peaks[[p]] <- moverzs
+      intens[[p]] <- msxints[[1]]
+      peaks[[p]] <- moverzs[[1]]
       css[[p]] <- NA_integer_
       break
     }
@@ -150,9 +152,9 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       imax <- .Internal(which.max(msxints))
     }
     
-    mass <- moverzs[imax]
-    mint <- msxints[imax]
-    n_ms1 <- n_ms1s[imax]
+    mass <- moverzs[[imax]]
+    mint <- msxints[[imax]]
+    n_ms1 <- n_ms1s[[imax]]
     
     ## find Z values
     ch <- find_charge_state(
@@ -165,7 +167,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       peaks[[p]] <- mass
       intens[[p]] <- mint
       len_ms <- len_ms - 1L
-      moverzs <- moverzs[-imax] # slow, try msxints[imax] <- 0
+      moverzs <- moverzs[-imax] # copy-on-modify
       msxints <- msxints[-imax]
       ims <- ims[-imax]
       p <- p + 1L
@@ -182,8 +184,8 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     gap <- 1.003355 / ch
     sta1 <- min(len_ms, imax + 1L)
     end1 <- min(len_ms, imax + offset_upr)
-    # yzero <- msxints[imax]
-    ymono <- msxints[imax]
+    # yzero <- msxints[[imax]]
+    ymono <- msxints[[imax]]
     ymean <- ymono/n_ms1
 
     ## find monoisotopic m/z
@@ -238,21 +240,21 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
           
           hsub <- hits[ks]
           isub <- .Internal(which.max(msxints[hsub]))
-          hi <- hsub[isub]
-          h <- ks[isub]
+          hi <- hsub[[isub]]
+          h <- ks[[isub]]
           gi <- grad_isotope * i
           yhi <- msxints[[hi]]
-          ri <- mint/yhi
+          ri <- mint / yhi
           
           if (ri <= gi) { # the preceding intensity pass the 1st threshold
             ymono <- yhi
-            ymean <- ymono/n_ms1 # added on 2024-06-26
+            ymean <- ymono / n_ms1 # added on 2024-06-26
           }
           else {
             if (ri <= fct_iso2 * gi) { # the preceding pass the 2st threshold
               mass_fuz  <- moverzs[[hi]]
               ymono_fuz <- yhi
-              n_ms1_fuz <- n_ms1s[hi]
+              n_ms1_fuz <- n_ms1s[[hi]]
               ymean_fuz <- ymono_fuz/n_ms1_fuz
               break
             }
@@ -303,12 +305,19 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     }
     
     len_ms <- len_ms - lenh
-    moverzs <- moverzs[-hits] # slow; try msxints[hits] <- 0
+    moverzs <- moverzs[-hits] # copy-on-modify
     msxints <- msxints[-hits]
     ims <- ims[-hits]
     p <- p + 1L
   }
   
+  css <- .Internal(unlist(css, recursive = FALSE, use.names = FALSE))
+  css_fuz <- .Internal(unlist(css_fuz, recursive = FALSE, use.names = FALSE))
+  intens <- .Internal(unlist(intens, recursive = FALSE, use.names = FALSE))
+  intens_fuz <- .Internal(unlist(intens_fuz, recursive = FALSE, use.names = FALSE))
+  peaks <- .Internal(unlist(peaks, recursive = FALSE, use.names = FALSE))
+  peaks_fuz <- .Internal(unlist(peaks_fuz, recursive = FALSE, use.names = FALSE))
+
   # outputs
   if (ms_lev == 1L) {
     oks1 <- css >= 1L & !is.na(css)
@@ -344,13 +353,14 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
   # MS2 need to be ordered from low to high m/z values
   if (len_out > 1L) {
     if (ms_lev == 1L) {
-      ord <- order(intensities, decreasing = TRUE)
+      ord <- .Internal(radixsort(na.last = TRUE, decreasing = TRUE, FALSE, TRUE, 
+                                 intensities))
       masses <- masses[ord]
       charges <- charges[ord]
       intensities <- intensities[ord]
     }
     else {
-      ord <- order(masses)
+      ord <- .Internal(radixsort(na.last = TRUE, decreasing = FALSE, FALSE, TRUE, masses))
       masses <- masses[ord]
       charges <- charges[ord]
       intensities <- intensities[ord]

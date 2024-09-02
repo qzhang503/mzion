@@ -798,9 +798,7 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
   pep_fmod_all  <- unlist(lapply(aa_masses_all, attr, "fmods", exact = TRUE))
   pep_vmod_all  <- unlist(lapply(aa_masses_all, attr, "vmods", exact = TRUE))
   rm(list = c("file_aa", "aa_masses_all"))
-  
-  d2 <- calc_threeframe_ppm(ppm_ms2) * 1E-6
-  
+
   split_im(files = fs_im, sc_path = sc_path, tempdir = tempdir, 
            maxn_mdda_precurs = maxn_mdda_precurs)
   im_path <- tempdir
@@ -835,7 +833,7 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
     soft_secions = soft_secions, 
     out_path = out_path, 
     min_ms2mass = min_ms2mass, 
-    d2 = d2, 
+    d2 = calc_threeframe_ppm(ppm_ms2) * 1E-6, 
     tally_ms2ints = tally_ms2ints, 
     add_ms2theos = add_ms2theos, 
     add_ms2theos2 = add_ms2theos2, 
@@ -884,7 +882,17 @@ split_im <- function (files, sc_path, tempdir, maxn_mdda_precurs = 1L,
       n_chunks <- size %/% max_size + 1L
       df <- qs::qread(fi)
       
-      if (maxn_mdda_precurs > 1L && col_key %in% names(df)) {
+      if (maxn_mdda_precurs > 1L) {
+        if (col_key != "orig_scan") {
+          stop("Developer: the value of key column is not `orig_scan`.")
+        }
+        
+        # missing column `orig_scan` in the more versions
+        # need separate handling for PASEF?
+        if (!col_key %in% names(df)) {
+          df[[col_key]] <- gsub("\\.\\d+$", "", df$pep_scan_num)
+        }
+        
         df  <- df[order(df[[col_key]]), ]
         dfs <- split(df, find_chunkbreaks(df[[col_key]], n_chunks))
       }
@@ -1081,9 +1089,22 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
 
   ## chimeric intensity value masking
   if (maxn_mdda_precurs > 1L) {
+    ### temporary fix with missing `orig_scan` column from ion_matches.rds
+    nms <- names(df)
+    oks <- c("raw_file", "pep_ms1_offset") %in% nms
+    if (!all(oks)) {
+      stop("Columns not found: ", paste(nms[!oks], collapse = ", "))
+    }
+    
+    # check compatibilit with PASEF...
+    if (!"orig_scan" %in% nms) {
+      df$orig_scan <- gsub("\\.\\d+$", "", df$pep_scan_num)
+    }
+    ###
+    
     df$gid <- paste(df[["orig_scan"]], df[["raw_file"]], df[["pep_ms1_offset"]], 
                     sep = "@")
-    dfs <- split(df, df$gid)
+    dfs  <- split(df, df$gid)
     rows <- lapply(dfs, function (x) nrow(x) == 1L)
     rows <- unlist(rows, recursive = FALSE, use.names = FALSE)
     
@@ -1241,6 +1262,7 @@ find_iexunv <- function (mi)
 #' Preparation for scoring of chimeric spectra.
 #' 
 #' @param df A data frame for scoring.
+#' @importFrom fastmatch %fin%
 addChim <- function (df)
 {
   # i - matches
@@ -1252,13 +1274,13 @@ addChim <- function (df)
   mts <- df$matches
 
   iexs <- lapply(mts, find_iexunv)
-  unv <- unique(.Internal(unlist(iexs, recursive = FALSE, use.names = FALSE)))
+  unv  <- unique(.Internal(unlist(iexs, recursive = FALSE, use.names = FALSE)))
   
   # for-loop to keep attributes
   for (i in seq_along(mts)) {
-    mi <- mts[[i]]
+    mi  <- mts[[i]]
     iex <- iexs[[i]]
-    yi <- unv[!unv %in% iex]
+    yi  <- unv[!unv %fin% iex]
     
     if (!length(yi)) {
       next

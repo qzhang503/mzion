@@ -219,13 +219,6 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
     rt_apexs[[i]]   <- as.integer(ts[ai])
   }
 
-  # i = 6921
-  # apes[[i]][[24]]
-  # ss[apes[[i]]][[24]] # scan 114404
-  # matx[rngs[[i]][[24]], i]
-  # maty[rngs[[i]][[24]], i]
-  
-  # i = 5053; scan_apexs[[i]]
   if (gap_bf) {
     if (gap_af) { # middle
       sta <- gap_bf + 1L
@@ -316,9 +309,9 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
   
   if (FALSE) {
     rng <- 250:800
-    i <- which(unv == index_mz(921.4714, from, step)) # 13356
-    i <- which(unv == index_mz(921.4714, from, step) +  1) # 4072
-    # i <- which(unv == index_mz(921.4714, from, step) - 1) # 2760
+    i <- which(unv == index_mz(636.8303, from, step)) # 6920
+    i <- which(unv == index_mz(636.8303, from, step) +  1) # 4072
+    # i <- which(unv == index_mz(636.8303, from, step) - 1) # 2760
     ss[rng]
     
     plot(ansx[, i])
@@ -339,8 +332,8 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
   
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
-      # i <- which(unv == index_mz(921.4714, from, step) + 1) # 7938
-      # i = 13356
+      # i <- which(unv == index_mz(636.8303, from, step) + 1)
+      # i = 8569; i = 8570
       xi <- ansx[, i]
       yi <- ansy[, i]
       oks <- .Internal(which(!is.na(yi)))
@@ -435,13 +428,13 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     if (FALSE) {
       # look for penultimate scan number of psmQ.txt::pep_scan_num
       df$orig_scan[ms1_stas]
-      i <- 298
+      i <- 276
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       df2 <- df[ms2sta:ms2end, ]
     }
     
-    # i = 298; which(rownames(matx) == 18949) - gap -> i
+    # i = 494; which(rownames(matx) == 18949) - gap -> i
     ms2sta <- ms2_stas[[i]]
     if (is.na(ms2sta)) next
     ms2end <- ms2_ends[[i]]
@@ -451,7 +444,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     scan <- ss[[rowi]] # the MS1 scan number at the current row
     
     for (j in 1:nrow(df2)) {
-      # j <- 5
+      # j <- 9
       x1s <- df2[["ms1_moverz"]][[j]] # MS1 masses associated with an MS2 scan
       nx <- length(x1s) # nx > 1 with a chimeric spectrum
       if (!nx) next
@@ -639,51 +632,57 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
 find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss, 
                             step = 6E-6, min_y = 0)
 {
-  # (1) subset apexs by MS1 mass tolerance
-  ok_xs  <- .Internal(which(abs(xs_k - xm) / xm <= step))
+  aps  <- apexs_k
+  rtx  <- rts_k
+  rgx  <- rngs_k
+  lens <- lengths(rgx)
   
-  if (length(ok_xs)) {
-    ok_aps <- .Internal(which(apexs_k %fin% ss[ok_xs]))
-    
-    if (length(ok_aps)) {
-      aps <- apexs_k[ok_aps]
-      rtx <- rts_k[ok_aps]
-      rgx <- rngs_k[ok_aps]
-    }
-    else {
-      aps <- apexs_k
-      rtx <- rts_k
-      rgx <- rngs_k
-    }
+  # (1) first-pass spike removals: in case that a major peak is just out of 
+  # the mass tolerance and the spike is within the bound
+  if (length(oks1 <- .Internal(which(lens > 5L)))) {
+    aps  <- aps[oks1]
+    rtx  <- rtx[oks1]
+    rgx  <- rgx[oks1]
+    lens <- lens[oks1]
   }
-  else {
-    aps <- apexs_k
-    rtx <- rts_k
-    rgx <- rngs_k
+  
+  # (2) subset apexs by MS1 mass tolerance
+  if (length(ok_xs  <- .Internal(which(abs(xs_k - xm) / xm <= step)))) {
+    if (length(ok_aps <- .Internal(which(aps %fin% ss[ok_xs])))) {
+      aps  <- aps[ok_aps]
+      rtx  <- rtx[ok_aps]
+      rgx  <- rgx[ok_aps]
+      lens <- lens[ok_aps]
+    }
   }
 
   # abs(xs_k[names(xs_k) %in% aps] - xm) / xm
   
-  # (2) remove one-hit-wonders and spikes
-  lens <- lengths(rgx)
-  # oks1 <- .Internal(which(lens > 20L))
-  oks2 <- .Internal(which(lens > 10L))
-  oks3 <- .Internal(which(lens > 5L))
-  
-  if (length(oks2)) {
-    rtx  <- rtx[oks2]
-    rgx  <- rgx[oks2]
-    aps  <- aps[oks2]
-    lens <- lens[oks2]
-  }
-  else if (length(oks3)) {
+  # (3) remove one-hit-wonders and spikes
+  if (length(oks3 <- .Internal(which(lens > 15L)))) { # may also include 20
+    aps  <- aps[oks3]
     rtx  <- rtx[oks3]
     rgx  <- rgx[oks3]
-    aps  <- aps[oks3]
     lens <- lens[oks3]
   }
+  else if (length(oks4 <- .Internal(which(lens > 10L)))) {
+    aps  <- aps[oks4]
+    rtx  <- rtx[oks4]
+    rgx  <- rgx[oks4]
+    lens <- lens[oks4]
+  }
   
-  # (3) subset apexes by distances between apex_scan and the triggering MS2 scan
+  if (FALSE) {
+    if (length(lens) > 3L) {
+      oksn <- which_topx2(lens, 3L)
+      aps  <- aps[oksn]
+      rtx  <- rtx[oksn]
+      rgx  <- rgx[oksn]
+      lens <- lens[oksn]
+    }
+  }
+
+  # (4) subset apexes by distances between apex_scan and the triggering MS2 scan
   ds <- abs(aps - scan)
   p1 <- .Internal(which.min(ds))
   d1 <- ds[[p1]]
