@@ -34,8 +34,9 @@ hcalc_tmtint <- function (df, quant = "tmt10", ppm_reporters = 10L, idx = 1L,
 #' @param ppm_reporters The mass tolerance of MS2 reporter ions.
 calc_tmtint <- function (data = NULL, quant = "tmt16", ppm_reporters = 10L) 
 {
-  if (quant == "none")
+  if (quant == "none") {
     return(data)
+  }
 
   nms_tmt6  <- c("126", "127N", "128N", "129N", "130N", "131N")
   nms_tmt10 <- c("126", "127N", "127C", "128N", "128C", "129N", "129C",

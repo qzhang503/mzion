@@ -12,7 +12,7 @@ calib_ms1(
   ppm_ms1 = 20L,
   min_mass = 200L,
   max_mass = 4500L,
-  range = 3:6,
+  range = 3:5,
   is_tmt = FALSE
 )
 }

@@ -281,7 +281,7 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                        fixedmods = NULL, varmods = NULL, enzyme = "trypsin_p", 
                        maxn_fasta_seqs = 200000L, maxn_vmods_setscombi = 512L,
                        min_len = 7L, max_len = 40L, max_miss = 2L, 
-                       prob_co = 1E-10)
+                       prob_co = 1E-20)
 {
   on.exit(
     if (exists(".savecall", envir = fun_env)) {
@@ -430,13 +430,23 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
             "pep_exp_mz", "pep_ret_range", "pep_prob")
   if (is_tmt) cols <- c(cols, "rptr_moverzs")
   
+  
+  # check for the cause of "pep_prob.1" column?
+  
+  
   df <- local({
     dfs <- vector("list", maxn_files <- min(len, 50L))
     
     for (i in 1:maxn_files) {
       df <- qs::qread(fi_ions[[i]])
       df <- df[, cols]
+      
+      # was prob_co = 1E-10; 
+      # check for bimodality by using the original prob_co
       df <- df[with(df, pep_prob <= prob_co), ]
+      
+      # quantile can be skewed towards and overwhelmed by low scores
+      # df <- df[with(df, pep_prob <= quantile(pep_prob, .6)), ]
       dfs[[i]] <- df
     }
     
@@ -453,6 +463,12 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
 
   ord_mgf <- match(gsub("^mgf_queries_(.*)\\.rds$", "\\1", fs_mgf), names(dfs))
   fs_mgf <- fs_mgf[ord_mgf]
+  
+  if (FALSE) {
+    attr(dfs, "fs_mgf") <- fs_mgf
+    attr(dfs, "is_tmt") <- is_tmt
+    qs::qsave(dfs, file.path(tempdir, "df_calib.rds"), preset = "fast")
+  }
 
   len <- length(dfs)
   n_cores <- min(len, detect_cores(32L))
@@ -502,11 +518,17 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
 #' @inheritParams calib_mgf
 calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL, 
                        ppm_ms1 = 20L, min_mass = 200L, max_mass = 4500L, 
-                       range = 3:6, is_tmt = FALSE)
+                       range = 3:5, is_tmt = FALSE)
 {
-  n_row <- nrow(df)
-  mgfs  <- qs::qread(file.path(mgf_path, filename))
-  is_listmass <- class(mgfs[["ms1_mass"]]) == "list"
+  ###
+  # try to do this after flattening MGF...
+  # two different knots
+  ###
+  
+  ## 1. median centering of mass deviations
+  n_row  <- nrow(df)
+  errors <- df[["pep_exp_mr"]] / df[["theo_ms1"]] - 1
+  mdiff  <- median(errors, na.rm = TRUE)
 
   # subsets by minn_ms2 and ms1_int
   if (FALSE) {
@@ -521,123 +543,111 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
     
     df <- df[minn_ok, ]
   }
+
+  mgfs  <- qs::qread(file.path(mgf_path, filename))
+  is_listmass <- class(mgfs[["ms1_mass"]]) == "list"
+  mgfs  <- adj_masses1(
+    mgfs = mgfs, mdiff = mdiff, is_listmass = is_listmass, is_tmt = is_tmt)
+  df[["pep_exp_mr"]] <- df[["pep_exp_mr"]] * (1 - mdiff)
+  errors <- errors - mdiff
   
-  diff_ms1 <- (df[["pep_exp_mr"]] - df[["theo_ms1"]])/df[["theo_ms1"]]
-  mdiff <- median(diff_ms1, na.rm = TRUE)
-  mgfs <- adj_masses1(mgfs = mgfs, mdiff = mdiff, is_listmass = is_listmass, 
-                      is_tmt = is_tmt)
-  diff_ms1 <- diff_ms1 - mdiff
- 
-  if (n_row <= 100L || abs(mdiff) <= 1e-6) {
+  
+  ## 2. calibration by retention times
+  if (n_row <= 100L) {
+    post_calib(mgfs, min_mass, max_mass, mgf_path, filename, 
+               is_listmass = is_listmass)
+    .savecall <- TRUE
+    return(NULL)
+  }
+  
+  # 2.2 CV for knots
+  cvs <- lapply(range, cv_ms1err, k = 10, df = df) 
+  cvs <- unlist(cvs, recursive = FALSE, use.names = FALSE)
+  
+  if (length(cvs) != length(range)) {
+    stop("Developer: check for entry dropping in mass calibration.")
+  }
+  
+  if (all(is.na(cvs))) {
     post_calib(mgfs, min_mass, max_mass, mgf_path, filename, is_listmass = is_listmass)
     .savecall <- TRUE
     return(NULL)
   }
-  else {
-    cvs <- lapply(range, cv_ms1err, k = 10, df = df) 
-    cvs <- unlist(cvs, recursive = FALSE, use.names = FALSE)
-    
-    if (length(cvs) != length(range)) {
-      stop("Developer: check for entry dropping in mass calibration.")
-    }
-
-    if (all(is.na(cvs))) {
-      post_calib(mgfs, min_mass, max_mass, mgf_path, filename, is_listmass = is_listmass)
-      .savecall <- TRUE
-      return(NULL)
-    }
-    
-    cvs[is.na(cvs)] <- Inf
-    knots <- range[which.min(cvs)]
-    
-    if (length(knots) > 1L)
-      knots <- knots[[1]]
+  
+  cvs[is.na(cvs)] <- Inf
+  knots <- range[which.min(cvs)]
+  
+  if (length(knots) > 1L) {
+    knots <- knots[[1]]
   }
   
-  # later fit by ret_time and m/z...
+  rm(list = c("cvs"))
   
-  ret_time <- df[["pep_ret_range"]]
-  fit_ns <- lm(diff_ms1 ~ splines::ns(ret_time, knots))
-  fit_bs <- lm(diff_ms1 ~ splines::bs(ret_time, knots))
+  # 2.3 fit of retention times
+  trains <- df[["pep_ret_range"]]
+  tr_min <- min(trains, na.rm = TRUE)
+  tr_max <- max(trains, na.rm = TRUE)
 
-  if (all(is.na(fit_ns))) {
-    if (all(is.na(fit_bs))) {
-      post_calib(mgfs, min_mass, max_mass, mgf_path, filename, is_listmass = is_listmass)
-      .savecall <- TRUE
-      return(NULL)
-    }
-    else {
-      fit_ns <- fit_bs
-    }
-  }
-  else if (all(is.na(fit_bs))) {
-    fit_bs <- fit_ns
-  }
-
-  bad_ns <- anyNA(coef(fit_ns))
-  bad_bs <- anyNA(coef(fit_bs))
+  fit <- find_bestfit(
+    fit_ns = lm(errors ~ splines::ns(trains, knots)), 
+    fit_bs = NA)
   
-  if (bad_ns) {
-    if (bad_bs) {
-      post_calib(mgfs, min_mass, max_mass, mgf_path, filename, is_listmass = is_listmass)
-      .savecall <- TRUE
-      return(NULL)
-    }
-    else {
-      fit_ns <- fit_bs
-    }
+  if (is.null(fit)) {
+    post_calib(mgfs, min_mass, max_mass, mgf_path, filename, 
+               is_listmass = is_listmass)
+    .savecall <- TRUE
+    return(NULL)
   }
-  else if (bad_bs) {
-    fit_bs <- fit_ns
-  }
-
-  res_ns <- if (class(fit_ns) == "lm") mean(resid(fit_ns)^2, na.rm = TRUE) else Inf
-  res_bs <- if (class(fit_bs) == "lm") mean(resid(fit_bs)^2, na.rm = TRUE) else Inf
-  fit    <- if (res_ns <= res_bs) fit_ns else fit_bs
   
   # (keeps the original df$ms1_mass -> can later infer mass deltas)
   # charges <- get_ms1charges(df[["ms1_charge"]])
   # df[["ms1_moverz"]] <- (df[["ms1_mass"]] + 1.00727647 * charges)/charges
   
-  ## Update mgf
-  rt <- mgfs[["ret_time"]]
-  min_rt <- min(ret_time, na.rm = TRUE)
-  max_rt <- max(ret_time, na.rm = TRUE)
-  
-  if ((min_rt2 <- min_rt * 1.1) < (max_rt2 <- max_rt / 1.2)) {
-    oks <- rt >= min_rt2 & rt <= max_rt2
+  # 2.4 update df
+  df[["pep_exp_mr"]] <- df[["pep_exp_mr"]] * 
+    (1 - predict.lm(fit, newdata = data.frame(trains = df[["pep_ret_range"]])))
+
+  # 2.5 update mgf
+  tests  <- mgfs[["ret_time"]]
+
+  if ((tr_min2 <- tr_min * 1.1) < (tr_max2 <- tr_max / 1.2)) {
+    oks <- tests >= tr_min2 & tests <= tr_max2
   }
   else {
-    oks <- rt >= min_rt & rt <= max_rt
+    oks <- tests >= tr_min & tests <= tr_max
   }
-
-  ms1err <- predict.lm(fit, newdata = data.frame(ret_time = rt[oks]))
+  
+  preds <- predict.lm(fit, newdata = data.frame(trains = tests[oks]))
 
   if (is_listmass) {
     mgfs[["ms1_mass"]][oks] <- 
-      mapply(function (x, y) x * (1 - y), mgfs[["ms1_mass"]][oks], ms1err)
+      mapply(function (x, y) x * (1 - y), mgfs[["ms1_mass"]][oks], preds)
     mgfs[["ms1_moverz"]][oks] <- 
-      mapply(function (x, y) x * (1 - y), mgfs[["ms1_moverz"]][oks], ms1err)
+      mapply(function (x, y) x * (1 - y), mgfs[["ms1_moverz"]][oks], preds)
   }
   else {
-    mgfs[["ms1_mass"]][oks] <- mgfs[["ms1_mass"]][oks] * (1 - ms1err)
-    mgfs[["ms1_moverz"]][oks] <- mgfs[["ms1_moverz"]][oks] * (1 - ms1err)
+    mgfs[["ms1_mass"]][oks] <- mgfs[["ms1_mass"]][oks] * (1 - preds)
+    mgfs[["ms1_moverz"]][oks] <- mgfs[["ms1_moverz"]][oks] * (1 - preds)
   }
   
-  # one fixed ms1err[[i]] for an entire mgfs[["ms2_moverzs"]][[i]]
   mgfs[["ms2_moverzs"]][oks] <- 
-    mapply(function (x, y) x * (1 - y), mgfs[["ms2_moverzs"]][oks], ms1err)
+    mapply(function (x, y) x * (1 - y), mgfs[["ms2_moverzs"]][oks], preds)
   
-  # uls <- rt[!oks]
+  if (is_tmt) {
+    mgfs[["rptr_moverzs"]][oks] <- 
+      mapply(function (x, y) x * (1 - y), mgfs[["rptr_moverzs"]][oks], preds)
+  }
+  
+  # uls <- tests[!oks]
   # mgfs[["ms1_mass"]][uls] <- substract_ms1mass(mgfs[["ms1_mass"]][uls], mdiff, is_listmass)
   # mgfs[["ms1_moverz"]][uls] <- substract_ms1mass(mgfs[["ms1_moverz"]][uls], mdiff, is_listmass)
   # mgfs[["ms2_moverzs"]][uls] <- substract_ms1mass(mgfs[["ms2_moverzs"]][uls], mdiff, is_listmass = TRUE)
-
+  
   # beyond the boundary of RT
   if (FALSE) {
     rts_ok <- rt[oks]
-    err_le <- ms1err[which.min(rts_ok)]
-    err_gr <- ms1err[which.max(rts_ok)]
+    err_le <- preds[which.min(rts_ok)]
+    err_gr <- preds[which.max(rts_ok)]
     
     ms1_le <- mgfs[["ms1_mass"]][!oks_le]
     ms1_gr <- mgfs[["ms1_mass"]][!oks_gr]
@@ -645,13 +655,99 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
     mgfs[["ms1_mass"]][!oks_gr] <- ms1_gr - ms1_gr * err_gr
   }
   
-  ## update MGF
+  rm(list = c("trains", "tr_min", "tr_max", "tr_max2", "tr_min2", 
+              "tests", "errors", "fit", "oks", "preds"))
+  
+  
+  ## 3. calibration by by m/z
+  trains <- df[["pep_exp_mr"]]
+  tr_min <- min(trains, na.rm = TRUE)
+  tr_max <- max(trains, na.rm = TRUE)
+  errors <- df[["pep_exp_mr"]] / df[["theo_ms1"]] - 1
+
+  fit <- find_bestfit(
+    fit_ns = lm(errors ~ splines::ns(trains, min(knots + 1L, 5L))), 
+    fit_bs = NA)
+  
+  if (is.null(fit)) {
+    post_calib(mgfs, min_mass, max_mass, mgf_path, filename, is_listmass = is_listmass)
+    .savecall <- TRUE
+    return(NULL)
+  }
+
+  # 3.1 update MGF
+  lens <- lengths(mgfs$ms1_moverz)
+  rows <- lens > 0L
+  mgf0 <- mgfs[!rows, ]
+  mgfs <- mgfs[rows, ]
+  lens <- lens[rows]
+
+  # 3.1.1 MS1
+  preds1 <- predCalibMS(
+    col = "ms1_mass", lens = lens, mgfs = mgfs, 
+    fit = fit, tr_min = tr_min, tr_max = tr_max)
+
+  if (is_listmass) {
+    mgfs[["ms1_mass"]] <- 
+      mapply(function (x, y) x * (1 - y), mgfs[["ms1_mass"]], preds1)
+    mgfs[["ms1_moverz"]] <- 
+      mapply(function (x, y) x * (1 - y), mgfs[["ms1_moverz"]], preds1)
+  }
+  else {
+    mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] * (1 - preds1)
+    mgfs[["ms1_moverz"]] <- mgfs[["ms1_moverz"]] * (1 - preds1)
+  }
+  rm(list = c("errors", "preds1", "lens", "rows"))
+  
+  preds2 <- predCalibMS(
+    col = "ms2_moverzs", lens = lengths(mgfs[["ms2_moverzs"]]), mgfs = mgfs, 
+    fit = fit, tr_min = tr_min, tr_max = tr_max)
+
+  mgfs[["ms2_moverzs"]] <- 
+    mapply(function (x, y) x * (1 - y), mgfs[["ms2_moverzs"]], preds2)
+
+  # need a separate preds but also reports are beyond the range of m/z in df...
+  if (FALSE && is_tmt) {
+    mgfs[["rptr_moverzs"]] <- 
+      mapply(function (x, y) x * (1 - y), mgfs[["rptr_moverzs"]], preds2)
+  }
+
+  if (nrow(mgf0)) {
+    mgfs <- dplyr::bind_rows(mgf0, mgfs)
+  }
+
   # charges <- get_ms1charges(mgfs[["ms1_charge"]])
   # mgfs[["ms1_moverz"]] <- (mgfs[["ms1_mass"]] + 1.00727647 * charges)/charges
-  post_calib(mgfs, min_mass, max_mass, mgf_path, filename, is_listmass = is_listmass)
+  post_calib(mgfs, min_mass, max_mass, mgf_path, filename, 
+             is_listmass = is_listmass)
   .savecall <- TRUE
-
+  
   invisible(NULL)
+}
+
+
+#' Predictions of MS calibration
+#' 
+#' @param col The column key in mgfs.
+#' @param lens The lengths of each entry in \code{col}.
+#' @param mgfs A data frame of MGF data.
+#' @param fit A fit model.
+#' @param tr_min The min value in train data.
+#' @param tr_max The max value in train data
+predCalibMS <- function (col, lens, mgfs, fit, tr_min, tr_max)
+{
+  tests <- unlist(mgfs[[col]], recursive = FALSE, use.names = FALSE)
+  preds <- unname(predict.lm(fit, newdata = data.frame(trains = tests)))
+  
+  # beyond the mass range of `df`
+  ilwr <- which.min(abs(tests - tr_min))
+  iupr <- which.min(abs(tests - tr_max))
+  
+  preds[tests < tr_min] <- preds[ilwr]
+  preds[tests > tr_max] <- preds[iupr]
+  
+  grps   <- rep(seq_along(lens), lens)
+  preds <- split(preds, grps)
 }
 
 
@@ -661,15 +757,19 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
 #' @param mdiff The mass difference (the median of differences). 
 #' @param is_tmt Logical; is a TMT experiment or not.
 #' @param is_listmass Logical; are the X values in list for scalar.
-adj_masses1 <- function (mgfs, mdiff, is_listmass = TRUE, is_tmt = FALSE)
+#' @param cols The columns for mass adjustment. 
+adj_masses1 <- function (mgfs, mdiff, is_listmass = TRUE, is_tmt = FALSE, 
+                         cols = c("ms1_mass", "ms1_moverz", "ms2_moverzs"))
 {
-  mgfs[["ms1_mass"]] <- 
-    substract_ms1mass(mgfs[["ms1_mass"]], mdiff, is_listmass)
-  mgfs[["ms1_moverz"]] <- 
-    substract_ms1mass(mgfs[["ms1_moverz"]], mdiff, is_listmass)
-  mgfs[["ms2_moverzs"]] <- 
-    substract_ms1mass(mgfs[["ms2_moverzs"]], mdiff, is_listmass = TRUE)
+  if (!all(cols %in% names(mgfs))) {
+    stop("Developer: not all required columns found.")
+  }
   
+  for (col in cols) {
+    mgfs[[col]] <- 
+      substract_ms1mass(mgfs[[col]], mdiff, is_listmass)
+  }
+
   if (is_tmt) {
     mgfs[["rptr_moverzs"]] <- 
       substract_ms1mass(mgfs[["rptr_moverzs"]], mdiff, is_listmass = TRUE)
@@ -741,6 +841,45 @@ cv_ms1err <- function(m = 3L, k = 5L, df)
   
   # return NA at all NUll
   mean(unlist(cv_errs, recursive = FALSE, use.names = FALSE), na.rm = TRUE)
+}
+
+
+#' Finds the best fit between ns and bs
+#' 
+#' @param fit_ns The fittings from ns.
+#' @param fit_bs The fitting from bs.
+find_bestfit <- function (fit_ns, fit_bs)
+{
+  if (all(is.na(fit_ns))) {
+    if (all(is.na(fit_bs))) {
+      return(NULL)
+    }
+    else {
+      fit_ns <- fit_bs
+    }
+  }
+  else if (all(is.na(fit_bs))) {
+    fit_bs <- fit_ns
+  }
+  
+  bad_ns <- anyNA(coef(fit_ns))
+  bad_bs <- anyNA(coef(fit_bs))
+  
+  if (bad_ns) {
+    if (bad_bs) {
+      return(NULL)
+    }
+    else {
+      fit_ns <- fit_bs
+    }
+  }
+  else if (bad_bs) {
+    fit_bs <- fit_ns
+  }
+  
+  res_ns <- if (class(fit_ns) == "lm") mean(resid(fit_ns)^2, na.rm = TRUE) else Inf
+  res_bs <- if (class(fit_bs) == "lm") mean(resid(fit_bs)^2, na.rm = TRUE) else Inf
+  fit    <- if (res_ns <= res_bs) fit_ns else fit_bs
 }
 
 

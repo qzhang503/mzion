@@ -1194,7 +1194,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
   }
 
   df <- df[, -which(names(df) == "uniq_id"), drop = FALSE]
-  rm(list = "dfm")
+  # rm(list = "dfm")
 
   df <- post_pepscores(df)
   

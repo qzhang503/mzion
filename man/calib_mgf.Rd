@@ -37,7 +37,7 @@ calib_mgf(
   min_len = 7L,
   max_len = 40L,
   max_miss = 2L,
-  prob_co = 1e-10
+  prob_co = 1e-20
 )
 }
 \arguments{

@@ -4,7 +4,13 @@
 \alias{adj_masses1}
 \title{Adjust X values}
 \usage{
-adj_masses1(mgfs, mdiff, is_listmass = TRUE, is_tmt = FALSE)
+adj_masses1(
+  mgfs,
+  mdiff,
+  is_listmass = TRUE,
+  is_tmt = FALSE,
+  cols = c("ms1_mass", "ms1_moverz", "ms2_moverzs")
+)
 }
 \arguments{
 \item{mgfs}{A table of peak lists.}
@@ -14,6 +20,8 @@ adj_masses1(mgfs, mdiff, is_listmass = TRUE, is_tmt = FALSE)
 \item{is_listmass}{Logical; are the X values in list for scalar.}
 
 \item{is_tmt}{Logical; is a TMT experiment or not.}
+
+\item{cols}{The columns for mass adjustment.}
 }
 \description{
 Adjust X values
