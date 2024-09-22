@@ -353,6 +353,20 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
     rm(list = c("di", "lens", "bads"))
   }
 
+  # just in case
+  datalist <- local({
+    ms1_masses <- datalist$ms1_mass
+    lens <- lengths(ms1_masses)
+    bads <- which(lens == 0L)
+    
+    if (length(bads)) {
+      datalist$ms1_mass[bads] <- 
+        lapply(ms1_masses[bads], function (m) m <- NA_real_)
+    }
+    
+    datalist
+  })
+
   datalist <- lapply(datalist, unlist, use.names = FALSE, recursive = FALSE)
   datalist <- dplyr::bind_cols(datalist)
   
@@ -370,6 +384,11 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
   data_ms2 <- data_ms2[seqs, ]
   mgfs <- dplyr::bind_cols(datalist, dataflat, data_ms2)
   
+  # just in case
+  if (length(bads <- which(is.na(mgfs$ms1_mass)))) {
+    mgfs <- mgfs[-bads, ]
+  }
+
   # set aside...
   cols_scan <- c("raw_file", "scan_num", "orig_scan", "apex_scan_num")
   qs::qsave(mgfs[, cols_scan], 

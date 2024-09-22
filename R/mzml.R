@@ -2367,9 +2367,11 @@ getMS2xyz <- function (msx_moverzs = NULL, msx_ints = NULL, topn_ms2ions = 150L,
       offset_lwr = offset_lwr, grad_isotope = grad_isotope, 
       fct_iso2 = fct_iso2)
     
-    msx_moverzs[[i]] <- mic[["masses"]]
-    msx_ints[[i]] <- mic[["intensities"]]
-    msx_charges[[i]] <- mic[["charges"]]
+    if (length(mic[["masses"]])) {
+      msx_moverzs[[i]] <- mic[["masses"]]
+      msx_ints[[i]] <- mic[["intensities"]]
+      msx_charges[[i]] <- mic[["charges"]]
+    }
   }
   
   list(msx_moverzs = msx_moverzs, msx_ints = msx_ints, msx_charges = msx_charges)
