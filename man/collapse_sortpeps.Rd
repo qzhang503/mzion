@@ -4,15 +4,15 @@
 \alias{collapse_sortpeps}
 \title{Helper of \link{map_pepprot}.}
 \usage{
-collapse_sortpeps(mat, ncol = NULL, peps = NULL)
+collapse_sortpeps(Mat, ncol = NULL, peps = NULL)
 }
 \arguments{
-\item{mat}{A dgCMatrix object. Column names are SORTED protein accessions.
+\item{Mat}{A dgCMatrix object. Column names are SORTED protein accessions.
 Rownames are SORTED peptide sequences.}
 
-\item{ncol}{The number of columns in \code{mat}.}
+\item{ncol}{The number of columns in \code{Mat}.}
 
-\item{peps}{Peptide sequences as the row names of \code{mat}.}
+\item{peps}{Peptide sequences as the row names of \code{Mat}.}
 }
 \description{
 Collapses the counts the number of peptide sequences under proteins.

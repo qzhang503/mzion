@@ -1947,15 +1947,14 @@ psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
   }
   
   # Protein groups
-  message("Building protein-peptide maps.")
+  message("Building protein-peptide maps at: ", Sys.time())
   
   len_prots <- length(unique(df$prot_acc))
   
   if (len_prots > max_n_prots && fdr_type != "protein") {
     warning("Large number of proteins at ", len_prots, ".\n", 
             "Coerce to `fdr_type = protein` ",
-            "and save peptide results of tier-2 proteins in `psmT2.txt`.",
-            call. = FALSE)
+            "and save peptide results of tier-2 proteins in `psmT2.txt`.")
     
     fdr_type <- "protein"
     

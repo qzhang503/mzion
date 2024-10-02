@@ -1,6 +1,6 @@
 # $bin_masses.R
-# [1] "bin_ms1masses"      "binTheoSeqs_i"      "binTheoSeqs2"       "bin_theoseqs"       "binTheoSeqs"        "find_ms1_cutpoints"
-# [7] "s_readRDS"          "set_bin_ncores"    
+# [1] "bin_ms1masses"      "binTheoSeqs_i"      "binTheoSeqs2"       "bin_theoseqs"       "binTheoSeqs"       
+# [6] "find_ms1_cutpoints" "s_readRDS"          "set_bin_ncores"    
 # 
 # $deisotope.R
 # [1] "find_ms1stat"      "find_charge_state" "check_chduo"       "is_true"           "find_dbl_z"        "find_lcpeaks"     
@@ -24,8 +24,8 @@
 # [13] "a2ions"          "astarions"       "astar2ions"      "a0ions"          "a02ions"         "x2ions"         
 # 
 # $lfq.R
-# [1] "subMSfull"     "pretraceXY"    "htraceXY"      "traceXY"       "updateMS1Int"  "updateMS1Int2" "traceMS1"     
-# [8] "getMS1Int"    
+# [1] "subMSfull"      "pretraceXY"     "htraceXY"       "traceXY"        "updateMS1Int2"  "find_apex_scan" "traceMS1"      
+# [8] "getMS1Int"     
 # 
 # $mapMS2ions.R
 #  [1] "mapMS2ions"         "plotMS2ions"        "match_mgf_path"     "match_raw_id"       "add_raw_ids"       
@@ -67,13 +67,13 @@
 # [1] "readRAW"                   "proc_raws"                 "exeReadRAW"                "acceptMSFileReaderLicense"
 # 
 # $msmsmatches.R
-#  [1] "matchMS"            "try_psmC2Q"         "reproc_psmC"        "psmC2Q"             "post_psmC2Q"       
-#  [6] "check_tmt_pars"     "checkMGF"           "check_locmods"      "map_raw_n_scan"     "map_raw_n_scan_old"
-# [11] "check_fdr_group"    "check_notches"     
+#  [1] "matchMS"         "try_psmC2Q"      "reproc_psmC"     "psmC2Q"          "post_psmC2Q"     "check_tmt_pars" 
+#  [7] "checkMGF"        "check_locmods"   "map_raw_n_scan"  "check_fdr_group" "check_notches"  
 # 
 # $msmsmatches2.R
 #  [1] "ms2match"              "reverse_peps_in_frame" "reverse_seqs"          "calib_mgf"             "calib_ms1"            
-#  [6] "substract_ms1mass"     "cv_ms1err"             "post_calib"            "find_ms1_offsets"      "comb_ms1_offsets"     
+#  [6] "predCalibMS"           "adj_masses1"           "substract_ms1mass"     "cv_ms1err"             "find_bestfit"         
+# [11] "post_calib"            "find_ms1_offsets"      "comb_ms1_offsets"     
 # 
 # $mzion.R
 # character(0)
@@ -84,8 +84,8 @@
 # [13] "find_ms2ends"      "getMS1xyz"         "getMS2xyz"         "extrDIA"           "hdeisoDIA"         "deisoDIA"         
 # [19] "hsubDIAMS1"        "subDIAMS1"         "htraceDIA"         "traceDIA"          "flattenMSxyz"      "spreadMSohw"      
 # [25] "spreadMS_v1"       "comb_mstraces"     "find_gates"        "find_gate_edges"   "traceLCMS"         "collapse_xyz"     
-# [31] "mapcoll_xyz"       "find_lc_gates"     "fill_lc_gaps"      "collapse_mms1ints" "calc_ms1xys"       "find_mdda_mms1s"  
-# [37] "find_ms1byms2"    
+# [31] "mapcoll_xyz"       "find_lc_gates"     "find_baseline"     "find_lc_gates2"    "find_lc_edges_bp"  "calcAUC"          
+# [37] "fill_lc_gaps"      "collapse_mms1ints" "calc_ms1xys"       "find_mdda_mms1s"   "find_ms1byms2"    
 # 
 # $mztab.R
 # [1] "make_mztab"
@@ -109,17 +109,20 @@
 # character(0)
 # 
 # $scores.R
-#  [1] "add_seions"             "list_leftmatch"         "calc_probi_byvmods"     "calc_probi_bypep"       "calc_probi"            
-#  [6] "scalc_pepprobs"         "calc_pepprobs_i"        "calc_pepscores"         "split_im"               "order_fracs"           
-# [11] "order_fracs3"           "combine_fracs"          "move_scfiles"           "find_decoy"             "find_targets"          
-# [16] "calcpepsc"              "find_iexunv"            "addChim"                "hadd_primatches"        "add_primatches"        
-# [21] "collapse_vecs"          "post_pepscores"         "find_pepscore_co1"      "find_pepscore_co2"      "probco_bypeplen"       
-# [26] "sub_td_byfdrtype"       "find_optlens"           "find_probco_valley"     "prep_pepfdr_td"         "keep_pepfdr_best"      
-# [31] "calc_pepfdr"            "fill_probco_nas"        "find_fdr_fits"          "fill_probs"             "post_pepfdr"           
-# [36] "calc_protfdr"           "aggr_prot_es"           "calc_protfdr_i"         "fit_protfdr"            "  f"                   
-# [41] "find_ppm_outer_bycombi" "match_ex2th2"           "calc_peploc"            "calcpeprank_1"          "calcpeprank_2"         
-# [46] "calcpeprank_3"          "find_bestnotch"         "find_chunkbreaks"       "findLocFracsDF"         "concatFracs"           
-# [51] "na.interp"              "is.constant"            "tsoutliers"             "rm_dup13c"             
+#  [1] "add_seions"             "list_leftmatch"         "calc_probi_byvmods"     "calc_probi_bypep"      
+#  [5] "calc_probi"             "scalc_pepprobs"         "calc_pepprobs_i"        "calc_pepscores"        
+#  [9] "split_im"               "order_fracs"            "order_fracs3"           "combine_fracs"         
+# [13] "move_scfiles"           "find_decoy"             "find_targets"           "calcpepsc"             
+# [17] "find_iexunv"            "addChim"                "hadd_primatches"        "add_primatches"        
+# [21] "collapse_vecs"          "post_pepscores"         "find_pepscore_co1"      "find_pepscore_co2"     
+# [25] "probco_bypeplen"        "sub_td_byfdrtype"       "find_optlens"           "find_probco_valley"    
+# [29] "prep_pepfdr_td"         "keep_pepfdr_best"       "calc_pepfdr"            "fill_probco_nas"       
+# [33] "find_fdr_fits"          "fill_probs"             "post_pepfdr"            "calc_protfdr"          
+# [37] "aggr_prot_es"           "calc_protfdr_i"         "fit_protfdr"            "  f"                   
+# [41] "find_ppm_outer_bycombi" "match_ex2th2"           "calc_peploc"            "calcpeprank_1"         
+# [45] "calcpeprank_2"          "calcpeprank_3"          "find_bestnotch"         "find_chunkbreaks"      
+# [49] "findLocFracsDF"         "concatFracs"            "na.interp"              "is.constant"           
+# [53] "tsoutliers"             "rm_dup13c"             
 # 
 # $silac.R
 # [1] "matchMS_silac_mix"   "matchMS_par_groups"  "add_fixedlab_masses" "matchMS_noenzyme"    "combine_ion_matches"
@@ -144,10 +147,11 @@
 # [41] "bind_dfs"              "find_min_ncores"      
 # 
 # $utils_os.R
-#  [1] "`names_pos<-`"          "ins_cols_after"         "add_cols_at"            "replace_cols_at"        "reloc_col_after"       
-#  [6] "reloc_col_after_last"   "reloc_col_after_first"  "reloc_col_before"       "reloc_col_before_last"  "reloc_col_before_first"
-# [11] "find_preceding_colnm"   "recur_flatten"          "chunksplit"             "chunksplitLB"           "find_dir"              
-# [16] "create_dir"             "save_call2"             "find_callarg_vals"      "match_calltime"         "delete_files"          
+#  [1] "`names_pos<-`"          "ins_cols_after"         "add_cols_at"            "replace_cols_at"       
+#  [5] "reloc_col_after"        "reloc_col_after_last"   "reloc_col_after_first"  "reloc_col_before"      
+#  [9] "reloc_col_before_last"  "reloc_col_before_first" "find_preceding_colnm"   "recur_flatten"         
+# [13] "chunksplit"             "chunksplitLB"           "find_dir"               "create_dir"            
+# [17] "save_call2"             "find_callarg_vals"      "match_calltime"         "delete_files"          
 # [21] "find_ms1_times"         "is_nulllist"            "add_nulllist"          
 # 
 # $utils_ui.R
@@ -159,8 +163,8 @@
 #  [7] "gtools_combn"      "    sub"           "  else sub"        "find_intercombi2" 
 # 
 # $vmod_ms2_labels.R
-# [1] "find_vmodposU"   "find_vmodposM"   "make_ms2vmods"   "find_ms2resids"  "find_perm_sets"  "add_one_permlab" "add_one_label"  
-# [8] "ins_permlab"     "sim_combn"      
+# [1] "find_vmodposU"   "find_vmodposM"   "make_ms2vmods"   "find_ms2resids"  "find_perm_sets"  "add_one_permlab"
+# [7] "add_one_label"   "ins_permlab"     "sim_combn"      
 # 
 # $wrappers.R
 # [1] "my_dist"       "cos_sim"       "matchMS_NES"   "rematchMS_NES"

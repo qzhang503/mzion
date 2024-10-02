@@ -9,9 +9,9 @@ pcollapse_sortpeps(Mat, ncol = NULL, peps = NULL, fct = 4L)
 \arguments{
 \item{Mat}{A sparse matrix.}
 
-\item{ncol}{The number of columns in \code{mat}.}
+\item{ncol}{The number of columns in \code{Mat}.}
 
-\item{peps}{Peptide sequences as the row names of \code{mat}.}
+\item{peps}{Peptide sequences as the row names of \code{Mat}.}
 
 \item{fct}{A factor for data splitting into chunks.}
 }

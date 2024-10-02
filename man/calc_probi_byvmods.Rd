@@ -106,7 +106,7 @@ library(mzion)
 
 ##
 pep <- "YGPQYGHPPPPPPPPDYGPHADSPVLMVYGLDQSK"
-nms <- unlist(stringr::str_split(pep, ""))
+resids <- unlist(stringr::str_split(pep, ""))
 
 theos <- c(393.2335,450.2550,547.3078,675.3663,838.4297,
            895.4511,1032.5100,1129.5628,1226.6156,1323.6683,
@@ -130,15 +130,16 @@ expts <- c(NA,NA,NA,675.36646,838.42981,895.45056,1032.51025,
            NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,
            NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
 
-names(expts) <- names(theos) <- c(nms, rev(nms))
+names(expts) <- names(theos) <- c(resids, rev(resids))
 
 ith <- c(4,5,6,7,36,37,38,39,40,41,42)
 iex <- c(42,57,72,93,20,26,36,44,56,65,96)
 ith <- as.integer(ith)
 iex <- as.integer(iex)
-m <- length(ith)
+m   <- length(ith)
 
 df <- list(theo = theos, expt = expts, ith = ith, iex = iex, m = m)
+rm(list = c("resids", "iex", "ith", "m", "expts", "theos"))
 
 expt_moverzs <- c(126.05530,126.12798,127.12505,127.13139,128.12843,
                   128.13475,129.13177,129.13806,130.13516,130.14140,
@@ -172,11 +173,12 @@ expt_ints <- c(16921,29468,36904,28121,37829,23537,39307,36194,25192,33532,
                30824,12961,26805,31218,36352,49433,40495,31233,40643,18265,
                12316,25125,202241,90877,20903,40353,15008,31908,22554,13634)
 
-mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 10000)
+nms <- paste0(rep_len("0", nchar(pep)), collapse = "")
+ans <- mzion:::calc_probi_byvmods(df, nms, expt_moverzs, expt_ints, topn_ms2ions = length(expt_moverzs))
 
 ## 
 pep <- "LFEEDEREK"
-nms <- unlist(stringr::str_split(pep, ""))
+resids <- unlist(stringr::str_split(pep, ""))
 
 theos <- c(343.2543,490.3227,619.3653,748.4079,863.4348,992.4774,
            1148.5785,1277.6211,1634.8790,376.2757,505.3183,661.4194,
@@ -185,7 +187,7 @@ theos <- c(343.2543,490.3227,619.3653,748.4079,863.4348,992.4774,
 expts <- c(343.25455,490.32318,619.36487,NA,863.43542,NA,NA,
            NA,NA,376.27606,505.31924,NA,NA,NA,NA,NA,NA,NA)
 
-names(expts) <- names(theos) <- c(nms, rev(nms))
+names(expts) <- names(theos) <- c(resids, rev(resids))
 
 ith <- c(1,2,3,5,10,11)
 iex <- c(39,57,73,92,41,59)
@@ -194,6 +196,7 @@ iex <- as.integer(iex)
 m <- length(ith)
 
 df <- list(theo = theos, expt = expts, ith = ith, iex = iex, m = m)
+rm(list = c("resids", "iex", "ith", "m", "expts", "theos"))
 
 expt_moverzs <- c(115.08694,120.08116,126.12807,127.12512,127.13135,
                   128.12845,128.13469,129.13177,129.13800,130.13510,
@@ -227,6 +230,7 @@ expt_ints <- c(8508,28501,194673,190890,160012,223742,147623,260388,198943,16458
                12763,7125,7321,7483,31612,18050,26134,31474,11331,8789,
                8672,65913,25918,17819,34367,15767,15221,14225,7419,7284)
 
-mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 434)
+nms <- paste0(rep_len("0", nchar(pep)), collapse = "")
+ans <- mzion:::calc_probi_byvmods(df, nms, expt_moverzs, expt_ints, topn_ms2ions = length(expt_moverzs))
 }
 }

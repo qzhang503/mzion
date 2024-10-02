@@ -126,7 +126,7 @@ list_leftmatch <- function (a, b)
 #' 
 #' ##
 #' pep <- "YGPQYGHPPPPPPPPDYGPHADSPVLMVYGLDQSK"
-#' nms <- unlist(stringr::str_split(pep, ""))
+#' resids <- unlist(stringr::str_split(pep, ""))
 #' 
 #' theos <- c(393.2335,450.2550,547.3078,675.3663,838.4297,
 #'            895.4511,1032.5100,1129.5628,1226.6156,1323.6683,
@@ -150,15 +150,16 @@ list_leftmatch <- function (a, b)
 #'            NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,
 #'            NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)
 #' 
-#' names(expts) <- names(theos) <- c(nms, rev(nms))
+#' names(expts) <- names(theos) <- c(resids, rev(resids))
 #' 
 #' ith <- c(4,5,6,7,36,37,38,39,40,41,42)
 #' iex <- c(42,57,72,93,20,26,36,44,56,65,96)
 #' ith <- as.integer(ith)
 #' iex <- as.integer(iex)
-#' m <- length(ith)
+#' m   <- length(ith)
 #' 
 #' df <- list(theo = theos, expt = expts, ith = ith, iex = iex, m = m)
+#' rm(list = c("resids", "iex", "ith", "m", "expts", "theos"))
 #' 
 #' expt_moverzs <- c(126.05530,126.12798,127.12505,127.13139,128.12843,
 #'                   128.13475,129.13177,129.13806,130.13516,130.14140,
@@ -192,11 +193,12 @@ list_leftmatch <- function (a, b)
 #'                30824,12961,26805,31218,36352,49433,40495,31233,40643,18265,
 #'                12316,25125,202241,90877,20903,40353,15008,31908,22554,13634)
 #' 
-#' mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 10000)
+#' nms <- paste0(rep_len("0", nchar(pep)), collapse = "")
+#' ans <- mzion:::calc_probi_byvmods(df, nms, expt_moverzs, expt_ints, topn_ms2ions = length(expt_moverzs))
 #' 
 #' ## 
 #' pep <- "LFEEDEREK"
-#' nms <- unlist(stringr::str_split(pep, ""))
+#' resids <- unlist(stringr::str_split(pep, ""))
 #' 
 #' theos <- c(343.2543,490.3227,619.3653,748.4079,863.4348,992.4774,
 #'            1148.5785,1277.6211,1634.8790,376.2757,505.3183,661.4194,
@@ -205,7 +207,7 @@ list_leftmatch <- function (a, b)
 #' expts <- c(343.25455,490.32318,619.36487,NA,863.43542,NA,NA,
 #'            NA,NA,376.27606,505.31924,NA,NA,NA,NA,NA,NA,NA)
 #' 
-#' names(expts) <- names(theos) <- c(nms, rev(nms))
+#' names(expts) <- names(theos) <- c(resids, rev(resids))
 #' 
 #' ith <- c(1,2,3,5,10,11)
 #' iex <- c(39,57,73,92,41,59)
@@ -214,6 +216,7 @@ list_leftmatch <- function (a, b)
 #' m <- length(ith)
 #' 
 #' df <- list(theo = theos, expt = expts, ith = ith, iex = iex, m = m)
+#' rm(list = c("resids", "iex", "ith", "m", "expts", "theos"))
 #' 
 #' expt_moverzs <- c(115.08694,120.08116,126.12807,127.12512,127.13135,
 #'                   128.12845,128.13469,129.13177,129.13800,130.13510,
@@ -247,7 +250,8 @@ list_leftmatch <- function (a, b)
 #'                12763,7125,7321,7483,31612,18050,26134,31474,11331,8789,
 #'                8672,65913,25918,17819,34367,15767,15221,14225,7419,7284)
 #' 
-#' mzion:::calc_probi_byvmods(df, nms = "0000000", expt_moverzs, expt_ints, N = 434)
+#' nms <- paste0(rep_len("0", nchar(pep)), collapse = "")
+#' ans <- mzion:::calc_probi_byvmods(df, nms, expt_moverzs, expt_ints, topn_ms2ions = length(expt_moverzs))
 #' }
 calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges, 
                                 max_len = 40L, N = 20000L, type_ms2ions = "by", 
@@ -261,12 +265,14 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
   # penalize "noise" for high-complexity spectra (short gradient; no fractionation)
   # weighted by mass error; or three-pass search, 0-6, 6-10, 10-20 ppm.
 
-  
   df_theo <- df[["theo"]]
   m <- length(df_theo)
 
   ## df2
   tt2  <- add_seions(df_theo, type_ms2ions = type_ms2ions)
+  df2  <- match_ex2th2(expt_moverzs, tt2, min_ms2mass, d2)
+  ith2 <- df2[["ith"]]
+  iex2 <- df2[["iex"]]
   
   if (FALSE) {
     m2 <- m/2L
@@ -304,10 +310,6 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
     df2_mul <- match_ex2th2(expt_mul, tt2_mul, min_ms2mass, d2)
   }
 
-  df2  <- match_ex2th2(expt_moverzs, tt2, min_ms2mass, d2)
-  ith2 <- df2[["ith"]]
-  iex2 <- df2[["iex"]]
-
   ## 1. int2 (secondary intensities)
   len <- length(df2[["expt"]])
   df2[["int"]] <- rep_len(NA_real_, len)
@@ -317,16 +319,6 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
   int2 <- .Internal(split(df2[["int"]], as.factor(facs)))
   int2 <- Reduce(`%+%`, int2)
   
-  # df2[["int"]]
-  # NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA
-  # NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA
-  # NA     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA  48669 185877  12091   7927     NA  10710     NA
-  # NA     NA   7697     NA     NA     NA     NA     NA     NA     NA     NA  11174   8442     NA     NA     NA     NA     NA
-  # NA  11520     NA     NA     NA     NA     NA     NA     NA     NA     NA     NA  28670     NA     NA     NA     NA     NA
-  # 
-  # int2
-  #  0  11520   7697      0      0      0      0      0      0      0      0  59843 222989  12091   7927      0  10710      0
-
   ## 2. y 
   ith <- df[["ith"]]
   iex <- df[["iex"]]
@@ -335,7 +327,8 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
 
   nudbl <- rep_len(NA_real_, topn_ms2ions)
   nuint <- rep_len(NA_integer_, topn_ms2ions)
-  y <- list(expt = expt_moverzs, int = expt_ints, theo = nudbl, idx = nuint, int2 = nuint)
+  y <- list(expt = expt_moverzs, int = expt_ints, theo = nudbl, idx = nuint, 
+            int2 = nuint)
   y[["theo"]][iex] <- df_theo[ith]
   y[["idx"]][iex] <- ith
   
@@ -376,7 +369,8 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
     y[["int"]][chim] <- .1
   }
   
-  ord_int <- order(y[["int"]], decreasing = TRUE, method = "radix", na.last = TRUE)
+  ord_int <- .Internal(radixsort(na.last = TRUE, decreasing = TRUE, FALSE, TRUE, 
+                                 y[["int"]]))
   y_theo  <- y[["theo"]][ord_int]
   maxi    <- .Internal(which(!is.na(y_theo)))
   maxi    <- maxi[length(maxi)]
@@ -399,7 +393,7 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
   #   burn_ins  - guard against unstable scores
   
   nx <- length(x)
-  n_burns <- max(minn_ms2 - 1L, floor(nx * .66))
+  n_burns  <- max(minn_ms2 - 1L, floor(nx * .66))
   burn_ins <- 1:n_burns # was 2 before
   
   x_  <- x[-burn_ins]
@@ -411,17 +405,8 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
     prs <- stats::dhyper(x = x_, m = m, n = N_, k = k_)
     pr  <- min(prs, na.rm = TRUE)
     
-    # or use the second min, or third min
-    # second_min <- -sort(-prs, partial = nx_ - 1)[nx_ - 1]
-    
-    if (FALSE) {
-      if (nx_ <= 3L) {
-        pr <- prs[nx_]
-      }
-      else {
-        pr  <- min(prs, na.rm = TRUE)
-      }
-    }
+    # mu_ <- k_ * m / N
+    # stats::dnorm(x = x_, mean = mu_, sd = sqrt(mu_))
   }
   else {
     pr <- .5

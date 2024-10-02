@@ -546,39 +546,45 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
   #  2 -GOG8D_HUMAN EEQERLR
   # 11 MNT_HUMAN    EEQERLR
   
-  if (!identical(names(df), c("prot_acc", "pep_seq")))
+  if (!identical(names(df), c("prot_acc", "pep_seq"))) {
     stop("The two columns of `df` need to be in the order of ", "
          \"prot_acc\" and \"pep_seq\".")
-  
-  if (!nrow(df))
+  }
+
+  if (!nrow(df)) {
     stop("Zero row of data for protein groupings.")
-  
+  }
+
   dir.create(file.path(out_path), recursive = TRUE, showWarnings = FALSE)
   
   df <- df[with(df, order(pep_seq)), ]
   
-  if (nrow(df) <= 1L)
-    return(dplyr::mutate(df, 
-                         prot_isess = TRUE,
-                         prot_hit_num = 1L,
-                         prot_family_member = 1L, 
-                         pep_literal_unique = TRUE, 
-                         pep_razor_unique = TRUE))
+  if (nrow(df) <= 1L) {
+    return(dplyr::mutate(
+      df, 
+      prot_isess = TRUE,
+      prot_hit_num = 1L,
+      prot_family_member = 1L, 
+      pep_literal_unique = TRUE, 
+      pep_razor_unique = TRUE))
+  }
 
   ## (1) builds protein ~ peptide map
-  Mats <- map_pepprot(df, out_path = out_path, fct = fct)
+  # Mats <- map_pepprot(df, out_path = out_path, fct = fct)
+  Mats <- map_pepprot2(df)
   message("Completed protein-peptide maps at: ", Sys.time())
   
-  Mat_upr_left <- Mats$upr_left
-  Mat_lwr_left <- Mats$lwr_left
+  Mat_upr_left  <- Mats$upr_left
+  Mat_lwr_left  <- Mats$lwr_left
   Mat_lwr_right <- Mats$lwr_right
   
   peps_shared <- rownames(Mat_upr_left)
   prots_upr_right <- colnames(Mat_lwr_right)
   # peps_unique <- rownames(Mat_lwr_left)
   
-  if (is.null(Mat_lwr_right))
+  if (is.null(Mat_lwr_right)) {
     Mat_upr_right <- NULL
+  }
   else {
     # works for zero-column matrix
     Mat_upr_right <- Matrix::sparseMatrix(
@@ -589,10 +595,8 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
     rownames(Mat_upr_right) <- peps_shared
   }
   
-  # Empty `Mat_upr_left` is a zero-row data.frame, not NULL
-
   rm(list = c("Mats"))
-  gc()
+  # gc()
   
   # Mat_left (`Mat_upr_left` + `Mat_lwr_left`)
   # - `Mat_upr_left`
@@ -615,69 +619,68 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
   # each row in cbind(Mat_lwr_left, Mat_lwr_right) has only one "1"
   #   -> Mat_lwr_left does not affect logical distance of 0/1
   
-  # need to handle ncol(Mat_upr_left) == 0?
-  
-  if (nrow(Mat_upr_left)) {
-    prot_grps <- local({
-      grps_1 <- cut_proteinGroups(Mat_upr_left, out_path)
-      gc()
-      
-      max <- max(grps_1$prot_hit_num, na.rm = TRUE)
-      idxes <- seq_along(prots_upr_right) + max
-      
-      if (is.null(prots_upr_right) || !length(prots_upr_right))
-        grps_2 <- NULL
-      else 
-        grps_2 <- data.frame(prot_acc = prots_upr_right, 
-                             prot_hit_num = idxes, 
-                             prot_family_member = 1L)
+  if (isTRUE(nrow(Mat_upr_left) > 0L) && isTRUE(ncol(Mat_upr_left) > 0L)) {
+    grps_1 <- cut_proteinGroups(Mat_upr_left, out_path)
+    maxid  <- max(grps_1$prot_hit_num, na.rm = TRUE)
+    # gc()
 
-      rbind2(grps_1, grps_2)
-    })
+    if (is.null(prots_upr_right) || !length(prots_upr_right)) {
+      grps_2 <- NULL
+    }
+    else {
+      grps_2 <- data.frame(
+        prot_acc = prots_upr_right, 
+        prot_hit_num = seq_along(prots_upr_right) + maxid, 
+        prot_family_member = 1L)
+    }
+    
+    prot_grps <- rbind2(grps_1, grps_2)
+    rm(list = c("grps_1", "grps_2", "maxid"))
   }
   else {
     # no shared peptides
-    prot_grps <- data.frame(prot_acc = prots_upr_right, 
-                            prot_hit_num = seq_along(prots_upr_right), 
-                            prot_family_member = 1L)
+    prot_grps <- data.frame(
+      prot_acc = prots_upr_right, 
+      prot_hit_num = seq_along(prots_upr_right), 
+      prot_family_member = 1L)
   }
   message("Completed protein grouping at: ", Sys.time())
 
   ## (3) finds essential protein entries
-  ess_prots <- local({
-    if (is.null(Mat_lwr_left))
-      df_shared <- greedysetcover3(Mat_upr_left)
-    else {
-      # unique peptides of proteins with shared peptides
-      rows_lwr_left_is_one <- Matrix::rowSums(Mat_lwr_left) > 0
-      Mat_lwr_left_is_one <- Mat_lwr_left[rows_lwr_left_is_one, , drop = FALSE]
-      
-      # set covers of shared + unique peptides under shared proteins
-      df_shared <- greedysetcover3(rbind2(Mat_upr_left, Mat_lwr_left_is_one))
-      gc()
-    }
-
-    # proteins with exclusive unique peptides
-    df_uniq <- df[, c("prot_acc", "pep_seq")]
-    df_uniq <- df_uniq[df_uniq$prot_acc %in% prots_upr_right, , drop = FALSE]
-    df_uniq <- df_uniq[!duplicated.data.frame(df_uniq), , drop = FALSE]
-    df_uniq <- df_uniq[with(df_uniq, order(prot_acc, pep_seq)), , drop = FALSE]
+  if (is.null(Mat_lwr_left)) {
+    df_shared <- greedysetcover3(Mat_upr_left)
+  }
+  else {
+    # unique peptides of proteins with shared peptides
+    rows_lwr_left_is_one <- Matrix::rowSums(Mat_lwr_left) > 0
+    Mat_lwr_left_is_one  <- Mat_lwr_left[rows_lwr_left_is_one, , drop = FALSE]
     
-    sets <- rbind2(df_shared, df_uniq)
-    
-    if (!is.null(out_path)) {
-      qs::qsave(sets, file.path(out_path, out_name), preset = "fast")
-    }
-
-    unique(sets$prot_acc)
-  })
+    # set covers of shared + unique peptides under shared proteins
+    df_shared <- greedysetcover3(rbind2(Mat_upr_left, Mat_lwr_left_is_one))
+    rm(list = c("rows_lwr_left_is_one", "Mat_lwr_left_is_one"))
+    # gc()
+  }
+  
+  # proteins contains only unique peptides (no shared peptides)
+  df_uniq <- df[, c("prot_acc", "pep_seq")]
+  df_uniq <- df_uniq[df_uniq$prot_acc %in% prots_upr_right, , drop = FALSE]
+  df_uniq <- df_uniq[!duplicated.data.frame(df_uniq), , drop = FALSE]
+  df_uniq <- df_uniq[with(df_uniq, order(prot_acc, pep_seq)), , drop = FALSE]
+  
+  sets <- rbind2(df_shared, df_uniq)
+  
+  if (!is.null(out_path)) {
+    qs::qsave(sets, file.path(out_path, out_name), preset = "fast")
+  }
+  
+  ess_prots <- unique(sets$prot_acc)
   message("Established essential proteins at: ", Sys.time())
 
   ## Parses literal or razor uniqueness of peptides
   # sets aside df0
-  df <- dplyr::mutate(df, prot_isess = prot_acc %in% ess_prots)
+  df  <- dplyr::mutate(df, prot_isess = prot_acc %in% ess_prots)
   df0 <- dplyr::filter(df, !prot_isess)
-  df <- dplyr::filter(df, prot_isess)
+  df  <- dplyr::filter(df,  prot_isess)
   gc()
   
   # combines four quadrants
@@ -690,28 +693,27 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
               "Mat_lwr_left", "Mat_lwr_right"))
   gc()
   
-  M4_ess <- if (nrow(M4) == 1L) 
+  M4_ess <- if (nrow(M4) == 1L) {
     M4
-  else 
+  }
+  else {
     M4[, colnames(M4) %in% ess_prots, drop = FALSE]
+  }
+
+  # literal: unique in M4; razor: unique in M4_ess
+  rsums  <- Matrix::rowSums(M4)
+  rsums2 <- Matrix::rowSums(M4_ess)
   
-  # literal: unique in M4
-  # razor: unique in M4_ess
-  peps_uniq <- local({
-    rsums <- Matrix::rowSums(M4)
-    rsums2 <- Matrix::rowSums(M4_ess)
-    
-    peps <- data.frame(pep_seq = rownames(M4)) |>
-      dplyr::mutate(pep_literal_unique = (rsums == 1L)) |>
-      dplyr::mutate(pep_razor_unique = (rsums2 == 1L))
-  })
+  peps_uniq <- data.frame(pep_seq = rownames(M4)) |>
+    dplyr::mutate(pep_literal_unique = (rsums  == 1L)) |>
+    dplyr::mutate(pep_razor_unique   = (rsums2 == 1L))
   
-  rm(list = c("M4", "M4_ess"))
-  gc()
+  rm(list = c("M4", "M4_ess", "rsums", "rsums2"))
+  # gc()
   message("Parsed unique versus shared peptides.")
   
   df0 <- df0 |>
-    dplyr::mutate(prot_hit_num = NA, prot_family_member = NA)
+    dplyr::mutate(prot_hit_num = NA_integer_, prot_family_member = NA_integer_)
   
   df <- df |>
     dplyr::left_join(prot_grps, by = "prot_acc") |>
@@ -719,6 +721,105 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
     dplyr::left_join(peps_uniq, by = "pep_seq")
 
   invisible(df)
+}
+
+
+#' Helper of \link{groupProts}.
+#'
+#' Builds the logical map between peptide (in rows) and proteins (in columns).
+#'
+#' The \code{lwr_left} and \code{lwr_right} can be NULL with early exit or
+#' "empty" sparse matrix with end return. Maybe uniform later to "empty" matrix.
+#'
+#' @param df The data frame from upstream steps. It must contains the two
+#'   columns of \code{prot_acc} and \code{pep_seq}. It should be TRUE that
+#'   \code{df} is identical to \code{unique(df)}.
+#' @examples
+#' \donttest{
+#' library(mzion)
+#' 
+#' df <- data.frame(prot_acc = character(2000), pep_seq = character(2000))
+#' set.seed(100)
+#' df$prot_acc <- sample(LETTERS[1:20], 2000, replace = TRUE)
+#' df$pep_seq <- sample(letters[1:26], 20, replace = TRUE)
+#' df <- df[!duplicated(df), ]
+#'
+#' out <- mzion:::map_pepprot2(df)
+#'
+#' # One peptide, multiple proteins
+#' df <- data.frame(prot_acc = LETTERS[1:3], pep_seq = rep("X", 3))
+#' out <- mzion:::map_pepprot2(df)
+#' stopifnot(rownames(out[[1]]) == "X", colnames(out[[1]]) == LETTERS[1:3])
+#'
+#' # One peptide, one proteins
+#' df <- data.frame(prot_acc = "A", pep_seq = "X")
+#' out <- mzion:::map_pepprot2(df)
+#' stopifnot(rownames(out[[1]]) == "X", colnames(out[[1]]) == "A")
+#'
+#' # One proteins
+#' df <- data.frame(prot_acc = rep("A", 3), pep_seq = LETTERS[24:26])
+#' out <- mzion:::map_pepprot2(df)
+#' stopifnot(rownames(out[[1]]) == LETTERS[24:26], colnames(out[[1]]) == "A")
+#' }
+map_pepprot2 <- function (df) 
+{
+  # df <- df[!duplicated.data.frame(df), ] # should have no duplicated entries
+  df <- df[with(df, order(pep_seq, prot_acc)), ]
+  peps <- df$pep_seq
+  
+  # (one peptide, ONE protein)
+  if (length(peps) == 1L) {
+    out <- matrix(1)
+    colnames(out) <- df$prot_acc
+    rownames(out) <- peps
+    Mat <- Matrix::Matrix(out, sparse = TRUE)
+    
+    return(list(upr_left = Mat, lwr_left = NULL, lwr_right = NULL))
+  }
+  
+  # (One protein, multiple peptides)
+  uprots <- unique(df$prot_acc)
+  
+  if (length(uprots) == 1L) {
+    Mat <- Matrix::Matrix(matrix(rep_len(1L, length(peps))), sparse = TRUE)
+    colnames(Mat) <- uprots
+    rownames(Mat) <- peps
+    
+    return(list(upr_left = Mat, lwr_left = NULL, lwr_right = NULL))
+  }
+  
+  ## Separates into M0 and M1
+  upeps <- unique(peps)
+  M <- Matrix::sparseMatrix(dims = c(length(upeps), length(uprots)), i={}, j={})
+  colnames(M) <- uprots
+  rownames(M) <- upeps
+  
+  pep_rows  <- fastmatch::fmatch(peps, upeps)
+  # identical(pep_rows, sort(pep_rows))
+  prot_cols   <- split(fastmatch::fmatch(df$prot_acc, uprots), pep_rows)
+  
+  for (i in seq_along(prot_cols)) {
+    M[i, prot_cols[[i]]] <- TRUE
+  }
+  
+  lens <- lengths(prot_cols)
+  oks  <- lens == 1L
+  M0 <- M[ oks, , drop = FALSE]
+  M1 <- M[!oks, , drop = FALSE]
+  # rm(list = c("lens", "oks", "M"))
+  
+  oks2 <- Matrix::colSums(M1) > 0
+  M_ul <- M1[, oks2, drop = FALSE]
+  M_ll <- M0[, oks2, drop = FALSE]
+  M_lr <- M0[, !oks2, drop = FALSE]
+  
+  if (!ncol(M_ul) || !nrow(M_ul)) {
+    M_ul <- NULL
+  }
+  
+  list(upr_left = M_ul, 
+       lwr_left = M_ll, 
+       lwr_right = M_lr)
 }
 
 
@@ -782,16 +883,16 @@ map_pepprot <- function (df, out_path = NULL, fct = 4L)
   # 2 B       TRUE  FALSE
   # 3 C       FALSE TRUE
   
-  if (!identical(names(df), c("prot_acc", "pep_seq")))
+  if (!identical(names(df), c("prot_acc", "pep_seq"))) {
     stop("The two columns of `df` need to be in the order of ", "
          \"prot_acc\" and \"pep_seq\".")
-  
+  }
+
   # FIRST ordered by `pep_seq`, SECOND by `prot_acc` 
   # (for continuity of the same `pep_seq`)
   
   # df <- df[!duplicated.data.frame(df), ] # should not contain duplicated entries
   df <- df[with(df, order(pep_seq, prot_acc)), ]
-
   peps <- df$pep_seq
 
   # (one peptide, ONE protein)
@@ -805,18 +906,18 @@ map_pepprot <- function (df, out_path = NULL, fct = 4L)
   }
 
   ## Separates into Mat0 and Mat1
-  uniq_prots <- unique(df$prot_acc)
-  
   # (One protein, multiple peptides)
-  if (length(uniq_prots) == 1L) {
-    Mat <- Matrix::Matrix(matrix(rep(1L, length(peps))), sparse = TRUE)
-    colnames(Mat) <- uniq_prots
+  uprots <- unique(df$prot_acc)
+  if (length(uprots) == 1L) {
+    Mat <- Matrix::Matrix(matrix(rep_len(1L, length(peps))), sparse = TRUE)
+    colnames(Mat) <- uprots
     rownames(Mat) <- peps
     
     return(list(upr_left = Mat, lwr_left = NULL, lwr_right = NULL))
   }
+  rm(list = "uprots")
   
-  Mat <- Matrix::sparse.model.matrix(~ -1 + prot_acc, df)
+  Mat   <- Matrix::sparse.model.matrix(~ -1 + prot_acc, df)
   prots <- stringi::stri_replace_first_fixed(colnames(Mat), "prot_acc", "")
   colnames(Mat) <- prots
   
@@ -824,11 +925,10 @@ map_pepprot <- function (df, out_path = NULL, fct = 4L)
   rownames(Mat) <- peps
   gc()
   
-  dpeps <- peps[duplicated.default(peps)]
+  dpeps <- unique(peps[duplicated.default(peps)])
   drows <- peps %in% dpeps
   Mat0  <- Mat[!drows, , drop = FALSE]
   Mat1  <- Mat[drows, , drop = FALSE]
-
   rm(list = c("dpeps", "drows", "Mat", "peps"))
   gc()
   
@@ -836,7 +936,6 @@ map_pepprot <- function (df, out_path = NULL, fct = 4L)
   ncol  <- as.numeric(ncol(Mat1))
   peps1 <- rownames(Mat1)
   vec   <- pcollapse_sortpeps(Mat = Mat1, ncol = ncol, peps = peps1, fct = fct)
-  
   rm(list = c("Mat1"))
   gc()
 
@@ -852,45 +951,44 @@ map_pepprot <- function (df, out_path = NULL, fct = 4L)
     n_chunks <- ceiling(n_upeps/rows_per_chunk)
 
     out <- NULL
-    
     for (i in 1:n_chunks) {
-      start <- size_chunk*(i-1)+1
-      end <- min(llen, size_chunk*i)
+      start <- size_chunk * (i - 1) + 1
+      end <- min(llen, size_chunk * i)
       
       vsub <- vec[start:end]
       msub <- Matrix::Matrix(vsub, ncol = ncol, byrow = TRUE, sparse = TRUE)
       out <- rbind2(out, msub)
       
-      rm(list = c("vsub", "msub", "start", "end"))
-      gc()
+      # rm(list = c("vsub", "msub", "start", "end"))
+      # gc()
     }
     
     rm(list = c("rows_per_chunk", "size_chunk", "n_chunks"))
   } 
   else {
-    out <- Matrix::Matrix(vec, ncol = ncol, byrow = TRUE, sparse = TRUE)
+    Out <- Matrix::Matrix(vec, ncol = ncol, byrow = TRUE, sparse = TRUE)
   }
   
   rm(list = c("vec"))
   gc()
 
-  colnames(out) <- prots
-  rownames(out) <- upeps
+  colnames(Out) <- prots
+  rownames(Out) <- upeps
   gc()
 
   ## To logical sparse matrix
-  out <- out == 1L
+  Out <- Out == 1L
   gc()
 
   ## Cleans up
-  cols_1 <- Matrix::colSums(out) > 0
-  upr_left <- out[, cols_1, drop = FALSE]
-  lwr_left <- Mat0[, cols_1, drop = FALSE]
+  cols_1 <- Matrix::colSums(Out) > 0
+  upr_left  <- Out[, cols_1, drop = FALSE]
+  lwr_left  <- Mat0[, cols_1, drop = FALSE]
   lwr_right <- Mat0[, !cols_1, drop = FALSE]
 
-  invisible(list(upr_left = upr_left, 
-                 lwr_left = lwr_left, 
-                 lwr_right = lwr_right))
+  list(upr_left = upr_left, 
+       lwr_left = lwr_left, 
+       lwr_right = lwr_right)
 }
 
 
@@ -901,28 +999,29 @@ map_pepprot <- function (df, out_path = NULL, fct = 4L)
 #' The row names in the input matrix need to be \emph{sorted}. The output is a
 #' vector and will be later wrapped into a sparse matrix.
 #'
-#' @param mat A dgCMatrix object. Column names are SORTED protein accessions.
+#' @param Mat A dgCMatrix object. Column names are SORTED protein accessions.
 #'   Rownames are SORTED peptide sequences.
-#' @param ncol The number of columns in \code{mat}.
-#' @param peps Peptide sequences as the row names of \code{mat}.
-collapse_sortpeps <- function (mat, ncol = NULL, peps = NULL) 
+#' @param ncol The number of columns in \code{Mat}.
+#' @param peps Peptide sequences as the row names of \code{Mat}.
+collapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL) 
 {
-  if (is.null(peps)) 
-    peps <- rownames(mat)
+  if (is.null(peps)) {
+    peps <- rownames(Mat)
+  }
   
-  if (is.null(ncol))
-    ncol <- as.numeric(ncol(mat))
-
+  if (is.null(ncol)) {
+    ncol <- as.numeric(ncol(Mat))
+  }
+  
   # !!! `peps` must be SORTED !!!
-
+  
   cts <- cumsum(table(peps))
   llen <- as.numeric(length(cts)) * ncol
   
   rm(list = c("peps"))
   gc()
-
-  out <- rep.int(0L, llen)
   
+  out <- rep.int(0L, llen)
   start <- 1
   end <- ncol
   
@@ -933,7 +1032,7 @@ collapse_sortpeps <- function (mat, ncol = NULL, peps = NULL)
     r1 <- r2 + 1
     r2 <- cts[i]
     
-    out[start:end] <- Matrix::colSums(mat[r1:r2, ])
+    out[start:end] <- Matrix::colSums(Mat[r1:r2, ])
     
     start <- start + ncol
     end <- end + ncol
@@ -941,9 +1040,9 @@ collapse_sortpeps <- function (mat, ncol = NULL, peps = NULL)
     if (i %% 100 == 0) gc()
   }
   
-  rm(list = c("mat"))
-  gc()
-
+  # rm(list = c("Mat"))
+  # gc()
+  
   invisible(out)
 }
 
@@ -957,19 +1056,18 @@ collapse_sortpeps <- function (mat, ncol = NULL, peps = NULL)
 #' @inheritParams collapse_sortpeps
 pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, fct = 4L) 
 {
-  if (is.null(peps)) 
+  if (is.null(peps)) {
     peps <- rownames(Mat)
-  
-  if (is.null(ncol))
+  }
+
+  if (is.null(ncol)) {
     ncol <- as.numeric(ncol(Mat))
-  
-  size <- local({
-    dim <- dim(Mat)
-    as.numeric(dim[1]) * as.numeric(dim[2])
-  })
-  
+  }
+
+  dim  <- dim(Mat)
+  size <- as.numeric(dim[1]) * as.numeric(dim[2])
   n_cores <- detect_cores(16L)
-  n_cores <- min(n_cores, floor(n_cores * 7E9 /size))
+  n_cores <- min(n_cores, floor(n_cores * 7E9 / size))
 
   # !!! `peps` must be SORTED !!!
 
@@ -977,9 +1075,10 @@ pcollapse_sortpeps <- function (Mat, ncol = NULL, peps = NULL, fct = 4L)
     vec <- collapse_sortpeps(Mat, ncol, peps)
   }
   else {
-    if (is.null(peps)) 
+    if (is.null(peps)) {
       peps <- rownames(Mat)
-    
+    }
+
     Mats <- 
       lapply(find_group_breaks(peps, n_cores * fct), function (x) Mat[x, ])
 
@@ -1050,9 +1149,10 @@ find_group_breaks <- function (vec, fold = 5L, by_rngs = TRUE)
   
   len <- length(vec)
   
-  if (fold <= 1L)
+  if (fold <= 1L) {
     return (if (by_rngs) 1:len else len)
-  
+  }
+
   uv <- unique(vec)
   
   ### A faster bypass; still works without bypassing
@@ -1060,8 +1160,9 @@ find_group_breaks <- function (vec, fold = 5L, by_rngs = TRUE)
     nu <- length(uv)
     
     if (nu == fold) {
-      if (by_rngs)
+      if (by_rngs) {
         return(lapply(uv, function (x) .Internal(which(vec == x))))
+      }
       else {
         ans <- integer(nu)
         
@@ -1081,9 +1182,10 @@ find_group_breaks <- function (vec, fold = 5L, by_rngs = TRUE)
   n  <- length(tv)
   cs <- cumsum(tv)
   
-  if (fold >= n)
+  if (fold >= n) {
     return(if (by_rngs) mapply(`:`, c(1L, cs[1:(n-1L)] + 1L), cs) else cs)
-  
+  }
+
   r <- ceiling(len/fold)
   dif <- r * fold -len
   
@@ -1118,7 +1220,7 @@ find_group_breaks <- function (vec, fold = 5L, by_rngs = TRUE)
 #' @param out_path A file path to outputs.
 cut_proteinGroups <- function (M = NULL, out_path = NULL) 
 {
-  prots <- colnames(M)
+  prots   <- colnames(M)
   n_prots <- length(prots)
   
   if (ncol(M) == 1L) {
@@ -1127,7 +1229,7 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
     rownames(D) <- prots
   } 
   else {
-    D <- proxyC::simil(M, margin = 2) # dsTMatrix
+    D <- proxyC::simil(M, margin = 2) # dsTMatrix; 0 - no shared peptides
   }
   
   rm(list = c("M"))
@@ -1179,12 +1281,7 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
   # Diagonal values are `FALSE`
   # TRUE - orthogonal (without shared peptides)
   # FALSE - with shared peptides
-  # 
-  #             KKA1_ECOLX NP_000005 NP_000007
-  # KKA1_ECOLX      FALSE      TRUE      TRUE
-  # NP_000005        TRUE     FALSE      TRUE
-  # NP_000007        TRUE      TRUE     FALSE
-  
+
   # --- finds protein groups
   d <- as.dist(dm)
   rm(list = "dm")
@@ -1289,31 +1386,36 @@ greedysetcover3 <- function (mat)
     gc()
   }
   
-  if (nrow(mat) == 1L || ncol(mat) == 1L) 
+  if (nrow(mat) == 1L || ncol(mat) == 1L) {
     return(data.frame(prot_acc = colnames(mat), pep_seq = rownames(mat)))
+  }
 
   prot_acc <- NULL
-  pep_seq <- NULL
-  
+  pep_seq  <- NULL
+  rnames   <- rownames(mat)
+
   while(nrow(mat)) {
-    max <- which.max(Matrix::colSums(mat, na.rm = TRUE))
-    
-    if (max == 0L) 
+    max <- .Internal(which.max(Matrix::colSums(mat, na.rm = TRUE)))
+
+    if (max == 0L) {
       break
-    
+    }
+
     prot <- names(max)
-    rows <- which(mat[, max])
+    rows <- .Internal(which(mat[, max]))
     # peps <- names(rows) # name dropped if only one row
-    peps <- rownames(mat)[rows]
+    # peps <- rownames(mat)[rows]
+    peps <- rnames[rows]
     
     prot_acc <- c(prot_acc, rep(prot, length(peps)))
-    pep_seq <- c(pep_seq, peps)
+    pep_seq  <- c(pep_seq, peps)
     
+    rnames <- rnames[-rows]
     mat <- mat[-rows, -max, drop = FALSE]
   }
   
-  rm(list = c("mat"))
-  gc()
+  # rm(list = c("mat"))
+  # gc()
   
   dplyr::bind_cols(prot_acc = prot_acc, pep_seq = pep_seq)
 }
