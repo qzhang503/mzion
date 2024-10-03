@@ -587,12 +587,17 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
   }
   else {
     # works for zero-column matrix
-    Mat_upr_right <- Matrix::sparseMatrix(
-      dims = c(nrow(Mat_upr_left), ncol(Mat_lwr_right)), 
-      i={}, j={}
-    )
-    colnames(Mat_upr_right) <- prots_upr_right
-    rownames(Mat_upr_right) <- peps_shared
+    if (is.null(Mat_upr_left)) {
+      Mat_upr_right <- NULL
+    }
+    else {
+      Mat_upr_right <- Matrix::sparseMatrix(
+        dims = c(nrow(Mat_upr_left), ncol(Mat_lwr_right)), 
+        i={}, j={}
+      )
+      colnames(Mat_upr_right) <- prots_upr_right
+      rownames(Mat_upr_right) <- peps_shared
+    }
   }
   
   rm(list = c("Mats"))

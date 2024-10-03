@@ -311,11 +311,10 @@ hextract_pasef <- function (
 #' Extracts PASEF MS1 data.
 #'
 #' @param mdata A list of \emph{MS1} PASEF frames. Each list entry corresponding
-#'   to one MS1 frame.
+#'   to one MS1 frame. Note that each frame contains multiple mobility slices.
 #' @param keys The key names of output lists.
 extract_pasef_ms1 <- function (mdata, keys)
 {
-  # 10 -> 20 -> 50; 100 too much
   ans1 <- lapply(mdata,  extract_pasef_frame, ms_lev = 1L, ymin = 50)
   ans1 <- ans1[lengths(ans1) > 0L]
   
@@ -404,16 +403,17 @@ extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys, step = 1.6e-5)
                    SIMPLIFY = TRUE, USE.NAMES = FALSE) |>
     as.integer()
   iso_info <- iso_info[with(iso_info, MS2Frame %in% ms2frs), ]
-  iso_info <- split(iso_info, iso_info$MS2Frame) 
+  iso_info <- split(iso_info, iso_info$MS2Frame)
+  fr_names <- names(iso_info)
   
-  if (!identical(as.integer(names(iso_info)), ms2frs)) {
+  if (!identical(as.integer(fr_names), ms2frs)) {
     stop("Developer: mismatches in PASEF frame IDs.")
   }
   
   if (length(ms2data) > length(iso_info)) {
-    ok_frs <- ms2frs %in% names(iso_info)
+    ok_frs  <- ms2frs %in% fr_names
     ms2data <- ms2data[ok_frs]
-    ms2frs <- ms2frs[ok_frs]
+    ms2frs  <- ms2frs[ok_frs]
     rm(list = "ok_frs")
   }
   
@@ -968,7 +968,7 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
 #' @param ms_lev The level of MS data.
 #' @param ymin The cut-off of intensity.
 #' @param ymax The maximum intensity.
-extract_pasef_frame <- function (data, ms_lev = 1L, ymin = 10, ymax = 1E7)
+extract_pasef_frame <- function (data, ms_lev = 1L, ymin = 50, ymax = 1E7)
 {
   len <- length(data) # the number of lines
   

@@ -8,7 +8,7 @@ extract_pasef_ms1(mdata, keys)
 }
 \arguments{
 \item{mdata}{A list of \emph{MS1} PASEF frames. Each list entry corresponding
-to one MS1 frame.}
+to one MS1 frame. Note that each frame contains multiple mobility slices.}
 
 \item{keys}{The key names of output lists.}
 }

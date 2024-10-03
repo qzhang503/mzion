@@ -102,8 +102,9 @@
 # $quant2.R
 #  [1] "hcalc_tmtint"       "calc_tmtint"        "add_rptrs"          "find_int_cols"      "find_reporter_ints"
 #  [6] "find_reporters_ppm" "msub_protpep"       "sub_protpep"        "add_protacc2"       "add_protacc"       
-# [11] "hannot_decoys"      "groupProts"         "map_pepprot"        "collapse_sortpeps"  "pcollapse_sortpeps"
-# [16] "find_group_breaks"  "cut_proteinGroups"  "sparseD_fourquad"   "as_dist"            "greedysetcover3"   
+# [11] "hannot_decoys"      "groupProts"         "map_pepprot2"       "map_pepprot"        "collapse_sortpeps" 
+# [16] "pcollapse_sortpeps" "find_group_breaks"  "cut_proteinGroups"  "sparseD_fourquad"   "as_dist"           
+# [21] "greedysetcover3"   
 # 
 # $roadmaps.R
 # character(0)

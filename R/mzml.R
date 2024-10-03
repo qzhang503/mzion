@@ -95,8 +95,8 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
     peakfiles <- unlist(peakfiles)
   }
   else {
-    # peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.d\\.rds$")
-    peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.raw\\.rds$")
+    peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.d\\.rds$")
+    # peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.raw\\.rds$")
     peakfiles <- peakfiles[!grepl("^predeisoDDA_", peakfiles)]
     is_dia <- FALSE
     mzml_type <- "raw"
