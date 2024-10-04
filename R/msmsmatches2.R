@@ -694,6 +694,7 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
       mapply(function (x, y) x * (1 - y), mgfs[["ms1_moverz"]], preds1)
   }
   else {
+    preds1 <- unlist(preds1, recursive = FALSE, use.names = FALSE)
     mgfs[["ms1_mass"]] <- mgfs[["ms1_mass"]] * (1 - preds1)
     mgfs[["ms1_moverz"]] <- mgfs[["ms1_moverz"]] * (1 - preds1)
   }
@@ -766,8 +767,14 @@ adj_masses1 <- function (mgfs, mdiff, is_listmass = TRUE, is_tmt = FALSE,
   }
   
   for (col in cols) {
-    mgfs[[col]] <- 
-      substract_ms1mass(mgfs[[col]], mdiff, is_listmass)
+    if (col == "ms2_moverzs") {
+      mgfs[[col]] <- 
+        substract_ms1mass(mgfs[[col]], mdiff, is_listmass = TRUE)
+    }
+    else {
+      mgfs[[col]] <- 
+        substract_ms1mass(mgfs[[col]], mdiff, is_listmass = is_listmass)
+    }
   }
 
   if (is_tmt) {

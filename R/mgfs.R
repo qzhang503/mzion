@@ -297,7 +297,7 @@ readMGF <- function (filepath = NULL, filelist = NULL, out_path = NULL,
     warning("No multi-precursor DDA with MGF. Use mzML to enable the feature.")
     maxn_mdda_precurs <- 0L
   }
-
+  
   ## Parsing rules
   pat_mgf <- find_mgf_type(file.path(filepath, filelist[[1]]))
   type_mgf <- pat_mgf$type
@@ -1028,7 +1028,11 @@ proc_mgfs <- function (lines, topn_ms2ions = 150L,
   is_tmt <- if (grepl("^tmt.*\\d+", quant)) TRUE else FALSE
   
   if (deisotope_ms2) {
-    mics <- mapply(find_ms1stat, moverzs = ms2_moverzs, msxints = ms2_ints, 
+    mics <- mapply(find_ms1stat, 
+                   moverzs = ms2_moverzs, 
+                   msxints = ms2_ints, 
+                   n_ms1s  = 
+                     lapply(lengths(ms2_ints), function (n) rep_len(1L, n)), 
                    MoreArgs = list(
                      center = 0, 
                      exclude_reporter_region = is_tmt, 
@@ -1642,6 +1646,14 @@ mprepBrukerMGF <- function (filepath, n_cores = 32L)
   
   files <- list.files(filepath, pattern = "\\.mgf$", full.names = TRUE, 
                       recursive = TRUE)
+  fis  <- basename(files)
+  # chunk_[0-9]+[_bf|_af].mgf
+  bads <- grep("^chunk_.*\\.mgf$|^gaps\\.mgf$", fis)
+  
+  if (length(bads)) {
+    unlink(files[bads])
+    files <- files[-bads]
+  }
   
   len <- length(files)
   
