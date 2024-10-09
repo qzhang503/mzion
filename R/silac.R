@@ -515,9 +515,9 @@ matchMS_ms1calib <- function (...)
   
   out_path <- this_call[["out_path"]]
   mgf_path <- this_call[["mgf_path"]]
-  calib_ms1mass <- this_call[["calib_ms1mass"]]
+  calib_masses <- this_call[["calib_masses"]]
   
-  if (passed_ms1calib <- check_ms1calib(out_path, calib_ms1mass)) {
+  if (passed_ms1calib <- check_ms1calib(out_path, calib_masses)) {
     file <- file.path(mgf_path, "ppm_ms1calib.rds")
     ppm_ms1_calib <- if (file.exists(file)) qs::qread(file) else stop()
     ppm_ms1_af <- ppm_ms1_calib[["ppm_ms1_af"]]
@@ -528,7 +528,7 @@ matchMS_ms1calib <- function (...)
   matchMS(..., 
           ppm_ms1 = ppm_ms1_af, 
           bypass_mgf = TRUE, 
-          calib_ms1mass = FALSE, 
+          calib_masses = FALSE, 
   )
 }
 

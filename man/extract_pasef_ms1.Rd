@@ -4,13 +4,15 @@
 \alias{extract_pasef_ms1}
 \title{Extracts PASEF MS1 data.}
 \usage{
-extract_pasef_ms1(mdata, keys)
+extract_pasef_ms1(mdata, keys, ymin = 50)
 }
 \arguments{
 \item{mdata}{A list of \emph{MS1} PASEF frames. Each list entry corresponding
 to one MS1 frame. Note that each frame contains multiple mobility slices.}
 
 \item{keys}{The key names of output lists.}
+
+\item{ymin}{The minimum MS1 intensity values for considerations.}
 }
 \description{
 Extracts PASEF MS1 data.

@@ -193,7 +193,10 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     .savecall <- FALSE
   } 
   else {
-    # `mgf_quries.rds` kept (only affected by min_mass, max_mass and ppm_ms1)
+    fi_pasef <- list.files(path = out_path, pattern = "^.*\\.d$")
+    paths_excluded <- if (length(fi_pasef)) fi_pasef else NULL
+    
+    # keep `mgf_quries.rds` as only affected by min_mass, max_mass and ppm_ms1
     delete_files(
       out_path, 
       ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", "\\.(raw|RAW)$", 
@@ -201,7 +204,8 @@ calc_pepmasses2 <- function (aa_masses = NULL,
                   "^mgf$", "^mgfs$", "^mzML$", "^mzMLs$", "^raw$", 
                   "Calls", "^PSM$", "^Peptide$", "^Protein$", 
                   "fraction_scheme.rda", "label_scheme.rda", 
-                  "label_scheme_full.rda"))
+                  "label_scheme_full.rda"), 
+      paths_excluded = paths_excluded)
 
     .time_stamp <- format(Sys.time(), ".%Y-%m-%d_%H%M%S")
     path_tstamp <- file.path(.path_fasta, "ms1masses", .time_stamp)
@@ -225,9 +229,9 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     aa_masses_0 <- aa_masses_ms1[[1]]
     aa_masses_1 <- aa_masses_all[[1]]
     
-    ms1vmods_all <- lapply(aa_masses_all, make_ms1vmod_i,
-                           maxn_vmods_per_pep = maxn_vmods_per_pep,
-                           maxn_sites_per_vmod = maxn_sites_per_vmod)
+    ms1vmods_all <- lapply(
+      aa_masses_all, make_ms1vmod_i, maxn_vmods_per_pep = maxn_vmods_per_pep,
+      maxn_sites_per_vmod = maxn_sites_per_vmod)
 
     # Design:
     #   variable modifications, including [NC]-term, were appended in parallel 

@@ -17,14 +17,14 @@ pasefMS1xyz(
   ms1_charges = NULL,
   ms1_ints = NULL,
   maxn_mdda_precurs = 1L,
-  n_mdda_flanks = 6L,
+  n_mdda_flanks = 0L,
   topn_ms2ions = 150L,
   max_ms1_charge = 4L,
   ppm_ms1_deisotope = 8L,
-  min_mass = 115L,
   grad_isotope = 1.6,
   fct_iso2 = 3,
   use_defpeaks = FALSE,
+  min_mass = 115L,
   filename = NULL
 )
 }
@@ -68,10 +68,6 @@ considerations. The default is 6.}
 
 \item{ppm_ms1_deisotope}{Mass error tolerance in MS1 deisotoping.}
 
-\item{min_mass}{A positive integer; the minimum precursor mass for
-interrogation. The default is an arbitrarily low value (the primary guard
-against low molecular-weight precursors is \code{min_len}).}
-
 \item{grad_isotope}{Positive numeric; the gradient threshold between two
 adjacent peaks in an isotopic envelop. The smaller the value, the more
 stringent it is in calling an adjacent peak being a mono-isotopic
@@ -85,6 +81,10 @@ adjacent peak being a mono-isotopic precursor}
 \item{use_defpeaks}{Depreciated. Logical; if TRUE, uses MS1 m-over-z's,
 intensities and charge states pre-calculated by other peak-picking
 algorithms.}
+
+\item{min_mass}{A positive integer; the minimum precursor mass for
+interrogation. The default is an arbitrarily low value (the primary guard
+against low molecular-weight precursors is \code{min_len}).}
 
 \item{filename}{A filename for logging.}
 }

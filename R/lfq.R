@@ -344,6 +344,9 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
       # plot(yi[466:781])
       # plot(xi[466:781])
       
+      # all NA if all yi < yco...
+      # if (all(is.na(yi))) next # doesn't work
+      
       gates <- 
         find_lc_gates(xs = xi, ys = yi, ts = ts, n_dia_scans = n_dia_scans)
       apexes[[i]] <- rows <- gates[["apex"]]

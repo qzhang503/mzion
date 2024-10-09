@@ -4,12 +4,15 @@
 \alias{sum_pasef_ms1}
 \title{Sum peak area}
 \usage{
-sum_pasef_ms1(ys, imax)
+sum_pasef_ms1(ys, imax, grad = 0.667)
 }
 \arguments{
 \item{ys}{A sub vector of intensity values around a peak.}
 
 \item{imax}{The index of the peak position in \code{ys}.}
+
+\item{grad}{A threshold of gradient between two adjacent peaks (more abundant
+over less abundant).}
 }
 \description{
 Sum peak area

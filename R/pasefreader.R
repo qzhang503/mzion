@@ -258,14 +258,15 @@ hextract_pasef <- function (
     as.integer()
   oks1 <- ms_levs == 1L
   oks2 <- .Internal(which(!oks1))
-  
+
   ## MS1 and MS2
-  out1 <- extract_pasef_ms1(mdata = mdata[oks1], keys = keys)
+  out1 <- extract_pasef_ms1(mdata = mdata[oks1], keys = keys, ymin = 50L)
   out1$ms1_fr <- out1$orig_scan
   out2 <- extract_pasef_ms2(ms2data = mdata[oks2], lens2 = lens[oks2], 
-                            iso_info = iso_info, keys = keys, step = step)
-  # out2 <- qs::qread("~/out2_hextract_pasef.rds")
-  # out1 <- qs::qread("~/out1_hextract_pasef.rds")
+                            iso_info = iso_info, keys = keys, ymin = 10L, 
+                            step = step)
+  # out2 <- qs::qread("~/out2_hextract_pasef_i9.rds")
+  # out1 <- qs::qread("~/out1_hextract_pasef_i9.rds")
 
   ## put together
   if (length(out1) == length(out2)) {
@@ -313,33 +314,37 @@ hextract_pasef <- function (
 #' @param mdata A list of \emph{MS1} PASEF frames. Each list entry corresponding
 #'   to one MS1 frame. Note that each frame contains multiple mobility slices.
 #' @param keys The key names of output lists.
-extract_pasef_ms1 <- function (mdata, keys)
+#' @param ymin The minimum MS1 intensity values for considerations.
+extract_pasef_ms1 <- function (mdata, keys, ymin = 50)
 {
-  ans1 <- lapply(mdata,  extract_pasef_frame, ms_lev = 1L, ymin = 50)
+  ans1 <- lapply(mdata,  extract_pasef_frame, ms_lev = 1L, ymin = ymin)
   ans1 <- ans1[lengths(ans1) > 0L]
   
   if (FALSE) {
-    # qs::qsave(ans1, "~/ans1_extract_pasef_ms1.rds", preset = "fast")
-    ans1 <- qs::qread("~/ans1_extract_pasef_ms1.rds")
     scans <- sapply(ans1, `[[`, "scan_num")
-    # i <- which(scans == 9920)
-    i <- which(scans == 9915) # i <- 114
+    # i <- which(scans == 9915) # i <- 114
+    i <- which(scans == 18203L) # i <- 82
     ai <- ans1[[i]]
     df <- data.frame(x = ai$msx_moverzs, y = ai$msx_ints)
-    dfx <- df |> dplyr::filter(x >= 926, x <= 928)
+    dfx <- df |> dplyr::filter(x >= 807.5, x <= 808.5)
     ggplot2::ggplot() + 
       ggplot2::geom_segment(dfx, mapping = aes(x = x, y = y, xend = x, yend = 0), 
                             color = "gray", linewidth = .1)
-    
-    tempdata1 <- centroid_pasefms(ai$msx_moverzs, ai$msx_ints)
+    tempdata1 <- centroid_pasefms1(
+      xs = ai$msx_moverzs, ys = ai$msx_ints, reso = 60000, maxn = 2000L, 
+      ymin = 50L, grad = .667, fct_reso = 1.5, ms_lev = 1L, 
+      tol = .10)
     df <- data.frame(x = tempdata1$x, y = tempdata1$y)
-    dfx <- df |> dplyr::filter(x >= 460, x <= 463)
+    dfx <- df |> dplyr::filter(x >= 807.5, x <= 808.5)
   }
 
   for (i in seq_along(ans1)) {
     ai <- ans1[[i]]
     # may use weighted-mean... 
-    tempdata1 <- centroid_pasefms(ai$msx_moverzs, ai$msx_ints)
+    tempdata1 <- centroid_pasefms1(
+      xs = ai$msx_moverzs, ys = ai$msx_ints, reso = 60000, maxn = 2000L, 
+      ymin = ymin, grad = .667, fct_reso = 1.5, ms_lev = 1L, 
+      tol = .10)
     ans1[[i]]$msx_moverzs <- tempdata1[["x"]]
     ans1[[i]]$msx_ints <- tempdata1[["y"]]
   }
@@ -395,8 +400,10 @@ extract_pasef_ms1 <- function (mdata, keys)
 #' @param lens2 The number of lines in each MS2 frame.
 #' @param iso_info The information of MS2 isolation windows etc.
 #' @param keys The key names of output lists.
+#' @param ymin The minimum intensity values for considerations.
 #' @param step A step size for mass binning.
-extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys, step = 1.6e-5)
+extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys, ymin = 10, 
+                               step = 1.6e-5)
 {
   # (1) pair MS2 data with `iso_info` by FRAME
   ms2frs <- mapply(function (x, n) x[n - 7L], ms2data, lens2, 
@@ -420,7 +427,8 @@ extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys, step = 1.6e-5)
   # each entry corresponds to one frame (multiple slices in each frame)
   if (FALSE) {
     rng <- 1149:1158
-    ans2 <- mapply(add_pasef_ms2iso, ms2data[rng], iso_info[rng])
+    ans2 <- lapply(ms2data[rng], extract_pasef_frame, ms_lev = 2L, ymin = ymin)
+    ans2 <- mapply(add_pasef_ms2iso, ans2, iso_info[rng])
     ans2 <- unlist(ans2, recursive = FALSE, use.names = FALSE)
     precursors <- lapply(ans2, `[[`, "precursor") |>
       unlist(recursive = FALSE, use.names = FALSE)
@@ -430,7 +438,10 @@ extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys, step = 1.6e-5)
     z <- group_ms2pasef_by_precursors(z2)
   }
   
-  ans2 <- mapply(add_pasef_ms2iso, ms2data, iso_info)
+  ans2 <- lapply(ms2data, extract_pasef_frame, ms_lev = 2L, ymin = ymin)
+  ans2 <- mapply(add_pasef_ms2iso, ans2, iso_info)
+  # ans2 <- mapply(add_pasef_ms2iso, ms2data, iso_info)
+  
   ans2 <- ans2[lengths(ans2) > 0L]
   # flattens the slices in each frame
   ans2 <- unlist(ans2, recursive = FALSE, use.names = FALSE)
@@ -438,9 +449,50 @@ extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys, step = 1.6e-5)
   ## (2) group MS2 slices by precursors
   precursors <- lapply(ans2, `[[`, "precursor") |>
     unlist(recursive = FALSE, use.names = FALSE)
+  
+  if (FALSE) {
+    ax2 <- split(ans2, precursors)
+    ai2 <- ax2[[which(names(ax2) == "89235")]] # 89235: precursor ID
+    z <- group_ms2pasef_by_precursors(ai2, step = 1.6e-5)
+
+    a <- centroid_pasefms2(
+      xs = z$msx_moverzs, ys = z$msx_ints, reso = 30000, maxn = 500L, 
+      ymin = 10, grad = .25, fct_reso = 1.25, ms_lev = 2L, keep_ohw = TRUE, 
+      tol = .1)
+    dfa <- data.frame(x = a$x, y = a$y)
+    dfa |>
+      dplyr::filter(x >= 690, x <= 699) |>
+      ggplot2::ggplot() + 
+      ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
+                            color = "gray", linewidth = .1)
+    
+    dfx <- data.frame(x = z$msx_moverzs, y = z$msx_ints)
+    dfx |>
+      dplyr::filter(x >= 988.8, x <= 989.0) |>
+      ggplot2::ggplot() + 
+      ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
+                            color = "gray", linewidth = .1)
+  }
+  
   ans2 <- lapply(split(ans2, precursors), group_ms2pasef_by_precursors, 
                  step = step)
   
+  # collapse MS2
+  for (i in seq_along(ans2)) {
+    ai <- ans2[[i]]
+    
+    ax <- centroid_pasefms2(
+      xs = ai$msx_moverzs, ys = ai$msx_ints, reso = 30000, maxn = 500L, 
+      ymin = ymin, grad = .25, fct_reso = 1.25, ms_lev = 2L, keep_ohw = TRUE, 
+      tol = .1)
+    
+    ans2[[i]]$msx_moverzs <- ax$x
+    ans2[[i]]$msx_ints <- ax$y
+    ans2[[i]]$msx_ns <- length(ax$y)
+  }
+  rm(list = c("ai", "ax"))
+
+  # outputs
   nms2 <- names(ans2[[1]])
   out2 <- vector("list", length(nms2))
   
@@ -490,6 +542,124 @@ extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys, step = 1.6e-5)
 }
 
 
+#' Sum peak area
+#'
+#' @param ys A sub vector of intensity values around a peak.
+#' @param imax The index of the peak position in \code{ys}.
+#' @param grad A threshold of gradient between two adjacent peaks (more abundant
+#'   over less abundant).
+sum_pasef_ms1 <- function (ys, imax, grad = .667)
+{
+  len <- length(ys)
+
+  if (len == 1L) {
+    return(ys)
+  }
+  
+  # not quite for MS2, but perhaps not matter much if an MS2 only has two peaks
+  if (len == 2L) {
+    return(sum(ys))
+  }
+  
+  yval <- ys[[imax]]
+
+  if (imax < len) {
+    pr1  <- imax + 1L
+    yr1  <- ys[pr1]
+    yval <- yval + yr1
+    
+    if (pr1 < len) {
+      for (j in (pr1 + 1L):len) {
+        yr2 <- ys[[j]]
+        
+        if (yr1 / yr2 >= grad) { # || yr2 <= 100
+          yval <- yval + yr2
+          yr1  <- yr2
+        }
+        else {
+          d    <- yr1 * grad
+          yval <- yval + d
+          yr1  <- yr2 - d
+        }
+      }
+    }
+  }
+
+  if (imax > 1L) {
+    pl1  <- imax - 1L
+    yl1  <- ys[[pl1]]
+    yval <- yval + yl1
+    
+    if (pl1 > 1L) {
+      for (j in (pl1 - 1L):1) {
+        yl2 <- ys[[j]]
+        
+        if (yl1 / yl2 >= grad) { # || yl2 <= 100
+          yval <- yval + yl2
+          yl1  <- yl2
+        }
+        else {
+          d    <- yl1 * grad
+          yval <- yval + d
+          yl1  <- yl2 - d
+        }
+      }
+    }
+  }
+
+  as.integer(yval)
+}
+
+
+#' Specialty summing of monotonically decreased or increased intensities.
+#' 
+#' @param xs A vector of moverz values
+#' @param ys A vector of intensity values.
+#' @param reso2 Adjusted resolution.
+#' @param down Logical; are the \code{ys} monotonically decreased or not.
+sum_mono_yints <- function (xs, ys, reso2 = 24000, down = TRUE)
+{
+  len <- length(ys)
+  
+  if (!len) {
+    return(NULL)
+  }
+  
+  xout <- yout <- NULL
+  
+  while (len) {
+    if (len == 1L) {
+      xout <- c(xout, xs)
+      yout <- c(yout, ys)
+      break
+    }
+    
+    if (down) {
+      x   <- xs[[1]]
+      oks <- .Internal(which(xs <= x + x / reso2))
+    }
+    else {
+      x   <- xs[[len]]
+      oks <- .Internal(which(xs >= x - x / reso2))
+    }
+    
+    xout <- c(xout, x)
+    yout <- c(yout, sum(ys[oks]))
+    xs   <- xs[-oks]
+    ys   <- ys[-oks]
+    len  <- length(ys)
+  }
+  
+  if (down) {
+    list(x = xout, y = yout)
+  }
+  else {
+    rng <- length(yout):1
+    list(x = xout[rng], y = yout[rng])
+  }
+}
+
+
 #' Sum PASEF MS1 peak area
 #' 
 #' @param xs A vector of ascending m-over-z values.
@@ -498,36 +668,43 @@ extract_pasef_ms2 <- function (ms2data, lens2, iso_info, keys, step = 1.6e-5)
 #' @param maxn The maximum number of peaks.
 #' @param ymin The minimum Y values for considering in peak centroiding.
 #' @param tol The tolerance of Y for defining a peak profile.
+#' @param grad A threshold of gradient between two adjacent peaks (more abundant
+#'   over less abundant).
+#' @param fct_reso A scaling factor for instrument resolution.
+#' @param ms_lev The level of MS.
 #' @importFrom fastmatch %fin%
 #' @examples
 #' # example code
-#' mzion:::centroid_pasefms(c(500), c(10))
-#' mzion:::centroid_pasefms(c(500, 500.01), c(1, 10))
-#' mzion:::centroid_pasefms(c(500, 500.01, 500.2), c(1, 10, 20))
-#' mzion:::centroid_pasefms(c(500, 500.01, 500.2), c(10, 5, 2))
+#' mzion:::centroid_pasefms1(c(500), c(10))
+#' mzion:::centroid_pasefms1(c(500, 500.01), c(1, 10))
+#' mzion:::centroid_pasefms1(c(500, 500.01, 500.2), c(1, 10, 20))
+#' mzion:::centroid_pasefms1(c(500, 500.01, 500.2), c(10, 5, 2))
 #' 
 #' # ignore the trailing half peak
-#' mzion:::centroid_pasefms(500 + .01 * 0:3, c(1, 10, 2, 5))
+#' mzion:::centroid_pasefms1(500 + .01 * 0:3, c(1, 10, 2, 5))
 #' 
-#' mzion:::centroid_pasefms(500 + .01 * 0:4, c(1, 10, 2, 5, 3))
+#' mzion:::centroid_pasefms1(500 + .01 * 0:4, c(1, 10, 2, 5, 3))
 #' 
 #' # trailing max at the last position
-#' mzion:::centroid_pasefms(c(231.0019,371.1024,519.1426,542.3826,599.9552), c(12,33,23,22,41))
+#' mzion:::centroid_pasefms1(c(231.0019,371.1024,519.1426,542.3826,599.9552), c(12,33,23,22,41))
 #' 
-#' mzion:::centroid_pasefms(c(231.0019,371.1024,519.1426,542.3826,599.9552), c(12,15,23,30,41))
-centroid_pasefms <- function (xs, ys, reso = 60000, maxn = 2000L, ymin = 100L, 
-                              tol = .10)
+#' mzion:::centroid_pasefms1(c(231.0019,371.1024,519.1426,542.3826,599.9552), c(12,15,23,30,41))
+centroid_pasefms1 <- function (xs, ys, reso = 60000, maxn = 2000L, ymin = 50L, 
+                               grad = .667, fct_reso = 1.5, ms_lev = 1L, 
+                               tol = .10)
 {
   len <- length(ys)
   
   if (!len) {
     return(NULL)
   }
-
+  
   if (len == 1L) {
     return(list(x = xs, y = ys))
   }
-
+  
+  reso2 <- reso / fct_reso
+  
   # rising edge
   ds1 <- diff(ys) > 0
   
@@ -535,12 +712,12 @@ centroid_pasefms <- function (xs, ys, reso = 60000, maxn = 2000L, ymin = 100L,
   if (length(ds1) == 1L) {
     return(list(x = if (ds1) xs[[2]] else xs[[1]], y = sum(ys)))
   }
-
+  
   # all falling
   if (!any(ds1)) {
     return(list(x = xs[[1]], y = sum(ys)))
   }
-
+  
   # falling edge
   ps <- .Internal(which(diff(ds1) == -1L)) + 1L
   ps <- ps[ys[ps] >= ymin] # optional
@@ -550,41 +727,42 @@ centroid_pasefms <- function (xs, ys, reso = 60000, maxn = 2000L, ymin = 100L,
   if (!ns) {
     return(list(x = xs[[len]], y = sum(ys)))
   }
-
+  
   if (ns == 1L) {
     return(list(x = xs[[ps]], y = ys[[ps - 1L]] + ys[[ps]] + ys[[ps + 1L]]))
   }
   
-  ns <- min(ns, maxn)
+  ns    <- min(ns, maxn)
   xvals <- vector("numeric", ns)
   yvals <- vector("integer", ns)
-  ord <- order(ys[ps], decreasing = TRUE)
-
+  ord   <- 
+    .Internal(radixsort(na.last = TRUE, decreasing = TRUE, FALSE, TRUE, ys[ps]))
+  
   ct <- 0L
   for (i in 1:ns) {
     if (ct == maxn)
       break
     
     oi <- ord[[i]]
-    p <- ps[oi]
+    p  <- ps[oi]
     
     if (is.na(p))
       next
     
     x <- xs[[p]]
-    w <- x / reso * 1.5
+    w <- x / reso2
     idxes <- .Internal(which(xs >= x - w & xs <= x + w))
     ysubs <- ys[idxes]
-    imax <- .Internal(which(idxes == p)) # relative to ysubs
+    imax  <- .Internal(which(idxes == p)) # relative to ysubs
     
-    yvals[[i]] <- sum_pasef_ms1(ysubs, imax)
+    yvals[[i]] <- sum_pasef_ms1(ys = ysubs, imax = imax, grad = grad)
     xvals[[i]] <- xs[[p]]
     
     # ps[ps %fin% idxes] <- NA_integer_ # slower?
     rng  <- max(1L, oi - 5L):min(len, oi + 5L)
     nbrs <- .Internal(which(ps[rng] %in% idxes))
     ps[rng[nbrs]] <- NA_integer_
-
+    
     ct <- ct + 1L
   }
   
@@ -593,7 +771,8 @@ centroid_pasefms <- function (xs, ys, reso = 60000, maxn = 2000L, ymin = 100L,
   yvals <- yvals[oks]
   
   if (length(yvals)) {
-    ord <- order(xvals)
+    ord <- 
+      .Internal(radixsort(na.last = TRUE, decreasing = FALSE, FALSE, TRUE, xvals))
     xvals <- xvals[ord]
     yvals <- yvals[ord]
   }
@@ -602,69 +781,150 @@ centroid_pasefms <- function (xs, ys, reso = 60000, maxn = 2000L, ymin = 100L,
 }
 
 
-#' Sum peak area
+#' Sum PASEF MS2 peak area
 #' 
-#' @param ys A sub vector of intensity values around a peak.
-#' @param imax The index of the peak position in \code{ys}.
-sum_pasef_ms1 <- function (ys, imax)
+#' @param xs A vector of ascending m-over-z values.
+#' @param ys A vector of intensity values.
+#' @param reso The resolution of a peak.
+#' @param maxn The maximum number of peaks.
+#' @param ymin The minimum Y values for considering in peak centroiding.
+#' @param tol The tolerance of Y for defining a peak profile.
+#' @param grad A threshold of gradient between two adjacent peaks (more abundant
+#'   over less abundant).
+#' @param fct_reso A scaling factor for instrument resolution.
+#' @param ms_lev The level of MS.
+#' @param keep_ohw Logical; Keep one-hit-wonders or not.
+#' @importFrom fastmatch %fin%
+centroid_pasefms2 <- function (xs, ys, reso = 30000, maxn = 500L, ymin = 10L, 
+                              grad = .25, fct_reso = 1.25, ms_lev = 2L, 
+                              keep_ohw = TRUE, tol = .10)
 {
   len <- length(ys)
-
+  
+  if (!len) {
+    return(NULL)
+  }
+  
   if (len == 1L) {
-    return(ys)
+    return(list(x = xs, y = ys))
   }
   
-  if (len == 2L) {
-    return(sum(ys))
-  }
+  ## (1) find peaks (local maxima)
+  reso2 <- reso / fct_reso
   
-  yval <- ys[[imax]]
-
-  if (imax < len) {
-    pr1 <- imax + 1L
-    yr1 <- ys[pr1]
-    yval <- yval + yr1
-    
-    if (pr1 < len) {
-      for (j in (pr1 + 1L):len) {
-        yr2 <- ys[[j]]
-        
-        if (yr1 / yr2 >= .667) { # || yr2 <= 100
-          yval <- yval + yr2
-          yr1 <- yr2
-        }
-        else {
-          d <- yr1 * .667
-          yval <- yval + d
-          yr1 <- yr2 - d
-        }
+  # rising edges
+  ds1 <- diff(ys) > 0
+  
+  # only two peaks
+  if (length(ds1) == 1L) {
+    if (ms_lev == 1L) {
+      return(list(x = if (ds1) xs[[2]] else xs[[1]], y = sum(ys)))
+    }
+    else {
+      if (xs[[2]] <= xs[[1]] * (1 + reso2) /reso2) {
+        return(list(x = if (ys[[2]] > ys[[1]]) xs[[2]] else xs[[1]], y = sum(ys)))
+      }
+      else {
+        return(list(x = xs, y = ys))
       }
     }
   }
-
-  if (imax > 1L) {
-    pl1 <- imax - 1L
-    yl1 <- ys[[pl1]]
-    yval <- yval + yl1
-    
-    if (pl1 > 1L) {
-      for (j in (pl1 - 1L):1) {
-        yl2 <- ys[[j]]
-        
-        if (yl1 / yl2 >= .667) { # || yl2 <= 100
-          yval <- yval + yl2
-          yl1 <- yl2
-        }
-        else {
-          d <- yl1 * .667
-          yval <- yval + d
-          yl1 <- yl2 - d
-        }
-      }
+  
+  # all falling
+  if (!any(ds1)) {
+    if (ms_lev == 1L) {
+      return(list(x = xs[[1]], y = sum(ys)))
+    }
+    else {
+      return(sum_mono_yints(xs = xs, ys = ys, reso2 = reso2, down = TRUE))
     }
   }
-
-  as.integer(yval)
+  
+  # falling edge
+  ps <- .Internal(which(diff(ds1) == -1L)) + 1L
+  ps <- ps[ys[ps] >= ymin] # optional
+  ns <- length(ps)
+  
+  # no falling
+  if (!ns) {
+    if (ms_lev == 1L) {
+      return(list(x = xs[[len]], y = sum(ys)))
+    }
+    else {
+      return(sum_mono_yints(xs = xs, ys = ys, reso2 = reso2, down = FALSE))
+    }
+  }
+  
+  if (ns == 1L) {
+    if (ms_lev == 1L) {
+      return(list(x = xs[[ps]], y = ys[[ps - 1L]] + ys[[ps]] + ys[[ps + 1L]]))
+    }
+    else {
+      # may later collapse signals for adjacent peaks...
+      # return(list(x = xs, y = ys))
+    }
+  }
+  
+  ns    <- min(ns, maxn)
+  xvals <- vector("numeric", ns)
+  yvals <- vector("integer", ns)
+  ord   <- 
+    .Internal(radixsort(na.last = TRUE, decreasing = TRUE, FALSE, TRUE, ys[ps]))
+  i1hs  <- NULL # tracking one-hit-wonders
+  
+  ## (2) integrate peak profiles
+  ct <- 0L
+  for (i in 1:ns) {
+    if (ct == maxn)
+      break
+    
+    oi <- ord[[i]]
+    p  <- ps[oi] # relative to ys
+    
+    if (is.na(p))
+      next
+    
+    x <- xs[[p]]
+    w <- x / reso2
+    idxes <- .Internal(which(xs >= x - w & xs <= x + w))
+    
+    if (keep_ohw) {
+      i1hs <- c(i1hs, idxes)
+    }
+    
+    ysubs <- ys[idxes]
+    imax  <- .Internal(which(idxes == p)) # relative to ysubs
+    
+    yvals[[i]] <- sum_pasef_ms1(ys = ysubs, imax = imax, grad = grad)
+    xvals[[i]] <- xs[[p]]
+    
+    ps[ps %fin% idxes] <- NA_integer_ # slower?
+    # rng  <- max(1L, oi - 5L):min(len, oi + 5L)
+    # nbrs <- .Internal(which(ps[rng] %in% idxes))
+    # ps[rng[nbrs]] <- NA_integer_
+    
+    ct <- ct + 1L
+  }
+  
+  if (keep_ohw) {
+    ohw <- .Internal(which(!(1:len) %fin% i1hs))
+    xvals <- c(xvals, xs[ohw])
+    yvals <- c(yvals, ys[ohw])
+  }
+  
+  
+  oks <- yvals > 0L
+  xvals <- xvals[oks]
+  yvals <- yvals[oks]
+  
+  if (length(yvals)) {
+    ord <- 
+      .Internal(radixsort(na.last = TRUE, decreasing = FALSE, FALSE, TRUE, xvals))
+    xvals <- xvals[ord]
+    yvals <- yvals[ord]
+  }
+  
+  list (x = xvals, y = yvals)
 }
 
 
@@ -824,46 +1084,47 @@ group_ms2pasef_by_precursors <- function (dat, lwr = 115L, step = 1.6e-5)
 
 #' Add isolation information to an MS2 frame.
 #'
-#' @param data Lines of MS2 data in a \code{frame}.
+#' @param data MS2 data in a \code{frame}.
 #' @param iso_info A subset of MS2 isolation information at the current
 #'   \code{frame}.
 #' @param min_ms2n The minimum number of MS2 in a slices for considerations.
+#' @param ymin Not used. The minimum intensity value for considerations.
 #' @return A vector of lists. Each list corresponding to a slice of MS2 between
 #'   ScanNumBegin and ScanNumEnd in a frame, with additional fields of
 #'   IsolationMz, IsolationWidth, Precursor etc.
-add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
+add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L, ymin = 10)
 {
   options(warn = 1)
   
-  ## results from one MS2 frame
-  ans <- extract_pasef_frame(data, ms_lev = 2L, ymin = 10)
+  ## results from one MS2 frame (before combining slices by IM groups)
+  # ans <- extract_pasef_frame(data, ms_lev = 2L, ymin = ymin)
   
-  if (!length(ans)) {
+  if (!length(data)) {
     return(NULL)
   }
   
-  ## Combine data slices by ranges of ScanNumBegin and ScanNumEnd
-  breaks <- findInterval(ans$slices, iso_info$ScanNumEnd)
-  slices <- split(ans$slices, breaks)
-  len <- length(slices)
+  ## Combine slices by ranges of ScanNumBegin and ScanNumEnd
+  breaks <- findInterval(data$slices, iso_info$ScanNumEnd)
+  slices <- split(data$slices, breaks)
+  len    <- length(slices)
   
   if (!len) {
     return(NULL)
   }
   
-  # removes iso_info rows without matched scan ranges to ans$slices
+  # removes iso_info rows without matched scan ranges to data$slices
   if (len < nrow(iso_info)) {
     iso_info <- iso_info[as.integer(names(slices)) + 1L, ]
   }
   
   xys <- mapply(collapse_pasef_xys, 
-                split(ans$msx_moverzs, breaks), 
-                split(ans$msx_ints, breaks), 
+                split(data$msx_moverzs, breaks), 
+                split(data$msx_ints, breaks), 
                 SIMPLIFY = FALSE, USE.NAMES = FALSE)
   msx_moverzs <- lapply(xys, `[[`, 1)
-  msx_ints <- lapply(xys, `[[`, 2)
-  mobs <- split(ans$mobility, breaks)
-  mobs <- lapply(mobs, function (x) sum(x) / length(x))
+  msx_ints    <- lapply(xys, `[[`, 2)
+  mobs        <- split(data$mobility, breaks)
+  mobs        <- lapply(mobs, function (x) sum(x) / length(x))
   
   ## clean ups
   if (FALSE) {
@@ -894,14 +1155,14 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
     mobs <- mobs[oks]
   }
   else {
-    msx_ns <- lengths(msx_moverzs)
-    iso_ctrs <- iso_info$IsolationMz
-    iso_widths <- iso_info$IsolationWidth
-    precursors <- iso_info$Precursor
+    msx_ns      <- lengths(msx_moverzs)
+    iso_ctrs    <- iso_info$IsolationMz
+    iso_widths  <- iso_info$IsolationWidth
+    precursors  <- iso_info$Precursor
     ms1_moverzs <- iso_info$MonoisotpoicMz
-    ms1_ints <- iso_info$Intensity
+    ms1_ints    <- iso_info$Intensity
     ms1_charges <- iso_info$Charge
-    ms1_frs <- iso_info$MS1Frame
+    ms1_frs     <- iso_info$MS1Frame
   }
 
   ## outputs
@@ -910,30 +1171,24 @@ add_pasef_ms2iso <- function (data, iso_info, min_ms2n = 0L)
                  lapply(slices, `[[`, 1), # starts
                  lapply(slices, function (x) x[length(x)]), # ends
                  SIMPLIFY = TRUE, USE.NAMES = FALSE)
-  scan_titles <- rep_len(ans$scan_title, len)
-  ms_levels <- rep_len(ans$ms_level, len)
-  ret_times <- rep_len(ans$ret_time, len)
-  scan_nums <- ans$scan_num + seq_len(len) / 10^nchar(as.character(len))
+  scan_titles <- rep_len(data$scan_title, len)
+  ms_levels <- rep_len(data$ms_level, len)
+  ret_times <- rep_len(data$ret_time, len)
+  scan_nums <- data$scan_num + seq_len(len) / 10^nchar(as.character(len))
   
-  ## MonoisotpoicMz is almost always -.8 and -0.1 lower than IsolationMz?
+  ## MonoisotpoicMz is almost always -.8 and -0.1 lower than IsolationMz: 
+  ##  as it is weighted-mean of isolated features & 13C dist are right-censored
   ## IsolationWidth is 2 at ~ IsolationMz < 720 and 3 at IsolationMz > 800.
   ## The wide IsolationWidth may be intended to include lower m/z values in 
   #   deisotoping, but Mzion has its own extension (+/-2 around IsolationMz).
 
-  # iso_lwrs <- iso_ctrs - iso_widths
-  # iso_uprs <- iso_ctrs
-  
-  # half_widths <- iso_widths / 2
-  # iso_lwrs <- iso_ctrs - half_widths
-  # iso_uprs <- iso_ctrs + half_widths
-  
   if (FALSE) {
     tempd <- iso_info[with(iso_info, MonoisotpoicMz > 0), ]
     med <- median(tempd$MonoisotpoicMz - tempd$IsolationMz, na.rm = TRUE)
   }
   
   iso_uprs <- iso_ctrs
-  iso_lwrs <- iso_uprs - iso_widths/2 # iso_widths 2:3, arbitrarily use half
+  iso_lwrs <- iso_uprs - iso_widths / 2
   iso_ctrs <- (iso_uprs + iso_lwrs) / 2
 
   for (i in 1:len) {
@@ -1013,11 +1268,9 @@ extract_pasef_frame <- function (data, ms_lev = 1L, ymin = 50, ymax = 1E7)
   
   # clean up by X values
   oks <- .Internal(which(lengths(xs) > 0L))
-  
   if (!length(oks)) {
     return(NULL)
   }
-  
   xs <- xs[oks]
   ys <- ys[oks]
   slices <- slices[oks]
@@ -1040,7 +1293,7 @@ extract_pasef_frame <- function (data, ms_lev = 1L, ymin = 50, ymax = 1E7)
                 slices = slices))
   }
   
-  # collapses all MS1 scans in a Frame
+  # collapses all MS1 slices in a Frame
   xys <- collapse_pasef_xys(xs, ys)
   xs <- xys$x
   ys <- xys$y
@@ -1070,7 +1323,8 @@ collapse_pasef_xys <- function (xs, ys)
   ys <- unlist(ys, recursive = FALSE, use.names = FALSE)
   
   if (length(xs) > 1L) {
-    ord <- order(xs)
+    ord <- .Internal(radixsort(na.last = TRUE, decreasing = FALSE, FALSE, 
+                               TRUE, xs))
     xs <- xs[ord]
     ys <- ys[ord]
   }

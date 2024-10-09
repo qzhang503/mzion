@@ -145,7 +145,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       break
     }
     
-    if (center > 0 && p == 1L && ms_lev == 1L) {
+    if ((!is_pasef) && center > 0 && p == 1L && ms_lev == 1L) {
       imax <- .Internal(which.min(abs(moverzs - center)))
     }
     else {

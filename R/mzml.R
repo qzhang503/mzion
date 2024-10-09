@@ -291,7 +291,11 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
   }
   else {
     message("Deisotoping DDA-MS at: ", Sys.time())
-    yco <- if (is_pasef) 75 else 100
+    # yco cannot be greater than the co in PASEF extraction
+    # too large of yco may cause disparity btw. X and Y values, esp. w/ PASEF
+    # since values < yco replaced with NA and can become all NA
+    # the current yco = 10 for PASEF actually has no effect... 
+    yco <- if (is_pasef) 10 else 100
 
     if (n_cores <= 1L) {
       raws <- mapply(
@@ -1302,7 +1306,7 @@ deisoDDA <- function (filename = NULL,
     rm(list = c("ans_prep", "rt_gap"))
 
     cols <- c("ms_level", "ms1_moverz", "ms1_int", "orig_scan") # orig_scan for troubleshooting
-    min_y <- if (is_pasef) 1000 else 2e6
+    min_y <- if (is_pasef) 500 else 2e6
 
     if (TRUE) {
       cl <- parallel::makeCluster(getOption("cl.cores", 2L))
@@ -2025,11 +2029,11 @@ deisoDDAMS2 <- function (ms2_moverzs, ms2_ints, topn_ms2ions = 150L,
 pasefMS1xyz <- function (msx_moverzs, msx_ints, ms1_fr, ms_level, orig_scan, 
                          iso_ctr = NULL, iso_lwr = NULL, iso_upr = NULL, 
                          ms1_moverzs = NULL, ms1_charges = NULL, ms1_ints = NULL, 
-                         maxn_mdda_precurs = 1L, n_mdda_flanks = 6L, 
-                         topn_ms2ions = 150L, 
-                         max_ms1_charge = 4L, ppm_ms1_deisotope = 8L, 
-                         min_mass = 115L, grad_isotope = 1.6, fct_iso2 = 3.0, 
-                         use_defpeaks = FALSE, filename = NULL)
+                         maxn_mdda_precurs = 1L, n_mdda_flanks = 0L, 
+                         topn_ms2ions = 150L, max_ms1_charge = 4L, 
+                         ppm_ms1_deisotope = 8L, grad_isotope = 1.6, 
+                         fct_iso2 = 3.0, use_defpeaks = FALSE, min_mass = 115L, 
+                         filename = NULL)
 {
   if (debug <- FALSE) {
     df0 <- tibble::tibble(
@@ -2051,7 +2055,6 @@ pasefMS1xyz <- function (msx_moverzs, msx_ints, ms1_fr, ms_level, orig_scan,
   
   xs1 <- msx_moverzs[oks1]
   ys1 <- msx_ints[oks1]
-  # scans1 <- orig_scan[oks1]
   scans1 <- as.integer(ms1_fr[oks1])
   len1 <- length(ys1)
   
@@ -2069,16 +2072,18 @@ pasefMS1xyz <- function (msx_moverzs, msx_ints, ms1_fr, ms_level, orig_scan,
   lwrs <- split(lwrs, frs)
   uprs <- split(uprs, frs)
   rngs <- split(oks2, frs)
-  frs <- split(frs, frs)
+  frs  <- split(frs,  frs)
   
+  # find the corresponding MS1 scan number /frame for an MS2 frame
   idxes <- match(as.integer(names(frs)), as.integer(scans1))
-  
-  # i <- which(names(frs) == "9915")
+
   for (i in seq_along(idxes)) {
+    # i <- which(names(frs) == "9915"); i <- which(names(frs) == "18203")
     # can it be all NA since some MS1 scans were removed?
-    if (is.na(row <- idxes[[i]]))
+    if (is.na(row <- idxes[[i]])) {
       next
-    
+    }
+
     rng1 <- max(1L, row - n_mdda_flanks):min(len1, row + n_mdda_flanks)
     ctri <- ctrs[[i]]
     lwri <- lwrs[[i]]

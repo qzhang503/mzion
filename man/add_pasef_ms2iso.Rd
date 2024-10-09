@@ -4,15 +4,17 @@
 \alias{add_pasef_ms2iso}
 \title{Add isolation information to an MS2 frame.}
 \usage{
-add_pasef_ms2iso(data, iso_info, min_ms2n = 0L)
+add_pasef_ms2iso(data, iso_info, min_ms2n = 0L, ymin = 10)
 }
 \arguments{
-\item{data}{Lines of MS2 data in a \code{frame}.}
+\item{data}{MS2 data in a \code{frame}.}
 
 \item{iso_info}{A subset of MS2 isolation information at the current
 \code{frame}.}
 
 \item{min_ms2n}{The minimum number of MS2 in a slices for considerations.}
+
+\item{ymin}{Not used. The minimum intensity value for considerations.}
 }
 \value{
 A vector of lists. Each list corresponding to a slice of MS2 between

@@ -293,12 +293,12 @@
 #'   default is 20.
 #' @param ppm_ms2 A positive integer; the mass tolerance of MS2 species. The
 #'   default is 20.
-#' @param calib_ms1mass Logical; if TRUE, calibrates precursor masses.
+#' @param calib_masses Logical; if TRUE, calibrates precursor (and MS2) masses.
 #' @param ppm_reporters A positive integer; the mass tolerance of MS2 reporter
 #'   ions. The default is 10.
 #' @param ppm_ms1calib A positive integer; the mass tolerance of MS1 species for
 #'   precursor mass calibration. The argument has no effect at
-#'   \code{calib_ms1mass = FALSE}.
+#'   \code{calib_masses = FALSE}.
 #' @param ppm_ms2calib A positive integer; the mass tolerance of MS2 species in
 #'   calibration searches.
 #' @param quant A character string; the quantitation method. The default is
@@ -785,7 +785,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      min_ms1_charge = 2L, max_ms1_charge = 4L, 
                      min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                      min_ret_time = 0, max_ret_time = Inf, 
-                     calib_ms1mass = FALSE, 
+                     calib_masses = FALSE, 
                      ppm_ms1calib = 20L,
                      ppm_ms2calib = 20L,
 
@@ -924,7 +924,7 @@ matchMS <- function (out_path = "~/mzion/outs",
   rm(list = "db_ord")
 
   # logical types
-  stopifnot(vapply(c(soft_secions, combine_tier_three, calib_ms1mass, 
+  stopifnot(vapply(c(soft_secions, combine_tier_three, calib_masses, 
                      use_ms1_cache, add_ms2theos, add_ms2theos2, add_ms2moverzs, 
                      add_ms2ints, exclude_reporter_region, 
                      svm_reproc, svm_cv, rm_dup_term_anywhere, 
@@ -1311,7 +1311,7 @@ matchMS <- function (out_path = "~/mzion/outs",
     bypass_bin_ms1 <- FALSE
   }
 
-  reframe_mgfs <- calib_ms1mass && ppm_ms1calib != ppm_ms1
+  reframe_mgfs <- calib_masses && ppm_ms1calib != ppm_ms1
 
   if (!bypass_bin_ms1) {
     .path_bin <- 
@@ -1430,7 +1430,7 @@ matchMS <- function (out_path = "~/mzion/outs",
     mod_indexes <- NULL
   }
   
-  if (calib_ms1mass) {
+  if (calib_masses) {
     calib_mgf(mgf_path = mgf_path, aa_masses_all = aa_masses_all[1], # base
               out_path = out_path, .path_bin = .path_bin_calib, 
               mod_indexes = mod_indexes[names(mod_indexes) %in% fixedmods], 

@@ -52,7 +52,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   faa <- file.path(out_path, "aa_masses_all.rds")
   
   # (OK as `argument` not for users)
-  # min_mass and max_mass only for calib_ms1mass, not to be changed by users
+  # min_mass and max_mass only for calib_masses, not to be changed by users
   # args_except <- c("ms1_offsets")
   args_except <- NULL
   fml_incl    <- fml_nms[!fml_nms %in% args_except]

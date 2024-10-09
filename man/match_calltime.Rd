@@ -37,7 +37,7 @@ library(mzion)
 .time_bin <- mzion:::match_calltime(
   path = file.path(.path_cache, "calc_pepmasses2", .time_stamp), 
   fun = fun,
-  nms = c("min_mass", "max_mass", "ppm_ms1", "calib_ms1mass"), 
-  new_args = c(calib_ms1mass = calib_ms1mass)) 
+  nms = c("min_mass", "max_mass", "ppm_ms1", "calib_masses"), 
+  new_args = c(calib_masses = calib_masses)) 
 }
 }
