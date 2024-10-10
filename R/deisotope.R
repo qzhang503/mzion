@@ -25,6 +25,12 @@
 #'   isotope envelop.
 #' @param fct_iso2 The multiplication factor for the second isotopic peak.
 #' @param is_pasef Logical; is TIMS TOF data or not.
+#' @param min_y Not yet used. The minimum intensity for consideration of
+#'   deisotoping (guard against PASEF data). The setting should be MS platform
+#'   dependent, e.g., a much smaller value with PASEF. Also note different
+#'   settings between MS1 and MS2.
+#' @param min_ratio A ratio threshold. Exit chimeric deisotoping if the Y_cr /
+#'   Y_bf is smaller the threshold.
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
@@ -70,10 +76,10 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
                           tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                           is_dda = TRUE, ppm = 8L, ms_lev = 1L, maxn_feats = 300L, 
                           max_charge = 4L, n_fwd = 20L, n_bwd = 20L, 
-                          offset_upr = 30L, offset_lwr = 30L, step = ppm/1e6, 
+                          offset_upr = 30L, offset_lwr = 30L, step = ppm / 1e6, 
                           backward_mass_co = 800/ms_lev, grad_isotope = 1.6, 
                           fct_iso2 = 3.0, use_defpeaks = FALSE, 
-                          is_pasef = FALSE)
+                          is_pasef = FALSE, min_y = 10, min_ratio = .05)
 {
   ###
   # if to apply intensity cut-offs, should note the difference intensity 
@@ -134,7 +140,8 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
   css_fuz <- css <- rep_len(list(integer(1)), lenp)
   p_no_zero <- p_fuz <- p <- 1L
   ymean_fuz <- ymono_fuz <- mass_fuz <- NA_real_
-  
+  yref <- 0 # to keep track of Y values
+
   # Little gain with the addition guard of p_no_zero; 
   # At MS1 ch == 0 without p_no_zero, ch-0 can be picked up by chimeric searches
   while((len_ms > 0L) && (p_no_zero <= maxn_feats)) {
@@ -152,9 +159,15 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       imax <- .Internal(which.max(msxints))
     }
     
-    mass <- moverzs[[imax]]
-    mint <- msxints[[imax]]
+    mass  <- moverzs[[imax]]
+    mint  <- msxints[[imax]]
     n_ms1 <- n_ms1s[[imax]]
+    
+    # the first `mint` may be the one closest to the center with Thermo's and 
+    # the first yref is 0
+    if (yref > 0 && mint / yref < min_ratio) {
+      break
+    }
     
     ## find Z values
     ch <- find_charge_state(
@@ -162,7 +175,8 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       moverzs = moverzs, msxints = msxints, n_ms1s = n_ms1s,
       max_charge = max_charge, n_fwd = n_fwd, n_bwd = n_bwd, 
       ms_lev = ms_lev, is_dda = is_dda, tol = tol)
-    
+    # if (mint < min_y) { ch <- NA_integer_ }
+
     if (is.na(ch)) {
       peaks[[p]] <- mass
       intens[[p]] <- mint
@@ -177,6 +191,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
         p_no_zero <- p_no_zero + 1L
       }
       
+      # yref <- mint # no update of reference intensity
       next
     }
     
@@ -309,6 +324,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     msxints <- msxints[-hits]
     ims <- ims[-hits]
     p <- p + 1L
+    yref <- mint
   }
   
   css <- .Internal(unlist(css, recursive = FALSE, use.names = FALSE))

@@ -26,7 +26,8 @@ find_mdda_mms1s(
   min_mass = 200L,
   step = ppm/1e+06,
   look_back = FALSE,
-  is_pasef = FALSE
+  is_pasef = FALSE,
+  min_y = 50
 )
 }
 \arguments{
@@ -92,6 +93,11 @@ against low molecular-weight precursors is \code{min_len}).}
 \item{look_back}{Logical; look up the preceding MS bin or not.}
 
 \item{is_pasef}{Logical; is TIMS TOF data or not.}
+
+\item{min_y}{Not yet used. The minimum intensity for consideration of
+deisotoping (guard against PASEF data). The setting should be MS platform
+dependent, e.g., a much smaller value with PASEF. Also note different
+settings between MS1 and MS2.}
 }
 \value{
 A list. x: monoisotopic moverzs (weighted mean statistics); y:

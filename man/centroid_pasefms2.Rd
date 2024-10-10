@@ -2,7 +2,7 @@
 % Please edit documentation in R/pasefreader.R
 \name{centroid_pasefms2}
 \alias{centroid_pasefms2}
-\title{Sum PASEF MS1 peak area}
+\title{Sum PASEF MS2 peak area}
 \usage{
 centroid_pasefms2(
   xs,
@@ -40,5 +40,5 @@ over less abundant).}
 \item{tol}{The tolerance of Y for defining a peak profile.}
 }
 \description{
-Sum PASEF MS1 peak area
+Sum PASEF MS2 peak area
 }

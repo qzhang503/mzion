@@ -98,7 +98,7 @@ matchMS(
   max_scan_num = .Machine$integer.max,
   min_ret_time = 0,
   max_ret_time = Inf,
-  calib_masses = FALSE,
+  calib_masses = TRUE,
   ppm_ms1calib = 20L,
   ppm_ms2calib = 20L,
   add_ms2theos = FALSE,

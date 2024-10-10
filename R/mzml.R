@@ -1255,6 +1255,16 @@ deisoDDA <- function (filename = NULL,
   }
   else {
     df <- qs::qread(file.path(temp_dir, paste0("predeisoDDA_", filename)))
+    
+    if (FALSE) {
+      dfx <- df |> dplyr::filter(orig_scan == 18208.14)
+      data <- data.frame(x = dfx$msx_moverzs[[1]], y = dfx$msx_ints[[1]])
+      data |>
+        # dplyr::filter(x >= 690, x <= 699) |>
+        ggplot2::ggplot() + 
+        ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
+                              color = "gray", linewidth = .1)
+    }
   }
   
   ## LFQ: replaces intensities with apex values
@@ -1643,6 +1653,15 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
       iso_upr = iso_upr, 
       # mobility = mobility
     )
+    
+    dfx <- df |> dplyr::filter(ms1_fr == 18203)
+    dfx2 <- dfx |> dplyr::filter(orig_scan == dfx$orig_scan[[17]])
+    data <- data.frame(x = dfx2$msx_moverzs[[1]], y = dfx2$msx_ints[[1]])
+    data |>
+      # dplyr::filter(x >= 690, x <= 699) |>
+      ggplot2::ggplot() + 
+      ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
+                            color = "gray", linewidth = .1) + theme_bw()
   }
 
   if (!is.list(ms1_moverzs)) {
@@ -2103,6 +2122,7 @@ pasefMS1xyz <- function (msx_moverzs, msx_ints, ms1_fr, ms_level, orig_scan,
       offset_upr = 20L, offset_lwr = 30L, 
       grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
       use_defpeaks = use_defpeaks, min_mass = min_mass, margin = 0, 
+      width_left = 0.26, width_right = 0.25, 
       is_pasef = TRUE)
     
     # Precursor x, y and z values for each MS2
@@ -2280,8 +2300,7 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
   # then if (max_ms1_charge < 6) max_ms1_charge:6
   
   len1  <- length(ms1_stas)
-  # ymats <- vector("list", len1)
-  
+
   # get MS2 precursor XYZ values from multiple adjacent MS1 scans
   for (i in 1:len1) {
     rng1 <- ms1_stas[max(1L, i - n_mdda_flanks):min(len1, i + n_mdda_flanks)]
@@ -2301,8 +2320,6 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
     xs <- ans[["x"]]
     ys <- ans[["y"]]
     zs <- ans[["z"]]
-    # each contains multiple matrices for a range of bracketed MS2 scans 
-    # ymats[[i]] <- ans[["my"]]
 
     if (length(xs) != length(rng2)) {
       stop("Check for entries drop in ", fun, " for ", filename) 
@@ -4358,8 +4375,16 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
 #'   intensities over flanking MS1s; n: the numbers of observed precursors.
 calc_ms1xys <- function (matx, maty)
 {
-  ysums <- colSums(maty, na.rm = TRUE)
-  xmeans <- colSums(matx * maty, na.rm = TRUE)/ysums
+  nr <- nrow(matx)
+  
+  if (nr == 1L) {
+    ysums <- maty[1, ]
+  }
+  else {
+    ysums <- colSums(maty, na.rm = TRUE)
+  }
+
+  xmeans <- colSums(matx * maty, na.rm = TRUE) / ysums
   ns <- colSums(!is.na(maty), na.rm = TRUE)
   
   # use tallied ysums, not ysums/ns, for deisotoping
@@ -4393,6 +4418,10 @@ calc_ms1xys <- function (matx, maty)
 #' @param use_defpeaks Use default peak info or not.
 #' @param look_back Logical; look up the preceding MS bin or not.
 #' @param is_pasef Logical; is TIMS TOF data or not.
+#' @param min_y Not yet used. The minimum intensity for consideration of
+#'   deisotoping (guard against PASEF data). The setting should be MS platform
+#'   dependent, e.g., a much smaller value with PASEF. Also note different
+#'   settings between MS1 and MS2.
 #' @inheritParams matchMS
 #' @inheritParams find_ms1stat
 #' @return A list. x: monoisotopic moverzs (weighted mean statistics); y:
@@ -4405,7 +4434,7 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
                              fct_iso2 = 3.0, use_defpeaks = FALSE, 
                              width_left = 2.01, width_right = 1.25, margin = .5, 
                              min_mass = 200L, step = ppm/1e6, 
-                             look_back = FALSE, is_pasef = FALSE)
+                             look_back = FALSE, is_pasef = FALSE, min_y = 50)
 {
   if (!(len1 <- length(msx_moverzs))) {
     return(NULL)
@@ -4517,7 +4546,8 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
         zsa <- charges[oksa]
         
         if (lena > 1L) {
-          orda <- order(ysa, decreasing = TRUE)
+          orda <- .Internal(radixsort(na.last = TRUE, decreasing = TRUE, FALSE, 
+                                      TRUE, ysa))
           xsa <- xsa[orda]
           ysa <- ysa[orda]
           zsa <- zsa[orda]
@@ -4533,7 +4563,8 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
         zsb <- charges[oksb]
         
         if (lenb > 1L) {
-          ordb <- order(ysb, decreasing = TRUE)
+          ordb <- .Internal(radixsort(na.last = TRUE, decreasing = TRUE, FALSE, 
+                                     TRUE, ysb))
           xsb <- xsb[ordb]
           ysb <- ysb[ordb]
           zsb <- zsb[ordb]

@@ -339,14 +339,14 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
       oks <- .Internal(which(!is.na(yi)))
       yoks <- yi[oks]
       # may be unnecessary, e.g., Thermo's MS1 peak distributions are discrete
-      yoks[yoks < yco] <- NA_real_
+      yoks[yoks < yco] <- NA_real_ # does the same to xi?
       yi[oks] <- yoks
-      # plot(yi[466:781])
-      # plot(xi[466:781])
-      
-      # all NA if all yi < yco...
-      # if (all(is.na(yi))) next # doesn't work
-      
+
+      ## all NA or NaN if all yi < yco...
+      # if (sum(is.na(yi)) + sum(is.nan(yi)) == nr) {
+      #   ns[[i]] <- 0L; apexes[[i]] <- 0L; ranges[[i]] <- 0L
+      # }
+
       gates <- 
         find_lc_gates(xs = xi, ys = yi, ts = ts, n_dia_scans = n_dia_scans)
       apexes[[i]] <- rows <- gates[["apex"]]
@@ -378,7 +378,7 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
   }
   
   colnames(xmat) <- colnames(ymat) <- unv # bin indexes of masses
-  rownames(xmat) <- rownames(ymat) <- ss # scan numbers
+  rownames(xmat) <- rownames(ymat) <- ss  # scan numbers
   
   list(x = xmat, y = ymat, n = ns, p = apexes, range = ranges)
 }

@@ -785,7 +785,7 @@ matchMS <- function (out_path = "~/mzion/outs",
                      min_ms1_charge = 2L, max_ms1_charge = 4L, 
                      min_scan_num = 1L, max_scan_num = .Machine$integer.max, 
                      min_ret_time = 0, max_ret_time = Inf, 
-                     calib_masses = FALSE, 
+                     calib_masses = TRUE, 
                      ppm_ms1calib = 20L,
                      ppm_ms2calib = 20L,
 
@@ -1311,6 +1311,12 @@ matchMS <- function (out_path = "~/mzion/outs",
     bypass_bin_ms1 <- FALSE
   }
 
+  if (ok <- isTRUE(dots$calib_ms1mass)) {
+    warning("Paramter `calib_ms1mass` depreciated; use `calib_masses` instead.")
+    dots$calib_ms1mass <- NULL
+    calib_masses <- ok
+  }
+  
   reframe_mgfs <- calib_masses && ppm_ms1calib != ppm_ms1
 
   if (!bypass_bin_ms1) {
