@@ -1041,7 +1041,9 @@ proc_mgfs <- function (lines, topn_ms2ions = 150L,
                      ppm = ppm_ms2_deisotope, 
                      ms_lev = 2L, maxn_feats = topn_ms2ions, 
                      max_charge = max_ms2_charge, n_fwd = 10L, n_bwd = 10L, 
-                     offset_upr = 30L, offset_lwr = 30L
+                     offset_upr = 30L, offset_lwr = 30L, 
+                     is_pasef = FALSE, # even for Bruker's DA MGF
+                     min_y = 10, min_ratio = 0
                    ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
     ms2_moverzs <- lapply(mics, `[[`, "masses")
     ms2_ints <- lapply(mics, `[[`, "intensities")

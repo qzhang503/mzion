@@ -28,7 +28,7 @@ find_ms1stat(
   use_defpeaks = FALSE,
   is_pasef = FALSE,
   min_y = 10,
-  min_ratio = 0.05
+  ms1_min_ratio = 0
 )
 }
 \arguments{
@@ -99,8 +99,8 @@ deisotoping (guard against PASEF data). The setting should be MS platform
 dependent, e.g., a much smaller value with PASEF. Also note different
 settings between MS1 and MS2.}
 
-\item{min_ratio}{A ratio threshold. Exit chimeric deisotoping if the Y_cr /
-Y_bf is smaller the threshold.}
+\item{ms1_min_ratio}{A ratio threshold. Exit MS1 chimeric deisotoping if the Y_cr
+/ Y_bf is smaller the threshold.}
 }
 \description{
 De-isotopes precursor masses.

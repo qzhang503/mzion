@@ -685,8 +685,8 @@
 #'
 #' }
 #' @export
-matchMS <- function (out_path = "~/mzion/outs",
-                     mgf_path = file.path(out_path, "mgf"),
+matchMS <- function (out_path = "~/mzion/my_project",
+                     mgf_path = "~/mzion/my_msdata",
                      fasta = c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
                                "~/mzion/dbs/fasta/crap/crap.fasta"),
                      acc_type = c("uniprot_acc", "other"),
@@ -818,6 +818,10 @@ matchMS <- function (out_path = "~/mzion/outs",
     },
     add = TRUE
   )
+  
+  if (grepl(gsub("/$", "", out_path), mgf_path, fixed = TRUE)) {
+    warning("Prefer not to nest MS data directory under output directory.")
+  }
   
   message("Started at: ", Sys.time())
   max_integer <- .Machine$integer.max

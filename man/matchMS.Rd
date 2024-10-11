@@ -5,8 +5,8 @@
 \title{An integrated facility for searches of mass spectrometry data.}
 \usage{
 matchMS(
-  out_path = "~/mzion/outs",
-  mgf_path = file.path(out_path, "mgf"),
+  out_path = "~/mzion/my_project",
+  mgf_path = "~/mzion/my_msdata",
   fasta = c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta",
     "~/mzion/dbs/fasta/crap/crap.fasta"),
   acc_type = c("uniprot_acc", "other"),

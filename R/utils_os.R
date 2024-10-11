@@ -581,8 +581,9 @@ delete_files <- function (path, ignores = NULL, paths_excluded = NULL, ...)
   if (length(nms) && length(paths_excluded)) {
     ignore_case <- if (Sys.info()['sysname'] == "Windows") TRUE else FALSE
     
-    for (i in seq_along(paths_excluded))
+    for (i in seq_along(paths_excluded)) {
       nms <- nms[!grepl(paths_excluded[[i]], nms, ignore.case = ignore_case)]
+    }
   }
 
   if (!is.null(ignores)) {

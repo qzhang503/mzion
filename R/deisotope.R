@@ -29,8 +29,8 @@
 #'   deisotoping (guard against PASEF data). The setting should be MS platform
 #'   dependent, e.g., a much smaller value with PASEF. Also note different
 #'   settings between MS1 and MS2.
-#' @param min_ratio A ratio threshold. Exit chimeric deisotoping if the Y_cr /
-#'   Y_bf is smaller the threshold.
+#' @param ms1_min_ratio A ratio threshold. Exit MS1 chimeric deisotoping if the Y_cr
+#'   / Y_bf is smaller the threshold.
 #' @inheritParams matchMS
 #' @examples
 #' \donttest{
@@ -79,7 +79,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
                           offset_upr = 30L, offset_lwr = 30L, step = ppm / 1e6, 
                           backward_mass_co = 800/ms_lev, grad_isotope = 1.6, 
                           fct_iso2 = 3.0, use_defpeaks = FALSE, 
-                          is_pasef = FALSE, min_y = 10, min_ratio = .05)
+                          is_pasef = FALSE, min_y = 10, ms1_min_ratio = 0.0)
 {
   ###
   # if to apply intensity cut-offs, should note the difference intensity 
@@ -165,7 +165,7 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     
     # the first `mint` may be the one closest to the center with Thermo's and 
     # the first yref is 0
-    if (yref > 0 && mint / yref < min_ratio) {
+    if (ms_lev == 1L && yref > 0 && mint / yref < ms1_min_ratio) {
       break
     }
     

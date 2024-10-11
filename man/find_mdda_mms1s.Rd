@@ -27,7 +27,8 @@ find_mdda_mms1s(
   step = ppm/1e+06,
   look_back = FALSE,
   is_pasef = FALSE,
-  min_y = 50
+  min_y = 10,
+  ms1_min_ratio = 0
 )
 }
 \arguments{
@@ -98,6 +99,9 @@ against low molecular-weight precursors is \code{min_len}).}
 deisotoping (guard against PASEF data). The setting should be MS platform
 dependent, e.g., a much smaller value with PASEF. Also note different
 settings between MS1 and MS2.}
+
+\item{ms1_min_ratio}{A ratio threshold. Exit MS1 chimeric deisotoping if the Y_cr
+/ Y_bf is smaller the threshold.}
 }
 \value{
 A list. x: monoisotopic moverzs (weighted mean statistics); y:

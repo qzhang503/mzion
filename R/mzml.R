@@ -2123,7 +2123,7 @@ pasefMS1xyz <- function (msx_moverzs, msx_ints, ms1_fr, ms_level, orig_scan,
       grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
       use_defpeaks = use_defpeaks, min_mass = min_mass, margin = 0, 
       width_left = 0.26, width_right = 0.25, 
-      is_pasef = TRUE)
+      is_pasef = TRUE, min_y = 10, ms1_min_ratio = 0.05)
     
     # Precursor x, y and z values for each MS2
     xs <- ans[["x"]]
@@ -4434,7 +4434,8 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
                              fct_iso2 = 3.0, use_defpeaks = FALSE, 
                              width_left = 2.01, width_right = 1.25, margin = .5, 
                              min_mass = 200L, step = ppm/1e6, 
-                             look_back = FALSE, is_pasef = FALSE, min_y = 50)
+                             look_back = FALSE, is_pasef = FALSE, min_y = 10, 
+                             ms1_min_ratio = 0)
 {
   if (!(len1 <- length(msx_moverzs))) {
     return(NULL)
@@ -4494,7 +4495,8 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
       maxn_feats = maxn_precurs, max_charge = max_ms1_charge, n_fwd = n_fwd, 
       n_bwd = n_bwd, offset_upr = offset_upr, offset_lwr = offset_lwr, 
       grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
-      use_defpeaks = use_defpeaks, is_pasef = is_pasef)
+      use_defpeaks = use_defpeaks, is_pasef = is_pasef, 
+      min_y = min_y, ms1_min_ratio = ms1_min_ratio)
     
     masses <- mic[["masses"]]
     if (!length(masses)) next
