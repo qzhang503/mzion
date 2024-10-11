@@ -163,8 +163,9 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     mint  <- msxints[[imax]]
     n_ms1 <- n_ms1s[[imax]]
     
-    # the first `mint` may be the one closest to the center with Thermo's and 
-    # the first yref is 0
+    # to guard against PASEF MS1:
+    #  the first `mint` may be the one closest to the center with Thermo's and 
+    #  the first yref = 0
     if (ms_lev == 1L && yref > 0 && mint / yref < ms1_min_ratio) {
       break
     }
