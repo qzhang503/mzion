@@ -152,24 +152,38 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       break
     }
     
-    if ((!is_pasef) && center > 0 && p == 1L && ms_lev == 1L) {
-      imax <- .Internal(which.min(abs(moverzs - center)))
+    if (is_pasef) {
+      imax <- .Internal(which.max(msxints))
     }
     else {
-      imax <- .Internal(which.max(msxints))
+      if (center > 0 && p == 1L && ms_lev == 1L) {
+        imax <- .Internal(which.min(abs(moverzs - center)))
+      }
+      else {
+        imax <- .Internal(which.max(msxints))
+      }
     }
     
     mass  <- moverzs[[imax]]
     mint  <- msxints[[imax]]
     n_ms1 <- n_ms1s[[imax]]
     
-    # to guard against PASEF MS1:
+    ## to guard against PASEF MS1:
     #  the first `mint` may be the one closest to the center with Thermo's and 
-    #  the first yref = 0
-    if (ms_lev == 1L && yref > 0 && mint / yref < ms1_min_ratio) {
-      break
+    #    the first `yref = 0`
+    #  no need of checking `yref > 0` if is_pasef
+    if (is_pasef) { # && ms_lev == 1L && yref > 0 && mint / yref < ms1_min_ratio
+      if (ms_lev == 1L) {
+        if (mint / yref < ms1_min_ratio) {
+          break
+        }
+      }
+      # else if (ms_lev == 2L) {
+      #   if (mint / yref < .03)
+      #     break
+      # }
     }
-    
+
     ## find Z values
     ch <- find_charge_state(
       mass = mass, imax = imax, mint = mint, 
