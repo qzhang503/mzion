@@ -4,7 +4,7 @@
 \alias{add_pasef_ms2iso}
 \title{Add isolation information to an MS2 frame.}
 \usage{
-add_pasef_ms2iso(data, iso_info, min_ms2n = 0L, ymin = 10)
+add_pasef_ms2iso(data, iso_info, min_ms2n = 0L, title = "", ymin = 10)
 }
 \arguments{
 \item{data}{MS2 data in a \code{frame}.}
@@ -13,6 +13,8 @@ add_pasef_ms2iso(data, iso_info, min_ms2n = 0L, ymin = 10)
 \code{frame}.}
 
 \item{min_ms2n}{The minimum number of MS2 in a slices for considerations.}
+
+\item{title}{The title (.d file  name).}
 
 \item{ymin}{Not used. The minimum intensity value for considerations.}
 }

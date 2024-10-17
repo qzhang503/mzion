@@ -12,9 +12,9 @@ readPASEF(
 )
 }
 \arguments{
-\item{mgf_path}{A file path RAW MS files.}
+\item{mgf_path}{A file path to .d folders.}
 
-\item{filelist}{A list of RAW MS files.}
+\item{filelist}{A list of .d folders.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

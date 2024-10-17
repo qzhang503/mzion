@@ -2,11 +2,11 @@
 % Please edit documentation in R/pasefreader.R
 \name{hextract_pasef}
 \alias{hextract_pasef}
-\title{Helper of \link{extract_pasef_frame}}
+\title{Extracts data of PASEF frames.}
 \usage{
 hextract_pasef(
-  mdata,
-  iso_info,
+  file = "spectra_1.txt",
+  path = NULL,
   keys = c("msx_moverzs", "msx_ints", "msx_ns", "ms1_fr", "ms1_moverzs", "ms1_ints",
     "ms1_charges", "scan_title", "ms_level", "ret_time", "scan_num", "orig_scan",
     "iso_ctr", "iso_lwr", "iso_upr", "mobility"),
@@ -14,10 +14,9 @@ hextract_pasef(
 )
 }
 \arguments{
-\item{mdata}{A list of PASEF frames. Each list entry corresponding to one
-frame (over the ion-mobility dimension).}
+\item{file}{A file name of \code{spectra_[...].txt}.}
 
-\item{iso_info}{The information of MS2 isolation windows etc.}
+\item{path}{The full path to a .d folder.}
 
 \item{keys}{The key names of output lists.}
 

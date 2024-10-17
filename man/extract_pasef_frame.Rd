@@ -4,7 +4,7 @@
 \alias{extract_pasef_frame}
 \title{Extracts MS1 or MS2 data from a PASEF frame.}
 \usage{
-extract_pasef_frame(data, ms_lev = 1L, ymin = 50, ymax = 1e+07)
+extract_pasef_frame(data, ms_lev = 1L, ymin = 50, ymax = 1e+07, title = "")
 }
 \arguments{
 \item{data}{A PASEF frame (with multiple slices).}
@@ -14,6 +14,8 @@ extract_pasef_frame(data, ms_lev = 1L, ymin = 50, ymax = 1e+07)
 \item{ymin}{The cut-off of intensity.}
 
 \item{ymax}{The maximum intensity.}
+
+\item{title}{The title (.d file name).}
 }
 \description{
 Extracts MS1 or MS2 data from a PASEF frame.

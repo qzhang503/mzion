@@ -134,12 +134,12 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
     n_para <- max(floor(rams/20), 1L)
     n_para <- n_para * 2L # temporary for debugging; 16L
     
-    if (n_mdda_flanks > 0L) {
-      warning("Suggest a maximum value of `n_mdda_flanks = 0`.")
+    if (n_mdda_flanks > 3L) {
+      warning("Suggest a maximum value of `n_mdda_flanks = 3`.")
     }
     
-    if (maxn_mdda_precurs < 3L) {
-      warning("Suggest a minimum value of `maxn_mdda_precurs = 3`.")
+    if (maxn_mdda_precurs < 2L) {
+      warning("Suggest a minimum value of `maxn_mdda_precurs = 2`.")
     }
   }
   

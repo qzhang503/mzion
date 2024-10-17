@@ -4,7 +4,7 @@
 \alias{group_ms2pasef_by_precursors}
 \title{Collapses PASEF MS2 data by precursor IDs.}
 \usage{
-group_ms2pasef_by_precursors(dat, lwr = 115L, step = 1.6e-05)
+group_ms2pasef_by_precursors(dat, lwr = 115L, step = 1.6e-05, title = "title")
 }
 \arguments{
 \item{dat}{MS2 data under the same precursor ID.}
@@ -12,6 +12,8 @@ group_ms2pasef_by_precursors(dat, lwr = 115L, step = 1.6e-05)
 \item{lwr}{A lower bound as the starting point in mass binning.}
 
 \item{step}{A step size for mass binning.}
+
+\item{title}{The title (.d file  name).}
 }
 \description{
 Collapses PASEF MS2 data by precursor IDs.
