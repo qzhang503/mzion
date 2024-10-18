@@ -1,7 +1,7 @@
 Mzion
 ================
 true
-2024-06-11
+2024-10-17
 
 - [Installation](#installation)
 - [Peaklist formats](#peaklist-formats)
@@ -52,7 +52,6 @@ devtools::install_github("qzhang503/mzionShiny")
   - [x] `MSConvert mgf (softly depreciated)`
 - Bruker’s PASEF-MS
   - [x] `.d`
-  - [x] `DataAnalysis mgf`
 
 ## Database searches via a ShinyApp
 
@@ -75,8 +74,8 @@ Enter `?mzion::matchMS` from an RStudio console.
 library(mzion)
 
 matchMS(
-  out_path  = "~/mzion/examples", 
-  mgf_path  = "~/mzion/examples/mgfs",
+  out_path  = "~/mzion/examples/out", 
+  mgf_path  = "~/mzion/examples/raw",
   fasta     = c("~/mzion/dbs/fasta/refseq/refseq_hs_2013_07.fasta", 
                 "~/mzion/dbs/fasta/refseq/refseq_mm_2013_07.fasta", 
                 "~/mzion/dbs/fasta/crap/crap.fasta"), 
@@ -97,8 +96,8 @@ matchMS(
 
 ## Phospho, TMT
 matchMS(
-  out_path  = "~/mzion/examples_p", 
-  mgf_path  = "~/mzion/examples_p/mgfs",
+  out_path  = "~/mzion/examples_p/out", 
+  mgf_path  = "~/mzion/examples_p/raw",
   fasta     = c("~/mzion/dbs/fasta/uniprot/uniprot_hsmm_2020_03.fasta", 
                 "~/mzion/dbs/fasta/crap/crap.fasta"), 
   acc_type  = c("uniprot_acc", "other"), 

@@ -20,7 +20,6 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L,
   n_pcs <- detect_cores(64L)
   ram_units <- max(floor(find_free_mem()/1024/10), 1L)
   
-  # about 2 hrs / file / core
   if (ram_units <= 1L) {
     n_cores <- 1L
   }
@@ -75,7 +74,7 @@ hproc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L,
                           debug = FALSE)
 {
   options(digits = 9)
-  logs <- file.path(temp_dir, "log.txt")
+  logs <- file.path(temp_dir, paste0("log_", raw_file, ".txt"))
   
   # Information of MS2 isolation windows
   path    <- file.path(mgf_path, raw_file)
@@ -125,7 +124,7 @@ hproc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L,
   attr(out_name, "is_dia") <- FALSE
   attr(out_name, "mzml_type") <- "raw" # a token for Mzion de-isotoping
   
-  message("Done ", path)
+  message("Done raw data processing: ", path)
   
   invisible(out_name)
 }
@@ -316,6 +315,7 @@ hextract_pasef <- function (
     as.integer()
   oks1 <- ms_levs == 1L
   oks2 <- .Internal(which(!oks1))
+  oks1 <- .Internal(which(oks1))
 
   ## MS1 and MS2
   # method to determine a minimum MS2_Y = 20...
@@ -365,27 +365,57 @@ hextract_pasef <- function (
     # hist(log10(zx))
   }
   
-  out1 <- extract_pasef_ms1(mdata = mdata[oks1], keys = keys, title = path, 
-                            ymin = 50L)
-  out1$ms1_fr <- out1$orig_scan
-  out2 <- extract_pasef_ms2(ms2data = mdata[oks2], lens2 = lens[oks2], 
-                            iso_info = iso_info, keys = keys, title = path, 
-                            ymin = 20L, step = step) # was ymin = 10L
-
-  ## put together
+  if (length(oks1)) {
+    out1 <- extract_pasef_ms1(mdata = mdata[oks1], keys = keys, title = path, 
+                              ymin = 50L)
+    out1$ms1_fr <- out1$orig_scan
+    # out1$orig_scan <- as.character(out1$orig_scan)
+    empty1 <- FALSE
+  }
+  else {
+    message("No MS1 spectra for ", file.path(path, file))
+    out1 <- vector("list", 16L)
+    names(out1) <- keys
+    empty1 <- TRUE
+  }
+  
+  if (length(oks2)) {
+    out2 <- extract_pasef_ms2(ms2data = mdata[oks2], lens2 = lens[oks2], 
+                              iso_info = iso_info, keys = keys, title = path, 
+                              ymin = 20L, step = step) # was ymin = 10L
+    empty2 <- FALSE
+  }
+  else {
+    message("No MS2 spectra for ", file.path(path, file))
+    out2 <- vector("list", 16L)
+    names(out2) <- keys
+    empty2 <- TRUE
+  }
+  
+  ## to change to the stronger condition...
+  # if (identical(names(out1), names(out2))) {  }
   if (length(out1) == length(out2)) {
     out <- mapply(`c`, out1, out2, SIMPLIFY = FALSE, USE.NAMES = TRUE)
   }
   else {
     stop("Developer: uneven number of columns between MS1 and MS2 data.")
   }
-
+  
   # names(out) <- names(out1)
   # ord <- order(out[["scan_num"]])
   # for (i in seq_along(out)) {
   #   out[[i]] <- out[[i]][ord]
   # }
 
+  if (empty1 && empty2) {
+    return(NULL)
+  }
+  
+  # e.g. when out2 is empty; out is out1 and orig_scan is integer
+  if (!is.character(out$orig_scan)) {
+    out$orig_scan <- as.character(out$orig_scan)
+  }
+  
   df <- tibble::tibble(
     msx_moverzs = out$msx_moverzs, 
     msx_ints = out$msx_ints, 
@@ -408,7 +438,7 @@ hextract_pasef <- function (
     stop("Developer: checks for column drops.")
   }
   
-  message("Done ", file.path(path, file), ".")
+  message("Done ", file.path(path, file))
   df
 }
 
@@ -428,19 +458,20 @@ extract_pasef_ms1 <- function (mdata, keys, title = "", ymin = 50)
   if (FALSE) {
     scans <- sapply(ans1, `[[`, "scan_num")
     # i <- which(scans == 9915) # i <- 114
-    i <- which(scans == 18203L) # i <- 82
+    i <- which(scans == 18203L) # i <- 82; i <- 1L
     ai <- ans1[[i]]
     df <- data.frame(x = ai$msx_moverzs, y = ai$msx_ints)
     dfx <- df |> dplyr::filter(x >= 807.5, x <= 808.5)
     ggplot2::ggplot() + 
       ggplot2::geom_segment(dfx, mapping = aes(x = x, y = y, xend = x, yend = 0), 
-                            color = "gray", linewidth = .1)
+                            color = "gray", linewidth = .1) # + 
+      # scale_y_continuous(limits = c(0, 1000))
     tempdata1 <- centroid_pasefms1(
       xs = ai$msx_moverzs, ys = ai$msx_ints, reso = 60000, maxn = 2000L, 
-      ymin = 50L, grad = .667, fct_reso = 1.5, ms_lev = 1L, 
+      ymin = 100L, grad = .667, fct_reso = 1.5, ms_lev = 1L, 
       tol = .10)
     df <- data.frame(x = tempdata1$x, y = tempdata1$y)
-    dfx <- df |> dplyr::filter(x >= 807.5, x <= 808.5)
+    dfx2 <- df |> dplyr::filter(x >= 807.5, x <= 808.5)
   }
 
   for (i in seq_along(ans1)) {

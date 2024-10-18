@@ -90,11 +90,11 @@
 # [1] "make_mztab"
 # 
 # $pasefreader.R
-#  [1] "readPASEF"                    "proc_pasefs"                  "add_pasef_precursors"         "sep_pasef_ms2info"           
-#  [5] "hextract_pasef"               "extract_pasef_ms1"            "extract_pasef_ms2"            "sum_pasef_ms1"               
-#  [9] "sum_mono_yints"               "centroid_pasefms1"            "centroid_pasefms2"            "collapse_rawtims_xys"        
-# [13] "group_ms2pasef_by_precursors" "add_pasef_ms2iso"             "extract_pasef_frame"          "collapse_pasef_xys"          
-# [17] "exeReadPASEF"                 "acceptBrukerLicense"         
+#  [1] "readPASEF"                  "hproc_pasefs"               "split_paseflines_by_frames" "comb_pasef_ms1ms2iso"      
+#  [5] "add_pasef_precursors"       "sub_pasef_ms2info"          "hextract_pasef"             "extract_pasef_ms1"         
+#  [9] "extract_pasef_ms2"          "sum_pasef_ms1"              "sum_mono_yints"             "centroid_pasefms1"         
+# [13] "centroid_pasefms2"          "collapse_rawtims_xys"       "add_pasef_ms2iso"           "extract_pasef_frame"       
+# [17] "collapse_pasef_xys"         "exeReadPASEF"               "acceptBrukerLicense"       
 # 
 # $percolator.R
 # [1] "create_folds" "cv_svm"       "perco_svm"   

@@ -294,7 +294,8 @@ plotMS2ions <- function (duos, out_path = "~", out_name = "bar.png",
                        size = 6, alpha = .5, hjust = 0, angle = 90, vjust = 0, 
                        nudge_x = 0.05, nudge_y = 0.05, na.rm = TRUE, 
                        show.legend = FALSE) + 
-    ggplot2::labs(x = "m/z", y = "Intensity")
+    ggplot2::labs(x = "m/z", y = "Intensity") + 
+    theme_bw()
   
   if (nrow(duo2)) {
     p <- p + 
