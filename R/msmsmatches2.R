@@ -496,7 +496,7 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
     parallel::stopCluster(cl)
   }
   
-  message("Completed precursor mass calibration.\n")
+  message("Completed mass calibration.\n")
 
   fs_th <- list.files(mgf_path, pattern = pat_th, full.names = TRUE)
   fs_im <- list.files(tempdir,  pattern = pat_im, full.names = TRUE)

@@ -2,13 +2,13 @@
 % Please edit documentation in R/pasefreader.R
 \name{comb_pasef_ms1ms2iso}
 \alias{comb_pasef_ms1ms2iso}
-\title{Combines \code{precursors.txt} and \code{ms2precursors.txt}.}
+\title{Combines \code{precursors.txt} and \code{ms2precursors.txt}}
 \usage{
 comb_pasef_ms1ms2iso(path)
 }
 \arguments{
-\item{path}{A file path to a .d folder.}
+\item{path}{A file path to a \code{.d} folder.}
 }
 \description{
-Combines \code{precursors.txt} and \code{ms2precursors.txt}.
+Combines \code{precursors.txt} and \code{ms2precursors.txt}
 }

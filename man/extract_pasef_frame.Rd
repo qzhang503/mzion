@@ -2,21 +2,16 @@
 % Please edit documentation in R/pasefreader.R
 \name{extract_pasef_frame}
 \alias{extract_pasef_frame}
-\title{Extracts MS1 or MS2 data from a PASEF frame.}
+\title{Extracts MS1 or MS2 data from a PASEF frame}
 \usage{
-extract_pasef_frame(data, ms_lev = 1L, ymin = 50, ymax = 1e+07, title = "")
+extract_pasef_frame(data, coll = FALSE)
 }
 \arguments{
-\item{data}{A PASEF frame (with multiple slices).}
+\item{data}{Line data in a PASEF frame (with multiple slices).}
 
-\item{ms_lev}{The level of MS data.}
-
-\item{ymin}{The cut-off of intensity.}
-
-\item{ymax}{The maximum intensity.}
-
-\item{title}{The title (.d file name).}
+\item{coll}{Logical; collapses MS data or not.Should be FALSE. Only TRUE at
+debugging.}
 }
 \description{
-Extracts MS1 or MS2 data from a PASEF frame.
+Extracts MS1 or MS2 data from a PASEF frame
 }

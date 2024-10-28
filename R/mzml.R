@@ -98,6 +98,7 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
     peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.d\\.rds$")
     # peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.raw\\.rds$")
     peakfiles <- peakfiles[!grepl("^predeisoDDA_", peakfiles)]
+    peakfiles <- peakfiles[grepl("^LFQ_", peakfiles)]
     is_dia <- FALSE
     mzml_type <- "raw"
   }
@@ -117,7 +118,7 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
     }
   }
 
-  # temporary for bypassing Mzion deisotoping against PASEF
+  # temporary for bypassing Mzion deisotoping against PASEF???
   data_format <- local({
     file <- file.path(mgf_path, "info_format.rds")
     if (file.exists(file)) qs::qread(file)$data_format else NULL
@@ -132,14 +133,10 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
   
   if (is_pasef <- isTRUE(data_format == "Bruker-RAW")) {
     n_para <- max(floor(rams/20), 1L)
-    n_para <- n_para * 2L # temporary for debugging; 16L
-    
-    if (n_mdda_flanks > 3L) {
-      warning("Suggest a maximum value of `n_mdda_flanks = 3`.")
-    }
-    
-    if (maxn_mdda_precurs < 2L) {
-      warning("Suggest a minimum value of `maxn_mdda_precurs = 2`.")
+
+    if (n_mdda_flanks) {
+      n_mdda_flanks <- 0L
+      warning("Coerce to `n_mdda_flanks = 0` for PASEF data.")
     }
   }
   
@@ -291,6 +288,7 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
   }
   else {
     message("Deisotoping DDA-MS at: ", Sys.time())
+    ## revisit this, maybe no longer an issue...
     # yco cannot be greater than the co in PASEF extraction
     # too large of yco may cause disparity btw. X and Y values, esp. w/ PASEF
     # since values < yco replaced with NA and can become all NA
@@ -336,10 +334,7 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
     }
     else {
-      if (is_pasef) {
-        n_para <- max(floor(min(n_para, 16L)/n_cores), 1L)
-      }
-      
+      # if (is_pasef) { n_para <- max(floor(min(n_para, 16L) / n_cores), 1L) }
       cl <- parallel::makeCluster(
         getOption("cl.cores", n_cores), 
         outfile = file.path(mgf_path, "temp_dir", "log.txt"))
@@ -1620,11 +1615,14 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
   msx_ints <- ans$msx_ints
   msx_ns <- ans$msx_ns
   ms1_fr <- ans$ms1_fr
-  ms1_moverzs <- ans$ms1_moverzs # by MSConvert; Mzion: NA
-  ms1_ints <- ans$ms1_ints # by MSConvert; Mzion: NA
-  ms1_charges <- ans$ms1_charges # by MSConvert; Mzion: NA
+  
+  # by MSConvert or NA by Mzion
+  # 0 if undertermined by Bruker metadata
+  ms1_moverzs <- ans$ms1_moverzs
+  ms1_ints <- ans$ms1_ints
+  ms1_charges <- ans$ms1_charges
+  
   scan_title <- ans$scan_title
-  raw_file <- ans$raw_file # scalar
   ms_level <- ans$ms_level
   ret_time <- ans$ret_time
   scan_num <- ans$scan_num
@@ -1632,37 +1630,13 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
   iso_ctr <- ans$iso_ctr
   iso_lwr <- ans$iso_lwr
   iso_upr <- ans$iso_upr
-  # mobility <- ans$mobility # NULL for Thermo's data
   
-  if (FALSE) {
-    df <- tibble::tibble(
-      msx_moverzs = msx_moverzs, 
-      msx_ints = msx_ints, 
-      msx_ns = msx_ns, 
-      ms1_fr = ms1_fr, 
-      ms1_moverzs = ms1_moverzs, 
-      ms1_ints = ms1_ints, 
-      ms1_charges = ms1_charges, 
-      scan_title = scan_title, 
-      ms_level = ms_level, 
-      ret_time = ret_time, 
-      scan_num = scan_num, 
-      orig_scan = orig_scan, 
-      iso_ctr = iso_ctr, 
-      iso_lwr = iso_lwr, 
-      iso_upr = iso_upr, 
-      # mobility = mobility
-    )
-    
-    dfx <- df |> dplyr::filter(ms1_fr == 18203)
-    dfx2 <- dfx |> dplyr::filter(orig_scan == dfx$orig_scan[[17]])
-    data <- data.frame(x = dfx2$msx_moverzs[[1]], y = dfx2$msx_ints[[1]])
-    data |>
-      # dplyr::filter(x >= 690, x <= 699) |>
-      ggplot2::ggplot() + 
-      ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
-                            color = "gray", linewidth = .1) + theme_bw()
-  }
+  raw_file <- ans$raw_file # scalar
+  
+  ## NULL with Thermo's data
+  mobility <- ans$mobility
+  slice_start = ans$slice_start
+  slice_end = ans$slice_end
 
   if (!is.list(ms1_moverzs)) {
     ms1_moverzs <- as.list(ms1_moverzs)
@@ -1676,9 +1650,9 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
     ms1_charges <- as.list(ms1_charges)
   }
   
-  ##
+  ###
   # May confirm that each vector of msx_moverzs are in ascending order
-  ##
+  ###
   
   len0 <- length(msx_moverzs) # safeguard against row drops
   msx_charges <- vector("list", len0)
@@ -1728,59 +1702,115 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
   # MS1 X, Y and Z are NA from Mzion::readRAW and require deisotoping
   if (maxn_mdda_precurs) {
     message("Deisotoping MS1.")
-    
-    # !!! Not yet validated
-    if (FALSE) { # slower but keep the codes for group split examples
-      n_cores <- min(n_para, 16L)
-      n_chunks <- n_cores^2
-      grps <- find_ms2ends(ms_level, n_chunks)
-      
-      cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-      ans <- parallel::clusterMap(
-        cl, getMS1xyz, 
-        split(msx_moverzs, grps), split(msx_ints, grps), split(ms_level, grps), 
-        split(iso_ctr, grps), split(iso_lwr, grps), split(iso_upr, grps), 
-        split(ms1_moverzs, grps), split(ms1_charges, grps), split(ms1_ints, grps), 
-        MoreArgs = list(
-          maxn_mdda_precurs = maxn_mdda_precurs, n_mdda_flanks = n_mdda_flanks,  
-          topn_ms2ions = topn_ms2ions, quant = quant, 
-          tmt_reporter_lower = tmt_reporter_lower, 
-          tmt_reporter_upper = tmt_reporter_upper, 
-          exclude_reporter_region = exclude_reporter_region, 
-          max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
-          grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
-          use_defpeaks = use_defpeaks, min_mass = min_mass, filename = filename
-        ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
-      parallel::stopCluster(cl)
-      
-      for (nm in names(ans[[1]])) {
-        assign(nm, unlist(lapply(ans, function (x) x[[nm]]), 
-                          recursive = FALSE, use.names = FALSE))
+
+    if (is_pasef) {
+      if (n_mdda_flanks) {
+        n_mdda_flanks <- 0L
+        warning("Coerce to `n_mdda_flanks = 0`.")
       }
       
-      # each chunk is ordered by ms1_stas, ms2_stas and ms2_ends, 
-      #   but not the flattened output
-      ord <- order(ms1_stas)
-      ms1_stas <- ms1_stas[ord]
-      ms2_stas <- ms2_stas[ord]
-      ms2_ends <- ms2_ends
-      rm(list = c("ans", "grps", "cl", "ord"))
-      gc()
+      if ((n_cores <- min(n_para, 32L)) > 1L) {
+        grps <- find_ms2ends(ms_level, n_cores * 8L)
+        
+        cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
+        ans <- parallel::clusterMap(
+          cl, pasefMS1xyz, 
+          msx_moverzs = split(msx_moverzs, grps), msx_ints = split(msx_ints, grps), 
+          ms1_fr = split(ms1_fr, grps), ms_level = split(ms_level, grps), 
+          iso_ctr = split(iso_ctr, grps), iso_lwr = split(iso_lwr, grps), 
+          iso_upr = split(iso_upr, grps), ms1_moverzs = split(ms1_moverzs, grps), 
+          ms1_charges = split(ms1_charges, grps), ms1_ints = split(ms1_ints, grps), 
+          MoreArgs = list(
+            maxn_mdda_precurs = maxn_mdda_precurs, n_mdda_flanks = n_mdda_flanks,  
+            topn_ms2ions = topn_ms2ions, max_ms1_charge = max_ms1_charge, 
+            ppm_ms1_deisotope = ppm_ms1_deisotope, grad_isotope = grad_isotope, 
+            fct_iso2 = fct_iso2, use_defpeaks = use_defpeaks, 
+            min_mass = min_mass, filename = filename
+          ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
+        parallel::stopCluster(cl)
+        
+        for (nm in names(ans[[1]])) {
+          assign(nm, unlist(lapply(ans, function (x) x[[nm]]), 
+                            recursive = FALSE, use.names = FALSE))
+        }
+        
+        rm(list = c("ans", "grps", "cl", "nm"))
+      }
+      else {
+        ans <- pasefMS1xyz(
+          msx_moverzs = msx_moverzs, msx_ints = msx_ints, ms1_fr = ms1_fr, 
+          ms_level = ms_level, iso_ctr = iso_ctr, iso_lwr = iso_lwr, 
+          iso_upr = iso_upr, ms1_moverzs = ms1_moverzs, 
+          ms1_charges = ms1_charges, ms1_ints = ms1_ints, 
+          maxn_mdda_precurs = maxn_mdda_precurs, n_mdda_flanks = n_mdda_flanks, 
+          topn_ms2ions = topn_ms2ions, 
+          max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
+          grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+          use_defpeaks = use_defpeaks, min_mass = min_mass, filename = filename)
+        
+        ms1_moverzs <- ans$ms1_moverzs
+        ms1_masses <- ans$ms1_masses
+        ms1_ints <- ans$ms1_ints
+        ms1_charges <- ans$ms1_charges
+        rm(list = "ans")
+      }
       
-      message("Completed MS1 deisotoping at: ", Sys.time())
-    }
-    
-    if (is_pasef) {
-      ans <- pasefMS1xyz(
-        msx_moverzs = msx_moverzs, msx_ints = msx_ints, ms1_fr = ms1_fr, 
-        ms_level = ms_level, orig_scan = orig_scan, 
-        iso_ctr = iso_ctr, iso_lwr = iso_lwr, iso_upr = iso_upr, 
-        ms1_moverzs = ms1_moverzs, ms1_charges = ms1_charges, ms1_ints = ms1_ints, 
-        maxn_mdda_precurs = maxn_mdda_precurs, n_mdda_flanks = n_mdda_flanks, 
-        topn_ms2ions = topn_ms2ions, 
-        max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
-        grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
-        use_defpeaks = use_defpeaks, min_mass = min_mass, filename = filename)
+      df <- tibble::tibble(
+        msx_moverzs = msx_moverzs, 
+        msx_ints = msx_ints, 
+        msx_charges = msx_charges, # not in `df1`
+        msx_ns = msx_ns, 
+        
+        ms1_fr = ms1_fr, 
+        ms1_moverzs = ms1_moverzs, 
+        ms1_ints = ms1_ints, 
+        ms1_charges = ms1_charges, 
+        ms1_masses = ms1_masses, # not in `df1`
+        scan_title = scan_title, 
+        ms_level = ms_level, 
+        ret_time = ret_time, 
+        scan_num = scan_num, 
+        orig_scan = orig_scan, 
+        iso_ctr = iso_ctr, 
+        iso_lwr = iso_lwr, 
+        iso_upr = iso_upr, 
+        
+        slice_start = slice_start,
+        slice_end = slice_end, 
+        mobility = mobility, )
+      
+      ## bring back PASEF full_ms1
+      df  <- df[with(df, ms_level > 1L), ]
+      
+      fi_pasefms1 <- file.path(temp_dir, paste0("pasefms1_", filename))
+      if (!file.exists(fi_pasefms1)) {
+        stop("Full MS1 not found ", fi_pasefms1)
+      }
+      df1 <- qs::qread(fi_pasefms1)
+      df1$ms1_moverzs <- df1$ms1_ints <- df1$ms1_charges <- df1$ms1_masses <- 
+        df1$msx_charges <- vector("list", nrow(df1))
+      
+      nms <- names(df)
+      if (length(setdiff(names(df1), nms))) {
+        stop("Developer: check for inconsistency in column names")
+      }
+      
+      df1 <- df1[, nms]
+      
+      if (!identical(lapply(df1, class), lapply(df, class))) {
+        stop("Developer: inconsistent classes between MS1 and MS2 data.")
+      }
+      
+      df <- dplyr::bind_rows(df1, df)
+      df <- df |> dplyr::arrange(ms1_fr, ms_level)
+      
+      for (nm in nms) {
+        assign(nm, df[[nm]])
+      }
+      
+      rm(list = c("df", "df1", "nm", "nms", "fi_pasefms1"))
+      gc()
+      message("Completed PASEF MS1 deisotoping at: ", Sys.time())
     }
     else {
       ans <- getMS1xyz(
@@ -1795,46 +1825,17 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
         max_ms1_charge = max_ms1_charge, ppm_ms1_deisotope = ppm_ms1_deisotope, 
         grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
         use_defpeaks = use_defpeaks, min_mass = min_mass, filename = filename)
+      
+      # `ms1_ints` are the sum over flankings, 
+      #    not the corresponding MS1-Y of ms1_moverzs
+      ms1_moverzs <- ans$ms1_moverzs
+      ms1_masses <- ans$ms1_masses
+      ms1_ints <- ans$ms1_ints
+      ms1_charges <- ans$ms1_charges
+      rm(list = "ans")
+      message("Completed MS1 deisotoping at: ", Sys.time())
     }
 
-    # `ms1_ints` are the sum over flankings, 
-    #    not the corresponding MS1-Y of ms1_moverzs
-    ms1_moverzs <- ans$ms1_moverzs
-    ms1_masses <- ans$ms1_masses
-    ms1_ints <- ans$ms1_ints
-    ms1_charges <- ans$ms1_charges
-    rm(list = "ans")
-    message("Completed MS1 deisotoping at: ", Sys.time())
-    
-    if (FALSE) {
-      df <- tibble::tibble(
-        msx_moverzs = msx_moverzs, 
-        msx_ints = msx_ints, 
-        msx_ns = msx_ns, 
-        ms1_fr = ms1_fr, 
-        ms1_moverzs = ms1_moverzs, 
-        ms1_ints = ms1_ints, 
-        ms1_charges = ms1_charges, 
-        scan_title = scan_title, 
-        ms_level = ms_level, 
-        ret_time = ret_time, 
-        scan_num = scan_num, 
-        orig_scan = orig_scan, 
-        iso_ctr = iso_ctr, 
-        iso_lwr = iso_lwr, 
-        iso_upr = iso_upr, 
-        # mobility = mobility
-      )
-      
-      # why all ds <= 0, -1.02970 : 0?
-      ds <- mapply(`-`, df$ms1_moverzs, df$iso_ctr)
-      df$deltas <- ds
-      bads <- sapply(ds, function (x) any(x > 1))
-      z <- df[bads, ]
-      ds <- unlist(ds)
-      # less than 0.5% of ds > .5; 99% within -2 and +.5
-    }
-    
     # look up MS2 for undetermined precursor charge states
     if (deisotope_ms2) {
       rows1 <- lapply(ms1_moverzs, is.null) # all MS1 and some MS2
@@ -1899,10 +1900,12 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
   }
   
   # final check
-  if (length(msx_moverzs) != len0) {
-    stop("Developer: check for row dropping.")
+  if (!is_pasef) {
+    if (length(msx_moverzs) != len0) {
+      stop("Developer: check for row dropping.")
+    }
   }
-  
+
   # msx_moverzs at ms_level == 1L correspond to full-spectrum ms1_moverzs
   # msx_charges at ms_level == 1L are list(NULL)
   df <- tibble::tibble(
@@ -2036,7 +2039,6 @@ deisoDDAMS2 <- function (ms2_moverzs, ms2_ints, topn_ms2ions = 150L,
 #' @param msx_ints Full-spectrum MS1 or MS2 intensities.
 #' @param ms1_fr MS1 frame numbers.
 #' @param ms_level Vectors of MS levels.
-#' @param orig_scan Original scan numbers.
 #' @param iso_ctr A vector of isolation centers.
 #' @param iso_lwr A vector of isolation lowers.
 #' @param iso_upr A vector of isolation uppers.
@@ -2045,8 +2047,147 @@ deisoDDAMS2 <- function (ms2_moverzs, ms2_ints, topn_ms2ions = 150L,
 #' @param ms1_charges MS1 charge states.
 #' @param filename A filename for logging.
 #' @inheritParams matchMS
-pasefMS1xyz <- function (msx_moverzs, msx_ints, ms1_fr, ms_level, orig_scan, 
+pasefMS1xyz <- function (msx_moverzs, msx_ints, ms1_fr, ms_level, 
                          iso_ctr = NULL, iso_lwr = NULL, iso_upr = NULL, 
+                         # slice_start = NULL, slice_end = NULL, mobility = NULL, 
+                         ms1_moverzs = NULL, ms1_charges = NULL, ms1_ints = NULL, 
+                         maxn_mdda_precurs = 1L, n_mdda_flanks = 0L, 
+                         topn_ms2ions = 150L, max_ms1_charge = 4L, 
+                         ppm_ms1_deisotope = 8L, grad_isotope = 1.6, 
+                         fct_iso2 = 3.0, use_defpeaks = FALSE, min_mass = 115L, 
+                         filename = NULL)
+{
+  if (debug <- FALSE) {
+    df0 <- tibble::tibble(
+      msx_moverzs = msx_moverzs, msx_ints = msx_ints, 
+      x0 = ms1_moverzs, y0 = ms1_ints, z0 = ms1_charges,
+      ms1_fr = ms1_fr, ms_level = ms_level, 
+      iso_ctr = iso_ctr, iso_lwr = iso_lwr, iso_upr = iso_upr, )
+  }
+  
+  if (!use_defpeaks) {
+    ms1_moverzs <- ms1_ints <- ms1_charges <- vector("list", length(msx_ints))
+  }
+  
+  df <- tibble::tibble(
+    msx_moverzs = msx_moverzs, 
+    msx_ints = msx_ints, 
+    ms_level = ms_level, 
+    iso_ctr = iso_ctr, 
+    iso_lwr = iso_lwr, 
+    iso_upr = iso_upr, 
+    ms1_moverzs = ms1_moverzs,
+    ms1_ints = ms1_ints,
+    ms1_charges = ms1_charges, )
+  
+  dfs <- split(df, ms1_fr)
+  frs <- unique(ms1_fr) # identical(as.integer(names(dfs)), frs)
+  rm(list = "df")
+  
+  # for `n_mdda_flanks > 0L`, but mobilities seem to vary from frame to frame
+  #   may still implement the integration by `mobility`, not by `slice_start`
+  # 
+  # i = 3000L
+  # cols1 <- c("msx_moverzs", "msx_ints", "slice_start", "mobility")
+  # rng1 <- max(1, i - n_mdda_flanks):min(frmax, i + n_mdda_flanks)
+  # df1s <- dfs[rng1]
+  # df1s <- lapply(df1s, function (x) x[x$ms_level == 1L, cols1])
+  # 
+  # compare mobility to flanking MS1 frames...
+  
+  cols <- c("ms1_moverzs", "ms1_ints", "ms1_charges")
+  
+  for (i in seq_along(frs)) {
+    dfi  <- dfs[[i]]
+    xsi  <- dfi$msx_moverzs
+    ysi  <- dfi$msx_ints
+    ctri <- dfi$iso_ctr
+    lwri <- dfi$iso_lwr
+    upri <- dfi$iso_upr
+    
+    pos_levs <- getMSrowIndexes(dfi$ms_level) # MS1 without following MS2s dropped
+    ms1_stas <- pos_levs$ms1_stas
+    ms2_stas <- pos_levs$ms2_stas
+    ms2_ends <- pos_levs$ms2_ends
+    
+    for (j in seq_along(ms1_stas)) {
+      sta1 <- ms1_stas[j]
+      rng2 <- ms2_stas[[j]]:ms2_ends[[j]] # must have length
+      
+      ans <- find_mdda_mms1s(
+        msx_moverzs = xsi[[sta1]], 
+        msx_ints = ysi[[sta1]], 
+        iso_ctr = ctri[rng2], iso_lwr = lwri[rng2], iso_upr = upri[rng2], 
+        ppm = ppm_ms1_deisotope, maxn_precurs = maxn_mdda_precurs, 
+        max_ms1_charge = max_ms1_charge, n_fwd = 15L, n_bwd = 20L, 
+        offset_upr = 20L, offset_lwr = 30L, 
+        grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+        use_defpeaks = use_defpeaks, min_mass = min_mass, margin = 0, 
+        width_left = 0.26, width_right = 0.25, 
+        is_pasef = TRUE, min_y = 10, ms1_min_ratio = 0.05)
+      xs <- ans[["x"]]
+      ys <- as.integer(ans[["y"]])
+      zs <- ans[["z"]]
+      
+      if (length(xs) != length(rng2)) { stop("Check for entry-dropping.") }
+      
+      if (debug) {
+        dfx <- dplyr::bind_cols(tibble::tibble(x = xs, y = ys, z = zs), df0[[i]]) |>
+          dplyr::select(-c("msx_moverzs", "msx_ints", "ms1_fr", "ms_level"))
+      }
+      
+      # updates corresponding MS1 X, Y and Z for each MS2
+      for (k in seq_along(rng2)) {
+        xsk <- xs[[k]]
+        if (length(xsk)) {
+          rk <- rng2[[k]]
+          dfi$ms1_moverzs[[rk]] <- xsk
+          dfi$ms1_ints[[rk]] <- ys[[k]]
+          dfi$ms1_charges[[rk]] <- zs[[k]]
+        }
+      }
+    }
+    
+    dfs[[i]][cols] <- dfi[cols]
+  }
+  
+  df <- dplyr::bind_rows(dfs)
+  ms1_moverzs <- df$ms1_moverzs
+  ms1_ints    <- df$ms1_ints
+  ms1_charges <- df$ms1_charges
+  ms1_masses  <- mapply(
+    function (x, y) (x - 1.00727647) * y, 
+    ms1_moverzs, ms1_charges, 
+    SIMPLIFY = FALSE, USE.NAMES = FALSE)
+  
+  list(ms1_moverzs = ms1_moverzs, ms1_masses = ms1_masses, 
+       ms1_ints = ms1_ints, ms1_charges = ms1_charges)
+}
+
+
+#' De-isotoping PASEF DDA-MS1
+#' 
+#' Depreciated; for PASEF with MS1 combining of all slices.
+#' 
+#' @param msx_moverzs Full-spectrum MS1 or MS2 m-over-z values.
+#' @param msx_ints Full-spectrum MS1 or MS2 intensities.
+#' @param ms1_fr MS1 frame numbers.
+#' @param ms_level Vectors of MS levels.
+#' @param orig_scan Original scan numbers.
+#' @param iso_ctr A vector of isolation centers.
+#' @param iso_lwr A vector of isolation lowers.
+#' @param iso_upr A vector of isolation uppers.
+#' @param slice_start A vector of indexes of slice starts.
+#' @param slice_end A vector of indexes of slice ends.
+#' @param mobility A vector of mobilities.
+#' @param ms1_moverzs MS1 moverz values.
+#' @param ms1_ints MS1 intensity values.
+#' @param ms1_charges MS1 charge states.
+#' @param filename A filename for logging.
+#' @inheritParams matchMS
+pasefMS1xyz0 <- function (msx_moverzs, msx_ints, ms1_fr, ms_level, orig_scan, 
+                         iso_ctr = NULL, iso_lwr = NULL, iso_upr = NULL, 
+                         slice_start = NULL, slice_end = NULL, mobility = NULL, 
                          ms1_moverzs = NULL, ms1_charges = NULL, ms1_ints = NULL, 
                          maxn_mdda_precurs = 1L, n_mdda_flanks = 0L, 
                          topn_ms2ions = 150L, max_ms1_charge = 4L, 
@@ -4004,7 +4145,6 @@ find_baseline <- function (vals, vmax, perc = .02, max_perc = .05, y_rpl = 2.0)
 }
 
 
-
 #' Find peak edges by intensity threshold relative to the base peak
 #'
 #' @param ys A vector of intensity values.
@@ -4040,6 +4180,7 @@ find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0,
   
   list(stas = sta + ioks[ups] - 1L, ends = sta + ioks[dns] - 1L)
 }
+
 
 #' Find peak edges by intensity threshold relative to the base peak
 #' 

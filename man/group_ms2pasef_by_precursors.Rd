@@ -2,9 +2,10 @@
 % Please edit documentation in R/pasefreader.R
 \name{group_ms2pasef_by_precursors}
 \alias{group_ms2pasef_by_precursors}
-\title{Collapses PASEF MS2 data by precursor IDs.}
+\title{Collapses PASEF MS2 data (belonging to the same \code{MS1Frame}) by
+\code{Precursor} IDs.}
 \usage{
-group_ms2pasef_by_precursors(dat, lwr = 115L, step = 1.6e-05, title = "title")
+group_ms2pasef_by_precursors(dat, lwr = 115L, step = 1.6e-05, title = "")
 }
 \arguments{
 \item{dat}{MS2 data under the same precursor ID.}
@@ -16,5 +17,6 @@ group_ms2pasef_by_precursors(dat, lwr = 115L, step = 1.6e-05, title = "title")
 \item{title}{The title (.d file  name).}
 }
 \description{
-Collapses PASEF MS2 data by precursor IDs.
+The same \code{Precursor} ID must have the same \code{MS1Frame}. The same
+precursor at different \code{MS1Frame}s has different \code{Precursor} IDs.
 }

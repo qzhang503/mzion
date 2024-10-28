@@ -2,14 +2,14 @@
 % Please edit documentation in R/pasefreader.R
 \name{hextract_pasef}
 \alias{hextract_pasef}
-\title{Extracts data of PASEF frames.}
+\title{Extracts data of PASEF frames}
 \usage{
 hextract_pasef(
   file = "spectra_1.txt",
   path = NULL,
   keys = c("msx_moverzs", "msx_ints", "msx_ns", "ms1_fr", "ms1_moverzs", "ms1_ints",
     "ms1_charges", "scan_title", "ms_level", "ret_time", "scan_num", "orig_scan",
-    "iso_ctr", "iso_lwr", "iso_upr", "mobility"),
+    "slice_start", "slice_end", "iso_ctr", "iso_lwr", "iso_upr", "mobility"),
   step = 1.6e-05
 )
 }

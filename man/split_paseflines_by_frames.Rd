@@ -2,15 +2,15 @@
 % Please edit documentation in R/pasefreader.R
 \name{split_paseflines_by_frames}
 \alias{split_paseflines_by_frames}
-\title{Splits single \code{spec_[...].txt} by frames.}
+\title{Splits single \code{spec_[...].txt} by frames}
 \usage{
 split_paseflines_by_frames(file, path)
 }
 \arguments{
 \item{file}{A file name of \code{spec_[...].txt}.}
 
-\item{path}{A path to a .d folder.}
+\item{path}{A path to a \code{.d} folder.}
 }
 \description{
-Splits single \code{spec_[...].txt} by frames.
+Splits single \code{spec_[...].txt} by frames
 }

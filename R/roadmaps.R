@@ -430,7 +430,7 @@
 #     extract_pasef_frame (+ collapse_pasef_xys of all MS1 slices)
 #       centroid_pasefms
 #   extract_pasef_ms2 (helper)
-#     add_pasef_ms2iso
+#     collapse_pasef_ms2scans
 #       extract_pasef_frame (not yet same-slice data collapsion)
 #         collapse_pasef_xys (of MS2 data within the same slice)
 #     group_ms2pasef_by_precursors

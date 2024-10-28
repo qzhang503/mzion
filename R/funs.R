@@ -79,22 +79,23 @@
 # 
 # $mzml.R
 #  [1] "readmzML"          "hloadMZML"         "loadMZML"          "extrDDA"           "hdeisoDDA"         "deisoDDA"         
-#  [7] "get_ms1xs_space"   "estimate_rtgap"    "predeisoDDA"       "deisoDDAMS2"       "pasefMS1xyz"       "getMSrowIndexes"  
-# [13] "find_ms2ends"      "getMS1xyz"         "getMS2xyz"         "extrDIA"           "hdeisoDIA"         "deisoDIA"         
-# [19] "hsubDIAMS1"        "subDIAMS1"         "htraceDIA"         "traceDIA"          "flattenMSxyz"      "spreadMSohw"      
-# [25] "spreadMS_v1"       "comb_mstraces"     "find_gates"        "find_gate_edges"   "traceLCMS"         "collapse_xyz"     
-# [31] "mapcoll_xyz"       "find_lc_gates"     "find_baseline"     "find_lc_gates2"    "find_lc_edges_bp"  "calcAUC"          
-# [37] "fill_lc_gaps"      "collapse_mms1ints" "calc_ms1xys"       "find_mdda_mms1s"   "find_ms1byms2"    
+#  [7] "get_ms1xs_space"   "estimate_rtgap"    "predeisoDDA"       "deisoDDAMS2"       "pasefMS1xyz"       "pasefMS1xyz0"     
+# [13] "getMSrowIndexes"   "find_ms2ends"      "getMS1xyz"         "getMS2xyz"         "extrDIA"           "hdeisoDIA"        
+# [19] "deisoDIA"          "hsubDIAMS1"        "subDIAMS1"         "htraceDIA"         "traceDIA"          "flattenMSxyz"     
+# [25] "spreadMSohw"       "spreadMS_v1"       "comb_mstraces"     "find_gates"        "find_gate_edges"   "traceLCMS"        
+# [31] "collapse_xyz"      "mapcoll_xyz"       "find_lc_gates"     "find_baseline"     "find_lc_gates2"    "find_lc_edges_bp" 
+# [37] "calcAUC"           "fill_lc_gaps"      "collapse_mms1ints" "calc_ms1xys"       "find_mdda_mms1s"   "find_ms1byms2"    
 # 
 # $mztab.R
 # [1] "make_mztab"
 # 
 # $pasefreader.R
-#  [1] "readPASEF"                  "hproc_pasefs"               "split_paseflines_by_frames" "comb_pasef_ms1ms2iso"      
-#  [5] "add_pasef_precursors"       "sub_pasef_ms2info"          "hextract_pasef"             "extract_pasef_ms1"         
-#  [9] "extract_pasef_ms2"          "sum_pasef_ms1"              "sum_mono_yints"             "centroid_pasefms1"         
-# [13] "centroid_pasefms2"          "collapse_rawtims_xys"       "add_pasef_ms2iso"           "extract_pasef_frame"       
-# [17] "collapse_pasef_xys"         "exeReadPASEF"               "acceptBrukerLicense"       
+#  [1] "readPASEF"                    "hproc_pasefs"                 "split_paseflines_by_frames"   "comb_pasef_ms1ms2iso"        
+#  [5] "add_pasef_precursors"         "bracket_pasef_ms2info"        "hextract_pasef"               "extract_pasefms1"            
+#  [9] "extract_pasefms2"             "purge_iso_info"               "subset_pasefms"               "sum_pasef_ms1"               
+# [13] "sum_mono_yints"               "centroid_pasefms1"            "centroid_pasefms2"            "group_ms2pasef_by_precursors"
+# [17] "collapse_pasef_ms1scans"      "collapse_pasef_ms2scans"      "extract_pasef_frame"          "collapse_pasef_xys"          
+# [21] "exeReadPASEF"                 "acceptBrukerLicense"         
 # 
 # $percolator.R
 # [1] "create_folds" "cv_svm"       "perco_svm"   

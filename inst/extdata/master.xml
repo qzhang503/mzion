@@ -346,6 +346,7 @@
         <umod:source>FindMod</umod:source>
         <umod:url/>
       </umod:xref>
+      <umod:specificity hidden="0" site="T" position="Anywhere" classification="other" spec_group="3"/>
     </umod:mod>
     <umod:mod title="Carbamidomethyl" full_name="Iodoacetamide derivative" username_of_poster="unimod" group_of_poster="admin" date_time_posted="2002-08-19 19:17:11" date_time_modified="2017-10-09 10:27:10" approved="1" record_id="4">
       <umod:specificity hidden="1" site="Y" position="Anywhere" classification="Artefact" spec_group="9"/>
