@@ -2126,7 +2126,7 @@ pasefMS1xyz <- function (msx_moverzs, msx_ints, ms1_fr, ms_level,
         width_left = 0.26, width_right = 0.25, 
         is_pasef = TRUE, min_y = 10, ms1_min_ratio = 0.05)
       xs <- ans[["x"]]
-      ys <- as.integer(ans[["y"]])
+      ys <- ans[["y"]] # as.integer; don't ys is list
       zs <- ans[["z"]]
       
       if (length(xs) != length(rng2)) { stop("Check for entry-dropping.") }
