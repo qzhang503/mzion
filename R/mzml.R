@@ -132,8 +132,6 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
   n_para <- max(min(n_pcs, r_cores), 1L)
   
   if (is_pasef <- isTRUE(data_format == "Bruker-RAW")) {
-    n_para <- max(floor(rams/20), 1L)
-
     if (n_mdda_flanks) {
       n_mdda_flanks <- 0L
       warning("Coerce to `n_mdda_flanks = 0` for PASEF data.")
@@ -1809,7 +1807,7 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
       }
       
       rm(list = c("df", "df1", "nm", "nms", "fi_pasefms1"))
-      gc()
+      # gc()
       message("Completed PASEF MS1 deisotoping at: ", Sys.time())
     }
     else {
