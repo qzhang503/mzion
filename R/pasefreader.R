@@ -2,11 +2,12 @@
 #'
 #' @param mgf_path A file path to .d folders.
 #' @param filelist A list of .d folders.
+#' @param pasef_slice_size The gap of scan indexes for data binning to a slice.
 #' @param bypass_rawexe Logical; to bypass \link{exeReadPASEF} processing of
 #'   RAW .d files or not.
 #' @inheritParams matchMS
-readPASEF <- function (mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L, 
-                       bypass_rawexe = FALSE) 
+readPASEF <- function (mgf_path = NULL, filelist = NULL, pasef_slice_size = 1L, 
+                       topn_ms2ions = 150L, bypass_rawexe = FALSE) 
 {
   sys_path <- system.file("extdata", package = "mzion")
   temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
@@ -39,22 +40,22 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L,
     }
   }
   
-  # n_cores2 <- min(len, detect_cores(8L), ram_units)
-  # n_cores2 <- find_min_ncores(len, n_cores2)
   n_cores2 <- 1L
-  # 90 min per file at * 4; was * 2
+  # 45 min per file
   n_para   <- min(max(floor(ram_units * 4 / n_cores2), 1L), n_pcs - 1L)
 
   message("Compiling RAW PASEF peak lists at: ", Sys.time())
   
   if (n_cores2 <= 1L) {
     filenames <- lapply(filelist, hproc_pasefs, mgf_path = mgf_path, 
-                        temp_dir = temp_dir, n_para = n_para)
+                        temp_dir = temp_dir, n_para = n_para, 
+                        pasef_slice_size = pasef_slice_size)
   }
   else {
     cl <- parallel::makeCluster(getOption("cl.cores", n_cores2), outfile = logs)
     filenames <- parallel::clusterApply(cl, filelist, hproc_pasefs, 
-      mgf_path = mgf_path, temp_dir = temp_dir, n_para = n_para)
+      mgf_path = mgf_path, temp_dir = temp_dir, n_para = n_para, 
+      pasef_slice_size = pasef_slice_size)
     parallel::stopCluster(cl)
   }
   
@@ -69,10 +70,11 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, topn_ms2ions = 150L,
 #' @param raw_file The name of a .d folder.
 #' @param mgf_path A file path to .d folders.
 #' @param temp_dir A file path for temporary files.
+#' @param pasef_slice_size The gap of scan indexes for data binning to a slice.
 #' @param n_para The number of maximum allowed parallel processes.
 #' @param debug Debugging mode or not.
-hproc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L, 
-                          debug = FALSE)
+hproc_pasefs <- function (raw_file, mgf_path, temp_dir, pasef_slice_size = 1L, 
+                          n_para = 1L, debug = FALSE)
 {
   options(digits = 9L)
   out_name <- paste0(raw_file, ".rds")
@@ -93,16 +95,21 @@ hproc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L,
   ## (2) process spectra_[...].txt
   if (n_para <= 1L) {
     if (n_files == 1L) {
-      out <- hextract_pasef(files, path = path)
+      out <- 
+        hextract_pasef(files, path = path, pasef_slice_size = pasef_slice_size)
     }
     else {
-      out <- lapply(files, hextract_pasef, path = path) |>
+      out <- 
+        lapply(files, hextract_pasef, path = path, 
+               pasef_slice_size = pasef_slice_size) |>
         dplyr::bind_rows()
     }
   }
   else {
     cl  <- parallel::makeCluster(getOption("cl.cores", n_para), outfile = logs)
-    out <- parallel::clusterApplyLB(cl, files, hextract_pasef, path = path)
+    out <- parallel::clusterApplyLB(
+      cl, files, hextract_pasef, path = path, 
+      pasef_slice_size = pasef_slice_size)
     parallel::stopCluster(cl)
     out <- dplyr::bind_rows(out)
   }
@@ -119,6 +126,7 @@ hproc_pasefs <- function (raw_file, mgf_path, temp_dir, n_para = 1L,
   out <- out[!rows, ]
 
   lens <- lengths(out$msx_moverzs)
+  # do not remove `|`; otherwise ms_level == 2L all removed
   oks  <- out[["ms_level"]] == 1L | (lens >= 25L & lens <= 2000L)
   out  <- out[oks, ]
   out <- as.list(out)
@@ -279,10 +287,11 @@ bracket_pasef_ms2info <- function (iso_info, mdata, offset_fr = 3L)
 #' 
 #' @param file A file name of \code{spectra_[...].txt}.
 #' @param path The full path to a .d folder.
+#' @param pasef_slice_size The gap of scan indexes for data binning to a slice.
 #' @param keys The key names of output lists.
 #' @param step A step size for mass binning.
 hextract_pasef <- function (
-    file = "spectra_1.txt", path = NULL, 
+    file = "spectra_1.txt", path = NULL, pasef_slice_size = 1L, 
     keys = c("msx_moverzs", "msx_ints", "msx_ns", "ms1_fr", 
              "ms1_moverzs", "ms1_ints", "ms1_charges", "scan_title", "ms_level", 
              "ret_time", "scan_num", "orig_scan", "slice_start", "slice_end", 
@@ -335,6 +344,23 @@ hextract_pasef <- function (
   #  MS2 at the same ScanNumBegin:ScanNumEnd and MS1 frame can correspond to 
   #   different species (m/z)
 
+  if (length(oks1)) {
+    temp_1 <- extract_pasefms1(
+      mdata = mdata[oks1], ms_frs = ms_frs[oks1], iso_info = iso_info, 
+      pasef_slice_size = pasef_slice_size, ms_col = "MS1Frame", keys = keys, 
+      title = path, step = step)
+    out1 <- temp_1$ms1_slices
+    ms1_full <- temp_1$ms1_full
+    empty1 <- FALSE
+  }
+  else {
+    message("No MS1 spectra for ", file.path(path, file))
+    out1 <- ms1_full <- vector("list", length(keys))
+    names(ms1_full) <- names(out1) <- keys
+    empty1 <- TRUE
+  }
+  message("Completed PASEF MS1 extraction: ", file)
+
   if (length(oks2)) {
     out2 <- extract_pasefms2(
       mdata = mdata[oks2], ms_frs = ms_frs[oks2], iso_info = iso_info, 
@@ -349,26 +375,6 @@ hextract_pasef <- function (
   }
   message("Completed PASEF MS2 extraction: ", file)
   
-  if (length(oks1)) {
-    iso_info_1 <- 
-      unique(iso_info[, c("MS1Frame", "ScanNumBegin", "ScanNumEnd")]) |>
-      dplyr::arrange(MS1Frame, ScanNumBegin)
-    
-    temp_1 <- extract_pasefms1(
-      mdata = mdata[oks1], ms_frs = ms_frs[oks1], iso_info = iso_info_1, 
-      ms_col = "MS1Frame", keys = keys, title = path, step = step)
-    out1 <- temp_1$ms1_slices
-    ms1_full <- temp_1$ms1_full
-    empty1 <- FALSE
-  }
-  else {
-    message("No MS1 spectra for ", file.path(path, file))
-    out1 <- ms1_full <- vector("list", length(keys))
-    names(ms1_full) <- names(out1) <- keys
-    empty1 <- TRUE
-  }
-  message("Completed PASEF MS1 extraction: ", file)
-
   if (identical(names(out1), names(out2))) {
     out <- mapply(`c`, ms1_full, out1, out2, SIMPLIFY = FALSE, USE.NAMES = TRUE)
   }
@@ -385,6 +391,18 @@ hextract_pasef <- function (
     out$orig_scan <- as.character(out$orig_scan)
   }
   
+  ### 
+  # (a) Full MS1
+  #     ms_level = 1L
+  #     mobility = 0.0
+  #     slice_start = 0L
+  #     slice_end = 10000L
+  # (b) MS1 slices
+  #     ms_level = 1L
+  # (c) MS2 
+  #     ms_level = 2L
+  ### 
+
   df <- tibble::tibble(
     msx_moverzs = out$msx_moverzs, 
     msx_ints = out$msx_ints, 
@@ -421,14 +439,20 @@ hextract_pasef <- function (
 #'   to one MS1 frame. Note that each frame contains multiple mobility slices.
 #' @param lens The number of lines in each MS2 frame.
 #' @param iso_info The information of MS1 slices.
-#' @param ms_col The criteria column in \code{iso_info} for subsetting.
+#' @param ms_col The criteria column in \code{ms1_iso} for subsetting.
 #' @param keys The key names of output lists.
 #' @param title The title (.d file  name).
+#' @param pasef_slice_size The gap of scan indexes for data binning to a slice.
 #' @param step A step size for mass binning.
-extract_pasefms1 <- function (mdata, ms_frs, iso_info, ms_col = "MS1Frame", 
-                              keys, title = "", step = 1.6e-5)
+extract_pasefms1 <- function (
+    mdata, ms_frs, iso_info, pasef_slice_size = 1L, ms_col = "MS1Frame", 
+    keys = c("msx_moverzs", "msx_ints", "msx_ns", "ms1_fr", 
+             "ms1_moverzs", "ms1_ints", "ms1_charges", "scan_title", "ms_level", 
+             "ret_time", "scan_num", "orig_scan", "slice_start", "slice_end", 
+             "iso_ctr", "iso_lwr", "iso_upr", "mobility"), 
+    title = "", step = 1.6e-5)
 {
-  ## (1) mutually subset `mdata` and `iso_info` by MS1 frames
+  ## (1) mutual subset of `mdata` and `iso_info` by MS1 frame numbers
   res <- subset_pasefms(
     mdata = mdata, ms_frs = ms_frs, iso_info = iso_info, ms_col = ms_col)
   mdata <- res[["mdata"]]
@@ -436,184 +460,203 @@ extract_pasefms1 <- function (mdata, ms_frs, iso_info, ms_col = "MS1Frame",
   iso_info <- res[["iso_info"]]
   rm(list = "res")
   
+  ms1_iso <- lapply(iso_info, function (df) {
+    unique(df[, c("MS1Frame", "ScanNumBegin", "ScanNumEnd")]) |>
+      dplyr::arrange(MS1Frame, ScanNumBegin, -ScanNumEnd)
+  })
+  
   ## (2) convert line data to lists for each frame
-  ans <- lapply(mdata,  extract_pasef_frame)
+  lda <- lapply(mdata,  extract_pasef_frame)
+  n_frs <- length(lda)
+  if (n_frs != length(ms1_iso)) {
+    stop("Developer: mismatches in the lengths of MS data and metadata.")
+  }
+  ms_frs <- 
+    unlist(lapply(lda, `[[`, "scan_num"), recursive = FALSE, use.names = FALSE)
+  ret_times <- 
+    unlist(lapply(lda, `[[`, "ret_time"), recursive = FALSE, use.names = FALSE)
+  mobils <- lapply(lda, `[[`, "mobility")
   rm(list = "mdata")
   
   # assume no empty frames (e.g. at no additional intensity filtration)
   if (FALSE) {
-    oks <- lengths(ans) > 0L
-    if (!all(oks)) {
-      oks <- which(oks)
-      ans <- ans[oks]
-      iso_info <- iso_info[oks]
-      ms_frs <- ms_frs[oks]
+    bads <- which(lengths(lda) == 0L)
+    if (length(bads)) {
+      lda <- lda[-bads]
+      ms1_iso <- ms1_iso[bads]
+      iso_info <- iso_info[bads]
+      ms_frs <- ms_frs[bads]
     }
-    rm(list = c("oks"))
-  }
-
-  if (FALSE) {
-    scans <- sapply(ans, `[[`, "scan_num")
-    # i <- which(scans == 9915) # i <- 114
-    i <- which(scans == 18203L) # i <- 82; i <- 1L
-    ai <- ans[[i]]
-    df <- data.frame(x = ai$msx_moverzs, y = ai$msx_ints)
-    dfx <- df |> dplyr::filter(x >= 807.5, x <= 808.5)
-    ggplot2::ggplot() + 
-      ggplot2::geom_segment(dfx, mapping = aes(x = x, y = y, xend = x, yend = 0), 
-                            color = "gray", linewidth = .1) # + 
-    # scale_y_continuous(limits = c(0, 1000))
-    tempdata1 <- centroid_pasefms1(
-      xs = ai$msx_moverzs, ys = ai$msx_ints, reso = 60000, maxn = 2000L, 
-      grad = .667, fct_reso = 1.5, ms_lev = 1L, tol = .10)
-    df <- data.frame(x = tempdata1$x, y = tempdata1$y)
-    dfx2 <- df |> dplyr::filter(x >= 807.5, x <= 808.5)
+    rm(list = c("bads"))
   }
   
-  ## (3) collapse scans -> slices frame-wisely by ScanNumBegin:ScanNumEnd ranges
-  lena <- length(ans)
-  if (lena != length(iso_info)) {
-    stop("Developer: mismatches in the lengths of MS data and metadata.")
+  ## (3) obtain full MS1: collapse scans to slices and centroid data
+  res1 <- lapply(lda, coll_cent_pasefms1, pasef_slice_size = pasef_slice_size)
+  
+  na_ints1  <- rep_len(NA_integer_, n_frs)
+  na_reals1 <- rep_len(NA_real_, n_frs)
+
+  if (pasef_slice_size <= 1L) {
+    xss1 <- lapply(res1, `[[`, "xs")
+    yss1 <- lapply(res1, `[[`, "ys")
+    
+    ms1_full <- list(
+      msx_moverzs = xss1, 
+      msx_ints = yss1, 
+      slice_start = rep_len(0L, n_frs),
+      slice_end = rep_len(10000L, n_frs), # an arbitrary large integer
+      msx_ns = lengths(yss1), 
+      scan_num = as.numeric(ms_frs), 
+      mobility = rep_len(0.0, n_frs),
+      ms1_fr = ms_frs,
+      ret_time = ret_times,
+      orig_scan = as.character(ms_frs), 
+      scan_title = paste0(title, "; MS1: ", ms_frs), 
+      ms_level = rep_len(1L, n_frs), 
+      ms1_moverzs = na_reals1, 
+      ms1_charges = na_ints1, 
+      ms1_ints = na_ints1, 
+      iso_ctr = na_reals1, 
+      iso_lwr = na_reals1, 
+      iso_upr = na_reals1)
+    rm(list = c("res1", "xss1", "yss1", "na_ints1", "na_reals1"))
+    
+    ## (4) merge MS1 slices by the scan range in metadata for later deisotoping
+    ans2 <- mapply(collapse_pasef_fullms1scans, lda, ms1_iso)
+  }
+  else {
+    # set aside for uses with MS1 sections
+    xsss <- lapply(res1, `[[`, "xs")
+    ysss <- lapply(res1, `[[`, "ys")
+    slice_starts <- lapply(res1, `[[`, "slice_starts")
+    slice_ends   <- lapply(res1, `[[`, "slice_ends")
+    
+    # collapse to full MS1
+    xys1 <- mapply(
+      collapse_pasef_xys, xsss, ysss, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    temp <- mapply(
+      centroid_pasefms1, 
+      xs = lapply(xys1, `[[`, "x"), ys = lapply(xys1, `[[`, "y"), 
+      MoreArgs = list(reso = 60000L, maxn = 2000L, 
+                      grad = .667, fct_reso = 1.5, ms_lev = 1L, tol = .10), 
+      USE.NAMES = FALSE, SIMPLIFY = FALSE)
+    xss1 <- lapply(temp, `[[`, "x")
+    yss1 <- lapply(temp, `[[`, "y")
+    
+    ms1_full <- list(
+      msx_moverzs = xss1, 
+      msx_ints = yss1, 
+      slice_start = rep_len(0L, n_frs),
+      slice_end = rep_len(10000L, n_frs),
+      msx_ns = lengths(yss1), 
+      scan_num = as.numeric(ms_frs), 
+      mobility = rep_len(0.0, n_frs),
+      ms1_fr = ms_frs,
+      ret_time = ret_times,
+      orig_scan = as.character(ms_frs), 
+      scan_title = paste0(title, "; MS1: ", ms_frs), 
+      ms_level = rep_len(1L, n_frs), 
+      ms1_moverzs = na_reals1, 
+      ms1_charges = na_ints1, 
+      ms1_ints = na_ints1, 
+      iso_ctr = na_reals1, 
+      iso_lwr = na_reals1, 
+      iso_upr = na_reals1)
+    rm(list = c("res1", "xss1", "yss1", "na_ints1", "na_reals1", "xys1", "temp"))
+    
+    ## (4) merge MS1 slices by the scan range in metadata for later deisotoping
+    ans2 <- mapply(
+      collapse_pasef_ms1scans, 
+      xss = xsss, yss = ysss, iso_info = ms1_iso, 
+      slice_starts = slice_starts, slice_ends = slice_ends, 
+      mobils = mobils, ret_times = ret_times, 
+      SIMPLIFY = FALSE, USE.NAMES = FALSE)
   }
 
-  # (3.1) collapse by full MS1
-  X <- Y <- vector("list", lena)
-  ret_times <- vector("numeric", lena)
-  
-  for (i in seq_along(ans)) {
-    ansi <- ans[[i]]
-    ret_times[[i]] <- ansi$ret_time
-    xys  <- collapse_pasef_xys(ansi$msx_moverzs, ansi$msx_ints)
-
-    tempd <- centroid_pasefms1(
-      xs = xys[["x"]], ys = xys[["y"]], reso = 60000L, maxn = 2000L, 
-      grad = .667, fct_reso = 1.5, ms_lev = 1L, tol = .10)
-    X[[i]] <- tempd[["x"]]
-    Y[[i]] <- tempd[["y"]]
+  if (length(ms1_full) != length(keys) || !all(keys %in% names(ms1_full))) {
+    stop("Developer: mismatched columns in full PASEF-MS1 data.")
   }
-  rm(list = c("ansi", "xys", "tempd"))
-  
-  lenx <- length(X)
-  na_intsx <- rep_len(NA_integer_, lenx)
-  na_realsx <- rep_len(NA_real_, lenx)
-  
-  ms1_full <- list(
-    msx_moverzs = X, 
-    msx_ints = Y, 
-    slice_start = rep_len(0L, lenx),
-    slice_end = rep_len(10000L, lenx), # an arbitrary large integer
-    msx_ns = lengths(Y), 
-    scan_num = as.numeric(ms_frs), 
-    mobility = rep_len(0.0, lenx),
-    ms1_fr = ms_frs,
-    ret_time = ret_times,
-    orig_scan = as.character(ms_frs), 
-    scan_title = paste0(title, "; MS1: ", ms_frs), 
-    ms_level = rep_len(1L, lenx), 
-    ms1_moverzs = na_realsx, 
-    ms1_charges = na_intsx, 
-    ms1_ints = na_intsx, 
-    iso_ctr = na_realsx, 
-    iso_lwr = na_realsx, 
-    iso_upr = na_realsx)
-  
-  rm(list = c("lenx", "na_intsx", "na_realsx", "X", "Y"))
-
-  # (3.2) collapse by mobility slices (in accordance with MS2)
-  # `msx_moverzs = 0` for slices in metadata but not in MS data
-  ans <- mapply(collapse_pasef_ms1scans, ans, iso_info)
   
   # assume no empty entries (e.g. at no additional intensity filtration)
   if (FALSE) {
-    oks <- lengths(ans) > 0L
-    ans <- ans[oks]
-    iso_info <- iso_info[oks]
+    oks <- lengths(ans2) > 0L
+    ans2 <- ans2[oks]
+    # iso_info <- iso_info[oks]
+    ms1_iso <- ms1_iso[oks]
   }
-
-  ## (4) flatten slices in frames (need to handle that all ans are flat)
-  #  nrow(iso_info[[i]]) should == the number of slices in each frame
+  
+  #  flatten slices (need to handle that all ans2 are flat)
+  #  nrow(iso_info[[i]]) should == the number of slices
   #  over-killing to maintain 1-to-1 correspondence, but good tidiness
-  nrows <- unlist(lapply(iso_info, nrow))
+  nrows <- unlist(lapply(ms1_iso, nrow))
   
   # check for slices in metadata but not in MS data
-  if (length(bads <- which(lengths(ans) < nrows))) {
-    iso_info[bads] <- purge_iso_info(ans[bads], iso_info[bads])
-    nrows[bads] <- lapply(iso_info[bads], nrow) |>
+  if (length(bads <- which(lengths(ans2) < nrows))) {
+    ms1_iso[bads] <- purge_iso_info(ans2[bads], ms1_iso[bads])
+    nrows[bads] <- lapply(ms1_iso[bads], nrow) |>
       unlist(use.names = FALSE, recursive = FALSE)
   }
   
   if (any(nrows > 1L)) {
-    ans <- unlist(ans, recursive = FALSE, use.names = FALSE)
+    ans2 <- unlist(ans2, recursive = FALSE, use.names = FALSE)
   }
   
-  if (sum(nrows) != length(ans)) {
+  if (sum(nrows) != length(ans2)) {
     stop("Develooper: mismatched between MS data and metadata.")
   }
   
   # remove slices with `msx_moverzs = 0`
-  bads <- lapply(ans, function (x) {
+  bads <- lapply(ans2, function (x) {
     ms <- x$msx_moverzs
     length(ms) == 1L && ms == 0
   }) |>
     unlist(use.names = FALSE, recursive = FALSE)
-  ans <- ans[!bads]
-
-  ## (5) centroid MS1 data
-  for (i in seq_along(ans)) {
-    ai <- ans[[i]]
-    tempdata1 <- centroid_pasefms1(
-      xs = ai$msx_moverzs, ys = ai$msx_ints, reso = 60000, maxn = 2000L, 
-      grad = .667, fct_reso = 1.5, ms_lev = 1L, tol = .10)
-    ans[[i]]$msx_moverzs <- tempdata1[["x"]]
-    ans[[i]]$msx_ints <- tempdata1[["y"]]
+  
+  if (!all(oks <- !bads)) {
+    ans2 <- ans2[oks]
   }
-  rm(list = c("ai", "tempdata1", "bads"))
-  
-  nms1 <- names(ans[[1]])
-  out1 <- vector("list", length(nms1))
-  for (i in seq_along(out1)) {
-    out1[[i]] <- lapply(ans, `[[`, i)
-  }
-  names(out1) <- nms1
-  
-  out1[["ret_time"]] <- 
-    unlist(out1[["ret_time"]], recursive = FALSE, use.names = FALSE)
-  out1[["scan_num"]] <- 
-    unlist(out1[["scan_num"]], recursive = FALSE, use.names = FALSE)
-  out1[["ms1_fr"]] <- 
-    unlist(out1[["ms1_fr"]], recursive = FALSE, use.names = FALSE)
-  out1[["orig_scan"]] <- as.character(out1[["ms1_fr"]])
-  out1[["mobility"]] <- 
-    unlist(out1[["mobility"]], recursive = FALSE, use.names = FALSE)
-  out1[["msx_ns"]] <- lengths(out1[["msx_moverzs"]])
-  out1[["slice_rng"]] <- 
-    unlist(out1[["slice_rng"]], recursive = FALSE, use.names = FALSE)
-  out1[["slice_start"]] <- 
-    unlist(out1[["slice_start"]], recursive = FALSE, use.names = FALSE)
-  out1[["slice_end"]] <- 
-    unlist(out1[["slice_end"]], recursive = FALSE, use.names = FALSE)
-  
-  len1 <- length(out1[["msx_ns"]])
-  na_ints1 <- rep_len(NA_integer_, len1)
-  na_reals1 <- rep_len(NA_real_, len1)
-  
-  out1[["scan_title"]]  <- 
-    paste0(title, "; MS1: ", out1[["ms1_fr"]], "[", out1[["slice_rng"]], "]")
-  out1[["slice_rng"]] <- NULL
-  
-  out1[["ms_level"]]    <- rep_len(1L, len1)
-  out1[["ms1_moverzs"]] <- na_reals1
-  out1[["ms1_charges"]] <- na_ints1
-  out1[["ms1_ints"]]    <- na_ints1
-  out1[["iso_ctr"]]     <- na_reals1
-  out1[["iso_lwr"]]     <- na_reals1
-  out1[["iso_upr"]]     <- na_reals1
 
-  if (length(out1) != length(keys) || !all(keys %in% names(out1))) {
+  out2 <- list(
+    msx_moverzs  = lapply(ans2, `[[`, "msx_moverzs"), 
+    msx_ints     = lapply(ans2, `[[`, "msx_ints"), 
+    slice_rng    = unlist(lapply(ans2, `[[`, "slice_rng"), 
+                          recursive = FALSE, use.names = FALSE), 
+    slice_start  = unlist(lapply(ans2, `[[`, "slice_start"), 
+                          recursive = FALSE, use.names = FALSE), 
+    slice_end    = unlist(lapply(ans2, `[[`, "slice_end"), 
+                          recursive = FALSE, use.names = FALSE), 
+    msx_ns       = unlist(lapply(ans2, `[[`, "msx_ns"), 
+                          recursive = FALSE, use.names = FALSE), 
+    scan_num     = unlist(lapply(ans2, `[[`, "scan_num"), 
+                          recursive = FALSE, use.names = FALSE), 
+    mobility     = unlist(lapply(ans2, `[[`, "mobility"), 
+                          recursive = FALSE, use.names = FALSE), 
+    ms1_fr       = unlist(lapply(ans2, `[[`, "ms1_fr"), 
+                          recursive = FALSE, use.names = FALSE), 
+    ret_time     = unlist(lapply(ans2, `[[`, "ret_time"), 
+                          recursive = FALSE, use.names = FALSE))
+  out2$orig_scan = as.character(out2[["ms1_fr"]])
+
+  len2      <- length(out2[["msx_ns"]])
+  na_ints2  <- rep_len(NA_integer_, len2)
+  na_reals2 <- rep_len(NA_real_, len2)
+  
+  out2[["scan_title"]]  <- 
+    paste0(title, "; MS1: ", out2[["ms1_fr"]], "[", out2[["slice_rng"]], "]")
+  out2[["slice_rng"]]   <- NULL
+  out2[["ms_level"]]    <- rep_len(1L, len2)
+  out2[["ms1_moverzs"]] <- na_reals2
+  out2[["ms1_charges"]] <- na_ints2
+  out2[["ms1_ints"]]    <- na_ints2
+  out2[["iso_ctr"]]     <- na_reals2
+  out2[["iso_lwr"]]     <- na_reals2
+  out2[["iso_upr"]]     <- na_reals2
+  
+  if (length(out2) != length(keys) || !all(keys %in% names(out2))) {
     stop("Developer: mismatched columns in PASEF-MS1 data.")
   }
-  
-  list(ms1_slices = out1[keys], ms1_full = ms1_full[keys])
+
+  list(ms1_slices = out2[keys], ms1_full = ms1_full[keys])
 }
 
 
@@ -632,7 +675,7 @@ extract_pasefms2 <- function (mdata, ms_frs, iso_info, ms_col = "MS2Frame",
                               keys, title = "", step = 1.6e-5)
 {
   ## (0) One `Precursor` ID can only occur in one `MS1Frame` -> 
-  #  different `Precursor` IDs for the same precursor at different `MS1Frame`s
+  #  different `Precursor` IDs for the same precursor at different MS1Frames
   if (FALSE) {
     isx <- unique(iso_info[, c("MS1Frame", "Precursor")])
     isx <- split(isx, isx$Precursor)
@@ -650,7 +693,7 @@ extract_pasefms2 <- function (mdata, ms_frs, iso_info, ms_col = "MS2Frame",
   ms_frs   <- res[["ms_frs"]]
   iso_info <- res[["iso_info"]]
   rm(list = "res")
-
+  
   # each entry corresponds to one MS2 frame (multiple scans in each frame)
   if (FALSE) {
     rng <- 1149:1158
@@ -666,15 +709,15 @@ extract_pasefms2 <- function (mdata, ms_frs, iso_info, ms_col = "MS2Frame",
   }
   
   ## (2) convert line data to lists for each MS2 frame
-  ans <- lapply(mdata, extract_pasef_frame)
+  lda <- lapply(mdata, extract_pasef_frame)
   rm(list = "mdata")
   
   # assume no empty frames (e.g. at no additional intensity filtration)
   if (FALSE) {
-    oks <- lengths(ans) > 0L
+    oks <- lengths(lda) > 0L
     if (!all(oks)) {
       oks <- which(oks)
-      ans <- ans[oks]
+      lda <- lda[oks]
       iso_info <- iso_info[oks]
       ms_frs <- ms_frs[oks]
     }
@@ -683,11 +726,11 @@ extract_pasefms2 <- function (mdata, ms_frs, iso_info, ms_col = "MS2Frame",
   
   ## (3) collapse scans -> slices frame-wisely by ScanNumBegin:ScanNumEnd ranges
   # ms1_moverzs == 0: undertermined by Bruker metadata
-  lena <- length(ans)
-  if (lena != length(iso_info)) {
+  if (length(lda) != length(iso_info)) {
     stop("Developer: mismatches in the lengths of MS2 data and metadata.")
   }
-  ans <- mapply(collapse_pasef_ms2scans, ans, iso_info)
+  ans <- mapply(collapse_pasef_ms2scans, lda, iso_info)
+  rm(list = "lda")
   
   # assume no empty entries (e.g. at no additional intensity filtration)
   if (FALSE) {
@@ -714,7 +757,7 @@ extract_pasefms2 <- function (mdata, ms_frs, iso_info, ms_col = "MS2Frame",
   if (sum(nrows) != length(ans)) {
     stop("Developer: mismatched between MS2 data and metadata.")
   }
-
+  
   ## (5) group MS2Frames by the same `Precursor` (must have the same MS1Frame)
   precursors <- lapply(ans, `[[`, "precursor") |>
     unlist(recursive = FALSE, use.names = FALSE)
@@ -748,7 +791,7 @@ extract_pasefms2 <- function (mdata, ms_frs, iso_info, ms_col = "MS2Frame",
   ans <- lapply(split(ans, precursors), group_ms2pasef_by_precursors, 
                 step = step, title = title)
   rm(list = "precursors")
-
+  
   ## (6) centroid MS2 data
   for (i in seq_along(ans)) {
     ai <- ans[[i]]
@@ -757,7 +800,7 @@ extract_pasefms2 <- function (mdata, ms_frs, iso_info, ms_col = "MS2Frame",
       grad = .25, fct_reso = 1.25, ms_lev = 2L, keep_ohw = TRUE, tol = .1)
     mx <- ac[["x"]]
     my <- as.integer(ac[["y"]])
-
+    
     if (!is.null(mx)) {
       ans[[i]]$msx_moverzs <- mx
       ans[[i]]$msx_ints <- my
@@ -816,6 +859,178 @@ extract_pasefms2 <- function (mdata, ms_frs, iso_info, ms_col = "MS2Frame",
 }
 
 
+#' Collapse PASEF MS1
+#' 
+#' By every interval of scan indexes according to \code{gap}.
+#' 
+#' @param data List data in an MS1 frame.
+#' @param pasef_slice_size The gap of scan indexes for data binning to a slice.
+coll_cent_pasefms1 <- function (data, pasef_slice_size = 1L)
+{
+  if (pasef_slice_size <= 1L) {
+    xys  <- collapse_pasef_xys(data$msx_moverzs, data$msx_ints)
+    
+    res <- centroid_pasefms1(
+      xs = xys[["x"]], ys = xys[["y"]], reso = 60000L, maxn = 2000L, 
+      grad = .667, fct_reso = 1.5, ms_lev = 1L, tol = .10)
+    
+    out <- list(
+      xs = res[["x"]], # flat list
+      ys = res[["y"]])
+  }
+  else {
+    sss <- data$slices
+    brs <- (sss - 1L) %/% pasef_slice_size
+    sss <- split(sss, brs)
+    xss <- split(data$msx_moverzs, brs)
+    yss <- split(data$msx_ints, brs)
+    xys <- mapply(collapse_pasef_xys, xss, yss, USE.NAMES = FALSE, SIMPLIFY = FALSE)
+    
+    res <- mapply(
+      centroid_pasefms1, xs = lapply(xys, `[[`, "x"), ys = lapply(xys, `[[`, "y"), 
+      MoreArgs = list(reso = 60000L, maxn = 2000L, 
+                      grad = .667, fct_reso = 1.5, ms_lev = 1L, tol = .10), 
+      USE.NAMES = FALSE, SIMPLIFY = FALSE)
+    
+    slice_starts <- unlist(lapply(sss, `[[`, 1L), 
+                           recursive = FALSE, use.names = FALSE)
+    slice_ends   <- unlist(lapply(sss, function (x) x[length(x)]),
+                           recursive = FALSE, use.names = FALSE)
+    
+    out <- list(xs = lapply(res, `[[`, "x"), # nested list
+                ys = lapply(res, `[[`, "y"), 
+                slice_starts = slice_starts, 
+                slice_ends   = slice_ends)
+  }
+  
+  out
+}
+
+
+#' Collapse PASEF MS1 and keep track of slices with MS2 occurrence. 
+#' 
+#' Not currently used but may be an interesting approach.
+#' 
+#' @param data List data in an MS1 frame.
+#' @param ms1_iso MS1 \code{iso_info} corresponding to \code{data}.
+#' @importFrom fastmatch %fin% fmatch
+coll_cent_pasefms1_v1 <- function (data, ms1_iso)
+{
+  stas <- ms1_iso$ScanNumBegin
+  ends <- ms1_iso$ScanNumEnd
+  sss  <- data$slices
+  
+  ## (1) adjust ms1_iso ScanNumBegin and ScanNumEnd if not present in data 
+  if (length(ix <- which(is.na(match(stas, sss))))) {
+    stas[ix] <- ms1_iso$ScanNumBegin[ix] <- 
+      lapply(stas[ix], function (v) {
+        oks <- .Internal(which(sss > v))
+        sss[[if (length(oks)) oks[[1]] else length(sss)]]
+      }) |>
+      unlist(recursive = FALSE, use.names = FALSE)
+  }
+  
+  if (length(ix <- which(is.na(match(ends, sss))))) {
+    ends[ix] <- ms1_iso$ScanNumEnd[ix] <- 
+      lapply(ends[ix], function (v) {
+        oks <- .Internal(which(sss < v))
+        
+        # should be TRUE since at least with the start slice
+        if (nb <- length(oks)) {
+          ok <- oks[[nb]]
+        }
+        else { # nothing smaller 
+          if (length(oks <- .Internal(which(sss > v)))) {
+            ok <- oks[[1]]
+          }
+          else {
+            warning("Unhandled condition.")
+            ok <- length(sss)
+          }
+        }
+        
+        sss[ok]
+      }) |>
+      unlist(recursive = FALSE, use.names = FALSE)
+  }
+  
+  ## (2) remove intersects in slices
+  res  <- comp_iso_info(stas = stas, ends = ends)
+  stas <- ms1_iso$start <- res$stas
+  ends <- ms1_iso$end   <- res$ends
+  # rm(list = c("ix", "res"))
+  
+  ## (3) aggregate data by slices
+  oks   <- !duplicated(stas)
+  ustas <- stas[oks]
+  uends <- ends[oks]
+  ns    <- length(ustas)
+  
+  ps <- seq_len(ns * 2L) %% 2L
+  p1 <- ps == 1L
+  p0 <- ps == 0L
+  ps[p1] <- ustas
+  ps[p0] <- uends + 1L # no need to check the overflow of the last one
+  
+  brs <- findInterval(sss, ps)
+  xys <- mapply(collapse_pasef_xys, 
+                split(data$msx_moverzs, brs), split(data$msx_ints, brs), 
+                USE.NAMES = FALSE, SIMPLIFY = FALSE)
+  res1 <- mapply(
+    centroid_pasefms1, xs = lapply(xys, `[[`, "x"), ys = lapply(xys, `[[`, "y"), 
+    MoreArgs = list(reso = 60000L, maxn = 2000L, 
+                    grad = .667, fct_reso = 1.5, ms_lev = 1L, tol = .10), 
+    USE.NAMES = FALSE, SIMPLIFY = FALSE)
+  # rm(list = "xys")
+  
+  # brs indexes (e.g., "2") absent if uends[[i]] == ustas[[i+1]]
+  #   "0" "1" "3" "4" "5" "6"
+  
+  ## (4) remove metadata rows without corresponding MS1 data
+  pstas <- unlist(lapply(split(sss, brs), `[[`, 1L), 
+                  recursive = FALSE, use.names = FALSE)
+  mts <- match(ustas, pstas)
+  nas <- which(is.na(mts))
+  nna <- length(nas)
+  
+  if (nna) {
+    ps2 <- mts[-nas]
+    ms1_iso <- ms1_iso[-nas, ]
+    ns <- ns - nna
+  }
+  else {
+    ps2 <- mts
+  }
+  
+  # ps2: the positions along `res1` that have MS2 correspondence
+  # ms1_iso: updated metadata without slice overlaps (should not have row drop)
+  
+  ## (5) outputs
+  mobils <- lapply(split(data$mobility, brs)[ps2], 
+                   function (x) sum(x) / length(x)) |>
+    unlist(recursive = FALSE, use.names = FALSE)
+  
+  ms1_fr <- ms1_iso$MS1Frame[[1]]
+  
+  list(
+    xs = lapply(res1, `[[`, "x"), 
+    ys = lapply(res1, `[[`, "y"), 
+    # ms1_iso = ms1_iso, 
+    
+    # results of MS2 slices
+    ps2 = ps2, 
+    slice_rng = paste0(ustas, "-", uends), 
+    slice_start = ustas, 
+    slice_end = uends, 
+    msx_ns = lengths(lapply(res1[ps2], `[[`, "y")), 
+    scan_num = ms1_fr + 1:ns / 100, # simply assume < 100 slices
+    mobility = mobils , 
+    
+    ms1_fr = rep_len(ms1_fr, ns), 
+    ret_time = rep_len(data$ret_time, ns))
+}
+
+
 #' Removes \code{iso_info} rows not found in MS data.
 #' 
 #' @param msdata MS data.
@@ -835,6 +1050,107 @@ purge_iso_info <- function (msdata, iso_info)
   }
   
   iso_info
+}
+
+
+#' Compile PASEF MS1 slices into non-overlapping sections
+#' 
+#' Not yet used; try this later.
+#' 
+#' @param stas A vector of start indexes.
+#' @param ends A vector of end indexes.
+comp_iso_info <- function (stas, ends)
+{
+  ###
+  # (R1) stas ascending and ends descending: order(stas, -ends)
+  ###
+  
+  len  <- length(stas)
+  len2 <- len - 1L
+  
+  if (len == 1L) {
+    return(list(stas = stas, ends = ends))
+  }
+
+  for (i in 1:len2) {
+    ix   <- i + 1L
+    stai <- stas[[i]]
+    endi <- ends[[i]]
+    stax <- stas[[ix]]
+    endx <- ends[[ix]]
+    
+    # endx > endi, stax > stai, stax <= endi -> overlap, including tangent
+    # note: stax > stai not stax >= stai, because impossible to have endx > endi  
+    #  and stax = stai due to order(stas, -ends)
+    
+    if (endx <= endi) { # stax >= stai -> sub-set
+      ends[[ix]] <- endi
+      if (stax > stai) { stas[[ix]] <- stas[[i]] }
+    }
+    else if (stax < endi) { # non-tangent, overlap sets
+      # need loop until the next non-overlap or tangent...
+      # also check if becomes a subset after padding...
+      stas[[ix]] <- stai
+      ends[[i]]  <- endx 
+      
+      if (ix < len) {
+        for (j in ix:len2) {
+          jx <- j + 1L # <= len
+          
+          if (stas[[jx]] <= ends[[j]]) {
+            endx <- max(endx, ends[[jx]])
+          }
+          else {
+            break
+          }
+        }
+        
+        j2 <- j - 1L
+        if (j2 > i) {
+          rng <- i:j2
+          stas[rng] <- stai # <<<  not violating (R1)
+          ends[rng] <- endx # >>>
+        }
+      }
+    }
+    else if (stax == endi) { # tangent sets
+      # use for-loop since can have multiple sections of tangents
+      
+      # (a) increase start by +1L
+      stas[[ix]] <- stax <- endi + 1L
+      
+      if (ix < len) {
+        for (j in (ix + 1L):len) {
+          if (stas[[j]] == endi) {
+            stas[[j]] <- stax
+          }
+          else {
+            break
+          }
+        }
+      }
+      else {
+        j <- len # len >= 2L
+      }
+      
+      # (b) check for intersects
+      if (j <= len2) {
+        for (k in j:len2) {
+          k2 <- k - 1L
+          if (stas[[k]] > ends[[k2]]) {
+            break
+          }
+        }
+        
+        if (k > j) {
+          ends[ix:(k2)] <- ends[[k2]]
+        }
+      }
+    }
+    # else (stax > endi), separate sets
+  }
+  
+  list(stas = stas, ends = ends)
 }
 
 
@@ -1370,14 +1686,14 @@ group_ms2pasef_by_precursors <- function (dat, lwr = 115L, step = 1.6e-5,
 #' @param min_ms2n The minimum number of MS2 in a slices for considerations.
 #' @return A vector of lists. Each list corresponding to a slice of MS1 between
 #'   ScanNumBegin and ScanNumEnd in a frame.
-collapse_pasef_ms1scans <- function (data, iso_info, min_ms2n = 0L)
+collapse_pasef_fullms1scans <- function (data, iso_info, min_ms2n = 0L)
 {
   if (!length(data)) {
     stop("MS1 line data cannot be empty.")
   }
   
-  xs <- data$msx_moverzs
-  ys <- data$msx_ints
+  xss <- data$msx_moverzs
+  yss <- data$msx_ints
   slices <- data$slices
   mobils <- data$mobility
   ret_times <- data$ret_time
@@ -1386,7 +1702,7 @@ collapse_pasef_ms1scans <- function (data, iso_info, min_ms2n = 0L)
   ends <- iso_info$ScanNumEnd
   len  <- length(stas)
   out  <- vector("list", len)
-
+  
   if (!len) {
     stop("MS metadata cannot be empty.")
   }
@@ -1398,7 +1714,7 @@ collapse_pasef_ms1scans <- function (data, iso_info, min_ms2n = 0L)
     
     # slices may be in metadata but not in MS data
     if (length(oksi)) {
-      ansi <- collapse_pasef_xys(xs[oksi], ys[oksi])
+      ansi <- collapse_pasef_xys(xss[oksi], yss[oksi])
       ansx <- ansi[["x"]]
       ansy <- ansi[["y"]]
       
@@ -1415,17 +1731,97 @@ collapse_pasef_ms1scans <- function (data, iso_info, min_ms2n = 0L)
         ret_time = ret_times)
     }
     else {
-      ansi <- collapse_pasef_xys(xs[oksi], ys[oksi])
+      ansi <- collapse_pasef_xys(xss[oksi], yss[oksi])
       ansx <- ansi[["x"]]
       ansy <- ansi[["y"]]
       
       out[[i]] <- list(
-        msx_moverzs = 0, # prevent entry drops
+        msx_moverzs = 0, # prevent entry dropping
         msx_ints = 0L,
         slice_rng = paste0(stai, "-", endi), 
         slice_start = stai, 
         slice_end = endi, 
         msx_ns = length(ansy), 
+        scan_num = ms1_fr + i / 100,
+        mobility = 0, 
+        
+        ms1_fr = ms1_fr,
+        ret_time = ret_times)
+    }
+  }
+  
+  out
+}
+
+
+#' Collapses PASEF MS scans
+#'
+#' @param xss Lists of X values (aggregated by every ten indexes of slices) in a
+#'   frame.
+#' @param yss Lists of Y values in a frame.
+#' @param iso_info Metadata in a frame.
+#' @param slice_starts The start indexes of scans.
+#' @param slice_ends The end indexes of scans.
+#' @param ret_times Retention times.
+#' @param mobils Mobilities.
+collapse_pasef_ms1scans <- 
+  function (xss, yss, iso_info, slice_starts, slice_ends, mobils, ret_times)
+{
+  ms1_fr <- iso_info$MS1Frame[[1]]
+  iso_stas <- iso_info$ScanNumBegin
+  iso_ends <- iso_info$ScanNumEnd
+  out <- vector("list", n_iso <- length(iso_stas))
+  
+  n_breaks <- length(slice_starts)
+  for (i in 1:n_iso) {
+    iso_stai <- iso_stas[[i]]
+    iso_endi <- iso_ends[[i]]
+    
+    if (length(oks2 <- which(slice_ends >= iso_endi))) {
+      i_end <- oks2[[1]]
+    }
+    else {
+      i_end <- n_breaks
+    }
+    
+    oks1 <- which(slice_starts[1:i_end] <= iso_stai)
+    if (noks1 <- length(oks1)) {
+      i_sta <- oks1[noks1]
+    }
+    else {
+      i_sta <- 1L
+    }
+    
+    if (i_sta <= i_end) {
+      oksi <- i_sta:i_end
+      ansi <- collapse_pasef_xys(xss[oksi], yss[oksi])
+      temp <- centroid_pasefms1(
+        xs = ansi[["x"]], ys = ansi[["y"]], reso = 60000L, maxn = 2000L, 
+        grad = .667, fct_reso = 1.5, ms_lev = 1L, tol = .10)
+      ansx <- temp[["x"]]
+      ansy <- temp[["y"]]
+      
+      out[[i]] <- list(
+        msx_moverzs = ansx, 
+        msx_ints = ansy,
+        slice_rng = paste0(iso_stai, "-", iso_endi), 
+        slice_start = iso_stai, 
+        slice_end = iso_endi, 
+        msx_ns = length(ansy), 
+        scan_num = ms1_fr + i / 100, # simply assume < 100 slices
+        mobility = sum(mobils[oksi]) / length(oksi), 
+        ms1_fr = ms1_fr,
+        ret_time = ret_times)
+    }
+    else {
+      out[[i]] <- list(
+        msx_moverzs = 0, # prevent entry drops
+        msx_ints = 0L,
+        slice_rng = paste0(iso_stai, "-", iso_endi), 
+        slice_start = iso_stai, 
+        slice_end = iso_endi, 
+        # msx_ns = length(ansy), 
+        msx_ns = 0L, 
         scan_num = ms1_fr + i / 100,
         mobility = 0, 
         
@@ -1454,6 +1850,20 @@ collapse_pasef_ms2scans <- function (data, iso_info, min_ms2n = 0L)
   }
   
   ## (1) combine slices by ranges of ScanNumBegin and ScanNumEnd
+  
+  ###
+  # also need to subset further by ScanNumBegin???
+  # check that impossible to have ScanNumEnd[[i]] == ScanNumBegin[[i+1]]
+  #   otherwise forms a bigger slice? 
+  # if TRUE, can use findInterval
+  ###
+  
+  ###
+  # (a) May be safer and more defined by using for-loop for starts and ends
+  #     (shouldn't be, but what if there are intersecting start:end intervals)
+  # (b) The starting boundaries are too permissive with the current approach
+  ###
+  
   breaks <- findInterval(data$slices, iso_info$ScanNumEnd, left.open = TRUE)
   slices <- split(data$slices, breaks)
   len    <- length(slices)
@@ -1471,8 +1881,8 @@ collapse_pasef_ms2scans <- function (data, iso_info, min_ms2n = 0L)
                 split(data$msx_moverzs, breaks), 
                 split(data$msx_ints, breaks), 
                 SIMPLIFY = FALSE, USE.NAMES = FALSE)
-  msx_moverzs <- lapply(xys, `[[`, 1)
-  msx_ints    <- lapply(xys, `[[`, 2)
+  msx_moverzs <- lapply(xys, `[[`, 1L)
+  msx_ints    <- lapply(xys, `[[`, 2L)
   mobs        <- split(data$mobility, breaks)
   mobs        <- lapply(mobs, function (x) sum(x) / length(x))
   
@@ -1681,7 +2091,7 @@ collapse_pasef_xys <- function (xs, ys)
   if (anyDuplicated(xs)) {
     ys <- split(ys, xs)
     xs <- split(xs, xs)
-    dups <- lengths(xs) > 1L
+    dups <- which(lengths(xs) > 1L)
     xs[dups] <- lapply(xs[dups], `[[`, 1)
     ys[dups] <- lapply(ys[dups], sum, na.rm = TRUE)
     xs <- .Internal(unlist(xs, recursive = FALSE, use.names = FALSE))

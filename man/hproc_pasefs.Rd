@@ -4,7 +4,14 @@
 \alias{hproc_pasefs}
 \title{Processes single .d file}
 \usage{
-hproc_pasefs(raw_file, mgf_path, temp_dir, n_para = 1L, debug = FALSE)
+hproc_pasefs(
+  raw_file,
+  mgf_path,
+  temp_dir,
+  pasef_slice_size = 1L,
+  n_para = 1L,
+  debug = FALSE
+)
 }
 \arguments{
 \item{raw_file}{The name of a .d folder.}
@@ -12,6 +19,8 @@ hproc_pasefs(raw_file, mgf_path, temp_dir, n_para = 1L, debug = FALSE)
 \item{mgf_path}{A file path to .d folders.}
 
 \item{temp_dir}{A file path for temporary files.}
+
+\item{pasef_slice_size}{The gap of scan indexes for data binning to a slice.}
 
 \item{n_para}{The number of maximum allowed parallel processes.}
 

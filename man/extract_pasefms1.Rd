@@ -8,8 +8,11 @@ extract_pasefms1(
   mdata,
   ms_frs,
   iso_info,
+  pasef_slice_size = 1L,
   ms_col = "MS1Frame",
-  keys,
+  keys = c("msx_moverzs", "msx_ints", "msx_ns", "ms1_fr", "ms1_moverzs", "ms1_ints",
+    "ms1_charges", "scan_title", "ms_level", "ret_time", "scan_num", "orig_scan",
+    "slice_start", "slice_end", "iso_ctr", "iso_lwr", "iso_upr", "mobility"),
   title = "",
   step = 1.6e-05
 )
@@ -20,7 +23,9 @@ to one MS1 frame. Note that each frame contains multiple mobility slices.}
 
 \item{iso_info}{The information of MS1 slices.}
 
-\item{ms_col}{The criteria column in \code{iso_info} for subsetting.}
+\item{pasef_slice_size}{The gap of scan indexes for data binning to a slice.}
+
+\item{ms_col}{The criteria column in \code{ms1_iso} for subsetting.}
 
 \item{keys}{The key names of output lists.}
 

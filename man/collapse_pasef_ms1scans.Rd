@@ -2,22 +2,34 @@
 % Please edit documentation in R/pasefreader.R
 \name{collapse_pasef_ms1scans}
 \alias{collapse_pasef_ms1scans}
-\title{Collapses slices in an MS1 frame.}
+\title{Collapses PASEF MS scans}
 \usage{
-collapse_pasef_ms1scans(data, iso_info, min_ms2n = 0L)
+collapse_pasef_ms1scans(
+  xss,
+  yss,
+  iso_info,
+  slice_starts,
+  slice_ends,
+  mobils,
+  ret_times
+)
 }
 \arguments{
-\item{data}{One frame of MS1 data before combining slices by IM groups.}
+\item{xss}{Lists of X values (aggregated by every ten indexes of slices) in a
+frame.}
 
-\item{iso_info}{A subset of MS1 isolation information for the current
-\code{frame}.}
+\item{yss}{Lists of Y values in a frame.}
 
-\item{min_ms2n}{The minimum number of MS2 in a slices for considerations.}
-}
-\value{
-A vector of lists. Each list corresponding to a slice of MS1 between
-  ScanNumBegin and ScanNumEnd in a frame.
+\item{iso_info}{Metadata in a frame.}
+
+\item{slice_starts}{The start indexes of scans.}
+
+\item{slice_ends}{The end indexes of scans.}
+
+\item{mobils}{Mobilities.}
+
+\item{ret_times}{Retention times.}
 }
 \description{
-Collapses slices in an MS1 frame.
+Collapses PASEF MS scans
 }

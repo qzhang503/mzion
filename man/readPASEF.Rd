@@ -7,6 +7,7 @@
 readPASEF(
   mgf_path = NULL,
   filelist = NULL,
+  pasef_slice_size = 1L,
   topn_ms2ions = 150L,
   bypass_rawexe = FALSE
 )
@@ -15,6 +16,8 @@ readPASEF(
 \item{mgf_path}{A file path to .d folders.}
 
 \item{filelist}{A list of .d folders.}
+
+\item{pasef_slice_size}{The gap of scan indexes for data binning to a slice.}
 
 \item{topn_ms2ions}{A positive integer; the top-n species for uses in MS2 ion
 searches.}

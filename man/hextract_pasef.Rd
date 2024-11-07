@@ -7,6 +7,7 @@
 hextract_pasef(
   file = "spectra_1.txt",
   path = NULL,
+  pasef_slice_size = 1L,
   keys = c("msx_moverzs", "msx_ints", "msx_ns", "ms1_fr", "ms1_moverzs", "ms1_ints",
     "ms1_charges", "scan_title", "ms_level", "ret_time", "scan_num", "orig_scan",
     "slice_start", "slice_end", "iso_ctr", "iso_lwr", "iso_upr", "mobility"),
@@ -17,6 +18,8 @@ hextract_pasef(
 \item{file}{A file name of \code{spectra_[...].txt}.}
 
 \item{path}{The full path to a .d folder.}
+
+\item{pasef_slice_size}{The gap of scan indexes for data binning to a slice.}
 
 \item{keys}{The key names of output lists.}
 
