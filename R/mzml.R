@@ -98,7 +98,8 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
     peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.d\\.rds$")
     # peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.raw\\.rds$")
     peakfiles <- peakfiles[!grepl("^predeisoDDA_", peakfiles)]
-    peakfiles <- peakfiles[grepl("^LFQ_", peakfiles)]
+    peakfiles <- peakfiles[!grepl("^pasefms1_", peakfiles)]
+    # peakfiles <- peakfiles[grepl("^LFQ_", peakfiles)]
     is_dia <- FALSE
     mzml_type <- "raw"
   }
@@ -123,19 +124,22 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
     file <- file.path(mgf_path, "info_format.rds")
     if (file.exists(file)) qs::qread(file)$data_format else NULL
   })
-
+  is_pasef <- isTRUE(data_format == "Bruker-RAW")
+  
   lenf <- length(peakfiles)
-  rams <- find_free_mem()/1024
+  rams <- find_free_mem() / 1024
   n_pcs <- detect_cores(64L) - 1L
-  n_cores <- max(min(n_pcs, ceiling(rams/5L), lenf), 1L)
+  n_cores <- max(min(n_pcs, ceiling(rams / if (is_pasef) 20 else 5), lenf), 1L)
   r_cores <- round(n_pcs/n_cores)
   n_para <- max(min(n_pcs, r_cores), 1L)
   
-  if (is_pasef <- isTRUE(data_format == "Bruker-RAW")) {
+  if (is_pasef) {
     if (n_mdda_flanks) {
       n_mdda_flanks <- 0L
       warning("Coerce to `n_mdda_flanks = 0` for PASEF data.")
     }
+    
+    n_para <- 1L
   }
   
   if (isTRUE(is_dia)) {
