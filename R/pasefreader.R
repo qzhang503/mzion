@@ -41,7 +41,6 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, pasef_slice_size = 1L,
   }
   
   n_cores2 <- 1L
-  # 45 min per file
   n_para   <- min(max(floor(ram_units * 4 / n_cores2), 1L), n_pcs - 1L)
 
   message("Compiling RAW PASEF peak lists at: ", Sys.time())
@@ -312,7 +311,7 @@ hextract_pasef <- function (
   # MSORDER
   # \n
   
-  ## (1.b) bracket `iso_info` to the current chunk of MS data
+  ## (1.b) subset `iso_info` to the current chunk of MS data
   if (!file.exists(iso_file <- file.path(path, "ms1ms2iso.txt"))) {
     stop("File not found ", iso_file, ".")
   }
@@ -344,14 +343,23 @@ hextract_pasef <- function (
   #  MS2 at the same ScanNumBegin:ScanNumEnd and MS1 frame can correspond to 
   #   different species (m/z)
 
-  if (length(oks1)) {
+  if (length(oks1) && nrow(iso_info)) {
     temp_1 <- extract_pasefms1(
       mdata = mdata[oks1], ms_frs = ms_frs[oks1], iso_info = iso_info, 
       pasef_slice_size = pasef_slice_size, ms_col = "MS1Frame", keys = keys, 
       title = path, step = step)
-    out1 <- temp_1$ms1_slices
-    ms1_full <- temp_1$ms1_full
-    empty1 <- FALSE
+    
+    if (is.null(temp_1)) {
+      message("No MS1 spectra for ", file.path(path, file))
+      out1 <- ms1_full <- vector("list", length(keys))
+      names(ms1_full) <- names(out1) <- keys
+      empty1 <- TRUE
+    }
+    else {
+      out1 <- temp_1$ms1_slices
+      ms1_full <- temp_1$ms1_full
+      empty1 <- FALSE
+    }
   }
   else {
     message("No MS1 spectra for ", file.path(path, file))
@@ -361,11 +369,20 @@ hextract_pasef <- function (
   }
   message("Completed PASEF MS1 extraction: ", file)
 
-  if (length(oks2)) {
+  if (length(oks2) && nrow(iso_info)) {
     out2 <- extract_pasefms2(
       mdata = mdata[oks2], ms_frs = ms_frs[oks2], iso_info = iso_info, 
       ms_col = "MS2Frame", keys = keys, title = path, step = step)
-    empty2 <- FALSE
+    
+    if (is.null(out2)) {
+      message("No MS2 spectra for ", file.path(path, file))
+      out2 <- vector("list", length(keys))
+      names(out2) <- keys
+      empty2 <- TRUE
+    }
+    else {
+      empty2 <- FALSE
+    }
   }
   else {
     message("No MS2 spectra for ", file.path(path, file))
@@ -453,42 +470,46 @@ extract_pasefms1 <- function (
     title = "", step = 1.6e-5)
 {
   ## (1) mutual subset of `mdata` and `iso_info` by MS1 frame numbers
-  res <- subset_pasefms(
+  if (!nrow(iso_info)) { return(NULL) }
+  res      <- subset_pasefms(
     mdata = mdata, ms_frs = ms_frs, iso_info = iso_info, ms_col = ms_col)
-  mdata <- res[["mdata"]]
-  ms_frs <- res[["ms_frs"]]
+  mdata    <- res[["mdata"]]
+  ms_frs   <- res[["ms_frs"]]
   iso_info <- res[["iso_info"]]
-  rm(list = "res")
-  
-  ms1_iso <- lapply(iso_info, function (df) {
+  ms1_iso  <- lapply(iso_info, function (df) {
     unique(df[, c("MS1Frame", "ScanNumBegin", "ScanNumEnd")]) |>
       dplyr::arrange(MS1Frame, ScanNumBegin, -ScanNumEnd)
   })
+  if (!length(mdata)) { return(NULL) }
+  rm(list = c("res", "iso_info"))
   
-  ## (2) convert line data to lists for each frame
-  lda <- lapply(mdata,  extract_pasef_frame)
+  ## (2) convert line data to list data (lda) for each frame
+  lda   <- lapply(mdata,  extract_pasef_frame)
   n_frs <- length(lda)
   if (n_frs != length(ms1_iso)) {
     stop("Developer: mismatches in the lengths of MS data and metadata.")
   }
+  mobils <- lapply(lda, `[[`, "mobility")
   ms_frs <- 
     unlist(lapply(lda, `[[`, "scan_num"), recursive = FALSE, use.names = FALSE)
   ret_times <- 
     unlist(lapply(lda, `[[`, "ret_time"), recursive = FALSE, use.names = FALSE)
-  mobils <- lapply(lda, `[[`, "mobility")
   rm(list = "mdata")
   
   # assume no empty frames (e.g. at no additional intensity filtration)
-  if (FALSE) {
-    bads <- which(lengths(lda) == 0L)
-    if (length(bads)) {
-      lda <- lda[-bads]
-      ms1_iso <- ms1_iso[bads]
-      iso_info <- iso_info[bads]
-      ms_frs <- ms_frs[bads]
-    }
-    rm(list = c("bads"))
+  bads <- which(lengths(lda) == 0L)
+  if (n_bads <- length(bads)) {
+    lda       <- lda[-bads]
+    n_frs     <- n_frs - n_bads
+    ms1_iso   <- ms1_iso[-bads]
+    mobils    <- mobils[-bads]
+    ms_frs    <- ms_frs[-bads]
+    ret_times <- ret_times[-bads]
+    # iso_info <- iso_info[-bads]
+    
+    if (!length(ms1_iso)) { return(NULL) }
   }
+  rm(list = c("bads", "n_bads"))
   
   ## (3) obtain full MS1: collapse scans to slices and centroid data
   res1 <- lapply(lda, coll_cent_pasefms1, pasef_slice_size = pasef_slice_size)
@@ -578,22 +599,22 @@ extract_pasefms1 <- function (
   }
   
   # assume no empty entries (e.g. at no additional intensity filtration)
-  if (FALSE) {
-    oks <- lengths(ans2) > 0L
-    ans2 <- ans2[oks]
-    # iso_info <- iso_info[oks]
-    ms1_iso <- ms1_iso[oks]
+  if (length(bads <- which(lengths(ans2) == 0L))) {
+    ans2 <- ans2[-bads]
+    ms1_iso <- ms1_iso[-bads]
+    # iso_info <- iso_info[-bads]
+    if (!length(ms1_iso)) { return(NULL) }
   }
   
   #  flatten slices (need to handle that all ans2 are flat)
   #  nrow(iso_info[[i]]) should == the number of slices
-  #  over-killing to maintain 1-to-1 correspondence, but good tidiness
+  #  over-killing to maintain 1-to-1 correspondence, but good for tidiness
   nrows <- unlist(lapply(ms1_iso, nrow))
   
   # check for slices in metadata but not in MS data
   if (length(bads <- which(lengths(ans2) < nrows))) {
     ms1_iso[bads] <- purge_iso_info(ans2[bads], ms1_iso[bads])
-    nrows[bads] <- lapply(ms1_iso[bads], nrow) |>
+    nrows[bads]   <- lapply(ms1_iso[bads], nrow) |>
       unlist(use.names = FALSE, recursive = FALSE)
   }
   
@@ -687,12 +708,15 @@ extract_pasefms2 <- function (mdata, ms_frs, iso_info, ms_col = "MS2Frame",
   # for each MS2 frame: 
   #  the slice numbers are in an ascending order for `mdata`;
   #  the ScanNumBegin values are also in an ascending order for each `iso_info`
+  if (!nrow(iso_info)) { return(NULL) }
   res <- subset_pasefms(
     mdata = mdata, ms_frs = ms_frs, iso_info = iso_info, ms_col = ms_col)
   mdata    <- res[["mdata"]]
   ms_frs   <- res[["ms_frs"]]
   iso_info <- res[["iso_info"]]
   rm(list = "res")
+  
+  if (!length(mdata)) { return(NULL) }
   
   # each entry corresponds to one MS2 frame (multiple scans in each frame)
   if (FALSE) {
@@ -713,17 +737,16 @@ extract_pasefms2 <- function (mdata, ms_frs, iso_info, ms_col = "MS2Frame",
   rm(list = "mdata")
   
   # assume no empty frames (e.g. at no additional intensity filtration)
-  if (FALSE) {
-    oks <- lengths(lda) > 0L
-    if (!all(oks)) {
-      oks <- which(oks)
-      lda <- lda[oks]
-      iso_info <- iso_info[oks]
-      ms_frs <- ms_frs[oks]
-    }
-    rm(list = c("oks"))
+  oks <- lengths(lda) > 0L
+  if (!all(oks)) {
+    oks <- which(oks)
+    lda <- lda[oks]
+    iso_info <- iso_info[oks]
+    ms_frs <- ms_frs[oks]
+    
+    if (!length(iso_info)) { return(NULL) }
   }
-  
+
   ## (3) collapse scans -> slices frame-wisely by ScanNumBegin:ScanNumEnd ranges
   # ms1_moverzs == 0: undertermined by Bruker metadata
   if (length(lda) != length(iso_info)) {
@@ -733,10 +756,13 @@ extract_pasefms2 <- function (mdata, ms_frs, iso_info, ms_col = "MS2Frame",
   rm(list = "lda")
   
   # assume no empty entries (e.g. at no additional intensity filtration)
-  if (FALSE) {
-    oks <- lengths(ans) > 0L
+  oks <- lengths(ans) > 0L
+  if (!all(oks)) {
+    oks <- which(oks)
     ans <- ans[oks]
     iso_info <- iso_info[oks]
+    
+    if (!length(iso_info)) { return(NULL) }
   }
   
   ## (4) flatten slices in frames (need to handle cases that all ans are flat)
