@@ -129,9 +129,8 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
   lenf <- length(peakfiles)
   rams <- find_free_mem() / 1024
   n_pcs <- detect_cores(64L) - 1L
-  n_cores <- max(min(n_pcs, ceiling(rams / if (is_pasef) 20 else 5), lenf), 1L)
-  r_cores <- round(n_pcs/n_cores)
-  n_para <- max(min(n_pcs, r_cores), 1L)
+  n_cores <- max(min(n_pcs, ceiling(rams / if (is_pasef) 30 else 5), lenf), 1L) # 20 -> 30
+  n_para  <- max(min(n_pcs, round(n_pcs / n_cores)), 1L)
   
   if (is_pasef) {
     if (n_mdda_flanks) {
@@ -139,7 +138,29 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
       warning("Coerce to `n_mdda_flanks = 0` for PASEF data.")
     }
     
-    n_para <- 1L
+    multi_pasef <- lenf > n_cores
+    
+    if (multi_pasef) {
+      pasef_n_secs <- ceiling(lenf / n_cores) # lenf2 <- ceiling(lenf / n_cores) * n_cores
+      pasef_cuts   <- ceiling(lenf / pasef_n_secs) * seq_len(pasef_n_secs - 1L)
+      pasef_brs    <- findInterval(seq_len(lenf), pasef_cuts, left.open = TRUE)
+      
+      pasef_fis <- split(peakfiles, pasef_brs)
+      pasef_ids <- split(seq_len(lenf), pasef_brs)
+      pasef_n_cores <- lengths(pasef_fis, use.names = FALSE)
+      pasef_n_paras <-  floor(min(n_pcs, 25L) / pasef_n_cores)
+      raws <- vector("list", lenf)
+    }
+    # else {
+    #   pasef_fis  <- peakfiles
+    #   pasef_ids <- seq_len(lenf)
+    #   pasef_n_cores <- n_cores
+    #   pasef_n_paras <-  floor(min(n_pcs, 25L) / pasef_n_cores)
+    # }
+  }
+  else {
+    file_indexes = seq_along(peakfiles)
+    multi_pasef <- FALSE
   }
   
   if (isTRUE(is_dia)) {
@@ -296,87 +317,135 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
     # since values < yco replaced with NA and can become all NA
     # the current yco = 10 for PASEF actually has no effect... 
     yco <- if (is_pasef) 10 else 100
-
-    if (n_cores <= 1L) {
-      raws <- mapply(
-        hdeisoDDA, 
-        peakfiles, seq_along(peakfiles), 
-        MoreArgs = list(
-          out_path = out_path, 
-          mgf_path = mgf_path, 
-          temp_dir = temp_dir, 
-          mzml_type = mzml_type, 
-          ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
-          maxn_mdda_precurs = maxn_mdda_precurs, 
-          topn_ms2ions = topn_ms2ions, 
-          n_mdda_flanks = n_mdda_flanks, 
-          n_dia_scans = n_dia_scans, 
-          min_mass = min_mass, max_mass = max_mass, 
-          min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
-          min_ms1_charge = min_ms1_charge, max_ms1_charge = max_ms1_charge, 
-          min_ret_time = min_ret_time, max_ret_time = max_ret_time, 
-          min_scan_num = min_scan_num, max_scan_num = max_scan_num, 
-          deisotope_ms2 = deisotope_ms2, max_ms2_charge = max_ms2_charge, 
-          ppm_ms1_deisotope = ppm_ms1_deisotope, 
-          ppm_ms2_deisotope = ppm_ms2_deisotope, 
-          grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
-          mgf_cutmzs = mgf_cutmzs, 
-          mgf_cutpercs = mgf_cutpercs, 
-          quant = quant, 
-          use_lfq_intensity = use_lfq_intensity, 
-          ppm_ms1trace = ppm_ms1trace, 
-          tmt_reporter_lower = tmt_reporter_lower, 
-          tmt_reporter_upper = tmt_reporter_upper, 
-          exclude_reporter_region = exclude_reporter_region, 
-          use_defpeaks = use_defpeaks, 
-          is_pasef = is_pasef,
-          n_para = n_para, 
-          y_perc = .01, 
-          yco = yco
-        ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    
+    if (multi_pasef) {
+      for (i in seq_along(pasef_fis)) {
+        pasef_subids <- pasef_ids[[i]]
+        
+        cl <- parallel::makeCluster(
+          getOption("cl.cores", pasef_n_cores[[i]]), 
+          outfile = file.path(mgf_path, "temp_dir", "log.txt"))
+        raws[pasef_subids] <- parallel::clusterMap(
+          cl, hdeisoDDA, 
+          pasef_fis[[i]], pasef_subids, 
+          MoreArgs = list(
+            out_path = out_path, 
+            mgf_path = mgf_path, 
+            temp_dir = temp_dir, 
+            mzml_type = mzml_type, 
+            ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
+            maxn_mdda_precurs = maxn_mdda_precurs, 
+            topn_ms2ions = topn_ms2ions, 
+            n_mdda_flanks = n_mdda_flanks, 
+            n_dia_scans = n_dia_scans, 
+            min_mass = min_mass, max_mass = max_mass, 
+            min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
+            min_ms1_charge = min_ms1_charge, max_ms1_charge = max_ms1_charge, 
+            min_ret_time = min_ret_time, max_ret_time = max_ret_time, 
+            min_scan_num = min_scan_num, max_scan_num = max_scan_num, 
+            deisotope_ms2 = deisotope_ms2, max_ms2_charge = max_ms2_charge, 
+            ppm_ms1_deisotope = ppm_ms1_deisotope, 
+            ppm_ms2_deisotope = ppm_ms2_deisotope, 
+            grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+            mgf_cutmzs = mgf_cutmzs, 
+            mgf_cutpercs = mgf_cutpercs, 
+            quant = quant, 
+            use_lfq_intensity = use_lfq_intensity, 
+            ppm_ms1trace = ppm_ms1trace, 
+            tmt_reporter_lower = tmt_reporter_lower, 
+            tmt_reporter_upper = tmt_reporter_upper, 
+            exclude_reporter_region = exclude_reporter_region, 
+            use_defpeaks = use_defpeaks, 
+            is_pasef = is_pasef,
+            n_para = pasef_n_paras[[i]], 
+            y_perc = .01,
+            yco = yco
+          ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+        parallel::stopCluster(cl)
+      }
     }
     else {
-      # if (is_pasef) { n_para <- max(floor(min(n_para, 16L) / n_cores), 1L) }
-      cl <- parallel::makeCluster(
-        getOption("cl.cores", n_cores), 
-        outfile = file.path(mgf_path, "temp_dir", "log.txt"))
-      raws <- parallel::clusterMap(
-        cl, hdeisoDDA, 
-        peakfiles, seq_along(peakfiles), 
-        MoreArgs = list(
-          out_path = out_path, 
-          mgf_path = mgf_path, 
-          temp_dir = temp_dir, 
-          mzml_type = mzml_type, 
-          ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
-          maxn_mdda_precurs = maxn_mdda_precurs, 
-          topn_ms2ions = topn_ms2ions, 
-          n_mdda_flanks = n_mdda_flanks, 
-          n_dia_scans = n_dia_scans, 
-          min_mass = min_mass, max_mass = max_mass, 
-          min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
-          min_ms1_charge = min_ms1_charge, max_ms1_charge = max_ms1_charge, 
-          min_ret_time = min_ret_time, max_ret_time = max_ret_time, 
-          min_scan_num = min_scan_num, max_scan_num = max_scan_num, 
-          deisotope_ms2 = deisotope_ms2, max_ms2_charge = max_ms2_charge, 
-          ppm_ms1_deisotope = ppm_ms1_deisotope, 
-          ppm_ms2_deisotope = ppm_ms2_deisotope, 
-          grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
-          mgf_cutmzs = mgf_cutmzs, 
-          mgf_cutpercs = mgf_cutpercs, 
-          quant = quant, 
-          use_lfq_intensity = use_lfq_intensity, 
-          ppm_ms1trace = ppm_ms1trace, 
-          tmt_reporter_lower = tmt_reporter_lower, 
-          tmt_reporter_upper = tmt_reporter_upper, 
-          exclude_reporter_region = exclude_reporter_region, 
-          use_defpeaks = use_defpeaks, 
-          is_pasef = is_pasef,
-          n_para = n_para, 
-          y_perc = .01,
-          yco = yco
-        ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
-      parallel::stopCluster(cl)
+      if (n_cores <= 1L) {
+        raws <- mapply(
+          hdeisoDDA, 
+          peakfiles, file_indexes, 
+          MoreArgs = list(
+            out_path = out_path, 
+            mgf_path = mgf_path, 
+            temp_dir = temp_dir, 
+            mzml_type = mzml_type, 
+            ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
+            maxn_mdda_precurs = maxn_mdda_precurs, 
+            topn_ms2ions = topn_ms2ions, 
+            n_mdda_flanks = n_mdda_flanks, 
+            n_dia_scans = n_dia_scans, 
+            min_mass = min_mass, max_mass = max_mass, 
+            min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
+            min_ms1_charge = min_ms1_charge, max_ms1_charge = max_ms1_charge, 
+            min_ret_time = min_ret_time, max_ret_time = max_ret_time, 
+            min_scan_num = min_scan_num, max_scan_num = max_scan_num, 
+            deisotope_ms2 = deisotope_ms2, max_ms2_charge = max_ms2_charge, 
+            ppm_ms1_deisotope = ppm_ms1_deisotope, 
+            ppm_ms2_deisotope = ppm_ms2_deisotope, 
+            grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+            mgf_cutmzs = mgf_cutmzs, 
+            mgf_cutpercs = mgf_cutpercs, 
+            quant = quant, 
+            use_lfq_intensity = use_lfq_intensity, 
+            ppm_ms1trace = ppm_ms1trace, 
+            tmt_reporter_lower = tmt_reporter_lower, 
+            tmt_reporter_upper = tmt_reporter_upper, 
+            exclude_reporter_region = exclude_reporter_region, 
+            use_defpeaks = use_defpeaks, 
+            is_pasef = is_pasef,
+            n_para = n_para, 
+            y_perc = .01, 
+            yco = yco
+          ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+      }
+      else {
+        # if (is_pasef) { n_para <- max(floor(min(n_para, 16L) / n_cores), 1L) }
+        cl <- parallel::makeCluster(
+          getOption("cl.cores", n_cores), 
+          outfile = file.path(mgf_path, "temp_dir", "log.txt"))
+        raws <- parallel::clusterMap(
+          cl, hdeisoDDA, 
+          peakfiles, file_indexes, 
+          MoreArgs = list(
+            out_path = out_path, 
+            mgf_path = mgf_path, 
+            temp_dir = temp_dir, 
+            mzml_type = mzml_type, 
+            ppm_ms1 = ppm_ms1, ppm_ms2 = ppm_ms2, 
+            maxn_mdda_precurs = maxn_mdda_precurs, 
+            topn_ms2ions = topn_ms2ions, 
+            n_mdda_flanks = n_mdda_flanks, 
+            n_dia_scans = n_dia_scans, 
+            min_mass = min_mass, max_mass = max_mass, 
+            min_ms2mass = min_ms2mass, max_ms2mass = max_ms2mass, 
+            min_ms1_charge = min_ms1_charge, max_ms1_charge = max_ms1_charge, 
+            min_ret_time = min_ret_time, max_ret_time = max_ret_time, 
+            min_scan_num = min_scan_num, max_scan_num = max_scan_num, 
+            deisotope_ms2 = deisotope_ms2, max_ms2_charge = max_ms2_charge, 
+            ppm_ms1_deisotope = ppm_ms1_deisotope, 
+            ppm_ms2_deisotope = ppm_ms2_deisotope, 
+            grad_isotope = grad_isotope, fct_iso2 = fct_iso2, 
+            mgf_cutmzs = mgf_cutmzs, 
+            mgf_cutpercs = mgf_cutpercs, 
+            quant = quant, 
+            use_lfq_intensity = use_lfq_intensity, 
+            ppm_ms1trace = ppm_ms1trace, 
+            tmt_reporter_lower = tmt_reporter_lower, 
+            tmt_reporter_upper = tmt_reporter_upper, 
+            exclude_reporter_region = exclude_reporter_region, 
+            use_defpeaks = use_defpeaks, 
+            is_pasef = is_pasef,
+            n_para = n_para, 
+            y_perc = .01,
+            yco = yco
+          ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+        parallel::stopCluster(cl)
+      }
     }
   }
 
