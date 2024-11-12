@@ -13,7 +13,8 @@ probco_bypeplen(
   fct_score = 5,
   is_long_len = FALSE,
   sco_long_len = 30,
-  out_path
+  ref_probco = NULL,
+  out_path = NULL
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ identities.}
 \item{sco_long_len}{Empirical score threshold at one-percent FDR for
 sequences
 \eqn{\ge 35} residues.}
+
+\item{ref_probco}{Reference cut-offs of probabilities.}
 
 \item{out_path}{A file path of outputs.}
 

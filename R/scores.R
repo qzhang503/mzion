@@ -273,42 +273,6 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
   df2  <- match_ex2th2(expt_moverzs, tt2, min_ms2mass, d2)
   ith2 <- df2[["ith"]]
   iex2 <- df2[["iex"]]
-  
-  if (FALSE) {
-    m2 <- m/2L
-    
-    if (type_ms2ions == "by") {
-      # idxes_mul <- c(1, 3, 5, 6, 8, 10)
-      # idxes_one <- c(2, 4, 7, 9)
-      rng_mul <- c(1:m2, (2 * m2 + 1):(3 * m2), 
-                   (4 * m2 + 1):(5 * m2), (5 * m2 + 1):(6 * m2), 
-                   (7 * m2 + 1):(8 * m2), (9 * m2 + 1):(10 * m2))
-      rng_one <- c((m2 + 1):(2 * m2), (3 * m2 + 1):(4 * m2), 
-                   (6 * m2 + 1):(7 * m2), (8 * m2 + 1):(9 * m2))
-    } else if (type_ms2ions == "ax") {
-      # idxes_mul <- c(1, 3, 5, 6)
-      # idxes_one <- c(2, 4)
-      rng_mul <- c(1:m2, (2 * m2 + 1):(3 * m2), 
-                   (4 * m2 + 1):(5 * m2), (5 * m2 + 1):(6 * m2))
-      rng_one <- c((m2 + 1):(2 * m2), (3 * m2 + 1):(4 * m2))
-    } else if (type_ms2ions == "cz") {
-      # idxes_one <- NULL
-      # idxes_mul <- c(1, 2)
-      rng_mul <- seq_len(m)
-      rng_one <- NULL
-    }
-    
-    tt2_one <- tt2[rng_one]
-    tt2_mul <- tt2[rng_mul]
-    expt_mul <- expt_one <- expt_moverzs
-    
-    # FALSE & NA -> FALSE; TRUE & NA -> NA
-    nna <- !is.na(expt_charges)
-    expt_one[nna & (expt_charges > 1L)] <- NA_integer_
-    expt_mul[nna & (expt_charges == 1L)] <- NA_integer_
-    df2_one <- match_ex2th2(expt_one, tt2_one, min_ms2mass, d2)
-    df2_mul <- match_ex2th2(expt_mul, tt2_mul, min_ms2mass, d2)
-  }
 
   ## 1. int2 (secondary intensities)
   len <- length(df2[["expt"]])
@@ -1717,18 +1681,94 @@ find_pepscore_co2 <- function (td, target_fdr = 0.01)
 #' @param len Numeric; the length of peptides.
 #' @param is_long_len; Logical; is a long peptide length or not.
 #' @param fct_score A factor to convert p-values to scores.
+#' @param ref_probco Reference cut-offs of probabilities.
 #' @param sco_long_len Empirical score threshold at one-percent FDR for
 #'   sequences
 #'   \eqn{\ge 35} residues.
 #' @inheritParams matchMS
 probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01, 
                              min_pepscores_co = 30, fct_score = 5, 
-                             is_long_len = FALSE, sco_long_len = 30, out_path) 
+                             is_long_len = FALSE, sco_long_len = 30, 
+                             ref_probco = NULL, out_path = NULL) 
 {
   td <- dplyr::filter(td, pep_len == len)
   td <- sub_td_byfdrtype(td = td, fdr_type = fdr_type, fct_score = fct_score)
   count <- nrow(td)
   
+  ref_sco  <- if (is.null(ref_probco)) NULL else -fct_score * log10(ref_probco)
+  rows_de  <- which(td$pep_isdecoy)
+  n_decoys <- length(rows_de)
+  sc_penal <- 0
+  
+  if (!n_decoys) {
+    if (!is.null(prob_co <- ref_probco)) {
+      names(prob_co) <- count
+    }
+    return(prob_co)
+  }
+  
+  ## to ensure at least 10 targets before hitting the first decoy
+  if (rows_de[[1]] <= 10L) {
+    rowx <- which(rows_de - seq_along(rows_de) >= 10L)
+    if (length(rowx)) {
+      rows <- seq_len(rows_de[rowx[[1]]])
+      # bads <- td$pep_isdecoy[rows]
+      rows_bad <- rows[td$pep_isdecoy[rows]]
+      sc_penal <- length(rows_bad) / 2
+      td <- td[-rows_bad, ]
+      
+      # update `td`
+      rows_de  <- which(td$pep_isdecoy)
+      n_decoys <- length(rows_de)
+      
+      if (!n_decoys) {
+        if (!is.null(prob_co <- ref_probco)) {
+          names(prob_co) <- count
+        }
+        return(prob_co)
+      }
+      
+      td$total <- seq_len(nrow(td))
+      td$decoy <- cumsum(td$pep_isdecoy)
+      td$fdr   <- td$decoy / td$total
+    }
+    else { # all decoys are within the top-10
+      if (!is.null(prob_co <- ref_probco)) {
+        names(prob_co) <- count
+      }
+      return(prob_co)
+    }
+  }
+
+  ## remove the top-3 decoys
+  if (FALSE) {
+    if (n_decoys > 3L) {
+      rowx <- rows_de[1:3]
+      rowx <- rowx[td$pep_prob[rowx] < ref_probco / 10]
+      
+      if (length(rowx)) {
+        td <- td[-rowx, ]
+      }
+    }
+    else {
+      row <- rows_de[length(rows_de)]
+      bad <- td$pep_prob[row] < ref_probco / 10
+      
+      if (length(rowx <- row[bad])) { # all very low pep_prob and use ref_probco
+        if (!is.null(prob_co <- ref_probco)) {
+          names(prob_co) <- count
+        }
+        return(prob_co)
+      }
+      else {
+        prob_co <- max(td$pep_prob[row], ref_probco)
+        names(prob_co) <- count
+        return(prob_co)
+      }
+    }
+  }
+  ##
+
   if (count < (1 / target_fdr)) {
     if (count <= 10L) {
       return(NA_real_)
@@ -1745,8 +1785,10 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
     }
 
     prob_co <- 10^(-best_co/fct_score)
+    co_first_td <- td$pep_score[td$pep_isdecoy][[1]] + sc_penal
+    prob_co <- max(prob_co, 10^(-co_first_td/fct_score))
     names(prob_co) <- count
-    
+
     return(prob_co)
   }
 
@@ -1758,7 +1800,7 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
     # the last row since pep_score in a descending order
     row <- max(rows, na.rm = TRUE)
     # row <- rows[length(rows)]
-    score_co <- td[["pep_score"]][row]
+    score_co <- td[["pep_score"]][row] # + sc_penal
 
     ### guard against very low score_co
     if (FALSE) {
@@ -2185,7 +2227,8 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
                          min_len = 7L, max_len = 40L, is_notched = FALSE, 
                          max_pepscores_co = 70, min_pepscores_co = 30, 
                          enzyme = "trypsin_p", fdr_group = "base", 
-                         nes_fdr_group = "base", fct_score = 5, out_path)
+                         nes_fdr_group = "base", fct_score = 5, out_path = NULL, 
+                         mgf_path = NULL)
 {
   message("Calculating peptide FDR.")
   
@@ -2221,10 +2264,34 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   all_lens <- sort(unique(td$pep_len))
   prob_cos <- vector("list", length(all_lens))
   
+  if (file.exists(file_data_type <- file.path(mgf_path, "data_type.rds"))) {
+    data_type <- qs::qread(file_data_type)
+  }
+  else {
+    warning("File not found: ", file_data_type)
+    data_type <- "raw" # currently assume Thermo's RAW data
+  }
+  
+  sys_path <- system.file("extdata", package = "mzion")
+  
+  if (data_type == "raw") {
+    file_ref_probcos <- file.path(sys_path, "themo_ref_probcos.rds")
+    
+    if (file.exists(file_ref_probcos)) {
+      ref_probcos <- readRDS(file_ref_probcos)
+    }
+    else {
+      ref_probcos <- NULL
+    }
+  }
+  else {
+    ref_probcos <- NULL
+  }
+
   for (i in seq_along(all_lens)) {
     leni <- all_lens[[i]]
     is_long_len <- leni >= 35L
-    
+
     if (is_long_len) {
       probs_leading <- unlist(prob_cos[max((i-3), 1):max((i-1), 1)])
       probs_leading <- probs_leading[!is.infinite(probs_leading)]
@@ -2234,6 +2301,16 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
       baseline_sco <- 0
     }
 
+    if (is.null(ref_probcos)) {
+      ref_probco <- NULL
+    }
+    else {
+      ref_probco <- ref_probcos$pep_prob_co[ref_probcos$pep_len == leni]
+      if (!length(ref_probco)) {
+        ref_probco <- NULL
+      }
+    }
+    
     prob_cos[[i]] <- probco_bypeplen(
       len = leni, 
       td = td, 
@@ -2243,6 +2320,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
       fct_score = fct_score, 
       is_long_len = is_long_len, 
       sco_long_len = baseline_sco, 
+      ref_probco = ref_probco, 
       out_path = out_path)
   }
   

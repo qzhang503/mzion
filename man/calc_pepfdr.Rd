@@ -16,7 +16,8 @@ calc_pepfdr(
   fdr_group = "base",
   nes_fdr_group = "base",
   fct_score = 5,
-  out_path
+  out_path = NULL,
+  mgf_path = NULL
 )
 }
 \arguments{
@@ -63,6 +64,16 @@ parameter \code{fdr_group}.}
 \item{fct_score}{A trivial factor converting p-values to scores.}
 
 \item{out_path}{A file path of outputs.}
+
+\item{mgf_path}{A file path to a list of MGF files. The experimenter needs to
+  supply the files.
+
+  The supported MGFs are in the formats of (1) MSConvert against \code{.raw}
+  from Thermo's Orbitrap or \code{.d} from Bruker's timsTOF Pro, (2) Thermo's
+  Proteome Discoverer or (3) Bruker's DataAnalysis.
+
+  With MSConvert, the default \code{titleMaker} is required for correct
+  parsing (don't think it can be altered by users, but just in case).}
 }
 \description{
 Needs \code{min_len} and \code{max_len} since the target-decoy pair may not

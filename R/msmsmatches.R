@@ -1604,6 +1604,7 @@ matchMS <- function (out_path = "~/mzion/my_project",
                             fdr_group = fdr_group, 
                             nes_fdr_group = nes_fdr_group, 
                             out_path = out_path, 
+                            mgf_path = mgf_path, 
                             fct_score = fct_score)
     
     ans <- post_pepfdr(prob_cos = prob_cos, n_13c = n_13c, out_path = out_path, 
