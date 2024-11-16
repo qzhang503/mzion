@@ -2,13 +2,22 @@
 % Please edit documentation in R/mzml.R
 \name{find_gate_edges}
 \alias{find_gate_edges}
-\title{Helper to find the positions of logical gates.}
+\title{Helper to find the positions of signal edges}
 \usage{
 find_gate_edges(vals)
 }
 \arguments{
-\item{vals}{A logical vector.}
+\item{vals}{A vector of integers or logical values.}
+}
+\value{
+The indexes of ups and downs along \code{vals}. Note that discrete
+  values without neighbors are excluded.
 }
 \description{
-Helper to find the positions of logical gates.
+Helper to find the positions of signal edges
+}
+\examples{
+vals <- c(1:3, 5:7, 10, 14:16)
+find_gate_edges(vals)
+
 }

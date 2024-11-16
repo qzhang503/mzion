@@ -94,8 +94,8 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
   cols1 <- c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", 
              "msx_moverzs", "msx_ints", "msx_charges", 
              "orig_scan", "ret_time")
-  df1  <- df[with(df, ms_level == 1L), cols1]
-  len1 <- nrow(df1)
+  df1   <- df[with(df, ms_level == 1L), cols1]
+  len1  <- nrow(df1)
 
   # Remove non-essential (e.g., non mono-isotopic) MS1 x and y values
   ans <- subMSfull(
@@ -103,7 +103,7 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
     from = from, step = step, gap = gap)
   # moverzs in ans$x are in an ascending order
   df1$msx_moverzs <- ans$x
-  df1$msx_ints <- ans$y
+  df1$msx_ints    <- ans$y
   rm(list = "ans")
 
   # at least two chunks
@@ -112,14 +112,14 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
   }
 
   df1$ms1_mass <- df1$ms1_moverz <- df1$ms1_int <- df1$ms1_charge <- NULL
-  df1s  <- chunksplit(df1, n_chunks, type = "row")
+  df1s    <- chunksplit(df1, n_chunks, type = "row")
   min_rts <- unlist(lapply(df1s, function (x) x$ret_time[[1]]))
   max_rts <- unlist(lapply(df1s, function (x) x$ret_time[[nrow(x)]]))
-  end1s <- cumsum(lapply(df1s, nrow))
-  sta1s <- c(1L, end1s[1:(n_chunks - 1L)] + 1L)
+  end1s   <- cumsum(lapply(df1s, nrow))
+  sta1s   <- c(1L, end1s[1:(n_chunks - 1L)] + 1L)
   
   # Adds 2-min gaps before and after
-  gaps <- lapply(df1s, function (x) ceiling(min(gap, nrow(x) / 2L)))
+  gaps    <- lapply(df1s, function (x) ceiling(min(gap, nrow(x) / 2L)))
   df1s_bf <- df1s_af <- vector("list", n_chunks)
   
   for (i in 2:n_chunks) {
@@ -197,6 +197,7 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
         apex_scan_num = null))
   }
   
+  # may contain all NA columns
   mat <- traceXY(
     xs = xs, ys = ys, ss = ss, ts = ts, n_dia_scans = n_dia_scans, 
     from = from, step = step, reord = FALSE, cleanup = FALSE, # otherwise rows drop
@@ -208,15 +209,28 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
   maty <- mat[["y"]]
   apes <- mat[["p"]]
   rngs <- mat[["range"]] # for debugging
-  nr <- nrow(matx)
-  nc <- ncol(matx)
+  
+  if (length(bads <- which(lengths(apes) == 0L))) {
+    matx <- matx[, -bads, drop = FALSE]
+    maty <- maty[, -bads, drop = FALSE]
+    apes <- apes[-bads]
+    rngs <- rngs[-bads]
+  }
+  
+  if (!length(apes)) {
+    return(df)
+  }
+  
+  nr   <- nrow(matx)
+  nc   <- ncol(matx)
 
-  # apes correspond to the row numbers of matx and ss to orig_scan
+  # apes <-> row numbers of matx: rownames(matx)[apes[[i]]]
+  # ss <-> orig_scan: ss[apes[[i]]]
   rt_apexs <- scan_apexs <- vector("list", nc)
   for (i in 1:nc) {
-    ai <- apes[[i]]
-    scan_apexs[[i]] <- as.integer(ss[ai])
-    rt_apexs[[i]]   <- as.integer(ts[ai])
+    apx <- apes[[i]]
+    scan_apexs[[i]] <- as.integer(ss[apx])
+    rt_apexs[[i]]   <- as.integer(ts[apx])
   }
 
   if (gap_bf) {
@@ -265,7 +279,7 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
 #' @inheritParams matchMS
 traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L, 
                      step = 8E-6, reord = TRUE, cleanup = FALSE, 
-                     replace_ms1_by_apex = FALSE,y_perc = .01, yco = 500, 
+                     replace_ms1_by_apex = FALSE, y_perc = .01, yco = 500, 
                      look_back = TRUE)
 {
   lens <- lengths(xs)
@@ -273,22 +287,22 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
   if (all(lens == 0L)) {
     return(list(x = NULL, y = NULL, n = NULL, p = NULL, range = NULL))
   }
-
+  
   if (reord) {
     for (i in seq_along(xs)) {
       xi <- xs[[i]]
       
       if (lens[[i]] > 1L) {
-        ord <- order(xi)
+        ord <- .Internal(radixsort(na.last = TRUE, decreasing = FALSE, FALSE, TRUE, xi))
         xs[[i]] <- xi[ord]
         ys[[i]] <- ys[[i]][ord]
       }
     }
-    rm(list = c("xi", "ord"))
+    # rm(list = c("xi", "ord"))
   }
   
   ## collapses MS data by the indexes of mass bins; 
-  # two matrix outputs; rows: scans; columns: masses or intensities
+  #  two matrix outputs; rows: scans; columns: masses or intensities
   
   # xs can be numeric(0)?
   # cleanup = FALSE; otherwise rows drop
@@ -296,22 +310,21 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
   # may change to step = 7E-6
   # max(mass_delta) under a column can be up to 3 * step with look_back = TRUE
   
-  ans <- collapse_mms1ints(
+  ans  <- collapse_mms1ints(
     xs = xs, ys = ys, lwr = from, step = step, reord = FALSE, cleanup = FALSE, 
     add_colnames = TRUE, look_back = look_back)
   ansx <- ans[["x"]]
   ansy <- ans[["y"]]
   unv  <- ans[["u"]]
   # colnames(ansx) <- colnames(ansy) <- unv
-  nr <- nrow(ansy)
-  nc <- ncol(ansy)
-  rm(list = c("ans"))
+  nr   <- nrow(ansy)
+  nc   <- ncol(ansy)
+  # rm(list = c("ans"))
   
   if (FALSE) {
     rng <- 250:800
     i <- which(unv == index_mz(636.8303, from, step)) # 6920
     i <- which(unv == index_mz(636.8303, from, step) +  1) # 4072
-    # i <- which(unv == index_mz(636.8303, from, step) - 1) # 2760
     ss[rng]
     
     plot(ansx[, i])
@@ -326,37 +339,46 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
   
   ## traces MS1 data matrices across LC scans; rows: scans; columns: masses
   xmat <- ymat <- matrix(rep_len(NA_real_, nc * nr), ncol = nc)
-  # colnames(xmat) <- colnames(ymat) <- unv # bin indexes of masses
-  # rownames(xmat) <- rownames(ymat) <- ss # scan numbers
   ranges <- apexes <- ns <- vector("list", nc)
   
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
-      # i <- which(unv == index_mz(636.8303, from, step) + 1)
-      # i = 8569; i = 8570
-      xi <- ansx[, i]
-      yi <- ansy[, i]
-      oks <- .Internal(which(!is.na(yi)))
+      # i <- which(unv == index_mz(627.8159, from, step) + 1)
+      # i <- 8653
+      xi   <- ansx[, i]
+      yi   <- ansy[, i]
+      oks  <- .Internal(which(!is.na(yi)))
       yoks <- yi[oks]
       # may be unnecessary, e.g., Thermo's MS1 peak distributions are discrete
       yoks[yoks < yco] <- NA_real_ # does the same to xi?
-      yi[oks] <- yoks
+      yi[oks]   <- yoks
 
       ## all NA or NaN if all yi < yco...
       # if (sum(is.na(yi)) + sum(is.nan(yi)) == nr) {
       #   ns[[i]] <- 0L; apexes[[i]] <- 0L; ranges[[i]] <- 0L
       # }
-
-      gates <- 
-        find_lc_gates(xs = xi, ys = yi, ts = ts, n_dia_scans = n_dia_scans)
+      
+      if (FALSE) {
+        data.frame(x = ts, y = yi) |>
+          ggplot2::ggplot() + 
+          ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
+                                color = "gray", linewidth = .1)
+      }
+      
+      gates <- find_lc_gates(xs = xi, ys = yi, ts = ts, n_dia_scans = n_dia_scans)
+      
+      if (is.null(gates)) {
+        next
+      }
+      
       apexes[[i]] <- rows <- gates[["apex"]]
-      ns[[i]] <- gates[["ns"]] # number of observing scans
+      ns[[i]]     <- gates[["ns"]] # number of observing scans; maybe filter by ns[[i]] >= 5L
       ranges[[i]] <- rngs <- gates[["ranges"]]
-      yints <- gates[["yints"]]
+      yints       <- gates[["yints"]]
       
       # mx <- lapply(rngs, function (rng) median(xi[rng], na.rm = TRUE))
       mx <- lapply(rngs, function (rng) mean(xi[rng], na.rm = TRUE))
-
+      
       for (j in seq_along(rows)) {
         rgj <- rngs[[j]]
         # rwj <- rows[[j]]
@@ -369,9 +391,9 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
   else {
     for (i in 1:nc) {
       gates <- find_lc_gates(ys = ansy[, i], ts = ts, n_dia_scans = n_dia_scans)
-      apexes[[i]] <- rows <- gates[["apex"]]
-      ns[[i]] <- gates[["ns"]] # number of observing scans
-      ranges[[i]] <- rngs <- gates[["ranges"]]
+      apexes[[i]]   <- rows <- gates[["apex"]]
+      ns[[i]]       <- gates[["ns"]] # number of observing scans
+      ranges[[i]]   <- rngs <- gates[["ranges"]]
       xmat[rows, i] <- ansx[rows, i]
       ymat[rows, i] <- ansy[rows, i]
     }
@@ -431,17 +453,20 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     if (FALSE) {
       # look for penultimate scan number of psmQ.txt::pep_scan_num
       df$orig_scan[ms1_stas]
-      i <- 276
+      # i <- 476
+      i <- 46
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
-      df2 <- df[ms2sta:ms2end, ]
+      ms2rng <- ms2sta:ms2end
+      df2    <- df[ms2rng, ]
     }
     
-    # i = 494; which(rownames(matx) == 18949) - gap -> i
+    # i = 458; which(rownames(matx) == 78900) - gap -> i
     ms2sta <- ms2_stas[[i]]
     if (is.na(ms2sta)) next
     ms2end <- ms2_ends[[i]]
-    df2 <- df[ms2sta:ms2end, ]
+    ms2rng <- ms2sta:ms2end
+    df2    <- df[ms2rng, ]
     
     rowi <- gap + i # row number in matx, maty
     scan <- ss[[rowi]] # the MS1 scan number at the current row
@@ -464,6 +489,14 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
         # two adjacent matches: unv[k] <-> ix1s[[m]] - 1 and ix1s[[m]] + 1
         if (length(k) > 1L) {
           ka <- k[[1]]
+          
+          if (FALSE) {
+            data.frame(x = 1:nrow, y = maty[, ka]) |>
+              ggplot2::ggplot() + 
+              ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
+                                    color = "gray", linewidth = .1)
+          }
+          
           ans1 <- find_apex_scan(k = ka, xs_k = matx[, ka], ys_k = maty[, ka], 
                                  apexs_k = scan_apexs[[ka]], 
                                  rts_k = rt_apexs[[ka]], rngs_k = rngs[[ka]], 
@@ -602,7 +635,6 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
       }
     }
 
-    ms2rng <- ms2sta:ms2end
     df[["apex_scan_num"]][ms2rng] <- df2[["apex_scan_num"]]
     df[["ms1_int"]][ms2rng] <- df2[["ms1_int"]]
   }

@@ -11,7 +11,9 @@ find_lc_gates(
   n_dia_scans = 6L,
   y_rpl = 2,
   step = 5e-06,
-  max_perc = 0.05
+  max_perc = 0.05,
+  min_n = 5L,
+  max_n = 200L
 )
 }
 \arguments{
@@ -30,6 +32,10 @@ along LC.}
 \item{y_rpl}{A replacement value of intensities.}
 
 \item{max_perc}{The maximum percentage of baseline levels.}
+
+\item{min_n}{The minimum number of points across a peak for consideration.}
+
+\item{max_n}{The maximum number of points across a peak for consideration.}
 }
 \value{
 Scan indexes of LC peaks.

@@ -2,12 +2,12 @@
 % Please edit documentation in R/mzml.R
 \name{get_ms1xs_space}
 \alias{get_ms1xs_space}
-\title{Obtains the MS1-X space}
+\title{Obtain the space of monoisotopic MS1}
 \usage{
 get_ms1xs_space(df)
 }
 \arguments{
-\item{df}{A data frame.}
+\item{df}{A data frame of MS1 and MS2.}
 }
 \description{
 Followed by de-isotoping and temporarily puts MS1-XYZ of MS2 scans to the

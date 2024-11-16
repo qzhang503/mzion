@@ -7,10 +7,10 @@
 find_gates(vals)
 }
 \arguments{
-\item{vals}{A logical vector.}
+\item{vals}{An integer vector.}
 }
 \description{
-Finds the positions of logical gates.
+The maximum width of a gate is 2L.
 }
 \examples{
 library(mzion)

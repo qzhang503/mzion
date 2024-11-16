@@ -4,7 +4,7 @@
 \alias{find_lc_gates2}
 \title{Find peak edges by intensity threshold relative to the base peak}
 \usage{
-find_lc_gates2(perc = 0.02, ys, sta, n_dia_scans = 6L, y_rpl = 2, min_n = 5L)
+find_lc_gates2(perc = 0.02, ys, sta, n_dia_scans = 6L, y_rpl = 2, min_n = 6L)
 }
 \arguments{
 \item{perc}{The percentage to the base-peak intensity for cut-offs.}
