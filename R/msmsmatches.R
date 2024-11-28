@@ -1727,8 +1727,8 @@ matchMS <- function (out_path = "~/mzion/my_project",
     df <- map_raw_n_scan(df, mgf_path)
   }
 
-  df <- dplyr::mutate(df, pep_expect = 
-                        10^((pep_score_co - pep_score)/fct_score) * target_fdr)
+  df <- dplyr::mutate(
+    df, pep_expect = 10^((pep_score_co - pep_score)/fct_score) * target_fdr)
   df[["pep_score_co"]] <- NULL
   df$pep_delta <- df$pep_exp_mr - df$pep_calc_mr
 
@@ -2322,13 +2322,12 @@ map_raw_n_scan <- function (df, mgf_path)
   
   if (file.exists(file_apex)) {
     apex <- qs::qread(file_apex)
-    apex$uid <- paste0(apex$raw_file, ".", apex$scan_num)
-    df$uid <- paste0(df$raw_file, ".", df$pep_scan_num)
-    oks <- fastmatch::fmatch(df$uid, apex$uid)
+    oks  <- fastmatch::fmatch(
+      paste0(df$raw_file, ".", df$pep_scan_num), 
+      paste0(apex$raw_file, ".", apex$scan_num))
     apex <- apex[, c("orig_scan", "apex_scan_num")]
-    df <- dplyr::bind_cols(df, apex[oks, ])
-    df$uid <- NULL
-    
+    df   <- dplyr::bind_cols(df, apex[oks, ])
+
     df <- df |>
       reloc_col_after("orig_scan", "pep_scan_num") |>
       reloc_col_after("apex_scan_num", "orig_scan") |>
@@ -2346,7 +2345,7 @@ map_raw_n_scan <- function (df, mgf_path)
   
   raws <- qs::qread(file_raw)
   raws <- raws[!is.na(names(raws))] # some raw files may have no search results
-  pos <- fastmatch::fmatch(as.character(df$raw_file), as.character(raws))
+  pos  <- fastmatch::fmatch(as.character(df$raw_file), as.character(raws))
   df$raw_file <- names(raws)[pos]
   
   # (3) add back scan titles
@@ -2383,7 +2382,7 @@ map_raw_n_scan <- function (df, mgf_path)
   # (4) add apex_ret_time
   files_ms1s <- list.files(mgf_path, pattern = "^ms1_.*\\.rds$")
   files_ms1s <- files_ms1s[files_ms1s != "ms1_.rds"]
-  len_ms1s <- length(files_ms1s)
+  len_ms1s   <- length(files_ms1s)
   
   if (len_ms1s && len_ms1s == length(raws)) {
     ids <- match(raws_in_df, gsub("^ms1_(.*)\\.rds$", "\\1", files_ms1s))
@@ -2397,12 +2396,17 @@ map_raw_n_scan <- function (df, mgf_path)
     
     for (i in ids) {
       ms1s <- qs::qread(file.path(mgf_path, files_ms1s[[i]]))
-      dfi <- dfs[[i]]
-      pos <- match(dfi$pep_apex_scan, ms1s$scan_num) # based on MS1 scan_nums
+      dfi  <- dfs[[i]]
+      api  <- dfi$pep_apex_scan
+      pos  <- fastmatch::fmatch(api, ms1s$scan_num) # based on MS1 scan_nums
       dfi$pep_apex_ret <- ms1s$ret_time[pos]
+
+      if (length(rows <- which(api == 0L | is.na(api)))) {
+        dfi$pep_apex_scan[rows] <- NA_integer_
+      }
       
-      # no matches if pep_apex_scan were "borrowed" from MS2 scans
-      if (any(nas <- is.na(pos))) {
+      # pep_apex_scan were "borrowed" from MS2 scans or 0L
+      if (FALSE && any(nas <- is.na(pos))) {
         dfx <- dfi[nas, ]
         dfx$pep_apex_ret <- dfx$pep_ret_range
         dfi[nas, ] <- dfx

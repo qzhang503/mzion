@@ -90,17 +90,17 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
 
   if (TRUE) {
     peakfile1 <- peakfiles[[1]]
-    is_dia <- attr(peakfile1, "is_dia", exact = TRUE)
+    is_dia    <- attr(peakfile1, "is_dia", exact = TRUE)
     mzml_type <- attr(peakfile1, "mzml_type", exact = TRUE)
     peakfiles <- unlist(peakfiles)
   }
   else {
-    # peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.d\\.rds$")
-    peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.raw\\.rds$")
+    peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.d\\.rds$")
+    # peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.raw\\.rds$")
     peakfiles <- peakfiles[!grepl("^predeisoDDA_", peakfiles)]
-    # peakfiles <- peakfiles[!grepl("^pasefms1_", peakfiles)]
+    peakfiles <- peakfiles[!grepl("^pasefms1_", peakfiles)]
     # peakfiles <- peakfiles[grepl("^LFQ_", peakfiles)]
-    is_dia <- FALSE
+    is_dia    <- FALSE
     mzml_type <- "raw"
   }
   
@@ -129,7 +129,7 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
   lenf <- length(peakfiles)
   rams <- find_free_mem() / 1024
   n_pcs <- detect_cores(64L) - 1L
-  n_cores <- max(min(n_pcs, ceiling(rams / if (is_pasef) 30 else 5), lenf), 1L) # 20 -> 30
+  n_cores <- max(min(n_pcs, ceiling(rams / if (is_pasef) 30 else 5), lenf), 1L)
   n_para  <- max(min(n_pcs, round(n_pcs / n_cores)), 1L)
   
   if (is_pasef) {
@@ -138,7 +138,9 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
       warning("Coerce to `n_mdda_flanks = 0` for PASEF data.")
     }
     
-    multi_pasef <- lenf > n_cores
+    file_indexes <- seq_along(peakfiles)
+    multi_pasef  <- lenf > n_cores
+    # n_para <- 1L
     
     if (multi_pasef) {
       pasef_n_secs <- ceiling(lenf / n_cores) # lenf2 <- ceiling(lenf / n_cores) * n_cores
@@ -158,9 +160,9 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
     #   pasef_n_paras <-  floor(min(n_pcs, 25L) / pasef_n_cores)
     # }
   }
-  else {
-    file_indexes = seq_along(peakfiles)
-    multi_pasef <- FALSE
+  else { # Thermo's
+    file_indexes <- seq_along(peakfiles)
+    multi_pasef  <- FALSE
   }
   
   if (isTRUE(is_dia)) {
@@ -404,7 +406,6 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
           ), SIMPLIFY = FALSE, USE.NAMES = FALSE)
       }
       else {
-        # if (is_pasef) { n_para <- max(floor(min(n_para, 16L) / n_cores), 1L) }
         cl <- parallel::makeCluster(
           getOption("cl.cores", n_cores), 
           outfile = file.path(mgf_path, "temp_dir", "log.txt"))
@@ -450,7 +451,11 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
   }
 
   message("Completed deisotoping at: ", Sys.time())
+  # NULL raws (e.g., bad data witout MS2) removed
   raws <- unlist(raws, recursive = FALSE, use.names = TRUE)
+  if (!length(raws)) {
+    stop("All RAW files are without MS2.")
+  }
   qs::qsave(raws, file.path(mgf_path, "raw_indexes.rds"), preset = "fast")
   
   type_acqu <- if (isTRUE(is_dia)) "dia" else "dda"
@@ -1222,6 +1227,11 @@ hdeisoDDA <- function (filename, raw_id = 1L,
     y_perc = y_perc,
     yco = yco)
   
+  # e.g., bad data without MS2
+  if (is.null(df)) {
+    return(NULL)
+  }
+  
   # subsets by top-n and min_ms2mass
   # (also convert non reporter-ion MS2 intensities to integers)
   mz_n_int <- sub_mgftopn(ms2_moverzs = df[["ms2_moverzs"]], 
@@ -1323,31 +1333,32 @@ deisoDDA <- function (filename = NULL,
     df <- qs::qread(file.path(temp_dir, paste0("predeisoDDA_", filename)))
   }
   
+  # e.g., bad data without MS2
+  if (is.null(df)) {
+    return(df)
+  }
+  
   ## LFQ: replaces intensities with apex values
   # No MS1 info at maxn_mdda_precurs == 0L
   if (use_lfq_intensity && maxn_mdda_precurs) {
     path_ms1 <- create_dir(file.path(out_path, "ms1data")) # for MBR in proteoQ
     
-    qs::qsave(df[with(df, ms_level == 1L), 
-                 c("ret_time", "scan_num", "orig_scan", "msx_moverzs", "msx_ints")], 
-              file.path(path_ms1, paste0("ms1full_", filename)), preset = "fast")
+    qs::qsave(
+      df[with(df, ms_level == 1L), 
+         c("ret_time", "scan_num", "orig_scan", "msx_moverzs", "msx_ints")], 
+      file.path(path_ms1, paste0("ms1full_", filename)), preset = "fast")
 
-    df <- get_ms1xs_space(df)
-    
-    if (FALSE) {
-      qs::qsave(df[with(df, ms_level == 1L), 
-                   c("ret_time", "scan_num", "orig_scan", "ms1_moverz", "ms1_int", 
-                     "ms1_charge")], 
-                file.path(path_ms1, paste0("ms1subspace_", filename)), 
-                preset = "fast")
-    }
-
+    df     <- get_ms1xs_space(df)
     step   <- ppm_ms1trace * 1e-6
     rows1  <- which(df$ms_level == 1L)
     rt_gap <- estimate_rtgap(df$ret_time[rows1])
 
     # Set aside MS2 scans before the first MS1 (more likely with timsTOF)
-    dfx <- if (row1  <- rows1[[1]] - 1L) df[1:row1, ] else NULL
+    # dfx <- if (row1  <- rows1[[1]] - 1L) df[1:row1, ] else NULL
+    if (row1  <- rows1[[1]] - 1L) {
+      df <- df[-seq_len(row1), ]
+    }
+
     rm(list = c("rows1", "row1"))
     
     if (TRUE) {
@@ -1358,6 +1369,7 @@ deisoDDA <- function (filename = NULL,
         # 1024L: more RAM, same speed
         n_chunks = ceiling(sum(df$ms_level == 1L) / 512L), 
         gap = rt_gap)
+      # qs::qsave(ans_prep, file.path(path_ms1, paste0("msxspace_", filename)), preset = "fast")
     }
     else {
       ans_prep <- qs::qread(file.path(path_ms1, paste0("msxspace_", filename)))
@@ -1369,34 +1381,34 @@ deisoDDA <- function (filename = NULL,
     lenv <- length(df1s)
     gaps_bf <- ans_prep$gaps_bf <- c(0L, gaps[1:(lenv - 1L)])
     gaps_af <- ans_prep$gaps_af <- c(gaps[2:lenv], 0L)
-    
-    if (FALSE) {
-      qs::qsave(ans_prep, file.path(path_ms1, paste0("msxspace_", filename)), 
-                preset = "fast")
-    }
     rm(list = c("ans_prep", "rt_gap"))
 
-    cols <- c("ms_level", "ms1_moverz", "ms1_int", "orig_scan") # orig_scan for troubleshooting
-    min_y <- if (is_pasef) 500 else 2e6
-
+    fn_traces <- gsub("\\.rds$", "", filename)
+    fn_traces <- paste0("ms1apexes_", fn_traces, "_", seq_along(dfs), ".rds")
+    cols    <- c("ms_level", "ms1_moverz", "ms1_int", "orig_scan")
+    min_y   <- if (is_pasef) 500 else 2e6
+    
     if (TRUE) {
       cl <- parallel::makeCluster(getOption("cl.cores", 2L))
       out <- parallel::clusterMap(
         cl, htraceXY, 
-        lapply(df1s, `[[`, "msx_moverzs"), 
-        lapply(df1s, `[[`, "msx_ints"), 
-        lapply(df1s, `[[`, "orig_scan"), 
-        lapply(df1s, `[[`, "ret_time"), 
-        lapply(dfs, `[`, cols), 
-        gaps_bf, 
-        gaps_af, 
+        xs = lapply(df1s, `[[`, "msx_moverzs"), 
+        ys = lapply(df1s, `[[`, "msx_ints"), 
+        ss = lapply(df1s, `[[`, "orig_scan"), 
+        ts = lapply(df1s, `[[`, "ret_time"), 
+        df = lapply(dfs, `[`, cols), 
+        gap_bf = gaps_bf, 
+        gap_af = gaps_af, 
+        out_name = fn_traces, 
         MoreArgs = list(
           n_dia_scans = n_dia_scans, from = min_mass, step = step, 
-          y_perc = y_perc, yco = yco, look_back = TRUE, min_y = min_y
+          y_perc = y_perc, yco = yco, look_back = TRUE, min_y = min_y, 
+          path_ms1 = path_ms1
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
       parallel::stopCluster(cl)
+      out <- dplyr::bind_rows(out)
     }
-    else {
+    else if (FALSE) {
       vxs <- lapply(df1s, `[[`, "msx_moverzs")
       vys <- lapply(df1s, `[[`, "msx_ints")
       vss <- lapply(df1s, `[[`, "orig_scan") # for troubleshooting
@@ -1408,9 +1420,10 @@ deisoDDA <- function (filename = NULL,
         out[[i]] <- htraceXY(
           xs = vxs[[i]], ys = vys[[i]], ss = vss[[i]], ts = vts[[i]], 
           df = vdf[[i]], gap_bf = gaps_bf[[i]], gap_af = gaps_af[[i]], 
-          n_dia_scans = n_dia_scans, from = min_mass, step = step, 
-          y_perc = y_perc, yco = yco, look_back = TRUE, min_y = min_y)
-        
+          out_name = fn_traces[[i]], n_dia_scans = n_dia_scans, 
+          from = min_mass, step = step, y_perc = y_perc, yco = yco, 
+          look_back = TRUE, min_y = min_y, path_ms1 = path_ms1)
+
         if (FALSE) {
           if (all(lengths(vxs[[i]]) == 0L)) {
             li <- length(vxs[[i]]) - gaps_bf[[i]] - gaps_af[[i]] + 1L
@@ -1427,24 +1440,33 @@ deisoDDA <- function (filename = NULL,
               gap_bf <- gaps_bf[[i]], gap_af = gaps_af[[i]], 
               # may be > n_mdda_flanks
               n_dia_scans = n_dia_scans, from = min_mass, step = step, 
-              y_perc = y_perc, yco = yco)
+              y_perc = y_perc, yco = yco, path_ms1 = path_ms1, 
+              out_name = fn_traces)
           }
         }
       }
       rm(list = c("vxs", "vys", "vdf", "gaps", "lenv"))
+      
+      out <- dplyr::bind_rows(out)
     }
 
-    out <- dplyr::bind_rows(out)
-    
-    if (!is.null(dfx)) {
-      out <- dplyr::bind_rows(dfx[, cols], out)
+    qs::qsave(
+      out[, c("ms_level", "orig_scan", "apexs_all", "apex_xs", "apex_ys", 
+              "rts_all", "apex_bin")] |> 
+        dplyr::filter(ms_level > 1L), 
+      file.path(path_ms1, paste0("ms1apexes_", filename)), preset = "fast")
+
+    if (FALSE) {
+      if (!is.null(dfx)) {
+        out <- dplyr::bind_rows(dfx[, cols], out) # ???
+      }
     }
-    
+
     if (nrow(df) == nrow(out)) {
       df[, cols] <- out[, cols]
     }
     else {
-      stop("Developer: checks for row dropping.")
+      stop("Developer: checks for row dropping in tracing MS1.")
     }
 
     # is_list <- class(out$apex_scan_num) == "list" # must be
@@ -1510,10 +1532,10 @@ deisoDDA <- function (filename = NULL,
   
   df <- dplyr::filter(df, ret_time >= min_ret_time, ret_time <= max_ret_time)
   
-  if (maxn_mdda_precurs >= 0L) { # was 1
+  if (maxn_mdda_precurs >= 0L) {
     bads <- lapply(df$ms1_mass, function (x) length(x) == 1L && is.na(x))
     bads <- unlist(bads)
-    df <- df[!bads, ]
+    df   <- df[!bads, ]
     
     oks <- lapply(df$ms1_mass, function (x) 
       .Internal(which(x >= min_mass & x <= max_mass)))
@@ -1521,16 +1543,16 @@ deisoDDA <- function (filename = NULL,
 
     # better check all MS1 columns with "list" properties...
     # also check all equal: lengths(df$ms1_mass), lengths(apex_scan_num)...
-    df$ms1_mass <- mapply(function (x, y) x[y], df$ms1_mass, oks, 
-                          SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    df$ms1_moverz <- mapply(function (x, y) x[y], df$ms1_moverz, oks, 
-                            SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    df$ms1_charge <- mapply(function (x, y) x[y], df$ms1_charge, oks, 
-                            SIMPLIFY = FALSE, USE.NAMES = FALSE)
-    df$ms1_int <- mapply(function (x, y) x[y], df$ms1_int, oks, 
-                         SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    df$ms1_mass      <- mapply(function (x, y) x[y], df$ms1_mass, oks, 
+                               SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    df$ms1_moverz    <- mapply(function (x, y) x[y], df$ms1_moverz, oks, 
+                               SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    df$ms1_charge    <- mapply(function (x, y) x[y], df$ms1_charge, oks, 
+                               SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    df$ms1_int       <- mapply(function (x, y) x[y], df$ms1_int, oks, 
+                               SIMPLIFY = FALSE, USE.NAMES = FALSE)
     df$apex_scan_num <- mapply(function (x, y) x[y], df$apex_scan_num, oks, 
-                         SIMPLIFY = FALSE, USE.NAMES = FALSE)
+                               SIMPLIFY = FALSE, USE.NAMES = FALSE)
     
     # ms1_mass may again contain numeric(0) following the above filtration
     df <- df[lengths(df$ms1_mass) > 0L, ]
@@ -1741,6 +1763,13 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL,
   if (deisotope_ms2) {
     message("Deisotoping MS2: ", filename)
     oks2 <- ms_level == 2L
+    
+    # Bad samples without MS2
+    if (!any(oks2)) {
+      warning("No MS2 data: ", filename)
+      return(NULL)
+    }
+    
     ans2 <- deisoDDAMS2(
       ms2_moverzs = msx_moverzs[oks2], ms2_ints = msx_ints[oks2], 
       topn_ms2ions = topn_ms2ions, ppm_ms2_deisotope = ppm_ms2_deisotope, 

@@ -12,13 +12,17 @@ htraceXY(
   df,
   gap_bf = 256L,
   gap_af = 256L,
+  out_name = NULL,
   n_dia_scans = 4L,
   from = 200L,
   step = 5e-06,
   y_perc = 0.01,
   yco = 500,
   look_back = TRUE,
-  min_y = 0
+  min_y = 0,
+  path_ms1 = NULL,
+  out_cols = c("ms_level", "ms1_moverz", "ms1_int", "orig_scan", "apex_scan_num",
+    "apex_xs", "apex_ys", "apex_bin", "apexs_all", "rts_all")
 )
 }
 \arguments{
@@ -36,6 +40,8 @@ htraceXY(
 
 \item{gap_af}{A following gap size.}
 
+\item{out_name}{A file name of output.}
+
 \item{n_dia_scans}{Allowance in the number of adjacent MS scans for
 constructing a peak profile and thus for determining the apex scan number
 of an moverz value along LC.}
@@ -51,6 +57,10 @@ of an moverz value along LC.}
 \item{look_back}{Logical; look up the preceding MS bin or not.}
 
 \item{min_y}{The cut-off of intensity values.}
+
+\item{path_ms1}{The path for saving the output of MS1 data.}
+
+\item{out_cols}{The output column keys.}
 }
 \description{
 Helper of \link{traceXY}.

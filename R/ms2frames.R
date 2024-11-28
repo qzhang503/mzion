@@ -47,7 +47,7 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
   mgfs <- dplyr::bind_rows(mgfs)
   notches <- seq_along(ms1_offsets)
   # for cut-offs in the lower bound of ms1_mass
-  n_13c  <- attr(ms1_offsets, "n_13c", exact = TRUE)
+  n_13c <- attr(ms1_offsets, "n_13c", exact = TRUE)
   if (is.null(n_13c)) n_13c <- 0L
   
   # need additional handling of mzML with list(NULL) entries
@@ -274,21 +274,23 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
   }
 
   col_nms  <- names(mgfs)
-  cols2a <- c("ms2_moverzs", "ms2_ints", "ms2_charges")
-  cols2b <- c("rptr_moverzs", "rptr_ints")
+  cols2a   <- c("ms2_moverzs", "ms2_ints", "ms2_charges")
+  cols2b   <- c("rptr_moverzs", "rptr_ints")
   
-  if (!"scan_num" %in% col_nms)
-    stop("Column `scan_num` not found in peaklist. Contact the developer.")
+  if (!"scan_num" %in% col_nms) {
+    stop("Developer: column `scan_num` not found in peaklist.")
+  }
 
   lapply(cols2a, function (x) {
     if (!x %in% col_nms) 
-      stop("Column \"", x, "\" not found. Contact developer.")
+      stop("Developer: column \"", x, "\" not found.")
   })
   
   if (grepl("^tmt.*\\d+", quant)) {
     lapply(cols2b, function (x) {
-      if (!x %in% col_nms) 
-        stop("Column \"", x, "\" not found. Contact developer.")
+      if (!x %in% col_nms) {
+        stop("Developer: column \"", x, "\" not found.")
+      }
     })
     
     cols_ms2 <- c(cols2a, cols2b)
@@ -302,13 +304,14 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
   # cols_ms2 <- cols_ms2[cols_ms2 %in% col_nms]
   data_ms2 <- mgfs[, cols_ms2, drop = FALSE]
   
-  if (!ncol(data_ms2)) 
-    stop("MS2 information not found in peaklist. Contact the developer.")
-  
+  if (!ncol(data_ms2)) {
+    stop("Developer: MS2 information not found in peaklist.")
+  }
+
   mgfs <- mgfs[, -which(names(mgfs) %in% cols_ms2), drop = FALSE]
   
   # separate flat and list columns
-  col_nms <- names(mgfs)
+  col_nms   <- names(mgfs)
   cols_list <- col_nms[unlist(lapply(mgfs, is.list))]
   cols_flat <- col_nms[!col_nms %in% cols_list]
 
@@ -316,8 +319,8 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
   datalist <- mgfs[, cols_list, drop = FALSE]
   
   # additional checks that should not occur
-  xs <- datalist$ms1_moverz
-  ps <- datalist$apex_scan_num
+  xs   <- datalist$ms1_moverz
+  ps   <- datalist$apex_scan_num
   lenx <- lengths(xs)
   lenp <- lengths(ps)
   rows <- which(lenp != lenx)
