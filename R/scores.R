@@ -1701,9 +1701,12 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
   sc_penal <- 0
   
   if (!n_decoys) {
-    if (!is.null(prob_co <- ref_probco)) {
-      names(prob_co) <- count
+    prob_co <- ref_probco
+    if (is.null(prob_co)) {
+      prob_co <- NA_real_
     }
+    names(prob_co) <- count
+    
     return(prob_co)
   }
   
@@ -1722,9 +1725,12 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
       n_decoys <- length(rows_de)
       
       if (!n_decoys) {
-        if (!is.null(prob_co <- ref_probco)) {
-          names(prob_co) <- count
+        prob_co <- ref_probco
+        if (is.null(prob_co)) {
+          prob_co <- NA_real_
         }
+        names(prob_co) <- count
+        
         return(prob_co)
       }
       
@@ -1733,41 +1739,15 @@ probco_bypeplen <- function (len, td, fdr_type = "protein", target_fdr = 0.01,
       td$fdr   <- td$decoy / td$total
     }
     else { # all decoys are within the top-10
-      if (!is.null(prob_co <- ref_probco)) {
-        names(prob_co) <- count
+      prob_co <- ref_probco
+      if (is.null(prob_co)) {
+        prob_co <- NA_real_
       }
+      names(prob_co) <- count
+      
       return(prob_co)
     }
   }
-
-  ## remove the top-3 decoys
-  if (FALSE) {
-    if (n_decoys > 3L) {
-      rowx <- rows_de[1:3]
-      rowx <- rowx[td$pep_prob[rowx] < ref_probco / 10]
-      
-      if (length(rowx)) {
-        td <- td[-rowx, ]
-      }
-    }
-    else {
-      row <- rows_de[length(rows_de)]
-      bad <- td$pep_prob[row] < ref_probco / 10
-      
-      if (length(rowx <- row[bad])) { # all very low pep_prob and use ref_probco
-        if (!is.null(prob_co <- ref_probco)) {
-          names(prob_co) <- count
-        }
-        return(prob_co)
-      }
-      else {
-        prob_co <- max(td$pep_prob[row], ref_probco)
-        names(prob_co) <- count
-        return(prob_co)
-      }
-    }
-  }
-  ##
 
   if (count < (1 / target_fdr)) {
     if (count <= 10L) {
@@ -2311,7 +2291,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
       }
     }
     
-    prob_cos[[i]] <- probco_bypeplen(
+    pr <- probco_bypeplen(
       len = leni, 
       td = td, 
       fdr_type = fdr_type, 
@@ -2322,15 +2302,29 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
       sco_long_len = baseline_sco, 
       ref_probco = ref_probco, 
       out_path = out_path)
+    
+    # prevent entries drop
+    if (!is.null(pr)) {
+      prob_cos[[i]] <- pr
+    }
+  }
+  
+  if (any(bads <- unlist(lapply(prob_cos, is.null)))) {
+    prob_cos[bads] <- NA_real_
   }
   
   prob_cos <- unlist(prob_cos, use.names = TRUE, recursive = FALSE)
   prob_cos[prob_cos <= 10^-20] <- 10^-20
+  n_probs  <- length(prob_cos)
   
-  if (length(prob_cos) == 1L && !is.na(prob_cos)) {
+  if (n_probs != length(all_lens)) {
+    stop("Developer: check for entries drop.")
+  }
+  
+  if (n_probs == 1L && !is.na(prob_cos)) {
     return(data.frame(pep_len = all_lens, pep_prob_co = prob_cos))
   }
-  else if (length(prob_cos) == 1L && is.na(prob_cos)) {
+  else if (n_probs == 1L && is.na(prob_cos)) {
     return(data.frame(pep_len = all_lens, pep_prob_co = target_fdr))
   }
   else if (all(is.na(prob_cos))) {
