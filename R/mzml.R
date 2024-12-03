@@ -95,11 +95,12 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
     peakfiles <- unlist(peakfiles)
   }
   else {
-    peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.d\\.rds$")
-    # peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.raw\\.rds$")
+    # peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.d\\.rds$")
+    peakfiles <- list.files(file.path(mgf_path, "temp_dir"), pattern = "\\.raw\\.rds$")
+    
     peakfiles <- peakfiles[!grepl("^predeisoDDA_", peakfiles)]
     peakfiles <- peakfiles[!grepl("^pasefms1_", peakfiles)]
-    # peakfiles <- peakfiles[grepl("^LFQ_", peakfiles)]
+    
     is_dia    <- FALSE
     mzml_type <- "raw"
   }
@@ -1451,8 +1452,9 @@ deisoDDA <- function (filename = NULL,
     }
 
     qs::qsave(
-      out[, c("ms_level", "orig_scan", "apexs_all", "apex_xs", "apex_ys", 
-              "rts_all", "apex_bin")] |> 
+      out[, c("ms_level", "orig_scan", "apex_ps1", "apex_xs1", "apex_ys1", 
+              "apex_ts1", "apex_bin1", "apex_ps2", "apex_xs2", "apex_ys2", 
+              "apex_ts2", "apex_bin2")] |> 
         dplyr::filter(ms_level > 1L), 
       file.path(path_ms1, paste0("ms1apexes_", filename)), preset = "fast")
 
@@ -2521,6 +2523,8 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
 
   # obtain precursor XYZ values from multiple adjacent MS1 scans
   for (i in 1:len1) {
+    # i <- which(ms2_stas == 89280)
+    # i <- which(ms2_stas == 88763)
     rng1 <- ms1_stas[max(1L, i - n_mdda_flanks):min(len1, i + n_mdda_flanks)]
     rng2 <- ms2_stas[[i]]:ms2_ends[[i]]
 
@@ -4411,9 +4415,9 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
       ix  <- ixs[[i]]
       x   <- xs[[i]]
       y   <- ys[[i]]
-      oks <- .Internal(which(!duplicated(ix)))
       
-      if (length(oks)) {
+      if (any(dups <- duplicated(ix))) {
+        oks      <- .Internal(which(!dups))
         ixs[[i]] <- ix[oks]
         xs[[i]]  <- x[oks]
         ys[[i]]  <- y[oks]
@@ -4476,30 +4480,26 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
     ymat[rows, c2] <- rowSums(ymat[rows, c1:c2, drop = FALSE], na.rm = TRUE)
     # no need since columns traverse from left to right and c1 will be dropped
     # xmat[rows, c1] <- NA_real_ # to prevent value traversing in fwd and bwd looking
-    # ymat[rows, c] <- NA_real_
+    # ymat[rows, c1] <- NA_real_
     
-    if (look_back && i < lenp) {
-      af <- ps[[i+1]][[1]]
-      
-      if ((af == c2 + 1L)) {
-        if (FALSE) { # disadvantageous on Y values
-          xc2   <- xmat[, c2]
-          xaf   <- xmat[, af]
-          rows1 <- is.na(xc2)
-          rows2 <- is.na(xaf)
-          rows  <- .Internal(which(rows1 & !rows2))
-          xmat[rows, c2] <- xaf[rows]
-          # Y values on both rows1 and rows2 will not be collapsed
-          ymat[rows, c2] <- rowSums(ymat[rows, c2:af, drop = FALSE], na.rm = TRUE)
-        }
-        
-        rows2 <- .Internal(which(is.na(xmat[, c2])))
-        xmat[rows2, c2] <- xmat[rows2, af]
-        ymat[rows2, c2] <- rowSums(ymat[rows2, c2:af, drop = FALSE], na.rm = TRUE)
-        # about ok to enable, but may be unnecessary
-        # xmat[rows2, af] <- NA_real_
-        # ymat[rows2, af] <- NA_real_
+    if (look_back && i < lenp && (af <- ps[[i+1]][[1]]) == (c2 + 1L)) {
+      if (FALSE) { # disadvantageous on Y values
+        xc2   <- xmat[, c2]
+        xaf   <- xmat[, af]
+        rows1 <- is.na(xc2)
+        rows2 <- is.na(xaf)
+        rows  <- .Internal(which(rows1 & !rows2))
+        xmat[rows, c2] <- xaf[rows]
+        # Y values on both rows1 and rows2 will not be collapsed
+        ymat[rows, c2] <- rowSums(ymat[rows, c2:af, drop = FALSE], na.rm = TRUE)
       }
+
+      rows2 <- .Internal(which(is.na(xmat[, c2])))
+      xmat[rows2, c2] <- xmat[rows2, af]
+      ymat[rows2, c2] <- rowSums(ymat[rows2, c2:af, drop = FALSE], na.rm = TRUE)
+      # about ok to enable, but may be unnecessary
+      # xmat[rows2, af] <- NA_real_
+      # ymat[rows2, af] <- NA_real_
     }
     
     ps1[[i]] <- c1
@@ -4616,6 +4616,7 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
   
   ## by MS2 entries
   for (i in 1:len2) {
+    # i <- 8L
     m2  <- iso_ctr[[i]]
     lwi <- iso_lwr[[i]]
     upi <- iso_upr[[i]]

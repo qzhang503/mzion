@@ -22,7 +22,8 @@ htraceXY(
   min_y = 0,
   path_ms1 = NULL,
   out_cols = c("ms_level", "ms1_moverz", "ms1_int", "orig_scan", "apex_scan_num",
-    "apex_xs", "apex_ys", "apex_bin", "apexs_all", "rts_all")
+    "apex_xs1", "apex_ys1", "apex_bin1", "apex_ps1", "apex_ts1", "apex_xs2", "apex_ys2",
+    "apex_bin2", "apex_ps2", "apex_ts2")
 )
 }
 \arguments{

@@ -190,8 +190,10 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
                       min_y = 0, path_ms1 = NULL, 
                       out_cols = c("ms_level", "ms1_moverz", "ms1_int", 
                                    "orig_scan", "apex_scan_num", 
-                                   "apex_xs", "apex_ys", "apex_bin", 
-                                   "apexs_all", "rts_all"))
+                                   "apex_xs1", "apex_ys1", "apex_bin1", 
+                                   "apex_ps1", "apex_ts1", 
+                                   "apex_xs2", "apex_ys2", "apex_bin2", 
+                                   "apex_ps2", "apex_ts2"))
 {
   # length(xs) - gap_bf - gap_af - nrow(df) == 0L
   if (all(lengths(xs) == 0L)) {
@@ -205,11 +207,16 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
       orig_scan = df$orig_scan, 
       # orig_scan = null, # don't should be `character` not `list`
       apex_scan_num = null, 
-      apex_xs = null, 
-      apex_ys = null, 
-      rts_all = null, 
-      apexs_all = null, 
-      apex_bin = null)
+      apex_xs1 = null, 
+      apex_ys1 = null, 
+      apex_bin1 = null,
+      apex_ps1 = null, 
+      apex_ts1 = null,
+      apex_xs2 = null, 
+      apex_ys2 = null, 
+      apex_bin2 = null,
+      apex_ps2 = null, 
+      apex_ts2 = null)
     
     return(df[, out_cols])
   }
@@ -284,12 +291,6 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
   attr(df, "step")    <- step
   attr(df, "min_y")   <- min_y
   
-  if (FALSE) {
-    qs::qsave(df[, c("ms_level", "orig_scan", "apexs_all", # "apex_scan_num", 
-                     "rts_all", "apex_bin", "apex_xs", "apex_ys")], 
-              file.path(path_ms1, out_name), preset = "fast")
-  }
-
   df <- df[, out_cols]
 }
 
@@ -476,7 +477,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     if (FALSE) {
       # look for penultimate scan number of psmQ.txt::pep_scan_num
       df$orig_scan[ms1_stas]
-      i <- 325
+      i <- 275; i <- 316
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       ms2rng <- ms2sta:ms2end
@@ -495,7 +496,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     
     # by MS2 spectra
     for (j in 1:nrow(df2)) {
-      # j <- 10L
+      # j <- 8L
       x1s  <- xs2[[j]] # MS1 masses associated with an MS2 scan
       nx   <- length(x1s) # nx > 1 at a chimeric spectrum
       if (!nx) { next }
@@ -526,12 +527,14 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
             apexs_k = scan_apexs[[ka]], rts_k = rt_apexs[[ka]], 
             rngs_k = rngs[[ka]], xm = x1m, scan = scan, ss = ss, 
             step = step, min_y = min_y)
+          # a tentative best
           ap1a <- ans1[["ap"]]
           x1a  <- ans1[["x"]]
           y1a  <- ans1[["y"]]
           fra  <- ans1[["from"]]
           toa  <- ans1[["to"]]
           
+          # all candidates (low-quality entries in scan_apexs[[ka]] removed)
           xsa  <- ans1[["xs"]]
           ysa  <- ans1[["ys"]]
           apsa <- ans1[["aps"]]
@@ -617,6 +620,11 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
               aps <- apsa
               xs  <- xsa
               ys  <- ysa
+              
+              kx  <- kb
+              apx <- apsb
+              xx  <- xsb
+              yx  <- ysb
             }
             else {
               ap1 <- ap1b
@@ -626,6 +634,11 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
               aps <- apsb
               xs  <- xsb
               ys  <- ysb
+              
+              kx  <- ka
+              apx <- apsa
+              xx  <- xsa
+              yx  <- ysa
             }
           }
           else if (a_incl_b) {
@@ -636,6 +649,11 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
             aps <- apsa
             xs  <- xsa
             ys  <- ysa
+            
+            kx  <- kb
+            apx <- apsb
+            xx  <- xsb
+            yx  <- ysb
           }
           else if (b_incl_a) {
             ap1 <- ap1b
@@ -645,6 +663,11 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
             aps <- apsb
             xs  <- xsb
             ys  <- ysb
+            
+            kx  <- ka
+            apx <- apsa
+            xx  <- xsa
+            yx  <- ysa
           }
           else if (FALSE && ds0 * 10 <= ds1) { # 10x closer ds0 <= 100 && 
             if (is_da) {
@@ -655,6 +678,11 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
               aps <- apsa
               xs  <- xsa
               ys  <- ysa
+              
+              kx  <- kb
+              apx <- apsb
+              xx  <- xsb
+              yx  <- ysb
             }
             else {
               ap1 <- ap1b
@@ -664,10 +692,15 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
               aps <- apsb
               xs  <- xsb
               ys  <- ysb
+              
+              kx  <- ka
+              apx <- apsa
+              xx  <- xsa
+              yx  <- ysa
             }
           }
           else {
-            if (y1a > y1b) {
+            if (y1a < y1b) { # was y1a > y1b
               ap1 <- ap1a
               y1  <- y1a
               k0  <- ka
@@ -675,6 +708,11 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
               aps <- apsa
               xs  <- xsa
               ys  <- ysa
+              
+              kx  <- kb
+              apx <- apsb
+              xx  <- xsb
+              yx  <- ysb
             }
             else {
               ap1 <- ap1b
@@ -684,14 +722,22 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
               aps <- apsb
               xs  <- xsb
               ys  <- ysb
+              
+              kx  <- ka
+              apx <- apsa
+              xx  <- xsa
+              yx  <- ysa
             }
           }
           
-          apexs_k0 <- scan_apexs[[k0]]
+          apexs_k0 <- scan_apexs[[k0]] # aps: after clean-ups
           rts_k0   <- rt_apexs[[k0]]
           rngs_k0  <- rngs[[k0]]
           xs_k0    <- matx[, k0]
           ys_k0    <- maty[, k0]
+          
+          apexs_kx <- scan_apexs[[kx]]
+          rts_kx   <- rt_apexs[[kx]]
         }
         else {
           k0 <- k[[1]]
@@ -708,36 +754,55 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
             step = step, min_y = min_y)
           ap1 <- ans1[["ap"]]
           y1  <- ans1[["y"]]
-          
           aps <- ans1[["aps"]]
           xs  <- ans1[["xs"]]
           ys  <- ans1[["ys"]]
+          
+          kx  <- NA_integer_ # an indicator
         }
         
         # scalar
         df2[["apex_scan_num"]][[j]][[m]] <- ap1
         df2[["ms1_int"]][[j]][[m]]       <- y1
-        df2[["apex_bin"]][[j]][[m]]      <- k0
+        df2[["apex_bin1"]][[j]][[m]]     <- k0
         
         # vector
         oks <- .Internal(which(apexs_k0 %fin% aps))
-        df2[["apexs_all"]][[j]][[m]] <- apexs_k0[oks] # aps
-        df2[["rts_all"]][[j]][[m]]   <- rts_k0[oks]
+        df2[["apex_ps1"]][[j]][[m]] <- apexs_k0[oks] # the same as `aps`
+        df2[["apex_ts1"]][[j]][[m]] <- rts_k0[oks]
         
         # list
+        df2[["apex_xs1"]][[j]][[m]]   <- xs
+        df2[["apex_ys1"]][[j]][[m]]   <- ys
         # df2[["rngs_all"]][[j]][[m]]  <- rngs_k0[oks]
-        df2[["apex_xs"]][[j]][[m]]   <- xs # xs_k0
-        df2[["apex_ys"]][[j]][[m]]   <- ys # ys_k0
+        
+        if (!is.na(kx)) {
+          df2[["apex_bin2"]][[j]][[m]] <- kx
+          
+          # vector
+          okx <- .Internal(which(apexs_kx %fin% apx))
+          df2[["apex_ps2"]][[j]][[m]] <- apexs_kx[okx]
+          df2[["apex_ts2"]][[j]][[m]] <- rts_kx[okx]
+          
+          # list
+          df2[["apex_xs2"]][[j]][[m]]   <- xx
+          df2[["apex_ys2"]][[j]][[m]]   <- yx
+        }
       }
     }
     
     df[["apex_scan_num"]][ms2rng] <- df2[["apex_scan_num"]]
     df[["ms1_int"]][ms2rng]       <- df2[["ms1_int"]]
-    df[["apex_bin"]][ms2rng]      <- df2[["apex_bin"]]
-    df[["apexs_all"]][ms2rng]     <- df2[["apexs_all"]]
-    df[["rts_all"]][ms2rng]       <- df2[["rts_all"]]
-    df[["apex_xs"]][ms2rng]       <- df2[["apex_xs"]]
-    df[["apex_ys"]][ms2rng]       <- df2[["apex_ys"]]
+    df[["apex_bin1"]][ms2rng]     <- df2[["apex_bin1"]]
+    df[["apex_ps1"]][ms2rng]      <- df2[["apex_ps1"]]
+    df[["apex_ts1"]][ms2rng]      <- df2[["apex_ts1"]]
+    df[["apex_xs1"]][ms2rng]      <- df2[["apex_xs1"]]
+    df[["apex_ys1"]][ms2rng]      <- df2[["apex_ys1"]]
+    df[["apex_bin2"]][ms2rng]     <- df2[["apex_bin2"]]
+    df[["apex_ps2"]][ms2rng]      <- df2[["apex_ps2"]]
+    df[["apex_ts2"]][ms2rng]      <- df2[["apex_ts2"]]
+    df[["apex_xs2"]][ms2rng]      <- df2[["apex_xs2"]]
+    df[["apex_ys2"]][ms2rng]      <- df2[["apex_ys2"]]
     # df[["rngs_all"]][ms2rng] <- df2[["rngs_all"]]
   }
   
@@ -751,22 +816,30 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
 init_lfq_df <- function (df)
 {
   nr <- nrow(df)
-  df[["apex_scan_num"]] <- df[["apex_bin"]] <- df[["apexs_all"]] <- 
-    df[["rts_all"]] <- df[["apex_xs"]] <- df[["apex_ys"]] <- # df[["rngs_all"]] <- 
+  
+  df[["apex_bin2"]] <- df[["apex_ys2"]] <- df[["apex_xs2"]] <- 
+    df[["apex_ts2"]] <- df[["apex_ps2"]] <- 
+    df[["apex_bin1"]] <- df[["apex_ys1"]] <- df[["apex_xs1"]] <- 
+    df[["apex_ts1"]] <- df[["apex_ps1"]] <- 
+    df[["apex_scan_num"]] <- # df[["rngs_all"]] <- 
     vector("list", nr)
   
   # replicate the lengths by the number of chimeric precursors
-  rows2 <- df$ms_level == 2L
+  rows2 <- which(df$ms_level == 2L)
+  lens2 <- lengths(df$ms1_int[rows2])
   
-  df[["apex_scan_num"]][rows2] <- df[["apex_bin"]][rows2] <- 
-    lapply(lengths(df$ms1_int[rows2]), function (x) rep_len(0L, x))
+  df[["apex_scan_num"]][rows2] <- df[["apex_bin1"]][rows2] <- 
+    df[["apex_bin2"]][rows2] <- lapply(lens2, function (x) rep_len(0L, x))
   
-  df[["apexs_all"]][rows2] <- df[["rts_all"]][rows2] <- 
-    df[["apex_xs"]][rows2] <- df[["apex_ys"]][rows2] <- # df[["rngs_all"]][rows2] <- 
-    lapply(lengths(df$ms1_int[rows2]), function (x) rep_len(list(NULL), x))
-
+  df[["apex_ps1"]][rows2] <- df[["apex_ts1"]][rows2] <- # df[["rngs_all"]][rows2] <- 
+    df[["apex_xs1"]][rows2] <- df[["apex_ys1"]][rows2] <- 
+    df[["apex_ps2"]][rows2] <- df[["apex_ts2"]][rows2] <- 
+    df[["apex_xs2"]][rows2] <- df[["apex_ys2"]][rows2] <- 
+    lapply(lens2, function (x) rep_len(list(NULL), x))
+  
   df
 }
+
 
 #' Find the apex under a mass column
 #'
