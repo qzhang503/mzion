@@ -477,7 +477,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     if (FALSE) {
       # look for penultimate scan number of psmQ.txt::pep_scan_num
       df$orig_scan[ms1_stas]
-      i <- 275; i <- 316
+      i <- 344
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       ms2rng <- ms2sta:ms2end
@@ -496,7 +496,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     
     # by MS2 spectra
     for (j in 1:nrow(df2)) {
-      # j <- 8L
+      # j <- 3L
       x1s  <- xs2[[j]] # MS1 masses associated with an MS2 scan
       nx   <- length(x1s) # nx > 1 at a chimeric spectrum
       if (!nx) { next }
@@ -516,7 +516,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
           kb <- k[[2]]
           
           if (FALSE) {
-            data.frame(x = 1:nrow, y = maty[, ka]) |>
+            data.frame(x = ss[1:nrow], y = maty[, ka]) |>
               ggplot2::ggplot() + 
               ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
                                     color = "gray", linewidth = .1)
@@ -700,7 +700,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
             }
           }
           else {
-            if (y1a < y1b) { # was y1a > y1b
+            if (y1a > y1b) {
               ap1 <- ap1a
               y1  <- y1a
               k0  <- ka
