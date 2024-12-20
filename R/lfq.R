@@ -370,7 +370,9 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
   
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
-      # i <- which(unv == index_mz(627.8159, from, step) + 1)
+      # i <- which(unv == index_mz(387.2083, from, step) + 0)
+      # i = 1094; i = 1095
+      # i = 1735
       xi   <- ansx[, i]
       yi   <- ansy[, i]
       oks  <- .Internal(which(!is.na(yi)))
@@ -385,7 +387,10 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
       # }
       
       if (FALSE) {
-        data.frame(x = ts, y = yi) |>
+        zx <- data.frame(v1 = ansx[, 1094], v2 = ansx[, 1095])
+        zy <- data.frame(v1 = ansy[, 1094], v2 = ansy[, 1095])
+        
+        data.frame(x = ts/60, y = yi) |>
           ggplot2::ggplot() + 
           ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
                                 color = "gray", linewidth = .1)
@@ -451,11 +456,12 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
 #' @param min_y The cut-off of intensity values.
 #' @importFrom fastmatch %fin%
 updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, 
-                           rt_apexs, rngs, from = 200L, step = 5E-6, min_y = 0)
+                           rt_apexs, rngs, from = 200L, step = 6E-6, min_y = 0)
   
 {
   df   <- init_lfq_df(df)
   nrow <- nrow(matx)
+  ncol <- ncol(matx)
   unv  <- as.integer(colnames(matx))
   ss   <- as.integer(rownames(matx))
   
@@ -477,14 +483,14 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     if (FALSE) {
       # look for penultimate scan number of psmQ.txt::pep_scan_num
       df$orig_scan[ms1_stas]
-      i <- 344
+      i <- 177
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       ms2rng <- ms2sta:ms2end
       df2    <- df[ms2rng, ]
     }
-
-    # i = 458; which(rownames(matx) == 78900) - gap -> i
+    
+    # i = 176; which(rownames(matx) == 78900) - gap -> i
     ms2sta <- ms2_stas[[i]]
     if (is.na(ms2sta)) { next }
     ms2end <- ms2_ends[[i]]
@@ -496,13 +502,14 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
     
     # by MS2 spectra
     for (j in 1:nrow(df2)) {
-      # j <- 3L
+      # j <- 5L
       x1s  <- xs2[[j]] # MS1 masses associated with an MS2 scan
       nx   <- length(x1s) # nx > 1 at a chimeric spectrum
       if (!nx) { next }
       ix1s <- index_mz(x1s, from, step)
       ks   <- lapply(ix1s, function (x) which(abs(x - unv) <= 1L))
-      
+      # ks   <- lapply(ix1s, function (x) which(unv - x <= 2L & unv - x >= -1L))
+
       # by chimeric precursors
       for (m in 1:nx) {
         k   <- ks[[m]] # the k-th column(s) in matx
@@ -516,103 +523,163 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
           kb <- k[[2]]
           
           if (FALSE) {
+            zx <- matx[, c(ka, kb)]
+            zy <- maty[, c(ka, kb)]
             data.frame(x = ss[1:nrow], y = maty[, ka]) |>
               ggplot2::ggplot() + 
               ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
                                     color = "gray", linewidth = .1)
           }
           
-          ans1 <- find_apex_scan(
-            k = ka, xs_k = matx[, ka], ys_k = maty[, ka], 
-            apexs_k = scan_apexs[[ka]], rts_k = rt_apexs[[ka]], 
-            rngs_k = rngs[[ka]], xm = x1m, scan = scan, ss = ss, 
-            step = step, min_y = min_y)
-          # a tentative best
-          ap1a <- ans1[["ap"]]
-          x1a  <- ans1[["x"]]
-          y1a  <- ans1[["y"]]
-          fra  <- ans1[["from"]]
-          toa  <- ans1[["to"]]
+          ansg <- mergeAdjGates(
+            xs_ka = matx[, ka], ys_ka = maty[, ka], xs_kb = matx[, kb], 
+            ys_kb = maty[, kb], rngs_ka = rngs[[ka]], rngs_kb = rngs[[kb]], 
+            rts_ka = rt_apexs[[ka]], rts_kb = rt_apexs[[kb]], 
+            scans_ka = scan_apexs[[ka]], scans_kb = scan_apexs[[kb]])
           
-          # all candidates (low-quality entries in scan_apexs[[ka]] removed)
-          xsa  <- ans1[["xs"]]
-          ysa  <- ans1[["ys"]]
-          apsa <- ans1[["aps"]]
+          if (ansg$merged) {
+            matx[, ka] <- ansg$xs_ka
+            maty[, ka] <- ansg$ys_ka
+            matx[, kb] <- ansg$xs_kb
+            maty[, kb] <- ansg$ys_kb
+            rngs[[ka]] <- ansg$rngs_ka
+            rngs[[kb]] <- ansg$rngs_kb
+            rt_apexs[[ka]] <- ansg$rts_ka
+            rt_apexs[[kb]] <- ansg$rts_kb
+            scan_apexs[[ka]] <- ansg$scans_ka
+            scan_apexs[[kb]] <- ansg$scans_kb
+          }
+          
+          n_ka <- length(rngs[[ka]])
+          n_kb <- length(rt_apexs[[kb]])
 
-          ans2 <- find_apex_scan(
-            k = kb, xs_k = matx[, kb], ys_k = maty[, kb], 
-            apexs_k = scan_apexs[[kb]], rts_k = rt_apexs[[kb]], 
-            rngs_k = rngs[[kb]], xm = x1m, scan = scan, ss = ss, 
-            step = step, min_y = min_y)
-          ap1b <- ans2[["ap"]]
-          x1b  <- ans2[["x"]]
-          y1b  <- ans2[["y"]]
-          frb  <- ans2[["from"]]
-          tob  <- ans2[["to"]]
-          
-          xsb  <- ans2[["xs"]]
-          ysb  <- ans2[["ys"]]
-          apsb <- ans2[["aps"]]
-          
-          # (1) by mass errors
-          erra <- abs(x1a / x1m - 1)
-          errb <- abs(x1b / x1m - 1)
-          
-          if (erra < errb) {
-            is_a <- TRUE
-            errx <- errb - erra
-            err0 <- erra
-          }
-          else {
-            is_a <- FALSE
-            errx <- erra - errb
-            err0 <- errb
-          }
-          
-          # (2) by inclusiveness
-          # can also often be discriminated by Y but not always 
-          #  as a large Y may be due to a irregular fat peak
-          
-          # `a` is mostly a subset of `b`
-          if (fra + 2L >= frb && toa <= tob + 2L) {
-            b_incl_a <- TRUE
-          }
-          else {
-            b_incl_a <- FALSE
-          }
-          
-          # `b` is mostly a subset of `a`
-          if (frb + 2L >= fra && tob <= toa + 2L) {
-            a_incl_b <- TRUE
-          }
-          else {
-            a_incl_b <- FALSE
-          }
-
-          # (2.x) by scan number differences
-          if (FALSE) {
-            dsa <- abs(ap1a - scan)
-            dsb <- abs(ap1b - scan)
+          if (n_ka) {
+            ans1 <- find_apex_scan(
+              k = ka, xs_k = matx[, ka], ys_k = maty[, ka], 
+              apexs_k = scan_apexs[[ka]], rts_k = rt_apexs[[ka]], 
+              rngs_k = rngs[[ka]], xm = x1m, scan = scan, ss = ss, 
+              step = step, min_y = min_y)
             
-            if (dsa < dsb) {
-              ds1 <- dsb
-              ds0 <- dsa
-              is_da <- TRUE
+            # (a) a tentative best
+            ap1a <- ans1[["ap"]] 
+            x1a  <- ans1[["x"]]
+            y1a  <- ans1[["y"]]
+            fra  <- ans1[["from"]]
+            toa  <- ans1[["to"]]
+            
+            # (b) all candidates (low-quality entries in scan_apexs[[ka]] removed)
+            xsa  <- ans1[["xs"]]
+            ysa  <- ans1[["ys"]]
+            apsa <- ans1[["aps"]]
+          }
+          
+          if (n_kb) {
+            ans2 <- find_apex_scan(
+              k = kb, xs_k = matx[, kb], ys_k = maty[, kb], 
+              apexs_k = scan_apexs[[kb]], rts_k = rt_apexs[[kb]], 
+              rngs_k = rngs[[kb]], xm = x1m, scan = scan, ss = ss, 
+              step = step, min_y = min_y)
+            ap1b <- ans2[["ap"]]
+            x1b  <- ans2[["x"]]
+            y1b  <- ans2[["y"]]
+            frb  <- ans2[["from"]]
+            tob  <- ans2[["to"]]
+            
+            xsb  <- ans2[["xs"]]
+            ysb  <- ans2[["ys"]]
+            apsb <- ans2[["aps"]]
+          }
+          
+          if (n_ka && n_kb) { # can be empty after the gate merges
+            # (1) by mass errors
+            erra <- abs(x1a / x1m - 1)
+            errb <- abs(x1b / x1m - 1)
+            
+            if (erra < errb) {
+              is_a <- TRUE
+              errx <- errb - erra
+              err0 <- erra
             }
             else {
-              ds1 <- dsa
-              ds0 <- dsb
-              is_da <- FALSE
+              is_a <- FALSE
+              errx <- erra - errb
+              err0 <- errb
             }
-          }
-
-          # (3) if a `scan` is within any of the two peak ranges
-          #     the scan cannot be both `oka` and `okb`
-          # oka <- scan > fra + 1L && scan < toa - 1L
-          # okb <- scan > frb + 1L && scan < tob - 1L
-
-          if (errx > 3e-6) {
-            if (is_a) {
+            
+            # (2) by inclusiveness
+            # can also often be discriminated by Y but not always 
+            #  as a large Y may be due to a irregular fat peak
+            
+            # `a` is mostly a subset of `b`
+            if (fra + 2L >= frb && toa <= tob + 2L) {
+              b_incl_a <- TRUE
+            }
+            else {
+              b_incl_a <- FALSE
+            }
+            
+            # `b` is mostly a subset of `a`
+            if (frb + 2L >= fra && tob <= toa + 2L) {
+              a_incl_b <- TRUE
+            }
+            else {
+              a_incl_b <- FALSE
+            }
+            
+            # (2.x) by scan number differences
+            if (FALSE) {
+              dsa <- abs(ap1a - scan)
+              dsb <- abs(ap1b - scan)
+              
+              if (dsa < dsb) {
+                ds1 <- dsb
+                ds0 <- dsa
+                is_da <- TRUE
+              }
+              else {
+                ds1 <- dsa
+                ds0 <- dsb
+                is_da <- FALSE
+              }
+            }
+            
+            # (3) if a `scan` is within any of the two peak ranges
+            #     the scan cannot be both `oka` and `okb`
+            # oka <- scan > fra + 1L && scan < toa - 1L
+            # okb <- scan > frb + 1L && scan < tob - 1L
+            
+            # large mass error at apex for high intensities (space charge effect)
+            if (errx > 3e-6) { # fine-tune this...
+              if (is_a) {
+                ap1 <- ap1a
+                y1  <- y1a
+                k0  <- ka
+                
+                aps <- apsa
+                xs  <- xsa
+                ys  <- ysa
+                
+                kx  <- kb
+                apx <- apsb
+                xx  <- xsb
+                yx  <- ysb
+              }
+              else {
+                ap1 <- ap1b
+                y1  <- y1b
+                k0  <- kb
+                
+                aps <- apsb
+                xs  <- xsb
+                ys  <- ysb
+                
+                kx  <- ka
+                apx <- apsa
+                xx  <- xsa
+                yx  <- ysa
+              }
+            }
+            else if (a_incl_b) {
               ap1 <- ap1a
               y1  <- y1a
               k0  <- ka
@@ -626,7 +693,7 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
               xx  <- xsb
               yx  <- ysb
             }
-            else {
+            else if (b_incl_a) {
               ap1 <- ap1b
               y1  <- y1b
               k0  <- kb
@@ -640,104 +707,109 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
               xx  <- xsa
               yx  <- ysa
             }
+            else if (FALSE && ds0 * 10 <= ds1) { # 10x closer ds0 <= 100 && 
+              if (is_da) {
+                ap1 <- ap1a
+                y1  <- y1a
+                k0  <- ka
+                
+                aps <- apsa
+                xs  <- xsa
+                ys  <- ysa
+                
+                kx  <- kb
+                apx <- apsb
+                xx  <- xsb
+                yx  <- ysb
+              }
+              else {
+                ap1 <- ap1b
+                y1  <- y1b
+                k0  <- kb
+                
+                aps <- apsb
+                xs  <- xsb
+                ys  <- ysb
+                
+                kx  <- ka
+                apx <- apsa
+                xx  <- xsa
+                yx  <- ysa
+              }
+            }
+            else {
+              if (y1a > y1b) {
+                ap1 <- ap1a
+                y1  <- y1a
+                k0  <- ka
+                
+                aps <- apsa
+                xs  <- xsa
+                ys  <- ysa
+                
+                kx  <- kb
+                apx <- apsb
+                xx  <- xsb
+                yx  <- ysb
+              }
+              else {
+                ap1 <- ap1b
+                y1  <- y1b
+                k0  <- kb
+                
+                aps <- apsb
+                xs  <- xsb
+                ys  <- ysb
+                
+                kx  <- ka
+                apx <- apsa
+                xx  <- xsa
+                yx  <- ysa
+              }
+            }
+            
+            apexs_k0 <- scan_apexs[[k0]] # aps: after clean-ups
+            rts_k0   <- rt_apexs[[k0]]
+            rngs_k0  <- rngs[[k0]]
+            xs_k0    <- matx[, k0]
+            ys_k0    <- maty[, k0]
+            
+            apexs_kx <- scan_apexs[[kx]]
+            rts_kx   <- rt_apexs[[kx]]
           }
-          else if (a_incl_b) {
+          else if (n_ka) {
             ap1 <- ap1a
             y1  <- y1a
-            k0  <- ka
-            
             aps <- apsa
             xs  <- xsa
             ys  <- ysa
+            kx  <- NA_integer_ # an indicator
             
-            kx  <- kb
-            apx <- apsb
-            xx  <- xsb
-            yx  <- ysb
+            k0 <- ka
+            apexs_k0 <- scan_apexs[[k0]]
+            rts_k0   <- rt_apexs[[k0]]
+            # rngs_k0  <- rngs[[k0]]
+            # xs_k0    <- matx[, k0]
+            # ys_k0    <- maty[, k0]
           }
-          else if (b_incl_a) {
+          else if (n_kb) {
             ap1 <- ap1b
             y1  <- y1b
-            k0  <- kb
-            
             aps <- apsb
             xs  <- xsb
             ys  <- ysb
+            kx  <- NA_integer_ # an indicator
             
-            kx  <- ka
-            apx <- apsa
-            xx  <- xsa
-            yx  <- ysa
-          }
-          else if (FALSE && ds0 * 10 <= ds1) { # 10x closer ds0 <= 100 && 
-            if (is_da) {
-              ap1 <- ap1a
-              y1  <- y1a
-              k0  <- ka
-              
-              aps <- apsa
-              xs  <- xsa
-              ys  <- ysa
-              
-              kx  <- kb
-              apx <- apsb
-              xx  <- xsb
-              yx  <- ysb
-            }
-            else {
-              ap1 <- ap1b
-              y1  <- y1b
-              k0  <- kb
-              
-              aps <- apsb
-              xs  <- xsb
-              ys  <- ysb
-              
-              kx  <- ka
-              apx <- apsa
-              xx  <- xsa
-              yx  <- ysa
-            }
+            k0 <- kb
+            apexs_k0 <- scan_apexs[[k0]]
+            rts_k0   <- rt_apexs[[k0]]
+            # rngs_k0  <- rngs[[k0]]
+            # xs_k0    <- matx[, k0]
+            # ys_k0    <- maty[, k0]
           }
           else {
-            if (y1a > y1b) {
-              ap1 <- ap1a
-              y1  <- y1a
-              k0  <- ka
-              
-              aps <- apsa
-              xs  <- xsa
-              ys  <- ysa
-              
-              kx  <- kb
-              apx <- apsb
-              xx  <- xsb
-              yx  <- ysb
-            }
-            else {
-              ap1 <- ap1b
-              y1  <- y1b
-              k0  <- kb
-              
-              aps <- apsb
-              xs  <- xsb
-              ys  <- ysb
-              
-              kx  <- ka
-              apx <- apsa
-              xx  <- xsa
-              yx  <- ysa
-            }
+            next
           }
-          
-          apexs_k0 <- scan_apexs[[k0]] # aps: after clean-ups
-          rts_k0   <- rt_apexs[[k0]]
-          rngs_k0  <- rngs[[k0]]
-          xs_k0    <- matx[, k0]
-          ys_k0    <- maty[, k0]
-          
-          apexs_kx <- scan_apexs[[kx]]
-          rts_kx   <- rt_apexs[[kx]]
         }
         else {
           k0 <- k[[1]]
@@ -747,18 +819,62 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
           xs_k0    <- matx[, k0]
           ys_k0    <- maty[, k0]
           
-          ans1 <- find_apex_scan(
-            k = k0, xs_k = xs_k0, ys_k = ys_k0, 
-            apexs_k = apexs_k0, rts_k = rts_k0, 
-            rngs_k = rngs_k0, xm = x1m, scan = scan, ss = ss, 
-            step = step, min_y = min_y)
-          ap1 <- ans1[["ap"]]
-          y1  <- ans1[["y"]]
-          aps <- ans1[["aps"]]
-          xs  <- ans1[["xs"]]
-          ys  <- ans1[["ys"]]
-          
+          if (n_kb <- length(rts_k0)) {
+            ans1 <- find_apex_scan(
+              k = k0, xs_k = xs_k0, ys_k = ys_k0, 
+              apexs_k = apexs_k0, rts_k = rts_k0, 
+              rngs_k = rngs_k0, xm = x1m, scan = scan, ss = ss, 
+              step = step, min_y = min_y)
+            ap1 <- ans1[["ap"]]
+            y1  <- ans1[["y"]]
+            aps <- ans1[["aps"]]
+            xs  <- ans1[["xs"]]
+            ys  <- ans1[["ys"]]
+          }
+          else {
+            next
+          }
+
           kx  <- NA_integer_ # an indicator
+          
+          ### space charge effect
+          # 1. identify tangent gates
+          # 2. merge to column k0
+          # 3. nullify the corresponding entriess in kb
+          if (FALSE && k0 < ncol) {
+            kb <- k0 + 1L
+            
+            if (step < 1e-5 && unv[[kb]] == unv[[k0]] + 2L) {
+              ma <- mean(matx[, k0], na.rm = TRUE)
+              mb <- mean(matx[, kb], na.rm = TRUE)
+              
+              if (mb / ma - 1 < 1e-5) {
+                ans2 <- find_apex_scan(
+                  k = kb, xs_k = matx[, kb], ys_k = maty[, kb], 
+                  apexs_k = scan_apexs[[kb]], rts_k = rt_apexs[[kb]], 
+                  rngs_k = rngs[[kb]], xm = x1m, scan = scan, ss = ss, 
+                  step = step, min_y = min_y)
+                ap1b <- ans2[["ap"]]
+                x1b  <- ans2[["x"]]
+                y1b  <- ans2[["y"]]
+                frb  <- ans2[["from"]]
+                tob  <- ans2[["to"]]
+                
+                xsb  <- ans2[["xs"]]
+                ysb  <- ans2[["ys"]]
+                apsb <- ans2[["aps"]]
+                
+                ap1 <- ap1b
+                y1  <- y1 + y1b
+                
+                # xsb are less accurate...
+                # aps <- c(aps, apsb) # comment out
+                # xs  <- c(xs, xsb)   # comment out
+                # ys  <- c(ys, ysb)   # comment out
+              }
+            }
+          }
+          ###
         }
         
         # scalar
@@ -865,40 +981,53 @@ find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss,
   rtx  <- rts_k
   rgx  <- rngs_k
   lens <- lengths(rgx)
+  naps <- length(aps)
   
   # (1) first-pass spike removals: in case that a major peak is just out of 
   # the mass tolerance and the spike is within the bound
-  if (length(oks1 <- .Internal(which(lens > 5L)))) {
-    aps  <- aps[oks1]
-    rtx  <- rtx[oks1]
-    rgx  <- rgx[oks1]
-    lens <- lens[oks1]
+  if (noks1 <- length(oks1 <- .Internal(which(lens > 10L)))) { # was 5L
+    if (noks1 < naps) {
+      aps  <- aps[oks1]
+      rtx  <- rtx[oks1]
+      rgx  <- rgx[oks1]
+      lens <- lens[oks1]
+      naps <- noks1
+    }
   }
-  
+
   # (2) subset apexs by MS1 mass tolerance
   if (length(ok_xs  <- .Internal(which(abs(xs_k - xm) / xm <= step)))) {
-    if (length(ok_aps <- .Internal(which(aps %fin% ss[ok_xs])))) {
-      aps  <- aps[ok_aps]
-      rtx  <- rtx[ok_aps]
-      rgx  <- rgx[ok_aps]
-      lens <- lens[ok_aps]
+    if (noks2 <- length(ok_aps <- .Internal(which(aps %fin% ss[ok_xs])))) {
+      if (noks2 < naps) {
+        aps  <- aps[ok_aps]
+        rtx  <- rtx[ok_aps]
+        rgx  <- rgx[ok_aps]
+        lens <- lens[ok_aps]
+        naps <- noks2
+      }
     }
   }
 
   # abs(xs_k[names(xs_k) %in% aps] - xm) / xm
   
   # (3) remove one-hit-wonders and spikes
-  if (length(oks3 <- .Internal(which(lens > 15L)))) { # may also include 20
-    aps  <- aps[oks3]
-    rtx  <- rtx[oks3]
-    rgx  <- rgx[oks3]
-    lens <- lens[oks3]
+  if (noks3 <- length(oks3 <- .Internal(which(lens > 20L)))) { # was 15L
+    if (noks3 < naps) {
+      aps  <- aps[oks3]
+      rtx  <- rtx[oks3]
+      rgx  <- rgx[oks3]
+      lens <- lens[oks3]
+      naps <- noks3
+    }
   }
-  else if (length(oks4 <- .Internal(which(lens > 10L)))) {
-    aps  <- aps[oks4]
-    rtx  <- rtx[oks4]
-    rgx  <- rgx[oks4]
-    lens <- lens[oks4]
+  else if (noks4 <- length(oks4 <- .Internal(which(lens > 15L)))) { # was 10L
+    if (noks4 <- naps) {
+      aps  <- aps[oks4]
+      rtx  <- rtx[oks4]
+      rgx  <- rgx[oks4]
+      lens <- lens[oks4]
+      naps <- noks4
+    }
   }
   
   if (FALSE) {
@@ -918,11 +1047,15 @@ find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss,
   px <- max(1L, p1 - 3L):min(length(ds), p1 + 3L)
   ds <- ds[px]
 
-  # at least one (the most centered) peak is within 2500 scans
-  if (d1 <= 2500) {
-    oks_d <- ds <= 2500
-    px <- px[oks_d]
-    ds <- ds[oks_d]
+  # at least one (the most centered) peak is within 3500 scans
+  # arbitrary and may disable this; or a function of intensity
+  if (d1 <= 3500) { # was 2500 too small; 3500 cause other problems, revisit this...
+    oks_d <- ds <= 3500
+    
+    if (!all(oks_d)) {
+      px <- px[oks_d]
+      ds <- ds[oks_d]
+    }
   }
   
   aps  <- aps[px]
@@ -1008,6 +1141,326 @@ find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss,
     return(list(x = xb, y = yb, ap = apb, from = ssb[[1]], to = ssb[[lenb]], 
                 aps = aps, xs = xs, ys = ys))
   }
+}
+
+
+#' Checks overlaps in start and end positions
+#' 
+#' @param sta_b Scalar; the start index of b.
+#' @param end_b Scalar; the end index of b. Note that \code{end_b >= sta_b}.
+#' @param stas_a Vector; the start indexes of a.
+#' @param ends_a Vector; the end indexes of a.
+#' @param margin The margin for considering being intersecting.
+#' @examples
+#' oks <- mzion:::are_ovlap_ranges(sta_b = 450, end_b = 774, stas_a = c(412, 775, 850), ends_a = c(455, 843, 900), margin = 5)
+#' # stopifnot(identical(oks, c(TRUE, TRUE, FALSE)))
+#' oks <- mzion:::are_ovlap_ranges(sta_b = 470, end_b = 774, stas_a = c(412, 775, 850), ends_a = c(455, 843, 900), margin = 5)
+#' # stopifnot(identical(oks, c(FALSE, TRUE, FALSE)))
+#' oks <- mzion:::are_ovlap_ranges(sta_b = 470, end_b = 600, stas_a = c(412, 775, 850), ends_a = c(455, 843, 900), margin = 5)
+#' # stopifnot(identical(oks, c(FALSE, FALSE, FALSE)))
+#' oks <- mzion:::are_ovlap_ranges(sta_b = 440, end_b = 600, stas_a = c(412, 775, 850), ends_a = c(455, 843, 900), margin = 5)
+#' # stopifnot(identical(oks, c(TRUE, FALSE, FALSE)))
+#' oks <- mzion:::are_ovlap_ranges(sta_b = 440, end_b = 850, stas_a = c(412, 775, 850), ends_a = c(455, 843, 900), margin = 5)
+#' # stopifnot(identical(oks, c(TRUE, TRUE, TRUE)))
+are_ovlap_ranges <- function (sta_b, end_b, stas_a, ends_a, margin = 0L)
+{
+  ok_lwrs <- sta_b < ends_a + margin & end_b > ends_a # b-start intersect with a-end
+  ok_uprs <- sta_b < stas_a & end_b + margin > stas_a # b-end intersect with a-start
+  
+  ok_lwrs | ok_uprs
+}
+
+
+#' Merge adjacent gates between columns ka and kb
+#' 
+#' Allow overlaps.
+#' 
+#' @param xs_ka A vector of X values under column ka.
+#' @param ys_ka A vector of Y values under column ka.
+#' @param xs_kb A vector of X values under column kb.
+#' @param ys_kb A vector of Y values under column kb.
+#' @param rngs_ka A vector of scan range values under column ka.
+#' @param rngs_kb A vector of scan range values under column kb.
+#' @param rts_ka A vector of retention time values under column ka.
+#' @param rts_kb A vector of retention time values under column kb.
+#' @param scans_ka A vector of scan number values under column ka.
+#' @param scans_kb A vector of scan number values under column kb.
+#' @param margin The margin for considering being intersecting.
+mergeAdjGates2 <- function (xs_ka, ys_ka, xs_kb, ys_kb, rngs_ka, rngs_kb, 
+                            rts_ka, rts_kb, scans_ka, scans_kb)
+{
+  if (!(n_ranges <- length(scans_kb))) {
+    return(list(xs_ka = xs_ka, ys_ka = ys_ka, xs_kb = xs_kb, ys_kb = ys_kb, 
+                rngs_ka = rngs_ka, rngs_kb = rngs_kb, rts_ka = rts_ka, 
+                rts_kb = rts_kb, scans_ka = scans_ka, scans_kb = scans_kb, 
+                margin = 0L, merged = FALSE))
+  }
+  
+  ends_ka <- 
+    .Internal(unlist(lapply(rngs_ka, function (x) x[length(x)]), 
+                     recursive = FALSE, use.names = FALSE))
+  stas_ka <- 
+    .Internal(unlist(lapply(rngs_ka, `[[`, 1L), 
+                     recursive = FALSE, use.names = FALSE))
+  stas_kb <- 
+    .Internal(unlist(lapply(rngs_kb, `[[`, 1L), 
+                     recursive = FALSE, use.names = FALSE))
+  ends_kb <- 
+    .Internal(unlist(lapply(rngs_kb, function (x) x[length(x)]), 
+                     recursive = FALSE, use.names = FALSE))
+  
+  psa <- vector("list",    n_ranges)
+  psb <- vector("integer", n_ranges)
+  merged <- FALSE
+  
+  for (i in 1:n_ranges) {
+    sta_bi <- stas_kb[[i]]
+    end_bi <- ends_kb[[i]]
+    ioks_a <- are_ovlap_ranges(sta_b = sta_bi, end_b = end_bi, stas_a = stas_ka, 
+                               ends_a = ends_ka, margin = margin)
+    ioks_a <- which(ioks_a)
+
+    if (!(na <- length(ioks_a))) {
+      next
+    }
+    
+    stas_a <- stas_ka[ioks_a]
+    ends_a <- ends_ka[ioks_a]
+    sta_a1 <- stas_a[[1]]
+    end_a1 <- ends_a[[1]]
+    sta_an <- stas_a[[na]]
+    end_an <- ends_a[[na]]
+    
+    rng_b <- rngs_kb[[i]]
+    ib1 <- rng_b[[1]] 
+    ibn <- rng_b[[length(rng_b)]]
+    yb1 <- ys_kb[[ib1]]
+    
+    iok1 <- ioks_a[[1]]
+    iokn <- ioks_a[[na]]
+    ia1 <- rngs_ka[[iok1]][[1]]
+    tmp <- rngs_ka[[iokn]]
+    ian <- tmp[[length(tmp)]]
+    
+    # does this before updating, the first index of the OK gates
+    rngs_a1 <- unlist(lapply(rngs_ka[ioks_a], `[[`, 1L))
+    rngs_ka[[iokn]] <- rgx <- min(ia1, ib1):max(ian, ibn) 
+    xsa <- xs_ka[rngs_a1]
+    ysa <- ys_ka[rngs_a1]
+    ys_ka[rgx] <- sum(yb1, ysa, na.rm = TRUE)
+    xs_ka[rgx] <- mean(xsa, na.rm = TRUE) # sum(xsa) / na
+    
+    imax <- which.max(c(yb1, ysa))
+    if (imax == 1L) {
+      rts_ka[[iokn]] <- rts_kb[[i]]
+      scans_ka[[iokn]] <- scans_kb[[i]]
+    }
+    else {
+      i_best_a <- ioks_a[[imax - 1L]]
+      rts_ka[[iokn]] <- rts_ka[[i_best_a]]
+      scans_ka[[iokn]] <- scans_ka[[i_best_a]]
+    }
+    
+    psa[[i]] <- if (na > 1L) iok1:(iokn - 1L) else integer()
+    xs_kb[rng_b] <- NA_real_
+    ys_kb[rng_b] <- NA_real_
+    psb[[i]] <- i
+  }
+  
+  if (any(psb)) {
+    rts_kb   <- rts_kb[-psb]
+    scans_kb <- scans_kb[-psb]
+    rngs_kb  <- rngs_kb[-psb]
+    merged <- TRUE
+  }
+  
+  if (length(psa <- unlist(psa))) {
+    rts_ka   <- rts_ka[-psa]
+    scans_ka <- scans_ka[-psa]
+    rngs_ka  <- rngs_ka[-psa]
+    merged <- TRUE
+  }
+  
+  list(xs_ka = xs_ka, ys_ka = ys_ka, xs_kb = xs_kb, ys_kb = ys_kb, 
+       rngs_ka = rngs_ka, rngs_kb = rngs_kb, rts_ka = rts_ka, 
+       rts_kb = rts_kb, scans_ka = scans_ka, scans_kb = scans_kb, 
+       merged = merged)
+}
+
+
+#' Merge adjacent gates between columns ka and kb
+#' 
+#' Exact tangent gates for merging.
+#' 
+#' @param xs_ka A vector of X values under column ka.
+#' @param ys_ka A vector of Y values under column ka.
+#' @param xs_kb A vector of X values under column kb.
+#' @param ys_kb A vector of Y values under column kb.
+#' @param rngs_ka A vector of scan range values under column ka.
+#' @param rngs_kb A vector of scan range values under column kb.
+#' @param rts_ka A vector of retention time values under column ka.
+#' @param rts_kb A vector of retention time values under column kb.
+#' @param scans_ka A vector of scan number values under column ka.
+#' @param scans_kb A vector of scan number values under column kb.
+mergeAdjGates <- function (xs_ka, ys_ka, xs_kb, ys_kb, rngs_ka, rngs_kb, 
+                           rts_ka, rts_kb, scans_ka, scans_kb)
+{
+  if (!(n_ranges <- length(scans_kb))) {
+    return(list(xs_ka = xs_ka, ys_ka = ys_ka, xs_kb = xs_kb, ys_kb = ys_kb, 
+                rngs_ka = rngs_ka, rngs_kb = rngs_kb, rts_ka = rts_ka, 
+                rts_kb = rts_kb, scans_ka = scans_ka, scans_kb = scans_kb, 
+                merged = FALSE))
+  }
+  
+  ends_ka <- 
+    .Internal(unlist(lapply(rngs_ka, function (x) x[length(x)]), 
+                     recursive = FALSE, use.names = FALSE))
+  stas_ka <- 
+    .Internal(unlist(lapply(rngs_ka, `[[`, 1L), 
+                     recursive = FALSE, use.names = FALSE))
+  stas_kb <- 
+    .Internal(unlist(lapply(rngs_kb, `[[`, 1L), 
+                     recursive = FALSE, use.names = FALSE))
+  ends_kb <- 
+    .Internal(unlist(lapply(rngs_kb, function (x) x[length(x)]), 
+                     recursive = FALSE, use.names = FALSE))
+  
+  mt_stas <- match(stas_kb, ends_ka + 1L)
+  mt_ends <- match(ends_kb, stas_ka - 1L)
+  
+  psa <- psb <- vector("integer", n_ranges)
+  merged <- FALSE
+  
+  for (r in 1:n_ranges) {
+    mt_stai <- mt_stas[[r]]
+    mt_endi <- mt_ends[[r]]
+    ok_sta  <- !is.na(mt_stai)
+    ok_end  <- !is.na(mt_endi)
+    
+    if (ok_sta && ok_end) {
+      rng_b <- rngs_kb[[r]]
+      ra_bf <- rngs_ka[[mt_stai]]
+      ra_af <- rngs_ka[[mt_endi]]
+      
+      ib1 <- rng_b[[1]]
+      ia1 <- ra_bf[[1]]
+      ian <- ra_af[[length(ra_af)]]
+      yb1 <- ys_kb[[ib1]]
+      ya1 <- ys_ka[[ia1]]
+      yan <- ys_ka[[ian]]
+      
+      imax <- which.max(c(ya1, yb1, yan))
+      
+      rngs_ka[[mt_endi]] <- rgx <- ia1:ian
+      ys_ka[rgx] <- yb1 + ya1 + yan
+      xs_ka[rgx] <- (xs_ka[[ia1]] + xs_ka[[ian]]) / 2
+      
+      if (imax == 2L) {
+        rts_ka[[mt_endi]] <- rts_kb[[r]]
+        scans_ka[[mt_endi]] <- scans_kb[[r]]
+      }
+      else if (imax == 1L) {
+        rts_ka[[mt_endi]] <- rts_ka[[mt_stai]]
+        scans_ka[[mt_endi]] <- scans_ka[[mt_stai]]
+      }
+      
+      psa[[r]] <- mt_stai
+    }
+    else if (ok_sta) {
+      rng_b <- rngs_kb[[r]]
+      ra_bf <- rngs_ka[[mt_stai]]
+      
+      ib1 <- rng_b[[1]]
+      ibn <- rng_b[[length(rng_b)]]
+      
+      if (mt_stai < length(rngs_ka)) {
+        ra_af <- rngs_ka[[mt_stai + 1L]]
+        ok_af <- ibn < ra_af[[1]]
+      }
+      else {
+        ok_af <- TRUE
+      }
+      
+      if (!ok_af) {
+        next
+      }
+
+      ia1 <- ra_bf[[1]]
+      yb1 <- ys_kb[[ib1]]
+      ya1 <- ys_ka[[ia1]]
+      
+      imax <- which.max(c(ya1, yb1))
+      
+      rngs_ka[[mt_stai]] <- rgx <- ia1:ibn
+      ys_ka[rgx] <- yb1 + ya1
+      xs_ka[rgx] <- xs_ka[[ia1]]
+      
+      if (imax == 2L) {
+        rts_ka[[mt_stai]] <- rts_kb[[r]]
+        scans_ka[[mt_stai]] <- scans_kb[[r]]
+      }
+    }
+    else if (ok_end) {
+      rng_b <- rngs_kb[[r]]
+      ra_af <- rngs_ka[[mt_endi]]
+      
+      ib1 <- rng_b[[1]]
+      ibn <- rng_b[[length(rng_b)]]
+      
+      if (mt_endi > 1L) {
+        ra_bf <- rngs_ka[[mt_endi - 1L]]
+        ok_bf <- ib1 > ra_bf[[length(ra_bf)]]
+      }
+      else {
+        ok_bf <- TRUE
+      }
+      
+      if (!ok_bf) {
+        next
+      }
+
+      ian <- ra_af[[length(ra_af)]]
+      yb1 <- ys_kb[[ib1]]
+      yan <- ys_ka[[ian]]
+      
+      imax <- which.max(c(yb1, yan))
+      
+      rngs_ka[[mt_endi]] <- rgx <- ib1:ian
+      ys_ka[rgx] <- yb1 + yan
+      xs_ka[rgx] <- xs_ka[[ian]]
+      
+      if (imax == 1L) {
+        rts_ka[[mt_endi]] <- rts_kb[[r]]
+        scans_ka[[mt_endi]] <- scans_kb[[r]]
+      }
+    }
+    else {
+      next
+    }
+    
+    xs_kb[rng_b] <- NA_real_
+    ys_kb[rng_b] <- NA_real_
+    psb[[r]] <- r
+  }
+  
+  if (any(psb)) {
+    rts_kb   <- rts_kb[-psb]
+    scans_kb <- scans_kb[-psb]
+    rngs_kb  <- rngs_kb[-psb]
+    merged <- TRUE
+  }
+  
+  if (any(psa)) {
+    rts_ka   <- rts_ka[-psa]
+    scans_ka <- scans_ka[-psa]
+    rngs_ka  <- rngs_ka[-psa]
+    merged <- TRUE
+  }
+  
+  list(xs_ka = xs_ka, ys_ka = ys_ka, xs_kb = xs_kb, ys_kb = ys_kb, 
+       rngs_ka = rngs_ka, rngs_kb = rngs_kb, rts_ka = rts_ka, 
+       rts_kb = rts_kb, scans_ka = scans_ka, scans_kb = scans_kb, 
+       merged = merged)
 }
 
 
@@ -1129,6 +1582,5 @@ getMS1Int <- function (df1, from = 200L, step = 8E-6, set_missing_zero = FALSE)
   
   df1
 }
-
 
 

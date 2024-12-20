@@ -14,7 +14,7 @@ updateMS1Int2(
   rt_apexs,
   rngs,
   from = 200L,
-  step = 5e-06,
+  step = 6e-06,
   min_y = 0
 )
 }

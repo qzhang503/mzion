@@ -34,7 +34,7 @@ deisoDDA(
   fct_iso2 = 3,
   quant = "none",
   use_lfq_intensity = TRUE,
-  ppm_ms1trace = 5L,
+  ppm_ms1trace = 6L,
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
   exclude_reporter_region = FALSE,

@@ -1282,7 +1282,7 @@ deisoDDA <- function (filename = NULL,
                       ppm_ms1_deisotope = 8L, ppm_ms2_deisotope = 8L, 
                       grad_isotope = 1.6, fct_iso2 = 3.0, 
                       quant = "none", 
-                      use_lfq_intensity = TRUE, ppm_ms1trace = 5L, 
+                      use_lfq_intensity = TRUE, ppm_ms1trace = 6L, 
                       tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                       exclude_reporter_region = FALSE, use_defpeaks = FALSE, 
                       is_pasef = FALSE, n_para = 1L, y_perc = .01, yco = 100)
@@ -2516,15 +2516,12 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
   ms2_stas <- pos_levs$ms2_stas
   ms2_ends <- pos_levs$ms2_ends
   len1     <- length(ms1_stas)
-  # rm(list = "pos_levs")
-  
+
   # go from z = min_ms1_charge:max_ms1_charge first,  
   # then if (max_ms1_charge < 6) max_ms1_charge:6
 
   # obtain precursor XYZ values from multiple adjacent MS1 scans
   for (i in 1:len1) {
-    # i <- which(ms2_stas == 89280)
-    # i <- which(ms2_stas == 88763)
     rng1 <- ms1_stas[max(1L, i - n_mdda_flanks):min(len1, i + n_mdda_flanks)]
     rng2 <- ms2_stas[[i]]:ms2_ends[[i]]
 
@@ -2561,8 +2558,6 @@ getMS1xyz <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
     stop("Developer: check for entries dropping.")
   }
 
-  # message("Completed ", fun, " for ", filename)
-  
   list(ms1_moverzs = ms1_moverzs, ms1_masses = ms1_masses, ms1_ints = ms1_ints, 
        ms1_charges = ms1_charges)
 }
@@ -3970,7 +3965,8 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 6L,
 {
   # if (min_n <= 1L) { stop("Choose a value of `min_n` greater one.") }
   # if (n_dia_scans <= 0L) return(.Internal(which(ys > 0))) # should not occur
-  ymax <- max(ys, na.rm = TRUE)
+
+  ymax <- max(ys, na.rm = TRUE) # ys cannot be all NA
   ymin <- find_baseline(ys, ymax)
   ys[ys < ymin] <- NA_real_
   ys <- fill_lc_gaps(ys = ys, n_dia_scans = n_dia_scans, y_rpl = y_rpl)
@@ -4032,7 +4028,7 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 6L,
                               color = "gray", linewidth = .1)
     }
     
-    ### skip "no-left" partial peaks
+    ### skip "no-left" partial peaks; probably due to space-charge effects
     if (TRUE) {
       ysi <- ys[ri]
       ysi <- ysi[!is.na(ysi)]
@@ -4040,7 +4036,7 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 6L,
       # sum(diff(ysi) > 0) / length(ysi) < .3 # not working: local wobbling of ups and downs
       idy <- which.max(ysi)
       nyi <- length(ysi)
-      if (nyi > 200 && idy < 10) { next }
+      if (nyi > 200 && (idy < 10 || idy > nyi * .05)) { next } # nyi > 200 && idy < 10
     }
     ###
 
@@ -4390,7 +4386,7 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   
   # 1. remove duplicated ixs and collapse the Y values under the same ixs
   #    Y values are only for de-isotoping, not for precursor intensities
-  # 2. `sum_y` seems have little effect with Thermo's but necessary with PASEF
+  # 2. `sum_y` seems have little effect with Thermo's but PASEF
   if (sum_y) {
     for (i in seq_along(xs)) {
       ix <- ixs[[i]]
@@ -4412,9 +4408,9 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   }
   else {
     for (i in seq_along(xs)) {
-      ix  <- ixs[[i]]
-      x   <- xs[[i]]
-      y   <- ys[[i]]
+      ix <- ixs[[i]]
+      x  <- xs[[i]]
+      y  <- ys[[i]]
       
       if (any(dups <- duplicated(ix))) {
         oks      <- .Internal(which(!dups))
@@ -4477,10 +4473,10 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
     
     rows <- .Internal(which(!is.na(xmat[, c1])))
     xmat[rows, c2] <- xmat[rows, c1]
-    ymat[rows, c2] <- rowSums(ymat[rows, c1:c2, drop = FALSE], na.rm = TRUE)
+    ymat[rows, c2] <- ymat[rows, c1] # rowSums(ymat[rows, c1:c2, drop = FALSE], na.rm = TRUE)
     # no need since columns traverse from left to right and c1 will be dropped
-    # xmat[rows, c1] <- NA_real_ # to prevent value traversing in fwd and bwd looking
-    # ymat[rows, c1] <- NA_real_
+    xmat[rows, c1] <- NA_real_ # toggle on; to prevent value traversing in fwd and bwd looking
+    ymat[rows, c1] <- NA_real_ # toggle on
     
     if (look_back && i < lenp && (af <- ps[[i+1]][[1]]) == (c2 + 1L)) {
       if (FALSE) { # disadvantageous on Y values
@@ -4496,10 +4492,10 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
 
       rows2 <- .Internal(which(is.na(xmat[, c2])))
       xmat[rows2, c2] <- xmat[rows2, af]
-      ymat[rows2, c2] <- rowSums(ymat[rows2, c2:af, drop = FALSE], na.rm = TRUE)
+      ymat[rows2, c2] <- ymat[rows2, af] # rowSums(ymat[rows2, c2:af, drop = FALSE], na.rm = TRUE)
       # about ok to enable, but may be unnecessary
-      # xmat[rows2, af] <- NA_real_
-      # ymat[rows2, af] <- NA_real_
+      xmat[rows2, af] <- NA_real_ # toggle on
+      ymat[rows2, af] <- NA_real_ # toggle on
     }
     
     ps1[[i]] <- c1
@@ -4513,11 +4509,12 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   ymat <- ymat[, -ps1, drop = FALSE]
   unv  <- unv[-ps1]
   
-  if (FALSE && look_back) {
-    oks  <- colSums(!is.na(xmat)) > 0L
-    xmat <- xmat[, oks]
-    ymat <- ymat[, oks]
-    unv  <- unv[oks]
+  # possible additional all-NA columns by look_back
+  if (look_back && 
+      length(nas <- .Internal(which(colSums(is.na(xmat)) == lenx)))) {
+    xmat <- xmat[, -nas, drop = FALSE]
+    ymat <- ymat[, -nas, drop = FALSE]
+    unv  <- unv[-nas]
   }
   
   list(x = xmat, y = ymat, u = unv)
@@ -4616,7 +4613,6 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
   
   ## by MS2 entries
   for (i in 1:len2) {
-    # i <- 8L
     m2  <- iso_ctr[[i]]
     lwi <- iso_lwr[[i]]
     upi <- iso_upr[[i]]
@@ -4642,7 +4638,7 @@ find_mdda_mms1s <- function (msx_moverzs = NULL, msx_ints = NULL,
     # 3. collapse MS1s for de-isotoping
     ans <- calc_ms1xys(xys[["x"]], xys[["y"]])
     ax  <- ans[["x"]]
-    if (is.null(ax)) next
+    if (is.null(ax)) { next }
     ay <- ans[["y"]]
     an <- ans[["n"]]
     

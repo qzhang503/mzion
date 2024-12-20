@@ -1,7 +1,7 @@
 Package: mzion
 Type: Package
 Title: Proteomics Database Searches of Mass-spectrometrirc Data.
-Version: 1.4.4.5
+Version: 1.4.4.6
 Authors@R: 
     person(given = "Qiang",
            family = "Zhang",
