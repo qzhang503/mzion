@@ -1452,9 +1452,8 @@ deisoDDA <- function (filename = NULL,
     }
 
     qs::qsave(
-      out[, c("ms_level", "orig_scan", "apex_ps1", "apex_xs1", "apex_ys1", 
-              "apex_ts1", "apex_bin1", "apex_ps2", "apex_xs2", "apex_ys2", 
-              "apex_ts2", "apex_bin2")] |> 
+      out[, c("ms_level", "orig_scan", "apex_ps", "apex_xs", "apex_ys", 
+              "apex_ts")] |> 
         dplyr::filter(ms_level > 1L), 
       file.path(path_ms1, paste0("ms1apexes_", filename)), preset = "fast")
 
@@ -3596,12 +3595,15 @@ find_gates <- function (vals)
 #'   values without neighbors are excluded.
 find_gate_edges <- function (vals)
 {
-  if (length(vals) <= 1L) {
+  nvs <- length(vals)
+  
+  if (nvs <= 1L) {
     return(NULL)
   }
 
-  vec  <- diff(vals, 1L) == 1L
-  lenv <- length(vec)
+  dvs  <- diff(vals, 1L)
+  vec  <- dvs == 1L
+  lenv <- nvs - 1L
   
   if (vec[lenv]) {
     vec  <- c(vec, FALSE)
@@ -3634,6 +3636,101 @@ find_gate_edges <- function (vals)
   }
 
   list(ups = ups, dns = dns)
+}
+
+
+#' Helper to find the positions of signal edges
+#'
+#' Results includes discrete values (one-hit-wonders).
+#'
+#' @param vals A vector of integers or logical values.
+#' @examples
+#' find_gate_edges2(c(1:3, 5:7, 10, 14:16))
+#' find_gate_edges2(c(3, 5)); find_gate_edges2(c(3, 5:6, 8))
+#' find_gate_edges2(2:5)
+#' find_gate_edges2(c(2:3, 5:6, 8:9))
+#' find_gate_edges2(c(3:5, 7, 12:14, 18))
+#' vals <- c(3, 5)
+#' vals <- c(3:5, 7:10, 12:14); vals <- c(vals, 18)
+#' vals <- c(3:5, 7, 9)
+#' vals <- c(3, 5:7, 10:11, 13)
+#' vals <- c(3, 5, 7, 8, 10, 12:13)
+#' 
+#' @return The indexes of ups and downs along \code{vals}. Indexes of discrete
+#'   values are also included.
+find_gate_edges2 <- function (vals)
+{
+  nvs <- length(vals)
+  if (!nvs) { return(list(ups = NULL, dns = NULL, ohw = NULL)) }
+  if (nvs == 1L) { return(list(ups = 1L, dns = 1L, ohw = NULL)) }
+  
+  dvs  <- diff(vals, 1L)
+  lenv <- nvs - 1L
+  oks  <- dvs > 1L
+  ioks <- .Internal(which(oks))
+  noks <- length(ioks)
+  
+  # all consecutive; vals <- c(2:5)
+  if (!noks) { return(list(ups = 1L, dns = nvs, ohw = NULL)) }
+  
+  ix  <- ioks + 1L
+  ixn <- ix[[noks]]
+  
+  if (ixn == nvs) { # the last is discrete (ohw)
+    # okx <- .Internal(which(dvs[ix[-noks]] > 1L)) # okx is one shorter than ix
+    # iohs <- c(ix[okx], ixn)
+    okx <- dvs[ix] > 1L # the last entry out of bound -> okx: c(TRUE, FALSE, NA)
+    okx[[noks]] <- TRUE # NA -> TRUE
+    iohs <- ix[okx]
+  }
+  else {
+    okx  <- dvs[ix] > 1L # can be all FALSE: vals <- c(2:3, 5:6, 8:9)
+    iohs <- ioks[okx] + 1L
+    
+    if (!length(iohs)) {
+      iohs <- NULL
+    }
+  }
+  
+  if (ioks[[1]] == 1L) { # the first is ohw
+    iohs <- c(1L, iohs)
+  }
+  
+  ## this point on: essentially the same in `find_gate_edges`
+  vec <- dvs == 1L
+  
+  if (vec[lenv]) {
+    vec  <- c(vec, FALSE)
+    lenv <- lenv + 1L
+  }
+  
+  # all discrete
+  if (!any(vec)) {
+    # return(NULL)
+    return(list(ups = NULL, dns = NULL, ohw = iohs))
+  }
+  
+  ds   <- diff(vec)
+  ups  <- which(ds == 1L) + 1L
+  dns  <- which(ds == -1L) + 1L
+  lenu <- length(ups)
+  lend <- length(dns)
+  
+  if (lenu == lend) {
+    if (ups[[1]] > dns[[1]]) {
+      ups <- c(1L, ups)
+      dns <- c(dns, lend)
+    }
+  }
+  else if (lenu < lend) {
+    ups <- c(1L, ups)
+  }
+  # should not occur with ensured trailing FALSE
+  else if (lenu > lend) {
+    dns <- c(dns, ups[lenu])
+  }
+  
+  list(ups = ups, dns = dns, ohw = iohs)
 }
 
 
@@ -3945,22 +4042,76 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #' @param min_n The minimum number of points across a peak for consideration.
 #' @param max_n The maximum number of points across a peak for consideration.
 #' @examples
-#' mzion:::find_lc_gates(xs = rep_len(100, 15), ys = c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), ts = seq_len(15), n_dia_scans = 2)
-#' mzion:::find_lc_gates(xs = rep_len(100, 18), ys = c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50), ts = seq_len(18))
-#' mzion:::find_lc_gates(xs = rep_len(100, 21), ys = c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50), ts = seq_len(21))
+#' mzion:::find_lc_gates(ys = c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), xs = rep_len(100, 15), ts = seq_len(15), n_dia_scans = 2)
+#' mzion:::find_lc_gates(ys = c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50), xs = rep_len(100, 18), ts = seq_len(18))
+#' mzion:::find_lc_gates(ys = c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 4), 20, 50), xs = rep_len(100, 21), ts = seq_len(21))
 #'
 #' # all discrete
-#' mzion:::find_lc_gates(xs = rep_len(100, 18), ys = c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50), ts = seq_len(18))
+#' mzion:::find_lc_gates(ys = c(rep(0, 5), 100, rep(0, 6), 200, rep(0, 4), 50), xs = rep_len(100, 18), ts = seq_len(18))
 #' 
 #' # two passes
 #' ys <- c(rep_len(0, 10), rep_len(100, 50), rep_len(0, 10), rep_len(100, 50), rep_len(3, 5), rep_len(50, 80), rep_len(0, 10))
 #' xs <- rep(5, length(ys))
 #' ts <- seq_along(ys)
-#' mzion:::find_lc_gates(xs, ys, ts)
+#' mzion:::find_lc_gates(ys = ys, xs = xs, ts = ts)
+#' 
+#' # a tail gate on one end (right end) has Y values greater the valley between the first two "real" peaks
+#' ys <- c(rep_len(NA_real_,15),196358.0,rep_len(NA_real_,4),72939.6,rep_len(NA_real_,2),
+#'   200039.5,198492.1,251862.1,230444.3,87445.9,492812.3,331446.7,361864.8,475956.8,599853.3,
+#'   964008.5,1023564.2,1388958.9,1629472.4,1475251.1,2075193.1,2352548.2,2846973.2,4058301.8,3947633.8,5008576.0,
+#'   5398789.0,6200687.0,7283479.0,6824848.0,7587668.0,10106542.0,11173275.0,11035185.0,12388256.0,16368471.0,13374066.0,
+#'   13641590.0,14868098.0,15204119.0,16079883.0,18423862.0,18902162.0,18423320.0,20154212.0,18065664.0,17772998.0,18746912.0,
+#'   20148930.0,17781916.0,20552498.0,18365672.0,15672191.0,14854731.0,15693521.0,13779323.0,16107755.0,15195194.0,12831090.0,
+#'   14584699.0,13121290.0,12413923.0,11027703.0,10901884.0,13319185.0,10706831.0,8747522.0,10857365.0,8368990.0,8653836.0,
+#'   9097412.0,9122940.0,7533711.5,8070598.0,5867927.0,7320747.5,7169463.0,5733574.5,6551820.0,6305446.5,5464279.0,
+#'   5223931.5,6137411.5,5216691.5,4426827.0,4302836.5,4035890.2,3729244.5,4129466.5,3168772.0,4331294.0,4424808.5,
+#'   3833815.2,3709572.2,3032854.5,3455906.0,2951570.2,2819246.2,2591228.0,3529138.0,2646039.5,2864500.8,3268786.8,
+#'   2451983.5,2314034.5,3149912.0,3287747.5,2938702.5,2763761.5,1903592.5,2861269.5,2467254.8,1946265.2,2613601.8,
+#'   2208809.8,2101898.2,2171315.8,2446137.8,1964351.9,2023059.0,2979205.8,2976068.0,3081084.0,2944902.0,3687758.5,
+#'   3594447.2,3483423.2,5176589.5,4857718.5,6138461.0,6738957.5,6161186.0,6903845.5,8240505.5,8328314.0,9211307.0,
+#'   10451003.0,12589421.0,11609010.0,14125617.0,13773539.0,14815689.0,18450236.0,15245151.0,17122230.0,17680004.0,16380083.0,
+#'   19416518.0,22584712.0,20886734.0,20594192.0,20921544.0,19620582.0,19714208.0,21572454.0,22365472.0,21324292.0,20963878.0,
+#'   21934052.0,21021322.0,21450586.0,18756072.0,18683146.0,17521552.0,14446918.0,16657946.0,14589204.0,14723747.0,14555312.0,
+#'   13498088.0,13474049.0,12276403.0,14057293.0,11991678.0,11141724.0,10432426.0,11457503.0,9032645.0,9328507.0,8703553.0,
+#'   8696164.0,8235523.5,7634871.0,7186748.0,6313092.0,7423992.0,5722295.0,6303344.0,4935099.0,5156393.0,4614185.0,
+#'   5217295.0,4403636.0,5018784.5,6287227.0,3746022.2,3344260.2,3794109.0,3256452.8,3016607.0,2951111.0,3258742.2,
+#'   3226547.8,3049823.5,2950860.0,2663367.0,3134546.2,4605861.0,2545474.5,2621648.0,2636332.5,2311735.0,2633117.8,
+#'   2127756.8,1885285.1,2323312.2,2767798.5,1994432.6,1745769.6,2981810.8,1478732.9,2110425.8,1489411.2,1631056.1,
+#'   1818856.6,2130620.2,1759935.5,1224843.9,1711871.8,1441695.5,1556760.6,1915420.8,1760751.4,1566991.6,1577649.4,
+#'   1843721.1,1457992.1,1948946.2,1435371.4,1499531.4,1370897.2,1157172.9,1998821.9,751608.8,1163820.2,1285921.9,
+#'   1259784.9,984264.4,1167820.6,1032068.7,1146866.4,1104102.2,1045812.1,921146.6,1294800.5,1257817.6,1184590.6,
+#'   1247893.4,1093933.8,573998.8,851412.1,1047905.9,1096414.8,1652794.8,1345635.9,806337.9,1378611.4,2103232.2,
+#'   1747740.4,1875224.8,1178567.4,1043248.6,1302969.1,1364105.5,1417062.9,3013454.5,1512214.8,1474206.9,2211758.0,
+#'   1434366.6,2015054.1,3293890.2,2786769.0,2825213.2,2017830.1,1835824.5,3046673.2,2046926.4,2337327.8,3682744.5)
+#' 
+#' ts <- c(2084.422,2084.803,2085.038,2085.634,2085.905,2086.525,2087.121,2087.500,2087.806,2088.077,2088.480,2088.858,2089.236,2089.650,
+#'   2089.885,2090.156,2090.561,2091.013,2091.465,2091.699,2092.152,2092.457,2092.837,2093.180,2093.602,2094.092,2094.547,2094.783,
+#'   2095.341,2095.941,2096.177,2096.484,2096.828,2097.428,2097.809,2098.045,2098.318,2098.698,2099.188,2099.641,2100.059,2100.442,
+#'   2100.679,2101.207,2101.444,2101.717,2102.097,2102.551,2102.788,2103.314,2103.551,2103.932,2104.277,2104.513,2104.969,2105.348,
+#'   2105.695,2106.111,2106.420,2106.763,2107.108,2107.622,2107.965,2108.200,2108.689,2109.034,2109.377,2109.902,2110.502,2110.701,
+#'   2111.008,2111.497,2111.805,2112.221,2112.458,2112.838,2113.432,2113.669,2114.193,2114.538,2115.123,2115.616,2116.031,2116.376,
+#'   2116.683,2117.208,2117.515,2117.966,2118.310,2118.607,2119.099,2119.443,2119.752,2120.131,2120.512,2121.001,2121.237,2121.618,
+#'   2121.854,2122.126,2122.362,2122.815,2123.268,2123.651,2124.102,2124.590,2124.973,2125.352,2125.802,2126.037,2126.458,2127.021,
+#'   2127.471,2127.960,2128.523,2128.903,2129.282,2129.518,2130.006,2130.352,2130.720,2131.100,2131.481,2131.826,2132.425,2133.020,
+#'   2133.510,2134.110,2134.418,2134.799,2135.033,2135.378,2135.613,2136.028,2136.519,2136.898,2137.205,2137.513,2137.928,2138.238,
+#'   2138.571,2138.805,2139.284,2139.592,2139.924,2140.400,2140.889,2141.199,2141.641,2141.912,2142.219,2142.660,2143.038,2143.273,
+#'   2143.692,2144.071,2144.305,2144.900,2145.317,2145.661,2146.115,2146.640,2147.055,2147.361,2147.779,2148.122,2148.611,2148.845,
+#'   2149.334,2149.898,2150.133,2150.478,2150.821,2151.201,2151.763,2152.148,2152.564,2152.909,2153.144,2153.743,2154.159,2154.652,
+#'   2155.070,2155.380,2155.687,2156.068,2156.304,2156.721,2157.175,2157.413,2157.902,2158.138,2158.736,2159.044,2159.423,2159.985,
+#'   2160.222,2160.711,2161.200,2161.436,2161.780,2162.305,2162.902,2163.137,2163.737,2164.262,2164.679,2165.279,2165.804,2166.330,
+#'   2166.819,2167.055,2167.654,2168.253,2168.634,2169.015,2169.251,2169.777,2170.302,2170.537,2171.027,2171.626,2171.969,2172.492,
+#'   2172.835,2173.071,2173.306,2173.614,2174.066,2174.554,2174.970,2175.565,2176.158,2176.645,2176.987,2177.222,2177.817,2178.050,
+#'   2178.571,2178.877,2179.184,2179.550,2179.891,2180.327,2180.671,2181.050,2181.319,2181.607,2182.046,2182.280,2182.549,2182.961,
+#'   2183.193,2183.426,2183.659,2184.072,2184.486,2184.862,2185.202,2185.545,2185.922,2186.227,2186.569,2186.874,2187.181,2187.486,
+#'   2187.791,2188.023,2188.364,2188.742,2189.339,2189.536,2189.950,2190.183,2190.524,2190.867,2191.235,2191.611,2191.954,2192.259,
+#'   2192.636,2193.014,2193.246,2193.586,2194.000,2194.233,2194.465,2194.878,2195.255,2195.741,2195.973,2196.460,2196.909,2197.467,
+#'   2197.700,2198.225,2198.819,2199.268,2199.681,2200.023,2200.255,2200.815,2201.340,2201.935,2202.530,2203.125,2203.722,2203.955)
+#' 
+#' mzion:::find_lc_gates(ys = ys, ts = ts)
 #' @importFrom fastmatch %fin%
 #' @return Scan indexes of LC peaks.
-find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 6L, 
-                           y_rpl = 2.0, step = 5e-6, max_perc = .05, min_n = 5L, 
+find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L, 
+                           step = 5e-6, y_rpl = 2.0, max_perc = .05, min_n = 5L, 
                            max_n = 200L)
 {
   # if (min_n <= 1L) { stop("Choose a value of `min_n` greater one.") }
@@ -4028,17 +4179,9 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 6L,
                               color = "gray", linewidth = .1)
     }
     
-    ### skip "no-left" partial peaks; probably due to space-charge effects
-    if (TRUE) {
-      ysi <- ys[ri]
-      ysi <- ysi[!is.na(ysi)]
-      ysi <- ysi[ysi >= max(ysi) * .05] # in case of skewing tails
-      # sum(diff(ysi) > 0) / length(ysi) < .3 # not working: local wobbling of ups and downs
-      idy <- which.max(ysi)
-      nyi <- length(ysi)
-      if (nyi > 200 && (idy < 10 || idy > nyi * .05)) { next } # nyi > 200 && idy < 10
+    if (is_partial_peak(ys[ri], width = 200L, min_p = 10L)) {
+      next
     }
-    ###
 
     if (lenr <= 60L) {
       stas[[i]] <- ri[[1]] # the starting index of gate-i in relative to ys
@@ -4046,6 +4189,7 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 6L,
     }
     else {
       r_first <- ri[[1]]
+      # z <- (seq_along(ys[ri]) + r_first); plot(ys[ri] ~ z)
       perc <- min(ymin / ymax, max_perc)
       ans  <- lapply(c(perc, .06 * 1:10 + perc), find_lc_gates2, 
                      ys = ys[ri], sta = r_first, n_dia_scans = n_dia_scans, 
@@ -4056,18 +4200,38 @@ find_lc_gates <- function (xs = NULL, ys = NULL, ts = NULL, n_dia_scans = 6L,
       n_stas   <- n_stas[[n_max]] # can be zero
       
       if (n_stas <= 1L) {
-        stas[[i]] <- r_first
-        ends[[i]] <- ri[lenr]
+        stas[[i]] <- r_first # also check left bending
+        ends[[i]] <- ri[lenr] # also check right bending
         
         next
       }
       
+      ans <- ans[[n_max]]
       ans_stas <- ans_stas[[n_max]]
-      ans_ends <- ans[[n_max]][["ends"]]
+      ans_ends <- ans[["ends"]]
+      
+      ###
+      if (first_bad <- ans$first_bad) {
+        first_dn <- ans$dn1
+      }
+      else {
+        first_dn <- NULL
+      }
+      
+      if (last_bad <- ans$last_bad) {
+        last_up <- ans$upn
+      }
+      else {
+        last_up <- NULL
+      }
+      ###
 
       stax <- endx <- vector("integer", n_stas)
-      stax[[1]] <-  ri[[1]]
-      endx[[n_stas]] <- ri[lenr]
+      # stax[[1]] <-  ri[[1]]
+      # endx[[n_stas]] <- ri[lenr]
+      stax[[1]]      <- if (first_bad) first_dn else ri[[1]]
+      endx[[n_stas]] <- if (last_bad)  last_up  else ri[lenr]
+      
       
       for (j in 2:n_stas) {
         hend <- ans_ends[[j - 1]]
@@ -4176,9 +4340,10 @@ find_baseline <- function (vals, vmax, perc = .02, max_perc = .05, y_rpl = 2.0)
 #' @param perc The percentage to the base-peak intensity for cut-offs.
 #' @param min_n The minimum number of \code{ys} to define an LC gate.
 find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0, 
-                            min_n = 6L)
+                            min_n = 10L) # was 6L
 {
-  ys[ys <= max(ys, na.rm = TRUE) * perc] <- NA_real_
+  ymin <- max(ys, na.rm = TRUE) * perc
+  ys[ys <= ymin] <- NA_real_
   ys <- fill_lc_gaps(ys, n_dia_scans = n_dia_scans, y_rpl = 2.0)
   
   ioks  <- .Internal(which(ys > 0))
@@ -4188,22 +4353,7 @@ find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0,
   nps   <- length(ups)
   
   # discard narrow gates
-  if (TRUE) {
-    if (nps == 1L) {
-      lenx <- sum(ys[ioks[ups:dns]] > y_rpl)
-    }
-    else {
-      rngs <- mapply(`:`, ups, dns, SIMPLIFY = TRUE, USE.NAMES = FALSE)
-      lenx <- lapply(rngs, function (rng) sum(ys[ioks[rng]] > y_rpl))
-    }
-
-    if (length(bads <- .Internal(which(lenx < min_n)))) {
-      ups <- ups[-bads]
-      dns <- dns[-bads]
-      # rngs <- rngs[-bads]
-    }
-  }
-  else {
+  if (FALSE) {
     if (nps) {
       oks <- dns - ups + 1L >= min_n
       ups <- ups[oks]
@@ -4211,15 +4361,67 @@ find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0,
     }
   }
   
+  if (!nps) {
+    return(list(stas = NULL, ends = NULL, dn1 = NULL, upn = NULL, 
+                first_bad = FALSE, last_bad = FALSE))
+  }
+  
+  ###
+  first_bad <- FALSE
+  last_bad  <- FALSE
+  stx <- sta - 1L
+  upn <- ioks[[ups[[nps]]]] + stx
+  dn1 <- ioks[[dns[[1]]]] + stx
+  ###
+  
+  if (nps == 1L) {
+    lenx <- sum(ys[ioks[ups:dns]] > y_rpl)
+  }
+  else {
+    # rngs <- mapply(`:`, ups, dns, SIMPLIFY = TRUE, USE.NAMES = FALSE)
+    # lenx <- lapply(rngs, function (rng) sum(ys[ioks[rng]] > y_rpl))
+    
+    ###
+    lenx <- vector("integer", nps)
+    yhs  <- vector("numeric", nps) # peak heights
+    rngs <- vector("list", nps)
+    
+    for (i in 1:nps) {
+      rngs[[i]] <- rgi <- ups[[i]]:dns[[i]]
+      ysi <- ys[ioks[rgi]]
+      lenx[[i]] <- sum(ysi > y_rpl)
+      yhs[[i]]  <- max(ysi, na.rm = TRUE)
+    }
+    
+    yhs <- yhs - ymin # subtract the baseline
+    yhm <- max(yhs)
+    
+    if (first_bad <- yhm / yhs[[1]] > 5) { # up-bending partial peak or small hump
+      lenx[[1]] <- 0L
+    }
+    
+    if (last_bad <- yhm / yhs[[nps]] > 5) {
+      lenx[[nps]] <- 0L
+    }
+    ###
+  }
+  
+  if (length(bads <- .Internal(which(lenx < min_n)))) {
+    ups <- ups[-bads]
+    dns <- dns[-bads]
+  }
+  
   # sta <- ioks[[upi]] # the starting index of gate-i in relative to ys
   # stas[[i]] <- sta + ioks[ups] - 1L # in relative to ys
   # ends[[i]] <- sta + ioks[dns] - 1L
   
   if (length(ups)) {
-    list(stas = sta + ioks[ups] - 1L, ends = sta + ioks[dns] - 1L)
+    list(stas = stx + ioks[ups], ends = stx + ioks[dns], 
+         dn1 = dn1, upn = upn, first_bad = first_bad, last_bad = last_bad)
   }
   else {
-    list(stas = NULL, ends = NULL)
+    list(stas = NULL, ends = NULL, dn1 = NULL, upn = NULL, 
+         first_bad = FALSE, last_bad = FALSE)
   }
 }
 
@@ -4289,6 +4491,27 @@ fill_lc_gaps <- function (ys, n_dia_scans = 6L, y_rpl = 2.0)
 }
 
 
+#' Check partial peaks
+#'
+#' @param ys A vector of intensity values
+#' @param width The width of a peak (number of points).
+#' @param min_p The minimum number of points on one side of a peak for excluding
+#'   the call for a partial peak.
+is_partial_peak <- function (ys, width = 200L, min_p = 10L)
+{
+  # "no-left/right" partial peaks; probably due to space-charge effects
+  # does it handle abreast peaks? may skip this and handled by space charge...
+  
+  ys <- ys[!is.na(ys)]
+  ys <- ys[ys >= max(ys) * .05] # in case of skewing tails
+  # sum(diff(ys) > 0) / length(ys) < .3 # not working: local wobbling of ups and downs
+  imax <- which.max(ys)
+  nyi  <- length(ys)
+  
+  nyi > width && (imax < min_p || nyi < imax + min_p)
+}
+
+
 #' Make MS1 X and Y matrices across adjacent scans
 #'
 #' Allow adjacent values in \code{unv} and later collapse adjacent
@@ -4303,6 +4526,7 @@ fill_lc_gaps <- function (ys, n_dia_scans = 6L, y_rpl = 2.0)
 #'   at \code{cleanup = TRUE}.
 #' @param sum_y Logical; to sum Y values or not. Either TRUE or FALSE for
 #'   Thermo's and TRUE for collapsing PASEF MS2 slices.
+#' @param coll Logical; collapse adjacent columns or not.
 #' @param add_colnames Logical; if TRUE, add the indexes of mass bins to the
 #'   column names of \code{matx}.
 #' @param look_back Logical; look up the preceding MS bin or not.
@@ -4328,7 +4552,8 @@ fill_lc_gaps <- function (ys, n_dia_scans = 6L, y_rpl = 2.0)
 #' mzion:::collapse_mms1ints(xs, ys, lwr = 951.089731)
 collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5, 
                                reord = FALSE, cleanup = FALSE, sum_y = FALSE, 
-                               add_colnames = FALSE, look_back = FALSE)
+                               coll = TRUE, add_colnames = FALSE, 
+                               look_back = FALSE)
 {
   ### 
   # the utility is often called heavily;
@@ -4411,16 +4636,23 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
       ix <- ixs[[i]]
       x  <- xs[[i]]
       y  <- ys[[i]]
+      ps <- .Internal(which(duplicated(ix)))
       
-      if (any(dups <- duplicated(ix))) {
-        oks      <- .Internal(which(!dups))
-        ixs[[i]] <- ix[oks]
-        xs[[i]]  <- x[oks]
-        ys[[i]]  <- y[oks]
+      if (length(ps)) {
+        ixs[[i]] <- ix[-ps]
+        xs[[i]]  <- x[-ps]
+        ys[[i]]  <- y[-ps]
       }
+
+      # if (any(dups <- duplicated(ix))) {
+      #   oks      <- .Internal(which(!dups))
+      #   ixs[[i]] <- ix[oks]
+      #   xs[[i]]  <- x[oks]
+      #   ys[[i]]  <- y[oks]
+      # }
     }
   }
-  # rm(list = c("x", "y", "ix", "oks"))
+  # rm(list = c("x", "y", "ix", "ps"))
   
   ## maps ixs vectors to unv (presence or absence)
   unv  <- .Internal(unlist(ixs, recursive = FALSE, use.names = FALSE))
@@ -4435,9 +4667,14 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   ymat <- mapcoll_xyz(vals = ys, ups = ups, lenx = lenx, lenu = lenu, 
                       direct_out = TRUE)
   
+  # if (!coll) { return(list(x = xmat, y = ymat, u = unv)) }
+
   # collapses adjacent entries
   ps   <- find_gates(unv)
   lenp <- length(ps)
+  
+  # which(sapply(ps, `[[`, 1L) == which(unv == 167269)) # 6325
+  # which(sapply(ps, `[[`, 2L) == which(unv == 167269))
   
   # all discrete values
   if (is.null(ps)) {
@@ -4449,6 +4686,8 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   
   # collapses matrix columns with +/-1 in bin indexes
   for (i in 1:lenp) {
+    # test from 6323:6325
+    # i= 6324; i = 6325
     c12 <- ps[[i]]
     c1  <- c12[[1]]
     c2  <- c12[[2]]
@@ -4490,6 +4729,36 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
         ymat[rows, c2] <- rowSums(ymat[rows, c2:af, drop = FALSE], na.rm = TRUE)
       }
 
+      ###
+      # transfer only if tangent...
+      if (FALSE) {
+        rows2 <- .Internal(which(is.na(xmat[, c2]) & !is.na(xmat[, af])))
+        # ys1 <- ymat[rows2, c2]
+        ys2 <- ymat[rows2, af]
+        gs2 <- find_lc_gates(ys = ymat[, af], n_dia_scans = 0L, y_rpl = 0)
+        
+        local({
+          ymin <- max(ys, na.rm = TRUE) * perc
+          ys[ys <= ymin] <- NA_real_
+          ys <- fill_lc_gaps(ys, n_dia_scans = n_dia_scans, y_rpl = 2.0)
+          
+          ioks  <- .Internal(which(ys > 0))
+          edges <- find_gate_edges(ioks)
+          ups   <- edges[["ups"]] # in relative to ys
+          dns   <- edges[["dns"]]
+          nps   <- length(ups)
+        })
+
+        # get the ranges
+        
+        # find tangent ranges -> c2
+        
+        ys2[4:43]
+        rows2[4:43] # 399:439
+      }
+      
+      ###
+      
       rows2 <- .Internal(which(is.na(xmat[, c2])))
       xmat[rows2, c2] <- xmat[rows2, af]
       ymat[rows2, c2] <- ymat[rows2, af] # rowSums(ymat[rows2, c2:af, drop = FALSE], na.rm = TRUE)
@@ -4498,12 +4767,15 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
       ymat[rows2, af] <- NA_real_ # toggle on
     }
     
+    # colnames(xmat) <- colnames(ymat) <- unv; zy <- ymat[, c12]; plot(zy[, 2])
     ps1[[i]] <- c1
   }
   
   # note `-ps1` ok in that at least one ps1 is not 0
   # identical(xmat[, -c(0, 2:3), drop = FALSE], xmat[, -c(2:3), drop = FALSE])
   # !identical(xmat[, 0, drop = FALSE], xmat)
+  
+  # zy2 <- ymat[, c(11415, 11416)]
   
   xmat <- xmat[, -ps1, drop = FALSE]
   ymat <- ymat[, -ps1, drop = FALSE]

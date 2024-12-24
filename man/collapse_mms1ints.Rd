@@ -12,6 +12,7 @@ collapse_mms1ints(
   reord = FALSE,
   cleanup = FALSE,
   sum_y = FALSE,
+  coll = TRUE,
   add_colnames = FALSE,
   look_back = FALSE
 )
@@ -32,6 +33,8 @@ at \code{cleanup = TRUE}.}
 
 \item{sum_y}{Logical; to sum Y values or not. Either TRUE or FALSE for
 Thermo's and TRUE for collapsing PASEF MS2 slices.}
+
+\item{coll}{Logical; collapse adjacent columns or not.}
 
 \item{add_colnames}{Logical; if TRUE, add the indexes of mass bins to the
 column names of \code{matx}.}

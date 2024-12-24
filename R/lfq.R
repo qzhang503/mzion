@@ -185,15 +185,12 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
 #' @param out_cols The output column keys.
 #' @inheritParams matchMS
 htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L, 
-                      out_name = NULL, n_dia_scans = 4L, from = 200L, 
+                      out_name = NULL, n_dia_scans = 6L, from = 200L, 
                       step = 5E-6, y_perc = .01, yco = 500, look_back = TRUE, 
                       min_y = 0, path_ms1 = NULL, 
                       out_cols = c("ms_level", "ms1_moverz", "ms1_int", 
-                                   "orig_scan", "apex_scan_num", 
-                                   "apex_xs1", "apex_ys1", "apex_bin1", 
-                                   "apex_ps1", "apex_ts1", 
-                                   "apex_xs2", "apex_ys2", "apex_bin2", 
-                                   "apex_ps2", "apex_ts2"))
+                                   "orig_scan", "apex_scan_num", "apex_xs", 
+                                   "apex_ys", "apex_ps", "apex_ts"))
 {
   # length(xs) - gap_bf - gap_af - nrow(df) == 0L
   if (all(lengths(xs) == 0L)) {
@@ -207,83 +204,98 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
       orig_scan = df$orig_scan, 
       # orig_scan = null, # don't should be `character` not `list`
       apex_scan_num = null, 
-      apex_xs1 = null, 
-      apex_ys1 = null, 
-      apex_bin1 = null,
-      apex_ps1 = null, 
-      apex_ts1 = null,
-      apex_xs2 = null, 
-      apex_ys2 = null, 
-      apex_bin2 = null,
-      apex_ps2 = null, 
-      apex_ts2 = null)
-    
+      apex_xs = null, 
+      apex_ys = null, 
+      apex_ps = null, 
+      apex_ts = null)
+
     return(df[, out_cols])
   }
   
-  # may contain all NA columns
-  mat <- traceXY(
-    xs = xs, ys = ys, ss = ss, ts = ts, n_dia_scans = n_dia_scans, 
-    from = from, step = step, reord = FALSE, cleanup = FALSE, # otherwise rows drop
-    replace_ms1_by_apex = TRUE, y_perc = y_perc, yco = yco, 
-    look_back = look_back)
+  ### (1) Make MS1 X and Y matrices across adjacent scans
+  ixs <- lapply(xs, index_mz, from = from, d = step)
   
-  ## apes, rngs and scans: each vector corresponds to a column of mass; 
-  #  their indexes corresponding to the row number in matx
-  matx <- mat[["x"]]
-  maty <- mat[["y"]]
-  apes <- mat[["p"]]
-  rngs <- mat[["range"]] # for debugging
-  ns   <- mat[["n"]]
-
-  if (length(bads <- which(lengths(apes) == 0L))) {
-    matx <- matx[, -bads, drop = FALSE]
-    maty <- maty[, -bads, drop = FALSE]
-    apes <- apes[-bads]
-    rngs <- rngs[-bads]
-    ns   <- ns[-bads]
+  # 1. remove duplicated ixs and collapse the Y values under the same ixs
+  #    Y values are only for de-isotoping, not for precursor intensities
+  if (sum_y <- FALSE) {
+    for (i in seq_along(xs)) {
+      ix <- ixs[[i]]
+      x  <- xs[[i]]
+      y  <- ys[[i]]
+      ps <- .Internal(which(duplicated(ix)))
+      
+      if (l <- length(ps)) {
+        for (j in 1:l) {
+          okp <- .Internal(which(ix == ix[ps[[j]]]))
+          y[okp[[1]]] <- sum(y[okp], na.rm = TRUE)
+        }
+        
+        ixs[[i]] <- ix[-ps]
+        xs[[i]]  <- x[-ps]
+        ys[[i]]  <- y[-ps]
+      }
+    }
   }
+  else {
+    for (i in seq_along(xs)) {
+      ix <- ixs[[i]]
+      x  <- xs[[i]]
+      y  <- ys[[i]]
+      ps <- .Internal(which(duplicated(ix)))
+      
+      if (length(ps)) {
+        ixs[[i]] <- ix[-ps]
+        xs[[i]]  <- x[-ps]
+        ys[[i]]  <- y[-ps]
+      }
+    }
+  }
+  # rm(list = c("x", "y", "ix", "ps"))
   
-  # not saving args
-  if (!length(apes)) {
-    df <- init_lfq_df(df)
-    return(df[, out_cols])
-  }
+  ## maps ixs vectors to unv (presence or absence)
+  unv  <- .Internal(unlist(ixs, recursive = FALSE, use.names = FALSE))
+  unv  <- sort(unique(unv))
+  lenu <- length(unv)
+  lenx <- length(xs)
+  ups  <- lapply(ixs, function (x) unv %fin% x)
   
-  nr <- nrow(matx)
-  nc <- ncol(matx)
-
-  # ss == rownames(matx) <-> orig_scan: ss[apes[[i]]]; how about with timsTOF?
-  # apx = apes[[i]] <-> a row number of matx; rownames(matx)[apx] -> ss[apx]
-  rt_apexs <- scan_apexs <- vector("list", nc)
-  for (i in 1:nc) {
-    apx <- apes[[i]]
-    scan_apexs[[i]] <- as.integer(ss[apx])
-    rt_apexs[[i]]   <- ts[apx] # as.integer()
-  }
+  # note one-to-one correspondence between ixs and xs
+  matx <- mapcoll_xyz(vals = xs, ups = ups, lenx = lenx, lenu = lenu, 
+                      direct_out = TRUE)
+  maty <- mapcoll_xyz(vals = ys, ups = ups, lenx = lenx, lenu = lenu, 
+                      direct_out = TRUE)
 
   if (gap_bf) {
     if (gap_af) { # middle
       sta <- gap_bf + 1L
-      end <- nr - gap_af
+      end <- lenx - gap_af
     }
     else { # last
       sta <- gap_bf + 1L
-      end <- nr
+      end <- lenx
     }
   }
   else { # first
     sta <- 1L
-    end <- nr - gap_af
+    end <- lenx - gap_af
   }
   
   # look both before and after scans
+  ss <- as.integer(ss)
+  
   args <- list(
-    df = df, matx = matx, maty = maty, row_sta = sta, row_end = end, 
-    scan_apexs = scan_apexs, rt_apexs = rt_apexs, rngs = rngs, 
-    from = from, step = step, min_y = min_y)
+    df = df, matx = matx, maty = maty, unv = unv, ss = ss, ts = ts, 
+    row_sta = sta, row_end = end, from = from, step = step, min_y = min_y, 
+    n_dia_scans = n_dia_scans)
 
-  df <- do.call(updateMS1Int2, args)
+  df <- do.call(updateMS1Int, args)
+  ###
+  
+  # not saving args
+  if (FALSE && !length(apes)) {
+    df <- init_lfq_cols(df)
+    return(df[, out_cols])
+  }
   
   attr(df, "row_sta") <- sta
   attr(df, "row_end") <- end
@@ -317,7 +329,7 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
 #' @param look_back Logical; look up the preceding MS bin or not.
 #' @inheritParams matchMS
 traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L, 
-                     step = 8E-6, reord = TRUE, cleanup = FALSE, 
+                     step = 8E-6, reord = FALSE, cleanup = FALSE, 
                      replace_ms1_by_apex = FALSE, y_perc = .01, yco = 500, 
                      look_back = TRUE)
 {
@@ -345,13 +357,16 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
   
   # xs can be numeric(0)?
   # cleanup = FALSE; otherwise rows drop
-  
-  # may change to step = 7E-6
   # max(mass_delta) under a column can be up to 3 * step with look_back = TRUE
   
   ans  <- collapse_mms1ints(
     xs = xs, ys = ys, lwr = from, step = step, reord = FALSE, cleanup = FALSE, 
-    add_colnames = TRUE, look_back = look_back)
+    coll = FALSE)
+  
+  ###
+  # return(ans)
+  ###
+  
   ansx <- ans[["x"]]
   ansy <- ans[["y"]]
   unv  <- ans[["u"]]
@@ -370,9 +385,8 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
   
   if (replace_ms1_by_apex) {
     for (i in 1:nc) {
-      # i <- which(unv == index_mz(387.2083, from, step) + 0)
-      # i = 1094; i = 1095
-      # i = 1735
+      # i <- which(unv == index_mz(545.6233, from, step) + 0)
+      # i = 5122
       xi   <- ansx[, i]
       yi   <- ansy[, i]
       oks  <- .Internal(which(!is.na(yi)))
@@ -387,8 +401,8 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
       # }
       
       if (FALSE) {
-        zx <- data.frame(v1 = ansx[, 1094], v2 = ansx[, 1095])
-        zy <- data.frame(v1 = ansy[, 1094], v2 = ansy[, 1095])
+        zx <- data.frame(ansx[, 5121:5122])
+        zy <- data.frame(ansy[, 5121:5122])
         
         data.frame(x = ts/60, y = yi) |>
           ggplot2::ggplot() + 
@@ -440,32 +454,27 @@ traceXY <- function (xs, ys, ss, ts, n_dia_scans = 4L, from = 200L,
 #' Including forward and backward looking.
 #'
 #' @param df A data frame.
-#' @param matx The matrix of moverzs Y: by masses; X: by LC scans.
+#' @param matx The matrix of m-over-z's Y: by masses; X: by LC scans.
 #' @param maty The matrix of intensities. Y: by masses; X: by LC scans.
+#' @param unv The universe of m-over-z bins.
+#' @param ss A vector of scan numbers.
+#' @param ts A vector of retention times.
 #' @param row_sta The starting row of \code{matx}.
 #' @param row_end The ending row of \code{matx}.
-#' @param scan_apexs The vectors of apex scan number. Each vector corresponds to
-#'   a mass in \code{matx}.
-#' @param rt_apexs The vectors of apex retention time. Each vector corresponds
-#'   to a mass in \code{matx}.
-#' @param rngs The ranges of row indexes for each column in \code{matx}. The
-#'   \code{rngs[[i]]} corresponds to \code{matx[, i]}. The argument is currently
-#'   used for debugging.
-#' @param from The starting point for mass binning.
 #' @param step A step size for mass binning.
+#' @param from The starting point for mass binning.
 #' @param min_y The cut-off of intensity values.
+#' @param yco An intensity cut-off.
+#' @inheritParams matchMS
 #' @importFrom fastmatch %fin%
-updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs, 
-                           rt_apexs, rngs, from = 200L, step = 6E-6, min_y = 0)
+updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end, 
+                          from = 200L, step = 6E-6, min_y = 0, yco = 500, 
+                          n_dia_scans = 6L)
   
 {
-  df   <- init_lfq_df(df)
-  nrow <- nrow(matx)
-  ncol <- ncol(matx)
-  unv  <- as.integer(colnames(matx))
-  ss   <- as.integer(rownames(matx))
-  
-  rownames(matx) <- rownames(maty) <- NULL
+  df <- init_lfq_cols(df)
+  nr <- length(ss)
+  nc <- length(unv)
   
   pos_levs <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)
   ms1_stas <- pos_levs$ms1_stas
@@ -473,17 +482,20 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
   ms2_ends <- pos_levs$ms2_ends
   rm(list = "pos_levs")
   gap <- row_sta - 1L
-
+  
   ###
   # rowi: the current row index along matx
   # scan: the current scan number (of rowi); 13588
   ###
   
+  ranges <- apexes <- ns <- vector("list", nc)
+  rt_apexs <- scan_apexs <- vector("list", nc)
+  
   for (i in seq_along(ms1_stas)) {
     if (FALSE) {
       # look for penultimate scan number of psmQ.txt::pep_scan_num
       df$orig_scan[ms1_stas]
-      i <- 177
+      i <- 144
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       ms2rng <- ms2sta:ms2end
@@ -506,420 +518,102 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
       x1s  <- xs2[[j]] # MS1 masses associated with an MS2 scan
       nx   <- length(x1s) # nx > 1 at a chimeric spectrum
       if (!nx) { next }
-      ix1s <- index_mz(x1s, from, step)
+      ix1s <- index_mz(x1s, from = from, d = step)
       ks   <- lapply(ix1s, function (x) which(abs(x - unv) <= 1L))
-      # ks   <- lapply(ix1s, function (x) which(unv - x <= 2L & unv - x >= -1L))
-
+      
       # by chimeric precursors
       for (m in 1:nx) {
-        k   <- ks[[m]] # the k-th column(s) in matx
-        nk  <- length(k)
-        if (!nk) { next }
-        x1m <- x1s[[m]]
-
-        # up to two with an adjacent match of ix1s[[m]] - 1 or ix1s[[m]] + 1
-        if (nk > 1L) {
-          ka <- k[[1]]
-          kb <- k[[2]]
-          
-          if (FALSE) {
-            zx <- matx[, c(ka, kb)]
-            zy <- maty[, c(ka, kb)]
-            data.frame(x = ss[1:nrow], y = maty[, ka]) |>
-              ggplot2::ggplot() + 
-              ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
-                                    color = "gray", linewidth = .1)
-          }
-          
-          ansg <- mergeAdjGates(
-            xs_ka = matx[, ka], ys_ka = maty[, ka], xs_kb = matx[, kb], 
-            ys_kb = maty[, kb], rngs_ka = rngs[[ka]], rngs_kb = rngs[[kb]], 
-            rts_ka = rt_apexs[[ka]], rts_kb = rt_apexs[[kb]], 
-            scans_ka = scan_apexs[[ka]], scans_kb = scan_apexs[[kb]])
-          
-          if (ansg$merged) {
-            matx[, ka] <- ansg$xs_ka
-            maty[, ka] <- ansg$ys_ka
-            matx[, kb] <- ansg$xs_kb
-            maty[, kb] <- ansg$ys_kb
-            rngs[[ka]] <- ansg$rngs_ka
-            rngs[[kb]] <- ansg$rngs_kb
-            rt_apexs[[ka]] <- ansg$rts_ka
-            rt_apexs[[kb]] <- ansg$rts_kb
-            scan_apexs[[ka]] <- ansg$scans_ka
-            scan_apexs[[kb]] <- ansg$scans_kb
-          }
-          
-          n_ka <- length(rngs[[ka]])
-          n_kb <- length(rt_apexs[[kb]])
-
-          if (n_ka) {
-            ans1 <- find_apex_scan(
-              k = ka, xs_k = matx[, ka], ys_k = maty[, ka], 
-              apexs_k = scan_apexs[[ka]], rts_k = rt_apexs[[ka]], 
-              rngs_k = rngs[[ka]], xm = x1m, scan = scan, ss = ss, 
-              step = step, min_y = min_y)
-            
-            # (a) a tentative best
-            ap1a <- ans1[["ap"]] 
-            x1a  <- ans1[["x"]]
-            y1a  <- ans1[["y"]]
-            fra  <- ans1[["from"]]
-            toa  <- ans1[["to"]]
-            
-            # (b) all candidates (low-quality entries in scan_apexs[[ka]] removed)
-            xsa  <- ans1[["xs"]]
-            ysa  <- ans1[["ys"]]
-            apsa <- ans1[["aps"]]
-          }
-          
-          if (n_kb) {
-            ans2 <- find_apex_scan(
-              k = kb, xs_k = matx[, kb], ys_k = maty[, kb], 
-              apexs_k = scan_apexs[[kb]], rts_k = rt_apexs[[kb]], 
-              rngs_k = rngs[[kb]], xm = x1m, scan = scan, ss = ss, 
-              step = step, min_y = min_y)
-            ap1b <- ans2[["ap"]]
-            x1b  <- ans2[["x"]]
-            y1b  <- ans2[["y"]]
-            frb  <- ans2[["from"]]
-            tob  <- ans2[["to"]]
-            
-            xsb  <- ans2[["xs"]]
-            ysb  <- ans2[["ys"]]
-            apsb <- ans2[["aps"]]
-          }
-          
-          if (n_ka && n_kb) { # can be empty after the gate merges
-            # (1) by mass errors
-            erra <- abs(x1a / x1m - 1)
-            errb <- abs(x1b / x1m - 1)
-            
-            if (erra < errb) {
-              is_a <- TRUE
-              errx <- errb - erra
-              err0 <- erra
-            }
-            else {
-              is_a <- FALSE
-              errx <- erra - errb
-              err0 <- errb
-            }
-            
-            # (2) by inclusiveness
-            # can also often be discriminated by Y but not always 
-            #  as a large Y may be due to a irregular fat peak
-            
-            # `a` is mostly a subset of `b`
-            if (fra + 2L >= frb && toa <= tob + 2L) {
-              b_incl_a <- TRUE
-            }
-            else {
-              b_incl_a <- FALSE
-            }
-            
-            # `b` is mostly a subset of `a`
-            if (frb + 2L >= fra && tob <= toa + 2L) {
-              a_incl_b <- TRUE
-            }
-            else {
-              a_incl_b <- FALSE
-            }
-            
-            # (2.x) by scan number differences
-            if (FALSE) {
-              dsa <- abs(ap1a - scan)
-              dsb <- abs(ap1b - scan)
-              
-              if (dsa < dsb) {
-                ds1 <- dsb
-                ds0 <- dsa
-                is_da <- TRUE
-              }
-              else {
-                ds1 <- dsa
-                ds0 <- dsb
-                is_da <- FALSE
-              }
-            }
-            
-            # (3) if a `scan` is within any of the two peak ranges
-            #     the scan cannot be both `oka` and `okb`
-            # oka <- scan > fra + 1L && scan < toa - 1L
-            # okb <- scan > frb + 1L && scan < tob - 1L
-            
-            # large mass error at apex for high intensities (space charge effect)
-            if (errx > 3e-6) { # fine-tune this...
-              if (is_a) {
-                ap1 <- ap1a
-                y1  <- y1a
-                k0  <- ka
-                
-                aps <- apsa
-                xs  <- xsa
-                ys  <- ysa
-                
-                kx  <- kb
-                apx <- apsb
-                xx  <- xsb
-                yx  <- ysb
-              }
-              else {
-                ap1 <- ap1b
-                y1  <- y1b
-                k0  <- kb
-                
-                aps <- apsb
-                xs  <- xsb
-                ys  <- ysb
-                
-                kx  <- ka
-                apx <- apsa
-                xx  <- xsa
-                yx  <- ysa
-              }
-            }
-            else if (a_incl_b) {
-              ap1 <- ap1a
-              y1  <- y1a
-              k0  <- ka
-              
-              aps <- apsa
-              xs  <- xsa
-              ys  <- ysa
-              
-              kx  <- kb
-              apx <- apsb
-              xx  <- xsb
-              yx  <- ysb
-            }
-            else if (b_incl_a) {
-              ap1 <- ap1b
-              y1  <- y1b
-              k0  <- kb
-              
-              aps <- apsb
-              xs  <- xsb
-              ys  <- ysb
-              
-              kx  <- ka
-              apx <- apsa
-              xx  <- xsa
-              yx  <- ysa
-            }
-            else if (FALSE && ds0 * 10 <= ds1) { # 10x closer ds0 <= 100 && 
-              if (is_da) {
-                ap1 <- ap1a
-                y1  <- y1a
-                k0  <- ka
-                
-                aps <- apsa
-                xs  <- xsa
-                ys  <- ysa
-                
-                kx  <- kb
-                apx <- apsb
-                xx  <- xsb
-                yx  <- ysb
-              }
-              else {
-                ap1 <- ap1b
-                y1  <- y1b
-                k0  <- kb
-                
-                aps <- apsb
-                xs  <- xsb
-                ys  <- ysb
-                
-                kx  <- ka
-                apx <- apsa
-                xx  <- xsa
-                yx  <- ysa
-              }
-            }
-            else {
-              if (y1a > y1b) {
-                ap1 <- ap1a
-                y1  <- y1a
-                k0  <- ka
-                
-                aps <- apsa
-                xs  <- xsa
-                ys  <- ysa
-                
-                kx  <- kb
-                apx <- apsb
-                xx  <- xsb
-                yx  <- ysb
-              }
-              else {
-                ap1 <- ap1b
-                y1  <- y1b
-                k0  <- kb
-                
-                aps <- apsb
-                xs  <- xsb
-                ys  <- ysb
-                
-                kx  <- ka
-                apx <- apsa
-                xx  <- xsa
-                yx  <- ysa
-              }
-            }
-            
-            apexs_k0 <- scan_apexs[[k0]] # aps: after clean-ups
-            rts_k0   <- rt_apexs[[k0]]
-            rngs_k0  <- rngs[[k0]]
-            xs_k0    <- matx[, k0]
-            ys_k0    <- maty[, k0]
-            
-            apexs_kx <- scan_apexs[[kx]]
-            rts_kx   <- rt_apexs[[kx]]
-          }
-          else if (n_ka) {
-            ap1 <- ap1a
-            y1  <- y1a
-            aps <- apsa
-            xs  <- xsa
-            ys  <- ysa
-            kx  <- NA_integer_ # an indicator
-            
-            k0 <- ka
-            apexs_k0 <- scan_apexs[[k0]]
-            rts_k0   <- rt_apexs[[k0]]
-            # rngs_k0  <- rngs[[k0]]
-            # xs_k0    <- matx[, k0]
-            # ys_k0    <- maty[, k0]
-          }
-          else if (n_kb) {
-            ap1 <- ap1b
-            y1  <- y1b
-            aps <- apsb
-            xs  <- xsb
-            ys  <- ysb
-            kx  <- NA_integer_ # an indicator
-            
-            k0 <- kb
-            apexs_k0 <- scan_apexs[[k0]]
-            rts_k0   <- rt_apexs[[k0]]
-            # rngs_k0  <- rngs[[k0]]
-            # xs_k0    <- matx[, k0]
-            # ys_k0    <- maty[, k0]
-          }
-          else {
-            next
+        km <- ks[[m]]
+        if (!length(km)) { next }
+        mx <- matx[, km, drop = FALSE]
+        my <- maty[, km, drop = FALSE]
+        xref <- x1s[[m]]
+        bads <- abs(mx / xref - 1.0) > 1E-5 # may be 8E-6
+        mx[bads] <- NA_real_
+        my[bads] <- NA_real_
+        
+        xvs <- rowMeans(mx, na.rm = TRUE)
+        yvs <- rowSums(my, na.rm = TRUE) # all NA row -> 0
+        xvs[is.nan(xvs)] <- NA_real_
+        
+        oks  <- .Internal(which(!is.na(yvs)))
+        yoks <- yvs[oks]
+        yoks[yoks < yco] <- NA_real_ # does the same to xi?
+        yvs[oks]   <- yoks
+        
+        if (FALSE) {
+          data.frame(x = 1:nr, y = yvs) |>
+            ggplot2::ggplot() + 
+            ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
+                                  color = "gray", linewidth = .1)
+        }
+        
+        gates <- 
+          find_lc_gates(xs = xvs, ys = yvs, ts = ts, n_dia_scans = n_dia_scans)
+        
+        if (is.null(gates)) {
+          next
+        }
+        
+        apexes[[i]] <- apx  <- gates[["apex"]]
+        ns[[i]]     <- napx <- gates[["ns"]]
+        ranges[[i]] <- rngs <- gates[["ranges"]]
+        yints       <- gates[["yints"]]
+        
+        xbars <- lapply(rngs, function (rng) mean(xvs[rng], na.rm = TRUE))
+        xbars <- .Internal(unlist(xbars, recursive = FALSE, use.names = FALSE))
+        
+        if (FALSE) {
+          for (j in seq_along(apx)) {
+            rgj <- rngs[[j]]
+            xvs[rgj] <- xbars[[j]]
+            yvs[rgj] <- yints[[j]]
           }
         }
-        else {
-          k0 <- k[[1]]
-          apexs_k0 <- scan_apexs[[k0]]
-          rts_k0   <- rt_apexs[[k0]]
-          rngs_k0  <- rngs[[k0]]
-          xs_k0    <- matx[, k0]
-          ys_k0    <- maty[, k0]
+        
+        if (length(apx)) {
+          ans <- find_best_apex(
+            xvs = xvs, yvs = yvs, xbars = xbars, yints = yints, 
+            aps = ss[apx], rts = ts[apx], 
+            rngs = rngs, xref = xref, scan_ms1 = scan, ss = ss, 
+            step = step, min_y = min_y)
           
-          if (n_kb <- length(rts_k0)) {
-            ans1 <- find_apex_scan(
-              k = k0, xs_k = xs_k0, ys_k = ys_k0, 
-              apexs_k = apexs_k0, rts_k = rts_k0, 
-              rngs_k = rngs_k0, xm = x1m, scan = scan, ss = ss, 
-              step = step, min_y = min_y)
-            ap1 <- ans1[["ap"]]
-            y1  <- ans1[["y"]]
-            aps <- ans1[["aps"]]
-            xs  <- ans1[["xs"]]
-            ys  <- ans1[["ys"]]
-          }
-          else {
+          if (is.null(ans)) {
             next
           }
-
-          kx  <- NA_integer_ # an indicator
           
-          ### space charge effect
-          # 1. identify tangent gates
-          # 2. merge to column k0
-          # 3. nullify the corresponding entriess in kb
-          if (FALSE && k0 < ncol) {
-            kb <- k0 + 1L
-            
-            if (step < 1e-5 && unv[[kb]] == unv[[k0]] + 2L) {
-              ma <- mean(matx[, k0], na.rm = TRUE)
-              mb <- mean(matx[, kb], na.rm = TRUE)
-              
-              if (mb / ma - 1 < 1e-5) {
-                ans2 <- find_apex_scan(
-                  k = kb, xs_k = matx[, kb], ys_k = maty[, kb], 
-                  apexs_k = scan_apexs[[kb]], rts_k = rt_apexs[[kb]], 
-                  rngs_k = rngs[[kb]], xm = x1m, scan = scan, ss = ss, 
-                  step = step, min_y = min_y)
-                ap1b <- ans2[["ap"]]
-                x1b  <- ans2[["x"]]
-                y1b  <- ans2[["y"]]
-                frb  <- ans2[["from"]]
-                tob  <- ans2[["to"]]
-                
-                xsb  <- ans2[["xs"]]
-                ysb  <- ans2[["ys"]]
-                apsb <- ans2[["aps"]]
-                
-                ap1 <- ap1b
-                y1  <- y1 + y1b
-                
-                # xsb are less accurate...
-                # aps <- c(aps, apsb) # comment out
-                # xs  <- c(xs, xsb)   # comment out
-                # ys  <- c(ys, ysb)   # comment out
-              }
-            }
-          }
-          ###
+          ap1 <- ans[["ap"]]
+          y1  <- ans[["y"]]
+          aps <- ans[["aps"]]
+          rts <- ans[["rts"]]
+          xs  <- ans[["xs"]]
+          ys  <- ans[["ys"]]
+        }
+        else {
+          next
         }
         
         # scalar
         df2[["apex_scan_num"]][[j]][[m]] <- ap1
         df2[["ms1_int"]][[j]][[m]]       <- y1
-        df2[["apex_bin1"]][[j]][[m]]     <- k0
         
         # vector
-        oks <- .Internal(which(apexs_k0 %fin% aps))
-        df2[["apex_ps1"]][[j]][[m]] <- apexs_k0[oks] # the same as `aps`
-        df2[["apex_ts1"]][[j]][[m]] <- rts_k0[oks]
+        # oks <- .Internal(which(apexs_k0 %fin% aps))
+        df2[["apex_ps"]][[j]][[m]] <- aps
+        df2[["apex_ts"]][[j]][[m]] <- rts
         
         # list
-        df2[["apex_xs1"]][[j]][[m]]   <- xs
-        df2[["apex_ys1"]][[j]][[m]]   <- ys
-        # df2[["rngs_all"]][[j]][[m]]  <- rngs_k0[oks]
-        
-        if (!is.na(kx)) {
-          df2[["apex_bin2"]][[j]][[m]] <- kx
-          
-          # vector
-          okx <- .Internal(which(apexs_kx %fin% apx))
-          df2[["apex_ps2"]][[j]][[m]] <- apexs_kx[okx]
-          df2[["apex_ts2"]][[j]][[m]] <- rts_kx[okx]
-          
-          # list
-          df2[["apex_xs2"]][[j]][[m]]   <- xx
-          df2[["apex_ys2"]][[j]][[m]]   <- yx
-        }
+        df2[["apex_xs"]][[j]][[m]]   <- xs
+        df2[["apex_ys"]][[j]][[m]]   <- ys
       }
     }
     
     df[["apex_scan_num"]][ms2rng] <- df2[["apex_scan_num"]]
     df[["ms1_int"]][ms2rng]       <- df2[["ms1_int"]]
-    df[["apex_bin1"]][ms2rng]     <- df2[["apex_bin1"]]
-    df[["apex_ps1"]][ms2rng]      <- df2[["apex_ps1"]]
-    df[["apex_ts1"]][ms2rng]      <- df2[["apex_ts1"]]
-    df[["apex_xs1"]][ms2rng]      <- df2[["apex_xs1"]]
-    df[["apex_ys1"]][ms2rng]      <- df2[["apex_ys1"]]
-    df[["apex_bin2"]][ms2rng]     <- df2[["apex_bin2"]]
-    df[["apex_ps2"]][ms2rng]      <- df2[["apex_ps2"]]
-    df[["apex_ts2"]][ms2rng]      <- df2[["apex_ts2"]]
-    df[["apex_xs2"]][ms2rng]      <- df2[["apex_xs2"]]
-    df[["apex_ys2"]][ms2rng]      <- df2[["apex_ys2"]]
-    # df[["rngs_all"]][ms2rng] <- df2[["rngs_all"]]
+    df[["apex_ps"]][ms2rng]       <- df2[["apex_ps"]]
+    df[["apex_ts"]][ms2rng]       <- df2[["apex_ts"]]
+    df[["apex_xs"]][ms2rng]       <- df2[["apex_xs"]]
+    df[["apex_ys"]][ms2rng]       <- df2[["apex_ys"]]
   }
   
   df
@@ -929,28 +623,21 @@ updateMS1Int2 <- function (df, matx, maty, row_sta, row_end, scan_apexs,
 #' Helper to initiate LFQ output columns
 #' 
 #' @param df A data frame.
-init_lfq_df <- function (df)
+init_lfq_cols <- function (df)
 {
   nr <- nrow(df)
   
-  df[["apex_bin2"]] <- df[["apex_ys2"]] <- df[["apex_xs2"]] <- 
-    df[["apex_ts2"]] <- df[["apex_ps2"]] <- 
-    df[["apex_bin1"]] <- df[["apex_ys1"]] <- df[["apex_xs1"]] <- 
-    df[["apex_ts1"]] <- df[["apex_ps1"]] <- 
-    df[["apex_scan_num"]] <- # df[["rngs_all"]] <- 
-    vector("list", nr)
+  df[["apex_ys"]] <- df[["apex_xs"]] <- df[["apex_ts"]] <- 
+    df[["apex_ps"]] <- df[["apex_scan_num"]] <- vector("list", nr)
   
   # replicate the lengths by the number of chimeric precursors
   rows2 <- which(df$ms_level == 2L)
   lens2 <- lengths(df$ms1_int[rows2])
   
-  df[["apex_scan_num"]][rows2] <- df[["apex_bin1"]][rows2] <- 
-    df[["apex_bin2"]][rows2] <- lapply(lens2, function (x) rep_len(0L, x))
+  df[["apex_scan_num"]][rows2] <- lapply(lens2, function (x) rep_len(0L, x))
   
-  df[["apex_ps1"]][rows2] <- df[["apex_ts1"]][rows2] <- # df[["rngs_all"]][rows2] <- 
-    df[["apex_xs1"]][rows2] <- df[["apex_ys1"]][rows2] <- 
-    df[["apex_ps2"]][rows2] <- df[["apex_ts2"]][rows2] <- 
-    df[["apex_xs2"]][rows2] <- df[["apex_ys2"]][rows2] <- 
+  df[["apex_ps"]][rows2] <- df[["apex_ts"]][rows2] <- 
+    df[["apex_xs"]][rows2] <- df[["apex_ys"]][rows2] <- 
     lapply(lens2, function (x) rep_len(list(NULL), x))
   
   df
@@ -959,187 +646,214 @@ init_lfq_df <- function (df)
 
 #' Find the apex under a mass column
 #'
-#' @param k The k-th column in \code{matx} or \code{maty}.
-#' @param xs_k The X values under \code{matx[, k]}.
-#' @param ys_k The Y values under \code{maty[, k]}.
-#' @param apexs_k All apexes scan numbers (\code{scan_apexs[[k]]}) under column
-#'   k.
-#' @param rts_k All apexes retention times (\code{scan_apexs[[k]]}) under column
-#'   k.
-#' @param rngs_k All apexes scan ranges (\code{scan_apexs[[k]]}) under column k.
-#' @param xm The experimental X value for tracing.
-#' @param scan The scan number of an MS2 event corresponding to the \code{xm}.
+#' @param xvs X values.
+#' @param yvs Y values.
+#' @param xbars Averaged m-over-zs under each gate.
+#' @param yints Peak areas under under each gate.
+#' @param aps All apexes scan numbers under a mass column.
+#' @param rts All apexes retention times under a mass column.
+#' @param rngs All apexes scan ranges under a column.
+#' @param xref The experimental X value for tracing.
+#' @param scan_ms1 The preceding MS1 scan number of an MS2 event at \code{xref}.
 #' @param ss All of the scan numbers.
 #' @param rngs The scan ranges of apexes under column k.
 #' @param step A step size.
 #' @param min_y The cut-off of intensity values.
 #' @importFrom fastmatch %fin%
-find_apex_scan <- function (k, xs_k, ys_k, apexs_k, rts_k, rngs_k, xm, scan, ss, 
-                            step = 6E-6, min_y = 0)
+find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref, 
+                            scan_ms1, ss, step = 6E-6, min_y = 0)
 {
-  aps  <- apexs_k
-  rtx  <- rts_k
-  rgx  <- rngs_k
-  lens <- lengths(rgx)
+  lens <- lengths(rngs)
   naps <- length(aps)
   
   # (1) first-pass spike removals: in case that a major peak is just out of 
   # the mass tolerance and the spike is within the bound
-  if (noks1 <- length(oks1 <- .Internal(which(lens > 10L)))) { # was 5L
+  if (noks1 <- length(oks1 <- .Internal(which(lens > 10L)))) {
+    if (!noks1) { return(NULL) }
+    
     if (noks1 < naps) {
-      aps  <- aps[oks1]
-      rtx  <- rtx[oks1]
-      rgx  <- rgx[oks1]
-      lens <- lens[oks1]
-      naps <- noks1
+      aps   <- aps[oks1]
+      rts   <- rts[oks1]
+      rngs  <- rngs[oks1]
+      xbars <- xbars[oks1]
+      yints <- yints[oks1]
+      lens  <- lens[oks1]
+      naps  <- noks1
     }
   }
-
-  # (2) subset apexs by MS1 mass tolerance
-  if (length(ok_xs  <- .Internal(which(abs(xs_k - xm) / xm <= step)))) {
+  
+  # (2) subset apexs by MS1 mass tolerance???
+  if (length(ok_xs  <- .Internal(which(abs(xvs / xref - 1) <= step)))) {
     if (noks2 <- length(ok_aps <- .Internal(which(aps %fin% ss[ok_xs])))) {
+      if (!noks2) { return(NULL) }
+      
       if (noks2 < naps) {
         aps  <- aps[ok_aps]
-        rtx  <- rtx[ok_aps]
-        rgx  <- rgx[ok_aps]
+        rts  <- rts[ok_aps]
+        rngs  <- rngs[ok_aps]
+        xbars <- xbars[ok_aps]
+        yints <- yints[ok_aps]
         lens <- lens[ok_aps]
         naps <- noks2
       }
     }
   }
-
-  # abs(xs_k[names(xs_k) %in% aps] - xm) / xm
   
   # (3) remove one-hit-wonders and spikes
-  if (noks3 <- length(oks3 <- .Internal(which(lens > 20L)))) { # was 15L
+  if (noks3 <- length(oks3 <- .Internal(which(lens > 20L)))) {
+    if (!noks3) { return(NULL) }
+    
     if (noks3 < naps) {
-      aps  <- aps[oks3]
-      rtx  <- rtx[oks3]
-      rgx  <- rgx[oks3]
-      lens <- lens[oks3]
-      naps <- noks3
+      aps   <- aps[oks3]
+      rts   <- rts[oks3]
+      rngs  <- rngs[oks3]
+      xbars <- xbars[oks3]
+      yints <- yints[oks3]
+      lens  <- lens[oks3]
+      naps  <- noks3
     }
   }
-  else if (noks4 <- length(oks4 <- .Internal(which(lens > 15L)))) { # was 10L
-    if (noks4 <- naps) {
-      aps  <- aps[oks4]
-      rtx  <- rtx[oks4]
-      rgx  <- rgx[oks4]
-      lens <- lens[oks4]
-      naps <- noks4
+  else if (noks4 <- length(oks4 <- .Internal(which(lens > 15L)))) {
+    if (!noks4) { return(NULL) }
+    
+    if (noks4 < naps) {
+      aps   <- aps[oks4]
+      rts   <- rts[oks4]
+      rngs  <- rngs[oks4]
+      xbars <- xbars[oks4]
+      yints <- yints[oks4]
+      lens  <- lens[oks4]
+      naps  <- noks4
     }
   }
   
   if (FALSE) {
-    if (length(lens) > 3L) {
+    if (length(lens) > 3L) { 
+      return(NULL)
+      
       oksn <- which_topx2(lens, 3L)
       aps  <- aps[oksn]
-      rtx  <- rtx[oksn]
-      rgx  <- rgx[oksn]
+      rts  <- rts[oksn]
+      rngs  <- rngs[oksn]
+      xbars <- xbars[oksn]
+      yints <- yints[oksn]
       lens <- lens[oksn]
     }
   }
-
+  
   # (4) subset apexes by distances between apex_scan and the triggering MS2 scan
-  ds <- abs(aps - scan)
+  ds <- abs(aps - scan_ms1)
   p1 <- .Internal(which.min(ds))
   d1 <- ds[[p1]]
-  px <- max(1L, p1 - 3L):min(length(ds), p1 + 3L)
+  px <- max(1L, p1 - 3L):min(naps, p1 + 3L)
   ds <- ds[px]
-
+  
   # at least one (the most centered) peak is within 3500 scans
   # arbitrary and may disable this; or a function of intensity
   if (d1 <= 3500) { # was 2500 too small; 3500 cause other problems, revisit this...
-    oks_d <- ds <= 3500
+    oks_d  <- .Internal(which(ds <= 3500))
+    noks_d <- length(oks_d)
     
-    if (!all(oks_d)) {
+    if (noks_d < naps) {
       px <- px[oks_d]
       ds <- ds[oks_d]
     }
   }
+  else {
+    noks_d <- length(px)
+  }
   
-  aps  <- aps[px]
-  rtx  <- rtx[px]
-  rgx  <- rgx[px]
-  lens <- lens[px]
-
+  if (!noks_d) { return(NULL) }
+  
+  if (noks_d < naps) {
+    aps   <- aps[px]
+    rts   <- rts[px]
+    rngs  <- rngs[px]
+    xbars <- xbars[px]
+    yints <- yints[px]
+    lens  <- lens[px]
+    naps  <- noks_d
+  }
+  
   # by intensity cut-off
-  oks <- .Internal(which(ss %fin% aps))
-  xs  <- xs_k[oks]
-  ys  <- ys_k[oks]
+  oks_y  <- .Internal(which(yints > min_y))
+  noks_y <- length(oks_y)
   
-  ok_ys  <- .Internal(which(ys >= min_y))
-  len_ys <- length(ok_ys)
+  if (!noks_y) { return(NULL) }
   
-  if (len_ys && len_ys < length(ys)) {
-    xs <- xs[ok_ys]
-    ys <- ys[ok_ys]
-    aps  <- aps[ok_ys]
-    ds   <- ds[ok_ys]
-    rgx  <- rgx[ok_ys]
-    lens <- lens[ok_ys]
+  if (noks_y < naps) {
+    aps   <- aps[oks_y]
+    rts   <- rts[oks_y]
+    rngs  <- rngs[oks_y]
+    xbars <- xbars[oks_y]
+    yints <- yints[oks_y]
+    lens  <- lens[oks_y]
+    naps  <- noks_y
+    
+    ds <- ds[oks_y]
   }
   
-  if (len_ys == 1) {
-    x1  <- xs[[1]]
-    y1  <- ys[[1]]
-    ap1 <- aps[[1]]
-    ssx <- ss[rgx[[1]]]
-    return(list(x = x1, y = y1, ap = ap1, from = ssx[[1]], 
-                to = ssx[[lens]], aps = ap1, xs = x1, ys = y1))
+  if (naps == 1L) {
+    x1   <- xbars[[1]]
+    y1   <- yints[[1]]
+    ap1  <- aps[[1]]
+    ssx  <- ss[rngs[[1]]]
+    len1 <- lens[[1]]
+    return(list(x = x1, y = y1, ap = ap1, from = ssx[[1]], to = ssx[[len1]], 
+                aps = ap1, rts = rts[[1]], xs = x1, ys = y1))
   }
-
+  
   # the closest may be a spike... 
   # look for more "regular" peak nearby...
   
   # ord <- .Internal(radixsort(na.last = TRUE, decreasing = FALSE, FALSE, TRUE, ds))
   # topa <- ds[[ord[[1]]]]
   topa <- .Internal(which.min(ds))
-  ya   <- ys[[topa]]
-  xa   <- xs[[topa]]
+  xa   <- xbars[[topa]]
+  ya   <- yints[[topa]]
   apa  <- aps[[topa]]
   da   <- ds[[topa]]
-  rga  <- rgx[[topa]]
+  rga  <- rngs[[topa]]
   ssa  <- ss[rga]
   lena <- lens[[topa]]
   # oka  <- apa %in% ssa # must be
-
-  topb <- .Internal(which.max(ys))
-  yb   <- ys[[topb]]
-  xb   <- xs[[topb]]
+  
+  topb <- .Internal(which.max(yints))
+  xb   <- xbars[[topb]]
+  yb   <- yints[[topb]]
   apb  <- aps[[topb]]
   db   <- ds[[topb]]
-  rgb  <- rgx[[topb]]
+  rgb  <- rngs[[topb]]
   ssb  <- ss[rgb]
   lenb <- lens[[topb]]
   # okb  <- apb %in% ssb # must be
-
+  
   if (topa == topb) {
     return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]], 
-                aps = aps, xs = xs, ys = ys))
+                aps = aps, rts = rts, xs = xbars, ys = yints))
   }
   
   # The trigger MS2 scan approximately within the scans of a MS1 peak profile
   if (FALSE) {
-    if (scan >= ssa[[1]] - 3L && scan <= ssa[[lena]] + 3L) {
+    if (scan_ms1 >= ssa[[1]] - 3L && scan_ms1 <= ssa[[lena]] + 3L) {
       return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]], 
-                  aps = aps, xs = xs, ys = ys))
+                  aps = aps, rts = rts, xs = xbars, ys = yints))
     }
     
-    if (scan >= ssb[[1]] - 3L && scan <= ssb[[lenb]] + 3L) {
+    if (scan_ms1 >= ssb[[1]] - 3L && scan_ms1 <= ssb[[lenb]] + 3L) {
       return(list(x = xb, y = yb, ap = apb, from = ssb[[1]], to = ssb[[lenb]], 
-                  aps = aps, xs = xs, ys = ys))
+                  aps = aps, rts = rts, xs = xbars, ys = yints))
     }
   }
-
+  
   # compare peak distances
   if (db > da + 200) {
     return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]], 
-                aps = aps, xs = xs, ys = ys))
+                aps = aps, rts = rts, xs = xbars, ys = yints))
   }
   else {
     return(list(x = xb, y = yb, ap = apb, from = ssb[[1]], to = ssb[[lenb]], 
-                aps = aps, xs = xs, ys = ys))
+                aps = aps, rts = rts, xs = xbars, ys = yints))
   }
 }
 

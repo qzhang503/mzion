@@ -12,7 +12,7 @@ traceXY(
   n_dia_scans = 4L,
   from = 200L,
   step = 8e-06,
-  reord = TRUE,
+  reord = FALSE,
   cleanup = FALSE,
   replace_ms1_by_apex = FALSE,
   y_perc = 0.01,
