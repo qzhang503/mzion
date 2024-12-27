@@ -223,8 +223,9 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
       max_scan_num = max_scan_num, 
       min_ret_time = min_ret_time, 
       max_ret_time = max_ret_time, 
-      ppm_ms1 = ppm_ms1_bin, # change arg name from ppm_ms1 to ppm_ms1_bin
-      ppm_ms2 = ppm_ms2_bin, # change arg name from ppm_ms2 to ppm_ms2_bin
+      tol_ms1 = ppm_ms1 * 1E-6, 
+      ppm_ms1_bin = ppm_ms1_bin, 
+      ppm_ms2_bin = ppm_ms2_bin, 
       tmt_reporter_lower = tmt_reporter_lower, 
       tmt_reporter_upper = tmt_reporter_upper, 
       exclude_reporter_region = exclude_reporter_region, 

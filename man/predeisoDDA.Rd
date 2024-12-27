@@ -8,8 +8,8 @@ predeisoDDA(
   filename = NULL,
   temp_dir = NULL,
   mzml_type = "raw",
-  ppm_ms1 = 10L,
-  ppm_ms2 = 10L,
+  ppm_ms1_bin = 10L,
+  ppm_ms2_bin = 10L,
   maxn_mdda_precurs = 3L,
   topn_ms2ions = 150L,
   n_mdda_flanks = 6L,
@@ -49,11 +49,9 @@ predeisoDDA(
 \item{mzml_type}{The type of peak lists. To trigger MS1 deisotoping at
 \code{mzml_type == "raw"} (MS1 X, y and Z are NA with Mzion).}
 
-\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
-default is 20.}
+\item{ppm_ms1_bin}{The three-bin MS1 ppm.}
 
-\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
-default is 20.}
+\item{ppm_ms2_bin}{The three-bin MS2 ppm.}
 
 \item{maxn_mdda_precurs}{Maximum number of precursors for consideration in a
 multi-precursor DDA scan. Note that at \code{maxn_mdda_precurs = 1}, it is

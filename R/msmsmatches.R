@@ -1724,7 +1724,7 @@ matchMS <- function (out_path = "~/mzion/my_project",
   ## Clean-ups
   # (raw_file etc. already mapped if `from_group_search`)
   if (!isTRUE(from_group_search <- dots$from_group_search)) {
-    df <- map_raw_n_scan(df, mgf_path)
+    df <- map_raw_n_scan(df = df, mgf_path = mgf_path)
   }
 
   df <- dplyr::mutate(
@@ -1815,9 +1815,10 @@ try_psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
     stop()
   }
   
-  if (n_peps > 1000000L && n_prots > 100000L)
+  if (n_peps > 1000000L && n_prots > 100000L) {
     df <- NA
-  else
+  }
+  else {
     df <- tryCatch(
       psmC2Q(df,
              out_path = out_path,
@@ -1825,6 +1826,7 @@ try_psmC2Q <- function (df = NULL, out_path = NULL, fdr_type = "protein",
              combine_tier_three = combine_tier_three, 
              max_n_prots = max_n_prots),
       error = function(e) NA)
+  }
 
   if (length(df) == 1L && is.na(df)) {
     message("Retry with a new R session: \n\n",
@@ -2325,14 +2327,10 @@ map_raw_n_scan <- function (df, mgf_path)
     oks  <- fastmatch::fmatch(
       paste0(df$raw_file, ".", df$pep_scan_num), 
       paste0(apex$raw_file, ".", apex$scan_num))
-    apex <- apex[, c("orig_scan", "apex_scan_num")]
-    df   <- dplyr::bind_cols(df, apex[oks, ])
-
-    df <- df |>
+    df   <- dplyr::bind_cols(df, apex[oks, c("orig_scan", "apex_scan_num")]) |>
       reloc_col_after("orig_scan", "pep_scan_num") |>
       reloc_col_after("apex_scan_num", "orig_scan") |>
       dplyr::rename(pep_orig_scan = orig_scan, pep_apex_scan = apex_scan_num)
-
     rm(list = c("oks", "apex"))
   }
 
@@ -2398,14 +2396,14 @@ map_raw_n_scan <- function (df, mgf_path)
       ms1s <- qs::qread(file.path(mgf_path, files_ms1s[[i]]))
       dfi  <- dfs[[i]]
       api  <- dfi$pep_apex_scan
-      pos  <- fastmatch::fmatch(api, ms1s$scan_num) # based on MS1 scan_nums
+      pos  <- fastmatch::fmatch(api, as.integer(ms1s$orig_scan))
       dfi$pep_apex_ret <- ms1s$ret_time[pos]
 
       if (length(rows <- which(api == 0L | is.na(api)))) {
         dfi$pep_apex_scan[rows] <- NA_integer_
       }
       
-      # pep_apex_scan were "borrowed" from MS2 scans or 0L
+      # pep_apex_scan "borrowed" from MS2 scans or 0L
       if (FALSE && any(nas <- is.na(pos))) {
         dfx <- dfi[nas, ]
         dfx$pep_apex_ret <- dfx$pep_ret_range

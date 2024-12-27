@@ -2271,11 +2271,17 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   for (i in seq_along(all_lens)) {
     leni <- all_lens[[i]]
     is_long_len <- leni >= 35L
-
+    
     if (is_long_len) {
       probs_leading <- unlist(prob_cos[max((i-3), 1):max((i-1), 1)])
       probs_leading <- probs_leading[!is.infinite(probs_leading)]
-      baseline_sco  <- median(-log10(probs_leading) * fct_score, na.rm = TRUE)
+      
+      if (all(is.na(probs_leading))) {
+        baseline_sco <- 0
+      }
+      else {
+        baseline_sco <- median(-log10(probs_leading) * fct_score, na.rm = TRUE)
+      }
     }
     else {
       baseline_sco <- 0

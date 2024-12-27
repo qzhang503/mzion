@@ -14,10 +14,14 @@ updateMS1Int(
   row_sta,
   row_end,
   from = 200L,
-  step = 6e-06,
+  step_tr = 6e-06,
+  tol_ms1 = 1e-05,
   min_y = 0,
   yco = 500,
-  n_dia_scans = 6L
+  n_dia_scans = 6L,
+  min_n1 = 10L,
+  min_n2 = 20L,
+  min_n3 = 15L
 )
 }
 \arguments{
@@ -39,7 +43,9 @@ updateMS1Int(
 
 \item{from}{The starting point for mass binning.}
 
-\item{step}{A step size for mass binning.}
+\item{step_tr}{A step size for mass binning.}
+
+\item{tol_ms1}{The tolerance in MS1 errors \code{ppm_ms1 * 1E-6}.}
 
 \item{min_y}{The cut-off of intensity values.}
 
@@ -48,6 +54,15 @@ updateMS1Int(
 \item{n_dia_scans}{Allowance in the number of adjacent MS scans for
 constructing a peak profile and thus for determining the apex scan number
 of an moverz value along LC.}
+
+\item{min_n1}{The first cut-off of a minimum number of points across an MS1
+peak.}
+
+\item{min_n2}{The second cut-off of a minimum number of points across an MS1
+peak.}
+
+\item{min_n3}{The third cut-off of a minimum number of points across an MS1
+peak.}
 }
 \description{
 Including forward and backward looking.

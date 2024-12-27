@@ -25,8 +25,9 @@ readmzML(
   max_scan_num = .Machine$integer.max,
   min_ret_time = 0,
   max_ret_time = Inf,
-  ppm_ms1 = 10L,
-  ppm_ms2 = 10L,
+  tol_ms1 = 2e-05,
+  ppm_ms1_bin = 10L,
+  ppm_ms2_bin = 10L,
   tmt_reporter_lower = 126.1,
   tmt_reporter_upper = 135.2,
   exclude_reporter_region = FALSE,
@@ -120,11 +121,11 @@ seconds for considerations. The default is 0.}
 considerations. The default is \code{Inf}. At a negative value, e.g. -800,
 data in the last 800s of LC retention time will be excluded.}
 
-\item{ppm_ms1}{A positive integer; the mass tolerance of MS1 species. The
-default is 20.}
+\item{tol_ms1}{The (original) MS1 tolerance (\code{20 * 1E-6}).}
 
-\item{ppm_ms2}{A positive integer; the mass tolerance of MS2 species. The
-default is 20.}
+\item{ppm_ms1_bin}{The three-bin MS1 ppm.}
+
+\item{ppm_ms2_bin}{The three-bin MS2 ppm.}
 
 \item{tmt_reporter_lower}{The lower bound of the region of TMT reporter ions.
 The default is \eqn{126.1}.}

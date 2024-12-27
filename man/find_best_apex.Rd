@@ -15,8 +15,11 @@ find_best_apex(
   xref,
   scan_ms1,
   ss,
-  step = 6e-06,
-  min_y = 0
+  step_tr = 6e-06,
+  min_y = 0,
+  min_n1 = 10L,
+  min_n2 = 20L,
+  min_n3 = 15L
 )
 }
 \arguments{
@@ -40,7 +43,7 @@ find_best_apex(
 
 \item{ss}{All of the scan numbers.}
 
-\item{step}{A step size.}
+\item{step_tr}{A step size.}
 
 \item{min_y}{The cut-off of intensity values.}
 }

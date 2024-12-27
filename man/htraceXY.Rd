@@ -2,7 +2,7 @@
 % Please edit documentation in R/lfq.R
 \name{htraceXY}
 \alias{htraceXY}
-\title{Helper of \link{traceXY}.}
+\title{Helper of MS1 tracing.}
 \usage{
 htraceXY(
   xs,
@@ -15,11 +15,15 @@ htraceXY(
   out_name = NULL,
   n_dia_scans = 6L,
   from = 200L,
-  step = 5e-06,
+  step_tr = 6e-06,
+  tol_ms1 = 1e-05,
   y_perc = 0.01,
   yco = 500,
-  look_back = TRUE,
   min_y = 0,
+  min_n1 = 10L,
+  min_n2 = 20L,
+  min_n3 = 15L,
+  sum_y = FALSE,
   path_ms1 = NULL,
   out_cols = c("ms_level", "ms1_moverz", "ms1_int", "orig_scan", "apex_scan_num",
     "apex_xs", "apex_ys", "apex_ps", "apex_ts")
@@ -46,22 +50,34 @@ htraceXY(
 constructing a peak profile and thus for determining the apex scan number
 of an moverz value along LC.}
 
-\item{from}{The starting point for mass binning.}
+\item{from}{The starting point in mass binning.}
 
-\item{step}{The step size for mass binning.}
+\item{step_tr}{The bin size of MS1 tracing}
+
+\item{tol_ms1}{The tolerance in MS1 errors \code{ppm_ms1 * 1E-6}.}
 
 \item{y_perc}{The cut-off in intensity values in relative to the base peak.}
 
 \item{yco}{The cut-off in y values.}
 
-\item{look_back}{Logical; look up the preceding MS bin or not.}
-
 \item{min_y}{The cut-off of intensity values.}
+
+\item{min_n1}{The first cut-off of a minimum number of points across an MS1
+peak.}
+
+\item{min_n2}{The second cut-off of a minimum number of points across an MS1
+peak.}
+
+\item{min_n3}{The third cut-off of a minimum number of points across an MS1
+peak.}
+
+\item{sum_y}{Logical; sum Y values at near the same X values or not. Mostly
+FALSE with Thermo's data.}
 
 \item{path_ms1}{The path for saving the output of MS1 data.}
 
 \item{out_cols}{The output column keys.}
 }
 \description{
-Helper of \link{traceXY}.
+Helper of MS1 tracing.
 }
