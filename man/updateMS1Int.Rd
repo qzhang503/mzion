@@ -17,7 +17,8 @@ updateMS1Int(
   step_tr = 6e-06,
   tol_ms1 = 1e-05,
   min_y = 0,
-  yco = 500,
+  yco = 100,
+  ytot_co = 2e+06,
   n_dia_scans = 6L,
   min_n1 = 10L,
   min_n2 = 20L,
@@ -50,6 +51,8 @@ updateMS1Int(
 \item{min_y}{The cut-off of intensity values.}
 
 \item{yco}{An intensity cut-off.}
+
+\item{ytot_co}{The cut-off in y area.}
 
 \item{n_dia_scans}{Allowance in the number of adjacent MS scans for
 constructing a peak profile and thus for determining the apex scan number

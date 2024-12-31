@@ -20,10 +20,11 @@ htraceXY(
   y_perc = 0.01,
   yco = 500,
   min_y = 0,
+  ytot_co = 2e+06,
+  sum_y = FALSE,
   min_n1 = 10L,
   min_n2 = 20L,
   min_n3 = 15L,
-  sum_y = FALSE,
   path_ms1 = NULL,
   out_cols = c("ms_level", "ms1_moverz", "ms1_int", "orig_scan", "apex_scan_num",
     "apex_xs", "apex_ys", "apex_ps", "apex_ts")
@@ -62,6 +63,11 @@ of an moverz value along LC.}
 
 \item{min_y}{The cut-off of intensity values.}
 
+\item{ytot_co}{The cut-off in y area.}
+
+\item{sum_y}{Logical; sum Y values at near the same X values or not. Mostly
+FALSE with Thermo's data.}
+
 \item{min_n1}{The first cut-off of a minimum number of points across an MS1
 peak.}
 
@@ -70,9 +76,6 @@ peak.}
 
 \item{min_n3}{The third cut-off of a minimum number of points across an MS1
 peak.}
-
-\item{sum_y}{Logical; sum Y values at near the same X values or not. Mostly
-FALSE with Thermo's data.}
 
 \item{path_ms1}{The path for saving the output of MS1 data.}
 

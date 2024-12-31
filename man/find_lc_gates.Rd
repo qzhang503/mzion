@@ -9,10 +9,10 @@ find_lc_gates(
   xs = NULL,
   ts = NULL,
   n_dia_scans = 6L,
-  step = 5e-06,
   y_rpl = 2,
   max_perc = 0.05,
-  min_n = 5L,
+  min_n = 10L,
+  ytot_co = 2e+06,
   max_n = 200L
 )
 }
@@ -34,6 +34,8 @@ along LC.}
 \item{max_perc}{The maximum percentage of baseline levels.}
 
 \item{min_n}{The minimum number of points across a peak for consideration.}
+
+\item{ytot_co}{The cut-off in y area.}
 
 \item{max_n}{The maximum number of points across a peak for consideration.}
 }

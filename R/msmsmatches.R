@@ -749,7 +749,7 @@ matchMS <- function (out_path = "~/mzion/my_project",
                      ppm_reporters = 10L,
                      quant = c("none", "tmt6", "tmt10", "tmt11", "tmt16", "tmt18"),
                      use_lfq_intensity = TRUE, 
-                     ppm_ms1trace = 6L, 
+                     ppm_ms1trace = 10L, 
                      
                      target_fdr = 0.01,
                      fdr_type = c("protein", "peptide", "psm"),

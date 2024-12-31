@@ -178,6 +178,7 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
 #' @param step_tr The bin size of MS1 tracing
 #' @param tol_ms1 The tolerance in MS1 errors \code{ppm_ms1 * 1E-6}.
 #' @param yco The cut-off in y values.
+#' @param ytot_co The cut-off in y area.
 #' @param y_perc The cut-off in intensity values in relative to the base peak.
 #' @param min_y The cut-off of intensity values.
 #' @param min_n1 The first cut-off of a minimum number of points across an MS1
@@ -195,8 +196,9 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
 htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L, 
                       out_name = NULL, n_dia_scans = 6L, from = 200L, 
                       step_tr = 6E-6, tol_ms1 = 1E-5, y_perc = .01, yco = 500, 
-                      min_y = 0, min_n1 = 10L, min_n2 = 20L, min_n3 = 15L, 
-                      sum_y = FALSE, path_ms1 = NULL, 
+                      min_y = 0, ytot_co = 2E6, sum_y = FALSE, 
+                      min_n1 = 10L, min_n2 = 20L, min_n3 = 15L, 
+                      path_ms1 = NULL, 
                       out_cols = 
                         c("ms_level", "ms1_moverz", "ms1_int", "orig_scan", 
                           "apex_scan_num", "apex_xs", "apex_ys", "apex_ps", 
@@ -296,7 +298,8 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
   args <- list(
     df = df, matx = matx, maty = maty, unv = unv, ss = ss, ts = ts, 
     row_sta = sta, row_end = end, from = from, step_tr = step_tr, 
-    tol_ms1 = tol_ms1, min_y = min_y, yco = yco, n_dia_scans = n_dia_scans, 
+    tol_ms1 = tol_ms1, min_y = min_y, yco = yco, ytot_co = ytot_co, 
+    n_dia_scans = n_dia_scans, 
     min_n1 = min_n1, min_n2 = min_n2, min_n3 = min_n3)
 
   df <- do.call(updateMS1Int, args)
@@ -328,6 +331,7 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
 #' @param from The starting point for mass binning.
 #' @param min_y The cut-off of intensity values.
 #' @param yco An intensity cut-off.
+#' @param ytot_co The cut-off in y area.
 #' @param min_n1 The first cut-off of a minimum number of points across an MS1
 #'   peak.
 #' @param min_n2 The second cut-off of a minimum number of points across an MS1
@@ -338,7 +342,7 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
 #' @importFrom fastmatch %fin%
 updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end, 
                           from = 200L, step_tr = 6E-6, tol_ms1 = 1E-5, 
-                          min_y = 0, yco = 500, n_dia_scans = 6L, 
+                          min_y = 0, yco = 100, ytot_co = 2E6, n_dia_scans = 6L, 
                           min_n1 = 10L, min_n2 = 20L, min_n3 = 15L)
   
 {
@@ -364,7 +368,7 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
     if (FALSE) {
       # look for penultimate scan number of psmQ.txt::pep_scan_num
       df$orig_scan[ms1_stas]
-      i <- 144
+      i <- 144; i <- 94; i <- 108
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       ms2rng <- ms2sta:ms2end
@@ -383,7 +387,7 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
     
     # by MS2 spectra
     for (j in 1:nrow(df2)) {
-      # j <- 5L
+      # j <- 5L; j <- 4L
       x1s  <- xs2[[j]] # MS1 masses associated with an MS2 scan
       nx   <- length(x1s) # nx > 1 at a chimeric spectrum
       if (!nx) { next }
@@ -429,14 +433,15 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
         }
 
         if (FALSE) {
-          data.frame(x = 1:nr, y = yvs) |>
+          data.frame(x = seq_along(yvs), y = yvs) |>
             ggplot2::ggplot() + 
             ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
                                   color = "gray", linewidth = .1)
         }
         
         gates <- 
-          find_lc_gates(xs = xvs, ys = yvs, ts = ts, n_dia_scans = n_dia_scans)
+          find_lc_gates(xs = xvs, ys = yvs, ts = ts, ytot_co = ytot_co, 
+                        n_dia_scans = n_dia_scans)
         
         if (is.null(gates)) {
           next
@@ -565,8 +570,9 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
   }
   
   # (2) all apexes are < MS1 mass tolerance, but subset further those < step_tr?
-  if (length(ok_xs  <- .Internal(which(abs(xvs / xref - 1) <= step_tr)))) {
+  if (FALSE && length(ok_xs  <- .Internal(which(abs(xvs / xref - 1) <= step_tr)))) {
     if (noks2 <- length(ok_aps <- .Internal(which(aps %fin% ss[ok_xs])))) {
+      # FALSE: allow large mass error which might be due to space charge effects
       if (FALSE) {
         if (!noks2) { return(NULL) }
         
@@ -718,6 +724,7 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
   
   # ord <- .Internal(radixsort(na.last = TRUE, decreasing = FALSE, FALSE, TRUE, ds))
   # topa <- ds[[ord[[1]]]]
+  
   topa <- .Internal(which.min(ds))
   xa   <- xbars[[topa]]
   ya   <- yints[[topa]]
@@ -725,7 +732,9 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
   da   <- ds[[topa]]
   rga  <- rngs[[topa]]
   ssa  <- ss[rga]
+  rta <- rts[[topa]]
   lena <- lens[[topa]]
+  
   # oka  <- apa %in% ssa # must be
   
   topb <- .Internal(which.max(yints))
@@ -735,9 +744,17 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
   db   <- ds[[topb]]
   rgb  <- rngs[[topb]]
   ssb  <- ss[rgb]
+  rtb <- rts[[topb]]
   lenb <- lens[[topb]]
+  # yvs[rgb]
   # okb  <- apb %in% ssb # must be
   
+  # for checking the continuum of values...
+  if (FALSE) {
+    ansa <- find_gate_edges(which(!is.na(yvs[rga])))
+    ansb <- find_gate_edges(which(!is.na(yvs[rgb])))
+  }
+
   if (topa == topb) {
     return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]], 
                 aps = aps, rts = rts, xs = xbars, ys = yints))
@@ -757,7 +774,7 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
   }
   
   # compare peak distances
-  if (db > da + 200) {
+  if (abs(rta - rtb) > 30) {
     return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]], 
                 aps = aps, rts = rts, xs = xbars, ys = yints))
   }

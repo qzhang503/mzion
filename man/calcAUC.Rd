@@ -7,7 +7,8 @@
 calcAUC(ys, ts)
 }
 \arguments{
-\item{ys}{Y values around an LC peak. Should be no NA values in the sequence.}
+\item{ys}{Y values around an LC peak. Should contain no NA values in the
+sequence.}
 
 \item{ts}{Time values corresponding to \code{ys}.}
 }

@@ -1407,16 +1407,18 @@ deisoDDA <- function (filename = NULL,
     cols  <- c("ms_level", "ms1_moverz", "ms1_int", "orig_scan")
     
     if (is_pasef) {
-      min_y  <- 500
-      min_n1 <- 10L
-      min_n2 <- 20L
-      min_n3 <- 15L
+      min_y   <- 500
+      min_n1  <- 10L
+      min_n2  <- 20L
+      min_n3  <- 15L
+      ytot_co <- 1000 # not yet optimized
     }
     else {
-      min_y  <- 2e6
-      min_n1 <- 10L
-      min_n2 <- 20L
-      min_n3 <- 15L
+      min_y   <- 2e6
+      min_n1  <- 10L
+      min_n2  <- 20L
+      min_n3  <- 15L
+      ytot_co <- 2e6
     }
 
     if (TRUE) {
@@ -1433,7 +1435,7 @@ deisoDDA <- function (filename = NULL,
         out_name = fn_traces, 
         MoreArgs = list(
           n_dia_scans = n_dia_scans, from = min_mass, step_tr = step_tr, 
-          tol_ms1 = tol_ms1, y_perc = y_perc, yco = yco, 
+          tol_ms1 = tol_ms1, y_perc = y_perc, yco = yco, ytot_co = ytot_co, 
           min_y = min_y, min_n1 = min_n1, min_n2 = min_n2, min_n3 = min_n3, 
           path_ms1 = path_ms1
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
@@ -1455,7 +1457,7 @@ deisoDDA <- function (filename = NULL,
           df = vdf[[i]], gap_bf = gaps_bf[[i]], gap_af = gaps_af[[i]], 
           out_name = fn_traces[[i]], n_dia_scans = n_dia_scans, 
           from = min_mass, step_tr = step_tr, tol_ms1 = tol_ms1, 
-          y_perc = y_perc, yco = yco, min_y = min_y, 
+          y_perc = y_perc, yco = yco, min_y = min_y, ytot_co = ytot_co, 
           min_n1 = min_n1, min_n2 = min_n2, min_n3 = min_n3, 
           path_ms1 = path_ms1)
       }
@@ -3913,6 +3915,7 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
 #' @param y_rpl A replacement value of intensities.
+#' @param ytot_co The cut-off in y area.
 #' @param max_perc The maximum percentage of baseline levels.
 #' @param min_n The minimum number of points across a peak for consideration.
 #' @param max_n The maximum number of points across a peak for consideration.
@@ -3986,8 +3989,8 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #' @importFrom fastmatch %fin%
 #' @return Scan indexes of LC peaks.
 find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L, 
-                           step = 5e-6, y_rpl = 2.0, max_perc = .05, min_n = 5L, 
-                           max_n = 200L)
+                           y_rpl = 2.0, max_perc = .05, min_n = 10L, 
+                           ytot_co = 2E6, max_n = 200L)
 {
   # if (min_n <= 1L) { stop("Choose a value of `min_n` greater one.") }
   # if (n_dia_scans <= 0L) return(.Internal(which(ys > 0))) # should not occur
@@ -4018,27 +4021,17 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
   ups  <- edges[["ups"]]
   dns  <- edges[["dns"]]
   
-  if (length(ups) == 1L) {
-    rngs <- list(ups:dns)
+  rngs <- if (length(ups) == 1L) {
+    list(ups:dns)
   }
   else {
-    rngs <- mapply(`:`, ups, dns, SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    mapply(`:`, ups, dns, SIMPLIFY = FALSE, USE.NAMES = FALSE)
   }
   
   # include or exclude counts of `y_rpl` replacement
   lens <- lengths(rngs)
-  lenx <- lapply(rngs, function (rng) sum(ys[ioks[rng]] > ymax * .02))
-  # bads <- .Internal(which(lenx < min_n | lenx > max_n)) # major peaks may be excluded
-  bads <- .Internal(which(lenx < min_n))
+  yco  <- ymax * .02
   
-  if (length(bads)) {
-    ups  <- ups[-bads]
-    dns  <- dns[-bads]
-    rngs <- rngs[-bads]
-    lens <- lens[-bads]
-    # lenx <- lenx[-bads]
-  }
-
   if (!(nps  <- length(ups))) {
     return(NULL)
   }
@@ -4049,28 +4042,32 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
     rngi <- rngs[[i]]
     ri   <- ioks[rngi] # indexes in relative to ys
     lenr <- lens[[i]]
+    ysi  <- ys[ri]
+    ny   <- sum(ysi > yco)
+    ny2  <- sum(ysi > y_rpl)
     
+    if (ny < min_n || ny2 < .7 * lenr || # or ny?
+        is_partial_peak(ysi, width = 200L, min_p = 10L)) {
+      next
+    }
+
     if (FALSE) {
-      data.frame(x = ri, y = ys[ri]) |>
+      data.frame(x = ri, y = ysi) |>
         ggplot2::ggplot() + 
         ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
                               color = "gray", linewidth = .1)
     }
     
-    if (is_partial_peak(ys[ri], width = 200L, min_p = 10L)) {
-      next
-    }
-
     if (lenr <= 60L) {
       stas[[i]] <- ri[[1]] # the starting index of gate-i in relative to ys
       ends[[i]] <- ri[lenr]
     }
     else {
       r_first <- ri[[1]]
-      # z <- (seq_along(ys[ri]) + r_first); plot(ys[ri] ~ z)
+      # z <- (seq_along(ysi) + r_first); plot(ysi ~ z)
       perc <- min(ymin / ymax, max_perc)
       ans  <- lapply(c(perc, .06 * 1:10 + perc), find_lc_gates2, 
-                     ys = ys[ri], sta = r_first, n_dia_scans = n_dia_scans, 
+                     ys = ysi, sta = r_first, n_dia_scans = n_dia_scans, 
                      y_rpl = y_rpl)
       ans_stas <- lapply(ans, `[[`, "stas")
       n_stas   <- lengths(ans_stas) # can be all zeros
@@ -4123,24 +4120,14 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
   }
   
   # if (any(lengths(stas) > 1L)) {}
-  # vector or list; Null stas and ends also removed
+  # vector or list; NULL stas and ends also removed
   stas <- unlist(stas, recursive = FALSE, use.names = FALSE)
   ends <- unlist(ends, recursive = FALSE, use.names = FALSE)
-
-  # bads  <- which(lengths(stas) == 0L)
-  # nbads <- length(bads)
-  nps2  <- length(stas)
+  nps2 <- length(stas)
   
   if (!nps2) {
     return(NULL)
   }
-  
-  # if (nbads == nps2) { return(NULL) }
-  # if (nbads) {
-  #   stas <- stas[-bads]
-  #   ends <- ends[-bads]
-  #   nps2 <- nps2 - nbads
-  # }
   
   yints  <- vector("numeric", nps2)
   xapex  <- xstas <- vector("integer", nps2)
@@ -4161,9 +4148,9 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
       xstas[[i]] <- si
       ranges[[i]] <- ixi
     }
-    else {
-      # ranges[[i]] <- 0L
-    }
+    # else {
+    #   ranges[[i]] <- 0L
+    # }
   }
   
   ## outputs
@@ -4173,7 +4160,7 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
   rout  <- ranges
   # xstas <- xstas
 
-  ioks <- .Internal(which(apexs > 0L))
+  ioks <- .Internal(which(apexs > 0L)) #  & yout > ytot_co
   noks <- length(ioks)
   
   if (!noks) {
@@ -4340,8 +4327,9 @@ find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0,
 
 
 #' Calculate area under a curve
-#' 
-#' @param ys Y values around an LC peak. Should be no NA values in the sequence.
+#'
+#' @param ys Y values around an LC peak. Should contain no NA values in the
+#'   sequence.
 #' @param ts Time values corresponding to \code{ys}.
 calcAUC <- function (ys, ts)
 {
@@ -4352,7 +4340,9 @@ calcAUC <- function (ys, ts)
   tot  <- csum[[len]]
   mval <- tot / 2
   imed <- .Internal(which(csum >= mval))[[1]]
-  idx  <- if (abs(imax - imed) > 3) imed else imax
+  idx  <- if (abs(imax - imed) > 3L) { imed } else {imax }
+  
+  return(list(area = tot, idx = idx))
 
   # calculate peak area (may or may not use `tot`)
   oks <- .Internal(which(ys >= ys[[imax]] * .03))
