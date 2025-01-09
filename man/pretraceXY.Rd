@@ -4,7 +4,7 @@
 \alias{pretraceXY}
 \title{Splits \code{df} for parallel tracing.}
 \usage{
-pretraceXY(df, from = 200L, step = 1e-05, n_chunks = 4L, gap = 256L)
+pretraceXY(df, from = 200L, step = 1e-05, rt_gap = 500L, rt_tol = 180)
 }
 \arguments{
 \item{df}{A data frame of staggering MS1 and MS2 entries.}
@@ -13,14 +13,19 @@ pretraceXY(df, from = 200L, step = 1e-05, n_chunks = 4L, gap = 256L)
 
 \item{step}{The step size for mass binning.}
 
-\item{n_chunks}{The number of chunks.}
+\item{rt_gap}{An approximate gap size for forward and backward looking of
+precursors in a +/-3-min retention times. The argument is for fast
+subsetting without looking up the entire sequence. Note that at the early
+retention times of LC, there may be many more MS1 scans and thus a
+\code{gap = 500} may encompassing a narrower retention window (e.g. 2-min).
+This may not be critical since there are often fewer features in early RT.}
 
-\item{gap}{A gap size for forward and backward looking of precursors.}
+\item{rt_tol}{The tolerance in retention times for m-over-zs looking up.}
 }
 \value{
-dfs[[i]]:a chunk of MS1 and MS2 data (no bracketing scans); 
-df1s[[i]]: the reference MS1 data with leading and trailing scans; 
-gaps[[i]]: the number of bracketing MS1 and MS2 scans between chunks.
+dfs[[i]]:a chunk of MS1 and MS2 data (no bracketing scans);
+  df1s[[i]]: the reference MS1 data with leading and trailing scans;
+  gaps[[i]]: the number of bracketing MS1 and MS2 scans between chunks.
 }
 \description{
 Splits \code{df} for parallel tracing.

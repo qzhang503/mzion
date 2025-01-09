@@ -9,10 +9,11 @@ find_lc_gates(
   xs = NULL,
   ts = NULL,
   n_dia_scans = 6L,
+  yco = 100,
   y_rpl = 2,
   max_perc = 0.05,
   min_n = 10L,
-  ytot_co = 2e+06,
+  ytot_co = 2e+05,
   max_n = 200L
 )
 }
@@ -29,13 +30,15 @@ LC.}
 profile and thus for determining the apex scan number of an moverz value
 along LC.}
 
+\item{yco}{A cut-off in intensity (Y) values.}
+
 \item{y_rpl}{A replacement value of intensities.}
 
 \item{max_perc}{The maximum percentage of baseline levels.}
 
 \item{min_n}{The minimum number of points across a peak for consideration.}
 
-\item{ytot_co}{The cut-off in y area.}
+\item{ytot_co}{A more permissive cut-off in peak area for finding all peaks.}
 
 \item{max_n}{The maximum number of points across a peak for consideration.}
 }

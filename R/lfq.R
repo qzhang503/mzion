@@ -4,41 +4,43 @@
 #'
 #' @param xs Vectors of MS1-X values.
 #' @param ys Vectors of MS1-Y values.
+#' @param ts Vectors of MS1 retention times.
 #' @param ms1s Vectors of MS1 m/z values that are linked to the mono-isotopic
 #'   DDA-MS2 space.
 #' @param from The starting m/z value for calculating bin indexes.
 #' @param step The size of bins.
-#' @param gap The gap of MS1 scans.
+#' @param rt_tol The tolerance in retention times for m-over-zs looking up.
+#' @param rt_gap An approximate gap size for forward and backward looking of
+#'   precursors in a +/-3-min retention times. The argument is for fast
+#'   subsetting without looking up the entire sequence. Note that at the early
+#'   retention times of LC, there may be many more MS1 scans and thus a
+#'   \code{gap = 500} may encompassing a narrower retention window (e.g. 2-min).
+#'   This may not be critical since there are often fewer features in early RT.
 #' @importFrom fastmatch %fin%
-subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
+subMSfull <- function (xs, ys, ts, ms1s, from = 200L, step = 1E-5, 
+                       rt_gap = 500L, rt_tol = 180)
 {
   lens <- lengths(xs)
   len  <- length(xs)
   yout <- xout <- vector("list", len)
-
+  
   # for each xi, keeps entries found in ms1s.
-  if (gap >= len) {
+  if (rt_gap >= len) {
     ms1s <- .Internal(unlist(ms1s, recursive = FALSE, use.names = FALSE))
     ms1s <- index_mz(ms1s, from, step)
     ms1s <- sort(unique(ms1s))
-
+    
     for (i in 1:len) {
       xi <- xs[[i]]
       li <- lens[[i]]
-      if (!li) next
+      if (!li) { next }
       
       ix  <- index_mz(xi, from, step)
       ps0 <- fastmatch::fmatch(ix, ms1s)
       ps1 <- fastmatch::fmatch(ix + 1L, ms1s)
       ps2 <- fastmatch::fmatch(ix - 1L, ms1s)
-      i0  <- .Internal(which(!is.na(ps0)))
-      i1  <- .Internal(which(!is.na(ps1)))
-      i2  <- .Internal(which(!is.na(ps2)))
-      
-      i1 <- i1[!i1 %fin% i0]
-      i2 <- i2[!(i2 %fin% i0 | i2 %fin% i1)]
-      i012 <- c(i0, i1, i2)
-      i012 <- sort(i012)
+
+      i012 <- .Internal(which((!is.na(ps0)) | (!is.na(ps1)) | (!is.na(ps2))))
       xout[[i]] <- xi[i012]
       yout[[i]] <- ys[[i]][i012]
     }
@@ -47,12 +49,25 @@ subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
     for (i in 1:len) {
       xi <- xs[[i]]
       li <- lens[[i]]
-      if (!li) next
-      sta <- max(1, i - gap)
-      end <- min(i + gap, len)
+      if (!li) { next }
+      
+      ti <- ts[[i]]
+      ### slow
+      # rows <- which(ts >= ti - rt_tol & ts <= ti + rt_tol)
+      # sta <- rows[[1]]
+      # end <- rows[[length(rows)]]
+      ### 
+      tx   <- ts[max(1L, i - rt_gap):min(len, i + rt_gap)]
+      rows <- which(tx >= ti - rt_tol & tx <= ti + rt_tol)
+      off  <- max(i - rt_gap - 1L, 0L)
+      sta  <- rows[[1]] + off
+      end  <- rows[[length(rows)]] + off
+      # sta <- max(1, i - rt_gap)
+      # end <- min(i + rt_gap, len)
+
       # the possible universe of mono-isotopic MS1 m/z values over a range
-      ms1s_sub <- .Internal(unlist(ms1s[sta:end], recursive = FALSE, 
-                                   use.names = FALSE))
+      ms1s_sub <- 
+        .Internal(unlist(ms1s[sta:end], recursive = FALSE, use.names = FALSE))
       ms1s_sub <- index_mz(ms1s_sub, from, step)
       ms1s_sub <- sort(unique(ms1s_sub))
       
@@ -60,34 +75,28 @@ subMSfull <- function (xs, ys, ms1s, from = 200L, step = 1E-5, gap = 256L)
       ps0 <- fastmatch::fmatch(ix, ms1s_sub)
       ps1 <- fastmatch::fmatch(ix + 1L, ms1s_sub)
       ps2 <- fastmatch::fmatch(ix - 1L, ms1s_sub)
-      i0  <- .Internal(which(!is.na(ps0)))
-      i1  <- .Internal(which(!is.na(ps1)))
-      i2  <- .Internal(which(!is.na(ps2)))
-      
-      i1 <- i1[!i1 %fin% i0]
-      i2 <- i2[!(i2 %fin% i0 | i2 %fin% i1)]
-      i012 <- c(i0, i1, i2)
-      i012 <- sort(i012) # logical(0) if all NA
+
+      i012 <- .Internal(which((!is.na(ps0)) | (!is.na(ps1)) | (!is.na(ps2))))
       xout[[i]] <- xi[i012]
       yout[[i]] <- ys[[i]][i012]
     }
   }
-
+  
   list(x = xout, y = yout)
 }
 
 
 #' Splits \code{df} for parallel tracing.
-#' 
+#'
 #' @param df A data frame of staggering MS1 and MS2 entries.
 #' @param from The starting point for mass binning.
 #' @param step The step size for mass binning.
-#' @param n_chunks The number of chunks.
-#' @param gap A gap size for forward and backward looking of precursors.
-#' @return dfs[[i]]:a chunk of MS1 and MS2 data (no bracketing scans); 
-#' df1s[[i]]: the reference MS1 data with leading and trailing scans; 
-#' gaps[[i]]: the number of bracketing MS1 and MS2 scans between chunks.
-pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
+#' @return dfs[[i]]:a chunk of MS1 and MS2 data (no bracketing scans);
+#'   df1s[[i]]: the reference MS1 data with leading and trailing scans;
+#'   gaps[[i]]: the number of bracketing MS1 and MS2 scans between chunks.
+#' @inheritParams subMSfull
+pretraceXY <- function (df, from = 200L, step = 1e-5, rt_gap = 500L, 
+                        rt_tol = 180)
 {
   # msx_moverzs at ms_level == 1L: full-spectrum MS1
   # msx_charges at ms_level == 1L are list(NULL)
@@ -99,23 +108,178 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
 
   # Remove non-essential (e.g., non mono-isotopic) MS1 x and y values
   ans <- subMSfull(
-    xs = df1$msx_moverzs, ys = df1$msx_ints, ms1s = df1$ms1_moverz, 
-    from = from, step = step, gap = gap)
+    xs = df1$msx_moverzs, ys = df1$msx_ints, ts = df1$ret_time,
+    ms1s = df1$ms1_moverz, from = from, step = step, 
+    rt_gap = rt_gap, rt_tol = rt_tol)
   # moverzs in ans$x are in an ascending order
   df1$msx_moverzs <- ans$x
   df1$msx_ints    <- ans$y
   rm(list = "ans")
 
   # at least two chunks
-  if (n_chunks <= 1L) {
-    n_chunks <- 2L
+  # if (n_chunks <= 1L) { n_chunks <- 2L }
+  df1$ms1_mass <- df1$ms1_moverz <- df1$ms1_int <- df1$ms1_charge <- NULL
+  
+  df1s <- sep_df1_byRTs(df1, col_rt = "ret_time")
+  # gaps <- attr(df1s, "gaps", exact = TRUE)
+  gaps_bf  <- attr(df1s, "gaps_bf",  exact = TRUE)
+  gaps_af  <- attr(df1s, "gaps_af",  exact = TRUE)
+  min_rts  <- attr(df1s, "min_rts",  exact = TRUE)
+  max_rts  <- attr(df1s, "max_rts",  exact = TRUE)
+  end1s    <- attr(df1s, "end1s",    exact = TRUE)
+  sta1s    <- attr(df1s, "sta1s",    exact = TRUE)
+  n_chunks <- attr(df1s, "n_chunks", exact = TRUE)
+  
+  ##  Splits `df` with bracketing entries
+  # values: row indexes in `df`, length == nrow(df1) at pad_nas = TRUE
+
+  if (n_chunks == 1L) {
+    return(
+      list(dfs = list(df), df1s = df1s, gaps_bf = gaps_bf, gaps_af = gaps_af, 
+           min_rts = min_rts, max_rts = max_rts))
+  }
+  
+  ms1_stas <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)$ms1_stas
+  cols     <- c("ms_level", "ms1_moverz", "ms1_int", "orig_scan")
+  ms1_stax <- vector("integer", n_chunks)
+  dfs      <- vector("list", n_chunks)
+  
+  for (i in 1:n_chunks) {
+    stai <- sta1s[[i]] # stai-th MS1 scan
+    ms1_stax[[i]] <- ms1_stas[stai] # the corresponding row index in df
   }
 
-  df1$ms1_mass <- df1$ms1_moverz <- df1$ms1_int <- df1$ms1_charge <- NULL
+  for (i in 1:(n_chunks - 1L)) {
+    rowx <- ms1_stax[[i]]:(ms1_stax[[i + 1L]] - 1L) # ms2_endx can be NA
+    dfs[[i]] <- df[rowx, cols] # both df1 and df2 data
+  }
+  dfs[[n_chunks]] <- df[ms1_stax[[n_chunks]]:nrow(df), cols]
+
+  # dfs[[i]]:  a chunk MS1 and MS2 data (no bracketing scans)
+  # df1s[[i]]: the reference MS1 data + leading and trailing MS1 scans; 
+  # gaps[[i]]: the number of bracketing MS1 and MS2 scans
+  list(dfs = dfs, df1s = df1s, gaps_bf = gaps_bf, gaps_af = gaps_af, # gaps = gaps, 
+       min_rts = min_rts, max_rts = max_rts)
+}
+
+
+#' Separate MS1 data
+#' 
+#' @param df1 A data frame of MS1.
+#' @param col_rt The key of retention time column.
+#' @param gap A gap size for forward and backward looking of precursors.
+sep_df1_byRTs <- function (df1, col_rt = "ret_time")
+{
+  # if (n_chunks <= 1L) { stop("Developer: need at least two chunks.") }
+  rts   <- df1[[col_rt]]
+  rtmin <- min(rts, na.rm = TRUE)
+  rtmax <- max(rts, na.rm = TRUE)
+  delta <- rtmax - rtmin
+  n_chunks <- ceiling(delta / 180)
+                      
+  if (n_chunks < 2L) {
+    df1s <- list(df1)
+    attr(df1s, "gaps_bf") <- 0L
+    attr(df1s, "gaps_af") <- 0L
+    attr(df1s, "min_rts") <- rtmin
+    attr(df1s, "max_rts") <- rtmax
+    attr(df1s, "end1s") <- nrow(df1)
+    attr(df1s, "sta1s") <- 1L
+    attr(df1s, "n_chunks") <- 1L
+    
+    return(df1s)
+  }
+  
+  width <- delta / n_chunks
+  brs   <- rtmin + width * seq_len(n_chunks - 1L)
+  df1s  <- vector("list", n_chunks)
+
+  for (i in 1:n_chunks) {
+    rows <- if (i == 1L) {
+      rts <= brs[[i]]
+    }
+    else if (i == n_chunks) {
+      rts > brs[[n_chunks - 1L]]
+    }
+    else {
+      rts > brs[[i-1]] & rts <= brs[[i]]
+    }
+    
+    df1s[[i]] <- df1[rows, ]
+  }
+  
+  min_rts <- unlist(lapply(df1s, function (x) x[[col_rt]][[1]]))
+  max_rts <- unlist(lapply(df1s, function (x) x[[col_rt]][[nrow(x)]]))
+  end1s   <- unname(cumsum(lapply(df1s, nrow)))
+  sta1s   <- c(1L, end1s[1:(n_chunks - 1L)] + 1L)
+  
+  # Adds 2-min gaps before and after
+  gaps_bf <- gaps_af <- vector("integer", n_chunks)
+  
+  for (i in seq_along(df1s)) {
+    dfi  <- df1s[[i]]
+    rti  <- dfi[[col_rt]]
+    tmin <- min_rts[[i]]
+    tmax <- max_rts[[i]]
+    nri  <- nrow(dfi)
+    
+    if (i < n_chunks) {
+      rows <- which(rti > tmax - 120)
+      gaps_af[[i]] <- nri - rows[[1]] + 1L
+    }
+    
+    if (i > 1L) {
+      rows <- which(rti <= tmin + 120)
+      gaps_bf[[i]] <- rows[[length(rows)]]
+    }
+  }
+  
+  df1s_bf <- df1s_af <- vector("list", n_chunks)
+  
+  for (i in 2:n_chunks) {
+    df1s_bf[[i]] <- head(df1s[[i]], gaps_bf[[i]])
+  }
+  
+  for (i in 1:(n_chunks - 1L)) {
+    df1s_af[[i]] <- tail(df1s[[i]], gaps_af[[i]])
+  }
+  
+  df1s[[1]] <- dplyr::bind_rows(df1s[[1]], df1s_bf[[2]])
+  df1s[[n_chunks]] <- dplyr::bind_rows(df1s_af[[n_chunks-1]], df1s[[n_chunks]])
+  
+  if (n_chunks > 2L) {
+    for (i in 2:(n_chunks-1L)) {
+      df1s[[i]] <- dplyr::bind_rows(df1s_af[[i-1]], df1s[[i]], df1s_bf[[i+1]])
+    }
+  }
+  
+  attr(df1s, "gaps_bf") <- gaps_bf
+  attr(df1s, "gaps_af") <- gaps_af
+  attr(df1s, "min_rts") <- min_rts
+  attr(df1s, "max_rts") <- max_rts
+  attr(df1s, "end1s") <- end1s
+  attr(df1s, "sta1s") <- sta1s
+  attr(df1s, "n_chunks") <- n_chunks
+  
+  df1s
+}
+
+
+#' Separate MS1 data
+#' 
+#' Depreciated.
+#' 
+#' @param df1 A data frame of MS1.
+#' @param col_rt The key of retention time column.
+#' @param gap A gap size for forward and backward looking of precursors.
+#' @param n_chunks The number of chunks.
+sep_df1_byRTs_v0 <- function (df1, col_rt = "ret_time", gap = 120, n_chunks = 4L)
+{
+  # df1$ms1_mass <- df1$ms1_moverz <- df1$ms1_int <- df1$ms1_charge <- NULL
   df1s    <- chunksplit(df1, n_chunks, type = "row")
-  min_rts <- unlist(lapply(df1s, function (x) x$ret_time[[1]]))
-  max_rts <- unlist(lapply(df1s, function (x) x$ret_time[[nrow(x)]]))
-  end1s   <- cumsum(lapply(df1s, nrow))
+  min_rts <- unlist(lapply(df1s, function (x) x[[col_rt]][[1]]))
+  max_rts <- unlist(lapply(df1s, function (x) x[[col_rt]][[nrow(x)]]))
+  end1s   <- unname(cumsum(lapply(df1s, nrow)))
   sta1s   <- c(1L, end1s[1:(n_chunks - 1L)] + 1L)
   
   # Adds 2-min gaps before and after
@@ -138,30 +302,14 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
       df1s[[i]] <- dplyr::bind_rows(df1s_af[[i-1]], df1s[[i]], df1s_bf[[i+1]])
     }
   }
-  rm(list = c("df1s_bf", "df1s_af", "df1"))
   
-  ##  Splits `df` with bracketing entries
-  # values: row indexes in `df`, length == nrow(df1) at pad_nas = TRUE
-  ms1_stas <- getMSrowIndexes(df$ms_level, pad_nas = TRUE)$ms1_stas
-  cols <- c("ms_level", "ms1_moverz", "ms1_int", "orig_scan") # orig_scan for troubleshooting
-  ms1_stax <- vector("integer", n_chunks)
-  dfs <- vector("list", n_chunks)
+  attr(df1s, "gaps") <- gaps
+  attr(df1s, "min_rts") <- min_rts
+  attr(df1s, "max_rts") <- max_rts
+  attr(df1s, "end1s") <- end1s
+  attr(df1s, "sta1s") <- sta1s
   
-  for (i in 1:n_chunks) {
-    stai <- sta1s[[i]] # stai-th MS1 scan
-    ms1_stax[[i]] <- ms1_stas[stai] # the corresponding row index in df
-  }
-
-  for (i in 1:(n_chunks - 1L)) {
-    rowx <- ms1_stax[[i]]:(ms1_stax[[i+1]] - 1L) # ms2_endx can be NA
-    dfs[[i]] <- df[rowx, cols] # both df1 and df2 data
-  }
-  dfs[[n_chunks]] <- df[ms1_stax[[n_chunks]]:nrow(df), cols]
-
-  # dfs[[i]]:  a chunk MS1 and MS2 data (no bracketing scans)
-  # df1s[[i]]: the reference MS1 data + leading and trailing MS1 scans; 
-  # gaps[[i]]: the number of bracketing MS1 and MS2 scans
-  list(dfs = dfs, df1s = df1s, gaps = gaps, min_rts = min_rts, max_rts = max_rts)
+  df1s
 }
 
 
@@ -178,9 +326,10 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
 #' @param step_tr The bin size of MS1 tracing
 #' @param tol_ms1 The tolerance in MS1 errors \code{ppm_ms1 * 1E-6}.
 #' @param yco The cut-off in y values.
-#' @param ytot_co The cut-off in y area.
+#' @param ytot_co A more permissive cut-off in peak area for finding all peaks.
 #' @param y_perc The cut-off in intensity values in relative to the base peak.
-#' @param min_y The cut-off of intensity values.
+#' @param min_y A more strict cut-off in peak area for finding tentatively the
+#'   best peak.
 #' @param min_n1 The first cut-off of a minimum number of points across an MS1
 #'   peak.
 #' @param min_n2 The second cut-off of a minimum number of points across an MS1
@@ -195,8 +344,8 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, n_chunks = 4L, gap = 256L)
 #' @inheritParams matchMS
 htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L, 
                       out_name = NULL, n_dia_scans = 6L, from = 200L, 
-                      step_tr = 6E-6, tol_ms1 = 1E-5, y_perc = .01, yco = 500, 
-                      min_y = 0, ytot_co = 2E6, sum_y = FALSE, 
+                      step_tr = 6E-6, tol_ms1 = 1E-5, y_perc = .01, yco = 100, 
+                      min_y = 2E6, ytot_co = 2E5, sum_y = FALSE, 
                       min_n1 = 10L, min_n2 = 20L, min_n3 = 15L, 
                       path_ms1 = NULL, 
                       out_cols = 
@@ -329,9 +478,9 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
 #' @param step_tr A step size for mass binning.
 #' @param tol_ms1 The tolerance in MS1 errors \code{ppm_ms1 * 1E-6}.
 #' @param from The starting point for mass binning.
-#' @param min_y The cut-off of intensity values.
-#' @param yco An intensity cut-off.
-#' @param ytot_co The cut-off in y area.
+#' @param min_y The cut-off in peak area.
+#' @param yco An intensity (Y-value) cut-off.
+#' @param ytot_co A more permissive cut-off in peak area for finding all peaks.
 #' @param min_n1 The first cut-off of a minimum number of points across an MS1
 #'   peak.
 #' @param min_n2 The second cut-off of a minimum number of points across an MS1
@@ -342,8 +491,9 @@ htraceXY <- function (xs, ys, ss, ts, df, gap_bf = 256L, gap_af = 256L,
 #' @importFrom fastmatch %fin%
 updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end, 
                           from = 200L, step_tr = 6E-6, tol_ms1 = 1E-5, 
-                          min_y = 0, yco = 100, ytot_co = 2E6, n_dia_scans = 6L, 
-                          min_n1 = 10L, min_n2 = 20L, min_n3 = 15L)
+                          min_y = 2E6, yco = 100, ytot_co = 2E5, 
+                          min_n1 = 10L, min_n2 = 20L, min_n3 = 15L, 
+                          n_dia_scans = 6L)
   
 {
   df <- init_lfq_cols(df)
@@ -368,13 +518,13 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
     if (FALSE) {
       # look for penultimate scan number of psmQ.txt::pep_scan_num
       df$orig_scan[ms1_stas]
-      i <- 144; i <- 94; i <- 108
+      i <- 481
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       ms2rng <- ms2sta:ms2end
       df2    <- df[ms2rng, ]
     }
-    
+
     # i = 176; which(rownames(matx) == 78900) - gap -> i
     ms2sta <- ms2_stas[[i]]
     if (is.na(ms2sta)) { next }
@@ -382,12 +532,13 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
     ms2rng <- ms2sta:ms2end
     df2    <- df[ms2rng, ]
     rowi   <- gap + i    # row number in matx, maty
-    scan   <- ss[[rowi]] # the MS1 scan number at the current row
+    sref   <- ss[[rowi]] # the MS1 scan number at the current row
+    tref   <- ts[rowi]
     xs2    <- df2[["ms1_moverz"]]
     
     # by MS2 spectra
     for (j in 1:nrow(df2)) {
-      # j <- 5L; j <- 4L
+      # j <- 12L
       x1s  <- xs2[[j]] # MS1 masses associated with an MS2 scan
       nx   <- length(x1s) # nx > 1 at a chimeric spectrum
       if (!nx) { next }
@@ -404,6 +555,7 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
         if (nkm == 1L) {
           xvs  <- matx[, km, drop = TRUE]
           yvs  <- maty[, km, drop = TRUE]
+          # later keep slightly greater than tol_ms1 but tangent entries...
           bads <- .Internal(which(abs(xvs / xref - 1.0) > tol_ms1))
           
           if (length(bads)) {
@@ -414,6 +566,7 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
         else {
           mx   <- matx[, km, drop = FALSE]
           my   <- maty[, km, drop = FALSE]
+          # later keep slightly greater than tol_ms1 but tangent entries...
           bads <- .Internal(which(abs(mx / xref - 1.0) > tol_ms1))
           
           if (length(bads)) {
@@ -426,41 +579,36 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
           xvs[is.nan(xvs)] <- NA_real_
         }
         
-        yvs[yvs < yco] <- NA_real_
-
-        if (!length(oks <- .Internal(which(!is.na(yvs))))) {
-          next
-        }
+        # yvs[yvs < yco] <- NA_real_
+        # if (!length(oks <- .Internal(which(!is.na(yvs))))) { next }
 
         if (FALSE) {
-          data.frame(x = seq_along(yvs), y = yvs) |>
+          data.frame(x = ts/60, y = yvs) |>
             ggplot2::ggplot() + 
             ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
                                   color = "gray", linewidth = .1)
         }
         
-        gates <- 
-          find_lc_gates(xs = xvs, ys = yvs, ts = ts, ytot_co = ytot_co, 
-                        n_dia_scans = n_dia_scans)
-        
+        gates <- find_lc_gates(
+          xs = xvs, ys = yvs, ts = ts, 
+          yco = yco, ytot_co = ytot_co, n_dia_scans = n_dia_scans)
+
         if (is.null(gates)) {
           next
         }
         
         rows  <- gates[["apex"]] # can be 0 with bad or unknown apexes
         # if (all(rows == 0L)) { next }
-        napx  <- gates[["ns"]]
         rngs  <- gates[["ranges"]]
         yints <- gates[["yints"]]
         
-        xbars <- lapply(rngs, function (rng) mean(xvs[rng], na.rm = TRUE))
-        xbars <- .Internal(unlist(xbars, recursive = FALSE, use.names = FALSE))
-        
+        # xbars <- lapply(rngs, function (rng) mean(xvs[rng], na.rm = TRUE))
+        # xbars <- .Internal(unlist(xbars, recursive = FALSE, use.names = FALSE))
         if (length(rows)) {
           ans <- find_best_apex(
-            xvs = xvs, yvs = yvs, xbars = xbars, yints = yints, 
-            aps = ss[rows], rts = ts[rows], 
-            rngs = rngs, xref = xref, scan_ms1 = scan, ss = ss, 
+            xvs = xvs, yvs = yvs, ss = ss, 
+            yints = yints, aps = ss[rows], rts = ts[rows], rngs = rngs, 
+            xref = xref, ret_ms1 = tref, # scan_ms1 = sref, 
             # ??? only keep those apexes with tracing error <= step_tr ???
             step_tr = step_tr, min_y = min_y, 
             min_n1 = min_n1, min_n2 = min_n2, min_n3 = min_n3)
@@ -534,25 +682,33 @@ init_lfq_cols <- function (df)
 #'
 #' @param xvs X values.
 #' @param yvs Y values.
-#' @param xbars Averaged m-over-zs under each gate.
 #' @param yints Peak areas under under each gate.
 #' @param aps All apexes scan numbers under a mass column.
 #' @param rts All apexes retention times under a mass column.
 #' @param rngs All apexes scan ranges under a column.
 #' @param xref The experimental X value for tracing.
-#' @param scan_ms1 The preceding MS1 scan number of an MS2 event at \code{xref}.
+#' @param ret_ms1 The preceding MS1 retention time of an MS2 event at
+#'   \code{xref}. Or may be the MS2 retention time of \code{xref}.
 #' @param ss All of the scan numbers.
 #' @param rngs The scan ranges of apexes under column k.
 #' @param step_tr A step size.
 #' @param min_y The cut-off of intensity values.
+#' @param max_scan_delta The maximum difference in scan numbers between an apex
+#'   and \code{scan_ms1}.
+#' @param max_rt_delta The maximum difference in retention times between an apex
+#'   and \code{ret_ms1}.
 #' @importFrom fastmatch %fin%
-find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref, 
-                            scan_ms1, ss, step_tr = 6E-6, min_y = 0, 
-                            min_n1 = 10L, min_n2 = 20L, min_n3 = 15L)
+find_best_apex <- function (xvs, yvs, ss, 
+                            yints, aps, rts, rngs, xref, # scan_ms1, 
+                            ret_ms1, step_tr = 6E-6, min_y = 0, 
+                            min_n1 = 10L, min_n2 = 20L, min_n3 = 15L, 
+                            max_scan_delta = 3500, max_rt_delta = 180)
 {
-  lens <- lengths(rngs)
-  naps <- length(aps)
-  
+  lens  <- lengths(rngs)
+  naps  <- length(aps)
+  xbars <- lapply(rngs, function (rng) mean(xvs[rng], na.rm = TRUE))
+  xbars <- .Internal(unlist(xbars, recursive = FALSE, use.names = FALSE))
+
   # (1) first-pass spike removals: in case that a major peak is just out of 
   # the mass tolerance and the spike is within the bound
   if (noks1 <- length(oks1 <- .Internal(which(lens > min_n1)))) {
@@ -595,14 +751,6 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
   
   # (3) remove one-hit-wonders and spikes
   if (noks3 <- length(oks3 <- .Internal(which(lens > min_n2)))) {
-    if (FALSE) {
-      if (!noks3) { return(NULL) }
-      
-      if (noks3 < naps) {
-        
-      }
-    }
-
     if (noks3 && noks3 < naps) {
       aps   <- aps[oks3]
       rts   <- rts[oks3]
@@ -618,7 +766,13 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
       if (!noks4) { return(NULL) }
       
       if (noks4 < naps) {
-        
+        aps   <- aps[oks4]
+        rts   <- rts[oks4]
+        rngs  <- rngs[oks4]
+        xbars <- xbars[oks4]
+        yints <- yints[oks4]
+        lens  <- lens[oks4]
+        naps  <- noks4
       }
     }
     
@@ -648,49 +802,67 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
   }
   
   # (4) subset apexes by distances between apex_scan and the triggering MS2 scan
-  ds <- abs(aps - scan_ms1)
+  ds <- abs(rts - ret_ms1)
   p1 <- .Internal(which.min(ds))
   d1 <- ds[[p1]]
+  if (d1 > max_rt_delta) { return(NULL) }
+
   px <- max(1L, p1 - 3L):min(naps, p1 + 3L)
   ds <- ds[px]
   
+  oks_d  <- .Internal(which(ds <= max_rt_delta))
+  noks_d <- length(oks_d)
+  
+  if (noks_d < naps) {
+    px <- px[oks_d]
+    ds <- ds[oks_d]
+    
+    aps   <- aps[px]
+    rts   <- rts[px]
+    rngs  <- rngs[px]
+    xbars <- xbars[px]
+    yints <- yints[px]
+    lens  <- lens[px]
+    naps  <- noks_d
+  }
+  
   # at least one (the most centered) peak is within 3500 scans
   # arbitrary and may disable this; or a function of intensity
-  if (d1 <= 3500) { # was 2500 too small; 3500 cause other problems, revisit this...
-    oks_d  <- .Internal(which(ds <= 3500))
-    noks_d <- length(oks_d) # >= 1L
-    
-    if (noks_d < naps) {
-      px <- px[oks_d]
-      ds <- ds[oks_d]
+  if (FALSE) {
+    if (d1 <= max_rt_delta) {
+      oks_d  <- .Internal(which(ds <= max_rt_delta))
+      noks_d <- length(oks_d)
       
-      aps   <- aps[px]
-      rts   <- rts[px]
-      rngs  <- rngs[px]
-      xbars <- xbars[px]
-      yints <- yints[px]
-      lens  <- lens[px]
-      naps  <- noks_d
+      if (noks_d < naps) {
+        px <- px[oks_d]
+        ds <- ds[oks_d]
+        
+        aps   <- aps[px]
+        rts   <- rts[px]
+        rngs  <- rngs[px]
+        xbars <- xbars[px]
+        yints <- yints[px]
+        lens  <- lens[px]
+        naps  <- noks_d
+      }
     }
-  }
-  else {
-    noks_d <- length(px) # can be noks_d < naps if all(ds > 3500)
-    
-    if (noks_d < naps) {
-      aps   <- aps[px]
-      rts   <- rts[px]
-      rngs  <- rngs[px]
-      xbars <- xbars[px]
-      yints <- yints[px]
-      lens  <- lens[px]
-      naps  <- noks_d
+    else {
+      noks_d <- length(px)
+      
+      if (noks_d < naps) {
+        aps   <- aps[px]
+        rts   <- rts[px]
+        rngs  <- rngs[px]
+        xbars <- xbars[px]
+        yints <- yints[px]
+        lens  <- lens[px]
+        naps  <- noks_d
+      }
     }
   }
   
   # if (!noks_d) { return(NULL) } # should not occur
-  
-  
-  
+
   # by intensity cut-off
   oks_y  <- .Internal(which(yints > min_y))
   noks_y <- length(oks_y)
@@ -713,10 +885,12 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
     x1   <- xbars[[1]]
     y1   <- yints[[1]]
     ap1  <- aps[[1]]
+    rt1  <- rts[[1]]
     ssx  <- ss[rngs[[1]]]
     len1 <- lens[[1]]
-    return(list(x = x1, y = y1, ap = ap1, from = ssx[[1]], to = ssx[[len1]], 
-                aps = ap1, rts = rts[[1]], xs = x1, ys = y1))
+    return(list(x = x1, y = y1, ap = ap1, rt = rt1, n = len1, 
+                from = ssx[[1]], to = ssx[[len1]], 
+                xs = x1, ys = y1, aps = ap1, rts = rt1, ns = len1))
   }
   
   # the closest may be a spike... 
@@ -732,7 +906,7 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
   da   <- ds[[topa]]
   rga  <- rngs[[topa]]
   ssa  <- ss[rga]
-  rta <- rts[[topa]]
+  rta  <- rts[[topa]]
   lena <- lens[[topa]]
   
   # oka  <- apa %in% ssa # must be
@@ -744,7 +918,7 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
   db   <- ds[[topb]]
   rgb  <- rngs[[topb]]
   ssb  <- ss[rgb]
-  rtb <- rts[[topb]]
+  rtb  <- rts[[topb]]
   lenb <- lens[[topb]]
   # yvs[rgb]
   # okb  <- apb %in% ssb # must be
@@ -756,8 +930,9 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
   }
 
   if (topa == topb) {
-    return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]], 
-                aps = aps, rts = rts, xs = xbars, ys = yints))
+    return(list(x = xa, y = ya, ap = apa, rt = rta, n = lena, 
+                from = ssa[[1]], to = ssa[[lena]], 
+                xs = xbars, ys = yints, aps = aps, rts = rts, ns = lens))
   }
   
   # The trigger MS2 scan approximately within the scans of a MS1 peak profile
@@ -775,12 +950,14 @@ find_best_apex <- function (xvs, yvs, xbars, yints, aps, rts, rngs, xref,
   
   # compare peak distances
   if (abs(rta - rtb) > 30) {
-    return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]], 
-                aps = aps, rts = rts, xs = xbars, ys = yints))
+    return(list(x = xa, y = ya, ap = apa, rt = rta, n = lena, 
+                from = ssa[[1]], to = ssa[[lena]], 
+                xs = xbars, ys = yints, aps = aps, rts = rts, ns = lens))
   }
   else {
-    return(list(x = xb, y = yb, ap = apb, from = ssb[[1]], to = ssb[[lenb]], 
-                aps = aps, rts = rts, xs = xbars, ys = yints))
+    return(list(x = xb, y = yb, ap = apb, rt = rtb, n = lenb, 
+                from = ssb[[1]], to = ssb[[lenb]], 
+                xs = xbars, ys = yints, aps = aps, rts = rts, ns = lens))
   }
 }
 

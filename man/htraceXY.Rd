@@ -18,9 +18,9 @@ htraceXY(
   step_tr = 6e-06,
   tol_ms1 = 1e-05,
   y_perc = 0.01,
-  yco = 500,
-  min_y = 0,
-  ytot_co = 2e+06,
+  yco = 100,
+  min_y = 2e+06,
+  ytot_co = 2e+05,
   sum_y = FALSE,
   min_n1 = 10L,
   min_n2 = 20L,
@@ -61,9 +61,10 @@ of an moverz value along LC.}
 
 \item{yco}{The cut-off in y values.}
 
-\item{min_y}{The cut-off of intensity values.}
+\item{min_y}{A more strict cut-off in peak area for finding tentatively the
+best peak.}
 
-\item{ytot_co}{The cut-off in y area.}
+\item{ytot_co}{A more permissive cut-off in peak area for finding all peaks.}
 
 \item{sum_y}{Logical; sum Y values at near the same X values or not. Mostly
 FALSE with Thermo's data.}

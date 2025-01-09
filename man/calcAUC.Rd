@@ -4,13 +4,19 @@
 \alias{calcAUC}
 \title{Calculate area under a curve}
 \usage{
-calcAUC(ys, ts)
+calcAUC(ys, ts, rng, yco = 100, ytot_co = 2e+05)
 }
 \arguments{
 \item{ys}{Y values around an LC peak. Should contain no NA values in the
 sequence.}
 
 \item{ts}{Time values corresponding to \code{ys}.}
+
+\item{rng}{The range indexes of \code{ys}.}
+
+\item{yco}{An intensity cut-off.}
+
+\item{ytot_co}{A cut-off in peak area.}
 }
 \description{
 Calculate area under a curve

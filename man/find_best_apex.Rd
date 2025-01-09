@@ -7,19 +7,20 @@
 find_best_apex(
   xvs,
   yvs,
-  xbars,
+  ss,
   yints,
   aps,
   rts,
   rngs,
   xref,
-  scan_ms1,
-  ss,
+  ret_ms1,
   step_tr = 6e-06,
   min_y = 0,
   min_n1 = 10L,
   min_n2 = 20L,
-  min_n3 = 15L
+  min_n3 = 15L,
+  max_scan_delta = 3500,
+  max_rt_delta = 180
 )
 }
 \arguments{
@@ -27,7 +28,7 @@ find_best_apex(
 
 \item{yvs}{Y values.}
 
-\item{xbars}{Averaged m-over-zs under each gate.}
+\item{ss}{All of the scan numbers.}
 
 \item{yints}{Peak areas under under each gate.}
 
@@ -39,13 +40,18 @@ find_best_apex(
 
 \item{xref}{The experimental X value for tracing.}
 
-\item{scan_ms1}{The preceding MS1 scan number of an MS2 event at \code{xref}.}
-
-\item{ss}{All of the scan numbers.}
+\item{ret_ms1}{The preceding MS1 retention time of an MS2 event at
+\code{xref}. Or may be the MS2 retention time of \code{xref}.}
 
 \item{step_tr}{A step size.}
 
 \item{min_y}{The cut-off of intensity values.}
+
+\item{max_scan_delta}{The maximum difference in scan numbers between an apex
+and \code{scan_ms1}.}
+
+\item{max_rt_delta}{The maximum difference in retention times between an apex
+and \code{ret_ms1}.}
 }
 \description{
 Find the apex under a mass column

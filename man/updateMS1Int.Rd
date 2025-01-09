@@ -16,13 +16,13 @@ updateMS1Int(
   from = 200L,
   step_tr = 6e-06,
   tol_ms1 = 1e-05,
-  min_y = 0,
+  min_y = 2e+06,
   yco = 100,
-  ytot_co = 2e+06,
-  n_dia_scans = 6L,
+  ytot_co = 2e+05,
   min_n1 = 10L,
   min_n2 = 20L,
-  min_n3 = 15L
+  min_n3 = 15L,
+  n_dia_scans = 6L
 )
 }
 \arguments{
@@ -48,15 +48,11 @@ updateMS1Int(
 
 \item{tol_ms1}{The tolerance in MS1 errors \code{ppm_ms1 * 1E-6}.}
 
-\item{min_y}{The cut-off of intensity values.}
+\item{min_y}{The cut-off in peak area.}
 
-\item{yco}{An intensity cut-off.}
+\item{yco}{An intensity (Y-value) cut-off.}
 
-\item{ytot_co}{The cut-off in y area.}
-
-\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
-constructing a peak profile and thus for determining the apex scan number
-of an moverz value along LC.}
+\item{ytot_co}{A more permissive cut-off in peak area for finding all peaks.}
 
 \item{min_n1}{The first cut-off of a minimum number of points across an MS1
 peak.}
@@ -66,6 +62,10 @@ peak.}
 
 \item{min_n3}{The third cut-off of a minimum number of points across an MS1
 peak.}
+
+\item{n_dia_scans}{Allowance in the number of adjacent MS scans for
+constructing a peak profile and thus for determining the apex scan number
+of an moverz value along LC.}
 }
 \description{
 Including forward and backward looking.

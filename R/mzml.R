@@ -70,9 +70,13 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
   options(warn = 1L)
   
   # mzML may contains NULL entries and need additional handling
+  if (!dir.exists(path_ms1 <- file.path(out_path, "ms1data"))) {
+    path_ms1 <- create_dir(path_ms1) # for MBR in proteoQ
+  }
   qs::qsave(data_type, file.path(mgf_path, "data_type.rds"), preset = "fast")
+  qs::qsave(data_type, file.path(path_ms1, "data_type.rds"), preset = "fast") # for proteoQ
   temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
-  
+
   if (data_type == "raw") {
     message("Processing RAW files.")
     peakfiles <- readRAW(mgf_path = mgf_path, filelist = filelist)
@@ -1360,17 +1364,22 @@ deisoDDA <- function (filename = NULL,
   
   ## LFQ: replaces intensities with apex values
   # No MS1 info at maxn_mdda_precurs == 0L
-  if (use_lfq_intensity && maxn_mdda_precurs) {
-    path_ms1 <- create_dir(file.path(out_path, "ms1data")) # for MBR in proteoQ
+  if (maxn_mdda_precurs) {
+    if (!dir.exists(path_ms1 <- file.path(out_path, "ms1data"))) {
+      path_ms1 <- create_dir(path_ms1) # for MBR in proteoQ
+    }
     
     qs::qsave(
       df[with(df, ms_level == 1L), 
          c("ret_time", "scan_num", "orig_scan", "msx_moverzs", "msx_ints")], 
       file.path(path_ms1, paste0("ms1full_", filename)), preset = "fast")
-    
+  }
+  
+  if (use_lfq_intensity && maxn_mdda_precurs) {
     df     <- get_ms1xs_space(df)
     rows1  <- which(df$ms_level == 1L)
-    rt_gap <- estimate_rtgap(df$ret_time[rows1])
+    rt_gap <- estimate_rtgap(df$ret_time[rows1], d = 180)
+    rt_gap <- as.integer(rt_gap * 1.5) # for early RTs
     
     # exclude MS2 scans before the first MS1 (timsTOF)
     if (row1 <- rows1[[1]] - 1L) {
@@ -1385,8 +1394,8 @@ deisoDDA <- function (filename = NULL,
         df[, c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", "ms_level", 
                "msx_moverzs", "msx_ints", "msx_charges", "orig_scan", "ret_time")], 
         from = min_mass, step = step_tr, 
-        n_chunks = ceiling(sum(df$ms_level == 1L) / 512L), 
-        gap = rt_gap)
+        # n_chunks = ceiling(sum(df$ms_level == 1L) / 512L), 
+        rt_gap = rt_gap, rt_tol = 180)
       # qs::qsave(ans_prep, file.path(path_ms1, paste0("msxspace_", filename)), preset = "fast")
     }
     else {
@@ -1395,10 +1404,12 @@ deisoDDA <- function (filename = NULL,
     
     dfs  <- ans_prep$dfs
     df1s <- ans_prep$df1s
-    gaps <- unlist(ans_prep$gaps, use.names = FALSE, recursive = FALSE)
     lenv <- length(df1s)
-    gaps_bf <- ans_prep$gaps_bf <- c(0L, gaps[1:(lenv - 1L)])
-    gaps_af <- ans_prep$gaps_af <- c(gaps[2:lenv], 0L)
+    # gaps <- unlist(ans_prep$gaps, use.names = FALSE, recursive = FALSE)
+    # gaps_bf <- ans_prep$gaps_bf <- c(0L, gaps[1:(lenv - 1L)])
+    # gaps_af <- ans_prep$gaps_af <- c(gaps[2:lenv], 0L)
+    gaps_bf <- ans_prep$gaps_bf
+    gaps_af <- ans_prep$gaps_af
     rm(list = c("ans_prep", "rt_gap"))
     
     fn_traces <- gsub("\\.rds$", "", filename)
@@ -1411,14 +1422,14 @@ deisoDDA <- function (filename = NULL,
       min_n1  <- 10L
       min_n2  <- 20L
       min_n3  <- 15L
-      ytot_co <- 1000 # not yet optimized
+      ytot_co <- 5000
     }
     else {
       min_y   <- 2e6
       min_n1  <- 10L
       min_n2  <- 20L
       min_n3  <- 15L
-      ytot_co <- 2e6
+      ytot_co <- 2e5
     }
 
     if (TRUE) {
@@ -1461,7 +1472,7 @@ deisoDDA <- function (filename = NULL,
           min_n1 = min_n1, min_n2 = min_n2, min_n3 = min_n3, 
           path_ms1 = path_ms1)
       }
-      rm(list = c("vxs", "vys", "vdf", "gaps", "lenv"))
+      rm(list = c("vxs", "vys", "vdf", "lenv"))
       
       out <- dplyr::bind_rows(out)
     }
@@ -1677,15 +1688,14 @@ estimate_rtgap <- function (rts, d = 180)
 {
   rts <- sort(rts)
   len <- length(rts)
-  mid_len <- max(as.integer(len/2), 1L)
-  
-  max_rt <- rts[len]
-  mid_rt <- rts[mid_len]
-  
-  grs <- which(rts > mid_rt + d)
+  mid <- max(as.integer(len / 2), 1L)
+  rtm <- rts[[mid]]
+  grs <- which(rts > rtm + d)
   upr <- if (length(grs)) grs[[1]] else len
   
-  max(upr - mid_len, 1L)
+  # rts[[upr]] - rtm
+  
+  max(upr - mid, 1L)
 }
 
 
@@ -3914,8 +3924,9 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #' @param n_dia_scans The number of adjacent MS scans for constructing a peak
 #'   profile and thus for determining the apex scan number of an moverz value
 #'   along LC.
+#' @param yco A cut-off in intensity (Y) values.
 #' @param y_rpl A replacement value of intensities.
-#' @param ytot_co The cut-off in y area.
+#' @param ytot_co A more permissive cut-off in peak area for finding all peaks.
 #' @param max_perc The maximum percentage of baseline levels.
 #' @param min_n The minimum number of points across a peak for consideration.
 #' @param max_n The maximum number of points across a peak for consideration.
@@ -3989,23 +4000,23 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #' @importFrom fastmatch %fin%
 #' @return Scan indexes of LC peaks.
 find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L, 
-                           y_rpl = 2.0, max_perc = .05, min_n = 10L, 
-                           ytot_co = 2E6, max_n = 200L)
+                           yco = 100, y_rpl = 2.0, max_perc = .05, min_n = 10L, 
+                           ytot_co = 2E5, max_n = 200L)
 {
   # if (min_n <= 1L) { stop("Choose a value of `min_n` greater one.") }
   # if (n_dia_scans <= 0L) return(.Internal(which(ys > 0))) # should not occur
   
-  # assume not all NA
-  # if (all(is.na(ys))) { return(NULL) }
+  ys[ys < yco] <- NA_real_
+  
+  if (all(is.na(ys))) {
+    return(NULL) 
+  }
 
-  ymax <- max(ys, na.rm = TRUE) # ys cannot be all NA
-  ymin <- find_baseline(ys, ymax)
-  ys[ys < ymin] <- NA_real_
   ys <- fill_lc_gaps(ys = ys, n_dia_scans = n_dia_scans, y_rpl = y_rpl)
-
+  
   ioks <- .Internal(which(ys >= y_rpl))
   nx   <- length(ioks)
-
+  
   # one `one-hit wonder` across LC
   if (nx == 1L) {
     return(NULL)
@@ -4030,7 +4041,6 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
   
   # include or exclude counts of `y_rpl` replacement
   lens <- lengths(rngs)
-  yco  <- ymax * .02
   
   if (!(nps  <- length(ups))) {
     return(NULL)
@@ -4043,16 +4053,23 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
     ri   <- ioks[rngi] # indexes in relative to ys
     lenr <- lens[[i]]
     ysi  <- ys[ri]
-    ny   <- sum(ysi > yco)
+    ymax <- max(ysi, na.rm = TRUE)
+    ny   <- sum(ysi > ymax * .05) # was .02
     ny2  <- sum(ysi > y_rpl)
     
     if (ny < min_n || ny2 < .7 * lenr || # or ny?
         is_partial_peak(ysi, width = 200L, min_p = 10L)) {
       next
     }
+    
+    # an peak-specific baseline
+    ymin <- find_baseline(
+      vals = ysi, vmax = ymax, perc = .02, max_perc = max_perc, lwr = yco)
+    # no "good" baseline
+    if (is.null(ymin)) { next }
 
     if (FALSE) {
-      data.frame(x = ri, y = ysi) |>
+      data.frame(x = ts[ri]/60, y = ysi) |>
         ggplot2::ggplot() + 
         ggplot2::geom_segment(mapping = aes(x = x, y = y, xend = x, yend = 0), 
                               color = "gray", linewidth = .1)
@@ -4098,7 +4115,7 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
       else {
         last_up <- NULL
       }
-
+      
       stax <- endx <- vector("integer", n_stas)
       # stax[[1]] <-  ri[[1]]
       # endx[[n_stas]] <- ri[lenr]
@@ -4130,52 +4147,155 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
   }
   
   yints  <- vector("numeric", nps2)
-  xapex  <- xstas <- vector("integer", nps2)
+  apexs  <- xstas <- vector("integer", nps2)
   ranges <- vector("list", nps2)
-
+  
   for (i in 1:nps2) {
     si  <- stas[[i]]
-    ixi <- si:ends[[i]] # ranges[[i]] <- 
+    ixi <- si:ends[[i]]
     tsi <- ts[ixi]
-    dti <- tsi[[length(tsi)]] - tsi[[1]]
+    ysi <- ys[ixi]
+    yts <- calcAUC(ys = ysi, ts = tsi, rng = ixi, yco = yco, ytot_co = ytot_co)
     
-    if (dti < 120) {
-      yts <- calcAUC(ys[ixi], tsi)
-      mi  <- yts[["idx"]]
-      
-      yints[[i]] <- yts[["area"]]
-      xapex[[i]] <- si + mi - 1L
-      xstas[[i]] <- si
-      ranges[[i]] <- ixi
-    }
-    # else {
-    #   ranges[[i]] <- 0L
-    # }
+    if (is.null(yts)) { next() }
+    
+    mi  <- yts[["idx"]]
+    rgx <- yts[["rng"]]
+    rg1 <- rgx[[1]]
+    
+    yints[[i]]  <- yts[["area"]]
+    apexs[[i]]  <- rg1 + mi - 1L
+    xstas[[i]]  <- rg1
+    ranges[[i]] <- rgx
   }
   
-  ## outputs
-  apexs <- xapex
-  yout  <- yints
-  ns    <- lengths(ranges)
-  rout  <- ranges
-  # xstas <- xstas
-
-  ioks <- .Internal(which(apexs > 0L)) #  & yout > ytot_co
-  noks <- length(ioks)
+  ###
+  # check the baseline against to guard against malformed peaks...
+  # filter by 1% area
+  ###
   
-  if (!noks) {
+  ## outputs
+  oks2 <- vector("logical", nps <- length(apexs))
+  for (i in 1:nps) {
+    oks2[[i]] <- check_peak_borders(ys[ranges[[i]]])
+  }
+  
+  # oks2 <- lapply(ranges, function (rg) check_peak_borders(ys[rg])) |>
+  #   unlist(recursive = FALSE, use.names = FALSE)
+  ioks <- 
+    .Internal(which(oks2 & apexs > 0L & yints >= max(yints, na.rm = TRUE) * .01))
+  noks <- length(ioks)
+
+  if (!noks) { # noks > 4L || 
     return(NULL)
   }
   
+  ns   <- lengths(ranges)
+  
   if (noks < nps2) {
     apexs <- apexs[ioks]
-    yout  <- yout[ioks]
+    yints  <- yints[ioks]
     ns    <- ns[ioks]
-    rout  <- rout[ioks]
+    ranges  <- ranges[ioks]
     xstas <- xstas[ioks]
   }
+  
+  list(apex = apexs, yints = yints, ns = ns, ranges = ranges, xstas = xstas)
+}
 
-  list(apex = apexs, yints = yout, ns = ns, ranges = rout, xstas = xstas)
+
+#' Check the lower intensities in a peak borders
+#' 
+#' @param ys A vector of intensity values.
+check_peak_borders <- function (ys)
+{
+  len <- length(ys)
+  
+  if (len < 3L) {
+    return(FALSE)
+  }
+  
+  nx  <- as.integer(len / 3L)
+  rg1 <- 1:nx
+  rg2 <- (nx + 1L):(nx * 2L)
+  rg3 <- (nx * 2L + 1L):len
+  m1 <- median(ys[rg1])
+  m2 <- median(ys[rg2])
+  m3 <- median(ys[rg3])
+  
+  m2 > m1 * 1.25 && m2 > m3 * 1.25
+}
+
+
+#' Calculate FWHM
+#' 
+#' @param ts A vector of X values (retention times).
+#' @param ys A vector of Y values.
+#' @param yco The cut-off in Y values.
+calcFWHM <- function (ys, ts, yco = 100)
+{
+  ymin <- min(ys, na.rm = TRUE) # baseline later...
+  ys   <- ys - ymin
+  ys   <- ys[ys > 0]
+  imax <- .Internal(which.max(ys))
+  len  <- length(ys)
+  
+  if (imax == 1L) {
+    return(NULL)
+  }
+  
+  if (imax == len) {
+    return(NULL)
+  }
+  
+  ymax <- ys[[imax]]
+  hmax <- ymax / 2 # hmax <- (ymax + ymin) / 2
+  oks  <- .Internal(which(ys >= hmax))
+  noks <- length(oks)
+  
+  if (noks < 5L) { # || noks / len < .2
+    return(NULL)
+  }
+  
+  fwhm <- ts[[oks[[noks]]]] - ts[[oks[[1]]]]
+  
+  if (fwhm / (ts[[len]] - ts[[1]]) > .8) { # blunt
+    return(NULL)
+  }
+  
+  fwhm
+}
+
+
+#' Find the baseline values of Y
+#'
+#' @param vals A vector of Y values.
+#' @param vmax The maximum of vals.
+#' @param perc The percentage to the base-peak intensity for cut-offs.
+#' @param lwr A lower bound of intensities for defining baseline.
+#' @param max_perc The maximum percentage of baseline levels.
+#' @return A conservative baseline value for finding signal edges.
+find_baseline <- function (vals, vmax, perc = .02, max_perc = .05, lwr = 2.0)
+{
+  # exclude plateau and paddings
+  vs <- vals[vals > lwr]
+  vmin <- min(vs)
+  upr <- vmax * .25 + vmin
+  vs  <- vs[(!is.na(vs)) & vs <= upr]
+  nvs <- length(vs)
+  
+  if (nvs < 5L) { # no good baseline
+    return(NULL)
+    # return(vmax * perc)
+    # return(bx + vmin)
+  }
+  
+  # may check that vs are populated mostly on either ends of vals...
+
+  bx   <- vmax * max_perc
+
+  # some vs remains part of peaks but `diff(vs)` are expected to be small 
+  min(mean(abs(diff(vs))) * 3 + vmin, bx)
 }
 
 
@@ -4186,16 +4306,15 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
 #' @param perc The percentage to the base-peak intensity for cut-offs.
 #' @param y_rpl A replacement value of intensities.
 #' @param max_perc The maximum percentage of baseline levels.
-find_baseline_vx <- function (vals, vmax, perc = .02, max_perc = .05, y_rpl = 2.0)
+find_baseline_v0 <- function (vals, vmax, perc = .02, max_perc = .05, y_rpl = 2.0)
 {
   len <- length(vals)
-  vs  <- vals[(!is.na(vals)) & vals > y_rpl]
-  nvs <- length(vs[vs <= vmax * .10])
   
-  # high background or plateau: mostly everything above vmax * 10%
-  if (nvs < 5L) {
-    # in case the plateau is the baseline (at timsTOF early RT)
-    return(max(quantile(vs, .05), vmax * perc))
+  # exclude plateau and paddings
+  vs  <- vals[(!is.na(vals)) & vals <= vmax * .10 & vals > y_rpl]
+  
+  if (length(vs) < 5L) {
+    return(vmax * perc)
   }
   
   # some vs remains part of peaks but `diff(vs)` are expected to be small 
@@ -4211,15 +4330,16 @@ find_baseline_vx <- function (vals, vmax, perc = .02, max_perc = .05, y_rpl = 2.
 #' @param perc The percentage to the base-peak intensity for cut-offs.
 #' @param y_rpl A replacement value of intensities.
 #' @param max_perc The maximum percentage of baseline levels.
-find_baseline <- function (vals, vmax, perc = .02, max_perc = .05, y_rpl = 2.0)
+find_baseline_x <- function (vals, vmax, perc = .02, max_perc = .05, y_rpl = 2.0)
 {
   len <- length(vals)
-
-  # exclude plateau and paddings
-  vs  <- vals[(!is.na(vals)) & vals <= vmax * .10 & vals > y_rpl]
+  vs  <- vals[(!is.na(vals)) & vals > y_rpl]
+  nvs <- length(vs[vs <= vmax * .10])
   
-  if (length(vs) < 5L) {
-    return(vmax * perc)
+  # high background or plateau: mostly everything above vmax * 10%
+  if (nvs < 5L) {
+    # in case the plateau is the baseline (at timsTOF early RT)
+    return(max(quantile(vs, .05), vmax * perc))
   }
   
   # some vs remains part of peaks but `diff(vs)` are expected to be small 
@@ -4331,7 +4451,10 @@ find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0,
 #' @param ys Y values around an LC peak. Should contain no NA values in the
 #'   sequence.
 #' @param ts Time values corresponding to \code{ys}.
-calcAUC <- function (ys, ts)
+#' @param rng The range indexes of \code{ys}.
+#' @param yco An intensity cut-off.
+#' @param ytot_co A cut-off in peak area.
+calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5)
 {
   # find the apex index
   imax <- .Internal(which.max(ys))
@@ -4340,10 +4463,58 @@ calcAUC <- function (ys, ts)
   tot  <- csum[[len]]
   mval <- tot / 2
   imed <- .Internal(which(csum >= mval))[[1]]
-  idx  <- if (abs(imax - imed) > 3L) { imed } else {imax }
   
-  return(list(area = tot, idx = idx))
+  tmed <- ts[[imed]]
+  tmax <- ts[[imax]]
+  dt1 <- tmed - tmax
+  sk  <- if (abs(dt1) > 2.5) if (dt1 > 0) 1L else -1L else 0L
+  
+  if (tot < ytot_co) {
+    return(NULL)
+  }
+  
+  # if (sk == 0L) { return(list(area = tot, idx = imax, rng = rng)) }
 
+  fwhm <- calcFWHM(ys, ts, yco = 100)
+  
+  if (is.null(fwhm)) {
+    return(NULL)
+  }
+
+  if (sk == 1L) {
+    w1 <- fwhm * 1.2
+    w2 <- fwhm * 2
+  }
+  else if (sk == -1L) {
+    w1 <- fwhm * 2
+    w2 <- fwhm * 1.2
+  }
+  else {
+    w1 <- fwhm * 1.2
+    w2 <- fwhm * 1.2
+  }
+  
+  oks <- .Internal(which(ts >= (tmax - w1) & ts <= (tmax + w2)))
+  ok1 <- oks[[1]]
+  idx <- imax - ok1 + 1L
+  
+  len <- length(oks)
+  ys <- ys[oks]
+  ts <- ts[oks]
+  csum <- cumsum(ys * c(diff(ts), .5))
+  tot  <- csum[[len]]
+  
+  if (tot < ytot_co) {
+    return(NULL)
+  }
+
+  # dab <- abs(d <- imax - imed)
+  # idx <- if (dab > 3L) { imed } else { imax }
+  
+  return(list(area = tot, idx = idx, rng = rng[oks]))
+
+  
+  
   # calculate peak area (may or may not use `tot`)
   oks <- .Internal(which(ys >= ys[[imax]] * .03))
   ysub <- ys[oks]

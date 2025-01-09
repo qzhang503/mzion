@@ -4,12 +4,23 @@
 \alias{subMSfull}
 \title{Subsets full MS1 by the universe of monoisotopic MS1 moverzs.}
 \usage{
-subMSfull(xs, ys, ms1s, from = 200L, step = 1e-05, gap = 256L)
+subMSfull(
+  xs,
+  ys,
+  ts,
+  ms1s,
+  from = 200L,
+  step = 1e-05,
+  rt_gap = 500L,
+  rt_tol = 180
+)
 }
 \arguments{
 \item{xs}{Vectors of MS1-X values.}
 
 \item{ys}{Vectors of MS1-Y values.}
+
+\item{ts}{Vectors of MS1 retention times.}
 
 \item{ms1s}{Vectors of MS1 m/z values that are linked to the mono-isotopic
 DDA-MS2 space.}
@@ -18,7 +29,14 @@ DDA-MS2 space.}
 
 \item{step}{The size of bins.}
 
-\item{gap}{The gap of MS1 scans.}
+\item{rt_gap}{An approximate gap size for forward and backward looking of
+precursors in a +/-3-min retention times. The argument is for fast
+subsetting without looking up the entire sequence. Note that at the early
+retention times of LC, there may be many more MS1 scans and thus a
+\code{gap = 500} may encompassing a narrower retention window (e.g. 2-min).
+This may not be critical since there are often fewer features in early RT.}
+
+\item{rt_tol}{The tolerance in retention times for m-over-zs looking up.}
 }
 \description{
 Non-monoisotopic (13C_n) MS1-X are also removed.
