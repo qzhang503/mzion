@@ -7,9 +7,10 @@
 # [7] "sep_ms1rts"        "bin_ms1rts"        "gen_isoenvlope"   
 # 
 # $dispatch.R
-#  [1] "find_pos_site"       "contain_pos_site"    "contain_termpos_any" "subset_by_prps"      "subset_protntsite"   "subset_protntany"   
-#  [7] "subset_anyntsite"    "subset_anyntany"     "subset_anysite"      "subset_protctsite"   "subset_protctany"    "subset_anyctsite"   
-# [13] "subset_anyctany"     "find_nmodtree"       "find_cmodtree"       "subpeps_by_vmods"   
+#  [1] "find_pos_site"       "contain_pos_site"    "contain_termpos_any" "subset_by_prps"      "subset_protntsite"  
+#  [6] "subset_protntany"    "subset_anyntsite"    "subset_anyntany"     "subset_anysite"      "subset_protctsite"  
+# [11] "subset_protctany"    "subset_anyctsite"    "subset_anyctany"     "find_nmodtree"       "find_cmodtree"      
+# [16] "subpeps_by_vmods"   
 # 
 # $fastas.R
 # [1] "read_fasta"       "write_fasta"      "load_fasta"       "load_fasta2"      "find_acc_pattern" "find_acc_type"   
@@ -23,8 +24,8 @@
 # [15] "astar2ions"      "a0ions"          "a02ions"         "x2ions"         
 # 
 # $lfq.R
-#  [1] "subMSfull"        "pretraceXY"       "htraceXY"         "updateMS1Int"     "init_lfq_cols"    "find_best_apex"   "are_ovlap_ranges"
-#  [8] "mergeAdjGates2"   "mergeAdjGates"    "traceMS1"         "getMS1Int"       
+#  [1] "subMSfull"        "pretraceXY"       "sep_df1_byRTs"    "htraceXY"         "updateMS1Int"     "init_lfq_cols"   
+#  [7] "find_best_apex"   "are_ovlap_ranges" "mergeAdjGates2"   "mergeAdjGates"    "traceMS1"         "getMS1Int"       
 # 
 # $mapMS2ions.R
 #  [1] "mapMS2ions"         "plotMS2ions"        "match_mgf_path"     "match_raw_id"       "add_raw_ids"        "find_secion_types" 
@@ -77,13 +78,13 @@
 # character(0)
 # 
 # $mzml.R
-#  [1] "readmzML"          "hloadMZML"         "loadMZML"          "extrDDA"           "hdeisoDDA"         "deisoDDA"         
-#  [7] "get_ms1xs_space"   "estimate_rtgap"    "predeisoDDA"       "deisoDDAMS2"       "pasefMS1xyz"       "getMSrowIndexes"  
-# [13] "find_ms2ends"      "getMS1xyz"         "getMS2xyz"         "extrDIA"           "hdeisoDIA"         "deisoDIA"         
-# [19] "hsubDIAMS1"        "subDIAMS1"         "htraceDIA"         "traceDIA"          "flattenMSxyz"      "spreadMSohw"      
-# [25] "find_gates"        "find_gate_edges"   "find_gate_edges2"  "traceLCMS"         "collapse_xyz"      "mapcoll_xyz"      
-# [31] "find_lc_gates"     "find_baseline_vx"  "find_baseline"     "find_lc_gates2"    "calcAUC"           "fill_lc_gaps"     
-# [37] "is_partial_peak"   "collapse_mms1ints" "calc_ms1xys"       "find_mdda_mms1s"   "find_ms1byms2"    
+#  [1] "readmzML"           "hloadMZML"          "loadMZML"           "extrDDA"            "hdeisoDDA"          "deisoDDA"          
+#  [7] "get_ms1xs_space"    "estimate_rtgap"     "predeisoDDA"        "deisoDDAMS2"        "pasefMS1xyz"        "getMSrowIndexes"   
+# [13] "find_ms2ends"       "getMS1xyz"          "getMS2xyz"          "extrDIA"            "hdeisoDIA"          "deisoDIA"          
+# [19] "hsubDIAMS1"         "subDIAMS1"          "htraceDIA"          "traceDIA"           "flattenMSxyz"       "spreadMSohw"       
+# [25] "find_gates"         "find_gate_edges"    "find_gate_edges2"   "traceLCMS"          "collapse_xyz"       "mapcoll_xyz"       
+# [31] "find_lc_gates"      "check_peak_borders" "calcFWHM"           "find_baseline"      "find_lc_gates2"     "calcAUC"           
+# [37] "fill_lc_gaps"       "is_partial_peak"    "collapse_mms1ints"  "calc_ms1xys"        "find_mdda_mms1s"    "find_ms1byms2"     
 # 
 # $mztab.R
 # [1] "make_mztab"
@@ -123,8 +124,8 @@
 # [51] "na.interp"              "is.constant"            "tsoutliers"             "rm_dup13c"             
 # 
 # $silac.R
-# [1] "matchMS_silac_mix"   "matchMS_par_groups"  "add_fixedlab_masses" "matchMS_noenzyme"    "combine_ion_matches" "comine_PSMsubs"     
-# [7] "matchMS_ms1calib"   
+# [1] "matchMS_silac_mix"   "matchMS_par_groups"  "add_fixedlab_masses" "matchMS_noenzyme"    "combine_ion_matches"
+# [6] "comine_PSMsubs"      "matchMS_ms1calib"   
 # 
 # $unimods.R
 #  [1] "parse_unimod"             "find_unimod"              "hfind_unimod"             "table_unimods"           

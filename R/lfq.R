@@ -116,12 +116,9 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, rt_gap = 500L,
   df1$msx_ints    <- ans$y
   rm(list = "ans")
 
-  # at least two chunks
-  # if (n_chunks <= 1L) { n_chunks <- 2L }
   df1$ms1_mass <- df1$ms1_moverz <- df1$ms1_int <- df1$ms1_charge <- NULL
   
   df1s <- sep_df1_byRTs(df1, col_rt = "ret_time")
-  # gaps <- attr(df1s, "gaps", exact = TRUE)
   gaps_bf  <- attr(df1s, "gaps_bf",  exact = TRUE)
   gaps_af  <- attr(df1s, "gaps_af",  exact = TRUE)
   min_rts  <- attr(df1s, "min_rts",  exact = TRUE)
@@ -132,7 +129,6 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, rt_gap = 500L,
   
   ##  Splits `df` with bracketing entries
   # values: row indexes in `df`, length == nrow(df1) at pad_nas = TRUE
-
   if (n_chunks == 1L) {
     return(
       list(dfs = list(df), df1s = df1s, gaps_bf = gaps_bf, gaps_af = gaps_af, 
@@ -157,25 +153,30 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, rt_gap = 500L,
 
   # dfs[[i]]:  a chunk MS1 and MS2 data (no bracketing scans)
   # df1s[[i]]: the reference MS1 data + leading and trailing MS1 scans; 
-  # gaps[[i]]: the number of bracketing MS1 and MS2 scans
+  # gaps_bf[[i]]: the number of preceding MS1 and MS2 scans...
   list(dfs = dfs, df1s = df1s, gaps_bf = gaps_bf, gaps_af = gaps_af, # gaps = gaps, 
        min_rts = min_rts, max_rts = max_rts)
 }
 
 
 #' Separate MS1 data
-#' 
+#'
+#' Segments of 2+3+2 mins
+#'
 #' @param df1 A data frame of MS1.
 #' @param col_rt The key of retention time column.
-#' @param gap A gap size for forward and backward looking of precursors.
-sep_df1_byRTs <- function (df1, col_rt = "ret_time")
+#' @param rt_size The width of each LC retention times in seconds.
+#' @param rt_margin The bracketing margin before and after an LC retention time
+#'   window.
+sep_df1_byRTs <- function (df1, col_rt = "ret_time", rt_size = 180, 
+                           rt_margin = 120)
 {
   # if (n_chunks <= 1L) { stop("Developer: need at least two chunks.") }
   rts   <- df1[[col_rt]]
   rtmin <- min(rts, na.rm = TRUE)
   rtmax <- max(rts, na.rm = TRUE)
   delta <- rtmax - rtmin
-  n_chunks <- ceiling(delta / 180)
+  n_chunks <- ceiling(delta / rt_size)
                       
   if (n_chunks < 2L) {
     df1s <- list(df1)
@@ -224,12 +225,12 @@ sep_df1_byRTs <- function (df1, col_rt = "ret_time")
     nri  <- nrow(dfi)
     
     if (i < n_chunks) {
-      rows <- which(rti > tmax - 120)
+      rows <- which(rti > tmax - rt_margin)
       gaps_af[[i]] <- nri - rows[[1]] + 1L
     }
     
     if (i > 1L) {
-      rows <- which(rti <= tmin + 120)
+      rows <- which(rti <= tmin + rt_margin)
       gaps_bf[[i]] <- rows[[length(rows)]]
     }
   }
@@ -260,54 +261,6 @@ sep_df1_byRTs <- function (df1, col_rt = "ret_time")
   attr(df1s, "end1s") <- end1s
   attr(df1s, "sta1s") <- sta1s
   attr(df1s, "n_chunks") <- n_chunks
-  
-  df1s
-}
-
-
-#' Separate MS1 data
-#' 
-#' Depreciated.
-#' 
-#' @param df1 A data frame of MS1.
-#' @param col_rt The key of retention time column.
-#' @param gap A gap size for forward and backward looking of precursors.
-#' @param n_chunks The number of chunks.
-sep_df1_byRTs_v0 <- function (df1, col_rt = "ret_time", gap = 120, n_chunks = 4L)
-{
-  # df1$ms1_mass <- df1$ms1_moverz <- df1$ms1_int <- df1$ms1_charge <- NULL
-  df1s    <- chunksplit(df1, n_chunks, type = "row")
-  min_rts <- unlist(lapply(df1s, function (x) x[[col_rt]][[1]]))
-  max_rts <- unlist(lapply(df1s, function (x) x[[col_rt]][[nrow(x)]]))
-  end1s   <- unname(cumsum(lapply(df1s, nrow)))
-  sta1s   <- c(1L, end1s[1:(n_chunks - 1L)] + 1L)
-  
-  # Adds 2-min gaps before and after
-  gaps    <- lapply(df1s, function (x) ceiling(min(gap, nrow(x) / 2L)))
-  df1s_bf <- df1s_af <- vector("list", n_chunks)
-  
-  for (i in 2:n_chunks) {
-    df1s_bf[[i]] <- head(df1s[[i]], gaps[[i]])
-  }
-  
-  for (i in 1:(n_chunks - 1L)) {
-    df1s_af[[i]] <- tail(df1s[[i]], gaps[[i]])
-  }
-  
-  df1s[[1]] <- dplyr::bind_rows(df1s[[1]], df1s_bf[[2]])
-  df1s[[n_chunks]] <- dplyr::bind_rows(df1s_af[[n_chunks-1]], df1s[[n_chunks]])
-  
-  if (n_chunks > 2L) {
-    for (i in 2:(n_chunks-1L)) {
-      df1s[[i]] <- dplyr::bind_rows(df1s_af[[i-1]], df1s[[i]], df1s_bf[[i+1]])
-    }
-  }
-  
-  attr(df1s, "gaps") <- gaps
-  attr(df1s, "min_rts") <- min_rts
-  attr(df1s, "max_rts") <- max_rts
-  attr(df1s, "end1s") <- end1s
-  attr(df1s, "sta1s") <- sta1s
   
   df1s
 }
@@ -518,14 +471,14 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
     if (FALSE) {
       # look for penultimate scan number of psmQ.txt::pep_scan_num
       df$orig_scan[ms1_stas]
-      i <- 481
+      i <- 335
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       ms2rng <- ms2sta:ms2end
       df2    <- df[ms2rng, ]
     }
 
-    # i = 176; which(rownames(matx) == 78900) - gap -> i
+    # i = 29; which(rownames(matx) == 78900) - gap -> i
     ms2sta <- ms2_stas[[i]]
     if (is.na(ms2sta)) { next }
     ms2end <- ms2_ends[[i]]
@@ -538,7 +491,7 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
     
     # by MS2 spectra
     for (j in 1:nrow(df2)) {
-      # j <- 12L
+      # j <- 9L
       x1s  <- xs2[[j]] # MS1 masses associated with an MS2 scan
       nx   <- length(x1s) # nx > 1 at a chimeric spectrum
       if (!nx) { next }

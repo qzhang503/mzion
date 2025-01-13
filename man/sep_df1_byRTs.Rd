@@ -4,15 +4,18 @@
 \alias{sep_df1_byRTs}
 \title{Separate MS1 data}
 \usage{
-sep_df1_byRTs(df1, col_rt = "ret_time")
+sep_df1_byRTs(df1, col_rt = "ret_time", rt_size = 180, rt_margin = 120)
 }
 \arguments{
 \item{df1}{A data frame of MS1.}
 
 \item{col_rt}{The key of retention time column.}
 
-\item{gap}{A gap size for forward and backward looking of precursors.}
+\item{rt_size}{The width of each LC retention times in seconds.}
+
+\item{rt_margin}{The bracketing margin before and after an LC retention time
+window.}
 }
 \description{
-Separate MS1 data
+Segments of 2+3+2 mins
 }

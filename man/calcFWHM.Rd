@@ -4,15 +4,17 @@
 \alias{calcFWHM}
 \title{Calculate FWHM}
 \usage{
-calcFWHM(ys, ts, yco = 100)
+calcFWHM(ys, ts, yco = 100, min_n = 15L)
 }
 \arguments{
 \item{ys}{A vector of Y values.}
 
-\item{ts}{A vector of X values (retention times).}
+\item{ts}{A vector of T values.}
 
 \item{yco}{The cut-off in Y values.}
+
+\item{min_n}{The minimum number of points in \code{ys} for consideration.}
 }
 \description{
-Calculate FWHM
+Do not alter \code{length(ys)} since need \code{ista} and \code{iend}.
 }

@@ -4012,8 +4012,7 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
     return(NULL) 
   }
 
-  ys <- fill_lc_gaps(ys = ys, n_dia_scans = n_dia_scans, y_rpl = y_rpl)
-  
+  ys   <- fill_lc_gaps(ys = ys, n_dia_scans = n_dia_scans, y_rpl = y_rpl)
   ioks <- .Internal(which(ys >= y_rpl))
   nx   <- length(ioks)
   
@@ -4155,7 +4154,8 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
     ixi <- si:ends[[i]]
     tsi <- ts[ixi]
     ysi <- ys[ixi]
-    yts <- calcAUC(ys = ysi, ts = tsi, rng = ixi, yco = yco, ytot_co = ytot_co)
+    yts <- calcAUC(ys = ysi, ts = tsi, rng = ixi, yco = yco, ytot_co = ytot_co, 
+                   min_n = 15L, err = 2.0)
     
     if (is.null(yts)) { next() }
     
@@ -4169,28 +4169,23 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
     ranges[[i]] <- rgx
   }
   
+  # if (sum(yints) / sum(ys, na.rm = TRUE) < .01) { return(NULL) }
+  
   ###
   # check the baseline against to guard against malformed peaks...
   # filter by 1% area
   ###
   
   ## outputs
-  oks2 <- vector("logical", nps <- length(apexs))
-  for (i in 1:nps) {
-    oks2[[i]] <- check_peak_borders(ys[ranges[[i]]])
-  }
-  
-  # oks2 <- lapply(ranges, function (rg) check_peak_borders(ys[rg])) |>
-  #   unlist(recursive = FALSE, use.names = FALSE)
   ioks <- 
-    .Internal(which(oks2 & apexs > 0L & yints >= max(yints, na.rm = TRUE) * .01))
+    .Internal(which(apexs > 0L & yints >= max(yints, na.rm = TRUE) * .01))
   noks <- length(ioks)
 
   if (!noks) { # noks > 4L || 
     return(NULL)
   }
   
-  ns   <- lengths(ranges)
+  ns <- lengths(ranges)
   
   if (noks < nps2) {
     apexs <- apexs[ioks]
@@ -4204,21 +4199,70 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
 }
 
 
-#' Check the lower intensities in a peak borders
-#' 
+#' Check the convexness of a peak
+#'
 #' @param ys A vector of intensity values.
-check_peak_borders <- function (ys)
+#' @param i_sta The left-start index of a peak along \code{ys}.
+#' @param i_midsta The middle-start index of a peak along \code{ys}.
+#' @param i_midend The middle-end index of a peak along \code{ys}.
+#' @param i_end The right-end index of a peak along \code{ys}.
+#' @param min_n The minimum points across the peak profile of \code{ys} for
+#'   consideration.
+check_peak_convex <- function (ys, i_sta, i_midsta, i_midend, i_end, 
+                               min_n = 15L)
 {
   len <- length(ys)
   
-  if (len < 3L) {
+  if (len < min_n) {
+    return(FALSE)
+  }
+
+  if (i_sta + 3L >= i_midsta) { # i_sta == i_midsta
+    return(FALSE)
+    # m1 <- 0.0
+  }
+  else {
+    m1 <- median(ys[i_sta:(i_midsta - 1L)])
+  }
+  
+  if (i_midend + 3L >= i_end) { # i_midend == i_end
+    return(FALSE)
+    # m3 <- 0.0
+  }
+  else {
+    m3  <- median(ys[(i_midend + 1L):i_end])
+  }
+  
+  m2 <- median(ys[i_midsta:i_midend])
+  
+  m2 > m1 * 1.25 && m2 > m3 * 1.25
+}
+
+
+#' Check the convexness of a peak
+#'
+#' Use a sub-sequence of intensity values with a pre-calculated left and right
+#' margins (not much faster than \link{check_peak_convex}).
+#'
+#' @param ys A vector of intensity values.
+#' @param i_midsta The middle-start index of a peak along \code{ys}.
+#' @param i_midend The middle-end index of a peak along \code{ys}.
+#' @param min_n The minimum points across the peak profile of \code{ys} for
+#'   consideration.
+check_peak_convex_sub <- function (ys, i_midsta, i_midend, min_n = 15L)
+{
+  # ys = ys0, i_midsta = ista - iok1 + 1L, i_midend = iend -iok1 + 1L
+  
+  len <- length(ys)
+  
+  if (len < min_n) {
     return(FALSE)
   }
   
-  nx  <- as.integer(len / 3L)
-  rg1 <- 1:nx
-  rg2 <- (nx + 1L):(nx * 2L)
-  rg3 <- (nx * 2L + 1L):len
+  rg1 <- 1:(i_midsta - 1L)
+  rg2 <- i_midsta:i_midend
+  rg3 <- (i_midend + 1L):len
+
   m1 <- median(ys[rg1])
   m2 <- median(ys[rg2])
   m3 <- median(ys[rg3])
@@ -4227,43 +4271,69 @@ check_peak_borders <- function (ys)
 }
 
 
+
 #' Calculate FWHM
 #' 
-#' @param ts A vector of X values (retention times).
+#' Do not alter \code{length(ys)} since need \code{ista} and \code{iend}.
+#' 
+#' @param ts A vector of T values.
 #' @param ys A vector of Y values.
 #' @param yco The cut-off in Y values.
-calcFWHM <- function (ys, ts, yco = 100)
+#' @param min_n The minimum number of points in \code{ys} for consideration.
+calcFWHM <- function (ys, ts, yco = 100, min_n = 15L)
 {
+  # len0 <- length(ys)
   ymin <- min(ys, na.rm = TRUE) # baseline later...
-  ys   <- ys - ymin
-  ys   <- ys[ys > 0]
-  imax <- .Internal(which.max(ys))
   len  <- length(ys)
-  
-  if (imax == 1L) {
+  if (len < min_n) { return(NULL) }
+  imax <- .Internal(which.max(ys))
+
+  if (imax == 1L || imax == len) { # <= 3L; imax + 3L >= len
     return(NULL)
   }
-  
-  if (imax == len) {
-    return(NULL)
-  }
-  
+
   ymax <- ys[[imax]]
-  hmax <- ymax / 2 # hmax <- (ymax + ymin) / 2
-  oks  <- .Internal(which(ys >= hmax))
-  noks <- length(oks)
+  hmax <- (ymax + ymin) / 2
+  ioks <- .Internal(which(ys >= hmax))
+  noks <- length(ioks)
   
   if (noks < 5L) { # || noks / len < .2
     return(NULL)
   }
   
-  fwhm <- ts[[oks[[noks]]]] - ts[[oks[[1]]]]
+  # remove spikes outside of the half width
+  im <- .Internal(which(ioks == imax))
+
+  if (im == 1L || im == noks) {
+    return(NULL)
+  }
+
+  ds1   <- diff(ioks[1:im])
+  ds2   <- diff(ioks[im:noks])
+  ioks1 <- .Internal(which(ds1 < 5L))
+  ioks2 <- .Internal(which(ds2 < 5L)) + im
+  ioks  <- ioks[c(ioks1, im, ioks2)]
+  noks  <- length(ioks)
   
-  if (fwhm / (ts[[len]] - ts[[1]]) > .8) { # blunt
+  if (!noks) {
+    return(NULL)
+  }
+
+  iend <- ioks[[noks]]
+  ista <- ioks[[1]]
+  fwhm <- ts[[iend]] - ts[[ista]]
+  
+  if (fwhm >= 25) {
     return(NULL)
   }
   
-  fwhm
+  if (fwhm / (ts[[len]] - ts[[1]]) > .667) { # blunt; was .8
+    return(NULL)
+  }
+
+  # stopifnot(len == len0)
+  
+  list (fwhm = fwhm, ista = ista, iend = iend)
 }
 
 
@@ -4296,55 +4366,6 @@ find_baseline <- function (vals, vmax, perc = .02, max_perc = .05, lwr = 2.0)
 
   # some vs remains part of peaks but `diff(vs)` are expected to be small 
   min(mean(abs(diff(vs))) * 3 + vmin, bx)
-}
-
-
-#' Find the baseline values of Y
-#'
-#' @param vals A vector of Y values.
-#' @param vmax The maximum of vals.
-#' @param perc The percentage to the base-peak intensity for cut-offs.
-#' @param y_rpl A replacement value of intensities.
-#' @param max_perc The maximum percentage of baseline levels.
-find_baseline_v0 <- function (vals, vmax, perc = .02, max_perc = .05, y_rpl = 2.0)
-{
-  len <- length(vals)
-  
-  # exclude plateau and paddings
-  vs  <- vals[(!is.na(vals)) & vals <= vmax * .10 & vals > y_rpl]
-  
-  if (length(vs) < 5L) {
-    return(vmax * perc)
-  }
-  
-  # some vs remains part of peaks but `diff(vs)` are expected to be small 
-  base <- mean(abs(diff(vs))) * 3 + min(vs)
-  min(base, vmax * max_perc)
-}
-
-
-#' Find the baseline values of Y
-#'
-#' @param vals A vector of Y values.
-#' @param vmax The maximum of vals.
-#' @param perc The percentage to the base-peak intensity for cut-offs.
-#' @param y_rpl A replacement value of intensities.
-#' @param max_perc The maximum percentage of baseline levels.
-find_baseline_x <- function (vals, vmax, perc = .02, max_perc = .05, y_rpl = 2.0)
-{
-  len <- length(vals)
-  vs  <- vals[(!is.na(vals)) & vals > y_rpl]
-  nvs <- length(vs[vs <= vmax * .10])
-  
-  # high background or plateau: mostly everything above vmax * 10%
-  if (nvs < 5L) {
-    # in case the plateau is the baseline (at timsTOF early RT)
-    return(max(quantile(vs, .05), vmax * perc))
-  }
-  
-  # some vs remains part of peaks but `diff(vs)` are expected to be small 
-  base <- mean(abs(diff(vs))) * 3 + min(vs)
-  min(base, vmax * max_perc)
 }
 
 
@@ -4454,20 +4475,59 @@ find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0,
 #' @param rng The range indexes of \code{ys}.
 #' @param yco An intensity cut-off.
 #' @param ytot_co A cut-off in peak area.
-calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5)
+#' @param err An error tolerance of retention times between max and median (in
+#'   seconds).
+#' @param min_n The minimum points across the peak profile of \code{ys} for
+#'   consideration.
+calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5, min_n = 15L, 
+                     err = 2.0)
 {
-  # find the apex index
-  imax <- .Internal(which.max(ys))
+  ## (1) find the apex index
   len  <- length(ys)
-  csum <- cumsum(ys * c(diff(ts), .5))
+  
+  if (len < min_n) {
+    return(NULL) 
+  }
+  
+  imax <- .Internal(which.max(ys))
+  dts  <- diff(ts)
+  csum <- cumsum(ys * c(dts, .5))
   tot  <- csum[[len]]
   mval <- tot / 2
   imed <- .Internal(which(csum >= mval))[[1]]
   
+  ###
+  # not good: need to first handle spikes...
+  # rmed <- imed / len # may be spike
+  # if (rmed <= .25 || rmed >= .75 || imed <= 3L || imed + 3L >= len || 
+  #     imax <= 3L || imax + 3L >= len) { return(NULL) }
+  ###
+  
   tmed <- ts[[imed]]
   tmax <- ts[[imax]]
-  dt1 <- tmed - tmax
-  sk  <- if (abs(dt1) > 2.5) if (dt1 > 0) 1L else -1L else 0L
+  dt1  <- tmed - tmax
+  bigt <- abs(dt1) > err
+  
+  ##  handle spikes (can also moderate the border skewness of partial peaks)
+  if (bigt) {
+    count <- 3L
+    vmed  <- mean(ys[max(1L, imed - 2L):min(len, imed + 2L)])
+    vmax  <- mean(ys[max(1L, imax - 2L):min(len, imax + 2L)])
+    
+    while((vmax < vmed) && count) {
+      ys[[imax]] <- vmax
+      imax <- .Internal(which.max(ys))
+      tmax <- ts[[imax]]
+      dt1  <- tmed - tmax
+      bigt <- abs(dt1) > err
+      vmax <- mean(ys[max(1L, imax - 2L):min(len, imax + 2L)])
+      
+      count <- count - 1L
+    }
+  }
+  
+  ## (3) refine the peak range
+  sk  <- if (bigt) if (dt1 > 0) 1L else -1L else 0L
   
   if (tot < ytot_co) {
     return(NULL)
@@ -4475,18 +4535,20 @@ calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5)
   
   # if (sk == 0L) { return(list(area = tot, idx = imax, rng = rng)) }
 
-  fwhm <- calcFWHM(ys, ts, yco = 100)
-  
-  if (is.null(fwhm)) {
+  ans_fw <- calcFWHM(ys, ts, yco = 100)
+  fwhm   <- ans_fw[["fwhm"]]
+  if (is.null(fwhm)) { # flat peak
     return(NULL)
   }
+  ista   <- ans_fw[["ista"]]
+  iend   <- ans_fw[["iend"]]
 
   if (sk == 1L) {
     w1 <- fwhm * 1.2
-    w2 <- fwhm * 2
+    w2 <- fwhm * 1.6
   }
   else if (sk == -1L) {
-    w1 <- fwhm * 2
+    w1 <- fwhm * 1.6
     w2 <- fwhm * 1.2
   }
   else {
@@ -4494,24 +4556,31 @@ calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5)
     w2 <- fwhm * 1.2
   }
   
-  oks <- .Internal(which(ts >= (tmax - w1) & ts <= (tmax + w2)))
-  ok1 <- oks[[1]]
-  idx <- imax - ok1 + 1L
+  ioks <- .Internal(which(ts >= (tmax - w1) & ts <= (tmax + w2)))
+  iok1 <- ioks[[1]]
+  idx  <- imax - iok1 + 1L
+  len  <- length(ioks)
+  iokn <- ioks[[len]]
   
-  len <- length(oks)
-  ys <- ys[oks]
-  ts <- ts[oks]
-  csum <- cumsum(ys * c(diff(ts), .5))
+  ys0  <- ys[ioks]
+  ts0  <- ts[ioks]
+  rng0 <- rng[ioks]
+  # to replace diff(ts) by a subset of dts or subtract csum ...
+  csum <- cumsum(ys0 * c(diff(ts0), .5))
   tot  <- csum[[len]]
   
   if (tot < ytot_co) {
     return(NULL)
   }
 
-  # dab <- abs(d <- imax - imed)
-  # idx <- if (dab > 3L) { imed } else { imax }
+  ok_convex <- check_peak_convex(
+    ys = ys, i_sta = iok1, i_midsta = ista, i_midend = iend, i_end = iokn)
+
+  if (!ok_convex) {
+    return(NULL) 
+  }
   
-  return(list(area = tot, idx = idx, rng = rng[oks]))
+  return(list(area = tot, idx = idx, rng = rng0))
 
   
   

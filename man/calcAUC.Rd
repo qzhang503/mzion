@@ -4,7 +4,7 @@
 \alias{calcAUC}
 \title{Calculate area under a curve}
 \usage{
-calcAUC(ys, ts, rng, yco = 100, ytot_co = 2e+05)
+calcAUC(ys, ts, rng, yco = 100, ytot_co = 2e+05, min_n = 15L, err = 2)
 }
 \arguments{
 \item{ys}{Y values around an LC peak. Should contain no NA values in the
@@ -17,6 +17,12 @@ sequence.}
 \item{yco}{An intensity cut-off.}
 
 \item{ytot_co}{A cut-off in peak area.}
+
+\item{min_n}{The minimum points across the peak profile of \code{ys} for
+consideration.}
+
+\item{err}{An error tolerance of retention times between max and median (in
+seconds).}
 }
 \description{
 Calculate area under a curve
