@@ -237,11 +237,8 @@ sep_df1_byRTs <- function (df1, col_rt = "ret_time", rt_size = 180,
   
   df1s_bf <- df1s_af <- vector("list", n_chunks)
   
-  for (i in 2:n_chunks) {
+  for (i in 1:n_chunks) {
     df1s_bf[[i]] <- head(df1s[[i]], gaps_bf[[i]])
-  }
-  
-  for (i in 1:(n_chunks - 1L)) {
     df1s_af[[i]] <- tail(df1s[[i]], gaps_af[[i]])
   }
   
@@ -254,12 +251,16 @@ sep_df1_byRTs <- function (df1, col_rt = "ret_time", rt_size = 180,
     }
   }
   
-  attr(df1s, "gaps_bf") <- gaps_bf
-  attr(df1s, "gaps_af") <- gaps_af
-  attr(df1s, "min_rts") <- min_rts
-  attr(df1s, "max_rts") <- max_rts
-  attr(df1s, "end1s") <- end1s
-  attr(df1s, "sta1s") <- sta1s
+  gaps_bf2 <- gaps_af2 <- vector("integer", n_chunks)
+  gaps_bf2[2:n_chunks] <- gaps_af[1:(n_chunks-1L)]
+  gaps_af2[1:(n_chunks-1L)] <- gaps_bf[2:n_chunks]
+  
+  attr(df1s, "gaps_bf")  <- gaps_bf2
+  attr(df1s, "gaps_af")  <- gaps_af2
+  attr(df1s, "min_rts")  <- min_rts
+  attr(df1s, "max_rts")  <- max_rts
+  attr(df1s, "end1s")    <- end1s
+  attr(df1s, "sta1s")    <- sta1s
   attr(df1s, "n_chunks") <- n_chunks
   
   df1s
@@ -471,7 +472,7 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
     if (FALSE) {
       # look for penultimate scan number of psmQ.txt::pep_scan_num
       df$orig_scan[ms1_stas]
-      i <- 335
+      i <- 246
       ms2sta <- ms2_stas[[i]]
       ms2end <- ms2_ends[[i]]
       ms2rng <- ms2sta:ms2end
@@ -491,7 +492,7 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
     
     # by MS2 spectra
     for (j in 1:nrow(df2)) {
-      # j <- 9L
+      # j <- 10L
       x1s  <- xs2[[j]] # MS1 masses associated with an MS2 scan
       nx   <- length(x1s) # nx > 1 at a chimeric spectrum
       if (!nx) { next }
@@ -554,6 +555,7 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
         # if (all(rows == 0L)) { next }
         rngs  <- gates[["ranges"]]
         yints <- gates[["yints"]]
+        fwhms <- gates[["fwhm"]]
         
         # xbars <- lapply(rngs, function (rng) mean(xvs[rng], na.rm = TRUE))
         # xbars <- .Internal(unlist(xbars, recursive = FALSE, use.names = FALSE))
@@ -561,21 +563,19 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
           ans <- find_best_apex(
             xvs = xvs, yvs = yvs, ss = ss, 
             yints = yints, aps = ss[rows], rts = ts[rows], rngs = rngs, 
-            xref = xref, ret_ms1 = tref, # scan_ms1 = sref, 
+            fwhms = fwhms, xref = xref, ret_ms1 = tref, # scan_ms1 = sref, 
             # ??? only keep those apexes with tracing error <= step_tr ???
             step_tr = step_tr, min_y = min_y, 
             min_n1 = min_n1, min_n2 = min_n2, min_n3 = min_n3)
-          
-          if (is.null(ans)) {
-            next
-          }
-          
+          if (is.null(ans)) { next }
+
           ap1 <- ans[["ap"]]
           y1  <- ans[["y"]]
           aps <- ans[["aps"]]
           rts <- ans[["rts"]]
           xs  <- ans[["xs"]]
           ys  <- ans[["ys"]]
+          # fwhms <- ans[["fwhms"]]
         }
         else {
           next
@@ -603,6 +603,9 @@ updateMS1Int <- function (df, matx, maty, unv, ss, ts, row_sta, row_end,
     df[["apex_ys"]][ms2rng]       <- df2[["apex_ys"]]
   }
   
+  # contains df[["ms1_int"]] not zero (from deisotoping) and df2[["apex_ps"]] 
+  # are NULLs, clear up in psmC.txt
+
   df
 }
 
@@ -631,14 +634,17 @@ init_lfq_cols <- function (df)
 }
 
 
-#' Find the apex under a mass column
-#'
+#' Find tentatively the apex under a mass column
+#' 
+#' Also remove low-quality apexes.
+#' 
 #' @param xvs X values.
 #' @param yvs Y values.
 #' @param yints Peak areas under under each gate.
 #' @param aps All apexes scan numbers under a mass column.
 #' @param rts All apexes retention times under a mass column.
 #' @param rngs All apexes scan ranges under a column.
+#' @param fwhms All FWHMs under a column.
 #' @param xref The experimental X value for tracing.
 #' @param ret_ms1 The preceding MS1 retention time of an MS2 event at
 #'   \code{xref}. Or may be the MS2 retention time of \code{xref}.
@@ -652,7 +658,7 @@ init_lfq_cols <- function (df)
 #'   and \code{ret_ms1}.
 #' @importFrom fastmatch %fin%
 find_best_apex <- function (xvs, yvs, ss, 
-                            yints, aps, rts, rngs, xref, # scan_ms1, 
+                            yints, aps, rts, rngs, fwhms, xref, # scan_ms1, 
                             ret_ms1, step_tr = 6E-6, min_y = 0, 
                             min_n1 = 10L, min_n2 = 20L, min_n3 = 15L, 
                             max_scan_delta = 3500, max_rt_delta = 180)
@@ -673,6 +679,7 @@ find_best_apex <- function (xvs, yvs, ss,
       rngs  <- rngs[oks1]
       xbars <- xbars[oks1]
       yints <- yints[oks1]
+      fwhms <- fwhms[oks1]
       lens  <- lens[oks1]
       naps  <- noks1
     }
@@ -696,6 +703,7 @@ find_best_apex <- function (xvs, yvs, ss,
         rngs  <- rngs[ok_aps]
         xbars <- xbars[ok_aps]
         yints <- yints[ok_aps]
+        fwhms <- fwhms[ok_aps]
         lens <- lens[ok_aps]
         naps <- noks2
       }
@@ -710,6 +718,7 @@ find_best_apex <- function (xvs, yvs, ss,
       rngs  <- rngs[oks3]
       xbars <- xbars[oks3]
       yints <- yints[oks3]
+      fwhms <- fwhms[oks3]
       lens  <- lens[oks3]
       naps  <- noks3
     }
@@ -724,6 +733,7 @@ find_best_apex <- function (xvs, yvs, ss,
         rngs  <- rngs[oks4]
         xbars <- xbars[oks4]
         yints <- yints[oks4]
+        fwhms <- fwhms[oks4]
         lens  <- lens[oks4]
         naps  <- noks4
       }
@@ -735,6 +745,7 @@ find_best_apex <- function (xvs, yvs, ss,
       rngs  <- rngs[oks4]
       xbars <- xbars[oks4]
       yints <- yints[oks4]
+      fwhms <- fwhms[oks4]
       lens  <- lens[oks4]
       naps  <- noks4
     }
@@ -750,6 +761,7 @@ find_best_apex <- function (xvs, yvs, ss,
       rngs  <- rngs[oksn]
       xbars <- xbars[oksn]
       yints <- yints[oksn]
+      fwhms <- fwhms[oks4]
       lens <- lens[oksn]
     }
   }
@@ -775,6 +787,7 @@ find_best_apex <- function (xvs, yvs, ss,
     rngs  <- rngs[px]
     xbars <- xbars[px]
     yints <- yints[px]
+    fwhms <- fwhms[px]
     lens  <- lens[px]
     naps  <- noks_d
   }
@@ -795,6 +808,7 @@ find_best_apex <- function (xvs, yvs, ss,
         rngs  <- rngs[px]
         xbars <- xbars[px]
         yints <- yints[px]
+        fwhms <- fwhms[px]
         lens  <- lens[px]
         naps  <- noks_d
       }
@@ -828,6 +842,7 @@ find_best_apex <- function (xvs, yvs, ss,
     rngs  <- rngs[oks_y]
     xbars <- xbars[oks_y]
     yints <- yints[oks_y]
+    fwhms <- fwhms[oks_y]
     lens  <- lens[oks_y]
     naps  <- noks_y
     
@@ -842,8 +857,9 @@ find_best_apex <- function (xvs, yvs, ss,
     ssx  <- ss[rngs[[1]]]
     len1 <- lens[[1]]
     return(list(x = x1, y = y1, ap = ap1, rt = rt1, n = len1, 
-                from = ssx[[1]], to = ssx[[len1]], 
-                xs = x1, ys = y1, aps = ap1, rts = rt1, ns = len1))
+                from = ssx[[1]], to = ssx[[len1]], rng = rngs[[1]], 
+                xs = x1, ys = y1, aps = ap1, rts = rt1, ns = len1, 
+                fwhms = fwhms, rngs = rngs))
   }
   
   # the closest may be a spike... 
@@ -884,33 +900,28 @@ find_best_apex <- function (xvs, yvs, ss,
 
   if (topa == topb) {
     return(list(x = xa, y = ya, ap = apa, rt = rta, n = lena, 
-                from = ssa[[1]], to = ssa[[lena]], 
-                xs = xbars, ys = yints, aps = aps, rts = rts, ns = lens))
-  }
-  
-  # The trigger MS2 scan approximately within the scans of a MS1 peak profile
-  if (FALSE) {
-    if (scan_ms1 >= ssa[[1]] - 3L && scan_ms1 <= ssa[[lena]] + 3L) {
-      return(list(x = xa, y = ya, ap = apa, from = ssa[[1]], to = ssa[[lena]], 
-                  aps = aps, rts = rts, xs = xbars, ys = yints))
-    }
-    
-    if (scan_ms1 >= ssb[[1]] - 3L && scan_ms1 <= ssb[[lenb]] + 3L) {
-      return(list(x = xb, y = yb, ap = apb, from = ssb[[1]], to = ssb[[lenb]], 
-                  aps = aps, rts = rts, xs = xbars, ys = yints))
-    }
+                # starting and ending MS1 scan numbers
+                from = ssa[[1]], to = ssa[[lena]], rng = rga, 
+                xs = xbars, ys = yints, aps = aps, rts = rts, ns = lens, 
+                fwhms = fwhms, rngs = rngs))
   }
   
   # compare peak distances
+  # arbitrary: 
+  #  PSM1 closer to rta but less significant; 
+  #  PSM2 closer to rtb but more significant; 
+  #  compare local patterns
   if (abs(rta - rtb) > 30) {
     return(list(x = xa, y = ya, ap = apa, rt = rta, n = lena, 
-                from = ssa[[1]], to = ssa[[lena]], 
-                xs = xbars, ys = yints, aps = aps, rts = rts, ns = lens))
+                from = ssa[[1]], to = ssa[[lena]], rng = rga, 
+                xs = xbars, ys = yints, aps = aps, rts = rts, ns = lens, 
+                fwhms = fwhms, rngs = rngs))
   }
   else {
     return(list(x = xb, y = yb, ap = apb, rt = rtb, n = lenb, 
-                from = ssb[[1]], to = ssb[[lenb]], 
-                xs = xbars, ys = yints, aps = aps, rts = rts, ns = lens))
+                from = ssb[[1]], to = ssb[[lenb]], rng = rgb, 
+                xs = xbars, ys = yints, aps = aps, rts = rts, ns = lens, 
+                fwhms = fwhms, rngs = rngs))
   }
 }
 

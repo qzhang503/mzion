@@ -2,7 +2,7 @@
 % Please edit documentation in R/lfq.R
 \name{find_best_apex}
 \alias{find_best_apex}
-\title{Find the apex under a mass column}
+\title{Find tentatively the apex under a mass column}
 \usage{
 find_best_apex(
   xvs,
@@ -12,6 +12,7 @@ find_best_apex(
   aps,
   rts,
   rngs,
+  fwhms,
   xref,
   ret_ms1,
   step_tr = 6e-06,
@@ -38,6 +39,8 @@ find_best_apex(
 
 \item{rngs}{The scan ranges of apexes under column k.}
 
+\item{fwhms}{All FWHMs under a column.}
+
 \item{xref}{The experimental X value for tracing.}
 
 \item{ret_ms1}{The preceding MS1 retention time of an MS2 event at
@@ -54,5 +57,5 @@ and \code{scan_ms1}.}
 and \code{ret_ms1}.}
 }
 \description{
-Find the apex under a mass column
+Also remove low-quality apexes.
 }

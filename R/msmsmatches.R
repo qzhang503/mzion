@@ -1750,6 +1750,12 @@ matchMS <- function (out_path = "~/mzion/my_project",
   rm(list = c("cols_tmt", "rows_tmt"))
   
   local({
+    if (use_lfq_intensity) { #  && !grepl("^tmt", quant)
+      if (any(bads <- is.na(df$pep_apex_scan))) {
+        df$pep_tot_int[bads] <- NA_real_
+      }
+    }
+    
     df$pep_exp_mz  <- round(df$pep_exp_mz, digits = 4L)
     df$pep_exp_mr  <- round(df$pep_exp_mr, digits = 4L)
     df$pep_calc_mr <- round(df$pep_calc_mr, digits = 4L)

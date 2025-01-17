@@ -1461,6 +1461,7 @@ deisoDDA <- function (filename = NULL,
       vts <- lapply(df1s, `[[`, "ret_time")
       vdf <- lapply(dfs,  `[`,   cols)
       out <- vector("list", lenv)
+      # sapply(vss, `[[`, 1L)
       
       for (i in 1:lenv) {
         out[[i]] <- htraceXY(
@@ -4056,8 +4057,9 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
     ny   <- sum(ysi > ymax * .05) # was .02
     ny2  <- sum(ysi > y_rpl)
     
-    if (ny < min_n || ny2 < .7 * lenr || # or ny?
-        is_partial_peak(ysi, width = 200L, min_p = 10L)) {
+    if (ny < min_n || ny2 < .7 * lenr || 
+        is_partial_peak(ysi, width = 200L, min_p = 10L)
+        ) {
       next
     }
     
@@ -4145,11 +4147,15 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
     return(NULL)
   }
   
-  yints  <- vector("numeric", nps2)
+  yints  <- fwhm <- vector("numeric", nps2)
   apexs  <- xstas <- vector("integer", nps2)
   ranges <- vector("list", nps2)
   
   for (i in 1:nps2) {
+    ###
+    # i <- 8L
+    ###
+    
     si  <- stas[[i]]
     ixi <- si:ends[[i]]
     tsi <- ts[ixi]
@@ -4157,16 +4163,17 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
     yts <- calcAUC(ys = ysi, ts = tsi, rng = ixi, yco = yco, ytot_co = ytot_co, 
                    min_n = 15L, err = 2.0)
     
-    if (is.null(yts)) { next() }
+    if (is.null(yts)) { next }
     
     mi  <- yts[["idx"]]
     rgx <- yts[["rng"]]
     rg1 <- rgx[[1]]
-    
+
     yints[[i]]  <- yts[["area"]]
     apexs[[i]]  <- rg1 + mi - 1L
     xstas[[i]]  <- rg1
     ranges[[i]] <- rgx
+    fwhm[[i]]   <- yts[["fwhm"]]
   }
   
   # if (sum(yints) / sum(ys, na.rm = TRUE) < .01) { return(NULL) }
@@ -4186,16 +4193,17 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
   }
   
   ns <- lengths(ranges)
-  
   if (noks < nps2) {
-    apexs <- apexs[ioks]
+    apexs  <- apexs[ioks]
     yints  <- yints[ioks]
-    ns    <- ns[ioks]
-    ranges  <- ranges[ioks]
-    xstas <- xstas[ioks]
+    ns     <- ns[ioks]
+    ranges <- ranges[ioks]
+    xstas  <- xstas[ioks]
+    fwhm   <- fwhm[ioks]
   }
   
-  list(apex = apexs, yints = yints, ns = ns, ranges = ranges, xstas = xstas)
+  list(apex = apexs, yints = yints, ns = ns, ranges = ranges, xstas = xstas, 
+       fwhm = fwhm)
 }
 
 
@@ -4508,7 +4516,7 @@ calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5, min_n = 15L,
   dt1  <- tmed - tmax
   bigt <- abs(dt1) > err
   
-  ##  handle spikes (can also moderate the border skewness of partial peaks)
+  ##  handle spikes
   if (bigt) {
     count <- 3L
     vmed  <- mean(ys[max(1L, imed - 2L):min(len, imed + 2L)])
@@ -4533,13 +4541,9 @@ calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5, min_n = 15L,
     return(NULL)
   }
   
-  # if (sk == 0L) { return(list(area = tot, idx = imax, rng = rng)) }
-
   ans_fw <- calcFWHM(ys, ts, yco = 100)
   fwhm   <- ans_fw[["fwhm"]]
-  if (is.null(fwhm)) { # flat peak
-    return(NULL)
-  }
+  if (is.null(fwhm)) { return(NULL) } # flat peak
   ista   <- ans_fw[["ista"]]
   iend   <- ans_fw[["iend"]]
 
@@ -4562,13 +4566,9 @@ calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5, min_n = 15L,
   len  <- length(ioks)
   iokn <- ioks[[len]]
   
-  ys0  <- ys[ioks]
-  ts0  <- ts[ioks]
-  rng0 <- rng[ioks]
   # to replace diff(ts) by a subset of dts or subtract csum ...
-  csum <- cumsum(ys0 * c(diff(ts0), .5))
-  tot  <- csum[[len]]
-  
+  tot <- cumsum(ys[ioks] * c(diff(ts[ioks]), .5))[[len]]
+
   if (tot < ytot_co) {
     return(NULL)
   }
@@ -4580,7 +4580,7 @@ calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5, min_n = 15L,
     return(NULL) 
   }
   
-  return(list(area = tot, idx = idx, rng = rng0))
+  return(list(area = tot, idx = idx, rng = rng[ioks], fwhm = fwhm))
 
   
   
