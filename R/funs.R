@@ -3,13 +3,14 @@
 # [7] "s_readRDS"          "set_bin_ncores"    
 # 
 # $deisotope.R
-# [1] "find_ms1stat"      "find_charge_state" "check_chduo"       "is_true"           "find_dbl_z"        "find_lcpeaks"      "sep_ms1rts"       
-# [8] "bin_ms1rts"        "gen_isoenvlope"   
+# [1] "find_ms1stat"      "find_charge_state" "check_chduo"       "is_true"           "find_dbl_z"        "find_lcpeaks"     
+# [7] "sep_ms1rts"        "bin_ms1rts"        "gen_isoenvlope"   
 # 
 # $dispatch.R
-#  [1] "find_pos_site"       "contain_pos_site"    "contain_termpos_any" "subset_by_prps"      "subset_protntsite"   "subset_protntany"   
-#  [7] "subset_anyntsite"    "subset_anyntany"     "subset_anysite"      "subset_protctsite"   "subset_protctany"    "subset_anyctsite"   
-# [13] "subset_anyctany"     "find_nmodtree"       "find_cmodtree"       "subpeps_by_vmods"   
+#  [1] "find_pos_site"       "contain_pos_site"    "contain_termpos_any" "subset_by_prps"      "subset_protntsite"  
+#  [6] "subset_protntany"    "subset_anyntsite"    "subset_anyntany"     "subset_anysite"      "subset_protctsite"  
+# [11] "subset_protctany"    "subset_anyctsite"    "subset_anyctany"     "find_nmodtree"       "find_cmodtree"      
+# [16] "subpeps_by_vmods"   
 # 
 # $fastas.R
 # [1] "read_fasta"       "write_fasta"      "load_fasta"       "load_fasta2"      "find_acc_pattern" "find_acc_type"   
@@ -18,13 +19,13 @@
 # character(0)
 # 
 # $ion_ladder.R
-#  [1] "ms2ions_by_type" "byions"          "czions"          "axions"          "bions_base"      "yions_base"      "cions_base"      "zions_base"     
-#  [9] "c2ions"          "z2ions"          "aions_base"      "xions_base"      "a2ions"          "astarions"       "astar2ions"      "a0ions"         
-# [17] "a02ions"         "x2ions"         
+#  [1] "ms2ions_by_type" "byions"          "czions"          "axions"          "bions_base"      "yions_base"      "cions_base"     
+#  [8] "zions_base"      "c2ions"          "z2ions"          "aions_base"      "xions_base"      "a2ions"          "astarions"      
+# [15] "astar2ions"      "a0ions"          "a02ions"         "x2ions"         
 # 
 # $lfq.R
-#  [1] "subMSfull"        "pretraceXY"       "sep_df1_byRTs"    "htraceXY"         "updateMS1Int"     "init_lfq_cols"    "find_best_apex"  
-#  [8] "are_ovlap_ranges" "mergeAdjGates2"   "mergeAdjGates"    "traceMS1"         "getMS1Int"       
+#  [1] "subMSfull"        "pretraceXY"       "sep_df1_byRTs"    "htraceXY"         "updateMS1Int"     "init_lfq_cols"   
+#  [7] "find_best_apex"   "are_ovlap_ranges" "mergeAdjGates2"   "mergeAdjGates"    "traceMS1"         "getMS1Int"       
 # 
 # $mapMS2ions.R
 #  [1] "mapMS2ions"         "plotMS2ions"        "match_mgf_path"     "match_raw_id"       "add_raw_ids"        "find_secion_types" 
@@ -36,51 +37,56 @@
 # [13] "index_mz"           "find_mgf_type"      "prepBrukerMGF"      "mprepBrukerMGF"    
 # 
 # $ms1_precursors.R
-#  [1] "calc_pepmasses2"           "find_aa_masses"            "find_motif_pat"            "simple_prots_peps"         "flat_pepseqs"             
-#  [6] "find_aa_site"              "calc_aamasses"             "finalize_aamasses"         "save_mod_indexes"          "check_dupfvmods"          
-# [11] "coerce_fvmods"             "find_f_to_v"               "check_mod_motifs"          "find_aamasses_vmodscombi"  "add_var_masses"           
-# [16] "add_fixed_masses"          "find_except_sites"         "find_modps"                "extract_umods"             "check_resunimod"          
-# [21] "check_fmods_pos_site"      "check_dup_term_any"        "add_aamasses_neulosses"    "add_aamasses_motifs"       "parse_aamasses"           
-# [26] "split_fastaseqs"           "make_fastapeps0"           "split_fastaseqs_noenz"     "mmake_noenzpeps"           "make_noenzpeps"           
-# [31] "hmake_noenzpeps"           "ms1masses_bare_noenz"      "keep_n_misses"             "exclude_n_misses"          "str_exclude_count"        
-# [36] "rm_char_in_nfirst"         "rm_char_in_nlast"          "adj_base_masses"           "adj_anywhere_masses"       "add_term_mass"            
-# [41] "ms1masses_bare"            "add_ms1_13c"               "add_ms1_notches"           "ms1masses_noterm"          "calcms1mass_noterm"       
-# [46] "calcms1mass_noterm_byprot" "calcms1mass_noterm_bypep"  "distri_peps"               "ct_counts"                 "distri_fpeps"             
-# [51] "roll_sum"                  "hsemipeps_byprots"         "semipeps_byprots"          "calc_semipepmasses"        "delta_ms1_a0_fnl1"        
-# [56] "hms1_a0_vnl0_fnl1"         "ms1_a0_vnl0_fnl1"          "hms1_a1_vnl0_fnl0"         "ms1_a1_vnl0_fnl0"         
+#  [1] "calc_pepmasses2"           "find_aa_masses"            "find_motif_pat"            "simple_prots_peps"        
+#  [5] "flat_pepseqs"              "find_aa_site"              "calc_aamasses"             "finalize_aamasses"        
+#  [9] "save_mod_indexes"          "check_dupfvmods"           "coerce_fvmods"             "find_f_to_v"              
+# [13] "check_mod_motifs"          "find_aamasses_vmodscombi"  "add_var_masses"            "add_fixed_masses"         
+# [17] "find_except_sites"         "find_modps"                "extract_umods"             "check_resunimod"          
+# [21] "check_fmods_pos_site"      "check_dup_term_any"        "add_aamasses_neulosses"    "add_aamasses_motifs"      
+# [25] "parse_aamasses"            "split_fastaseqs"           "make_fastapeps0"           "split_fastaseqs_noenz"    
+# [29] "mmake_noenzpeps"           "make_noenzpeps"            "hmake_noenzpeps"           "ms1masses_bare_noenz"     
+# [33] "keep_n_misses"             "exclude_n_misses"          "str_exclude_count"         "rm_char_in_nfirst"        
+# [37] "rm_char_in_nlast"          "adj_base_masses"           "adj_anywhere_masses"       "add_term_mass"            
+# [41] "ms1masses_bare"            "add_ms1_13c"               "add_ms1_notches"           "ms1masses_noterm"         
+# [45] "calcms1mass_noterm"        "calcms1mass_noterm_byprot" "calcms1mass_noterm_bypep"  "distri_peps"              
+# [49] "ct_counts"                 "distri_fpeps"              "roll_sum"                  "hsemipeps_byprots"        
+# [53] "semipeps_byprots"          "calc_semipepmasses"        "delta_ms1_a0_fnl1"         "hms1_a0_vnl0_fnl1"        
+# [57] "ms1_a0_vnl0_fnl1"          "hms1_a1_vnl0_fnl0"         "ms1_a1_vnl0_fnl0"         
 # 
 # $ms2_gen.R
-# [1] "gen_ms2ions_base"          "gen_ms2ions_a0_vnl0_fnl1"  "gen_ms2ions_a1_vnl0_fnl0"  "calc_ms2ions_a1_vnl0_fnl0" "check_ms1_mass_vmods"     
-# [6] "gen_ms2ions_a1_vnl0_fnl1"  "calc_ms2ions_a1_vnl0_fnl1" "gen_ms2ions_a1_vnl1_fnl0"  "calc_ms2ions_a1_vnl1_fnl0"
+# [1] "gen_ms2ions_base"          "gen_ms2ions_a0_vnl0_fnl1"  "gen_ms2ions_a1_vnl0_fnl0"  "calc_ms2ions_a1_vnl0_fnl0"
+# [5] "check_ms1_mass_vmods"      "gen_ms2ions_a1_vnl0_fnl1"  "calc_ms2ions_a1_vnl0_fnl1" "gen_ms2ions_a1_vnl1_fnl0" 
+# [9] "calc_ms2ions_a1_vnl1_fnl0"
 # 
 # $ms2frames.R
-#  [1] "pair_mgftheos"   "thin_mgf"        "hpair_mgths"     "make_dia_mgfs"   "clean_flat_mgfs" "hms2match"       "find_ms2_bypep"  "search_mgf"     
-#  [9] "hms2match_one"   "ms2match_one"    "frames_adv"     
+#  [1] "pair_mgftheos"   "thin_mgf"        "hpair_mgths"     "make_dia_mgfs"   "clean_flat_mgfs" "hms2match"       "find_ms2_bypep" 
+#  [8] "search_mgf"      "hms2match_one"   "ms2match_one"    "frames_adv"     
 # 
 # $msfilereader.R
 # [1] "readRAW"                   "proc_raws"                 "exeReadRAW"                "acceptMSFileReaderLicense"
 # 
 # $msmsmatches.R
-#  [1] "matchMS"         "try_psmC2Q"      "reproc_psmC"     "psmC2Q"          "post_psmC2Q"     "check_tmt_pars"  "checkMGF"        "check_locmods"  
-#  [9] "map_raw_n_scan"  "check_fdr_group" "check_notches"  
+#  [1] "matchMS"         "try_psmC2Q"      "reproc_psmC"     "psmC2Q"          "post_psmC2Q"     "check_tmt_pars"  "checkMGF"       
+#  [8] "check_locmods"   "map_raw_n_scan"  "check_fdr_group" "check_notches"  
 # 
 # $msmsmatches2.R
-#  [1] "ms2match"              "reverse_peps_in_frame" "reverse_seqs"          "calib_mgf"             "calib_ms1"             "predCalibMS"          
-#  [7] "adj_masses1"           "substract_ms1mass"     "cv_ms1err"             "find_bestfit"          "post_calib"            "find_ms1_offsets"     
-# [13] "comb_ms1_offsets"     
+#  [1] "ms2match"              "reverse_peps_in_frame" "reverse_seqs"          "calib_mgf"             "calib_ms1"            
+#  [6] "predCalibMS"           "adj_masses1"           "substract_ms1mass"     "cv_ms1err"             "find_bestfit"         
+# [11] "post_calib"            "find_ms1_offsets"      "comb_ms1_offsets"     
 # 
 # $mzion.R
 # character(0)
 # 
 # $mzml.R
-#  [1] "readmzML"              "hloadMZML"             "loadMZML"              "extrDDA"               "hdeisoDDA"             "deisoDDA"             
-#  [7] "get_ms1xs_space"       "estimate_rtgap"        "predeisoDDA"           "deisoDDAMS2"           "pasefMS1xyz"           "getMSrowIndexes"      
-# [13] "find_ms2ends"          "getMS1xyz"             "getMS2xyz"             "extrDIA"               "hdeisoDIA"             "deisoDIA"             
-# [19] "hsubDIAMS1"            "subDIAMS1"             "htraceDIA"             "traceDIA"              "flattenMSxyz"          "spreadMSohw"          
-# [25] "find_gates"            "find_gate_edges"       "find_gate_edges2"      "traceLCMS"             "collapse_xyz"          "mapcoll_xyz"          
-# [31] "find_lc_gates"         "check_peak_convex"     "check_peak_convex_sub" "calcFWHM"              "find_baseline"         "find_lc_gates2"       
-# [37] "calcAUC"               "fill_lc_gaps"          "is_partial_peak"       "collapse_mms1ints"     "calc_ms1xys"           "find_mdda_mms1s"      
-# [43] "find_ms1byms2"        
+#  [1] "readmzML"              "hloadMZML"             "loadMZML"              "extrDDA"               "hdeisoDDA"            
+#  [6] "deisoDDA"              "get_ms1xs_space"       "estimate_rtgap"        "predeisoDDA"           "deisoDDAMS2"          
+# [11] "pasefMS1xyz"           "getMSrowIndexes"       "find_ms2ends"          "getMS1xyz"             "getMS2xyz"            
+# [16] "extrDIA"               "hdeisoDIA"             "deisoDIA"              "hsubDIAMS1"            "subDIAMS1"            
+# [21] "htraceDIA"             "traceDIA"              "flattenMSxyz"          "spreadMSohw"           "find_gates"           
+# [26] "find_gate_edges"       "find_gate_edges2"      "traceLCMS"             "collapse_xyz"          "mapcoll_xyz"          
+# [31] "find_lc_gates"         "check_peak_convex"     "check_peak_convex_sub" "calcFWHM"              "calc_fwxm"            
+# [36] "find_baseline"         "find_lc_gates2"        "calcAUC"               "fill_lc_gaps"          "is_partial_peak"      
+# [41] "collapse_mms1ints"     "calc_ms1xys"           "find_mdda_mms1s"       "find_ms1byms2"        
 # 
 # $mztab.R
 # [1] "make_mztab"
@@ -124,19 +130,22 @@
 # [7] "matchMS_ms1calib"   
 # 
 # $unimods.R
-#  [1] "parse_unimod"             "find_unimod"              "hfind_unimod"             "table_unimods"            "htable_unimods"          
-#  [6] "add_unimod"               "add_modification"         "add_specificy"            "add_delta"                "add_neuloss"             
-# [11] "hadd_neuloss"             "add_comp_elements"        "remove_unimod"            "standardize_unimod_ps"    "remove_unimod_title"     
-# [16] "calc_unimod_compmass"     "parse_unimod_composition"
+#  [1] "parse_unimod"             "find_unimod"              "hfind_unimod"             "table_unimods"           
+#  [5] "htable_unimods"           "add_unimod"               "add_modification"         "add_specificy"           
+#  [9] "add_delta"                "add_neuloss"              "hadd_neuloss"             "add_comp_elements"       
+# [13] "remove_unimod"            "standardize_unimod_ps"    "remove_unimod_title"      "calc_unimod_compmass"    
+# [17] "parse_unimod_composition"
 # 
 # $utils_engine.R
-#  [1] "which_topx"            "which_topx2"           "get_topn_vals"         "insVal"                "topx"                  "find_ppm_error"       
-#  [7] "find_mass_error_range" "`%+%`"                 "`%+%`"                 "post_frame_adv"        "subset_theoframes"     "subset_neuloss_peps"  
-# [13] "find_nterm_mass"       "find_cterm_mass"       "quick_join"            "detect_cores"          "find_free_mem"         "find_mod_indexes"     
-# [19] "is_equal_sets"         "expand_grid_rows"      "expand_grid"           "expand_gr"             "expand_grid_rows0"     "count_elements"       
-# [25] "vec_to_list"           "split_matrix"          "split_vec"             "fold_vec"              "fold_vec2"             "sep_vec"              
-# [31] "rep_vec"               "accumulate_char"       "combi_mat"             "make_zero_df"          "calc_threeframe_ppm"   "get_ms1charges"       
-# [37] "finds_uniq_vec"        "my_dataframe"          "flatten_list"          "calc_rev_ms2"          "bind_dfs"              "find_min_ncores"      
+#  [1] "which_topx"            "which_topx2"           "get_topn_vals"         "insVal"                "topx"                 
+#  [6] "find_ppm_error"        "find_mass_error_range" "`%+%`"                 "`%+%`"                 "post_frame_adv"       
+# [11] "subset_theoframes"     "subset_neuloss_peps"   "find_nterm_mass"       "find_cterm_mass"       "quick_join"           
+# [16] "detect_cores"          "find_free_mem"         "find_mod_indexes"      "is_equal_sets"         "expand_grid_rows"     
+# [21] "expand_grid"           "expand_gr"             "expand_grid_rows0"     "count_elements"        "vec_to_list"          
+# [26] "split_matrix"          "split_vec"             "fold_vec"              "fold_vec2"             "sep_vec"              
+# [31] "rep_vec"               "accumulate_char"       "combi_mat"             "make_zero_df"          "calc_threeframe_ppm"  
+# [36] "get_ms1charges"        "finds_uniq_vec"        "my_dataframe"          "flatten_list"          "calc_rev_ms2"         
+# [41] "bind_dfs"              "find_min_ncores"      
 # 
 # $utils_os.R
 #  [1] "`names_pos<-`"          "ins_cols_after"         "add_cols_at"            "replace_cols_at"        "reloc_col_after"       
@@ -146,16 +155,16 @@
 # [21] "find_ms1_times"         "is_nulllist"            "add_nulllist"          
 # 
 # $utils_ui.R
-# [1] "calc_monopeptide"  "calc_monopep"      "check_aaseq"       "calc_ms2ionseries" "calc_ms2ions"      "unique_mvmods"     "vmods_elements"   
-# [8] "find_intercombi"  
+# [1] "calc_monopeptide"  "calc_monopep"      "check_aaseq"       "calc_ms2ionseries" "calc_ms2ions"      "unique_mvmods"    
+# [7] "vmods_elements"    "find_intercombi"  
 # 
 # $vmod_ms1_labels.R
-#  [1] "match_mvmods"      "make_ms1vmod_i"    "make_ms1_vmodsets" "bacth_vmods_combi" "make_unique_sets"  "find_unique_sets"  "gtools_combn"     
-#  [8] "    sub"           "  else sub"        "find_intercombi2" 
+#  [1] "match_mvmods"      "make_ms1vmod_i"    "make_ms1_vmodsets" "bacth_vmods_combi" "make_unique_sets"  "find_unique_sets" 
+#  [7] "gtools_combn"      "    sub"           "  else sub"        "find_intercombi2" 
 # 
 # $vmod_ms2_labels.R
-# [1] "find_vmodposU"   "find_vmodposM"   "make_ms2vmods"   "find_ms2resids"  "find_perm_sets"  "add_one_permlab" "add_one_label"   "ins_permlab"    
-# [9] "sim_combn"      
+# [1] "find_vmodposU"   "find_vmodposM"   "make_ms2vmods"   "find_ms2resids"  "find_perm_sets"  "add_one_permlab" "add_one_label"  
+# [8] "ins_permlab"     "sim_combn"      
 # 
 # $wrappers.R
 # [1] "my_dist"       "cos_sim"       "matchMS_NES"   "rematchMS_NES"

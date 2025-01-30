@@ -771,7 +771,6 @@ find_best_apex <- function (xvs, yvs, ss,
   p1 <- .Internal(which.min(ds))
   d1 <- ds[[p1]]
   if (d1 > max_rt_delta) { return(NULL) }
-
   px <- max(1L, p1 - 3L):min(naps, p1 + 3L)
   ds <- ds[px]
   
@@ -822,6 +821,7 @@ find_best_apex <- function (xvs, yvs, ss,
         rngs  <- rngs[px]
         xbars <- xbars[px]
         yints <- yints[px]
+        fwhms <- fwhms[px]
         lens  <- lens[px]
         naps  <- noks_d
       }
@@ -855,8 +855,9 @@ find_best_apex <- function (xvs, yvs, ss,
     ap1  <- aps[[1]]
     rt1  <- rts[[1]]
     ssx  <- ss[rngs[[1]]]
+    fw1  <- fwhms[[1]]
     len1 <- lens[[1]]
-    return(list(x = x1, y = y1, ap = ap1, rt = rt1, n = len1, 
+    return(list(x = x1, y = y1, ap = ap1, rt = rt1, n = len1, fwhm = fw1, 
                 from = ssx[[1]], to = ssx[[len1]], rng = rngs[[1]], 
                 xs = x1, ys = y1, aps = ap1, rts = rt1, ns = len1, 
                 fwhms = fwhms, rngs = rngs))
@@ -877,6 +878,7 @@ find_best_apex <- function (xvs, yvs, ss,
   ssa  <- ss[rga]
   rta  <- rts[[topa]]
   lena <- lens[[topa]]
+  fwa  <- fwhms[[topa]]
   
   # oka  <- apa %in% ssa # must be
   
@@ -889,6 +891,7 @@ find_best_apex <- function (xvs, yvs, ss,
   ssb  <- ss[rgb]
   rtb  <- rts[[topb]]
   lenb <- lens[[topb]]
+  fwb  <- fwhms[[topb]]
   # yvs[rgb]
   # okb  <- apb %in% ssb # must be
   
@@ -899,7 +902,7 @@ find_best_apex <- function (xvs, yvs, ss,
   }
 
   if (topa == topb) {
-    return(list(x = xa, y = ya, ap = apa, rt = rta, n = lena, 
+    return(list(x = xa, y = ya, ap = apa, rt = rta, n = lena, fwhm = fwa, 
                 # starting and ending MS1 scan numbers
                 from = ssa[[1]], to = ssa[[lena]], rng = rga, 
                 xs = xbars, ys = yints, aps = aps, rts = rts, ns = lens, 
@@ -912,13 +915,13 @@ find_best_apex <- function (xvs, yvs, ss,
   #  PSM2 closer to rtb but more significant; 
   #  compare local patterns
   if (abs(rta - rtb) > 30) {
-    return(list(x = xa, y = ya, ap = apa, rt = rta, n = lena, 
+    return(list(x = xa, y = ya, ap = apa, rt = rta, n = lena, fwhm = fwa, 
                 from = ssa[[1]], to = ssa[[lena]], rng = rga, 
                 xs = xbars, ys = yints, aps = aps, rts = rts, ns = lens, 
                 fwhms = fwhms, rngs = rngs))
   }
   else {
-    return(list(x = xb, y = yb, ap = apb, rt = rtb, n = lenb, 
+    return(list(x = xb, y = yb, ap = apb, rt = rtb, n = lenb, fwhm = fwb, 
                 from = ssb[[1]], to = ssb[[lenb]], rng = rgb, 
                 xs = xbars, ys = yints, aps = aps, rts = rts, ns = lens, 
                 fwhms = fwhms, rngs = rngs))

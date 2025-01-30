@@ -1389,25 +1389,18 @@ deisoDDA <- function (filename = NULL,
     
     step_tr <- ppm_ms1trace * 1e-6
     
-    if (TRUE) {
-      ans_prep <- pretraceXY(
-        df[, c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", "ms_level", 
-               "msx_moverzs", "msx_ints", "msx_charges", "orig_scan", "ret_time")], 
-        from = min_mass, step = step_tr, 
-        # n_chunks = ceiling(sum(df$ms_level == 1L) / 512L), 
-        rt_gap = rt_gap, rt_tol = 180)
-      # qs::qsave(ans_prep, file.path(path_ms1, paste0("msxspace_", filename)), preset = "fast")
-    }
-    else {
-      ans_prep <- qs::qread(file.path(path_ms1, paste0("msxspace_", filename)))
-    }
-    
+    ans_prep <- pretraceXY(
+      df[, c("ms1_mass", "ms1_moverz", "ms1_int", "ms1_charge", "ms_level", 
+             "msx_moverzs", "msx_ints", "msx_charges", "orig_scan", 
+             "ret_time")], 
+      from = min_mass, step = step_tr, 
+      # n_chunks = ceiling(sum(df$ms_level == 1L) / 512L), 
+      rt_gap = rt_gap, rt_tol = 180)
+    # ans_prep <- qs::qread(file.path(path_ms1, paste0("msxspace_", filename)))
+
     dfs  <- ans_prep$dfs
     df1s <- ans_prep$df1s
     lenv <- length(df1s)
-    # gaps <- unlist(ans_prep$gaps, use.names = FALSE, recursive = FALSE)
-    # gaps_bf <- ans_prep$gaps_bf <- c(0L, gaps[1:(lenv - 1L)])
-    # gaps_af <- ans_prep$gaps_af <- c(gaps[2:lenv], 0L)
     gaps_bf <- ans_prep$gaps_bf
     gaps_af <- ans_prep$gaps_af
     rm(list = c("ans_prep", "rt_gap"))
@@ -1503,15 +1496,6 @@ deisoDDA <- function (filename = NULL,
       df2 <- df[rows2, ]
       empties <- lengths(df2$apex_scan_num) == 0L # list(character(0))
       df2$apex_scan_num[empties] <- as.list(NA_integer_) # or as.list(0L)
-      
-      # some apexes remain 0 or c(0, 0)...
-
-      # if (use_ms2scan_for_ms1apex <- FALSE) {
-      #   df2$apex_scan_num[empties] <- as.list(df2$scan_num[empties])
-      # }
-      # else {
-      #   
-      # }
 
       # chimeric MS1 entries
       lens2m <-lengths(df2$ms1_moverz)
@@ -1541,15 +1525,15 @@ deisoDDA <- function (filename = NULL,
   
   df <- reloc_col_after(df, "apex_scan_num", "orig_scan")
   
-  ## cleans up
+  ## set aside for adding back apex retention times
   rows <- df$ms_level == 1L
   df1 <- df[rows, ]
   df1$ms_level <- df1$msx_charges <- df1$apex_scan_num <- 
     df1$rptr_moverzs <- df1$rptr_ints <- NULL
-  # for adding back apex_rts
   qs::qsave(df1, file.path(mgf_path, paste0("ms1_", filename)), preset = "fast")
   rm(list = "df1")
 
+  ## cleans up
   df <- df[!rows, ]
   bads <- unlist(lapply(df$ms1_moverz, is.null))
   df <- df[!bads, ]
@@ -4057,9 +4041,8 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
     ny   <- sum(ysi > ymax * .05) # was .02
     ny2  <- sum(ysi > y_rpl)
     
-    if (ny < min_n || ny2 < .7 * lenr || 
-        is_partial_peak(ysi, width = 200L, min_p = 10L)
-        ) {
+    # || is_partial_peak(ysi, width = 200L, min_p = 10L)
+    if (ny < min_n || ny2 < .7 * lenr) {
       next
     }
     
@@ -4225,17 +4208,24 @@ check_peak_convex <- function (ys, i_sta, i_midsta, i_midend, i_end,
     return(FALSE)
   }
 
-  if (i_sta + 3L >= i_midsta) { # i_sta == i_midsta
+  no_left  <- i_sta + 3L >= i_midsta
+  no_right <- i_midend + 3L >= i_end
+  
+  if (no_left && no_right) {
     return(FALSE)
-    # m1 <- 0.0
+  }
+
+  if (no_left) {
+    # return(FALSE)
+    m1 <- 0.0
   }
   else {
     m1 <- median(ys[i_sta:(i_midsta - 1L)])
   }
   
-  if (i_midend + 3L >= i_end) { # i_midend == i_end
-    return(FALSE)
-    # m3 <- 0.0
+  if (no_right) {
+    # return(FALSE)
+    m3 <- 0.0
   }
   else {
     m3  <- median(ys[(i_midend + 1L):i_end])
@@ -4281,14 +4271,16 @@ check_peak_convex_sub <- function (ys, i_midsta, i_midend, min_n = 15L)
 
 
 #' Calculate FWHM
-#' 
+#'
 #' Do not alter \code{length(ys)} since need \code{ista} and \code{iend}.
-#' 
+#'
 #' @param ts A vector of T values.
 #' @param ys A vector of Y values.
 #' @param yco The cut-off in Y values.
 #' @param min_n The minimum number of points in \code{ys} for consideration.
-calcFWHM <- function (ys, ts, yco = 100, min_n = 15L)
+#' @param min_fwhm The minimum width of FWHM (in seconds) for consideration. A
+#'   value of \code{0} for uses within Mzion; otherwise for proteoQ.
+calcFWHM <- function (ys, ts, yco = 100, min_n = 15L, min_fwhm = 0.0)
 {
   # len0 <- length(ys)
   ymin <- min(ys, na.rm = TRUE) # baseline later...
@@ -4301,7 +4293,41 @@ calcFWHM <- function (ys, ts, yco = 100, min_n = 15L)
   }
 
   ymax <- ys[[imax]]
-  hmax <- (ymax + ymin) / 2
+  
+  ans <- calc_fwxm(ys = ys, ts = ts, ymax = ymax, ymin = ymin, len = len, 
+                   imax = imax, h = .5)
+  
+  if (is.null(ans)) { return(NULL) }
+  
+  anx <- calc_fwxm(ys = ys, ts = ts, ymax = ymax, ymin = ymin, len = len, 
+                   imax = imax, h = .25)
+  if ((!is.null(anx)) && (anx$fwhm * .67 > ans$fwhm)) { # high spikes
+    ans <- anx
+  }
+  
+  # if (TRUE || ans$fwhm < min_fwhm) {}
+
+  ans
+}
+
+
+#' Calculate FWXM
+#'
+#' For a height \eqn{\ge{.5}}.
+#'
+#' @param ys A vector of intensity values.
+#' @param ts A vector of retention times corresponding to \code{ys}.
+#' @param ymax The maximum of \code{ys}.
+#' @param ymin The minimum of \code{ys}.
+#' @param len The length of \code{ys}.
+#' @param imax The index of \code{ymax} along \code{ys}.
+#' @param h The height (from the apex); the height from baseline: \code{1 - h}.
+#'   The value must be \eqn{\le{.5}}.
+calc_fwxm <- function (ys, ts, ymax, ymin, len, imax, h = .5)
+{
+  # stopifnot(h <= .5)
+  
+  hmax <- (ymax + ymin) * h
   ioks <- .Internal(which(ys >= hmax))
   noks <- length(ioks)
   
@@ -4311,11 +4337,11 @@ calcFWHM <- function (ys, ts, yco = 100, min_n = 15L)
   
   # remove spikes outside of the half width
   im <- .Internal(which(ioks == imax))
-
+  
   if (im == 1L || im == noks) {
     return(NULL)
   }
-
+  
   ds1   <- diff(ioks[1:im])
   ds2   <- diff(ioks[im:noks])
   ioks1 <- .Internal(which(ds1 < 5L))
@@ -4326,10 +4352,11 @@ calcFWHM <- function (ys, ts, yco = 100, min_n = 15L)
   if (!noks) {
     return(NULL)
   }
-
+  
   iend <- ioks[[noks]]
   ista <- ioks[[1]]
   fwhm <- ts[[iend]] - ts[[ista]]
+  fwhm <- fwhm  * .5 / (1 - h)
   
   if (fwhm >= 25) {
     return(NULL)
@@ -4338,8 +4365,6 @@ calcFWHM <- function (ys, ts, yco = 100, min_n = 15L)
   if (fwhm / (ts[[len]] - ts[[1]]) > .667) { # blunt; was .8
     return(NULL)
   }
-
-  # stopifnot(len == len0)
   
   list (fwhm = fwhm, ista = ista, iend = iend)
 }
@@ -4573,6 +4598,7 @@ calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5, min_n = 15L,
     return(NULL)
   }
 
+  # allow partial convex
   ok_convex <- check_peak_convex(
     ys = ys, i_sta = iok1, i_midsta = ista, i_midend = iend, i_end = iokn)
 

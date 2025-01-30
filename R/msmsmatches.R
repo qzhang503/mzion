@@ -2326,9 +2326,11 @@ check_locmods <- function (locmods, fixedmods, varmods, ms1_neulosses = NULL)
 map_raw_n_scan <- function (df, mgf_path) 
 {
   # (1) add back orig_scan and apex_scan_num
-  file_apex <- file.path(mgf_path, "apex_scan_nums.rds")
+  file_apex   <- file.path(mgf_path, "apex_scan_nums.rds")
+  ok_fileapex <- file.exists(file_apex)
   
-  if (file.exists(file_apex)) {
+  # added `pep_orig_scan` and `pep_apex_scan`
+  if (ok_fileapex) {
     apex <- qs::qread(file_apex)
     oks  <- fastmatch::fmatch(
       paste0(df$raw_file, ".", df$pep_scan_num), 
@@ -2338,6 +2340,9 @@ map_raw_n_scan <- function (df, mgf_path)
       reloc_col_after("apex_scan_num", "orig_scan") |>
       dplyr::rename(pep_orig_scan = orig_scan, pep_apex_scan = apex_scan_num)
     rm(list = c("oks", "apex"))
+  }
+  else {
+    stop("File not found: ", file_apex)
   }
 
   # (2) add back raw file names
@@ -2401,19 +2406,13 @@ map_raw_n_scan <- function (df, mgf_path)
     for (i in ids) {
       ms1s <- qs::qread(file.path(mgf_path, files_ms1s[[i]]))
       dfi  <- dfs[[i]]
+      # should not is.null(api) since ok_fileapex
       api  <- dfi$pep_apex_scan
       pos  <- fastmatch::fmatch(api, as.integer(ms1s$orig_scan))
       dfi$pep_apex_ret <- ms1s$ret_time[pos]
 
       if (length(rows <- which(api == 0L | is.na(api)))) {
         dfi$pep_apex_scan[rows] <- NA_integer_
-      }
-      
-      # pep_apex_scan "borrowed" from MS2 scans or 0L
-      if (FALSE && any(nas <- is.na(pos))) {
-        dfx <- dfi[nas, ]
-        dfx$pep_apex_ret <- dfx$pep_ret_range
-        dfi[nas, ] <- dfx
       }
       
       dfs[[i]] <- dfi

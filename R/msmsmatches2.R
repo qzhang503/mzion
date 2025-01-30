@@ -95,12 +95,6 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   
   rm(list = c("args_except", "cache_pars", "call_pars"))
   
-  # ^info_format.rds$
-  # ^data_type.rds$
-  # ^raw_indexes.rds$
-  # ^type_acqu.rds$
-  # ^notches.rds$
-  
   delete_files(
     out_path, 
     ignores = c("\\.[Rr]$", "\\.(mgf|MGF)$", "\\.(mzML|mzml)$", "\\.(raw|RAW)$", 
@@ -109,7 +103,9 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
                 # "ms1full_.*\\.rds", # no ^ since with prepending path
                 "^ms1data$", "Calls", "^PSM$", "^Peptide$", "^Protein$", 
                 "fraction_scheme.rda", "label_scheme.rda", 
-                "label_scheme_full.rda"), 
+                "label_scheme_full.rda", 
+                "^info_format.rds$", "^data_type.rds$", "^raw_indexes.rds$", 
+                "^type_acqu.rds$", "^notches.rds$", "^apex_scan_nums.rds$"), 
     paths_excluded = mgf_path)
 
   # pairs expts and theos
