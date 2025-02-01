@@ -1011,7 +1011,7 @@ matchMS <- function (out_path = "~/mzion/my_project",
   ppm_ms2_deisotope <- as.integer(ppm_ms2_deisotope)
   digits <- as.integer(digits)
   
-  stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 10L, minn_ms2 >= 2L, 
+  stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 100L, minn_ms2 >= 2L, 
             min_mass >= 1L, max_mass >= min_mass, 
             min_ms2mass >= 1L, max_ms2mass > min_ms2mass, 
             maxn_vmods_sitescombi_per_pep >= 2L, noenzyme_maxn >= 0L, 

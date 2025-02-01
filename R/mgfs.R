@@ -1322,8 +1322,9 @@ extract_mgf_rptrs <- function (xvals, yvals, quant = "none",
 #' 
 #' ys <- as.integer(xs)
 #' match(ys, ys); fastmatch::fmatch(ys, ys)
+#' @export
 index_mz <- function (x, from = 115L, d = 1E-5) {
-  as.integer(ceiling(log(x/from)/log(1+d)))
+  as.integer(ceiling(log(x / from) / log(1 + d)))
 }
   
 

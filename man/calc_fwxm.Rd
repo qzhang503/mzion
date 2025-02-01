@@ -4,7 +4,7 @@
 \alias{calc_fwxm}
 \title{Calculate FWXM}
 \usage{
-calc_fwxm(ys, ts, ymax, ymin, len, imax, h = 0.5)
+calc_fwxm(ys, ts, ymax, ymin, len, imax, max_fwhm = 25, h = 0.5)
 }
 \arguments{
 \item{ys}{A vector of intensity values.}
@@ -18,6 +18,8 @@ calc_fwxm(ys, ts, ymax, ymin, len, imax, h = 0.5)
 \item{len}{The length of \code{ys}.}
 
 \item{imax}{The index of \code{ymax} along \code{ys}.}
+
+\item{max_fwhm}{The maximum FWHM for considering as a peak.}
 
 \item{h}{The height (from the apex); the height from baseline: \code{1 - h}.
 The value must be \eqn{\le{.5}}.}

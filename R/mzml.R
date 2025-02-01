@@ -3789,7 +3789,7 @@ collapse_xyz <- function (xs = NULL, ys = NULL, zs = NULL, temp_dir = NULL,
   unv <- sort(unique(unv))
   lenu <- length(unv)
   lenx <- length(xs)
-  ups <- lapply(ixs, function (x) unv %in% x)
+  ups  <- lapply(ixs, function (x) unv %in% x)
   
   xout <- mapcoll_xyz(vals = xs, ups = ups, lenx = lenx, lenu = lenu, 
                       temp_dir = temp_dir, icenter = icenter, ms_lev = ms_lev, 
@@ -3824,7 +3824,7 @@ collapse_xyz <- function (xs = NULL, ys = NULL, zs = NULL, temp_dir = NULL,
   
   for (i in 1:lenp) {
     c12 <- ps[[i]]
-    c2 <- c12[[2]]
+    c2  <- c12[[2]]
     
     # with values in both columns, simply overwrite: 1 <- 2; 
     # c2 can be 0
@@ -3915,6 +3915,7 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #' @param max_perc The maximum percentage of baseline levels.
 #' @param min_n The minimum number of points across a peak for consideration.
 #' @param max_n The maximum number of points across a peak for consideration.
+#' @param max_fwhm The maximum FWHM for considering as a peak.
 #' @examples
 #' mzion:::find_lc_gates(ys = c(10,0,0,0,11,15,15,0,0,12,0,10,0,0,10), xs = rep_len(100, 15), ts = seq_len(15), n_dia_scans = 2)
 #' mzion:::find_lc_gates(ys = c(rep(0, 7), 100, 101, rep(0, 2), seq(200, 500, 100), rep(0, 1), 20, 50), xs = rep_len(100, 18), ts = seq_len(18))
@@ -3986,7 +3987,7 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #' @return Scan indexes of LC peaks.
 find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L, 
                            yco = 100, y_rpl = 2.0, max_perc = .05, min_n = 10L, 
-                           ytot_co = 2E5, max_n = 200L)
+                           ytot_co = 2E5, max_n = 200L, max_fwhm = 25.0)
 {
   # if (min_n <= 1L) { stop("Choose a value of `min_n` greater one.") }
   # if (n_dia_scans <= 0L) return(.Internal(which(ys > 0))) # should not occur
@@ -4086,29 +4087,30 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
       ans_stas <- ans_stas[[n_max]]
       ans_ends <- ans[["ends"]]
       
-      if (first_bad <- ans$first_bad) {
-        first_dn <- ans$dn1
+      if (FALSE) {
+        if (first_bad <- ans$first_bad) {
+          first_dn <- ans$dn1
+        }
+        else {
+          first_dn <- NULL
+        }
+        
+        if (last_bad <- ans$last_bad) {
+          last_up <- ans$upn
+        }
+        else {
+          last_up <- NULL
+        }
       }
-      else {
-        first_dn <- NULL
-      }
-      
-      if (last_bad <- ans$last_bad) {
-        last_up <- ans$upn
-      }
-      else {
-        last_up <- NULL
-      }
-      
+
       stax <- endx <- vector("integer", n_stas)
-      # stax[[1]] <-  ri[[1]]
-      # endx[[n_stas]] <- ri[lenr]
-      stax[[1]]      <- if (first_bad) first_dn else ri[[1]]
-      endx[[n_stas]] <- if (last_bad)  last_up  else ri[lenr]
-      
-      
+      # stax[[1]]      <- if (first_bad) first_dn else ri[[1]]
+      # endx[[n_stas]] <- if (last_bad)  last_up  else ri[lenr]
+      stax[[1]]      <- ri[[1]]
+      endx[[n_stas]] <- ri[lenr]
+
       for (j in 2:n_stas) {
-        hend <- ans_ends[[j - 1]]
+        hend <- ans_ends[[j - 1L]]
         hsta <- ans_stas[[j]]
         pmid <- as.integer((hend + hsta) / 2L)
         endx[[j-1]] <- max(pmid - 1L, hend)
@@ -4135,16 +4137,12 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
   ranges <- vector("list", nps2)
   
   for (i in 1:nps2) {
-    ###
-    # i <- 8L
-    ###
-    
     si  <- stas[[i]]
     ixi <- si:ends[[i]]
     tsi <- ts[ixi]
     ysi <- ys[ixi]
     yts <- calcAUC(ys = ysi, ts = tsi, rng = ixi, yco = yco, ytot_co = ytot_co, 
-                   min_n = 15L, err = 2.0)
+                   min_n = 15L, max_fwhm = max_fwhm, err = 2.0)
     
     if (is.null(yts)) { next }
     
@@ -4280,7 +4278,9 @@ check_peak_convex_sub <- function (ys, i_midsta, i_midend, min_n = 15L)
 #' @param min_n The minimum number of points in \code{ys} for consideration.
 #' @param min_fwhm The minimum width of FWHM (in seconds) for consideration. A
 #'   value of \code{0} for uses within Mzion; otherwise for proteoQ.
-calcFWHM <- function (ys, ts, yco = 100, min_n = 15L, min_fwhm = 0.0)
+#' @param max_fwhm The maximum FWHM for considering as a peak.
+calcFWHM <- function (ys, ts, yco = 100, min_n = 15L, max_fwhm = 25.0, 
+                      min_fwhm = 0.0)
 {
   # len0 <- length(ys)
   ymin <- min(ys, na.rm = TRUE) # baseline later...
@@ -4295,12 +4295,12 @@ calcFWHM <- function (ys, ts, yco = 100, min_n = 15L, min_fwhm = 0.0)
   ymax <- ys[[imax]]
   
   ans <- calc_fwxm(ys = ys, ts = ts, ymax = ymax, ymin = ymin, len = len, 
-                   imax = imax, h = .5)
+                   imax = imax, max_fwhm = max_fwhm, h = .5)
   
   if (is.null(ans)) { return(NULL) }
   
   anx <- calc_fwxm(ys = ys, ts = ts, ymax = ymax, ymin = ymin, len = len, 
-                   imax = imax, h = .25)
+                   imax = imax, max_fwhm = max_fwhm, h = .25)
   if ((!is.null(anx)) && (anx$fwhm * .67 > ans$fwhm)) { # high spikes
     ans <- anx
   }
@@ -4321,12 +4321,12 @@ calcFWHM <- function (ys, ts, yco = 100, min_n = 15L, min_fwhm = 0.0)
 #' @param ymin The minimum of \code{ys}.
 #' @param len The length of \code{ys}.
 #' @param imax The index of \code{ymax} along \code{ys}.
+#' @param max_fwhm The maximum FWHM for considering as a peak.
 #' @param h The height (from the apex); the height from baseline: \code{1 - h}.
 #'   The value must be \eqn{\le{.5}}.
-calc_fwxm <- function (ys, ts, ymax, ymin, len, imax, h = .5)
+calc_fwxm <- function (ys, ts, ymax, ymin, len, imax, max_fwhm = 25.0, h = .5)
 {
   # stopifnot(h <= .5)
-  
   hmax <- (ymax + ymin) * h
   ioks <- .Internal(which(ys >= hmax))
   noks <- length(ioks)
@@ -4358,11 +4358,11 @@ calc_fwxm <- function (ys, ts, ymax, ymin, len, imax, h = .5)
   fwhm <- ts[[iend]] - ts[[ista]]
   fwhm <- fwhm  * .5 / (1 - h)
   
-  if (fwhm >= 25) {
+  if (fwhm >= max_fwhm) {
     return(NULL)
   }
   
-  if (fwhm / (ts[[len]] - ts[[1]]) > .667) { # blunt; was .8
+  if (fwhm / (ts[[len]] - ts[[1]]) > .667) { # blunt
     return(NULL)
   }
   
@@ -4436,13 +4436,13 @@ find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0,
   }
   
   if (!nps) {
-    return(list(stas = NULL, ends = NULL, dn1 = NULL, upn = NULL, 
-                first_bad = FALSE, last_bad = FALSE))
+    # first_bad = FALSE, last_bad = FALSE
+    return(list(stas = NULL, ends = NULL, dn1 = NULL, upn = NULL))
   }
   
   ###
-  first_bad <- FALSE
-  last_bad  <- FALSE
+  # first_bad <- FALSE
+  # last_bad  <- FALSE
   stx <- sta - 1L
   upn <- ioks[[ups[[nps]]]] + stx
   dn1 <- ioks[[dns[[1]]]] + stx
@@ -4470,12 +4470,14 @@ find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0,
     yhs <- yhs - ymin # subtract the baseline
     yhm <- max(yhs)
     
-    if (first_bad <- yhm / yhs[[1]] > 5) { # up-bending partial peak or small hump
-      lenx[[1]] <- 0L
-    }
-    
-    if (last_bad <- yhm / yhs[[nps]] > 5) {
-      lenx[[nps]] <- 0L
+    if (FALSE) {
+      if (first_bad <- yhm / yhs[[1]] > 5) { # up-bending partial peak or small hump
+        lenx[[1]] <- 0L
+      }
+      
+      if (last_bad <- yhm / yhs[[nps]] > 5) {
+        lenx[[nps]] <- 0L
+      }
     }
     ###
   }
@@ -4490,12 +4492,12 @@ find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0,
   # ends[[i]] <- sta + ioks[dns] - 1L
   
   if (length(ups)) {
-    list(stas = stx + ioks[ups], ends = stx + ioks[dns], 
-         dn1 = dn1, upn = upn, first_bad = first_bad, last_bad = last_bad)
+    # , first_bad = first_bad, last_bad = last_bad
+    list(stas = stx + ioks[ups], ends = stx + ioks[dns], dn1 = dn1, upn = upn)
   }
   else {
-    list(stas = NULL, ends = NULL, dn1 = NULL, upn = NULL, 
-         first_bad = FALSE, last_bad = FALSE)
+    # , first_bad = FALSE, last_bad = FALSE
+    list(stas = NULL, ends = NULL, dn1 = NULL, upn = NULL)
   }
 }
 
@@ -4512,8 +4514,9 @@ find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0,
 #'   seconds).
 #' @param min_n The minimum points across the peak profile of \code{ys} for
 #'   consideration.
+#' @param max_fwhm The maximum FWHM for considering as a peak.
 calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5, min_n = 15L, 
-                     err = 2.0)
+                     max_fwhm = 25.0, err = 2.0)
 {
   ## (1) find the apex index
   len  <- length(ys)
@@ -4566,7 +4569,7 @@ calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5, min_n = 15L,
     return(NULL)
   }
   
-  ans_fw <- calcFWHM(ys, ts, yco = 100)
+  ans_fw <- calcFWHM(ys, ts, yco = 100, max_fwhm = max_fwhm)
   fwhm   <- ans_fw[["fwhm"]]
   if (is.null(fwhm)) { return(NULL) } # flat peak
   ista   <- ans_fw[["ista"]]
@@ -4803,27 +4806,17 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   else {
     for (i in seq_along(xs)) {
       ix <- ixs[[i]]
-      x  <- xs[[i]]
-      y  <- ys[[i]]
       ps <- .Internal(which(duplicated(ix)))
       
       if (length(ps)) {
         ixs[[i]] <- ix[-ps]
-        xs[[i]]  <- x[-ps]
-        ys[[i]]  <- y[-ps]
+        xs[[i]]  <- xs[[i]][-ps]
+        ys[[i]]  <- ys[[i]][-ps]
       }
-
-      # if (any(dups <- duplicated(ix))) {
-      #   oks      <- .Internal(which(!dups))
-      #   ixs[[i]] <- ix[oks]
-      #   xs[[i]]  <- x[oks]
-      #   ys[[i]]  <- y[oks]
-      # }
     }
   }
-  # rm(list = c("x", "y", "ix", "ps"))
-  
-  ## maps ixs vectors to unv (presence or absence)
+
+  ## (1) maps ixs vectors to unv (presence or absence)
   unv  <- .Internal(unlist(ixs, recursive = FALSE, use.names = FALSE))
   unv  <- sort(unique(unv))
   lenu <- length(unv)
@@ -4838,30 +4831,20 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
   
   # if (!coll) { return(list(x = xmat, y = ymat, u = unv)) }
 
-  # collapses adjacent entries
-  ps   <- find_gates(unv)
-  lenp <- length(ps)
-  
-  # which(sapply(ps, `[[`, 1L) == which(unv == 167269)) # 6325
-  # which(sapply(ps, `[[`, 2L) == which(unv == 167269))
-  
-  # all discrete values
-  if (is.null(ps)) {
+  ## (2) collapses adjacent entries with +/-1 in bin indexes
+  if (is.null(ps <- find_gates(unv))) { # all discrete values
     return(list(x = xmat, y = ymat, u = unv))
   }
-  
+
   # for recording matrix columns to be dropped
-  ps1 <- vector("integer", lenp)
-  
-  # collapses matrix columns with +/-1 in bin indexes
+  ps1 <- vector("integer", lenp <- length(ps))
+
   for (i in 1:lenp) {
-    # test from 6323:6325
-    # i= 6324; i = 6325
     c12 <- ps[[i]]
     c1  <- c12[[1]]
     c2  <- c12[[2]]
     
-    # with values in both columns, X: 2 <- 1; Y: 1 + 2; c2 can be 0
+    # with values in both columns, X: 2 <- 1 (move left); Y: 1 + 2; c2 can be 0
     if (c2 == 0L) {
       next
     }
@@ -4887,7 +4870,10 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
     ymat[rows, c1] <- NA_real_ # toggle on
     
     if (look_back && i < lenp && (af <- ps[[i+1]][[1]]) == (c2 + 1L)) {
-      if (FALSE) { # disadvantageous on Y values
+      ###
+      if (FALSE) {
+        ## transfer only if tangent...
+        # disadvantageous on Y values
         xc2   <- xmat[, c2]
         xaf   <- xmat[, af]
         rows1 <- is.na(xc2)
@@ -4896,11 +4882,9 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
         xmat[rows, c2] <- xaf[rows]
         # Y values on both rows1 and rows2 will not be collapsed
         ymat[rows, c2] <- rowSums(ymat[rows, c2:af, drop = FALSE], na.rm = TRUE)
-      }
-
-      ###
-      # transfer only if tangent...
-      if (FALSE) {
+        ##
+        
+        ##
         rows2 <- .Internal(which(is.na(xmat[, c2]) & !is.na(xmat[, af])))
         # ys1 <- ymat[rows2, c2]
         ys2 <- ymat[rows2, af]
@@ -4917,23 +4901,18 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
           dns   <- edges[["dns"]]
           nps   <- length(ups)
         })
-
-        # get the ranges
-        
-        # find tangent ranges -> c2
-        
-        ys2[4:43]
-        rows2[4:43] # 399:439
+        ##
       }
-      
       ###
       
-      rows2 <- .Internal(which(is.na(xmat[, c2])))
-      xmat[rows2, c2] <- xmat[rows2, af]
-      ymat[rows2, c2] <- ymat[rows2, af] # rowSums(ymat[rows2, c2:af, drop = FALSE], na.rm = TRUE)
-      # about ok to enable, but may be unnecessary
-      xmat[rows2, af] <- NA_real_ # toggle on
-      ymat[rows2, af] <- NA_real_ # toggle on
+      # with NA rows in c2
+      if (length(rows2 <- .Internal(which(is.na(xmat[, c2]))))) {
+        xmat[rows2, c2] <- xmat[rows2, af]
+        ymat[rows2, c2] <- ymat[rows2, af] # rowSums(ymat[rows2, c2:af, drop = FALSE], na.rm = TRUE)
+        # about ok to enable, but may be unnecessary
+        xmat[rows2, af] <- NA_real_ # toggle on
+        ymat[rows2, af] <- NA_real_ # toggle on
+      }
     }
     
     # colnames(xmat) <- colnames(ymat) <- unv; zy <- ymat[, c12]; plot(zy[, 2])

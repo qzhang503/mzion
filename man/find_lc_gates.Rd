@@ -14,7 +14,8 @@ find_lc_gates(
   max_perc = 0.05,
   min_n = 10L,
   ytot_co = 2e+05,
-  max_n = 200L
+  max_n = 200L,
+  max_fwhm = 25
 )
 }
 \arguments{
@@ -41,6 +42,8 @@ along LC.}
 \item{ytot_co}{A more permissive cut-off in peak area for finding all peaks.}
 
 \item{max_n}{The maximum number of points across a peak for consideration.}
+
+\item{max_fwhm}{The maximum FWHM for considering as a peak.}
 }
 \value{
 Scan indexes of LC peaks.

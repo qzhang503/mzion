@@ -4,7 +4,7 @@
 \alias{calcFWHM}
 \title{Calculate FWHM}
 \usage{
-calcFWHM(ys, ts, yco = 100, min_n = 15L, min_fwhm = 0)
+calcFWHM(ys, ts, yco = 100, min_n = 15L, max_fwhm = 25, min_fwhm = 0)
 }
 \arguments{
 \item{ys}{A vector of Y values.}
@@ -14,6 +14,8 @@ calcFWHM(ys, ts, yco = 100, min_n = 15L, min_fwhm = 0)
 \item{yco}{The cut-off in Y values.}
 
 \item{min_n}{The minimum number of points in \code{ys} for consideration.}
+
+\item{max_fwhm}{The maximum FWHM for considering as a peak.}
 
 \item{min_fwhm}{The minimum width of FWHM (in seconds) for consideration. A
 value of \code{0} for uses within Mzion; otherwise for proteoQ.}
