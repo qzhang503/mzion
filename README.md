@@ -1,7 +1,7 @@
 Mzion
 ================
 true
-2024-10-17
+2025-02-01
 
 - [Installation](#installation)
 - [Peaklist formats](#peaklist-formats)
@@ -109,6 +109,23 @@ matchMS(
   max_miss  = 4, 
   quant     = "tmt10", 
   fdr_type  = "protein",
+)
+
+## Immunopepdomics, LFQ
+matchMS(
+  out_path  = "~/mzion/examples_hla/out", 
+  mgf_path  = "~/mzion/examples_hla/raw",
+  fasta     = c("~/mzion/dbs/fasta/uniprot/uniprot_hs_2020_05.fasta", 
+                "~/mzion/dbs/fasta/crap/crap.fasta"), 
+  acc_type  = c("uniprot_acc", "other"), 
+  # fixedmods = c("Carbamidomethyl (C)"), 
+  fixedmods = NULL, 
+  varmods   = c("Acetyl (Protein N-term)", "Oxidation (M)"), 
+  min_len   = 7L, 
+  max_len   = 25L,
+  max_miss  = 25L, 
+  custom_enzyme = c(Cterm = "([ADEFGHIKLMNPQRSTVWY]{1})"), 
+  quant = "none", 
 )
 
 ## See also ?matchMS for SILAC, acetylome workflows etc.

@@ -1011,6 +1011,10 @@ matchMS <- function (out_path = "~/mzion/my_project",
   ppm_ms2_deisotope <- as.integer(ppm_ms2_deisotope)
   digits <- as.integer(digits)
   
+  if (max_miss > max_len) {
+    stop("The value of `max_miss` cannot be greater than `max_len`.")
+  }
+  
   stopifnot(min_len >= 1L, max_len >= min_len, max_miss <= 100L, minn_ms2 >= 2L, 
             min_mass >= 1L, max_mass >= min_mass, 
             min_ms2mass >= 1L, max_ms2mass > min_ms2mass, 
@@ -1026,7 +1030,7 @@ matchMS <- function (out_path = "~/mzion/my_project",
             maxn_dia_precurs >= 1L, topn_dia_ms2ions >= 1L, n_dia_ms2bins >= 0L, 
             maxn_mdda_precurs >= 0L, n_mdda_flanks >= 0L, 
             ppm_ms1_deisotope >= 1L, ppm_ms2_deisotope >= 1L)
-  
+
   if (n_dia_scans < 2L) {
     stop("Choose a larger value of n_dia_scans for defining peak profiles.")
   }

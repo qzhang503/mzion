@@ -246,6 +246,7 @@ recur_flatten <- function (x)
 #' @param n_chunks The number of chunks.
 #' @param type The type of data for splitting.
 #' @param ... Arguments for \link{findInterval}.
+#' @export
 chunksplit <- function (data, n_chunks = 5L, type = c("list", "row"), ...)
 {
   type <- match.arg(type)

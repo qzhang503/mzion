@@ -3410,6 +3410,7 @@ spreadMSohw <- function (matx, maty, matz, ns, ps, gap = 2L, join_ms = FALSE)
 #' # find_gates(c(310L))
 #' 
 #' # find_gates(c(281, 326, 335, 336, 337, 437, 447, 448, 449, 450, 553, 554, 557))
+#' @export
 find_gates <- function (vals)
 {
   # all discrete
@@ -3864,6 +3865,7 @@ collapse_xyz <- function (xs = NULL, ys = NULL, zs = NULL, temp_dir = NULL,
 #' @param direct_out Logical; if TRUE, return outputs directly.
 #' @return A matrix where rows correspond to \code{vals} and columns to
 #'   \code{ups}.
+#' @export
 mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L, 
                          ms_lev = 2L, type = "xs", direct_out = FALSE)
 {
@@ -3985,6 +3987,7 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
 #' mzion:::find_lc_gates(ys = ys, ts = ts)
 #' @importFrom fastmatch %fin%
 #' @return Scan indexes of LC peaks.
+#' @export
 find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L, 
                            yco = 100, y_rpl = 2.0, max_perc = .05, min_n = 10L, 
                            ytot_co = 2E5, max_n = 200L, max_fwhm = 25.0)

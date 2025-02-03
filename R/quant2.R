@@ -535,6 +535,7 @@ hannot_decoys <- function (df, prps)
 #' out <- mzion:::groupProts(df, "~")
 #' stopifnot(nrow(out) == 3L)
 #' }
+#' @export
 groupProts <- function (df, out_path = NULL, fct = 4L, 
                         out_name = "prot_pep_setcover.rds") 
 {
