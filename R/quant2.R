@@ -32,6 +32,7 @@ hcalc_tmtint <- function (df, quant = "tmt10", ppm_reporters = 10L, idx = 1L,
 #'   compatible higher plexes, for example, \code{tmt16} for \code{tmt12} etc.
 #'   and \code{tmt10} for \code{tmt8} etc.
 #' @param ppm_reporters The mass tolerance of MS2 reporter ions.
+#' @export
 calc_tmtint <- function (data = NULL, quant = "tmt16", ppm_reporters = 10L) 
 {
   if (quant == "none") {

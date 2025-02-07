@@ -7,10 +7,9 @@
 # [7] "sep_ms1rts"        "bin_ms1rts"        "gen_isoenvlope"   
 # 
 # $dispatch.R
-#  [1] "find_pos_site"       "contain_pos_site"    "contain_termpos_any" "subset_by_prps"      "subset_protntsite"  
-#  [6] "subset_protntany"    "subset_anyntsite"    "subset_anyntany"     "subset_anysite"      "subset_protctsite"  
-# [11] "subset_protctany"    "subset_anyctsite"    "subset_anyctany"     "find_nmodtree"       "find_cmodtree"      
-# [16] "subpeps_by_vmods"   
+#  [1] "find_pos_site"       "contain_pos_site"    "contain_termpos_any" "subset_by_prps"      "subset_protntsite"   "subset_protntany"   
+#  [7] "subset_anyntsite"    "subset_anyntany"     "subset_anysite"      "subset_protctsite"   "subset_protctany"    "subset_anyctsite"   
+# [13] "subset_anyctany"     "find_nmodtree"       "find_cmodtree"       "subpeps_by_vmods"   
 # 
 # $fastas.R
 # [1] "read_fasta"       "write_fasta"      "load_fasta"       "load_fasta2"      "find_acc_pattern" "find_acc_type"   
@@ -24,8 +23,8 @@
 # [15] "astar2ions"      "a0ions"          "a02ions"         "x2ions"         
 # 
 # $lfq.R
-#  [1] "subMSfull"        "pretraceXY"       "sep_df1_byRTs"    "htraceXY"         "updateMS1Int"     "init_lfq_cols"   
-#  [7] "find_best_apex"   "are_ovlap_ranges" "mergeAdjGates2"   "mergeAdjGates"    "traceMS1"         "getMS1Int"       
+#  [1] "subMSfull"        "pretraceXY"       "sep_df1_byRTs"    "htraceXY"         "updateMS1Int"     "init_lfq_cols"    "find_best_apex"  
+#  [8] "are_ovlap_ranges" "mergeAdjGates2"   "mergeAdjGates"    "traceMS1"         "getMS1Int"       
 # 
 # $mapMS2ions.R
 #  [1] "mapMS2ions"         "plotMS2ions"        "match_mgf_path"     "match_raw_id"       "add_raw_ids"        "find_secion_types" 

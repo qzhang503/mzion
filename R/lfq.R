@@ -168,6 +168,7 @@ pretraceXY <- function (df, from = 200L, step = 1e-5, rt_gap = 500L,
 #' @param rt_size The width of each LC retention times in seconds.
 #' @param rt_margin The bracketing margin before and after an LC retention time
 #'   window.
+#' @export
 sep_df1_byRTs <- function (df1, col_rt = "ret_time", rt_size = 180, 
                            rt_margin = 120)
 {

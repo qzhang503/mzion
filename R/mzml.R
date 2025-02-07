@@ -4168,15 +4168,15 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
   ###
   
   ## outputs
-  ioks <- 
-    .Internal(which(apexs > 0L & yints >= max(yints, na.rm = TRUE) * .01))
+  ioks <- .Internal(which(apexs > 0L)) # & yints >= max(yints, na.rm = TRUE) * .001
   noks <- length(ioks)
-
-  if (!noks) { # noks > 4L || 
+  
+  if (!noks) {
     return(NULL)
   }
   
   ns <- lengths(ranges)
+  
   if (noks < nps2) {
     apexs  <- apexs[ioks]
     yints  <- yints[ioks]
@@ -4185,7 +4185,7 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
     xstas  <- xstas[ioks]
     fwhm   <- fwhm[ioks]
   }
-  
+
   list(apex = apexs, yints = yints, ns = ns, ranges = ranges, xstas = xstas, 
        fwhm = fwhm)
 }
@@ -4300,11 +4300,16 @@ calcFWHM <- function (ys, ts, yco = 100, min_n = 15L, max_fwhm = 25.0,
   ans <- calc_fwxm(ys = ys, ts = ts, ymax = ymax, ymin = ymin, len = len, 
                    imax = imax, max_fwhm = max_fwhm, h = .5)
   
-  if (is.null(ans)) { return(NULL) }
+  # if (is.null(ans)) { return(NULL) }
   
   anx <- calc_fwxm(ys = ys, ts = ts, ymax = ymax, ymin = ymin, len = len, 
                    imax = imax, max_fwhm = max_fwhm, h = .25)
-  if ((!is.null(anx)) && (anx$fwhm * .67 > ans$fwhm)) { # high spikes
+
+    #     /\
+    #  ---  ---
+    # /        \
+  
+  if ((!is.null(anx)) && (!is.null(ans)) && (anx$fwhm * .67 > ans$fwhm)) { # high spikes
     ans <- anx
   }
   
@@ -4365,7 +4370,7 @@ calc_fwxm <- function (ys, ts, ymax, ymin, len, imax, max_fwhm = 25.0, h = .5)
     return(NULL)
   }
   
-  if (fwhm / (ts[[len]] - ts[[1]]) > .667) { # blunt
+  if (fwhm / (ts[[len]] - ts[[1]]) > .8) { # blunt; was .667
     return(NULL)
   }
   

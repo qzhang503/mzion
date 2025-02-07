@@ -2327,6 +2327,7 @@ check_locmods <- function (locmods, fixedmods, varmods, ms1_neulosses = NULL)
 #' @param df A data frame.
 #' @inheritParams matchMS
 #' @importFrom fastmatch %fin% fmatch
+#' @export
 map_raw_n_scan <- function (df, mgf_path) 
 {
   # (1) add back orig_scan and apex_scan_num

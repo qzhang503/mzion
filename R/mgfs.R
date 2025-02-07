@@ -11,6 +11,7 @@
 #' @param bypass_rawexe Logical; to bypass \link{exeReadPASEF} processing of
 #'   RAW .d files or not.
 #' @inheritParams matchMS
+#' @export
 load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L, 
                        maxn_dia_precurs = 1000L, # max MS1 deisotoping features
                        topn_dia_ms2ions = 500L, # max MS2 deisotoping features
@@ -1139,6 +1140,7 @@ reset_rettimes <- function (ret_times, min_ret_time = 0, max_ret_time = Inf)
 #' @param ms2_ints Lists of MS2 intensities.
 #' @param ms2_charges Lists of MS2 charges.
 #' @inheritParams load_mgfs
+#' @export
 sub_mgftopn <- function (ms2_moverzs = NULL, ms2_ints = NULL, ms2_charges = NULL, 
                          topn_ms2ions = 150L, mgf_cutmzs = numeric(), 
                          mgf_cutpercs = numeric(), min_ms2mass = 115L, 
@@ -1332,6 +1334,7 @@ index_mz <- function (x, from = 115L, d = 1E-5) {
 #' Finds the type of MGF.
 #'
 #' @param file The path to an MGF file.
+#' @export
 find_mgf_type <- function (file) 
 {
   hdr <- readLines(file, 5000L)
