@@ -4836,8 +4836,6 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
                       direct_out = TRUE)
   ymat <- mapcoll_xyz(vals = ys, ups = ups, lenx = lenx, lenu = lenu, 
                       direct_out = TRUE)
-  
-  # if (!coll) { return(list(x = xmat, y = ymat, u = unv)) }
 
   ## (2) collapses adjacent entries with +/-1 in bin indexes
   if (is.null(ps <- find_gates(unv))) { # all discrete values
@@ -4877,49 +4875,18 @@ collapse_mms1ints <- function (xs = NULL, ys = NULL, lwr = 115L, step = 1e-5,
     xmat[rows, c1] <- NA_real_ # toggle on; to prevent value traversing in fwd and bwd looking
     ymat[rows, c1] <- NA_real_ # toggle on
     
-    if (look_back && i < lenp && (af <- ps[[i+1]][[1]]) == (c2 + 1L)) {
-      ###
-      if (FALSE) {
-        ## transfer only if tangent...
-        # disadvantageous on Y values
-        xc2   <- xmat[, c2]
-        xaf   <- xmat[, af]
-        rows1 <- is.na(xc2)
-        rows2 <- is.na(xaf)
-        rows  <- .Internal(which(rows1 & !rows2))
-        xmat[rows, c2] <- xaf[rows]
-        # Y values on both rows1 and rows2 will not be collapsed
-        ymat[rows, c2] <- rowSums(ymat[rows, c2:af, drop = FALSE], na.rm = TRUE)
-        ##
-        
-        ##
-        rows2 <- .Internal(which(is.na(xmat[, c2]) & !is.na(xmat[, af])))
-        # ys1 <- ymat[rows2, c2]
-        ys2 <- ymat[rows2, af]
-        gs2 <- find_lc_gates(ys = ymat[, af], n_dia_scans = 0L, y_rpl = 0)
-        
-        local({
-          ymin <- max(ys, na.rm = TRUE) * perc
-          ys[ys <= ymin] <- NA_real_
-          ys <- fill_lc_gaps(ys, n_dia_scans = n_dia_scans, y_rpl = 2.0)
-          
-          ioks  <- .Internal(which(ys > 0))
-          edges <- find_gate_edges(ioks)
-          ups   <- edges[["ups"]] # in relative to ys
-          dns   <- edges[["dns"]]
-          nps   <- length(ups)
-        })
-        ##
-      }
-      ###
+    if (look_back && i < lenp) {
+      af <- ps[[i+1]][[1]]
       
-      # with NA rows in c2
-      if (length(rows2 <- .Internal(which(is.na(xmat[, c2]))))) {
-        xmat[rows2, c2] <- xmat[rows2, af]
-        ymat[rows2, c2] <- ymat[rows2, af] # rowSums(ymat[rows2, c2:af, drop = FALSE], na.rm = TRUE)
-        # about ok to enable, but may be unnecessary
-        xmat[rows2, af] <- NA_real_ # toggle on
-        ymat[rows2, af] <- NA_real_ # toggle on
+      if (unv[[af]] == unv[[c2]] + 1L) { # af == (c2 + 1L)
+        # with NA rows in c2
+        if (length(rows2 <- .Internal(which(is.na(xmat[, c2]))))) {
+          xmat[rows2, c2] <- xmat[rows2, af]
+          ymat[rows2, c2] <- ymat[rows2, af] # rowSums(ymat[rows2, c2:af, drop = FALSE], na.rm = TRUE)
+          # about ok to enable, but may be unnecessary
+          xmat[rows2, af] <- NA_real_ # toggle on
+          ymat[rows2, af] <- NA_real_ # toggle on
+        }
       }
     }
     
