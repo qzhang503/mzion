@@ -265,6 +265,7 @@
 #' @param minn_ms2 A positive integer; the minimum number of matched MS2 ions
 #'   for consideration as a hit. Counts of secondary ions, e.g. b0, b* etc., are
 #'   not part of the threshold.
+#' @param tally_ms2ints Logical; tally MS2 ion intensities or not.
 #' @param exclude_reporter_region Logical; if TRUE, excludes MS2 ions in the
 #'   region of TMT reporter ions. The default is FALSE. The corresponding range
 #'   of TMT reporter ions is informed by \code{tmt_reporter_lower} and
@@ -721,7 +722,7 @@ matchMS <- function (out_path = "~/mzion/my_project",
                                        "top3", "top3_cterm_tryptic", 
                                        "top3_cterm_nontryptic"), 
                      noenzyme_maxn = 0L, 
-                     maxn_fasta_seqs = 200000L,
+                     maxn_fasta_seqs = 500000L,
                      maxn_vmods_setscombi = 512L,
                      maxn_vmods_per_pep = 5L,
                      maxn_sites_per_vmod = 3L,
@@ -738,6 +739,7 @@ matchMS <- function (out_path = "~/mzion/my_project",
                      silac_mix = NULL, 
                      
                      type_ms2ions = "by", 
+                     tally_ms2ints = TRUE, 
                      min_ms2mass = 115L, 
                      max_ms2mass = 4500L, 
                      minn_ms2 = 6L, 
@@ -1532,10 +1534,6 @@ matchMS <- function (out_path = "~/mzion/my_project",
   maxn_mdda_precurs2 <- if (type_acqu == "dia") 500L else maxn_mdda_precurs
   
   if (!bypass_pepscores) {
-    if (is.null(tally_ms2ints <- dots$tally_ms2ints)) {
-      tally_ms2ints <- TRUE
-    }
-
     if (is.null(n_ms2_bg <- dots$n_ms2_bg)) {
       n_ms2_bg <- max_len * 250L
     }

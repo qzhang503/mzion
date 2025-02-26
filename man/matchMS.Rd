@@ -31,7 +31,7 @@ matchMS(
     "all_cterm_tryptic", "all_cterm_nontryptic", "top3", "top3_cterm_tryptic",
     "top3_cterm_nontryptic"),
   noenzyme_maxn = 0L,
-  maxn_fasta_seqs = 200000L,
+  maxn_fasta_seqs = 500000L,
   maxn_vmods_setscombi = 512L,
   maxn_vmods_per_pep = 5L,
   maxn_sites_per_vmod = 3L,
@@ -49,6 +49,7 @@ matchMS(
   par_groups = NULL,
   silac_mix = NULL,
   type_ms2ions = "by",
+  tally_ms2ints = TRUE,
   min_ms2mass = 115L,
   max_ms2mass = 4500L,
   minn_ms2 = 6L,
@@ -335,6 +336,8 @@ SILAC.}
 \href{http://www.matrixscience.com/help/fragmentation_help.html}{ MS2
 ions}. Values are in one of "by", "ax" and "cz". The default is "by" for b-
 and y-ions.}
+
+\item{tally_ms2ints}{Logical; tally MS2 ion intensities or not.}
 
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}

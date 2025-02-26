@@ -78,7 +78,7 @@ interrogation. The default is 110.}
 
 \item{d2}{Bin width in ppm divided by 1E6}
 
-\item{tally_ms2ints}{Logical; tally MS2 intensities or not.}
+\item{tally_ms2ints}{Logical; tally MS2 ion intensities or not.}
 
 \item{add_ms2theos}{Logical. If true, adds the sequence of primary
   theoretical MS2 m/z values (\code{pep_ms2_theos}). The sequence order at a

@@ -54,7 +54,7 @@ for considerations. Longer peptides will be excluded. The default is 40.}
 \item{min_ms2mass}{A positive integer; the minimum MS2 mass for
 interrogation. The default is 110.}
 
-\item{tally_ms2ints}{Logical; tally MS2 intensities or not.}
+\item{tally_ms2ints}{Logical; tally MS2 ion intensities or not.}
 
 \item{d2}{Bin width in ppm divided by 1E6.}
 

@@ -4145,7 +4145,7 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
     tsi <- ts[ixi]
     ysi <- ys[ixi]
     yts <- calcAUC(ys = ysi, ts = tsi, rng = ixi, yco = yco, ytot_co = ytot_co, 
-                   min_n = 15L, max_fwhm = max_fwhm, err = 2.0)
+                   min_n = 15L, max_fwhm = max_fwhm, y_rpl = y_rpl, err = 2.0)
     
     if (is.null(yts)) { next }
     
@@ -4200,8 +4200,9 @@ find_lc_gates <- function (ys = NULL, xs = NULL, ts = NULL, n_dia_scans = 6L,
 #' @param i_end The right-end index of a peak along \code{ys}.
 #' @param min_n The minimum points across the peak profile of \code{ys} for
 #'   consideration.
+#' @param y_rpl A replacement value of intensities.
 check_peak_convex <- function (ys, i_sta, i_midsta, i_midend, i_end, 
-                               min_n = 15L)
+                               min_n = 15L, y_rpl = 2.0)
 {
   len <- length(ys)
   
@@ -4216,25 +4217,31 @@ check_peak_convex <- function (ys, i_sta, i_midsta, i_midend, i_end,
     return(FALSE)
   }
 
+  # may be no need of `> y_rpl`
+  
   if (no_left) {
-    # return(FALSE)
     m1 <- 0.0
   }
   else {
-    m1 <- median(ys[i_sta:(i_midsta - 1L)])
+    ys1 <- ys[i_sta:(i_midsta - 1L)]
+    ys1 <- ys1[ys1 > y_rpl]
+    m1  <- if (length(ys1)) { median(ys1) } else { 0.0 }
   }
   
   if (no_right) {
-    # return(FALSE)
     m3 <- 0.0
   }
   else {
-    m3  <- median(ys[(i_midend + 1L):i_end])
+    ys3 <- ys[(i_midend + 1L):i_end]
+    ys3 <- ys3[ys3 > y_rpl]
+    m3  <- if (length(ys3)) { median(ys3) } else { 0.0 }
   }
   
-  m2 <- median(ys[i_midsta:i_midend])
-  
-  m2 > m1 * 1.25 && m2 > m3 * 1.25
+  ys2 <- ys[i_midsta:i_midend]
+  ys2 <- ys2[ys2 > y_rpl]
+  m2  <- if (length(ys2)) { median(ys2) } else { 0.0 }
+
+  m2 > m1 * 1.2 && m2 > m3 * 1.2
 }
 
 
@@ -4291,7 +4298,8 @@ calcFWHM <- function (ys, ts, yco = 100, min_n = 15L, max_fwhm = 25.0,
   if (len < min_n) { return(NULL) }
   imax <- .Internal(which.max(ys))
 
-  if (imax == 1L || imax == len) { # <= 3L; imax + 3L >= len
+  if (imax == 1L || imax == len) {
+    # need some cushion on the margin...
     return(NULL)
   }
 
@@ -4300,21 +4308,23 @@ calcFWHM <- function (ys, ts, yco = 100, min_n = 15L, max_fwhm = 25.0,
   ans <- calc_fwxm(ys = ys, ts = ts, ymax = ymax, ymin = ymin, len = len, 
                    imax = imax, max_fwhm = max_fwhm, h = .5)
   
-  # if (is.null(ans)) { return(NULL) }
-  
   anx <- calc_fwxm(ys = ys, ts = ts, ymax = ymax, ymin = ymin, len = len, 
                    imax = imax, max_fwhm = max_fwhm, h = .25)
 
     #     /\
+    #     ||
     #  ---  ---
     # /        \
   
-  if ((!is.null(anx)) && (!is.null(ans)) && (anx$fwhm * .67 > ans$fwhm)) { # high spikes
+  if (is.null(ans)) {
     ans <- anx
   }
+  else {
+    if ((!is.null(anx)) && (anx$fwhm * .67 > ans$fwhm)) { # high spikes
+      ans <- anx
+    }
+  }
   
-  # if (TRUE || ans$fwhm < min_fwhm) {}
-
   ans
 }
 
@@ -4332,37 +4342,100 @@ calcFWHM <- function (ys, ts, yco = 100, min_n = 15L, max_fwhm = 25.0,
 #' @param max_fwhm The maximum FWHM for considering as a peak.
 #' @param h The height (from the apex); the height from baseline: \code{1 - h}.
 #'   The value must be \eqn{\le{.5}}.
-calc_fwxm <- function (ys, ts, ymax, ymin, len, imax, max_fwhm = 25.0, h = .5)
+#' @param min_noks The minimum number of \code{ys} values \eqn{\ge} the value at
+#'   \code{h} for consideration as a peak.
+#' @param gap_size The maximum allowance in discontinuous indexes of the
+#'   \code{ys} sequence.
+#' @param margin The margin allowance for the maximum.
+#' @param n_bimod The gap size for biomodality in \code{ys}.
+calc_fwxm <- function (ys, ts, ymax, ymin, len, imax, max_fwhm = 25.0, h = .5, 
+                       min_noks = 5L, gap_size = 4L, n_margin = 4L, n_bimod = 4L)
 {
-  # stopifnot(h <= .5)
-  hmax <- (ymax + ymin) * h
-  ioks <- .Internal(which(ys >= hmax))
+  # stopifnot(h <= .5, n_margin >= 1L, n_margin < len / 2L, len >= 15L)
+  
+  hval <- (ymax + ymin) * h
+  ioks <- .Internal(which(ys >= hval)) # along ys
   noks <- length(ioks)
   
-  if (noks < 5L) { # || noks / len < .2
-    return(NULL)
+  if (noks < min_noks) { return(NULL) }
+  
+  im  <- .Internal(which(ioks == imax)) # along ioks
+
+  ## (1) handle `imax` near the edges and no other modal away from the edges
+  if (imax <= n_margin) {
+    imax2 <- .Internal(which.max(ys[(n_margin + 1L):len])) + n_margin
+    
+    if (imax2 >= imax + n_bimod) { # a gap between imax and imax2
+      ioks <- ioks[ioks > n_margin]
+      noks <- length(ioks)
+      if (noks < min_noks) { return(NULL) }
+      imax <- imax2
+      im   <- .Internal(which(ioks == imax2))
+      if (!length(im)) { return(NULL) } # the remaining are all < hval
+      ysta <- n_margin + 1L
+    }
   }
-  
-  # remove spikes outside of the half width
-  im <- .Internal(which(ioks == imax))
-  
-  if (im == 1L || im == noks) {
-    return(NULL)
+  else {
+    ysta <- 1L
   }
-  
-  ds1   <- diff(ioks[1:im])
-  ds2   <- diff(ioks[im:noks])
-  ioks1 <- .Internal(which(ds1 < 5L))
-  ioks2 <- .Internal(which(ds2 < 5L)) + im
-  ioks  <- ioks[c(ioks1, im, ioks2)]
-  noks  <- length(ioks)
-  
-  if (!noks) {
-    return(NULL)
+
+  g2 <- len - n_margin + 1L
+  if (imax >= g2) {
+    imax2 <- .Internal(which.max(ys[ysta:(g2 - 1L)])) + ysta - 1L
+
+    if (imax2 + n_bimod <= imax) {
+      ioks <- ioks[ioks < g2]
+      noks <- length(ioks)
+      if (noks < min_noks) { return(NULL) }
+      imax <- imax2
+      im   <- .Internal(which(ioks == imax2))
+      if (!length(im)) { return(NULL) }
+    }
   }
+
+  if (imax <= n_margin || imax >= g2) { return(NULL) }
+  # if (im == 1L || im == noks) { return(NULL) }
+
+  if (all(ys[ys > ymin] >= hval)) {
+    ista <- 2L
+    iend <- len - 1L
+    
+    fwhm <- ts[[iend]] - ts[[ista]]
+    fwhm <- fwhm  * .5 / (1 - h)
+    
+    return(list(fwhm = fwhm, ista = ista, iend = iend, 
+                valley_left = FALSE, valley_right = FALSE))
+  }
+
+  ## (2) exclude spikes outside of the half width
+  # `im` not near edges but some ys[ys > hval & ys < imax] around the edges
+  # 
+  # im = 11: left valley between indexes 2 and 3; right valley between 11 and 12
+  # ioks:  1  2  8  9 10 11 12 13 14 15 16 23 24 25 26 27
+  # ioxa:  1  2  8  9 10 11
+  # ds1:      1  6  1  1  1
+  # ioxb:                11 12 13 14 15 16 23 24 25 26 27
+  # ds2:                     1  1  1  1  1  7  1  1  1  1
+  # 
+  # ds > 1L -> a dip of ys below hval; not yet handle dipped values > hval...
   
-  iend <- ioks[[noks]]
-  ista <- ioks[[1]]
+  ioxa <- ioks[1:im]
+  ioxb <- ioks[im:noks]
+
+  ds1 <- if (length(ioxa) > 1L) { diff(ioxa) } else { 0L }
+  ds2 <- if (length(ioxb) > 1L) { diff(ioxb) } else { 0L }
+  ps1 <- .Internal(which(ds1 >= gap_size))
+  ps2 <- .Internal(which(ds2 >= gap_size))
+  
+  n_valleya <- length(ps1)
+  n_valleyb <- length(ps2)
+  
+  ista <- if (n_valleya) { ioxa[[ps1[[n_valleya]] + 1L]] } else { ioks[[1]] }
+  iend <- if (n_valleyb) { ioxb[[ps2[[1]]]] } else { ioks[[noks]] }
+  noks <- iend - ista + 1L
+
+  if (noks < min_noks) { return(NULL) }
+
   fwhm <- ts[[iend]] - ts[[ista]]
   fwhm <- fwhm  * .5 / (1 - h)
   
@@ -4370,11 +4443,12 @@ calc_fwxm <- function (ys, ts, ymax, ymin, len, imax, max_fwhm = 25.0, h = .5)
     return(NULL)
   }
   
-  if (fwhm / (ts[[len]] - ts[[1]]) > .8) { # blunt; was .667
+  if (fwhm / (ts[[len]] - ts[[1]]) > .85) { # blunt peak; was .8
     return(NULL)
   }
   
-  list (fwhm = fwhm, ista = ista, iend = iend)
+  list(fwhm = fwhm, ista = ista, iend = iend, 
+       valley_left = n_valleya > 0L, valley_right = n_valleyb > 0L)
 }
 
 
@@ -4523,8 +4597,9 @@ find_lc_gates2 <- function (perc = .02, ys, sta, n_dia_scans = 6L, y_rpl = 2.0,
 #' @param min_n The minimum points across the peak profile of \code{ys} for
 #'   consideration.
 #' @param max_fwhm The maximum FWHM for considering as a peak.
+#' @param y_rpl A replacement value of intensities.
 calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5, min_n = 15L, 
-                     max_fwhm = 25.0, err = 2.0)
+                     max_fwhm = 25.0, y_rpl = 2.0, err = 2.0)
 {
   ## (1) find the apex index
   len  <- length(ys)
@@ -4582,6 +4657,8 @@ calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5, min_n = 15L,
   if (is.null(fwhm)) { return(NULL) } # flat peak
   ista   <- ans_fw[["ista"]]
   iend   <- ans_fw[["iend"]]
+  valley_left  <- ans_fw[["valley_left"]]
+  valley_right <- ans_fw[["valley_right"]]
 
   if (sk == 1L) {
     w1 <- fwhm * 1.2
@@ -4611,7 +4688,8 @@ calcAUC <- function (ys, ts, rng, yco = 100, ytot_co = 2E5, min_n = 15L,
 
   # allow partial convex
   ok_convex <- check_peak_convex(
-    ys = ys, i_sta = iok1, i_midsta = ista, i_midend = iend, i_end = iokn)
+    ys = ys, i_sta = iok1, i_midsta = ista, i_midend = iend, i_end = iokn, 
+    y_rpl = y_rpl)
 
   if (!ok_convex) {
     return(NULL) 

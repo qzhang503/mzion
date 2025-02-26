@@ -4,7 +4,20 @@
 \alias{calc_fwxm}
 \title{Calculate FWXM}
 \usage{
-calc_fwxm(ys, ts, ymax, ymin, len, imax, max_fwhm = 25, h = 0.5)
+calc_fwxm(
+  ys,
+  ts,
+  ymax,
+  ymin,
+  len,
+  imax,
+  max_fwhm = 25,
+  h = 0.5,
+  min_noks = 5L,
+  gap_size = 4L,
+  n_margin = 4L,
+  n_bimod = 4L
+)
 }
 \arguments{
 \item{ys}{A vector of intensity values.}
@@ -23,6 +36,16 @@ calc_fwxm(ys, ts, ymax, ymin, len, imax, max_fwhm = 25, h = 0.5)
 
 \item{h}{The height (from the apex); the height from baseline: \code{1 - h}.
 The value must be \eqn{\le{.5}}.}
+
+\item{min_noks}{The minimum number of \code{ys} values \eqn{\ge} the value at
+\code{h} for consideration as a peak.}
+
+\item{gap_size}{The maximum allowance in discontinuous indexes of the
+\code{ys} sequence.}
+
+\item{n_bimod}{The gap size for biomodality in \code{ys}.}
+
+\item{margin}{The margin allowance for the maximum.}
 }
 \description{
 For a height \eqn{\ge{.5}}.

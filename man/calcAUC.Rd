@@ -12,6 +12,7 @@ calcAUC(
   ytot_co = 2e+05,
   min_n = 15L,
   max_fwhm = 25,
+  y_rpl = 2,
   err = 2
 )
 }
@@ -31,6 +32,8 @@ sequence.}
 consideration.}
 
 \item{max_fwhm}{The maximum FWHM for considering as a peak.}
+
+\item{y_rpl}{A replacement value of intensities.}
 
 \item{err}{An error tolerance of retention times between max and median (in
 seconds).}

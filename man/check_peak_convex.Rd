@@ -4,7 +4,7 @@
 \alias{check_peak_convex}
 \title{Check the convexness of a peak}
 \usage{
-check_peak_convex(ys, i_sta, i_midsta, i_midend, i_end, min_n = 15L)
+check_peak_convex(ys, i_sta, i_midsta, i_midend, i_end, min_n = 15L, y_rpl = 2)
 }
 \arguments{
 \item{ys}{A vector of intensity values.}
@@ -19,6 +19,8 @@ check_peak_convex(ys, i_sta, i_midsta, i_midend, i_end, min_n = 15L)
 
 \item{min_n}{The minimum points across the peak profile of \code{ys} for
 consideration.}
+
+\item{y_rpl}{A replacement value of intensities.}
 }
 \description{
 Check the convexness of a peak

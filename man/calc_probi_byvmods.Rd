@@ -63,7 +63,7 @@ interrogation. The default is 110.}
 
 \item{d2}{Bin width in ppm divided by 1E6.}
 
-\item{tally_ms2ints}{Logical; tally MS2 intensities or not.}
+\item{tally_ms2ints}{Logical; tally MS2 ion intensities or not.}
 
 \item{digits}{A non-negative integer; the number of decimal places to be
 used. The default is 4.}
