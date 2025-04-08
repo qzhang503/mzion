@@ -380,7 +380,6 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     parallel::clusterExport(
       cl,
       c("distri_peps", 
-        "ct_counts", 
         "rm_char_in_nfirst", 
         "rm_char_in_nlast"), 
       envir = environment(mzion::matchMS))
@@ -1908,6 +1907,7 @@ parse_aamasses <- function (aa_masses)
 #' @examples 
 #' if (FALSE) {
 #'   x <- split_fastaseqs("~/mzion/dbs/fasta/uniprot/uniprot_mm_2020_11.fasta")
+#'   x <- split_fastaseqs("~/mzion/dbs/fasta/crap/crap.fasta")
 #' }
 split_fastaseqs <- function (fasta = NULL, enzyme = "trypsin_p", 
                              custom_enzyme = c(Cterm = NULL, Nterm = NULL), 
@@ -1917,35 +1917,14 @@ split_fastaseqs <- function (fasta = NULL, enzyme = "trypsin_p",
   message("Loading fasta databases.")
 
   fasta_db <- load_fasta2(fasta, acc_type, acc_pattern)
+  len <- length(fasta_db)
 
-  if (length(fasta_db) > maxn_fasta_seqs) 
+  if (len > maxn_fasta_seqs) {
     stop("More than `", maxn_fasta_seqs, "` sequences in fasta files.\n",
          "  May consider a higher `maxn_fasta_seqs`.")
+  }
   
-  # slower with more cores
-  n_cores <- detect_cores(16L)
-
-  cl <- parallel::makeCluster(getOption("cl.cores", n_cores))
-
-  parallel::clusterExport(
-    cl,
-    c("make_fastapeps0", 
-      "keep_n_misses"), 
-    envir = environment(mzion::matchMS))
-
-  # ---
-  message("Splitting fasta sequences.")
-
-  peps <- parallel::clusterApply(cl, chunksplit(fasta_db, n_cores), 
-                                 make_fastapeps0, 
-                                 enzyme, custom_enzyme, max_miss)
-  
-  parallel::stopCluster(cl)
-  
-  # each peps has two lists
-  peps <- flatten_list(peps)
-
-  invisible(peps)
+  make_fastapeps0(fasta_db, enzyme, custom_enzyme, max_miss)
 }
 
 
@@ -1962,9 +1941,20 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
                              max_miss = 2L) 
 {
   inds_m <- grep("^M", fasta_db)
+  
+  null_enz  <- is.null(enzyme)
+  null_cenz <- is.null(custom_enzyme)
+  both_null <- null_enz && null_cenz
+  
+  if (null_enz && null_cenz) {
+    stop("'enzyme' and 'custom_enzyme' cannot be both NULL.")
+  }
+  
+  if (!(null_enz || null_cenz)) {
+    stop("'enzyme' and 'custom_enzyme' cannot be both non NULL.")
+  }
 
-  if (is.null(enzyme)) {
-    # already checked custom_enzyme names in matchMS
+  if (null_enz) {
     if ((len_enz <- length(custom_enzyme)) == 2L) {
       patc <- custom_enzyme[["Cterm"]]
       patn <- custom_enzyme[["Nterm"]]
@@ -1986,13 +1976,13 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
     if (!is.null(patc)) {
       if (grepl("\\^", patc)) {
         fasta_db <- lapply(fasta_db, function (x) 
-          .Internal(gsub(patc, paste0("\\1", "@", "\\2"), x, 
+          .Internal(gsub(patc, "\\1@\\2", x, 
                          ignore.case = FALSE, perl = FALSE, 
                          fixed = FALSE, useBytes = FALSE)))
       }
       else {
         fasta_db <- lapply(fasta_db, function (x) 
-          .Internal(gsub(patc, paste0("\\1", "@"), x, 
+          .Internal(gsub(patc, "\\1@", x, 
                          ignore.case = FALSE, perl = FALSE, 
                          fixed = FALSE, useBytes = FALSE)))
       }
@@ -2001,26 +1991,25 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
     if (!is.null(patn)) {
       if (grepl("\\^", patn)) {
         fasta_db <- lapply(fasta_db, function (x) 
-          .Internal(gsub(patn, paste0("\\1", "@", "\\2"), x, 
+          .Internal(gsub(patn, "\\1@\\2", x, # patn <- ([^S]{1})([KR]{1})
                          ignore.case = FALSE, perl = FALSE, 
                          fixed = FALSE, useBytes = FALSE)))
       }
       else {
         fasta_db <- lapply(fasta_db, function (x) 
-          .Internal(gsub(patn, paste0("@", "\\1"), x, 
+          .Internal(gsub(patn, "@\\1", x, 
                          ignore.case = FALSE, perl = FALSE, 
                          fixed = FALSE, useBytes = FALSE)))
       }
     }
     
     fasta_db <- lapply(fasta_db, function (x) gsub("@+", "@", x))
-    
     fasta_db <- lapply(fasta_db, function (x) paste0("-", x, "-"))
   }
   else if (enzyme == "trypsin_p" || enzyme == "semitrypsin_p") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
-             .Internal(gsub("([KR]{1})", paste0("\\1", "@"), x, 
+             .Internal(gsub("([KR]{1})", "\\1@", x, 
                             ignore.case = FALSE, perl = FALSE, 
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
@@ -2028,7 +2017,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   else if (enzyme == "trypsin" || enzyme == "semitrypsin") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
-             .Internal(gsub("([KR]{1})([^P]{1})", paste0("\\1", "@", "\\2"), x, 
+             .Internal(gsub("([KR]{1})([^P]{1})", "\\1@\\2", x, 
                             ignore.case = FALSE, perl = FALSE, 
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
@@ -2036,7 +2025,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   else if (enzyme == "lysc" || enzyme == "semilysc") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
-             .Internal(gsub("([K]{1})", paste0("\\1", "@"), x, 
+             .Internal(gsub("[K]{1}([^P]{1})", "K@\\1", x, 
                             ignore.case = FALSE, perl = FALSE, 
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
@@ -2044,7 +2033,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   else if (enzyme == "lysn" || enzyme == "semilysn") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
-             .Internal(gsub("([K]{1})", paste0("@", "\\1"), x, 
+             .Internal(gsub("K", "@K", x, 
                             ignore.case = FALSE, perl = FALSE, 
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
@@ -2052,7 +2041,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   else if (enzyme == "argc" || enzyme == "semiargc") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
-             .Internal(gsub("([R]{1})", paste0("\\1", "@"), x, 
+             .Internal(gsub("R", "R@", x, 
                             ignore.case = FALSE, perl = FALSE, 
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
@@ -2060,15 +2049,16 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   else if (enzyme == "lysc_p" || enzyme == "semilysc_p") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
-             .Internal(gsub("([K]{1})([^P]{1})", paste0("\\1", "@", "\\2"), x, 
+             .Internal(gsub("K", "K@", x, 
                             ignore.case = FALSE, perl = FALSE, 
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
+    
   }
   else if (enzyme == "chymotrypsin" || enzyme == "semichymotrypsin") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
-             .Internal(gsub("([FWY]{1})", paste0("\\1", "@"), x, 
+             .Internal(gsub("([FWY]{1})", "\\1@", x, 
                             ignore.case = FALSE, perl = FALSE, 
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
@@ -2076,7 +2066,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   else if (enzyme == "gluc" || enzyme == "semigluc") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
-             .Internal(gsub("([E]{1})", paste0("\\1", "@"), x, 
+             .Internal(gsub("E", "E@", x, 
                             ignore.case = FALSE, perl = FALSE, 
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
@@ -2084,7 +2074,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   else if (enzyme == "glun" || enzyme == "semiglun") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
-             .Internal(gsub("([E]{1})", paste0("@", "\\1"), x, 
+             .Internal(gsub("E", "@E", x, 
                             ignore.case = FALSE, perl = FALSE, 
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
@@ -2092,7 +2082,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   else if (enzyme == "aspc" || enzyme == "semiaspc") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
-             .Internal(gsub("([D]{1})", paste0("\\1", "@"), x, 
+             .Internal(gsub("D", "D@", x, 
                             ignore.case = FALSE, perl = FALSE, 
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
@@ -2100,7 +2090,7 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   else if (enzyme == "aspn" || enzyme == "semiaspn") {
     fasta_db <- lapply(fasta_db, function (x) 
       paste0("-", 
-             .Internal(gsub("([D]{1})", paste0("@", "\\1"), x, 
+             .Internal(gsub("D", "@D", x, 
                             ignore.case = FALSE, perl = FALSE, 
                             fixed = FALSE, useBytes = FALSE)), 
              "-"))
@@ -2112,8 +2102,6 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
     stop("Unknown enzyme.")
   }
 
-  fasta_dbm <- lapply(fasta_db[inds_m], function (x) gsub("^-M", "-", x))
-  
   # --- with protein N-term (initiator) methionine ---
   peps <- lapply(fasta_db, function (x) {
     s <- .Internal(strsplit(x, "@", fixed = FALSE, perl = FALSE, useBytes = FALSE))
@@ -2121,22 +2109,23 @@ make_fastapeps0 <- function (fasta_db, enzyme = "trypsin_p", custom_enzyme = NUL
   })
   
   # --- without protein N-term (initiator) methionine ---
-  peps_m <- lapply(fasta_dbm, function (x) {
-    s <- .Internal(strsplit(x, "@", fixed = FALSE, perl = FALSE, useBytes = FALSE))
-    s <- .Internal(unlist(s, recursive = FALSE, use.names = FALSE))
-    keep_n_misses(s, max_miss)
-  })
-  
-  # Note: NA sequences -> NULL during mass calculations
-  # (USE.NAMEs as they are prot_acc)
+  # resulted in empty list of 'peps_m' if !length(inds_m)
   if (length(inds_m)) {
-    peps[inds_m] <- mapply(list, peps_m, peps[inds_m], SIMPLIFY = FALSE)
-    peps[-inds_m] <- lapply(peps[-inds_m], function (x) list(NA, x))
+    peps_m <- peps[inds_m]
+    peps_m <- lapply(peps_m, keep_n_misses, max_miss)
+    peps_m <- lapply(peps_m, function (xs) {
+      xs[[1]] <- gsub("^-M", "-", xs[[1]])
+      xs
+    })
+    
+    peps[inds_m]  <- mapply(list, peps_m, peps[inds_m], SIMPLIFY = FALSE)
+    peps[-inds_m] <- lapply(peps[-inds_m], function (x) list(NA_character_, x))
   }
   else {
-    peps <- lapply(peps, function (x) list(NA, x))
+    peps <- lapply(peps, function (x) list(NA_character_, x))
   }
-
+  
+  
   invisible(peps)
 }
 
@@ -2660,16 +2649,12 @@ ms1masses_bare <- function (seqs = NULL, aa_masses = NULL, ftmass = NULL,
   # (1) before rolling sum (not yet terminal H2O)
   # (1.1) without N-term methionine
   data_1 <- lapply(seqs, `[[`, 1)
-  data_1 <- ms1masses_noterm(data_1, aa_masses = aa_masses,
-                             maxn_vmods_per_pep = maxn_vmods_per_pep,
-                             maxn_sites_per_vmod = maxn_sites_per_vmod)
+  data_1 <- ms1masses_noterm(data_1, aa_masses = aa_masses)
   data_1 <- attr(data_1, "data")
 
   # (1.2) with N-term methionine
   data_2 <- lapply(seqs, `[[`, 2)
-  data_2 <- ms1masses_noterm(data_2, aa_masses = aa_masses,
-                             maxn_vmods_per_pep = maxn_vmods_per_pep,
-                             maxn_sites_per_vmod = maxn_sites_per_vmod)
+  data_2 <- ms1masses_noterm(data_2, aa_masses = aa_masses)
   data_2 <- attr(data_2, "data")
 
   # (2) rolling sum (not yet terminal masses, e.g, H2O)
@@ -2812,8 +2797,7 @@ add_ms1_notches <- function (peps, masses = 0, max_mass = 4500L)
 #' @inheritParams matchMS
 #' @inheritParams add_var_masses
 #' @inheritParams distri_peps
-ms1masses_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L,
-                              maxn_sites_per_vmod = 3L) 
+ms1masses_noterm <- function (aa_seqs, aa_masses) 
 {
   options(digits = 9L)
 
@@ -2830,10 +2814,8 @@ ms1masses_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L,
       "calcms1mass_noterm_bypep"), 
     envir = environment(mzion::matchMS))
 
-  out <- parallel::clusterApply(cl, aa_seqs, calcms1mass_noterm,
-                                aa_masses = aa_masses,
-                                maxn_vmods_per_pep = maxn_vmods_per_pep,
-                                maxn_sites_per_vmod = maxn_sites_per_vmod) 
+  out <- parallel::clusterApply(
+    cl, aa_seqs, calcms1mass_noterm,aa_masses = aa_masses) 
   
   parallel::stopCluster(cl)
   
@@ -2850,14 +2832,10 @@ ms1masses_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L,
 #' For each split of multiple proteins; no terminal masses.
 #'
 #' @inheritParams ms1masses_noterm
-calcms1mass_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L, 
-                                maxn_sites_per_vmod = 3L) 
+calcms1mass_noterm <- function (aa_seqs, aa_masses) 
 {
   lapply(aa_seqs, function (x) 
-    calcms1mass_noterm_byprot(prot_peps = x,
-                              aa_masses = aa_masses,
-                              maxn_vmods_per_pep = maxn_vmods_per_pep,
-                              maxn_sites_per_vmod = maxn_sites_per_vmod))
+    calcms1mass_noterm_byprot(prot_peps = x, aa_masses = aa_masses))
 }
 
 
@@ -2867,16 +2845,10 @@ calcms1mass_noterm <- function (aa_seqs, aa_masses, maxn_vmods_per_pep = 5L,
 #'
 #' @param prot_peps Lists of peptides under a proteins.
 #' @inheritParams ms1masses_noterm
-calcms1mass_noterm_byprot <- function (prot_peps, aa_masses, 
-                                       maxn_vmods_per_pep = 5L,
-                                       maxn_sites_per_vmod = 3L) 
+calcms1mass_noterm_byprot <- function (prot_peps, aa_masses) 
 {
   # by peptides
-  ans <- lapply(prot_peps, calcms1mass_noterm_bypep,
-                aa_masses = aa_masses,
-                maxn_vmods_per_pep = maxn_vmods_per_pep,
-                maxn_sites_per_vmod = maxn_sites_per_vmod)
-  
+  ans <- lapply(prot_peps, calcms1mass_noterm_bypep, aa_masses = aa_masses)
   .Internal(unlist(ans, recursive = FALSE, use.names = TRUE))
 }
 
@@ -2889,12 +2861,12 @@ calcms1mass_noterm_byprot <- function (prot_peps, aa_masses,
 #'   representation of amino acids.
 #' @inheritParams ms1masses_noterm
 #' @importFrom stringr str_split
-calcms1mass_noterm_bypep <- function (aa_seq, aa_masses, maxn_vmods_per_pep = 5L,
-                                      maxn_sites_per_vmod = 3L) 
+calcms1mass_noterm_bypep <- function (aa_seq, aa_masses) 
 {
-  if (is.na(aa_seq))
+  if (is.na(aa_seq)) {
     return(NULL)
-  
+  }
+
   aas <- .Internal(strsplit(aa_seq, "", fixed = TRUE, perl = FALSE, 
                             useBytes = FALSE))
   aas <- .Internal(unlist(aas, recursive = FALSE, use.names = FALSE))
@@ -2944,53 +2916,28 @@ distri_peps <- function (prps, aa_masses_all, motifs_all, max_miss = 2L,
   
   if (is.null(enzyme)) {
     n1 <- (max_miss + 1L) * 2L
-    n2 <- ct_counts(max_miss)
+    n2 <- (max_miss + 1L) * max_miss / 2L + 1L
   }
   else {
-    n1 <- if (enzyme == "noenzyme")
-      Inf
-    else 
-      (max_miss + 1L) * 2L
-    
+    n1 <- if (enzyme == "noenzyme") Inf else (max_miss + 1L) * 2L
     n2 <- if (grepl("^semi", enzyme) || enzyme == "noenzyme")
       Inf
     else
-      ct_counts(max_miss)
+      (max_miss + 1L) * max_miss / 2L + 1L
+    
   }
 
   # ZN207_HUMAN: MGRKKKK (no N-term pep_seq at 2 misses and min_len >= 7L)
   
   out <- lapply(out, function(xs) {
-    len <- .Internal(unlist(lapply(xs, length), recursive = FALSE, use.names = FALSE))
+    len <- 
+      .Internal(unlist(lapply(xs, length), recursive = FALSE, use.names = FALSE))
     xs <- xs[len > 0L]
     xs <- lapply(xs, rm_char_in_nfirst, char = "-", n = n1, max_len = max_len)
     xs <- lapply(xs, rm_char_in_nlast, char = "-", n = n2)
   })
 }
 
-
-#' Counts the number of trailing residues from C-term for the replacment of "-".
-#'
-#' For full-enzymes: n(i+1) = n(i) + (i+1). Not applicable for semi-enzymes.
-#'
-#' @param max_miss The maximum number of cleavages.
-ct_counts <- function (max_miss = 2L) 
-{
-  ct <- integer(max_miss)
-
-  if (max_miss) {
-    ct[1] <- 2L
-
-    for (i in 1:max_miss) {
-      j <- i + 1L
-      ct[j] <- ct[i] + j
-    }
-  } 
-  else
-    return(1L)
-
-  ct[max_miss]
-}
 
 
 #' Distributes peptides by fixed modifications.

@@ -4,7 +4,11 @@
 \alias{load_fasta2}
 \title{Loads fasta (with parsing rule).}
 \usage{
-load_fasta2(fasta = NULL, acc_type = NULL, acc_pattern = NULL)
+load_fasta2(
+  fasta = NULL,
+  acc_type = "uniprot_acc",
+  acc_pattern = "^>..\\\\|([^\\\\|]+)\\\\|[^\\\\|]+"
+)
 }
 \arguments{
 \item{fasta}{Character string(s) to the name(s) of fasta file(s) with

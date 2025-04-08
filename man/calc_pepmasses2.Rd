@@ -93,14 +93,17 @@ is currently \code{trypsin}.}
   small cost of speed) \cr custom_enzyme = c(Cterm =
   "([KR]\{1\})([^P]\{1\})")
 
-  \cr # GluN again \cr custom_enzyme = c(Nterm = "([E]\{1\})")
+  \cr # GluN again \cr custom_enzyme = c(Nterm = "([A-Z]{1})([E]\{1\})")
 
   \cr # Trypsin_P + GluN \cr custom_enzyme = c(Cterm = "([KR]\{1\})", Nterm =
   "([E]\{1\})")
 
   \cr # Faked: Trypsin, proline not allowed on neither Nterm or Cterm \cr
   custom_enzyme = c(Cterm = "([KR]\{1\})([^P]\{1\})", Nterm =
-  "([^P]\{1\})([KR]\{1\})")}
+  "([^P]\{1\})([KR]\{1\})")
+  
+  \cr # Faked: N-term trypsin, serine not allowed on Nterm \cr
+  custom_enzyme = c(Nterm = "([^S]\{1\})([KR]\{1\})")}
 
 \item{noenzyme_maxn}{Non-negative integer; the maximum number of peptide
 lengths for sectional searches at \code{noenzyme} specificity. The argument

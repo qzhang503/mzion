@@ -136,8 +136,8 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
   
   tol <- ppm / 1E6 # the same as the default `step`; may remove arg `ppm`
   lenp <- min(len_ms, maxn_feats)
-  peaks_fuz <- peaks <- intens_fuz <- intens <- rep_len(list(numeric(1)), lenp)
-  css_fuz <- css <- rep_len(list(integer(1)), lenp)
+  peaks_fuz <- peaks <- intens_fuz <- intens <- vector("numeric", lenp) # rep_len(list(numeric(1)), lenp) 
+  css_fuz <- css <- vector("integer", lenp) # rep_len(list(integer(1)), lenp)
   p_no_zero <- p_fuz <- p <- 1L
   ymean_fuz <- ymono_fuz <- mass_fuz <- NA_real_
   yref <- 0 # to keep track of Y values
@@ -342,12 +342,12 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     yref <- mint
   }
   
-  css <- .Internal(unlist(css, recursive = FALSE, use.names = FALSE))
-  css_fuz <- .Internal(unlist(css_fuz, recursive = FALSE, use.names = FALSE))
-  intens <- .Internal(unlist(intens, recursive = FALSE, use.names = FALSE))
-  intens_fuz <- .Internal(unlist(intens_fuz, recursive = FALSE, use.names = FALSE))
-  peaks <- .Internal(unlist(peaks, recursive = FALSE, use.names = FALSE))
-  peaks_fuz <- .Internal(unlist(peaks_fuz, recursive = FALSE, use.names = FALSE))
+  # css <- .Internal(unlist(css, recursive = FALSE, use.names = FALSE))
+  # css_fuz <- .Internal(unlist(css_fuz, recursive = FALSE, use.names = FALSE))
+  # intens <- .Internal(unlist(intens, recursive = FALSE, use.names = FALSE))
+  # intens_fuz <- .Internal(unlist(intens_fuz, recursive = FALSE, use.names = FALSE))
+  # peaks <- .Internal(unlist(peaks, recursive = FALSE, use.names = FALSE))
+  # peaks_fuz <- .Internal(unlist(peaks_fuz, recursive = FALSE, use.names = FALSE))
 
   # outputs
   if (ms_lev == 1L) {

@@ -129,7 +129,6 @@ load_fasta <- function (fasta = NULL)
 
 
 
-
 #' Loads fasta (with parsing rule).
 #'
 #' The length of \code{acc_type} needs to match the length of \code{fasta};
@@ -174,7 +173,8 @@ load_fasta <- function (fasta = NULL)
 #'           identical(fasta_db, fasta_db3))
 #' }
 #' @export
-load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL) 
+load_fasta2 <- function (fasta = NULL, acc_type = "uniprot_acc", 
+                         acc_pattern = "^>..\\|([^\\|]+)\\|[^\\|]+")
 {
   if (is.null(fasta)) {
     stop("FASTA file(s) are required.")
@@ -187,6 +187,7 @@ load_fasta2 <- function (fasta = NULL, acc_type = NULL, acc_pattern = NULL)
             paste(fasta[!oks], collapse = "\n"))
     fasta <- fasta[oks]
     acc_type <- acc_type[oks]
+    acc_pattern <- acc_pattern[oks]
   }
   
   len_f <- length(fasta)
@@ -286,10 +287,9 @@ find_acc_type <- function (acc_pattern)
   if (length(acc_pattern) != 1L)
     stop("The length of `acc_pattern` is not one.")
   
-  oks <- c("pat_upacc", "pat_upid", "pat_rsacc", "pat_other")
-  
-  if (!acc_pattern %in% oks)
-    stop("`acc_pattern` is not one of ", paste(oks, collapse = ", "))
+  # oks <- c("pat_upacc", "pat_upid", "pat_rsacc", "pat_other")
+  # if (!acc_pattern %in% oks)
+  #   stop("`acc_pattern` is not one of ", paste(oks, collapse = ", "))
 
   pat_upacc <- "^>..\\|([^\\|]+)\\|[^ ]+?"
   pat_upid <- "^>..\\|[^\\|]+\\|([^ ]+?)"

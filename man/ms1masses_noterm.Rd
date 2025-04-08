@@ -4,12 +4,7 @@
 \alias{ms1masses_noterm}
 \title{Helper of \link{ms1masses_bare}.}
 \usage{
-ms1masses_noterm(
-  aa_seqs,
-  aa_masses,
-  maxn_vmods_per_pep = 5L,
-  maxn_sites_per_vmod = 3L
-)
+ms1masses_noterm(aa_seqs, aa_masses)
 }
 \arguments{
 \item{aa_seqs}{Character string; a vector of peptide sequences with
@@ -17,20 +12,6 @@ one-letter representation of amino acids.}
 
 \item{aa_masses}{A named list containing the (mono-isotopic) masses of amino
 acid residues.}
-
-\item{maxn_vmods_per_pep}{A non-negative integer; the maximum number of
-\code{Anywhere} (non-terminal) variable modifications per peptide. The
-default is 5.}
-
-\item{maxn_sites_per_vmod}{A non-negative integer; the maximum number of
-  combinatorial \code{Anywhere} (non-terminal) variable modifications per
-  site in a peptide sequence. The default is 3.
-
-  For instance, variable modifications of \code{Carbamyl (M)} and
-  \code{Oxidation (M)} both have site \code{M}. In order to have a
-  combination of two \code{Carbamyl (M)} and two \code{Oxidation (M)} being
-  considered, the value of \code{maxn_sites_per_vmod} needs to be four or
-  greater.}
 }
 \description{
 For either forward or reversed sequences.
