@@ -264,6 +264,10 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
   # or does a chimeric search -> exclude "all" matched features from scoring?
   # penalize "noise" for high-complexity spectra (short gradient; no fractionation)
   # weighted by mass error; or three-pass search, 0-6, 6-10, 10-20 ppm.
+  
+  ###
+  # try to set an intensity threshold for tallying...
+  ###
 
   df_theo <- df[["theo"]]
   m <- length(df_theo)
@@ -2210,6 +2214,10 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
                          nes_fdr_group = "base", fct_score = 5, out_path = NULL, 
                          mgf_path = NULL)
 {
+  ###
+  # try to separate charge states and peptide lengths...
+  ###
+  
   message("Calculating peptide FDR.")
   
   td <- prep_pepfdr_td(out_path = out_path, 

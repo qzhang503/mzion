@@ -67,7 +67,7 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
   # unimod = "Carbamidomethyl (. = C)" # --> pos_site = ". = C"
   # unimod = "Carbamidomethyl (C)" # --> pos_site = "C"
   # unimod = "Carbamidomethyl ()" # --> pos_site = ""
-  # unimod = "Carbamidomethyl" # --> pos_site = ""
+  # unimod = "Carbamidomethyl" # --> Not handled
   # unimod = "" # --> pos_site = ""
   
   ## any N-term residue
@@ -78,41 +78,55 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
   ## dual parentheses
   # unimod = "Carbamidomethyl ((. = C))" # --> pos_site = ". = C"
   
-  if (grepl("Protein N-term\\s*=\\s*N-term", unimod)) 
-    return(
-      list(title = gsub("^([^ ]+?) .*", "\\1", unimod), 
-           position = "Protein N-term", site = "N-term"))
+  if (!grepl("\\(.*\\)", unimod)) {
+    stop("Require parentheses for a Unimod.")
+  }
   
-  if (grepl("Protein C-term\\s*=\\s*C-term", unimod)) 
-    return(
-      list(title = gsub("^([^ ]+?) .*", "\\1", unimod), 
-           position = "Protein C-term", site = "C-term"))
+  title <- gsub("^([^ ]+?) .*", "\\1", unimod)
   
-  if (grepl("([NC]{1}-term|Anywhere) [A-Z]{1}", unimod)) 
+  ## (1) Any site of Protein [NC]-term
+  # unimod <- "Acetyl = (Protein N-term)"
+  # unimod <- "Acetyl = (Protein N-term = .)"
+  # unimod <- "Acetyl = (Protein N-term = N-term)"
+  if (grepl("Protein N-term\\s*=\\s*N-term|Protein N-term\\s*=\\s*\\.\\)$|Protein N-term\\s*\\)$", unimod)) {
+    return(list(title = title, position = "Protein N-term", site = "N-term"))
+  }
+
+  if (grepl("Protein C-term\\s*=\\s*C-term|Protein C-term\\s*=\\s*\\.\\)$|Protein C-term\\s*\\)$", unimod)) {
+    return(list(title = title, position = "Protein C-term", site = "C-term"))
+  }
+
+  ## (2) Standardization: add an '=' between site and position
+  # unimod <- "Gln->pryo-Glu (N-term Q)" -> "Gln->pryo-Glu (N-term = Q)"
+  # unimod <- "Oxidation (Anywhere M)" -> "Oxidation (Anywhere = M)"
+  if (grepl("([NC]{1}-term|Anywhere) [A-Z]{1}", unimod)) {
     unimod <- 
-      gsub("^(.*[NC]{1}-term|.*Anywhere)\\s*([A-Z]{1})", "\\1 = \\2", unimod)
+      gsub("^(.*[NC]{1}-term|.*Anywhere)\\s+([A-Z]{1})", "\\1 = \\2", unimod)
+  }
   
-  # (assumed) no space in `title`
-  title    <- gsub("^([^ ]+?) .*", "\\1", unimod)
-  pos_site <- gsub("^[^ ]+", "", unimod)
-  pos_site <- gsub("^[^\\(]+[\\(]*([^\\)]*)[\\)]*$", "\\1", pos_site)
+  ###
   
+  ###
+
+  pos_site <- gsub("^[^ ]+\\s+(.*)", "\\1", unimod) # "( Any N-term = N-term ) "
+  pos_site <- gsub("\\((.*)\\)\\s*", "\\1", pos_site) # " Any N-term = N-term "
+  pos_site <- gsub("\\s*$", "", pos_site) # " Any N-term = N-term"
+  pos_site <- gsub("^\\s+", "", pos_site) # "Any N-term = N-term"
+
   if (grepl("=", pos_site)) {
     pos  <- gsub("^([^=]+?)[=].*", "\\1", pos_site)
-    pos  <- gsub("^[ ]*", "\\1", pos) # ?
-    pos  <- gsub(" *$", "", pos)
-    site <- gsub("^[^=]+?[=](.*)", "\\1", pos_site)
-    site <- gsub("^[ ]*", "\\1", site) # ?
-    site <- gsub(" *$", "", site)
+    pos  <- gsub("\\s*$", "", pos)
+    site <- gsub("^[^=]+?=\\s*(.*)$", "\\1", pos_site)
   } 
   else {
     pos  <- "."
     site <- pos_site
   }
   
-  if (site == "") 
+  if (site == "") {
     site = "."
-  
+  }
+
   # site can be temporarily "Protein N-term"
   if (site %in% c("Protein N-term", "Protein C-term",
                   "Anywhere N-term", "Anywhere C-term",
@@ -125,27 +139,32 @@ parse_unimod <- function (unimod = "Carbamyl (M)")
   # (no need of handling Protein [NC]-term due to the early return)
   pos <- gsub("^([NC]){1}-term", "Any \\1-term", pos)
   
-  if (pos %in% c(".", "")) 
+  if (pos %in% c(".", "")) {
     pos <- "Anywhere"
-  
+  }
+
   pos_allowed <- c("Anywhere", "Protein N-term", "Protein C-term",
                    "Any N-term", "Any C-term")
   
-  if (!pos %in% pos_allowed) 
+  if (!pos %in% pos_allowed) {
     stop("`pos` needs to be one of ", 
          paste0("\n  '", pos_allowed, collapse = "'"), "'")
+  }
 
   # standardize terminal sites
   if (site == ".") {
-    if (pos %in% c("Protein N-term", "Any N-term"))
+    if (pos %in% c("Protein N-term", "Any N-term")) {
       site <- "N-term"
-    else if (pos %in% c("Protein C-term", "Any C-term"))
+    }
+    else if (pos %in% c("Protein C-term", "Any C-term")) {
       site <- "C-term"
+    }
   }
   
-  if (pos == "Anywhere" && site == ".") 
+  if (pos == "Anywhere" && site == ".") {
     stop("'position' or 'site' cannot be both 'Anywhere'.")
-  
+  }
+
   list(title = title, position = pos, site = site)
 }
 

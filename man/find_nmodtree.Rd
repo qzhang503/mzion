@@ -32,7 +32,7 @@ passed as a parameter for vectorization.}
 \item{len}{The count of \code{vmods} (passed as a parameter for
 vectorization).}
 
-\item{motifs}{A list of motifs of amino-acide residues. for example,
+\item{motifs}{A list of motifs of amino-acid residues. for example,
 "MN|NG". See also \link{matchMS}.}
 }
 \description{

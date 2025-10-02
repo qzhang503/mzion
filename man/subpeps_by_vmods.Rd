@@ -13,7 +13,7 @@ acid residues.}
 \item{prps}{Lists of peptide sequences with a one-letter representation of
 amino acid residues. Each list is named by protein accession.}
 
-\item{motifs}{A list of motifs of amino-acide residues. for example,
+\item{motifs}{A list of motifs of amino-acid residues. for example,
 "MN|NG". See also \link{matchMS}.}
 }
 \description{

@@ -31,94 +31,98 @@ which_topx <- function(x, n = 50L, ...)
 
 
 #' Finds the indexes of top-n entries without re-ordering.
-#' 
+#'
 #' Handles ties.
-#' 
-#' @param replace_na Logical; currently always TRUE; replaces NA or not.
-#' @param vna The value of NA replacement.
+#'
+#' @param x A vector of non-negative numeric.
+#' @param n A positive integer; the number of top entries to keep.
+#' @param ... Additional arguments for base function sort.
+#' @param vna The value of NA replacement. The default is zero with the
+#'   assumption that \code{x >= 0}.
 #' @param exclude_na Logical; removes NA or not.
-#' @inheritParams which_topx
 #' @return The indexes of the top-n entries.
-#' @examples 
+#' @examples
 #' library(mzion)
-#' 
+#'
 #' p <- 100
 #' set.seed(1)
 #' x <- sample(1:150, replace = TRUE)
-#' 
+#'
 #' # 103, not 100
 #' xp <- sort(x, partial = p)[p]
-#' 
+#'
 #' # multiple ties
 #' x <- c(1, 2, 2, 3, 3, 3, 4, 4, 4, 4)
 #' p <- 2L
-#' 
+#'
 #' x <- c(1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5)
 #' set.seed <- (3)
 #' x <- sample(x)
 #' p <- 4L
-#' 
+#'
 #' ## more NA values (3) than n (2)
 #' x <- c(0.11, 0.11, NA, rep(0.11, 7), NA, NA)
 #' ans <- mzion:::which_topx2(x, 2L, na.last = FALSE)
-#' 
+#'
 #' # OK
 #' ans <- mzion:::which_topx2(x, 8L, na.last = FALSE)
-#' 
+#'
 #' # results can contain NA
 #' x <- c(10, rep_len(NA_integer_, 3), 12, rep_len(NA_integer_, 3), 8, 10, 10)
 #' ans <- mzion:::which_topx2(x, n = 7L)
 #' x[ans]
-#' 
+#'
 #' # Bad
 #' ans <- mzion:::which_topx2(x, 9L, na.last = FALSE)
 #' # OK
 #' ans <- mzion:::which_topx2(x, 9L, na.last = TRUE)
-#'  
+#'
 #' \donttest{
 #' mzion:::which_topx2(5000, NA_integer_)
 #' }
-which_topx2 <- function(x, n = 50L, replace_na = TRUE, vna = 0, 
-                        exclude_na = TRUE, ...) 
+which_topx2 <- function(x, n = 50L, vna = 0, ...) 
 {
-  if (is.na(n)) 
+  if (is.na(n) || !n) {
     return(NULL)
-  
-  len <- length(x)
-  p <- len - n
-
-  if (p  <= 0L) {
-    if (exclude_na)
-      return(.Internal(which(!is.na(x))))
-    else
-      return(seq_along(x))
   }
 
-  if (replace_na)
-    x[is.na(x)] <- vna
-  
+  len <- length(x)
+  p   <- len - n
+
+  if (p  <= 0L) {
+    inds <- .Internal(which(!is.na(x)))
+    
+    if (length(inds)) {
+      return(inds)
+    }
+    else {
+      return(NULL)
+    }
+  }
+
+  # Keep the same length and thus the corresponding indexes of top-N unchanged
   # not yet work at replace_na = FALSE and x contains fewer non-NA than p
+  x[is.na(x)] <- vna
   xp <- sort(x, partial = p, ...)[p]
-  inds <- .Internal(which(x > xp)) # NA drops by which()
+  inds <- .Internal(which(x > xp)) # NA drops by which(); also can be empty
 
   # in case of ties -> length(inds) < n
   # detrimental e.g. ms2_n = 500 and n = 100
   #   -> expect 100 `ms2_moverzs` guaranteed but may be only 99
   #
-  # MGF `ms2_moverzs` is increasing
-  # `inds2` goes first to ensure non-decreasing index for `ms2_moverzs`
+  # `ms2_moverzs` is increasing: keep non-decreasing indexes of `ms2_moverzs`
   d <- n - length(inds)
-  
-  if (!d)
+  if (!d) {
     return(inds)
+  }
 
   # must exist and length(ties) >= length(d) at replace_na = TRUE
   ties <- .Internal(which(x == xp))
-  # better check the length(ties) >= length(d)
   for (i in seq_len(d)) {
     inds <- insVal(ties[[i]], inds)
   }
   
+  # stopifnot(identical(inds, sort(inds)))
   inds
 }
 
@@ -435,23 +439,10 @@ find_free_mem <- function (sys_ram = NULL)
 {
   nm_os <- Sys.info()['sysname']
 
-  if (nm_os == "Windows") {
-    free_mem <- system('wmic OS get FreePhysicalMemory /Value', intern=TRUE)[3]
-    free_mem <- gsub("^FreePhysicalMemory=(\\d+)\\r", "\\1", free_mem)
-    free_mem <- as.numeric(free_mem)/1024
-    
-    if (!is.null(sys_ram)) 
-      free_mem <- min(sys_ram, free_mem)
-  } 
-  else {
-    # not yet tested for "Linux", "Darwin"
-    # inaccurate e.g. if physical RAM is 32000 but in .RProfile 
-    # `invisible(utils::memory.limit(64000))`
-    # memory.limit() - memory.size(max = TRUE)
-    
-    warning("Cannot determine the amount of RAM with Linux or MAC OS.\n", 
-            "To specify, use parameter \"sys_ram\".")
-    free_mem <- 24L
+  free_mem <- ps::ps_system_memory()$avail / 1024^2 # MB
+  
+  if (!is.null(sys_ram)) {
+    free_mem <- min(sys_ram, free_mem)
   }
   
   free_mem

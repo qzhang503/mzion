@@ -56,6 +56,11 @@ devtools::install_github("qzhang503/mzion")
 devtools::install_github("qzhang503/mzionShiny")
 ```
 
+```{r asms_2025, echo=FALSE, fig.align='center', fig.show='hold', message=FALSE, warning=FALSE, out.width='80%'}
+asms_2025 <- "images/ASMS_2025_TP498.png"
+knitr::include_graphics(c(asms_2025))
+```
+
 ## Peaklist formats
 
 -   Thermo's MS

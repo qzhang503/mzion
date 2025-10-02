@@ -35,7 +35,7 @@ subset_anyctany(peps)
 
 \item{site}{A site. No need to specify "any terminal" sites.}
 
-\item{motifs}{A list of motifs of amino-acide residues. for example,
+\item{motifs}{A list of motifs of amino-acid residues. for example,
 "MN|NG". See also \link{matchMS}.}
 
 \item{peps}{List of peptides.}

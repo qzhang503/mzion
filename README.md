@@ -1,7 +1,7 @@
 Mzion
 ================
 true
-2025-02-01
+2025-10-01
 
 - [Installation](#installation)
 - [Peaklist formats](#peaklist-formats)
@@ -27,6 +27,8 @@ devtools::install_github("qzhang503/mzion")
 # or install both Mzion and its ShinyApp:
 devtools::install_github("qzhang503/mzionShiny")
 ```
+
+<img src="images/ASMS_2025_TP498.png" width="80%" style="display: block; margin: auto;" />
 
 ## Peaklist formats
 

@@ -1161,7 +1161,8 @@ check_dupfvmods <- function (fixedmods, varmods)
   if (length(dup_mods)) 
     stop("Modifications cannot be simultaneously 'fixed' and 'variable': \n",
          paste(dup_mods, collapse = ", "), "\n", 
-         "Hint: the default \"fixedmods\" and \"varmods\" are not NULL.")
+         "Hint: the default \"fixedmods\" and \"varmods\" are not NULL; 
+         set the values explicitly")
 }
 
 
@@ -1284,9 +1285,10 @@ check_mod_motifs <- function (mod_motifs, mods)
 find_aamasses_vmodscombi <- function (varmods = NULL, f_to_v = NULL, 
                                       anywhere_coerce_sites = NULL) 
 {
-  if (is.null(varmods))
+  if (is.null(varmods)) {
     return(NULL)
-  
+  }
+
   varmods_comb <- lapply(seq_along(varmods), function (x) sim_combn(varmods, x)) 
   varmods_comb <- unlist(varmods_comb, recursive = FALSE)
   vmods_ps <- find_modps(varmods)
