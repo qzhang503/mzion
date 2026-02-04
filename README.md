@@ -28,7 +28,7 @@ devtools::install_github("qzhang503/mzion")
 devtools::install_github("qzhang503/mzionShiny")
 ```
 
-<img src="images/ASMS_2025_TP498.png" width="80%" style="display: block; margin: auto;" />
+<img src="vignettes/images/ASMS_2025_TP498.png" width="80%" style="display: block; margin: auto;" />
 
 ## Peaklist formats
 
