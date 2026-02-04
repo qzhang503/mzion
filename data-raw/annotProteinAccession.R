@@ -1,6 +1,6 @@
 # combine all .R files into one
-# foo_combine_codes(file.path("~/Github/proteoQ/R"), "all_proteoQ.R")
-# foo_combine_codes(file.path("~/Github/mzionpy/mzionpy"), "py", "all_mzion.py")
+# foo_combine_codes(file.path("~/Github/proteoQ/R"), out_name = "all_proteoQ.R")
+# foo_combine_codes(file.path("~/Github/mzionpy/mzionpy"), "py", out_name = "all_mzion.py")
 foo_combine_codes <- function (filepath = file.path("~/Github/mzion/R"), 
                                extension = "R", out_name = "all_mzion.R") 
 {
@@ -16,6 +16,7 @@ foo_combine_codes <- function (filepath = file.path("~/Github/mzion/R"),
 
 
 # foo_list_func(file.path("~/Github/mzionpy/mzionpy"), extension = "py")
+# foo_list_func(file.path("~/Github/proteoQ/R"), extension = "R")
 foo_list_func <- function (filepath = file.path(file.path("~/Github/mzion/R")), 
                            extension = "R") 
 {
