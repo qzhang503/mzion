@@ -452,10 +452,10 @@ find_free_mem <- function (sys_ram = NULL)
       free_mem <- as.numeric(free_mem)/1024
     }
     
-    if (!is.null(sys_ram)) 
+    if (!is.null(sys_ram)) {
       free_mem <- min(sys_ram, free_mem)
-  } 
-  else {
+    }
+  }  else {
     # not yet tested for "Linux", "Darwin"
     # inaccurate e.g. if physical RAM is 32000 but in .RProfile 
     # `invisible(utils::memory.limit(64000))`
@@ -463,7 +463,11 @@ find_free_mem <- function (sys_ram = NULL)
     
     warning("Cannot determine the amount of RAM with Linux or MAC OS.\n", 
             "To specify, use parameter \"sys_ram\".")
-    free_mem <- 24L
+    # free_mem <- 24L
+    free_mem <- ps::ps_system_memory()$avail / 1024^2 # MB
+  
+  if (!is.null(sys_ram)) {
+    free_mem <- min(sys_ram, free_mem)
   }
   
   free_mem

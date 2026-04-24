@@ -44,16 +44,6 @@ foo_list_func <- function (filepath = file.path(file.path("~/Github/mzion/R")),
   
   names(fns_all) <- filenames
   
-  if (FALSE) {
-    sink(file.path(filepath, "temp/funs.txt"))
-    fns_all
-    sink()
-    
-    ans <- readLines(file.path(filepath, "temp/funs.txt"))
-    ans <- paste0("# ", ans)
-    writeLines(ans, file.path(filepath, paste0("temp/funs.", extension)))
-  }
-  
   out <- unlist(
     Map(function(nm, x) {
       c(paste0("# $", nm),
