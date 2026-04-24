@@ -616,7 +616,7 @@ find_ms1_times <- function (out_path)
   file <- file.path(out_path, "Calls", ".cache_info.rds")
   
   if (file.exists(file)) {
-    .cache_info <- qs::qread(file)
+    .cache_info <- qs2::qs_read(file)
     .time_stamp <- .cache_info$.time_stamp
     
     if (is.null(.time_stamp))
@@ -629,10 +629,10 @@ find_ms1_times <- function (out_path)
   file2 <- file.path(out_path, "temp", "out_paths.rds")
   
   if (file.exists(file2)) {
-    out_paths <- qs::qread(file2)
+    out_paths <- qs2::qs_read(file2)
     
     .cache_infos <- 
-      lapply(out_paths, function (x) qs::qread(file.path(x, "Calls", ".cache_info.rds")))
+      lapply(out_paths, function (x) qs2::qs_read(file.path(x, "Calls", ".cache_info.rds")))
 
     # multiple time stamps (e.g. group searches)
     return(lapply(.cache_infos, function (x) x[[".time_stamp"]]))

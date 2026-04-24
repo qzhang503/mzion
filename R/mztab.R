@@ -26,7 +26,7 @@ make_mztab <- function (mzion_path = stop("Provide the path.", call. = FALSE),
     fi_fmt <- file.path(mgf_path, "info_format.rds")
     
     if (file.exists(fi_fmt)) {
-      info_mgfs <- qs::qread(fi_fmt)
+      info_mgfs <- qs2::qs_read(fi_fmt)
     }
     else {
       # the only non-MGF is MSConvert-mzML
@@ -40,9 +40,9 @@ make_mztab <- function (mzion_path = stop("Provide the path.", call. = FALSE),
     
     query_files <- list.files(mgf_path, pattern = "^mgf_queries_.*\\.rds", 
                               full.names = TRUE)
-    mgf_queries <- lapply(query_files, qs::qread) |>
+    mgf_queries <- lapply(query_files, qs2::qs_read) |>
       dplyr::bind_rows()
-    raw_files <- names(qs::qread(file.path(mgf_path, "raw_indexes.rds")))
+    raw_files <- names(qs2::qs_read(file.path(mgf_path, "raw_indexes.rds")))
     
     ans_mgfs <- vector("list", length(raw_files))
     

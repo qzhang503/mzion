@@ -92,16 +92,14 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     return(null_out)
   }
 
-  excl_rptrs <- exclude_reporter_region && ms_lev != 1L
-  
-  if (excl_rptrs) {
+  if (excl_rptrs <- exclude_reporter_region && ms_lev != 1L) {
     if (FALSE) {
       tmts <- c(
-        `126` = 126.127726, `127N` = 127.124761, `127C` = 127.131080,
+        `126`  = 126.127726, `127N` = 127.124761, `127C` = 127.131080,
         `128N` = 128.128115, `128C` = 128.134435, `129N` = 129.131470,
         `129C` = 129.137790, `130N` = 130.134825, `130C` = 130.141145,
         `131N` = 131.138180, `131C` = 131.144499, `132N` = 132.141535,
-        `132C` = 132.147855, `133N` = 133.14489, `133C` = 133.15121,
+        `132C` = 132.147855, `133N` = 133.14489,  `133C` = 133.15121,
         `134N` = 134.148245, `134C` = 134.155114, `135N` = 135.152149)
       
       tmt_lwr <- tmts - tmts * 1e-5
@@ -134,13 +132,24 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
   from <- moverzs[[1]] - .001
   ims  <- index_mz(moverzs, from, step)
   
+  ###
+  # the final output: masses, intensities, charges
+  # 
+  # p_no_zero: to keep track of the number of non-zero-z features
+  #  MS1: incremented by one with an additional characterization of a non-zero z  
+  #  MS2: incremented by one even at zero-z since many MS2 z are undetermined
+  # 
+  # peaks, intens, css
+  #  interim masses, intensities and charges
+  ###
+  
   tol <- ppm / 1E6 # the same as the default `step`; may remove arg `ppm`
   lenp <- min(len_ms, maxn_feats)
-  peaks_fuz <- peaks <- intens_fuz <- intens <- vector("numeric", lenp) # rep_len(list(numeric(1)), lenp) 
-  css_fuz <- css <- vector("integer", lenp) # rep_len(list(integer(1)), lenp)
+  peaks_fuz <- peaks <- intens_fuz <- intens <- vector("numeric", lenp)
+  css_fuz <- css <- vector("integer", lenp)
   p_no_zero <- p_fuz <- p <- 1L
   ymean_fuz <- ymono_fuz <- mass_fuz <- NA_real_
-  yref <- 0 # to keep track of Y values
+  # yref <- 0 # to keep track of Y values
 
   # Little gain with the addition guard of p_no_zero; 
   # At MS1 ch == 0 without p_no_zero, ch-0 can be picked up by chimeric searches
@@ -172,16 +181,12 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     #  the first `mint` may be the one closest to the center with Thermo's and 
     #    the first `yref = 0`
     #  no need of checking `yref > 0` if is_pasef
-    if (is_pasef) { # && ms_lev == 1L && yref > 0 && mint / yref < ms1_min_ratio
+    if (FALSE && is_pasef) {
       if (ms_lev == 1L) {
         if (mint / yref < ms1_min_ratio) {
           break
         }
       }
-      # else if (ms_lev == 2L) {
-      #   if (mint / yref < .03)
-      #     break
-      # }
     }
 
     ## find Z values
@@ -190,15 +195,14 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
       moverzs = moverzs, msxints = msxints, n_ms1s = n_ms1s,
       max_charge = max_charge, n_fwd = n_fwd, n_bwd = n_bwd, 
       ms_lev = ms_lev, is_dda = is_dda, tol = tol)
-    # if (mint < min_y) { ch <- NA_integer_ }
 
     if (is.na(ch)) {
-      peaks[[p]] <- mass
+      peaks[[p]]  <- mass
       intens[[p]] <- mint
-      len_ms <- len_ms - 1L
-      moverzs <- moverzs[-imax] # copy-on-modify
+      moverzs <- moverzs[-imax]
       msxints <- msxints[-imax]
       ims <- ims[-imax]
+      len_ms <- len_ms - 1L
       p <- p + 1L
       
       # Many MS2 charge states are undetermined (and move on)
@@ -206,23 +210,21 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
         p_no_zero <- p_no_zero + 1L
       }
       
-      # yref <- mint # no update of reference intensity
       next
     }
     
     p_no_zero <- p_no_zero + 1L
-    gap <- 1.003355 / ch
-    sta1 <- min(len_ms, imax + 1L)
-    end1 <- min(len_ms, imax + offset_upr)
-    # yzero <- msxints[[imax]]
+    gap   <- 1.003355 / ch
+    sta1  <- min(len_ms, imax + 1L)
+    end1  <- min(len_ms, imax + offset_upr)
     ymono <- msxints[[imax]]
-    ymean <- ymono/n_ms1
+    ymean <- ymono / n_ms1
 
     ## find monoisotopic m/z
     if (ch * mass > backward_mass_co) {
-      if ((lwr <- imax - offset_lwr) < 1L) lwr <- 1L
-      if ((upr <- imax + offset_upr) > len_ms) upr <- len_ms
-      
+      lwr <- max(1L, imax - offset_lwr)
+      upr <- min(len_ms, imax + offset_upr)
+
       iths <- index_mz(mass + gap * (-ch-1L):(1L+ch), from, step)
       iexs <- ims[lwr:upr]
       oks2 <- iexs %fin% iths | (iexs - 1L) %fin% iths | (iexs + 1L) %fin% iths
@@ -322,33 +324,25 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     #  -> take the mean
     # or may be ymono the best...
     intens[[p]] <- ymean
-    # intens[[p]] <- yzero
-    peaks[[p]] <- mass
-    css[[p]] <- ch
+    peaks[[p]]  <- mass
+    css[[p]]    <- ch
     
     if (!is.na(mass_fuz)) {
       intens_fuz[[p_fuz]] <- ymean_fuz
-      peaks_fuz[[p_fuz]] <- mass_fuz
-      css_fuz[[p_fuz]] <- ch
+      peaks_fuz[[p_fuz]]  <- mass_fuz
+      css_fuz[[p_fuz]]    <- ch
       p_fuz <- p_fuz + 1L
       mass_fuz <- NA_real_
     }
     
-    len_ms <- len_ms - lenh
-    moverzs <- moverzs[-hits] # copy-on-modify
+    len_ms  <- len_ms - lenh
+    moverzs <- moverzs[-hits]
     msxints <- msxints[-hits]
     ims <- ims[-hits]
     p <- p + 1L
-    yref <- mint
+    # yref <- mint # only with PASEF
   }
   
-  # css <- .Internal(unlist(css, recursive = FALSE, use.names = FALSE))
-  # css_fuz <- .Internal(unlist(css_fuz, recursive = FALSE, use.names = FALSE))
-  # intens <- .Internal(unlist(intens, recursive = FALSE, use.names = FALSE))
-  # intens_fuz <- .Internal(unlist(intens_fuz, recursive = FALSE, use.names = FALSE))
-  # peaks <- .Internal(unlist(peaks, recursive = FALSE, use.names = FALSE))
-  # peaks_fuz <- .Internal(unlist(peaks_fuz, recursive = FALSE, use.names = FALSE))
-
   # outputs
   if (ms_lev == 1L) {
     oks1 <- css >= 1L & !is.na(css)
@@ -360,8 +354,8 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
     stop("Unhandled MS level = ", ms_lev)
   }
   
-  masses <- peaks[oks1]
-  charges <- css[oks1]
+  masses      <- peaks[oks1]
+  charges     <- css[oks1]
   intensities <- intens[oks1]
   
   if (endf <- p_fuz - 1L) {
@@ -409,6 +403,52 @@ find_ms1stat <- function (moverzs, msxints, n_ms1s = 1L, center = 0,
 #' @param mint Not yet used. The intensity of the peak at \code{imax}.
 #' @param tol The tolerance in mass errors.
 #' @inheritParams find_ms1stat
+#' 
+#' @examples
+#' \donttest{
+#' moverzs <- c(907.968018,908.136475,908.872711,909.073690,909.121,
+#'              909.273670,909.280212,909.45,909.454981,909.459717,
+#'              909.473072,909.675781,909.721191,909.78,909.79,
+#'              909.791633,909.840088,909.969744,910.077278,910.091888,
+#'              910.124076,910.130798,910.180115,910.218689,910.341797,
+#'              910.456115,910.463650,910.474152,910.791669,911.126692,
+#'              911.133219,911.471605)
+#' msxints <- c(2971101,3013171,5774301,24508055,40267873,
+#'              1E6,7340374,1E6,154459778,8312258,
+#'              18375220,22909676,2863776,1.1E6,1.2E6,
+#'              191655971,7273611,32089542,9125108,5008687,
+#'              167021373,12912115,3242378,16278636,4731828,
+#'              98601412,22828501,10539991,26255569,8499971,
+#'              8305187,37899662)
+#' n_ms1s <- rep_len(1L, length(msxints))
+#' mass <- 909.7900
+#' imax <- 15L
+#' mint <- 1200000
+#' 
+#' # xvals <- moverzs[24]
+#' moverzs[24] <- 910.2919
+#' 
+#' # duo
+#' moverzs[18] <- 910.0410
+#' moverzs[24] <- 910.2917
+#' 
+#' # chs1 = 2, chs2 = c(2, 3)
+#' moverzs[21] <- 910.1281
+#' moverzs[22] <- 910.1290
+#' moverzs[12] <- 909.5392
+#' 
+#' # chs1 = 2, chs2 = 3
+#' moverzs[21:22] <- c(910.1281, 910.1290)
+#' moverzs[8:10] <- c(909.4650, 909.4660, 909.4670)
+#' moverzs[12] <- 909.5392
+#' 
+#' moverzs[21:22] <- c(910.1281, 910.1290)
+#' moverzs[12] <- 909.5392
+#' 
+#' # no l1,  no l2
+#' moverzs[21:22] <- c(910.1600, 910.1620)
+#' moverzs[8:10] <- c(909.4650, 909.4660, 909.4670)
+#' }
 find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s, 
                                max_charge = 4L, n_fwd = 15L, n_bwd = 20L, 
                                ms_lev = 1L, is_dda = TRUE, tol = 8E-6)
@@ -440,15 +480,15 @@ find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s,
   chs1 <- .Internal(which(lens1 > 0L))
   l1 <- length(chs1)
   
-  # l2 not use in the case
+  ## (1) multiple chs1, l2 not considered
   if (l1 > 1L) {
     p1s <- lapply(ioks1[chs1], function (xs) {
-      if (length(xs) == 1L)
+      if (length(xs) == 1L) {
         sta1 + xs - 1L
+      }
       else {
         ps <- sta1 + xs - 1L
-        i <- .Internal(which.max(msxints[ps]))
-        sta1 + xs[i] - 1L
+        sta1 + xs[.Internal(which.max(msxints[ps]))] - 1L
       }
     })
     p1s <- .Internal(unlist(p1s, recursive = FALSE, use.names = FALSE))
@@ -456,12 +496,12 @@ find_charge_state <- function (mass, imax, mint, moverzs, msxints, n_ms1s,
     if (ms_lev == 1L) {
       ansduo <- check_chduo(duo = c(1L, 3L), chs1, p1s, msxints)
       chs1 <- ansduo$chs
-      p1s <- ansduo$ps
+      p1s  <- ansduo$ps
       
       if (max_charge >= 6L) {
         ansduo <- check_chduo(duo = c(2L, 5L), chs1, p1s, msxints)
         chs1 <- ansduo$chs
-        p1s <- ansduo$ps
+        p1s  <- ansduo$ps
       }
     }
     

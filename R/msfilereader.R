@@ -8,8 +8,8 @@ readRAW <- function (mgf_path = NULL, filelist = NULL)
   acceptMSFileReaderLicense(sys_path)
   temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
 
-  qs::qsave(list(data_format = "Thermo-RAW", mgf_format = "Mzion"), 
-            file.path(mgf_path, "info_format.rds"), preset = "fast")
+  qs2::qs_save(list(data_format = "Thermo-RAW", mgf_format = "Mzion"), 
+            file.path(mgf_path, "info_format.rds"), compress_level = 0L)
   
   if (FALSE) {
     local({
@@ -20,8 +20,8 @@ readRAW <- function (mgf_path = NULL, filelist = NULL)
         mgf_format <- "Mzion"
       }
       
-      qs::qsave(list(data_format = data_format, mgf_format = mgf_format), 
-                file.path(mgf_path, "info_format.rds"), preset = "fast")
+      qs2::qs_save(list(data_format = data_format, mgf_format = mgf_format), 
+                file.path(mgf_path, "info_format.rds"), compress_level = 0L)
     })
   }
 
@@ -107,7 +107,7 @@ proc_raws <- function (raw_file, mgf_path, temp_dir)
   )
   
   out_name <- paste0(raw_file, ".rds")
-  qs::qsave(out, file.path(temp_dir, out_name), preset = "fast")
+  qs2::qs_save(out, file.path(temp_dir, out_name), compress_level = 0L)
   
   idx_first_ms1 <- which(ms_levels == 1L)[[1]]
   iso_ctr1 <- iso_ctrs[[idx_first_ms1]]

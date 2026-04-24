@@ -10,7 +10,7 @@ Authors@R:
            comment = c(ORCID = "0000-0001-7046-4378"))
 Maintainer: The package maintainer <qzhang503@gmail.com>
 Description: A Proteomics Database Search Engine for Mass-spectrometrirc Data.
-Depends: R (>= 4.3)
+Depends: R (>= 4.5.2)
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -39,7 +39,7 @@ Imports:
     magrittr,
     parallel,
     proxyC,
-    qs,
+    qs2,
     xml2, 
     Matrix
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.3

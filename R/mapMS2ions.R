@@ -359,7 +359,7 @@ match_raw_id <- function (raw_file, mgf_path)
   if (!file.exists(file))
     stop("File not found ", file)
   
-  raw_map <- qs::qread(file)
+  raw_map <- qs2::qs_read(file)
   raw_id <- unname(raw_map[raw_file])
   
   if (is.na(raw_id)) {
@@ -435,9 +435,11 @@ find_mgf_query <- function (mgf_path, raw_id, scan, to_global = TRUE)
       return(NULL)
     }
 
-    .mgf_queries <- lapply(files, function (x) qs::qread(file.path(mgf_path, x)))
+    .mgf_queries <- 
+      lapply(files, function (x) qs2::qs_read(file.path(mgf_path, x)))
     .mgf_queries <- do.call(rbind, .mgf_queries)
-    .mgf_queries <- dplyr::mutate(.mgf_queries, scan_num = as.character(scan_num))
+    .mgf_queries <- 
+      dplyr::mutate(.mgf_queries, scan_num = as.character(scan_num))
 
     if (to_global) {
       assign(".mgf_queries", .mgf_queries, envir = .GlobalEnv)
@@ -540,7 +542,7 @@ make_speclib <- function (out_path = NULL, in_name = "psmQ.txt", score_co = 15,
       return(NULL)
     }
     
-    mgfs <- lapply(mgf_files, function (x) qs::qread(file.path(mgf_path, x)))
+    mgfs <- lapply(mgf_files, function (x) qs2::qs_read(file.path(mgf_path, x)))
     mgfs <- do.call(rbind, mgfs)
     mgfs <- dplyr::mutate(mgfs, scan_num = as.character(scan_num))
     mgfs <- mgfs[, c("raw_file", "scan_num", "ms2_moverz", "ms2_int")]
@@ -577,7 +579,7 @@ make_speclib <- function (out_path = NULL, in_name = "psmQ.txt", score_co = 15,
   df$pep_ms2_ideltas2 <- lapply(df$pep_ms2_ideltas2, as.integer)
   df$pep_ms2_iexs2 <- lapply(df$pep_ms2_iexs2, as.integer)
   
-  qs::qsave(df, file.path(out_path, "psmLib.rds"), preset = "fast")
+  qs2::qs_save(df, file.path(out_path, "psmLib.rds"), compress_level  = 0L)
 }
 
 

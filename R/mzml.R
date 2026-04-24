@@ -73,8 +73,8 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
   if (!dir.exists(path_ms1 <- file.path(out_path, "ms1data"))) {
     path_ms1 <- create_dir(path_ms1) # for MBR in proteoQ
   }
-  qs::qsave(data_type, file.path(mgf_path, "data_type.rds"), preset = "fast")
-  qs::qsave(data_type, file.path(path_ms1, "data_type.rds"), preset = "fast") # for proteoQ
+  qs2::qs_save(data_type, file.path(mgf_path, "data_type.rds"), compress_level = 0L)
+  qs2::qs_save(data_type, file.path(path_ms1, "data_type.rds"), compress_level = 0L) # for proteoQ
   temp_dir <- create_dir(file.path(mgf_path, "temp_dir"))
 
   if (data_type == "raw") {
@@ -134,7 +134,7 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
   # temporary for bypassing Mzion deisotoping against PASEF???
   data_format <- local({
     file <- file.path(mgf_path, "info_format.rds")
-    if (file.exists(file)) qs::qread(file)$data_format else NULL
+    if (file.exists(file)) qs2::qs_read(file)$data_format else NULL
   })
   is_pasef <- isTRUE(data_format == "Bruker-RAW")
   
@@ -250,7 +250,7 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
                            n_para = n_para2)
       }
       else {
-        subfiles <- qs::qread(file.path(temp_dir, "subfiles.rds"))
+        subfiles <- qs2::qs_read(file.path(temp_dir, "subfiles.rds"))
       }
     }
     else {
@@ -471,7 +471,7 @@ readmzML <- function (filelist = NULL, out_path = NULL, mgf_path = NULL,
   if (!length(raws)) {
     stop("All RAW files are without MS2.")
   }
-  qs::qsave(raws, file.path(mgf_path, "raw_indexes.rds"), preset = "fast")
+  qs2::qs_save(raws, file.path(mgf_path, "raw_indexes.rds"), compress_level = 0L)
   
   type_acqu <- if (isTRUE(is_dia)) "dia" else "dda"
 }
@@ -1169,7 +1169,7 @@ extrDDA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL,
   ###
   
   out_name <- paste0(raw_file, ".rds")
-  qs::qsave(out, file.path(temp_dir, out_name), preset = "fast")
+  qs2::qs_save(out, file.path(temp_dir, out_name), compress_level = 0L)
   invisible(out_name)
 }
 
@@ -1350,11 +1350,11 @@ deisoDDA <- function (filename = NULL,
       is_pasef = is_pasef, 
       n_para = n_para)
     
-    qs::qsave(df, file.path(temp_dir, paste0("predeisoDDA_", filename)), 
-              preset = "fast")
+    qs2::qs_save(df, file.path(temp_dir, paste0("predeisoDDA_", filename)), 
+              compress_level = 0L)
   }
   else {
-    df <- qs::qread(file.path(temp_dir, paste0("predeisoDDA_", filename)))
+    df <- qs2::qs_read(file.path(temp_dir, paste0("predeisoDDA_", filename)))
   }
   
   # e.g., bad data without MS2
@@ -1369,10 +1369,10 @@ deisoDDA <- function (filename = NULL,
       path_ms1 <- create_dir(path_ms1) # for MBR in proteoQ
     }
     
-    qs::qsave(
+    qs2::qs_save(
       df[with(df, ms_level == 1L), 
          c("ret_time", "scan_num", "orig_scan", "msx_moverzs", "msx_ints")], 
-      file.path(path_ms1, paste0("ms1full_", filename)), preset = "fast")
+      file.path(path_ms1, paste0("ms1full_", filename)), compress_level = 0L)
   }
   
   if (use_lfq_intensity && maxn_mdda_precurs) {
@@ -1396,7 +1396,7 @@ deisoDDA <- function (filename = NULL,
       from = min_mass, step = step_tr, 
       # n_chunks = ceiling(sum(df$ms_level == 1L) / 512L), 
       rt_gap = rt_gap, rt_tol = 180)
-    # ans_prep <- qs::qread(file.path(path_ms1, paste0("msxspace_", filename)))
+    # ans_prep <- qs2::qs_read(file.path(path_ms1, paste0("msxspace_", filename)))
 
     dfs  <- ans_prep$dfs
     df1s <- ans_prep$df1s
@@ -1445,7 +1445,7 @@ deisoDDA <- function (filename = NULL,
         ), SIMPLIFY = FALSE, USE.NAMES = FALSE, .scheduling = "dynamic")
       parallel::stopCluster(cl)
       out <- dplyr::bind_rows(out)
-      # qs::qsave(out, file.path(path_ms1, paste0("htraceXY_", filename)), preset = "fast")
+      # qs2::qs_save(out, file.path(path_ms1, paste0("htraceXY_", filename)), compress_level = 0L)
     }
     else if (FALSE) {
       vxs <- lapply(df1s, `[[`, "msx_moverzs")
@@ -1471,14 +1471,14 @@ deisoDDA <- function (filename = NULL,
       out <- dplyr::bind_rows(out)
     }
     else {
-      out <- qs::qread(file.path(path_ms1, paste0("htraceXY_", filename)))
+      out <- qs2::qs_read(file.path(path_ms1, paste0("htraceXY_", filename)))
     }
     
-    qs::qsave(
+    qs2::qs_save(
       out[, c("ms_level", "orig_scan", "apex_ps", "apex_xs", "apex_ys", 
               "apex_ts")] |> 
         dplyr::filter(ms_level > 1L), 
-      file.path(path_ms1, paste0("ms1apexes_", filename)), preset = "fast")
+      file.path(path_ms1, paste0("ms1apexes_", filename)), compress_level = 0L)
     
     if (nrow(df) == nrow(out)) {
       df[, cols] <- out[, cols]
@@ -1530,7 +1530,7 @@ deisoDDA <- function (filename = NULL,
   df1 <- df[rows, ]
   df1$ms_level <- df1$msx_charges <- df1$apex_scan_num <- 
     df1$rptr_moverzs <- df1$rptr_ints <- NULL
-  qs::qsave(df1, file.path(mgf_path, paste0("ms1_", filename)), preset = "fast")
+  qs2::qs_save(df1, file.path(mgf_path, paste0("ms1_", filename)), compress_level = 0L)
   rm(list = "df1")
 
   ## cleans up
@@ -1712,7 +1712,7 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL, mzml_type = "raw",
   # raw_file: scalar
   # mobility <- ans$mobility # NULL for Thermo's data
   
-  ans <- qs::qread(file.path(temp_dir, filename))
+  ans <- qs2::qs_read(file.path(temp_dir, filename))
   msx_moverzs <- ans$msx_moverzs
   msx_ints <- ans$msx_ints
   msx_ns <- ans$msx_ns
@@ -1892,7 +1892,7 @@ predeisoDDA <- function (filename = NULL, temp_dir = NULL, mzml_type = "raw",
       if (!file.exists(fi_pasefms1)) {
         stop("Full MS1 not found ", fi_pasefms1)
       }
-      df1 <- qs::qread(fi_pasefms1)
+      df1 <- qs2::qs_read(fi_pasefms1)
       df1$ms1_moverzs <- df1$ms1_ints <- df1$ms1_charges <- df1$ms1_masses <- 
         df1$msx_charges <- vector("list", nrow(df1))
       
@@ -2591,7 +2591,7 @@ extrDIA <- function (spec = NULL, raw_file = NULL, temp_dir = NULL,
   )
 
   out_name <- paste0(raw_file, ".rds")
-  qs::qsave(out, file.path(temp_dir, out_name), preset = "fast")
+  qs2::qs_save(out, file.path(temp_dir, out_name), compress_level = 0L)
   invisible(out_name)
 }
 
@@ -2616,7 +2616,7 @@ hdeisoDIA <- function (filename = NULL, temp_dir = NULL,
                        tmt_reporter_lower = 126.1, tmt_reporter_upper = 135.2, 
                        exclude_reporter_region = FALSE, n_para = 1L)
 {
-  ans <- qs::qread(file.path(temp_dir, filename))
+  ans <- qs2::qs_read(file.path(temp_dir, filename))
   msx_ns <- ans$msx_ns
   scan_title <- ans$scan_title
   raw_file <- ans$raw_file # scalar
@@ -2729,7 +2729,7 @@ hdeisoDIA <- function (filename = NULL, temp_dir = NULL,
     demux = demux)
   
   out_name <- paste0("dia_", filename)
-  qs::qsave(df, file.path(temp_dir, out_name), preset = "fast")
+  qs2::qs_save(df, file.path(temp_dir, out_name), compress_level = 0L)
   invisible(out_name)
 }
 
@@ -2840,7 +2840,7 @@ deisoDIA <- function (msx_moverzs = NULL, msx_ints = NULL, ms_level = NULL,
 #' @param n_para The allowance of parallel processing.
 hsubDIAMS1 <- function (filename = NULL, temp_dir = NULL, n_para = 1L)
 {
-  df <- qs::qread(file.path(temp_dir, filename))
+  df <- qs2::qs_read(file.path(temp_dir, filename))
   
   if (n_para <= 1L)
     return(subDIAMS1(df))
@@ -2860,7 +2860,7 @@ hsubDIAMS1 <- function (filename = NULL, temp_dir = NULL, n_para = 1L)
   
   df <- dplyr::bind_rows(ans)
   out_name <- paste0("sub", filename)
-  qs::qsave(df, file.path(temp_dir, out_name), preset = "fast")
+  qs2::qs_save(df, file.path(temp_dir, out_name), compress_level = 0L)
   invisible(out_name)
 }
 
@@ -3002,7 +3002,7 @@ htraceDIA <- function (filename, raw_id, temp_dir, mgf_path,
                        exclude_reporter_region = FALSE, n_para = 1L)
 {
   ### cleanDIAMS
-  df <- qs::qread(file.path(temp_dir, filename))
+  df <- qs2::qs_read(file.path(temp_dir, filename))
   df$msx_masses <- NULL
   
   # NULL: no MS1 in the bins
@@ -3806,9 +3806,9 @@ collapse_xyz <- function (xs = NULL, ys = NULL, zs = NULL, temp_dir = NULL,
     x_nm <- paste0("xs", ms_lev, "_diauniv_", icenter, ".rds")
     y_nm <- paste0("ys", ms_lev, "_diauniv_", icenter, ".rds")
     z_nm <- paste0("zs", ms_lev, "_diauniv_", icenter, ".rds")
-    xout <- qs::qread(file.path(temp_dir, x_nm))
-    yout <- qs::qread(file.path(temp_dir, y_nm))
-    zout <- qs::qread(file.path(temp_dir, z_nm))
+    xout <- qs2::qs_read(file.path(temp_dir, x_nm))
+    yout <- qs2::qs_read(file.path(temp_dir, y_nm))
+    zout <- qs2::qs_read(file.path(temp_dir, z_nm))
   }
 
   ### collapses adjacent entries
@@ -3895,7 +3895,7 @@ mapcoll_xyz <- function (vals, ups, lenx, lenu, temp_dir, icenter = 1L,
   }
 
   out_name <- paste0(type, ms_lev, "_diauniv_", icenter, ".rds")
-  qs::qsave(out, file.path(temp_dir, out_name), preset = "fast")
+  qs2::qs_save(out, file.path(temp_dir, out_name), compress_level = 0L)
   
   invisible(NULL)
 }

@@ -140,7 +140,7 @@ perco_svm <- function (prob_cos = NULL, out_path = NULL, df = NULL, n_13c = 0,
       stop("File not found: ", fileP)
     }
 
-    prob_cos <- qs::qread(fileP)
+    prob_cos <- qs2::qs_read(fileP)
   }
   prob_cos0 <- prob_cos
 

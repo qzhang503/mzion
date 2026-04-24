@@ -85,7 +85,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
       message("Found ", n_fi, " cached ion matches.")
 
       if (!file.exists(faa))
-        qs::qsave(aa_masses_all, faa)
+        qs2::qs_save(aa_masses_all, faa)
       
       .savecall <- FALSE
       
@@ -199,7 +199,7 @@ ms2match <- function (mgf_path, aa_masses_all, out_path, .path_bin,
     min_ms2mass = min_ms2mass, 
     df0 = df0)
 
-  qs::qsave(aa_masses_all, faa)
+  qs2::qs_save(aa_masses_all, faa)
   
   invisible(NULL)
 }
@@ -434,7 +434,7 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
     dfs <- vector("list", maxn_files <- min(len, 50L))
     
     for (i in 1:maxn_files) {
-      df <- qs::qread(fi_ions[[i]])
+      df <- qs2::qs_read(fi_ions[[i]])
       df <- df[, cols]
       
       # was prob_co = 1E-10; 
@@ -453,7 +453,7 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
     stop("Column `raw_file` not found in search results.")
 
   dfs <- split(df, df[["raw_file"]])
-  raws <- qs::qread(file.path(mgf_path, "raw_indexes.rds"))
+  raws <- qs2::qs_read(file.path(mgf_path, "raw_indexes.rds"))
   ord <- match(names(dfs), as.character(raws))
   names(dfs) <- names(raws)[ord]
 
@@ -463,7 +463,7 @@ calib_mgf <- function (mgf_path, aa_masses_all, out_path, .path_bin,
   if (FALSE) {
     attr(dfs, "fs_mgf") <- fs_mgf
     attr(dfs, "is_tmt") <- is_tmt
-    qs::qsave(dfs, file.path(tempdir, "df_calib.rds"), preset = "fast")
+    qs2::qs_save(dfs, file.path(tempdir, "df_calib.rds"), compress_level = 0L)
   }
 
   len <- length(dfs)
@@ -540,7 +540,7 @@ calib_ms1 <- function (filename, df = NULL, mgf_path = NULL, out_path = NULL,
     df <- df[minn_ok, ]
   }
 
-  mgfs  <- qs::qread(file.path(mgf_path, filename))
+  mgfs  <- qs2::qs_read(file.path(mgf_path, filename))
   is_listmass <- class(mgfs[["ms1_mass"]]) == "list"
   mgfs  <- adj_masses1(
     mgfs = mgfs, mdiff = mdiff, is_listmass = is_listmass, is_tmt = is_tmt)
@@ -905,7 +905,7 @@ post_calib <- function (mgfs, min_mass, max_mass, mgf_path, filename,
       dplyr::filter(ms1_mass >= min_mass, ms1_mass <= max_mass)
   }
 
-  qs::qsave(mgfs, file.path(mgf_path, filename), preset = "fast")
+  qs2::qs_save(mgfs, file.path(mgf_path, filename), compress_level = 0L)
 }
 
 

@@ -1,44 +1,73 @@
 # combine all .R files into one
-# foo_combine_codes(file.path("~/Github/proteoQ/R"), "all_proteoQ.R")
+# foo_combine_codes(file.path("~/Github/proteoQ/R"), "R", "all_proteoQ.R")
+# foo_combine_codes(file.path("~/Github/mzionpy/mzionpy"), "py", "all_mzion.py")
 foo_combine_codes <- function (filepath = file.path("~/Github/mzion/R"), 
-                               out_name = "all_mzion.R") 
+                               extension = "R", out_name = "all_mzion.R") 
 {
   filepath <- mzion:::find_dir(filepath)
-  filenames <- dir(filepath, pattern = ".R$")
-
+  filenames <- dir(filepath, pattern = paste0(".", extension, "$"))
+  
   dir.create(file.path(filepath, "temp"), showWarnings = FALSE)
-
+  
   ans <- lapply(file.path(filepath, filenames), readLines)
   ans <- purrr::reduce(ans, `c`, init = NULL)
   writeLines(ans, file.path(filepath, "temp", out_name))
 }
 
 
-foo_list_func <- function (filepath = file.path(file.path("~/Github/mzion/R"))) 
+# foo_list_func(file.path("~/Github/proteoQ/R"), extension = "R")
+# foo_list_func(file.path("~/Github/mzionpy/mzionpy"), extension = "py")
+foo_list_func <- function (filepath = file.path(file.path("~/Github/mzion/R")), 
+                           extension = "R") 
 {
   filepath <- mzion:::find_dir(filepath)
-  filenames <- dir(filepath, pattern = ".R$")
+  filenames <- dir(filepath, pattern = paste0(".", extension, "$"))
   
   dir.create(file.path(filepath, "temp"), showWarnings = FALSE)
   
   lines <- lapply(file.path(filepath, filenames), readLines)
   
-  fns_all <- lapply(lines, function (x) {
-    fn_lines <- x[grepl("<-\\s*function\\s*\\(", x)]
-    fns <- gsub("^(.*)\\s*<- function\\s*\\(.*", "\\1", fn_lines)
-    gsub("\\s*$", "", fns)
-  })
+  if (extension == "R") {
+    fns_all <- lapply(lines, function (x) {
+      fn_lines <- x[grepl("<-\\s*function\\s*\\(", x)]
+      fns <- gsub("^(.*)\\s*<- function\\s*\\(.*", "\\1", fn_lines)
+      gsub("\\s*$", "", fns)
+    })
+  }
+  else if (extension == "py") {
+    fns_all <- lapply(lines, function (x) {
+      fn_lines <- x[grepl("^def ", x)]
+      fns <- gsub("^def ([^\\(]+)\\(.*", "\\1",fn_lines)
+    })
+  }
+  
   
   names(fns_all) <- filenames
   
-  sink(file.path(filepath, "temp/funs.txt"))
-  fns_all
-  sink()
+  if (FALSE) {
+    sink(file.path(filepath, "temp/funs.txt"))
+    fns_all
+    sink()
+    
+    ans <- readLines(file.path(filepath, "temp/funs.txt"))
+    ans <- paste0("# ", ans)
+    writeLines(ans, file.path(filepath, paste0("temp/funs.", extension)))
+  }
   
-  ans <- readLines(file.path(filepath, "temp/funs.txt"))
-  ans <- paste0("# ", ans)
-  writeLines(ans, file.path(filepath, "temp/funs.R"))
+  out <- unlist(
+    Map(function(nm, x) {
+      c(paste0("# $", nm),
+        paste0("# ", x),
+        "#")
+    },
+    names(fns_all),
+    fns_all),
+    use.names = FALSE
+  )
+  
+  writeLines(out, file.path(filepath, paste0("temp/funs.", extension)))
 }
+
 
 
 foo_find_fmlmass <- function () 

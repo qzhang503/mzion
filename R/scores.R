@@ -264,6 +264,10 @@ calc_probi_byvmods <- function (df, nms, expt_moverzs, expt_ints, # expt_charges
   # or does a chimeric search -> exclude "all" matched features from scoring?
   # penalize "noise" for high-complexity spectra (short gradient; no fractionation)
   # weighted by mass error; or three-pass search, 0-6, 6-10, 10-20 ppm.
+  
+  ###
+  # try to set an intensity threshold for tallying...
+  ###
 
   df_theo <- df[["theo"]]
   m <- length(df_theo)
@@ -657,10 +661,10 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
     }, add = TRUE)
 
   if (file.exists(file_aa <- file.path(out_path, "aa_masses_all.rds"))) {
-    aa_masses_all <- qs::qread(file_aa)
+    aa_masses_all <- qs2::qs_read(file_aa)
   }
   else if (file.exists(file_aa <- file.path(.path_bin, "aa_masses_all.rds"))) {
-    aa_masses_all <- qs::qread(file_aa)
+    aa_masses_all <- qs2::qs_read(file_aa)
   }
   else {
     stop("Amino-acid look-ups not found: ", file_aa)
@@ -709,7 +713,7 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
     fs_sc <- list.files(sc_path, pattern = "^prescores_")
     n_sc  <- length(fs_sc)
     fi_sp <- file.path(sc_path, "total_splits.rds")
-    n_sp  <- if (file.exists(fi_sp)) { qs::qread(fi_sp) } else { -1L }
+    n_sp  <- if (file.exists(fi_sp)) { qs2::qs_read(fi_sp) } else { -1L }
     
     if (n_sc == n_sp) {
       if (grepl("^tmt", quant)) {
@@ -798,7 +802,7 @@ calc_pepscores <- function (topn_ms2ions = 150L, type_ms2ions = "by",
   move_scfiles(type = "prescores",  tempdir, sc_path)
   move_scfiles(type = "reporters",  tempdir, sc_path)
 
-  qs::qsave(length(list.files(sc_path, pattern = "^prescores")), 
+  qs2::qs_save(length(list.files(sc_path, pattern = "^prescores")), 
             file.path(sc_path, "total_splits.rds"))
   
   message("Completed peptide scores at: ", Sys.time())
@@ -829,7 +833,7 @@ split_im <- function (files, sc_path, tempdir, maxn_mdda_precurs = 1L,
     
     if (size > max_size) {
       n_chunks <- size %/% max_size + 1L
-      df <- qs::qread(fi)
+      df <- qs2::qs_read(fi)
       
       if (maxn_mdda_precurs > 1L) {
         if (col_key != "orig_scan") {
@@ -850,7 +854,7 @@ split_im <- function (files, sc_path, tempdir, maxn_mdda_precurs = 1L,
       }
 
       nms <- paste0(gsub("(.*)\\.rds$", "\\1", file), "_", 1:n_chunks, ".rds")
-      mapply(qs::qsave, dfs, file.path(tempdir, nms), MoreArgs = list(preset = "fast"))
+      mapply(qs2::qs_save, dfs, file.path(tempdir, nms), MoreArgs = list(compress_level = 0L))
     }
     else {
       nm <- paste0(gsub("(.*)\\.rds$", "\\1", file), "_1", ".rds")
@@ -910,7 +914,7 @@ order_fracs3 <- function (type = "list_table", tempdir)
 combine_fracs <- function (files, tempdir, sc_path, is_notched = FALSE)
 {
   out_nm <- gsub("_\\d+\\.rds$", ".rds", files[[1]])
-  df <- lapply(file.path(tempdir, files), qs::qread)
+  df <- lapply(file.path(tempdir, files), qs2::qs_read)
   df <- dplyr::bind_rows(df)
   
   # uniq_id does not contain information of pep_ms1_offset
@@ -918,7 +922,7 @@ combine_fracs <- function (files, tempdir, sc_path, is_notched = FALSE)
     df <- df[!duplicated.default(df[["uniq_id"]]), ]
   }
 
-  qs::qsave(df, file.path(sc_path, out_nm))
+  qs2::qs_save(df, file.path(sc_path, out_nm))
 }
 
 
@@ -1010,7 +1014,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
                "pep_ms2_deltas2", "pep_ms2_ideltas2", "pep_ms2_iexs2", 
                "pep_ms2_deltas_mean", "pep_ms2_deltas_sd", "pep_ms2_ideltas.")
 
-  df  <- qs::qread(file.path(im_path, file))
+  df  <- qs2::qs_read(file.path(im_path, file))
   idx <- gsub("^ion_matches_(.*)\\.rds$", "\\1", file)
   
   if (!(n_rows <- nrow(df))) {
@@ -1018,15 +1022,15 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
     
     dfa <- data.frame(matrix(ncol = length(cols_lt), nrow = 0L))
     colnames(dfa) <- cols_lt
-    qs::qsave(dfa, 
+    qs2::qs_save(dfa, 
               file.path(out_path, "temp", paste0("list_table_", idx, ".rds")), 
-              preset = "fast")
+              compress_level = 0L)
     
     dfb <- data.frame(matrix(ncol = length(cols_sc), nrow = 0L))
     colnames(dfb) <- cols_sc
-    qs::qsave(dfb, 
+    qs2::qs_save(dfb, 
               file.path(out_path, "temp", paste0("pepscores_",  idx, ".rds")), 
-              preset = "fast")
+              compress_level = 0L)
     
     return (dfb)
   }
@@ -1103,7 +1107,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
 
   path_df2 <- file.path(im_path, paste0("df2_", idx, ".rds"))
   df2 <- df[, -which(names(df) %in% esscols), drop = FALSE]
-  qs::qsave(df2, path_df2, preset = "fast")
+  qs2::qs_save(df2, path_df2, compress_level = 0L)
   df <- df[, esscols, drop = FALSE]
   rm(list = "df2")
 
@@ -1127,7 +1131,7 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
     df <- df[, -which(names(df) == "matches"), drop = FALSE]
   }
 
-  df2 <- qs::qread(path_df2)
+  df2 <- qs2::qs_read(path_df2)
   df  <- dplyr::bind_cols(df, df2)
   rm(list = c("df2", "path_df2"))
 
@@ -1154,13 +1158,13 @@ calcpepsc <- function (file, im_path, pep_fmod_all, pep_vmod_all,
                idx = idx, 
                out_path = im_path)
 
-  qs::qsave(df[, cols_lt, drop = FALSE], 
+  qs2::qs_save(df[, cols_lt, drop = FALSE], 
             file.path(im_path, paste0("list_table_", idx, ".rds")), 
-            preset = "fast")
+            compress_level = 0L)
   
-  qs::qsave(df, 
+  qs2::qs_save(df, 
             file.path(im_path, paste0("prescores_",  idx, ".rds")), 
-            preset = "fast")
+            compress_level = 0L)
 
   invisible(NULL)
 }
@@ -1320,7 +1324,7 @@ hadd_primatches <- function (out_path = NULL, is_notched = FALSE,
   ms_files <- order_fracs(type = "ms2info", tempdir)
   
   mapply(function (fis, idx) {
-    df <- lapply(fis, function (x) qs::qread(file.path(tempdir, x)))
+    df <- lapply(fis, function (x) qs2::qs_read(file.path(tempdir, x)))
     df <- dplyr::bind_rows(df)
     df[["pep_isdecoy"]] <- ifelse(is.na(df[["pep_ivmod"]]), TRUE, FALSE)
     df <- dplyr::rename(df, pep_calc_mr = theo_ms1)
@@ -1331,8 +1335,8 @@ hadd_primatches <- function (out_path = NULL, is_notched = FALSE,
 
     df <- df[, cols_sc, drop = FALSE]
     
-    qs::qsave(df, file.path(out_path, "temp", paste0("pepscores_", idx, ".rds")), 
-              preset = "fast")
+    qs2::qs_save(df, file.path(out_path, "temp", paste0("pepscores_", idx, ".rds")), 
+              compress_level = 0L)
   }, ms_files, names(ms_files))
   
   lapply(order_fracs("reporters", tempdir), 
@@ -1356,7 +1360,7 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
                             add_ms2theos2 = FALSE, add_ms2moverzs = FALSE, 
                             add_ms2ints = FALSE) 
 {
-  df <- qs::qread(file.path(tempdir, file))
+  df <- qs2::qs_read(file.path(tempdir, file))
   
   if (!add_ms2moverzs) {
     df[["pep_ms2_moverzs"]] <- NA_character_
@@ -1538,8 +1542,8 @@ add_primatches <- function (file = NULL, tempdir = NULL, add_ms2theos = FALSE,
     df$pep_ms2_ints <- collapse_vecs(df$pep_ms2_ints)
   }
   
-  qs::qsave(df, file.path(tempdir, gsub("^prescores", "ms2info", file)), 
-            preset = "fast")
+  qs2::qs_save(df, file.path(tempdir, gsub("^prescores", "ms2info", file)), 
+            compress_level = 0L)
 
   invisible(NULL)
 }
@@ -2061,7 +2065,7 @@ prep_pepfdr_td <- function (td = NULL, out_path, enzyme = "trypsin_p",
   }
 
   if (is.null(td)) {
-    td <- lapply(files, qs::qread)
+    td <- lapply(files, qs2::qs_read)
     td <- td[lapply(td, nrow) > 0L] # otherwise, error with bind_rows
     td <- dplyr::bind_rows(td)
   }
@@ -2210,6 +2214,10 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
                          nes_fdr_group = "base", fct_score = 5, out_path = NULL, 
                          mgf_path = NULL)
 {
+  ###
+  # try to separate charge states and peptide lengths...
+  ###
+  
   message("Calculating peptide FDR.")
   
   td <- prep_pepfdr_td(out_path = out_path, 
@@ -2238,14 +2246,14 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   # not cols <- c("pep_scan_num", "raw_file", "pep_ms1_offset")
   #  as only use td at pep_ms1_offset == 0
   td <- keep_pepfdr_best(td, cols = c("pep_scan_num", "raw_file"))
-  qs::qsave(td, file.path(out_path, "temp", "td_pepfdr.rds"), preset = "fast")
+  qs2::qs_save(td, file.path(out_path, "temp", "td_pepfdr.rds"), compress_level = 0L)
   
   # --- 
   all_lens <- sort(unique(td$pep_len))
   prob_cos <- vector("list", length(all_lens))
   
   if (file.exists(file_data_type <- file.path(mgf_path, "data_type.rds"))) {
-    data_type <- qs::qread(file_data_type)
+    data_type <- qs2::qs_read(file_data_type)
   }
   else {
     warning("File not found: ", file_data_type)
@@ -2457,7 +2465,7 @@ calc_pepfdr <- function (target_fdr = .01, fdr_type = "protein",
   message("Completed peptide FDR at: ", Sys.time())
   
   prob_cos <- fill_probco_nas(prob_nas, prob_no_uses, prob_cos, target_fdr) %T>% 
-    qs::qsave(file.path(out_path, "temp", "pep_probco.rds"), preset = "fast")
+    qs2::qs_save(file.path(out_path, "temp", "pep_probco.rds"), compress_level = 0L)
 }
 
 
@@ -2559,7 +2567,7 @@ post_pepfdr <- function (prob_cos = NULL, n_13c = 0L, out_path = NULL,
     file_prob <- file.path(out_path, "temp", "pep_probco.rds")
     
     if (file.exists(file_prob)) {
-      prob_cos <- qs::qread(file_prob)
+      prob_cos <- qs2::qs_read(file_prob)
     }
     else {
       stop("File not found: ", file_prob)
@@ -2574,11 +2582,11 @@ post_pepfdr <- function (prob_cos = NULL, n_13c = 0L, out_path = NULL,
     stop("Results of peptide scores not found.")
   }
 
-  # td <- lapply(files, function (x) qs::qread(file.path(out_path, "temp", x)))
+  # td <- lapply(files, function (x) qs2::qs_read(file.path(out_path, "temp", x)))
   td <- lapply(files, function (x) {
     # without column "matches" -> `df` may have duplicated rows; 
     # targets and decoys share the same pep_seq but is.na(decoys$pep_ivmod)
-    df <- qs::qread(file.path(out_path, "temp", x))
+    df <- qs2::qs_read(file.path(out_path, "temp", x))
     u  <- df[, c("raw_file", "pep_scan_num", "pep_seq", "pep_ivmod", 
                  "pep_ms1_offset")]
     df <- df[!duplicated.data.frame(u), ]
@@ -2622,7 +2630,7 @@ post_pepfdr <- function (prob_cos = NULL, n_13c = 0L, out_path = NULL,
                   pep_score_co = -log10(pep_adjp_co) * fct_score) |> 
     dplyr::select(-c("pep_prob", "pep_adjp", "pep_prob_co", "pep_adjp_co"))
   
-  qs::qsave(td, file.path(out_path, "temp", "pepfdr.rds"), preset = "fast")
+  qs2::qs_save(td, file.path(out_path, "temp", "pepfdr.rds"), compress_level = 0L)
   
   invisible(td)
 }
@@ -2985,7 +2993,7 @@ fit_protfdr <- function (vec, max_n_pep = 1000L, out_path)
              col = c("blue", "red"), pch = 19, bty = "n")
       dev.off()
       
-      qs::qsave(df, file.path(out_path, "temp", "protein_score_co.rds"))
+      qs2::qs_save(df, file.path(out_path, "temp", "protein_score_co.rds"))
     })
   )
   
@@ -3158,7 +3166,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
     file <- file.path(out_path, "temp", "pepfdr.rds")
     
     if (file.exists(file)) {
-      x <- qs::qread(file)
+      x <- qs2::qs_read(file)
     }
     else {
       stop("File not found: ", file)
@@ -3435,7 +3443,7 @@ calc_peploc <- function (x = NULL, out_path = NULL, mod_indexes = NULL,
   x0 <- x0[, pep_isdecoy := as.logical(pep_isdecoy)]
   x0[["pep_ms2_ideltas."]] <- NULL
   x0[["pep_ivmod2"]] <- NULL
-  qs::qsave(x0, file.path(out_path, "temp", "peploc.rds"), preset = "fast")
+  qs2::qs_save(x0, file.path(out_path, "temp", "peploc.rds"), compress_level = 0L)
   
   message("Completed peptide localization scores at: ", Sys.time())
   invisible(x0)

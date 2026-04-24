@@ -169,7 +169,7 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
     file_peploc <- file.path(sub_path, "temp", "peploc.rds")
     
     if (file.exists(file_peploc)) {
-      ans[[i]] <- qs::qread(file_peploc)
+      ans[[i]] <- qs2::qs_read(file_peploc)
       next
     }
     
@@ -191,7 +191,7 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
     if (!file.exists(file_peploc)) 
       stop("File not found: ", file_peploc)
     
-    ans[[i]] <- if (is.null(df)) qs::qread(file_peploc) else df
+    ans[[i]] <- if (is.null(df)) qs2::qs_read(file_peploc) else df
     rm(list = "df")
     
     if (is.null(ans[[i]])) 
@@ -211,8 +211,8 @@ matchMS_par_groups <- function (par_groups = NULL, grp_args = NULL,
   out <- dplyr::bind_rows(ans)
   rm(list = "ans")
   dir.create(file.path(out_path, "temp"), showWarnings = FALSE, recursive = FALSE)
-  qs::qsave(out, file.path(out_path, "temp", "peploc.rds"), preset = "fast")
-  qs::qsave(out_paths, file.path(out_path, "temp", "out_paths.rds"), preset = "fast")
+  qs2::qs_save(out, file.path(out_path, "temp", "peploc.rds"), compress_level = 0L)
+  qs2::qs_save(out_paths, file.path(out_path, "temp", "out_paths.rds"), compress_level = 0L)
   rm(list = "out")
   
   gc()
@@ -448,9 +448,9 @@ combine_ion_matches <- function (out_path, out_paths, type = "ion_matches_")
   }
   
   for (i in seq_along(files)) {
-    ans <- lapply(out_paths_temp, function (x) qs::qread(file.path(x, files[i])))
+    ans <- lapply(out_paths_temp, function (x) qs2::qs_read(file.path(x, files[i])))
     ans <- dplyr::bind_rows(ans)
-    qs::qsave(ans, file.path(out_path_temp, files[i]), preset = "fast")
+    qs2::qs_save(ans, file.path(out_path_temp, files[i]), compress_level = 0L)
   }
   
   invisible(NULL)
@@ -519,7 +519,7 @@ matchMS_ms1calib <- function (...)
   
   if (passed_ms1calib <- check_ms1calib(out_path, calib_masses)) {
     file <- file.path(mgf_path, "ppm_ms1calib.rds")
-    ppm_ms1_calib <- if (file.exists(file)) qs::qread(file) else stop()
+    ppm_ms1_calib <- if (file.exists(file)) qs2::qs_read(file) else stop()
     ppm_ms1_af <- ppm_ms1_calib[["ppm_ms1_af"]]
   }
   else 

@@ -11,7 +11,7 @@ subset_by_prps(ps, s, motifs)
 
 \item{s}{A pattern}
 
-\item{motifs}{A list of motifs of amino-acide residues. for example,
+\item{motifs}{A list of motifs of amino-acid residues. for example,
 "MN|NG". See also \link{matchMS}.}
 }
 \description{

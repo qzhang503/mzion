@@ -222,7 +222,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
       maxn_vmods_setscombi = maxn_vmods_setscombi)
     
     if (file.exists(file_ms1))
-      aa_masses_ms1 <- qs::qread(file_ms1)
+      aa_masses_ms1 <- qs2::qs_read(file_ms1)
     else
       stop("File not found: ", file_ms1)
     
@@ -428,7 +428,8 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     parallel::stopCluster(cl)
 
     prps <- flatten_list(prps)
-    qs::qsave(prps, file.path(path_prp, "simple_prot_pep.rds"), preset = "fast")
+    qs2::qs_save(prps, file.path(path_prp, "simple_prot_pep.rds"), 
+                 compress_level = 0L)
     rm(list = c("prps"))
 
     # (d) Flattened peptide lists (prot_acc's removed)
@@ -655,10 +656,12 @@ calc_pepmasses2 <- function (aa_masses = NULL,
 
     names(fwd_peps) <- seq_along(aa_masses_all)
 
-    for (i in seq_along(fwd_peps))
-      qs::qsave(fwd_peps[[i]], 
-                file.path(path_masses, paste0("pepmasses_", i, ".rds")), 
-                preset = "fast")
+    for (i in seq_along(fwd_peps)) {
+      qs2::qs_save(
+        fwd_peps[[i]], 
+        file.path(path_masses, paste0("pepmasses_", i, ".rds")), 
+        compress_level = 0L)
+    }
 
     .savecall <- TRUE
     message("\n=== Completed MS1 precursor masses. ===\n")
@@ -673,7 +676,7 @@ calc_pepmasses2 <- function (aa_masses = NULL,
     )
     
     path <- create_dir(file.path(out_path, "Calls"))
-    qs::qsave(.cache_info, file.path(path, ".cache_info.rds"), preset = "fast")
+    qs2::qs_save(.cache_info, file.path(path, ".cache_info.rds"))
   })
 
   # fwd_peps may be NULL if matched with cached
@@ -693,7 +696,7 @@ find_aa_masses <- function(aa_masses = NULL, out_path = NULL, fixedmods = NULL,
   file <- file.path(out_path, "aa_masses_all.rds")
   
   if (file.exists(file))
-    return(qs::qread(file))
+    return(qs2::qs_read(file))
   
   message("Computing the combinations of fixed and variable modifications.")
   
@@ -1043,8 +1046,8 @@ calc_aamasses <- function (fixedmods = c("TMT6plex (K)",
 
   if (!is.null(out_path)) {
     save_mod_indexes(out_path, fixedmods, varmods, f_to_v)
-    qs::qsave(aa_masses_ms1, file.path(out_path, "aa_masses_ms1.rds"), preset = "fast")
-    qs::qsave(aa_masses_all, file.path(out_path, "aa_masses_all.rds"), preset = "fast")
+    qs2::qs_save(aa_masses_ms1, file.path(out_path, "aa_masses_ms1.rds"))
+    qs2::qs_save(aa_masses_all, file.path(out_path, "aa_masses_all.rds"))
     
     fmods <- lapply(aa_masses_all, attr, "fmods", exact = TRUE)
     vmods <- lapply(aa_masses_all, attr, "vmods", exact = TRUE)
@@ -1161,7 +1164,8 @@ check_dupfvmods <- function (fixedmods, varmods)
   if (length(dup_mods)) 
     stop("Modifications cannot be simultaneously 'fixed' and 'variable': \n",
          paste(dup_mods, collapse = ", "), "\n", 
-         "Hint: the default \"fixedmods\" and \"varmods\" are not NULL.")
+         "Hint: the default \"fixedmods\" and \"varmods\" are not NULL; 
+         set the values explicitly")
 }
 
 
@@ -1284,9 +1288,10 @@ check_mod_motifs <- function (mod_motifs, mods)
 find_aamasses_vmodscombi <- function (varmods = NULL, f_to_v = NULL, 
                                       anywhere_coerce_sites = NULL) 
 {
-  if (is.null(varmods))
+  if (is.null(varmods)) {
     return(NULL)
-  
+  }
+
   varmods_comb <- lapply(seq_along(varmods), function (x) sim_combn(varmods, x)) 
   varmods_comb <- unlist(varmods_comb, recursive = FALSE)
   vmods_ps <- find_modps(varmods)

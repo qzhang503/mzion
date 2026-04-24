@@ -95,7 +95,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
       raws_indexes <- file.path(mgf_path, "raw_indexes.rds")
       
       if (file.exists(raws_indexes)) {
-        raws <- qs::qread(raws_indexes)
+        raws <- qs2::qs_read(raws_indexes)
         ques <- list.files(mgf_path, pattern = "^mgf_queries_\\d+\\.rds$")
         if (length(raws) == length(ques)) TRUE else FALSE
       }
@@ -113,7 +113,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
   if (ok_pars && ok_mgfs && ok_type_acqu) {
     message("Found cached MGFs.")
     .savecall <- FALSE
-    type_acqu <- qs::qread(file_type_acqu)
+    type_acqu <- qs2::qs_read(file_type_acqu)
     return(type_acqu)
   }
   
@@ -256,7 +256,7 @@ load_mgfs <- function (out_path = NULL, mgf_path = NULL, topn_ms2ions = 150L,
   
   .savecall <- TRUE
 
-  qs::qsave(type_acqu, file.path(mgf_path, "type_acqu.rds"))
+  qs2::qs_save(type_acqu, file.path(mgf_path, "type_acqu.rds"))
   
   type_acqu
 }
@@ -341,8 +341,8 @@ readMGF <- function (filepath = NULL, filelist = NULL, out_path = NULL,
       mgf_format <- "Bruker-DataAnalysis"
     }
     
-    qs::qsave(list(data_format = data_format, mgf_format = mgf_format), 
-              file.path(filepath, "info_format.rds"), preset = "fast")
+    qs2::qs_save(list(data_format = data_format, mgf_format = mgf_format), 
+                 file.path(filepath, "info_format.rds"), compress_level = 0L)
   })
 
   ## Reads MGF into chunks
@@ -442,7 +442,8 @@ readMGF <- function (filepath = NULL, filelist = NULL, out_path = NULL,
   }
   
   raws <- unlist(out, recursive = FALSE, use.names = TRUE)
-  qs::qsave(raws, file.path(filepath, "raw_indexes.rds"), preset = "fast")
+  qs2::qs_save(raws, file.path(filepath, "raw_indexes.rds"), 
+               compress_level = 0L)
 
   type_acqu <- "dda"
 }
@@ -471,10 +472,10 @@ post_readmgf <- function (df, raw_id, mgf_path)
   scans_map <- df$scan_title <- seq_along(scans)
   names(scans_map) <- scans
   
-  qs::qsave(df, file.path(mgf_path, paste0("mgf_queries_", raw, ".rds")), 
-            preset = "fast")
-  qs::qsave(scans_map, file.path(mgf_path, paste0("scan_map_", raw, ".rds")), 
-            preset = "fast")
+  qs2::qs_save(df, file.path(mgf_path, paste0("mgf_queries_", raw, ".rds")), 
+               compress_level = 0L)
+  qs2::qs_save(scans_map, file.path(mgf_path, paste0("scan_map_", raw, ".rds")), 
+               compress_level = 0L)
 
   invisible(raw_map)
 }

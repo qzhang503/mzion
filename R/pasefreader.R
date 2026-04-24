@@ -14,8 +14,8 @@ readPASEF <- function (mgf_path = NULL, filelist = NULL, pasef_slice_size = 1L,
   logs     <- file.path(temp_dir, "log.txt")
   acceptBrukerLicense(sys_path)
   
-  qs::qsave(list(data_format = "Bruker-RAW", mgf_format = "Mzion"), 
-            file.path(mgf_path, "info_format.rds"), preset = "fast")
+  qs2::qs_save(list(data_format = "Bruker-RAW", mgf_format = "Mzion"), 
+            file.path(mgf_path, "info_format.rds"), compress_level = 0L)
 
   len   <- length(filelist)
   n_pcs <- detect_cores(64L)
@@ -120,8 +120,8 @@ hproc_pasefs <- function (raw_file, mgf_path, temp_dir, pasef_slice_size = 1L,
   
   # PASEF full MS1
   rows <- out$slice_start == 0L
-  qs::qsave(out[rows, ], file.path(temp_dir, paste0("pasefms1_", out_name)), 
-            preset = "fast")
+  qs2::qs_save(out[rows, ], file.path(temp_dir, paste0("pasefms1_", out_name)), 
+            compress_level = 0L)
   out <- out[!rows, ]
 
   lens <- lengths(out$msx_moverzs)
@@ -130,7 +130,7 @@ hproc_pasefs <- function (raw_file, mgf_path, temp_dir, pasef_slice_size = 1L,
   out  <- out[oks, ]
   out <- as.list(out)
   out$raw_file <- raw_file # scalar
-  qs::qsave(out, file.path(temp_dir, out_name), preset = "fast")
+  qs2::qs_save(out, file.path(temp_dir, out_name), compress_level = 0L)
   
   message("Completed PASEF peak list processing: ", out_name)
 

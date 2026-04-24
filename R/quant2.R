@@ -15,8 +15,8 @@ hcalc_tmtint <- function (df, quant = "tmt10", ppm_reporters = 10L, idx = 1L,
                                     sep = "."))
   df[["raw_file"]] <- df[["pep_mod_group"]] <- df[["pep_scan_num"]] <- NULL
   
-  qs::qsave(df, file.path(out_path, paste0("reporters_", idx, ".rds")), 
-            preset = "fast")
+  qs2::qs_save(df, file.path(out_path, paste0("reporters_", idx, ".rds")), 
+            compress_level = 0L)
 
   invisible(df)
 }
@@ -122,7 +122,7 @@ add_rptrs <- function (df = NULL, quant = "none", out_path = NULL)
   idxes <- order(as.integer(gsub("^reporters_([0-9]+)\\.rds$", "\\1", files)))
   files <- files[idxes]
   
-  reporters <- lapply(files, function (x) qs::qread(file.path(out_path, "temp", x)))
+  reporters <- lapply(files, function (x) qs2::qs_read(file.path(out_path, "temp", x)))
   reporters <- dplyr::bind_rows(reporters)
   
   df |>
@@ -359,7 +359,7 @@ add_protacc2 <- function (df = NULL, out_path = NULL, .path_cache = NULL,
     file <- file.path(out_path, "temp", "peploc.rds")
     
     if (file.exists(file))
-      df <- qs::qread(file)
+      df <- qs2::qs_read(file)
     else
       stop("File not found: ", file)
     
@@ -388,7 +388,7 @@ add_protacc2 <- function (df = NULL, out_path = NULL, .path_cache = NULL,
     .path_ms1masses <- cache_info[[".path_ms1masses"]]
     
     file <- file.path(.path_ms1masses, .time_stamp, "simple_prot_pep.rds")
-    prps[[i]] <- if (file.exists(file)) qs::qread(file) else NULL
+    prps[[i]] <- if (file.exists(file)) qs2::qs_read(file) else NULL
   }
   
   upeps <- unique(df$pep_seq)
@@ -416,7 +416,7 @@ add_protacc <- function (df = NULL, out_path = NULL, .path_cache = NULL,
     file <- file.path(out_path, "temp", "peploc.rds")
     
     if (file.exists(file))
-      df <- qs::qread(file)
+      df <- qs2::qs_read(file)
     else
       stop("File not found: ", file)
     
@@ -433,7 +433,7 @@ add_protacc <- function (df = NULL, out_path = NULL, .path_cache = NULL,
   if (length(.time_stamp) > 1L)
     stop("Multiple matches in time stamps in annotating protein acccessions.")
   
-  prps <- qs::qread(file.path(.path_ms1masses, .time_stamp, "simple_prot_pep.rds"))
+  prps <- qs2::qs_read(file.path(.path_ms1masses, .time_stamp, "simple_prot_pep.rds"))
   prps <- msub_protpep(prps, unique(df[["pep_seq"]]))
   
   message("Completed protein accessions at: ", Sys.time())
@@ -677,7 +677,7 @@ groupProts <- function (df, out_path = NULL, fct = 4L,
   sets <- rbind2(df_shared, df_uniq)
   
   if (!is.null(out_path)) {
-    qs::qsave(sets, file.path(out_path, out_name), preset = "fast")
+    qs2::qs_save(sets, file.path(out_path, out_name), compress_level = 0L)
   }
   
   ess_prots <- unique(sets$prot_acc)
@@ -1312,7 +1312,7 @@ cut_proteinGroups <- function (M = NULL, out_path = NULL)
     dplyr::ungroup()
 
   if (!is.null(out_path)) {
-    qs::qsave(grps, file.path(out_path, "prot_grps.rds"), preset = "fast")
+    qs2::qs_save(grps, file.path(out_path, "prot_grps.rds"), compress_level = 0L)
   }
 
   # stopifnot(identical(grps$prot_acc, prots))

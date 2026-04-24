@@ -26,7 +26,7 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
   if (!length(mgf_files))
     stop("No `mgf_queries_[...]` files found under ", mgf_path)
   
-  mgfs <- lapply(mgf_files, qs::qread)
+  mgfs <- lapply(mgf_files, qs2::qs_read)
   
   # data thinning for MGF calibrations
   if (first_search) {
@@ -53,7 +53,7 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
   # need additional handling of mzML with list(NULL) entries
   # setting the default to "mzML" to reinforce list(NULL) handling
   data_type <- if (file.exists(fi <- file.path(mgf_path, "data_type.rds")))
-    qs::qread(fi)
+    qs2::qs_read(fi)
   else
     "mzml"
 
@@ -65,7 +65,7 @@ pair_mgftheos <- function (mgf_path, n_modules, ms1_offsets = 0, quant = "none",
            .path_bin = .path_bin, data_type = data_type), 
          SIMPLIFY = FALSE, USE.NAMES = FALSE)
   
-  qs::qsave(data.frame(ms1_offset = ms1_offsets, notch = notches), 
+  qs2::qs_save(data.frame(ms1_offset = ms1_offsets, notch = notches), 
             file.path(mgf_path, "notches.rds"))
 
   invisible(NULL)
@@ -183,7 +183,7 @@ hpair_mgths <- function (ms1_offset = 0, n_13c = 0L, notch = NULL,
   
   for (i in seq_len(n_modules)) {
     theos <- 
-      qs::qread(file.path(.path_bin, paste0("binned_theopeps_", i, ".rds")))
+      qs2::qs_read(file.path(.path_bin, paste0("binned_theopeps_", i, ".rds")))
     
     if (is.null(theos))
       next
@@ -228,14 +228,14 @@ hpair_mgths <- function (ms1_offset = 0, n_13c = 0L, notch = NULL,
   anstheo <- lapply(anstheo, function (x) x[ord])
   
   # (5) outputs (in chunks)
-  qs::qsave(mgfs, 
+  qs2::qs_save(mgfs, 
             file.path(mgf_path, paste0("expt_", 0, "_", notch, ".rds")), 
-            preset = "fast")
+            compress_level = 0L)
   
   for (i in seq_len(n_modules))
-    qs::qsave(anstheo[[i]], 
+    qs2::qs_save(anstheo[[i]], 
               file.path(mgf_path, paste0("theo_", i, "_", notch, ".rds")), 
-              preset = "fast")
+              compress_level = 0L)
 
   # next version: note that mgfs are the same for different modules
   # also save by fractions -> avoid sendData in parallel by read from disk
@@ -394,8 +394,8 @@ make_dia_mgfs <- function (mgfs, mgf_path, quant = "none", min_mass = 200L,
 
   # set aside...
   cols_scan <- c("raw_file", "scan_num", "orig_scan", "apex_scan_num")
-  qs::qsave(mgfs[, cols_scan], 
-            file.path(mgf_path, "apex_scan_nums.rds"), preset = "fast")
+  qs2::qs_save(mgfs[, cols_scan], 
+            file.path(mgf_path, "apex_scan_nums.rds"), compress_level = 0L)
   mgfs <- mgfs[, !names(mgfs) %in% c("orig_scan", "apex_scan_num")]
 
   # post flattening
@@ -1074,7 +1074,7 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
         notches <- unique(unlist(lapply(nls[oks], `[[`, "nl")))
         notches <- -round(notches, digits = 4)
         
-        df <- qs::qread(file.path(mgf_path, "notches.rds"))
+        df <- qs2::qs_read(file.path(mgf_path, "notches.rds"))
         allowed <- df[with(df, ms1_offset %in% notches), ]$notch # at least one
         
         univ  <- as.integer(gsub("^theo_\\d+_(\\d+)\\.rds", "\\1", nms_theo))
@@ -1162,7 +1162,7 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
   out_nm <- file.path(out_path, "temp", paste0("ion_matches_", pep_mod_group, ".rds"))
   
   if (is.null(df)) {
-    qs::qsave(df, out_nm, preset = "fast")
+    qs2::qs_save(df, out_nm, compress_level = 0L)
     return(NULL)
   }
   
@@ -1184,7 +1184,7 @@ hms2match_one <- function (pep_mod_group, nms_theo, nms_expt, aa_masses, FUN,
   # df[["pep_scan_num"]] <- as.character(df[["pep_scan_num"]])
   df <- reloc_col_after(df, "raw_file", "scan_num")
   df <- reloc_col_after(df, "pep_mod_group", "raw_file")
-  qs::qsave(df, out_nm, preset = "fast")
+  qs2::qs_save(df, out_nm, compress_level = 0L)
 }
 
 
@@ -1219,8 +1219,8 @@ ms2match_one <- function (nms_theo, nms_expt, pep_mod_group, aa_masses, FUN,
                           df0 = NULL)
 {
   out_name   <- gsub("^theo", "ion_matches", nms_theo)
-  mgf_frames <- qs::qread(file.path(mgf_path, nms_expt))
-  theopeps   <- qs::qread(file.path(mgf_path, nms_theo))
+  mgf_frames <- qs2::qs_read(file.path(mgf_path, nms_expt))
+  theopeps   <- qs2::qs_read(file.path(mgf_path, nms_theo))
 
   len <- length(mgf_frames)
   

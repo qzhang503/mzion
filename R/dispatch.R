@@ -794,7 +794,7 @@ find_cmodtree <- function (prps, excepts = NULL, min_n_res, vmods, posns, len,
 #'
 #' From N-term to C-term.
 #'
-#' @param motifs A list of motifs of amino-acide residues. for example,
+#' @param motifs A list of motifs of amino-acid residues. for example,
 #' "MN|NG". See also \link{matchMS}.
 #' @inheritParams add_var_masses
 #' @inheritParams distri_peps
